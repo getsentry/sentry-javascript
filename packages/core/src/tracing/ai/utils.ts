@@ -111,3 +111,44 @@ export function getTruncatedJsonString<T>(value: T | T[]): string {
   // value is an object, so we need to stringify it
   return JSON.stringify(value);
 }
+
+/**
+ * Extract system instructions from messages array.
+ * Finds the first system message and formats it according to OpenTelemetry semantic conventions.
+ *
+ * @param messages - Array of messages to extract system instructions from
+ * @returns systemInstructions (JSON string) and filteredMessages (without system message)
+ */
+export function extractSystemInstructions(messages: unknown[] | unknown): {
+  systemInstructions: string | undefined;
+  filteredMessages: unknown[] | unknown;
+} {
+  if (!Array.isArray(messages)) {
+    return { systemInstructions: undefined, filteredMessages: messages };
+  }
+
+  const systemMessageIndex = messages.findIndex(
+    msg => msg && typeof msg === 'object' && 'role' in msg && (msg as { role: string }).role === 'system',
+  );
+
+  if (systemMessageIndex === -1) {
+    return { systemInstructions: undefined, filteredMessages: messages };
+  }
+
+  const systemMessage = messages[systemMessageIndex] as { role: string; content?: string | unknown };
+  const systemContent =
+    typeof systemMessage.content === 'string'
+      ? systemMessage.content
+      : systemMessage.content !== undefined
+        ? JSON.stringify(systemMessage.content)
+        : undefined;
+
+  if (!systemContent) {
+    return { systemInstructions: undefined, filteredMessages: messages };
+  }
+
+  const systemInstructions = JSON.stringify([{ type: 'text', content: systemContent }]);
+  const filteredMessages = [...messages.slice(0, systemMessageIndex), ...messages.slice(systemMessageIndex + 1)];
+
+  return { systemInstructions, filteredMessages };
+}

@@ -14,6 +14,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
@@ -767,4 +768,32 @@ describe('Vercel AI integration', () => {
       await createRunner().expect({ transaction: expectedTransaction }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-system-instructions.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('extracts system instructions from messages', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
+                      { type: 'text', content: 'You are a helpful assistant' },
+                    ]),
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
