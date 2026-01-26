@@ -22,20 +22,23 @@ export function shouldInstrument(methodPath: string): methodPath is AnthropicAiI
  * Extracts system instructions before truncation.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {
-  const length = Array.isArray(messages) ? messages.length : 1;
-  if (length !== 0) {
-    const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+  if (Array.isArray(messages) && messages.length === 0) {
+    return;
+  }
 
-    if (systemInstructions) {
-      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
-    }
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
-    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : undefined;
+  if (systemInstructions) {
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
-      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+      [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: systemInstructions,
     });
   }
+
+  const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 1;
+  span.setAttributes({
+    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+  });
 }
 
 /**
