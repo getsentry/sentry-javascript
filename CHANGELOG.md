@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @sebws and @harshit078. Thank you for your contributions!
+Work in this release was contributed by @sebws, @harshit078, and @fedetorre. Thank you for your contributions!
 
 - **feat(core): Introduces a new `Sentry.setConversationId()` API to track multi turn AI conversations across API calls. ([#18909](https://github.com/getsentry/sentry-javascript/pull/18909))**
 
