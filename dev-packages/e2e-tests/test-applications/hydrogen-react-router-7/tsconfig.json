@@ -1,5 +1,14 @@
 {
-  "include": ["server.ts", "./app/**/*.d.ts", "./app/**/*.ts", "./app/**/*.tsx", ".react-router/types/**/*"],
+  "include": [
+    "env.d.ts",
+    "globals.d.ts",
+    "virtual-modules.d.ts",
+    "server.ts",
+    "./app/**/*.d.ts",
+    "./app/**/*.ts",
+    "./app/**/*.tsx",
+    ".react-router/types/**/*"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "isolatedModules": true,

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react-router/cloudflare';
-import { type LoaderFunctionArgs } from '@shopify/remix-oxygen';
+import type { LoaderFunctionArgs } from 'react-router';
 import {
   Outlet,
   isRouteErrorResponse,
@@ -9,8 +9,6 @@ import {
   Scripts,
   ScrollRestoration,
 } from 'react-router';
-import { FOOTER_QUERY, HEADER_QUERY } from '~/lib/fragments';
-
 import { useNonce } from '@shopify/hydrogen';
 
 export type RootLoader = typeof loader;
@@ -57,17 +55,14 @@ export function links() {
 }
 
 export async function loader(args: LoaderFunctionArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
   const { env } = args.context;
 
+  // Simplified loader for Sentry SDK testing - skip storefront queries
   return {
-    ...deferredData,
-    ...criticalData,
+    header: null,
+    cart: null,
+    isLoggedIn: false,
+    footer: null,
     ENV: {
       sentryTrace: env.SENTRY_TRACE,
       sentryBaggage: env.SENTRY_BAGGAGE,
@@ -77,58 +72,9 @@ export async function loader(args: LoaderFunctionArgs) {
       checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN,
       storefrontAccessToken: env.PUBLIC_STOREFRONT_API_TOKEN,
       withPrivacyBanner: false,
-      // localize the privacy banner
-      country: args.context.storefront.i18n.country,
-      language: args.context.storefront.i18n.language,
+      country: 'US',
+      language: 'EN',
     },
-  };
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({ context }: LoaderFunctionArgs) {
-  const { storefront } = context;
-
-  const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  return { header };
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({ context }: LoaderFunctionArgs) {
-  const { storefront, customerAccount, cart } = context;
-
-  // defer the footer query (below the fold)
-  const footer = storefront
-    .query(FOOTER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        footerMenuHandle: 'footer', // Adjust to your footer menu handle
-      },
-    })
-    .catch((error: any) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
-      return null;
-    });
-  return {
-    cart: cart.get(),
-    isLoggedIn: customerAccount.isLoggedIn(),
-    footer,
   };
 }
 

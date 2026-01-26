@@ -1,7 +1,8 @@
 import { useLoaderData } from 'react-router';
-import type { LoaderFunction } from '@shopify/remix-oxygen';
+import type { LoaderFunction } from 'react-router';
 
-export const loader: LoaderFunction = async ({ params: { id } }) => {
+export const loader: LoaderFunction = async ({ params }) => {
+  const { id } = params as { id: string };
   if (id === '-1') {
     throw new Error('Unexpected Server Error');
   }
