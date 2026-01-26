@@ -9,6 +9,7 @@ Sentry.init({
   environment: 'test',
   enableLogs: true,
   transport: loggingTransport,
+  debug: true,
 });
 
 async function run(): Promise<void> {
@@ -62,6 +63,35 @@ async function run(): Promise<void> {
       foo: 'bar',
       number: 42,
     });
+  }
+
+  // If unmapped custom level is requested (tests debug line for unknown levels)
+  if (process.env.UNMAPPED_CUSTOM_LEVEL === 'true') {
+    const customLevels = {
+      levels: {
+        myUnknownLevel: 0,
+        error: 1,
+      },
+    };
+
+    // Create transport WITHOUT customLevelMap for myUnknownLevel
+    // myUnknownLevel will default to 'info', but we only capture 'error'
+    const UnmappedSentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      levels: ['error'],
+    });
+
+    const unmappedLogger = winston.createLogger({
+      levels: customLevels.levels,
+      level: 'error',
+      transports: [new UnmappedSentryWinstonTransport()],
+    });
+
+    // This should NOT be captured (unknown level defaults to 'info', which is not in levels)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error - custom levels are not part of the winston logger
+    unmappedLogger.myUnknownLevel('This unknown level message should be skipped');
+    // This SHOULD be captured
+    unmappedLogger.error('This error message should be captured');
   }
 
   // If custom level mapping is requested

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { LogSeverityLevel } from '@sentry/core';
+import { debug } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import { captureLog } from '../logs/capture';
 
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
@@ -109,6 +111,8 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
             ...attributes,
             'sentry.origin': 'auto.log.winston',
           });
+        } else if (!customLevel) {
+          DEBUG_BUILD && debug.log(`Winston log level ${levelFromSymbol} is not captured by Sentry. Please add ${levelFromSymbol} to the "customLevelMap" option of the Sentry Winston transport.`);
         }
       } catch {
         // do nothing
