@@ -76,7 +76,7 @@ sentryTest(
         expect.objectContaining({
           filename: expect.stringMatching(/simple\.wasm$/),
           platform: 'native',
-          instruction_addr: expect.stringMatching(/^0x[a-fA-F0-9]+$/),
+          instruction_addr: expect.stringMatching(/^0x[a-fA-F\d]+$/),
           addr_mode: expect.stringMatching(/^rel:\d+$/),
         }),
       ]),

@@ -21,7 +21,7 @@ function registerModuleAndForward(module, url) {
       code_id: buildId,
       code_file: url,
       debug_file: null,
-      debug_id: (buildId + '00000000000000000000000000000000').slice(0, 32) + '0',
+      debug_id: `${`${buildId}00000000000000000000000000000000`.slice(0, 32)}0`,
     };
 
     self.postMessage({
@@ -45,12 +45,12 @@ function getBuildId(module) {
 
 // Handle messages from the main thread
 self.addEventListener('message', async event => {
+  function crash() {
+    throw new Error('WASM error from worker');
+  }
+
   if (event.data.type === 'load-wasm-and-crash') {
     const wasmUrl = event.data.wasmUrl;
-
-    function crash() {
-      throw new Error('WASM error from worker');
-    }
 
     try {
       const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), {
