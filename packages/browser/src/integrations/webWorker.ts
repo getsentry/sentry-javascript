@@ -149,7 +149,7 @@ function listenForSentryMessages(worker: Worker): void {
         );
         (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages = [
           ...existingImages,
-          ...(newImages as Array<DebugImage>),
+          ...newImages,
         ];
       }
 
