@@ -56,8 +56,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-sveltekit-global-values-injection-plugin',
       // default source maps plugins:
       'sentry-telemetry-plugin',
-      'sentry-vite-release-injection-plugin',
-      'sentry-vite-debug-id-injection-plugin',
+      'sentry-vite-injection-plugin',
       'sentry-sveltekit-update-source-map-setting-plugin',
       'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       // custom release plugin:
