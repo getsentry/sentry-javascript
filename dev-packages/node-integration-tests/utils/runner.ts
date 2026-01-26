@@ -805,27 +805,37 @@ function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricC
 function convertEsmToCjs(content: string): string {
   let newContent = content;
 
+  // Helper to convert .mjs paths to .cjs for local relative imports
+  const convertModulePath = (modulePath: string): string => {
+    if (modulePath.startsWith('.') && modulePath.endsWith('.mjs')) {
+      return modulePath.replace(/\.mjs$/, '.cjs');
+    }
+    return modulePath;
+  };
+
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
     // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
+      const cjsModule = convertModulePath(module);
       if (imports.includes('* as')) {
         // Handle namespace imports: import * as x from 'y' -> const x = require('y')
-        return `const ${imports.replace('* as', '').trim()} = require('${module}')`;
+        return `const ${imports.replace('* as', '').trim()} = require('${cjsModule}')`;
       } else if (imports.includes('{')) {
         // Handle named imports: import {x, y} from 'z' -> const {x, y} = require('z')
-        return `const ${imports} = require('${module}')`;
+        return `const ${imports} = require('${cjsModule}')`;
       } else {
         // Handle default imports: import x from 'y' -> const x = require('y')
-        return `const ${imports} = require('${module}')`;
+        return `const ${imports} = require('${cjsModule}')`;
       }
     },
   );
 
   // Handle side-effect imports: import 'x' -> require('x')
   newContent = newContent.replace(/import\s+['"]([^'"]+)['"]/g, (_, module) => {
-    return `require('${module}')`;
+    const cjsModule = convertModulePath(module);
+    return `require('${cjsModule}')`;
   });
 
   return newContent;

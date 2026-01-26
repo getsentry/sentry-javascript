@@ -159,6 +159,26 @@ export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/lang
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
+export { setTokenUsageAttributes, getTruncatedJsonString } from './tracing/ai/utils';
+export {
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+} from './tracing/ai/gen-ai-attributes';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
