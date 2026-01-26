@@ -150,9 +150,11 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
   const truncatedInput = getTruncatedJsonString(src);
   span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
 
-  // Record original length if it's an array
+  // Record original length
   if (Array.isArray(src)) {
     span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, src.length);
+  } else {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
   }
 }
 

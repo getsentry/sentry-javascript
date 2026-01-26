@@ -119,7 +119,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
@@ -337,7 +337,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
@@ -411,7 +411,7 @@ describe('Vercel AI integration', () => {
         data: {
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),

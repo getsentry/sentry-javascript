@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -534,6 +535,7 @@ describe('Google GenAI integration', () => {
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(
                       /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
                     ),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'generate_content gemini-1.5-flash',
                   op: 'gen_ai.generate_content',
@@ -555,6 +557,7 @@ describe('Google GenAI integration', () => {
                         parts: [{ text: 'This is a small message that fits within the limit' }],
                       },
                     ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'generate_content gemini-1.5-flash',
                   op: 'gen_ai.generate_content',

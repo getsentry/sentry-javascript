@@ -118,7 +118,7 @@ export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 /**
  * Original length of messages array, used to indicate truncations had occured
  */
-export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.input.messages.original_length';
+export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.gen_ai.input.messages.original_length';
 
 /**
  * The prompt messages
