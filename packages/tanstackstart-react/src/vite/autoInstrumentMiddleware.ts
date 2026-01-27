@@ -1,8 +1,10 @@
+import { stringMatchesSomePattern } from '@sentry/core';
 import type { Plugin } from 'vite';
 
 type AutoInstrumentMiddlewareOptions = {
   enabled?: boolean;
   debug?: boolean;
+  exclude?: Array<string | RegExp>;
 };
 
 type WrapResult = {
@@ -88,12 +90,31 @@ function applyWrap(
 }
 
 /**
+ * Checks if a file should be skipped from auto-instrumentation based on exclude patterns.
+ */
+function shouldSkipFile(id: string, exclude: Array<string | RegExp> | undefined, debug: boolean): boolean {
+  if (!exclude || exclude.length === 0) {
+    return false;
+  }
+
+  if (stringMatchesSomePattern(id, exclude)) {
+    if (debug) {
+      // eslint-disable-next-line no-console
+      console.log(`[Sentry] Skipping auto-instrumentation for excluded file: ${id}`);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * A Vite plugin that automatically instruments TanStack Start middlewares:
  * - `requestMiddleware` and `functionMiddleware` arrays in `createStart()`
  * - `middleware` arrays in `createFileRoute()` route definitions
  */
 export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddlewareOptions = {}): Plugin {
-  const { enabled = true, debug = false } = options;
+  const { enabled = true, debug = false, exclude } = options;
 
   return {
     name: 'sentry-tanstack-middleware-auto-instrument',
@@ -106,6 +127,11 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
 
       // Skip if not a TS/JS file
       if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id)) {
+        return null;
+      }
+
+      // Skip if file matches exclude patterns
+      if (shouldSkipFile(id, exclude, debug)) {
         return null;
       }
 

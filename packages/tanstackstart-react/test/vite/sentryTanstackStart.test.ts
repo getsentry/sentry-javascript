@@ -118,13 +118,48 @@ describe('sentryTanstackStart()', () => {
     it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
       sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
 
-      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: true });
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
+        enabled: true,
+        debug: true,
+        exclude: undefined,
+      });
     });
 
     it('passes debug: undefined when not specified', () => {
       sentryTanstackStart({ sourcemaps: { disable: true } });
 
-      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: undefined });
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
+        enabled: true,
+        debug: undefined,
+        exclude: undefined,
+      });
+    });
+
+    it('passes exclude patterns when autoInstrumentMiddleware is an object', () => {
+      const excludePatterns = ['/routes/admin/', /\.test\.ts$/];
+      sentryTanstackStart({
+        autoInstrumentMiddleware: { exclude: excludePatterns },
+        sourcemaps: { disable: true },
+      });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
+        enabled: true,
+        debug: undefined,
+        exclude: excludePatterns,
+      });
+    });
+
+    it('passes exclude: undefined when autoInstrumentMiddleware is true', () => {
+      sentryTanstackStart({
+        autoInstrumentMiddleware: true,
+        sourcemaps: { disable: true },
+      });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
+        enabled: true,
+        debug: undefined,
+        exclude: undefined,
+      });
     });
   });
 });

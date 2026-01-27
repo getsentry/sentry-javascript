@@ -8,17 +8,34 @@ import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourc
  */
 export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
   /**
-   * If this flag is `true`, the Sentry plugins will automatically instrument TanStack Start middlewares.
+   * Configure automatic middleware instrumentation.
    *
-   * This wraps global middlewares (`requestMiddleware` and `functionMiddleware`) in `createStart()` with Sentry
-   * instrumentation to capture performance data.
+   * - Set to `false` to disable automatic middleware instrumentation entirely.
+   * - Set to `true` (default) to enable for all middleware files.
+   * - Set to an object with `exclude` to enable but exclude specific files.
    *
-   * Set to `false` to disable automatic middleware instrumentation if you prefer to wrap middlewares manually
-   * using `wrapMiddlewaresWithSentry`.
+   * The `exclude` option takes an array of strings or regular expressions matched
+   * against the full file path. String patterns match as substrings.
    *
    * @default true
+   *
+   * @example
+   * // Disable completely
+   * sentryTanstackStart({ autoInstrumentMiddleware: false })
+   *
+   * @example
+   * // Enable with exclusions
+   * sentryTanstackStart({
+   *   autoInstrumentMiddleware: {
+   *     exclude: ['/routes/admin/', /\.test\.ts$/],
+   *   },
+   * })
    */
-  autoInstrumentMiddleware?: boolean;
+  autoInstrumentMiddleware?:
+    | boolean
+    | {
+        exclude?: Array<string | RegExp>;
+      };
 }
 
 /**
@@ -54,8 +71,18 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
 
   // middleware auto-instrumentation
-  if (options.autoInstrumentMiddleware !== false) {
-    plugins.push(makeAutoInstrumentMiddlewarePlugin({ enabled: true, debug: options.debug }));
+  const autoInstrumentConfig = options.autoInstrumentMiddleware;
+  const isDisabled = autoInstrumentConfig === false;
+  const excludePatterns = typeof autoInstrumentConfig === 'object' ? autoInstrumentConfig.exclude : undefined;
+
+  if (!isDisabled) {
+    plugins.push(
+      makeAutoInstrumentMiddlewarePlugin({
+        enabled: true,
+        debug: options.debug,
+        exclude: excludePatterns,
+      }),
+    );
   }
 
   // source maps
