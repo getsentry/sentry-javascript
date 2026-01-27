@@ -445,6 +445,97 @@ describe('addSentryImport', () => {
   });
 });
 
+describe('exclude option', () => {
+  const createStartFile = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [authMiddleware] }));
+`;
+
+  it('excludes files matching string pattern (substring match)', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: ['/routes/admin/'],
+    }) as PluginWithTransform;
+
+    const result = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('excludes files matching regex pattern', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: [/\.test\.ts$/],
+    }) as PluginWithTransform;
+
+    const result = plugin.transform(createStartFile, '/app/start.test.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('excludes files matching any of multiple patterns', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: ['/routes/admin/', /\.test\.ts$/],
+    }) as PluginWithTransform;
+
+    // String pattern match
+    const result1 = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
+    expect(result1).toBeNull();
+
+    // Regex pattern match
+    const result2 = plugin.transform(createStartFile, '/app/start.test.ts');
+    expect(result2).toBeNull();
+  });
+
+  it('instruments files not matching exclude patterns', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: ['/routes/admin/', /\.test\.ts$/],
+    }) as PluginWithTransform;
+
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
+  });
+
+  it('instruments all files when exclude is empty array', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: [],
+    }) as PluginWithTransform;
+
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
+  });
+
+  it('instruments all files when exclude is undefined', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: undefined,
+    }) as PluginWithTransform;
+
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
+  });
+
+  it('logs debug message when file is excluded', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      debug: true,
+      exclude: ['/routes/admin/'],
+    }) as PluginWithTransform;
+
+    plugin.transform(createStartFile, '/app/routes/admin/start.ts');
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping auto-instrumentation for excluded file'),
+    );
+
+    consoleLogSpy.mockRestore();
+  });
+});
+
 describe('arrayToObjectShorthand', () => {
   it('converts single identifier', () => {
     expect(arrayToObjectShorthand('foo')).toBe('{ foo }');
