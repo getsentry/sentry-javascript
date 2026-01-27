@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  addSentryImport,
   arrayToObjectShorthand,
   makeAutoInstrumentMiddlewarePlugin,
   wrapGlobalMiddleware,
@@ -59,30 +60,6 @@ createStart(() => ({ requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware
     const result = plugin.transform(code, '/app/start.ts');
 
     expect(result).toBeNull();
-  });
-
-  it('handles files with use server directive', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `'use server';
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [authMiddleware] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toMatch(/^'use server';\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
-  });
-
-  it('handles files with use client directive', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `"use client";
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [authMiddleware] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toMatch(/^"use client";\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
   });
 
   it('adds import statement when wrapping middlewares', () => {
@@ -349,6 +326,33 @@ export const Route = createFileRoute('/foo')({
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping route middleware'));
 
     consoleLogSpy.mockRestore();
+  });
+});
+
+describe('addSentryImport', () => {
+  it('prepends import to code without directives', () => {
+    const code = 'const foo = 1;';
+    const result = addSentryImport(code);
+
+    expect(result).toBe(
+      "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;",
+    );
+  });
+
+  it('inserts import after use server directive', () => {
+    const code = "'use server';\nconst foo = 1;";
+    const result = addSentryImport(code);
+
+    expect(result).toMatch(/^'use server';\nimport \{ wrapMiddlewaresWithSentry \}/);
+    expect(result).toContain('const foo = 1;');
+  });
+
+  it('inserts import after use client directive', () => {
+    const code = '"use client";\nconst foo = 1;';
+    const result = addSentryImport(code);
+
+    expect(result).toMatch(/^"use client";\nimport \{ wrapMiddlewaresWithSentry \}/);
+    expect(result).toContain('const foo = 1;');
   });
 });
 

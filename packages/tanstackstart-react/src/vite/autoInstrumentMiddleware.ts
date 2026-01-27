@@ -43,6 +43,24 @@ export function wrapGlobalMiddleware(code: string, id: string, debug: boolean): 
 }
 
 /**
+ * Adds the wrapMiddlewaresWithSentry import to the code.
+ * Handles 'use client' and 'use server' directives by inserting the import after them.
+ */
+export function addSentryImport(code: string): string {
+  const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
+
+  // Check for 'use server' or 'use client' directives, these need to be before any imports
+  const directiveMatch = code.match(/^(['"])use (client|server)\1;?\s*\n?/);
+
+  if (!directiveMatch) {
+    return sentryImport + code;
+  }
+
+  const directive = directiveMatch[0];
+  return directive + sentryImport + code.slice(directive.length);
+}
+
+/**
  * Wraps route middleware arrays in createFileRoute() files.
  */
 export function wrapRouteMiddleware(code: string, id: string, debug: boolean): WrapResult {
@@ -140,17 +158,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
-
-      // Check for 'use server' or 'use client' directives, these need to be before any imports
-      const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);
-      if (directiveMatch) {
-        // Insert import after the directive
-        const directive = directiveMatch[0];
-        transformed = directive + sentryImport + transformed.slice(directive.length);
-      } else {
-        transformed = sentryImport + transformed;
-      }
+      transformed = addSentryImport(transformed);
 
       return { code: transformed, map: null };
     },
