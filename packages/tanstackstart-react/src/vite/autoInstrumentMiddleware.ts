@@ -12,65 +12,45 @@ type WrapResult = {
 };
 
 /**
- * Wraps global middleware arrays (requestMiddleware, functionMiddleware) in createStart() files.
+ * Core function that wraps middleware arrays matching the given regex.
  */
-export function wrapGlobalMiddleware(code: string, id: string, debug: boolean): WrapResult {
+function wrapMiddlewareArrays(code: string, id: string, debug: boolean, regex: RegExp): WrapResult {
   const skipped: string[] = [];
   let didWrap = false;
 
-  const transformed = code.replace(
-    /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g,
-    (match: string, key: string, contents: string) => {
-      const objContents = arrayToObjectShorthand(contents);
-      if (objContents) {
-        didWrap = true;
-        if (debug) {
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
-        }
-        return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
+  const transformed = code.replace(regex, (match: string, key: string, contents: string) => {
+    const objContents = arrayToObjectShorthand(contents);
+    if (objContents) {
+      didWrap = true;
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
       }
-      // Track middlewares that couldn't be auto-wrapped
-      // Skip if we matched whitespace only
-      if (contents.trim()) {
-        skipped.push(key);
-      }
-      return match;
-    },
-  );
+      return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
+    }
+    // Track middlewares that couldn't be auto-wrapped
+    // Skip if we matched whitespace only
+    if (contents.trim()) {
+      skipped.push(key);
+    }
+    return match;
+  });
 
   return { code: transformed, didWrap, skipped };
+}
+
+/**
+ * Wraps global middleware arrays (requestMiddleware, functionMiddleware) in createStart() files.
+ */
+export function wrapGlobalMiddleware(code: string, id: string, debug: boolean): WrapResult {
+  return wrapMiddlewareArrays(code, id, debug, /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g);
 }
 
 /**
  * Wraps route middleware arrays in createFileRoute() files.
  */
 export function wrapRouteMiddleware(code: string, id: string, debug: boolean): WrapResult {
-  const skipped: string[] = [];
-  let didWrap = false;
-
-  const transformed = code.replace(
-    /(\s+)(middleware)\s*:\s*\[([^\]]*)\]/g,
-    (match: string, whitespace: string, key: string, contents: string) => {
-      const objContents = arrayToObjectShorthand(contents);
-      if (objContents) {
-        didWrap = true;
-        if (debug) {
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry] Auto-wrapping route ${key} in ${id}`);
-        }
-        return `${whitespace}${key}: wrapMiddlewaresWithSentry(${objContents})`;
-      }
-      // Track middlewares that couldn't be auto-wrapped
-      // Skip if we matched whitespace only
-      if (contents.trim()) {
-        skipped.push(`route ${key}`);
-      }
-      return match;
-    },
-  );
-
-  return { code: transformed, didWrap, skipped };
+  return wrapMiddlewareArrays(code, id, debug, /(middleware)\s*:\s*\[([^\]]*)\]/g);
 }
 
 /**

@@ -285,7 +285,7 @@ export const Route = createFileRoute('/foo')({
     const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
     expect(result.didWrap).toBe(false);
-    expect(result.skipped).toContain('route middleware');
+    expect(result.skipped).toContain('middleware');
   });
 
   it('wraps both route-level and handler-level middleware in same file', () => {
@@ -323,7 +323,7 @@ export const Route = createFileRoute('/foo')({
 `;
     wrapRouteMiddleware(code, '/app/routes/foo.ts', true);
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping route middleware'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping middleware'));
 
     consoleLogSpy.mockRestore();
   });
