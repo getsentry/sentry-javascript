@@ -7117,31 +7117,12 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry/babel-plugin-component-annotate@4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.7.0.tgz#46841deb27275b7d235f2fbce42c5156ad6c7ae6"
-  integrity sha512-MkyajDiO17/GaHHFgOmh05ZtOwF5hmm9KRjVgn9PXHIdpz+TFM5mkp1dABmR6Y75TyNU98Z1aOwPOgyaR5etJw==
-
 "@sentry/babel-plugin-component-annotate@4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.8.0.tgz#6705126a7726bd248f93acc79b8f3c8921b1c385"
   integrity sha512-cy/9Eipkv23MsEJ4IuB4dNlVwS9UqOzI3Eu+QPake5BVFgPYCX0uP0Tr3Z43Ime6Rb+BiDnWC51AJK9i9afHYw==
 
-"@sentry/bundler-plugin-core@4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.7.0.tgz#00ab83727df34bbbe170f032fa948e6f21f43185"
-  integrity sha512-gFdEtiup/7qYhN3vp1v2f0WL9AG9OorWLtIpfSBYbWjtzklVNg1sizvNyZ8nEiwtnb25LzvvCUbOP1SyP6IodQ==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "4.7.0"
-    "@sentry/cli" "^2.57.0"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^10.5.0"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
-
-"@sentry/bundler-plugin-core@4.8.0", "@sentry/bundler-plugin-core@^4.6.2":
+"@sentry/bundler-plugin-core@4.8.0", "@sentry/bundler-plugin-core@^4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.8.0.tgz#2e7a4493795a848951e1e074a1b15b650fe0e6b0"
   integrity sha512-QaXd/NzaZ2vmiA2FNu2nBkgQU+17N3fE+zVOTzG0YK54QDSJMd4n3AeJIEyPhSzkOob+GqtO22nbYf6AATFMAw==
@@ -7215,23 +7196,23 @@
     "@sentry/cli-win32-i686" "2.58.4"
     "@sentry/cli-win32-x64" "2.58.4"
 
-"@sentry/rollup-plugin@^4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.7.0.tgz#92f9a5ed6b27de382ece4e973d9854099f62c1af"
-  integrity sha512-G928V05BLAIAIky42AN6zTDIKwfTYzWQ/OivSBTY3ZFJ2Db3lkB5UFHhtRsTjT9Hy/uZnQQjs397rixn51X3Vg==
+"@sentry/rollup-plugin@^4.8.0":
+  version "4.8.0"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.8.0.tgz#c9352e8894204c990fbded36f60b1fea059a20ec"
+  integrity sha512-Otz/uxhmuVr63fTx3xEIGhEwOkUxkN7/Gpw5aolJA/Ku0NxPHRXiW0EpS4jSNu0U0HVAjAB5LvrIkaPVtzBFSA==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.7.0"
+    "@sentry/bundler-plugin-core" "4.8.0"
     unplugin "1.0.1"
 
-"@sentry/vite-plugin@^4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.7.0.tgz#2d819ff0cc40d6a85503e86f834e358bad2cdde5"
-  integrity sha512-eQXDghOQLsYwnHutJo8TCzhG4gp0KLNq3h96iqFMhsbjnNnfYeCX1lIw1pJEh/az3cDwSyPI/KGkvf8hr0dZmQ==
+"@sentry/vite-plugin@^4.8.0":
+  version "4.8.0"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.8.0.tgz#3d0a5edb57ca34aa45c72c1869b1c654287cc521"
+  integrity sha512-/YZJitGsx/o72FFQYy3tucUfs4w3COvSI1d2NYyAhIzay4tjLLRjpM5PdwFnoBT7Uj/7jSbuHkg87PAliLiu2g==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.7.0"
+    "@sentry/bundler-plugin-core" "4.8.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@^4.7.0":
+"@sentry/webpack-plugin@^4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.8.0.tgz#f3c1f5756cb889df4e4e5e69316080160c5680d0"
   integrity sha512-x4gayRA/J8CEcowrXWA2scaPZx+hd18squORJElHZKC46PGYRKvQfAWQ7qRCX6gtJ2v53x9264n9D8f3b9rp9g==
