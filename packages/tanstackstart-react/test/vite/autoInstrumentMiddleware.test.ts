@@ -193,6 +193,235 @@ createStart(() => ({
   });
 });
 
+describe('route-level middleware auto-instrumentation', () => {
+  const routeFileWithMiddleware = `
+import { createFileRoute } from '@tanstack/react-router';
+import { loggingMiddleware } from '../middleware';
+
+export const Route = createFileRoute('/api/test')({
+  server: {
+    middleware: [loggingMiddleware],
+    handlers: {
+      GET: async () => ({ message: 'test' }),
+    },
+  },
+});
+`;
+
+  it('instruments route-level middleware arrays', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(routeFileWithMiddleware, '/app/routes/api.test.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+  });
+
+  it('instruments multiple middlewares in route file', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [authMiddleware, loggingMiddleware],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ authMiddleware, loggingMiddleware })');
+  });
+
+  it('does not instrument files without createFileRoute', () => {
+    const code = `
+const middleware = [someMiddleware];
+export const foo = { middleware };
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/utils.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not instrument route files without middleware arrays', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/client')({
+  component: () => '<div>Client only</div>',
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/client.tsx');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not instrument empty middleware arrays in route files', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('handler-specific middleware auto-instrumentation', () => {
+  it('instruments handler-level middleware arrays', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    handlers: ({ createHandlers }) =>
+      createHandlers({
+        GET: {
+          middleware: [loggingMiddleware],
+          handler: () => ({ data: 'test' }),
+        },
+      }),
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+  });
+
+  it('instruments multiple handler-level middleware arrays in same file', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    handlers: ({ createHandlers }) =>
+      createHandlers({
+        GET: {
+          middleware: [readMiddleware],
+          handler: () => ({}),
+        },
+        POST: {
+          middleware: [writeMiddleware, authMiddleware],
+          handler: () => ({}),
+        },
+      }),
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ readMiddleware })');
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ writeMiddleware, authMiddleware })');
+  });
+});
+
+describe('route middleware edge cases', () => {
+  it('does not wrap middleware containing function calls in route files', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [createMiddleware()],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('warns about route middleware that cannot be auto-wrapped', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [getMiddleware()],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not auto-instrument route middleware'));
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('handles route files with use server directive', () => {
+    const code = `'use server';
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [authMiddleware],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(/^'use server';\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
+  });
+
+  it('does not instrument route files that already use wrapMiddlewaresWithSentry', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: wrapMiddlewaresWithSentry({ authMiddleware }),
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('handles both route-level and handler-level middleware in same file', () => {
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [routeMiddleware],
+    handlers: ({ createHandlers }) =>
+      createHandlers({
+        GET: {
+          middleware: [getMiddleware],
+          handler: () => ({}),
+        },
+      }),
+  },
+});
+`;
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ routeMiddleware })');
+    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ getMiddleware })');
+  });
+});
+
 describe('arrayToObjectShorthand', () => {
   it('converts single identifier', () => {
     expect(arrayToObjectShorthand('foo')).toBe('{ foo }');

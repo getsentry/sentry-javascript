@@ -6,8 +6,9 @@ type AutoInstrumentMiddlewareOptions = {
 };
 
 /**
- * A Vite plugin that automatically instruments TanStack Start middlewares
- * by wrapping `requestMiddleware` and `functionMiddleware` arrays in `createStart()`.
+ * A Vite plugin that automatically instruments TanStack Start middlewares:
+ * - `requestMiddleware` and `functionMiddleware` arrays in `createStart()`
+ * - `middleware` arrays in `createFileRoute()` route definitions
  */
 export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddlewareOptions = {}): Plugin {
   const { enabled = true, debug = false } = options;
@@ -26,9 +27,11 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      // Only wrap requestMiddleware and functionMiddleware in createStart()
-      // createStart() should always be in a file named start.ts
-      if (!id.includes('start') || !code.includes('createStart(')) {
+      // Detect file types that should be instrumented
+      const isStartFile = id.includes('start') && code.includes('createStart(');
+      const isRouteFile = code.includes('createFileRoute(') && /middleware\s*:\s*\[/.test(code);
+
+      if (!isStartFile && !isRouteFile) {
         return null;
       }
 
@@ -41,26 +44,53 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       let needsImport = false;
       const skippedMiddlewares: string[] = [];
 
-      transformed = transformed.replace(
-        /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g,
-        (match: string, key: string, contents: string) => {
-          const objContents = arrayToObjectShorthand(contents);
-          if (objContents) {
-            needsImport = true;
-            if (debug) {
-              // eslint-disable-next-line no-console
-              console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
+      // Transform global middleware arrays in createStart() files
+      if (isStartFile) {
+        transformed = transformed.replace(
+          /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g,
+          (match: string, key: string, contents: string) => {
+            const objContents = arrayToObjectShorthand(contents);
+            if (objContents) {
+              needsImport = true;
+              if (debug) {
+                // eslint-disable-next-line no-console
+                console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
+              }
+              return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
             }
-            return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
-          }
-          // Track middlewares that couldn't be auto-wrapped
-          // Skip if we matched whitespace only
-          if (contents.trim()) {
-            skippedMiddlewares.push(key);
-          }
-          return match;
-        },
-      );
+            // Track middlewares that couldn't be auto-wrapped
+            // Skip if we matched whitespace only
+            if (contents.trim()) {
+              skippedMiddlewares.push(key);
+            }
+            return match;
+          },
+        );
+      }
+
+      // Transform route middleware arrays in createFileRoute() files
+      if (isRouteFile) {
+        transformed = transformed.replace(
+          /(\s+)(middleware)\s*:\s*\[([^\]]*)\]/g,
+          (match: string, whitespace: string, key: string, contents: string) => {
+            const objContents = arrayToObjectShorthand(contents);
+            if (objContents) {
+              needsImport = true;
+              if (debug) {
+                // eslint-disable-next-line no-console
+                console.log(`[Sentry] Auto-wrapping route ${key} in ${id}`);
+              }
+              return `${whitespace}${key}: wrapMiddlewaresWithSentry(${objContents})`;
+            }
+            // Track middlewares that couldn't be auto-wrapped
+            // Skip if we matched whitespace only
+            if (contents.trim()) {
+              skippedMiddlewares.push(`route ${key}`);
+            }
+            return match;
+          },
+        );
+      }
 
       // Warn about middlewares that couldn't be auto-wrapped
       if (skippedMiddlewares.length > 0) {
