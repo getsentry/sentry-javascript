@@ -26,6 +26,10 @@ function wrapMiddlewareArrays(code: string, id: string, debug: boolean, regex: R
         // eslint-disable-next-line no-console
         console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
       }
+      // Handle method call syntax like `.middleware([...])` vs object property syntax like `middleware: [...]`
+      if (key.endsWith('(')) {
+        return `${key}wrapMiddlewaresWithSentry(${objContents}))`;
+      }
       return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
     }
     // Track middlewares that couldn't be auto-wrapped
@@ -54,6 +58,13 @@ export function wrapRouteMiddleware(code: string, id: string, debug: boolean): W
 }
 
 /**
+ * Wraps middleware arrays in createServerFn().middleware([...]) calls.
+ */
+export function wrapServerFnMiddleware(code: string, id: string, debug: boolean): WrapResult {
+  return wrapMiddlewareArrays(code, id, debug, /(\.middleware\s*\()\s*\[([^\]]*)\]\s*\)/g);
+}
+
+/**
  * A Vite plugin that automatically instruments TanStack Start middlewares:
  * - `requestMiddleware` and `functionMiddleware` arrays in `createStart()`
  * - `middleware` arrays in `createFileRoute()` route definitions
@@ -78,8 +89,9 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       // Detect file types that should be instrumented
       const isStartFile = id.includes('start') && code.includes('createStart(');
       const isRouteFile = code.includes('createFileRoute(') && /middleware\s*:\s*\[/.test(code);
+      const isServerFnFile = code.includes('createServerFn') && /\.middleware\s*\(\s*\[/.test(code);
 
-      if (!isStartFile && !isRouteFile) {
+      if (!isStartFile && !isRouteFile && !isServerFnFile) {
         return null;
       }
 
@@ -101,12 +113,20 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
           skippedMiddlewares.push(...result.skipped);
           break;
         }
-        // route middleware
-        case isRouteFile: {
-          const result = wrapRouteMiddleware(transformed, id, debug);
-          transformed = result.code;
-          needsImport = needsImport || result.didWrap;
-          skippedMiddlewares.push(...result.skipped);
+        // non-global middleware
+        case (isRouteFile || isServerFnFile): {
+          if (isRouteFile) {
+            const result = wrapRouteMiddleware(transformed, id, debug);
+            transformed = result.code;
+            needsImport = needsImport || result.didWrap;
+            skippedMiddlewares.push(...result.skipped);
+          }
+          if (isServerFnFile) {
+            const result = wrapServerFnMiddleware(transformed, id, debug);
+            transformed = result.code;
+            needsImport = needsImport || result.didWrap;
+            skippedMiddlewares.push(...result.skipped);
+          }
           break;
         }
         default:

@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { wrappedServerFnMiddleware, wrappedEarlyReturnMiddleware, wrappedErrorMiddleware } from '../middleware';
+import { serverFnMiddleware, earlyReturnMiddleware, errorMiddleware } from '../middleware';
 
 // Server function with specific middleware (also gets global function middleware)
 const serverFnWithMiddleware = createServerFn()
-  .middleware([wrappedServerFnMiddleware])
+  .middleware([serverFnMiddleware])
   .handler(async () => {
     console.log('Server function with specific middleware executed');
     return { message: 'Server function middleware test' };
@@ -18,7 +18,7 @@ const serverFnWithoutMiddleware = createServerFn().handler(async () => {
 
 // Server function with early return middleware (middleware returns without calling next)
 const serverFnWithEarlyReturnMiddleware = createServerFn()
-  .middleware([wrappedEarlyReturnMiddleware])
+  .middleware([earlyReturnMiddleware])
   .handler(async () => {
     console.log('This should not be executed - middleware returned early');
     return { message: 'This should not be returned' };
@@ -26,7 +26,7 @@ const serverFnWithEarlyReturnMiddleware = createServerFn()
 
 // Server function with error middleware (middleware throws an error)
 const serverFnWithErrorMiddleware = createServerFn()
-  .middleware([wrappedErrorMiddleware])
+  .middleware([errorMiddleware])
   .handler(async () => {
     console.log('This should not be executed - middleware threw error');
     return { message: 'This should not be returned' };
