@@ -352,6 +352,16 @@ describe('addSentryImport', () => {
     expect(result).toMatch(/^"use client";\nimport \{ wrapMiddlewaresWithSentry \}/);
     expect(result).toContain('const foo = 1;');
   });
+
+  it('does not add import if it already exists', () => {
+    const code = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;";
+    const result = addSentryImport(code);
+
+    expect(result).toBe(code);
+    // Verify the import appears exactly once
+    const importCount = (result.match(/import \{ wrapMiddlewaresWithSentry \}/g) || []).length;
+    expect(importCount).toBe(1);
+  });
 });
 
 describe('arrayToObjectShorthand', () => {

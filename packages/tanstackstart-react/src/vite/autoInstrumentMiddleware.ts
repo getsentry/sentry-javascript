@@ -166,6 +166,11 @@ export function arrayToObjectShorthand(contents: string): string | null {
 export function addSentryImport(code: string): string {
   const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
 
+  // Don't add the import if it already exists
+  if (code.includes(sentryImport.trimEnd())) {
+    return code;
+  }
+
   // Check for 'use server' or 'use client' directives, these need to be before any imports
   const directiveMatch = code.match(/^(['"])use (client|server)\1;?\s*\n?/);
 
