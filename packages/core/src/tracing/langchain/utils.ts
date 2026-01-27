@@ -18,6 +18,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
@@ -25,6 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
+import { extractSystemInstructions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -125,12 +127,16 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 2) Then try constructor name (SystemMessage / HumanMessage / ...)
-    const ctor = (message as { constructor?: { name?: string } }).constructor?.name;
-    if (ctor) {
+    // 2) Serialized LangChain format (lc: 1) - check before constructor name
+    // This is more reliable than constructor.name which can be lost during serialization
+    if (message.lc === 1 && message.kwargs) {
+      const id = message.id;
+      const messageType = Array.isArray(id) && id.length > 0 ? id[id.length - 1] : '';
+      const role = typeof messageType === 'string' ? normalizeRoleNameFromCtor(messageType) : 'user';
+
       return {
-        role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
-        content: asString(message.content),
+        role: normalizeMessageRole(role),
+        content: asString(message.kwargs?.content),
       };
     }
 
@@ -143,7 +149,8 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 4) Then objects with `{ role, content }`
+    // 4) Then objects with `{ role, content }` - check before constructor name
+    // Plain objects have constructor.name="Object" which would incorrectly default to "user"
     if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
@@ -151,15 +158,13 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 5) Serialized LangChain format (lc: 1)
-    if (message.lc === 1 && message.kwargs) {
-      const id = message.id;
-      const messageType = Array.isArray(id) && id.length > 0 ? id[id.length - 1] : '';
-      const role = typeof messageType === 'string' ? normalizeRoleNameFromCtor(messageType) : 'user';
-
+    // 5) Then try constructor name (SystemMessage / HumanMessage / ...)
+    // Only use this if we haven't matched a more specific case
+    const ctor = (message as { constructor?: { name?: string } }).constructor?.name;
+    if (ctor && ctor !== 'Object') {
       return {
-        role: normalizeMessageRole(role),
-        content: asString(message.kwargs?.content),
+        role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
+        content: asString(message.content),
       };
     }
 
@@ -286,8 +291,17 @@ export function extractChatModelRequestAttributes(
 
   if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
     const normalized = normalizeLangChainMessages(langChainMessages.flat());
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, normalized.length);
-    const truncated = truncateGenAiMessages(normalized);
+
+    const { systemInstructions, filteredMessages } = extractSystemInstructions(normalized);
+
+    if (systemInstructions) {
+      setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+    }
+
+    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredLength);
+
+    const truncated = truncateGenAiMessages(filteredMessages as unknown[]);
     setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(truncated));
   }
 

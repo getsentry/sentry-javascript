@@ -17,6 +17,7 @@ import {
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -186,8 +187,11 @@ describe('OpenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
+            { type: 'text', content: 'You are a helpful assistant.' },
+          ]),
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
@@ -260,8 +264,11 @@ describe('OpenAI integration', () => {
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Tell me about streaming"}]',
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
+            { type: 'text', content: 'You are a helpful assistant.' },
+          ]),
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from OpenAI streaming!',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-stream-123',
@@ -622,7 +629,10 @@ describe('OpenAI integration', () => {
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
-                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+                    [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: expect.stringMatching(
+                      /^\[\{"type":"text","content":"A+"\}\]$/,
+                    ),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -641,7 +651,10 @@ describe('OpenAI integration', () => {
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
-                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+                    [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: expect.stringMatching(
+                      /^\[\{"type":"text","content":"A+"\}\]$/,
+                    ),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -904,4 +917,32 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-system-instructions.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('extracts system instructions from messages', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
+                      { type: 'text', content: 'You are a helpful assistant' },
+                    ]),
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

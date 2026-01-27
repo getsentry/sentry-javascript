@@ -16,6 +16,7 @@ import {
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -185,8 +186,9 @@ describe('OpenAI integration (V6)', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: '[{"type":"text","content":"You are a helpful assistant."}]',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
@@ -259,8 +261,9 @@ describe('OpenAI integration (V6)', () => {
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Tell me about streaming"}]',
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: '[{"type":"text","content":"You are a helpful assistant."}]',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from OpenAI streaming!',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-stream-123',
@@ -337,16 +340,18 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: expect.any(String), // System instructions should be extracted
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
       }),
       // Check that custom options are respected for streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: expect.any(String), // System instructions should be extracted
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true, // Should be marked as stream
         }),
