@@ -21,8 +21,8 @@ const serverFnMiddleware = createMiddleware({ type: 'function' }).server(async (
   return next();
 });
 
-// Server route request middleware
-const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
+// Server route request middleware - exported unwrapped for auto-instrumentation via Vite plugin
+export const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
   console.log('Server route request middleware executed');
   return next();
 });
@@ -40,14 +40,9 @@ const errorMiddleware = createMiddleware({ type: 'function' }).server(async () =
 });
 
 // Manually wrap middlewares with Sentry (for middlewares that won't be auto-instrumented)
-export const [
-  wrappedServerFnMiddleware,
-  wrappedServerRouteRequestMiddleware,
-  wrappedEarlyReturnMiddleware,
-  wrappedErrorMiddleware,
-] = wrapMiddlewaresWithSentry({
-  serverFnMiddleware,
-  serverRouteRequestMiddleware,
-  earlyReturnMiddleware,
-  errorMiddleware,
-});
+export const [wrappedServerFnMiddleware, wrappedEarlyReturnMiddleware, wrappedErrorMiddleware] =
+  wrapMiddlewaresWithSentry({
+    serverFnMiddleware,
+    earlyReturnMiddleware,
+    errorMiddleware,
+  });
