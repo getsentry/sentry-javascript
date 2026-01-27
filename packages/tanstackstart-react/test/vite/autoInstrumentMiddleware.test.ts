@@ -179,6 +179,20 @@ createStart(() => ({
 
     consoleLogSpy.mockRestore();
   });
+
+  it('does not double-wrap already wrapped middleware', () => {
+    const code = `
+createStart(() => ({
+  requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware }),
+  functionMiddleware: wrapMiddlewaresWithSentry({ loggingMiddleware }),
+}));
+`;
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.code).toBe(code);
+    expect(result.skipped).toHaveLength(0);
+  });
 });
 
 describe('wrapRouteMiddleware', () => {
@@ -326,6 +340,22 @@ export const Route = createFileRoute('/foo')({
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping middleware'));
 
     consoleLogSpy.mockRestore();
+  });
+
+  it('does not double-wrap already wrapped middleware', () => {
+    const code = `
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: wrapMiddlewaresWithSentry({ authMiddleware }),
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.code).toBe(code);
+    expect(result.skipped).toHaveLength(0);
   });
 });
 
