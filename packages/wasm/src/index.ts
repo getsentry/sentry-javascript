@@ -1,7 +1,7 @@
 import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import { patchWebAssembly } from './patchWebAssembly';
-import { getImage, getImages, getModuleInfo } from './registry';
+import { getImage, getImages, registerModule } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
@@ -208,26 +208,9 @@ function registerModuleAndForward(
   url: string,
   workerSelf: MinimalDedicatedWorkerGlobalScope,
 ): void {
-  const { buildId, debugFile } = getModuleInfo(module);
+  const image = registerModule(module, url);
 
-  if (buildId) {
-    let debugFileUrl = null;
-    if (debugFile) {
-      try {
-        debugFileUrl = new URL(debugFile, url).href;
-      } catch {
-        // Ignore
-      }
-    }
-
-    const image: DebugImage = {
-      type: 'wasm',
-      code_id: buildId,
-      code_file: url,
-      debug_file: debugFileUrl,
-      debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
-    };
-
+  if (image) {
     workerSelf.postMessage({
       _sentryMessage: true,
       _sentryWasmImages: [image],

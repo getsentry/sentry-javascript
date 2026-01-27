@@ -38,15 +38,18 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
 }
 
 /**
- * Records a module
+ * Records a module and returns the created debug image.
  */
-export function registerModule(module: WebAssembly.Module, url: string): void {
+export function registerModule(module: WebAssembly.Module, url: string): DebugImage | null {
   const { buildId, debugFile } = getModuleInfo(module);
-  if (buildId) {
-    const oldIdx = getImage(url);
-    if (oldIdx >= 0) {
-      IMAGES.splice(oldIdx, 1);
-    }
+  if (!buildId) {
+    return null;
+  }
+
+  const oldIdx = getImage(url);
+  if (oldIdx >= 0) {
+    IMAGES.splice(oldIdx, 1);
+  }
 
     let debugFileUrl = null;
     if (debugFile) {
@@ -58,14 +61,16 @@ export function registerModule(module: WebAssembly.Module, url: string): void {
       }
     }
 
-    IMAGES.push({
-      type: 'wasm',
-      code_id: buildId,
-      code_file: url,
-      debug_file: debugFileUrl,
-      debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
-    });
-  }
+  const image: DebugImage = {
+    type: 'wasm',
+    code_id: buildId,
+    code_file: url,
+    debug_file: debugFileUrl,
+    debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
+  };
+
+  IMAGES.push(image);
+  return image;
 }
 
 /**

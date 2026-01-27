@@ -1,4 +1,7 @@
-// This worker manually just replicates what the actual Sentry.registerWebWorkerWasm() does
+// This worker manually replicates what Sentry.registerWebWorkerWasm() does.
+// the reason for manual replication is that it allows us to test the message-passing protocol
+//  between worker and main thread independent of SDK implementation details
+// in production code you would do: registerWebWorkerWasm({ self });
 
 const origInstantiateStreaming = WebAssembly.instantiateStreaming;
 WebAssembly.instantiateStreaming = function instantiateStreaming(response, importObject) {
