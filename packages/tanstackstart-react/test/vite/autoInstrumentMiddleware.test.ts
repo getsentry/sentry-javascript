@@ -1,6 +1,11 @@
 import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
-import { arrayToObjectShorthand, makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
+import {
+  arrayToObjectShorthand,
+  makeAutoInstrumentMiddlewarePlugin,
+  wrapGlobalMiddleware,
+  wrapRouteMiddleware,
+} from '../../src/vite/autoInstrumentMiddleware';
 
 type PluginWithTransform = Plugin & {
   transform: (code: string, id: string) => { code: string; map: null } | null;
@@ -9,31 +14,18 @@ type PluginWithTransform = Plugin & {
 describe('makeAutoInstrumentMiddlewarePlugin', () => {
   const createStartFile = `
 import { createStart } from '@tanstack/react-start';
-import { authMiddleware, loggingMiddleware } from './middleware';
-
-export const startInstance = createStart(() => ({
-  requestMiddleware: [authMiddleware],
-  functionMiddleware: [loggingMiddleware],
-}));
+createStart(() => ({ requestMiddleware: [authMiddleware] }));
 `;
 
-  it('instruments a file with createStart and middleware arrays', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(createStartFile, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
-    expect(result!.code).toContain('functionMiddleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
-  });
-
-  it('does not instrument files without createStart', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = "export const foo = 'bar';";
-    const result = plugin.transform(code, '/app/other.ts');
-
-    expect(result).toBeNull();
-  });
+  const routeFile = `
+import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [authMiddleware],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
 
   it('does not instrument non-TS/JS files', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
@@ -49,46 +41,10 @@ export const startInstance = createStart(() => ({
     expect(result).toBeNull();
   });
 
-  it('wraps single middleware entry correctly', () => {
+  it('does not instrument files without createStart or createFileRoute', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [singleMiddleware] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ singleMiddleware })');
-  });
-
-  it('wraps multiple middleware entries correctly', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [a, b, c] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ a, b, c })');
-  });
-
-  it('does not wrap empty middleware arrays', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result).toBeNull();
-  });
-
-  it('does not wrap if middleware contains function calls', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [getMiddleware()] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
+    const code = "export const foo = 'bar';";
+    const result = plugin.transform(code, '/app/other.ts');
 
     expect(result).toBeNull();
   });
@@ -129,35 +85,27 @@ createStart(() => ({ requestMiddleware: [authMiddleware] }));
     expect(result!.code).toMatch(/^"use client";\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
   });
 
-  it('handles trailing commas in middleware arrays', () => {
+  it('adds import statement when wrapping middlewares', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [authMiddleware,] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
+    const result = plugin.transform(createStartFile, '/app/start.ts');
 
     expect(result).not.toBeNull();
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
   });
 
-  it('wraps valid array and skips invalid array in same file', () => {
+  it('instruments both start files and route files', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({
-  requestMiddleware: [authMiddleware],
-  functionMiddleware: [getMiddleware()]
-}));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
 
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
-    expect(result!.code).toContain('functionMiddleware: [getMiddleware()]');
+    const startResult = plugin.transform(createStartFile, '/app/start.ts');
+    expect(startResult).not.toBeNull();
+    expect(startResult!.code).toContain('wrapMiddlewaresWithSentry');
+
+    const routeResult = plugin.transform(routeFile, '/app/routes/foo.ts');
+    expect(routeResult).not.toBeNull();
+    expect(routeResult!.code).toContain('wrapMiddlewaresWithSentry');
   });
 
-  it('warns when middleware contains expressions that cannot be auto-wrapped', () => {
+  it('warns about middlewares that cannot be auto-wrapped', () => {
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
@@ -171,55 +119,110 @@ createStart(() => ({ requestMiddleware: [getMiddleware()] }));
 
     consoleWarnSpy.mockRestore();
   });
+});
 
-  it('warns about skipped middlewares even when others are successfully wrapped', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+describe('wrapGlobalMiddleware', () => {
+  it('wraps requestMiddleware and functionMiddleware arrays', () => {
     const code = `
-import { createStart } from '@tanstack/react-start';
+createStart(() => ({
+  requestMiddleware: [authMiddleware],
+  functionMiddleware: [loggingMiddleware],
+}));
+`;
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result.code).toContain('functionMiddleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('wraps single middleware entry correctly', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [singleMiddleware] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ singleMiddleware })');
+  });
+
+  it('wraps multiple middleware entries correctly', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [a, b, c] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ a, b, c })');
+  });
+
+  it('does not wrap empty middleware arrays', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('does not wrap if middleware contains function calls', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [getMiddleware()] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toContain('requestMiddleware');
+  });
+
+  it('wraps valid array and skips invalid array in same file', () => {
+    const code = `
 createStart(() => ({
   requestMiddleware: [authMiddleware],
   functionMiddleware: [getMiddleware()]
 }));
 `;
-    plugin.transform(code, '/app/start.ts');
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Could not auto-instrument functionMiddleware'),
-    );
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result.code).toContain('functionMiddleware: [getMiddleware()]');
+    expect(result.skipped).toContain('functionMiddleware');
+  });
 
-    consoleWarnSpy.mockRestore();
+  it('handles trailing commas in middleware arrays', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [authMiddleware,] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+  });
+
+  it('logs debug message when debug is enabled', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const code = 'createStart(() => ({ requestMiddleware: [authMiddleware] }));';
+    wrapGlobalMiddleware(code, '/app/start.ts', true);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping requestMiddleware'));
+
+    consoleLogSpy.mockRestore();
   });
 });
 
-describe('route-level middleware auto-instrumentation', () => {
-  const routeFileWithMiddleware = `
-import { createFileRoute } from '@tanstack/react-router';
-import { loggingMiddleware } from '../middleware';
-
-export const Route = createFileRoute('/api/test')({
+describe('wrapRouteMiddleware', () => {
+  it('wraps route-level middleware arrays', () => {
+    const code = `
+export const Route = createFileRoute('/foo')({
   server: {
     middleware: [loggingMiddleware],
-    handlers: {
-      GET: async () => ({ message: 'test' }),
-    },
+    handlers: { GET: () => ({}) },
   },
 });
 `;
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-  it('instruments route-level middleware arrays', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(routeFileWithMiddleware, '/app/routes/api.test.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+    expect(result.skipped).toHaveLength(0);
   });
 
-  it('instruments multiple middlewares in route file', () => {
+  it('wraps multiple middlewares in route file', () => {
     const code = `
-import { createFileRoute } from '@tanstack/react-router';
 export const Route = createFileRoute('/foo')({
   server: {
     middleware: [authMiddleware, loggingMiddleware],
@@ -227,58 +230,14 @@ export const Route = createFileRoute('/foo')({
   },
 });
 `;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ authMiddleware, loggingMiddleware })');
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ authMiddleware, loggingMiddleware })');
   });
 
-  it('does not instrument files without createFileRoute', () => {
+  it('wraps handler-level middleware arrays', () => {
     const code = `
-const middleware = [someMiddleware];
-export const foo = { middleware };
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/utils.ts');
-
-    expect(result).toBeNull();
-  });
-
-  it('does not instrument route files without middleware arrays', () => {
-    const code = `
-import { createFileRoute } from '@tanstack/react-router';
-export const Route = createFileRoute('/client')({
-  component: () => '<div>Client only</div>',
-});
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/client.tsx');
-
-    expect(result).toBeNull();
-  });
-
-  it('does not instrument empty middleware arrays in route files', () => {
-    const code = `
-import { createFileRoute } from '@tanstack/react-router';
-export const Route = createFileRoute('/foo')({
-  server: {
-    middleware: [],
-    handlers: { GET: () => ({}) },
-  },
-});
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
-
-    expect(result).toBeNull();
-  });
-});
-
-describe('handler-specific middleware auto-instrumentation', () => {
-  it('instruments handler-level middleware arrays', () => {
-    const code = `
-import { createFileRoute } from '@tanstack/react-router';
 export const Route = createFileRoute('/foo')({
   server: {
     handlers: ({ createHandlers }) =>
@@ -291,16 +250,14 @@ export const Route = createFileRoute('/foo')({
   },
 });
 `;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
   });
 
-  it('instruments multiple handler-level middleware arrays in same file', () => {
+  it('wraps multiple handler-level middleware arrays in same file', () => {
     const code = `
-import { createFileRoute } from '@tanstack/react-router';
 export const Route = createFileRoute('/foo')({
   server: {
     handlers: ({ createHandlers }) =>
@@ -317,19 +274,30 @@ export const Route = createFileRoute('/foo')({
   },
 });
 `;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ readMiddleware })');
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ writeMiddleware, authMiddleware })');
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ readMiddleware })');
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ writeMiddleware, authMiddleware })');
   });
-});
 
-describe('route middleware edge cases', () => {
-  it('does not wrap middleware containing function calls in route files', () => {
+  it('does not wrap empty middleware arrays', () => {
     const code = `
-import { createFileRoute } from '@tanstack/react-router';
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('does not wrap middleware containing function calls', () => {
+    const code = `
 export const Route = createFileRoute('/foo')({
   server: {
     middleware: [createMiddleware()],
@@ -337,69 +305,14 @@ export const Route = createFileRoute('/foo')({
   },
 });
 `;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-    expect(result).toBeNull();
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toContain('route middleware');
   });
 
-  it('warns about route middleware that cannot be auto-wrapped', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
+  it('wraps both route-level and handler-level middleware in same file', () => {
     const code = `
-import { createFileRoute } from '@tanstack/react-router';
-export const Route = createFileRoute('/foo')({
-  server: {
-    middleware: [getMiddleware()],
-    handlers: { GET: () => ({}) },
-  },
-});
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    plugin.transform(code, '/app/routes/foo.ts');
-
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not auto-instrument route middleware'));
-
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('handles route files with use server directive', () => {
-    const code = `'use server';
-import { createFileRoute } from '@tanstack/react-router';
-export const Route = createFileRoute('/foo')({
-  server: {
-    middleware: [authMiddleware],
-    handlers: { GET: () => ({}) },
-  },
-});
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toMatch(/^'use server';\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
-  });
-
-  it('does not instrument route files that already use wrapMiddlewaresWithSentry', () => {
-    const code = `
-import { createFileRoute } from '@tanstack/react-router';
-import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
-export const Route = createFileRoute('/foo')({
-  server: {
-    middleware: wrapMiddlewaresWithSentry({ authMiddleware }),
-    handlers: { GET: () => ({}) },
-  },
-});
-`;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
-
-    expect(result).toBeNull();
-  });
-
-  it('handles both route-level and handler-level middleware in same file', () => {
-    const code = `
-import { createFileRoute } from '@tanstack/react-router';
 export const Route = createFileRoute('/foo')({
   server: {
     middleware: [routeMiddleware],
@@ -413,12 +326,29 @@ export const Route = createFileRoute('/foo')({
   },
 });
 `;
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const result = plugin.transform(code, '/app/routes/foo.ts');
+    const result = wrapRouteMiddleware(code, '/app/routes/foo.ts', false);
 
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ routeMiddleware })');
-    expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ getMiddleware })');
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ routeMiddleware })');
+    expect(result.code).toContain('middleware: wrapMiddlewaresWithSentry({ getMiddleware })');
+  });
+
+  it('logs debug message when debug is enabled', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const code = `
+export const Route = createFileRoute('/foo')({
+  server: {
+    middleware: [authMiddleware],
+    handlers: { GET: () => ({}) },
+  },
+});
+`;
+    wrapRouteMiddleware(code, '/app/routes/foo.ts', true);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping route middleware'));
+
+    consoleLogSpy.mockRestore();
   });
 });
 
