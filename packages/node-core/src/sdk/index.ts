@@ -3,6 +3,7 @@ import {
   applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
+  conversationIdIntegration,
   debug,
   functionToStringIntegration,
   getCurrentScope,
@@ -55,6 +56,7 @@ export function getDefaultIntegrations(): Integration[] {
     linkedErrorsIntegration(),
     requestDataIntegration(),
     systemErrorIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

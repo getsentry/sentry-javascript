@@ -1,6 +1,6 @@
 import * as core from '@sentry/core';
 import type { LoaderFunctionArgs } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapServerLoader } from '../../src/server/wrapServerLoader';
 
 vi.mock('@sentry/core', async () => {
@@ -9,12 +9,21 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     startSpan: vi.fn(),
     flushIfServerless: vi.fn(),
+    debug: {
+      warn: vi.fn(),
+    },
   };
 });
 
 describe('wrapServerLoader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the global flag and warning state
+    delete (globalThis as any).__sentryReactRouterServerInstrumentationUsed;
+  });
+
+  afterEach(() => {
+    delete (globalThis as any).__sentryReactRouterServerInstrumentationUsed;
   });
 
   it('should wrap a loader function with default options', async () => {
@@ -106,5 +115,37 @@ describe('wrapServerLoader', () => {
     const wrappedLoader = wrapServerLoader({}, mockLoaderFn);
 
     await expect(wrappedLoader(mockArgs)).rejects.toBe(mockError);
+  });
+
+  it('should skip span creation and warn when instrumentation API is used', async () => {
+    // Reset modules to get a fresh copy with unset warning flag
+    vi.resetModules();
+    // @ts-expect-error - Dynamic import for module reset works at runtime but vitest's typecheck doesn't fully support it
+    const { wrapServerLoader: freshWrapServerLoader } = await import('../../src/server/wrapServerLoader');
+
+    // Set the global flag indicating instrumentation API is in use
+    (globalThis as any).__sentryReactRouterServerInstrumentationUsed = true;
+
+    const mockLoaderFn = vi.fn().mockResolvedValue('result');
+    const mockArgs = { request: new Request('http://test.com') } as LoaderFunctionArgs;
+
+    const wrappedLoader = freshWrapServerLoader({}, mockLoaderFn);
+
+    // Call multiple times
+    await wrappedLoader(mockArgs);
+    await wrappedLoader(mockArgs);
+    await wrappedLoader(mockArgs);
+
+    // Should warn about redundant wrapper via debug.warn, but only once
+    expect(core.debug.warn).toHaveBeenCalledTimes(1);
+    expect(core.debug.warn).toHaveBeenCalledWith(
+      expect.stringContaining('wrapServerLoader is redundant when using the instrumentation API'),
+    );
+
+    // Should not create spans (instrumentation API handles it)
+    expect(core.startSpan).not.toHaveBeenCalled();
+
+    // Should still execute the loader function
+    expect(mockLoaderFn).toHaveBeenCalledTimes(3);
   });
 });

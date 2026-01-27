@@ -54,8 +54,8 @@
     "@sentry/core": "10.36.0",
     "@sentry/node": "10.36.0",
     "@sentry/node-core": "10.36.0",
-    "@sentry/rollup-plugin": "^4.6.2",
-    "@sentry/vite-plugin": "^4.6.2",
+    "@sentry/rollup-plugin": "^4.7.0",
+    "@sentry/vite-plugin": "^4.7.0",
     "@sentry/vue": "10.36.0"
   },
   "devDependencies": {

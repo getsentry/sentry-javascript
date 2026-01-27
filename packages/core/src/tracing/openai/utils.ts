@@ -35,20 +35,21 @@ import type {
 } from './types';
 
 /**
- * Maps OpenAI method paths to Sentry operation names
+ * Maps OpenAI method paths to OpenTelemetry semantic convention operation names
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 export function getOperationName(methodPath: string): string {
   if (methodPath.includes('chat.completions')) {
     return OPENAI_OPERATIONS.CHAT;
   }
   if (methodPath.includes('responses')) {
-    return OPENAI_OPERATIONS.RESPONSES;
+    return OPENAI_OPERATIONS.CHAT;
   }
   if (methodPath.includes('embeddings')) {
     return OPENAI_OPERATIONS.EMBEDDINGS;
   }
   if (methodPath.includes('conversations')) {
-    return OPENAI_OPERATIONS.CONVERSATIONS;
+    return OPENAI_OPERATIONS.CHAT;
   }
   return methodPath.split('.').pop() || 'unknown';
 }

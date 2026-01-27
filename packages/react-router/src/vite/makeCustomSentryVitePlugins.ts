@@ -53,7 +53,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     ...sentryVitePlugins.filter(plugin => {
       return [
         'sentry-telemetry-plugin',
-        'sentry-vite-release-injection-plugin',
+        'sentry-vite-injection-plugin',
         ...(reactComponentAnnotation?.enabled || unstable_sentryVitePluginOptions?.reactComponentAnnotation?.enabled
           ? ['sentry-vite-component-name-annotate-plugin']
           : []),

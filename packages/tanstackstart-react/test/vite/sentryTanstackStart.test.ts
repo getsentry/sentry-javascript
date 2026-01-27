@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart } from '../../src/vite/sentryTanstackStart';
 
 const mockSourceMapsConfigPlugin: Plugin = {
@@ -21,9 +22,19 @@ const mockEnableSourceMapsPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockMiddlewarePlugin: Plugin = {
+  name: 'sentry-tanstack-middleware-auto-instrument',
+  apply: 'build',
+  transform: vi.fn(),
+};
+
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
+}));
+
+vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
+  makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
 }));
 
 describe('sentryTanstackStart()', () => {
@@ -36,47 +47,84 @@ describe('sentryTanstackStart()', () => {
     process.env.NODE_ENV = 'production';
   });
 
-  it('returns plugins in production mode', () => {
-    const plugins = sentryTanstackStart({ org: 'test-org' });
+  describe('source maps', () => {
+    it('returns source maps plugins in production mode', () => {
+      const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-    expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
-  });
-
-  it('returns no plugins in development mode', () => {
-    process.env.NODE_ENV = 'development';
-
-    const plugins = sentryTanstackStart({ org: 'test-org' });
-
-    expect(plugins).toEqual([]);
-  });
-
-  it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
-    const plugins = sentryTanstackStart({
-      sourcemaps: { disable: true },
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
     });
 
-    expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
-  });
+    it('returns no plugins in development mode', () => {
+      process.env.NODE_ENV = 'development';
 
-  it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
-    const plugins = sentryTanstackStart({
-      sourcemaps: { disable: 'disable-upload' },
+      const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
+
+      expect(plugins).toEqual([]);
     });
 
-    expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
-  });
+    it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: false,
+        sourcemaps: { disable: true },
+      });
 
-  it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
-    const plugins = sentryTanstackStart({
-      sourcemaps: { disable: false },
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
     });
 
-    expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+    it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: false,
+        sourcemaps: { disable: 'disable-upload' },
+      });
+
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+    });
+
+    it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: false,
+        sourcemaps: { disable: false },
+      });
+
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+    });
   });
 
-  it('returns Sentry Vite Plugins and enable source maps plugin by default when sourcemaps is not specified', () => {
-    const plugins = sentryTanstackStart({});
+  describe('middleware auto-instrumentation', () => {
+    it('includes middleware plugin by default', () => {
+      const plugins = sentryTanstackStart({ sourcemaps: { disable: true } });
 
-    expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+    });
+
+    it('includes middleware plugin when autoInstrumentMiddleware is true', () => {
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: true,
+        sourcemaps: { disable: true },
+      });
+
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+    });
+
+    it('does not include middleware plugin when autoInstrumentMiddleware is false', () => {
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: false,
+        sourcemaps: { disable: true },
+      });
+
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+    });
+
+    it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
+      sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: true });
+    });
+
+    it('passes debug: undefined when not specified', () => {
+      sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: undefined });
+    });
   });
 });
