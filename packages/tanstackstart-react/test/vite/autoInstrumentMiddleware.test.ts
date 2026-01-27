@@ -334,9 +334,7 @@ describe('addSentryImport', () => {
     const code = 'const foo = 1;';
     const result = addSentryImport(code);
 
-    expect(result).toBe(
-      "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;",
-    );
+    expect(result).toBe("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;");
   });
 
   it('inserts import after use server directive', () => {
