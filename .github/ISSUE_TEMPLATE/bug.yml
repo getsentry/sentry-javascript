@@ -25,62 +25,16 @@ body:
   - type: dropdown
     id: package
     attributes:
-      label: Which SDK are you using?
+      label: Where are you installing the Sentry SDK from?
       description:
         If you're using the CDN bundles, please specify the exact bundle (e.g. `bundle.tracing.min.js`) in your SDK
         setup.
       options:
-        - '@sentry/browser'
-        - '@sentry/node'
-        - '@sentry/node - express'
-        - '@sentry/node - fastify'
-        - '@sentry/node - koa'
-        - '@sentry/node - hapi'
-        - '@sentry/node - connect'
-        - '@sentry/node-native'
-        - '@sentry/angular'
-        - '@sentry/astro'
-        - '@sentry/aws-serverless'
-        - '@sentry/bun'
-        - '@sentry/cloudflare'
-        - '@sentry/cloudflare - hono'
-        - '@sentry/deno'
-        - '@sentry/ember'
-        - '@sentry/gatsby'
-        - '@sentry/google-cloud-serverless'
-        - '@sentry/nestjs'
-        - '@sentry/nextjs'
-        - '@sentry/nuxt'
-        - '@sentry/react'
-        - '@sentry/react-router'
-        - '@sentry/remix'
-        - '@sentry/solid'
-        - '@sentry/solidstart'
-        - '@sentry/svelte'
-        - '@sentry/sveltekit'
-        - '@sentry/tanstackstart-react'
-        - '@sentry/vue'
-        - '@sentry/wasm'
+        - Sentry NPM package
         - Sentry Browser Loader
         - Sentry Browser CDN bundle
     validations:
       required: true
-  - type: input
-    id: sdk-version
-    attributes:
-      label: SDK Version
-      description: What version of the SDK are you using?
-      placeholder: ex. 8.10.0
-    validations:
-      required: true
-  - type: input
-    id: framework-version
-    attributes:
-      label: Framework Version
-      description:
-        If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
-        _framework_ are you using?
-      placeholder: ex. React 18.3.0 or Next 14.0.0
   - type: textarea
     id: system-info
     attributes:
