@@ -81,6 +81,25 @@ body:
         If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
         _framework_ are you using?
       placeholder: ex. React 18.3.0 or Next 14.0.0
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System Info
+      description: Run `npx envinfo --binaries --npmPackages "@sentry/*"` and paste the output here.
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: package-manager
+    attributes:
+      label: Package Manager
+      options:
+        - npm
+        - yarn
+        - pnpm
+        - bun
+    validations:
+      required: true
   - type: input
     id: link-to-sentry
     attributes:
