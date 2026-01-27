@@ -51,15 +51,15 @@ export function registerModule(module: WebAssembly.Module, url: string): DebugIm
     IMAGES.splice(oldIdx, 1);
   }
 
-    let debugFileUrl = null;
-    if (debugFile) {
-      try {
-        debugFileUrl = new URL(debugFile, url).href;
-      } catch {
-        // debugFile could be a blob URL which causes the URL constructor to throw
-        // for now we just ignore this case
-      }
+  let debugFileUrl = null;
+  if (debugFile) {
+    try {
+      debugFileUrl = new URL(debugFile, url).href;
+    } catch {
+      // debugFile could be a blob URL which causes the URL constructor to throw
+      // for now we just ignore this case
     }
+  }
 
   const image: DebugImage = {
     type: 'wasm',
