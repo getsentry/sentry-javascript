@@ -114,7 +114,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
           break;
         }
         // non-global middleware
-        case (isRouteFile || isServerFnFile): {
+        case isRouteFile || isServerFnFile: {
           if (isRouteFile) {
             const result = wrapRouteMiddleware(transformed, id, debug);
             transformed = result.code;
