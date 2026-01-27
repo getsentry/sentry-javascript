@@ -16,7 +16,7 @@ app.get('/json', c => {
 });
 
 app.get('/error', () => {
-  throw new Error('Test error from Hono app');
+  throw new Error('Test error from Hono app (Sentry Cloudflare SDK)');
 });
 
 app.get('/hello/:name', c => {
