@@ -92,18 +92,25 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       let needsImport = false;
       const skippedMiddlewares: string[] = [];
 
-      if (isStartFile) {
-        const result = wrapGlobalMiddleware(transformed, id, debug);
-        transformed = result.code;
-        needsImport = needsImport || result.didWrap;
-        skippedMiddlewares.push(...result.skipped);
-      }
-
-      if (isRouteFile) {
-        const result = wrapRouteMiddleware(transformed, id, debug);
-        transformed = result.code;
-        needsImport = needsImport || result.didWrap;
-        skippedMiddlewares.push(...result.skipped);
+      switch (true) {
+        // global middleware
+        case isStartFile: {
+          const result = wrapGlobalMiddleware(transformed, id, debug);
+          transformed = result.code;
+          needsImport = needsImport || result.didWrap;
+          skippedMiddlewares.push(...result.skipped);
+          break;
+        }
+        // route middleware
+        case isRouteFile: {
+          const result = wrapRouteMiddleware(transformed, id, debug);
+          transformed = result.code;
+          needsImport = needsImport || result.didWrap;
+          skippedMiddlewares.push(...result.skipped);
+          break;
+        }
+        default:
+          break;
       }
 
       // Warn about middlewares that couldn't be auto-wrapped
