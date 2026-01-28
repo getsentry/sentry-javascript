@@ -49,6 +49,7 @@ import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
+import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -1155,12 +1156,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     let ticked = 0;
 
     while (!timeout || ticked < timeout) {
-      await new Promise(resolve => {
-        const timer = setTimeout(resolve, 1);
-        if (typeof timer !== 'number' && timer.unref) {
-          timer.unref();
-        }
-      });
+      await new Promise(resolve => safeUnref(setTimeout(resolve, 1)));
 
       if (!this._numProcessing) {
         return true;
