@@ -19,10 +19,35 @@ jobs:
           text: ${{ github.event.issue.body }}
           regex: '### Where are you installing the Sentry SDK from\?\n\n(.*)\n\n'
 
-      - name: Map SDK source to issue label
+      - name: Map SDK source to Browser label
         # https://github.com/kanga333/variable-mapper
         uses: kanga333/variable-mapper@v0.3.0
-        id: sourceLabel
+        id: browserLabel
+        if: steps.sdkSource.outputs.match != ''
+        with:
+          key: '${{ steps.sdkSource.outputs.group1 }}'
+          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
+          map: |
+            {
+              "Sentry.Browser.Loader": {
+                "label": "Browser"
+              },
+              "Sentry.Browser.CDN.bundle": {
+                "label": "Browser"
+              }
+            }
+          export_to: output
+
+      - name: Add Browser label if applicable
+        if: steps.browserLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.browserLabel.outputs.label }}
+
+      - name: Map SDK source to delivery method label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: deliveryLabel
         if: steps.sdkSource.outputs.match != ''
         with:
           key: '${{ steps.sdkSource.outputs.group1 }}'
@@ -38,11 +63,11 @@ jobs:
             }
           export_to: output
 
-      - name: Add SDK source label if applicable
-        if: steps.sourceLabel.outputs.label != ''
+      - name: Add delivery method label if applicable
+        if: steps.deliveryLabel.outputs.label != ''
         uses: actions-ecosystem/action-add-labels@v1
         with:
-          labels: ${{ steps.sourceLabel.outputs.label }}
+          labels: ${{ steps.deliveryLabel.outputs.label }}
 
       # Scan System Info section for @sentry/* packages (from envinfo output)
       - name: Detect @sentry packages in System Info
