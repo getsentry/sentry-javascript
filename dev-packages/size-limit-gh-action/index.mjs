@@ -208,6 +208,7 @@ async function run() {
 }
 
 async function runSizeLimitOnComparisonBranch() {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const resultsFilePath = getResultsFilePath();
 
   const limit = new SizeLimitFormatter();
@@ -228,7 +229,7 @@ async function runSizeLimitOnComparisonBranch() {
   });
   const files = await globber.glob();
 
-  await artifactClient.uploadArtifact(ARTIFACT_NAME, files);
+  await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
 }
 
 run();

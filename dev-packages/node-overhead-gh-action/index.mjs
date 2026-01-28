@@ -172,6 +172,7 @@ async function run() {
 }
 
 async function runNodeOverheadOnComparisonBranch() {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const resultsFilePath = getResultsFilePath();
 
   const artifactClient = new DefaultArtifactClient();
@@ -190,7 +191,7 @@ async function runNodeOverheadOnComparisonBranch() {
   });
   const files = await globber.glob();
 
-  await artifactClient.uploadArtifact(ARTIFACT_NAME, files);
+  await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
 }
 
 run();
