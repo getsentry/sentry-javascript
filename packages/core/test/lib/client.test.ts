@@ -2227,7 +2227,7 @@ describe('Client', () => {
       vi.useRealTimers();
       expect.assertions(3);
 
-      const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(50);
+      const { makeTransport, getSendCalled, getSentCount } = makeFakeTransport(50);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
