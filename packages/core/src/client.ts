@@ -49,6 +49,7 @@ import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
+import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -1148,11 +1149,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * `false` otherwise
    */
   protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    if (!this._numProcessing) {
+      return true;
+    }
+
     let ticked = 0;
 
-    // if no timeout is provided, we wait "forever" until everything is processed
     while (!timeout || ticked < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => safeUnref(setTimeout(resolve, 1)));
 
       if (!this._numProcessing) {
         return true;

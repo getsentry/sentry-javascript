@@ -2205,6 +2205,47 @@ describe('Client', () => {
         }),
       ]);
     });
+
+    test('flush returns immediately when nothing is processing', async () => {
+      vi.useRealTimers();
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const startTime = Date.now();
+      const result = await client.flush(1000);
+      const elapsed = Date.now() - startTime;
+
+      expect(result).toBe(true);
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    test('flush with early exit when processing completes', async () => {
+      vi.useRealTimers();
+      expect.assertions(3);
+
+      const { makeTransport, getSendCalled, getSentCount } = makeFakeTransport(50);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+          transport: makeTransport,
+        }),
+      );
+
+      client.captureMessage('test');
+      expect(getSendCalled()).toEqual(1);
+
+      const startTime = Date.now();
+      await client.flush(5000);
+      const elapsed = Date.now() - startTime;
+
+      expect(getSentCount()).toEqual(1);
+      // if this flakes, remove the test
+      expect(elapsed).toBeLessThan(1000);
+    });
   });
 
   describe('sendEvent', () => {
