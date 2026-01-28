@@ -27,7 +27,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
     "vitest": "~3.2.0",
-    "wrangler": "^4.23.0",
+    "wrangler": "^4.61.0",
     "ws": "^8.18.3"
   },
   "volta": {
