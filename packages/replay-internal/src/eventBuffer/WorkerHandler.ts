@@ -34,7 +34,7 @@ export class WorkerHandler {
             resolve();
           } else {
             DEBUG_BUILD && debug.warn('Received worker message w/ unsuccessful status', data);
-            reject(new Error('Received worker message w/ unsuccessful status'));
+            reject(new Error('Received worker message with unsuccessful status'));
           }
         },
         { once: true },
