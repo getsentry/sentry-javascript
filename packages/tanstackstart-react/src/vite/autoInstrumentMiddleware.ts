@@ -11,6 +11,12 @@ type WrapResult = {
   skipped: string[];
 };
 
+type FileTransformState = {
+  code: string;
+  needsImport: boolean;
+  skippedMiddlewares: string[];
+};
+
 /**
  * Core function that wraps middleware arrays matching the given regex.
  */
@@ -25,6 +31,10 @@ function wrapMiddlewareArrays(code: string, id: string, debug: boolean, regex: R
       if (debug) {
         // eslint-disable-next-line no-console
         console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
+      }
+      // Handle method call syntax like `.middleware([...])` vs object property syntax like `middleware: [...]`
+      if (key.endsWith('(')) {
+        return `${key}wrapMiddlewaresWithSentry(${objContents}))`;
       }
       return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
     }
@@ -54,6 +64,30 @@ export function wrapRouteMiddleware(code: string, id: string, debug: boolean): W
 }
 
 /**
+ * Wraps middleware arrays in createServerFn().middleware([...]) calls.
+ */
+export function wrapServerFnMiddleware(code: string, id: string, debug: boolean): WrapResult {
+  return wrapMiddlewareArrays(code, id, debug, /(\.middleware\s*\()\s*\[([^\]]*)\]\s*\)/g);
+}
+
+/**
+ * Applies a wrap function to the current state and returns the updated state.
+ */
+function applyWrap(
+  state: FileTransformState,
+  wrapFn: (code: string, id: string, debug: boolean) => WrapResult,
+  id: string,
+  debug: boolean,
+): FileTransformState {
+  const result = wrapFn(state.code, id, debug);
+  return {
+    code: result.code,
+    needsImport: state.needsImport || result.didWrap,
+    skippedMiddlewares: [...state.skippedMiddlewares, ...result.skipped],
+  };
+}
+
+/**
  * A Vite plugin that automatically instruments TanStack Start middlewares:
  * - `requestMiddleware` and `functionMiddleware` arrays in `createStart()`
  * - `middleware` arrays in `createFileRoute()` route definitions
@@ -78,8 +112,9 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       // Detect file types that should be instrumented
       const isStartFile = id.includes('start') && code.includes('createStart(');
       const isRouteFile = code.includes('createFileRoute(') && /middleware\s*:\s*\[/.test(code);
+      const isServerFnFile = code.includes('createServerFn') && /\.middleware\s*\(\s*\[/.test(code);
 
-      if (!isStartFile && !isRouteFile) {
+      if (!isStartFile && !isRouteFile && !isServerFnFile) {
         return null;
       }
 
@@ -88,48 +123,38 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      let transformed = code;
-      let needsImport = false;
-      const skippedMiddlewares: string[] = [];
+      let fileTransformState: FileTransformState = {
+        code,
+        needsImport: false,
+        skippedMiddlewares: [],
+      };
 
-      switch (true) {
-        // global middleware
-        case isStartFile: {
-          const result = wrapGlobalMiddleware(transformed, id, debug);
-          transformed = result.code;
-          needsImport = needsImport || result.didWrap;
-          skippedMiddlewares.push(...result.skipped);
-          break;
-        }
-        // route middleware
-        case isRouteFile: {
-          const result = wrapRouteMiddleware(transformed, id, debug);
-          transformed = result.code;
-          needsImport = needsImport || result.didWrap;
-          skippedMiddlewares.push(...result.skipped);
-          break;
-        }
-        default:
-          break;
+      // Wrap middlewares
+      if (isStartFile) {
+        fileTransformState = applyWrap(fileTransformState, wrapGlobalMiddleware, id, debug);
+      }
+      if (isRouteFile) {
+        fileTransformState = applyWrap(fileTransformState, wrapRouteMiddleware, id, debug);
+      }
+      if (isServerFnFile) {
+        fileTransformState = applyWrap(fileTransformState, wrapServerFnMiddleware, id, debug);
       }
 
       // Warn about middlewares that couldn't be auto-wrapped
-      if (skippedMiddlewares.length > 0) {
+      if (fileTransformState.skippedMiddlewares.length > 0) {
         // eslint-disable-next-line no-console
         console.warn(
-          `[Sentry] Could not auto-instrument ${skippedMiddlewares.join(' and ')} in ${id}. ` +
+          `[Sentry] Could not auto-instrument ${fileTransformState.skippedMiddlewares.join(' and ')} in ${id}. ` +
             'To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. ',
         );
       }
 
       // We didn't wrap any middlewares, so we don't need to import the wrapMiddlewaresWithSentry function
-      if (!needsImport) {
+      if (!fileTransformState.needsImport) {
         return null;
       }
 
-      transformed = addSentryImport(transformed);
-
-      return { code: transformed, map: null };
+      return { code: addSentryImport(fileTransformState.code), map: null };
     },
   };
 }
