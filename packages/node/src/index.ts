@@ -168,24 +168,6 @@ export type {
   FeatureFlagsIntegration,
   ExclusiveEventHintOrCaptureContext,
   CaptureContext,
-  // AI SDK types
-  OpenAiClient,
-  OpenAiOptions,
-  InstrumentedMethod,
-  AnthropicAiClient,
-  AnthropicAiOptions,
-  AnthropicAiInstrumentedMethod,
-  AnthropicAiResponse,
-  GoogleGenAIClient,
-  GoogleGenAIChat,
-  GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
-  GoogleGenAIResponse,
-  LangChainOptions,
-  LangChainIntegration,
-  LangGraphOptions,
-  LangGraphIntegration,
-  CompiledGraph,
 } from '@sentry/core';
 
 export {
