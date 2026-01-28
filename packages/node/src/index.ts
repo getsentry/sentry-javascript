@@ -131,6 +131,8 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
@@ -139,6 +141,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   createLangChainCallbackHandler,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
 } from '@sentry/core';
 
 export type {
@@ -164,6 +168,24 @@ export type {
   FeatureFlagsIntegration,
   ExclusiveEventHintOrCaptureContext,
   CaptureContext,
+  // AI SDK types
+  OpenAiClient,
+  OpenAiOptions,
+  InstrumentedMethod,
+  AnthropicAiClient,
+  AnthropicAiOptions,
+  AnthropicAiInstrumentedMethod,
+  AnthropicAiResponse,
+  GoogleGenAIClient,
+  GoogleGenAIChat,
+  GoogleGenAIOptions,
+  GoogleGenAIIstrumentedMethod,
+  GoogleGenAIResponse,
+  LangChainOptions,
+  LangChainIntegration,
+  LangGraphOptions,
+  LangGraphIntegration,
+  CompiledGraph,
 } from '@sentry/core';
 
 export {
