@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *",
-    "hono": "4.11.4"
+    "hono": "4.11.7"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.31",
