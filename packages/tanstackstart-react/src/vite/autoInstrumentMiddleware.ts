@@ -93,19 +93,17 @@ function applyWrap(
  * Checks if a file should be skipped from auto-instrumentation based on exclude patterns.
  */
 function shouldSkipFile(id: string, exclude: Array<string | RegExp> | undefined, debug: boolean): boolean {
-  if (!exclude || exclude.length === 0) {
+  // no match
+  if (!exclude || exclude.length === 0 || !stringMatchesSomePattern(id, exclude)) {
     return false;
   }
 
-  if (stringMatchesSomePattern(id, exclude)) {
-    if (debug) {
-      // eslint-disable-next-line no-console
-      console.log(`[Sentry] Skipping auto-instrumentation for excluded file: ${id}`);
-    }
-    return true;
+  // match
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log(`[Sentry] Skipping auto-instrumentation for excluded file: ${id}`);
   }
-
-  return false;
+  return true;
 }
 
 /**
