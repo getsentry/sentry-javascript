@@ -262,7 +262,6 @@ describe('PromiseBuffer', () => {
     const elapsed = Date.now() - startTime;
 
     expect(result).toBe(true);
-    // Should return immediately, not wait for timeout
     expect(elapsed).toBeLessThan(100);
   });
 });

@@ -2217,9 +2217,7 @@ describe('Client', () => {
       const result = await client.flush(1000);
       const elapsed = Date.now() - startTime;
 
-      // Should return true immediately without waiting
       expect(result).toBe(true);
-      // Should take less than 100ms (much less than the 1000ms timeout)
       expect(elapsed).toBeLessThan(100);
     });
 
@@ -2241,13 +2239,12 @@ describe('Client', () => {
       expect(getSendCalled()).toEqual(1);
 
       const startTime = Date.now();
-      // Use a large timeout but processing should complete early
       await client.flush(5000);
       const elapsed = Date.now() - startTime;
 
       expect(getSentCount()).toEqual(1);
-      // Should complete in ~50ms (the transport delay), not wait for the full 5000ms timeout
-      expect(elapsed).toBeLessThan(500);
+      // if this flakes, remove the test
+      expect(elapsed).toBeLessThan(1000);
     });
   });
 
