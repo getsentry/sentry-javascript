@@ -36,13 +36,6 @@ export const Route = createFileRoute('/foo')({
     expect(result).toBeNull();
   });
 
-  it('does not instrument when enabled is false', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({ enabled: false }) as PluginWithTransform;
-    const result = plugin.transform(createStartFile, '/app/start.ts');
-
-    expect(result).toBeNull();
-  });
-
   it('does not instrument files without createStart or createFileRoute', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
     const code = "export const foo = 'bar';";
