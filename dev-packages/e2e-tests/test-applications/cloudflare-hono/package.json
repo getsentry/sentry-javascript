@@ -19,7 +19,7 @@
     "@cloudflare/workers-types": "^4.20250521.0",
     "typescript": "^5.9.3",
     "vitest": "3.1.0",
-    "wrangler": "4.22.0"
+    "wrangler": "4.61.0"
   },
   "volta": {
     "extends": "../../package.json"
