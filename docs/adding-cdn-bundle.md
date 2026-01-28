@@ -167,6 +167,20 @@ Add two entries in the "Browser CDN bundles" section:
 },
 ```
 
+#### Size Estimation Guide
+
+Use these approximate sizes when setting limits in `.size-limit.js`:
+
+| Feature     | Gzipped Size |
+| ----------- | ------------ |
+| Base bundle | ~28 KB       |
+| + Tracing   | +15 KB       |
+| + Replay    | +37 KB       |
+| + Feedback  | +12 KB       |
+| + Logs      | +1 KB        |
+
+Uncompressed size is approximately 3x the gzipped size.
+
 ### 5. `dev-packages/browser-integration-tests/package.json`
 
 Add test scripts in the `scripts` section:
@@ -194,20 +208,6 @@ Add to the bundle matrix (in the `job_browser_playwright_tests` job):
 ```yaml
 - bundle_{feature_combo}
 ```
-
-## Size Estimation Guide
-
-Use these approximate sizes when setting limits in `.size-limit.js`:
-
-| Feature     | Gzipped Size |
-| ----------- | ------------ |
-| Base bundle | ~28 KB       |
-| + Tracing   | +15 KB       |
-| + Replay    | +37 KB       |
-| + Feedback  | +12 KB       |
-| + Logs      | +1 KB        |
-
-Uncompressed size is approximately 3x the gzipped size.
 
 ## Verification Steps
 
