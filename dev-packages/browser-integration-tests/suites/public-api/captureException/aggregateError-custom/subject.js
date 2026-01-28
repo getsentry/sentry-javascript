@@ -9,7 +9,7 @@ const aggregateError = new CustomAggregateError(
   [new Error('error 1', { cause: new Error('error 1 cause') }), new Error('error 2')],
   'custom aggregate error',
   {
-      cause: new Error('aggregate cause'),
+    cause: new Error('aggregate cause'),
   },
 );
 
