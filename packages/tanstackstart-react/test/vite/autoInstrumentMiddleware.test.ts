@@ -4,8 +4,10 @@ import {
   addSentryImport,
   arrayToObjectShorthand,
   makeAutoInstrumentMiddlewarePlugin,
+  shouldSkipFile,
   wrapGlobalMiddleware,
   wrapRouteMiddleware,
+  wrapServerFnMiddleware,
 } from '../../src/vite/autoInstrumentMiddleware';
 
 type PluginWithTransform = Plugin & {
@@ -31,13 +33,6 @@ export const Route = createFileRoute('/foo')({
   it('does not instrument non-TS/JS files', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
     const result = plugin.transform(createStartFile, '/app/start.css');
-
-    expect(result).toBeNull();
-  });
-
-  it('does not instrument when enabled is false', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({ enabled: false }) as PluginWithTransform;
-    const result = plugin.transform(createStartFile, '/app/start.ts');
 
     expect(result).toBeNull();
   });
@@ -95,6 +90,14 @@ createStart(() => ({ requestMiddleware: [getMiddleware()] }));
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not auto-instrument requestMiddleware'));
 
     consoleWarnSpy.mockRestore();
+  });
+
+  it('does not instrument files matching exclude patterns', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: ['/routes/admin/'],
+    }) as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
+    expect(result).toBeNull();
   });
 });
 
@@ -329,6 +332,86 @@ export const Route = createFileRoute('/foo')({
   });
 });
 
+describe('wrapServerFnMiddleware', () => {
+  it('wraps single middleware in createServerFn().middleware()', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('wraps multiple middlewares in createServerFn().middleware()', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware, loggingMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware, loggingMiddleware }))');
+  });
+
+  it('does not wrap empty middleware arrays', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('does not wrap middleware containing function calls', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([createMiddleware()])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toContain('.middleware(');
+  });
+
+  it('handles multiple server functions in same file', () => {
+    const code = `
+const serverFn1 = createServerFn()
+  .middleware([authMiddleware])
+  .handler(async () => ({}));
+
+const serverFn2 = createServerFn()
+  .middleware([loggingMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ loggingMiddleware }))');
+  });
+
+  it('handles trailing commas in middleware arrays', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware,])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+  });
+});
+
 describe('addSentryImport', () => {
   it('prepends import to code without directives', () => {
     const code = 'const foo = 1;';
@@ -361,6 +444,37 @@ describe('addSentryImport', () => {
     // Verify the import appears exactly once
     const importCount = (result.match(/import \{ wrapMiddlewaresWithSentry \}/g) || []).length;
     expect(importCount).toBe(1);
+  });
+});
+
+describe('shouldSkipFile', () => {
+  it('returns false when exclude is undefined', () => {
+    expect(shouldSkipFile('/app/start.ts', undefined, false)).toBe(false);
+  });
+
+  it('returns false when exclude is empty array', () => {
+    expect(shouldSkipFile('/app/start.ts', [], false)).toBe(false);
+  });
+
+  it('returns false when file does not match any pattern', () => {
+    expect(shouldSkipFile('/app/start.ts', ['/admin/', /\.test\.ts$/], false)).toBe(false);
+  });
+
+  it('returns true when file matches string pattern', () => {
+    expect(shouldSkipFile('/app/routes/admin/start.ts', ['/admin/'], false)).toBe(true);
+  });
+
+  it('returns true when file matches regex pattern', () => {
+    expect(shouldSkipFile('/app/start.test.ts', [/\.test\.ts$/], false)).toBe(true);
+  });
+
+  it('logs debug message when skipping file', () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    shouldSkipFile('/app/routes/admin/start.ts', ['/admin/'], true);
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping auto-instrumentation for excluded file'),
+    );
+    consoleLogSpy.mockRestore();
   });
 });
 
