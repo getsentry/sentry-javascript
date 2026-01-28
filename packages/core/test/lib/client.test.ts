@@ -2205,6 +2205,50 @@ describe('Client', () => {
         }),
       ]);
     });
+
+    test('flush returns immediately when nothing is processing', async () => {
+      vi.useRealTimers();
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const startTime = Date.now();
+      const result = await client.flush(1000);
+      const elapsed = Date.now() - startTime;
+
+      // Should return true immediately without waiting
+      expect(result).toBe(true);
+      // Should take less than 100ms (much less than the 1000ms timeout)
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    test('flush with early exit when processing completes', async () => {
+      vi.useRealTimers();
+      expect.assertions(3);
+
+      const { makeTransport, getSendCalled, getSentCount, delay } = makeFakeTransport(50);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+          transport: makeTransport,
+        }),
+      );
+
+      client.captureMessage('test');
+      expect(getSendCalled()).toEqual(1);
+
+      const startTime = Date.now();
+      // Use a large timeout but processing should complete early
+      await client.flush(5000);
+      const elapsed = Date.now() - startTime;
+
+      expect(getSentCount()).toEqual(1);
+      // Should complete in ~50ms (the transport delay), not wait for the full 5000ms timeout
+      expect(elapsed).toBeLessThan(500);
+    });
   });
 
   describe('sendEvent', () => {

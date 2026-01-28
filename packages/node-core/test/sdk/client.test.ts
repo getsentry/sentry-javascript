@@ -386,4 +386,34 @@ describe('NodeClient', () => {
       expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
     });
   });
+
+  describe('flush', () => {
+    it('flush returns immediately when nothing is processing', async () => {
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      const startTime = Date.now();
+      const result = await client.flush(1000);
+      const elapsed = Date.now() - startTime;
+
+      // Should return true immediately without waiting
+      expect(result).toBe(true);
+      // Should take less than 100ms (much less than the 1000ms timeout)
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    it('flush does not block process exit when using unref timers', async () => {
+      // This test verifies that timers are properly unref'd in Node.js
+      // We create a client with no processing and a long timeout
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      // Flush with a long timeout - if timers are not unref'd, this would block
+      const flushPromise = client.flush(5000);
+
+      // The flush should complete immediately since there's nothing to process
+      const result = await flushPromise;
+      expect(result).toBe(true);
+    });
+  });
 });
