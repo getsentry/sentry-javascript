@@ -8,16 +8,16 @@
     "start": "NODE_OPTIONS='--import=./instrument.server.mjs' remix-serve build/server/index.js"
   },
   "dependencies": {
-    "@remix-run/express": "2.16.3",
-    "@remix-run/node": "2.16.3",
-    "@remix-run/react": "2.16.3",
-    "@remix-run/serve": "2.16.3",
+    "@remix-run/express": "2.17.4",
+    "@remix-run/node": "2.17.4",
+    "@remix-run/react": "2.17.4",
+    "@remix-run/serve": "2.17.4",
     "@sentry/remix": "file:../..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@remix-run/dev": "2.16.3",
+    "@remix-run/dev": "2.17.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "nock": "^13.5.5",
