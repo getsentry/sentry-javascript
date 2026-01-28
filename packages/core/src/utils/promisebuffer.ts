@@ -1,4 +1,5 @@
 import { rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
+import { safeUnref } from './timer';
 
 export interface PromiseBuffer<T> {
   // exposes the internal array so tests can assert on the state of it.
@@ -79,12 +80,7 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
 
     const promises = [
       drainPromise,
-      new Promise<boolean>(resolve => {
-        const timer = setTimeout(() => resolve(false), timeout);
-        if (typeof timer !== 'number' && timer.unref) {
-          timer.unref();
-        }
-      }),
+      new Promise<boolean>(resolve => safeUnref(setTimeout(() => resolve(false), timeout))),
     ];
 
     return Promise.race(promises);
