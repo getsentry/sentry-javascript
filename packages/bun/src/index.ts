@@ -172,6 +172,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   metrics,
+  pinoIntegration,
 } from '@sentry/node';
 
 export {
