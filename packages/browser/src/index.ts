@@ -76,6 +76,7 @@ export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
 export { browserSessionIntegration } from './integrations/browsersession';
+export type { BrowserSessionOptions } from './integrations/browsersession';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
