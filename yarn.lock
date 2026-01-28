@@ -2934,17 +2934,17 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
   integrity sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==
 
-"@edge-runtime/primitives@5.0.1":
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/@edge-runtime/primitives/-/primitives-5.0.1.tgz#29e2de862d8e02d1e85fd8aa1c73afe0317e6740"
-  integrity sha512-qjqqCa9v3IE7Fo9OnmkIWg9l0WUu3uOfUYomuOVxaaHqlIvNI75E5IB0XNNDypz249ObRSmjRj8jLjkBUmFYYw==
+"@edge-runtime/primitives@6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@edge-runtime/primitives/-/primitives-6.0.0.tgz#7ca59111605d72b6789b55e6d9c264afb656a5b1"
+  integrity sha512-FqoxaBT+prPBHBwE1WXS1ocnu/VLTQyZ6NMUBAdbP7N2hsFTTxMC/jMu2D/8GAlMQfxeuppcPuCUk/HO3fpIvA==
 
-"@edge-runtime/types@3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@edge-runtime/types/-/types-3.0.1.tgz#907bd98ec551deba6fd26b72189fde651779191b"
-  integrity sha512-yZSWlGMQXXtpE4m1WYRpjA8V9+uU3uKHJzx9lngSYDZYYABuYxb2bICBwE1NQD0WS/u/PreP/83GcndezMFmnQ==
+"@edge-runtime/types@4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@edge-runtime/types/-/types-4.0.0.tgz#a913950a9dad232b98a80a9d85860bd9e1871e67"
+  integrity sha512-6HiX1oSir5R+X74IzM08fCQkR5mTcOxgfFVdn335jz/CckIHVFphh7hNkIcI+XsMYhAfWOJ5b8TfBU/Hbx1EIQ==
   dependencies:
-    "@edge-runtime/primitives" "5.0.1"
+    "@edge-runtime/primitives" "6.0.0"
 
 "@ember-data/rfc395-data@^0.0.4":
   version "0.0.4"
@@ -28893,6 +28893,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
