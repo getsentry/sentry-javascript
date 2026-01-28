@@ -4,6 +4,7 @@ import {
   addSentryImport,
   arrayToObjectShorthand,
   makeAutoInstrumentMiddlewarePlugin,
+  shouldSkipFile,
   wrapGlobalMiddleware,
   wrapRouteMiddleware,
   wrapServerFnMiddleware,
@@ -89,6 +90,14 @@ createStart(() => ({ requestMiddleware: [getMiddleware()] }));
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not auto-instrument requestMiddleware'));
 
     consoleWarnSpy.mockRestore();
+  });
+
+  it('does not instrument files matching exclude patterns', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({
+      exclude: ['/routes/admin/'],
+    }) as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
+    expect(result).toBeNull();
   });
 });
 
@@ -438,93 +447,33 @@ describe('addSentryImport', () => {
   });
 });
 
-describe('exclude option', () => {
-  const createStartFile = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [authMiddleware] }));
-`;
-
-  it('excludes files matching string pattern (substring match)', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: ['/routes/admin/'],
-    }) as PluginWithTransform;
-
-    const result = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
-
-    expect(result).toBeNull();
+describe('shouldSkipFile', () => {
+  it('returns false when exclude is undefined', () => {
+    expect(shouldSkipFile('/app/start.ts', undefined, false)).toBe(false);
   });
 
-  it('excludes files matching regex pattern', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: [/\.test\.ts$/],
-    }) as PluginWithTransform;
-
-    const result = plugin.transform(createStartFile, '/app/start.test.ts');
-
-    expect(result).toBeNull();
+  it('returns false when exclude is empty array', () => {
+    expect(shouldSkipFile('/app/start.ts', [], false)).toBe(false);
   });
 
-  it('excludes files matching any of multiple patterns', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: ['/routes/admin/', /\.test\.ts$/],
-    }) as PluginWithTransform;
-
-    // String pattern match
-    const result1 = plugin.transform(createStartFile, '/app/routes/admin/start.ts');
-    expect(result1).toBeNull();
-
-    // Regex pattern match
-    const result2 = plugin.transform(createStartFile, '/app/start.test.ts');
-    expect(result2).toBeNull();
+  it('returns false when file does not match any pattern', () => {
+    expect(shouldSkipFile('/app/start.ts', ['/admin/', /\.test\.ts$/], false)).toBe(false);
   });
 
-  it('instruments files not matching exclude patterns', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: ['/routes/admin/', /\.test\.ts$/],
-    }) as PluginWithTransform;
-
-    const result = plugin.transform(createStartFile, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
+  it('returns true when file matches string pattern', () => {
+    expect(shouldSkipFile('/app/routes/admin/start.ts', ['/admin/'], false)).toBe(true);
   });
 
-  it('instruments all files when exclude is empty array', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: [],
-    }) as PluginWithTransform;
-
-    const result = plugin.transform(createStartFile, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
+  it('returns true when file matches regex pattern', () => {
+    expect(shouldSkipFile('/app/start.test.ts', [/\.test\.ts$/], false)).toBe(true);
   });
 
-  it('instruments all files when exclude is undefined', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      exclude: undefined,
-    }) as PluginWithTransform;
-
-    const result = plugin.transform(createStartFile, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('wrapMiddlewaresWithSentry');
-  });
-
-  it('logs debug message when file is excluded', () => {
+  it('logs debug message when skipping file', () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    const plugin = makeAutoInstrumentMiddlewarePlugin({
-      debug: true,
-      exclude: ['/routes/admin/'],
-    }) as PluginWithTransform;
-
-    plugin.transform(createStartFile, '/app/routes/admin/start.ts');
-
+    shouldSkipFile('/app/routes/admin/start.ts', ['/admin/'], true);
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('Skipping auto-instrumentation for excluded file'),
     );
-
     consoleLogSpy.mockRestore();
   });
 });

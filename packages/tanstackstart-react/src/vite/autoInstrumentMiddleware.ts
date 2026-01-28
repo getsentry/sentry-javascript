@@ -91,7 +91,7 @@ function applyWrap(
 /**
  * Checks if a file should be skipped from auto-instrumentation based on exclude patterns.
  */
-function shouldSkipFile(id: string, exclude: Array<string | RegExp> | undefined, debug: boolean): boolean {
+export function shouldSkipFile(id: string, exclude: Array<string | RegExp> | undefined, debug: boolean): boolean {
   // file doesn't match exclude patterns, don't skip
   if (!exclude || exclude.length === 0 || !stringMatchesSomePattern(id, exclude)) {
     return false;
