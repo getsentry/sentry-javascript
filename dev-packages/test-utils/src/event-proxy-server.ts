@@ -6,6 +6,8 @@ import type {
   SerializedMetric,
   SerializedMetricContainer,
   SerializedSession,
+  SpanV2Envelope,
+  SpanV2JSON,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
 import * as fs from 'fs';
@@ -425,6 +427,204 @@ export function waitForMetric(
       timestamp,
     ).catch(reject);
   });
+}
+
+/**
+ * Check if an envelope item is a Span V2 container item.
+ */
+function isSpanV2EnvelopeItem(
+  envelopeItem: EnvelopeItem,
+): envelopeItem is [
+  { type: 'span'; content_type: 'application/vnd.sentry.items.span.v2+json'; item_count: number },
+  { items: SpanV2JSON[] },
+] {
+  const [header] = envelopeItem;
+  return (
+    header.type === 'span' &&
+    'content_type' in header &&
+    header.content_type === 'application/vnd.sentry.items.span.v2+json'
+  );
+}
+
+/**
+ * Wait for a Span V2 envelope to be sent.
+ * Returns the first Span V2 envelope that is sent that matches the callback.
+ * If no callback is provided, returns the first Span V2 envelope that is sent.
+ *
+ * @example
+ * ```ts
+ * const envelope = await waitForSpanV2Envelope(PROXY_SERVER_NAME);
+ * const spans = envelope[1][0][1].items;
+ * expect(spans.length).toBeGreaterThan(0);
+ * ```
+ *
+ * @example
+ * ```ts
+ * // With a filter callback
+ * const envelope = await waitForSpanV2Envelope(PROXY_SERVER_NAME, envelope => {
+ *   return envelope[1][0][1].items.length > 5;
+ * });
+ * ```
+ */
+export function waitForSpanV2Envelope(
+  proxyServerName: string,
+  callback?: (spanEnvelope: SpanV2Envelope) => Promise<boolean> | boolean,
+): Promise<SpanV2Envelope> {
+  const timestamp = getNanosecondTimestamp();
+  return new Promise((resolve, reject) => {
+    waitForRequest(
+      proxyServerName,
+      async eventData => {
+        const envelope = eventData.envelope;
+        const envelopeItems = envelope[1];
+
+        // Check if this is a Span V2 envelope by looking for a Span V2 item
+        const hasSpanV2Item = envelopeItems.some(item => isSpanV2EnvelopeItem(item));
+        if (!hasSpanV2Item) {
+          return false;
+        }
+
+        const spanV2Envelope = envelope as SpanV2Envelope;
+
+        if (callback) {
+          return callback(spanV2Envelope);
+        }
+
+        return true;
+      },
+      timestamp,
+    )
+      .then(eventData => resolve(eventData.envelope as SpanV2Envelope))
+      .catch(reject);
+  });
+}
+
+/**
+ * Wait for a single Span V2 to be sent that matches the callback.
+ * Returns the first Span V2 that is sent that matches the callback.
+ * If no callback is provided, returns the first Span V2 that is sent.
+ *
+ * @example
+ * ```ts
+ * const span = await waitForSpanV2(PROXY_SERVER_NAME, span => {
+ *   return span.name === 'GET /api/users';
+ * });
+ * expect(span.status).toBe('ok');
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Using the getSpanV2Op helper
+ * const span = await waitForSpanV2(PROXY_SERVER_NAME, span => {
+ *   return getSpanV2Op(span) === 'http.client';
+ * });
+ * ```
+ */
+export function waitForSpanV2(
+  proxyServerName: string,
+  callback: (span: SpanV2JSON) => Promise<boolean> | boolean,
+): Promise<SpanV2JSON> {
+  const timestamp = getNanosecondTimestamp();
+  return new Promise((resolve, reject) => {
+    waitForRequest(
+      proxyServerName,
+      async eventData => {
+        const envelope = eventData.envelope;
+        const envelopeItems = envelope[1];
+
+        for (const envelopeItem of envelopeItems) {
+          if (!isSpanV2EnvelopeItem(envelopeItem)) {
+            return false
+          }
+
+          const spans = envelopeItem[1].items;
+
+          for (const span of spans) {
+            if (await callback(span)) {
+              resolve(span);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
+  });
+}
+
+/**
+ * Wait for Span V2 spans to be sent. Returns all matching spans from the first envelope that has at least one match.
+ * The callback receives individual spans (not an array), making it consistent with `waitForSpanV2`.
+ * If no callback is provided, returns all spans from the first Span V2 envelope.
+ *
+ * @example
+ * ```ts
+ * // Get all spans from the first envelope
+ * const spans = await waitForSpansV2(PROXY_SERVER_NAME);
+ * expect(spans.length).toBeGreaterThan(0);
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Filter for specific spans (same callback style as waitForSpanV2)
+ * const httpSpans = await waitForSpansV2(PROXY_SERVER_NAME, span => {
+ *   return getSpanV2Op(span) === 'http.client';
+ * });
+ * expect(httpSpans.length).toBe(2);
+ * ```
+ */
+export function waitForSpansV2(
+  proxyServerName: string,
+  callback?: (span: SpanV2JSON) => Promise<boolean> | boolean,
+): Promise<SpanV2JSON[]> {
+  const timestamp = getNanosecondTimestamp();
+  return new Promise((resolve, reject) => {
+    waitForRequest(
+      proxyServerName,
+      async eventData => {
+        const envelope = eventData.envelope;
+        const envelopeItems = envelope[1];
+
+        for (const envelopeItem of envelopeItems) {
+          if (isSpanV2EnvelopeItem(envelopeItem)) {
+            const spans = envelopeItem[1].items;
+            if (callback) {
+              const matchingSpans: SpanV2JSON[] = [];
+              for (const span of spans) {
+                if (await callback(span)) {
+                  matchingSpans.push(span);
+                }
+              }
+              if (matchingSpans.length > 0) {
+                resolve(matchingSpans);
+                return true;
+              }
+            } else {
+              resolve(spans);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
+  });
+}
+
+/**
+ * Helper to get the span operation from a Span V2 JSON object.
+ *
+ * @example
+ * ```ts
+ * const span = await waitForSpanV2(PROXY_SERVER_NAME, span => {
+ *   return getSpanV2Op(span) === 'http.client';
+ * });
+ * ```
+ */
+export function getSpanV2Op(span: SpanV2JSON): string | undefined {
+  return span.attributes?.['sentry.op']?.type === 'string' ? span.attributes['sentry.op'].value : undefined;
 }
 
 const TEMP_FILE_PREFIX = 'event-proxy-server-';
