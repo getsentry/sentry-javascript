@@ -22,7 +22,7 @@
     "@types/react": "18.0.28",
     "@types/react-dom": "18.0.11",
     "concurrently": "7.6.0",
-    "next": "14.2.25",
+    "next": "15.5.10",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "supabase": "2.19.7",
