@@ -12,10 +12,6 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
-    allow:
-      - dependency-name: '@sentry/*'
-      - dependency-name: '@playwright/test'
-      - dependency-name: '@opentelemetry/*'
     ignore:
       - dependency-name: '@opentelemetry/instrumentation'
       - dependency-name: '@opentelemetry/instrumentation-*'
