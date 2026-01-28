@@ -1397,4 +1397,56 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       expect(allRoutesArray).toContain(lazyLoadedRoutes[0]);
     });
   });
+
+  describe('wrapPatchRoutesOnNavigation race condition fix', () => {
+    it('should use captured span instead of current active span in args.patch callback', () => {
+      const endedSpanJson = {
+        op: 'navigation',
+        timestamp: 1234567890, // Span has ended
+      };
+
+      vi.mocked(spanToJSON).mockReturnValue(endedSpanJson as any);
+
+      const endedSpan = {
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+      } as unknown as Span;
+
+      updateNavigationSpan(
+        endedSpan,
+        { pathname: '/test', search: '', hash: '', state: null, key: 'test' },
+        [],
+        false,
+        vi.fn(() => []),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(endedSpan.updateName).not.toHaveBeenCalled();
+    });
+
+    it('should not fall back to WINDOW.location.pathname after async operations', () => {
+      const validSpanJson = {
+        op: 'navigation',
+        timestamp: undefined, // Span hasn't ended
+      };
+
+      vi.mocked(spanToJSON).mockReturnValue(validSpanJson as any);
+
+      const validSpan = {
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+      } as unknown as Span;
+
+      updateNavigationSpan(
+        validSpan,
+        { pathname: '/captured/path', search: '', hash: '', state: null, key: 'test' },
+        [],
+        false,
+        vi.fn(() => []),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(validSpan.updateName).toHaveBeenCalled();
+    });
+  });
 });
