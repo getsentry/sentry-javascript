@@ -22,7 +22,7 @@
     "@types/react-dom": "^18",
     "nock": "^13.5.5",
     "typescript": "~5.8.0",
-    "vite": "^5.0.0"
+    "vite": "^6.0.0"
   },
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
@@ -41,7 +41,8 @@
     "@types/mime": "^3.0.0",
     "@sentry/remix/glob": "<10.4.3",
     "jackspeak": "<3.4.1",
-    "**/path-scurry/lru-cache": "10.2.0"
+    "**/path-scurry/lru-cache": "10.2.0",
+    "vite": "^6.0.0"
   },
   "engines": {
     "node": ">=18"
