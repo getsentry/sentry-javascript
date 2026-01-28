@@ -566,11 +566,11 @@ jobs:
           - esm
           - bundle
           - bundle_min
-          - bundle_replay
-          - bundle_tracing
           - bundle_logs_metrics
-          - bundle_tracing_logs_metrics
+          - bundle_replay
           - bundle_replay_logs_metrics
+          - bundle_tracing
+          - bundle_tracing_logs_metrics
           - bundle_tracing_replay
           - bundle_tracing_replay_logs_metrics
           - bundle_tracing_replay_feedback
