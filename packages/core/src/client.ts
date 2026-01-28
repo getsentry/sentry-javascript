@@ -1148,11 +1148,23 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * `false` otherwise
    */
   protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    // Early exit if there's nothing to process
+    if (!this._numProcessing) {
+      return true;
+    }
+
     let ticked = 0;
 
     // if no timeout is provided, we wait "forever" until everything is processed
     while (!timeout || ticked < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 1);
+        // Use unref() in Node.js to allow the process to exit naturally
+        // In browsers, setTimeout returns a number, so we check for that
+        if (typeof timer !== 'number' && timer.unref) {
+          timer.unref();
+        }
+      });
 
       if (!this._numProcessing) {
         return true;

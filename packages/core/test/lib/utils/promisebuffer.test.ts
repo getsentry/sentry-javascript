@@ -252,4 +252,17 @@ describe('PromiseBuffer', () => {
       expect(e).toEqual(new Error('whoops'));
     }
   });
+
+  test('drain returns immediately when buffer is empty', async () => {
+    const buffer = makePromiseBuffer();
+    expect(buffer.$.length).toEqual(0);
+
+    const startTime = Date.now();
+    const result = await buffer.drain(5000);
+    const elapsed = Date.now() - startTime;
+
+    expect(result).toBe(true);
+    // Should return immediately, not wait for timeout
+    expect(elapsed).toBeLessThan(100);
+  });
 });
