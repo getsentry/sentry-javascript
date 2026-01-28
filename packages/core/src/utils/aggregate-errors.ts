@@ -74,7 +74,7 @@ function aggregateExceptionsFromError(
 
   // This will create exception grouping for AggregateErrors
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError
-  if (Array.isArray(error.errors)) {
+  if (isExceptionGroup(error)) {
     error.errors.forEach((childError, i) => {
       if (isInstanceOf(childError, Error)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
@@ -98,6 +98,10 @@ function aggregateExceptionsFromError(
   return newExceptions;
 }
 
+function isExceptionGroup(error: ExtendedError): error is ExtendedError & { errors: unknown[] } {
+  return Array.isArray(error.errors);
+}
+
 function applyExceptionGroupFieldsForParentException(
   exception: Exception,
   exceptionId: number,
@@ -106,7 +110,7 @@ function applyExceptionGroupFieldsForParentException(
   exception.mechanism = {
     handled: true,
     type: 'auto.core.linked_errors',
-    ...(Array.isArray(error.errors) && { is_exception_group: true }),
+    ...(isExceptionGroup(error) && { is_exception_group: true }),
     ...exception.mechanism,
     exception_id: exceptionId,
   };
