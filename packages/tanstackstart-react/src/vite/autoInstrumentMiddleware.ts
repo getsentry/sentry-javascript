@@ -2,7 +2,6 @@ import { stringMatchesSomePattern } from '@sentry/core';
 import type { Plugin } from 'vite';
 
 type AutoInstrumentMiddlewareOptions = {
-  enabled?: boolean;
   debug?: boolean;
   exclude?: Array<string | RegExp>;
 };
@@ -112,17 +111,13 @@ function shouldSkipFile(id: string, exclude: Array<string | RegExp> | undefined,
  * - `middleware` arrays in `createFileRoute()` route definitions
  */
 export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddlewareOptions = {}): Plugin {
-  const { enabled = true, debug = false, exclude } = options;
+  const { debug = false, exclude } = options;
 
   return {
     name: 'sentry-tanstack-middleware-auto-instrument',
     enforce: 'pre',
 
     transform(code, id) {
-      if (!enabled) {
-        return null;
-      }
-
       // Skip if not a TS/JS file
       if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id)) {
         return null;

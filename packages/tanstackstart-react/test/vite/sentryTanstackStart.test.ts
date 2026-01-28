@@ -119,7 +119,6 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
 
       expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
-        enabled: true,
         debug: true,
         exclude: undefined,
       });
@@ -129,7 +128,6 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart({ sourcemaps: { disable: true } });
 
       expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
-        enabled: true,
         debug: undefined,
         exclude: undefined,
       });
@@ -143,7 +141,6 @@ describe('sentryTanstackStart()', () => {
       });
 
       expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
-        enabled: true,
         debug: undefined,
         exclude: excludePatterns,
       });
@@ -156,7 +153,6 @@ describe('sentryTanstackStart()', () => {
       });
 
       expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({
-        enabled: true,
         debug: undefined,
         exclude: undefined,
       });

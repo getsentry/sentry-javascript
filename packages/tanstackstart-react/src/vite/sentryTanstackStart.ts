@@ -78,7 +78,6 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   if (!isDisabled) {
     plugins.push(
       makeAutoInstrumentMiddlewarePlugin({
-        enabled: true,
         debug: options.debug,
         exclude: excludePatterns,
       }),
