@@ -9365,25 +9365,7 @@
     hookable "^5.5.3"
     unhead "1.11.6"
 
-"@vercel/nft@^0.29.4":
-  version "0.29.4"
-  resolved "https://registry.yarnpkg.com/@vercel/nft/-/nft-0.29.4.tgz#e56b07d193776bcf67b31ac4da065ceb8e8d362e"
-  integrity sha512-6lLqMNX3TuycBPABycx7A9F1bHQR7kiQln6abjFbPrf5C/05qHM9M5E4PeTE59c7z8g6vHnx1Ioihb2AQl7BTA==
-  dependencies:
-    "@mapbox/node-pre-gyp" "^2.0.0"
-    "@rollup/pluginutils" "^5.1.3"
-    acorn "^8.6.0"
-    acorn-import-attributes "^1.9.5"
-    async-sema "^3.1.1"
-    bindings "^1.4.0"
-    estree-walker "2.0.2"
-    glob "^10.4.5"
-    graceful-fs "^4.2.9"
-    node-gyp-build "^4.2.2"
-    picomatch "^4.0.2"
-    resolve-from "^5.0.0"
-
-"@vercel/nft@^1.2.0":
+"@vercel/nft@^1.2.0", "@vercel/nft@^1.3.0":
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/@vercel/nft/-/nft-1.3.0.tgz#4078ad8b113e957e3bdb5be104707aa6c82a3920"
   integrity sha512-i4EYGkCsIjzu4vorDUbqglZc5eFtQI2syHb++9ZUDm6TU4edVywGpVnYDein35x9sevONOn9/UabfQXuNXtuzQ==
@@ -17873,7 +17855,7 @@ glob@8.0.3:
     minimatch "^5.0.1"
     once "^1.3.0"
 
-glob@^10.0.0, glob@^10.2.2, glob@^10.3.10, glob@^10.3.4, glob@^10.3.7, glob@^10.4.1, glob@^10.4.5, glob@^10.5.0:
+glob@^10.0.0, glob@^10.2.2, glob@^10.3.10, glob@^10.3.4, glob@^10.3.7, glob@^10.4.1, glob@^10.5.0:
   version "10.5.0"
   resolved "https://registry.yarnpkg.com/glob/-/glob-10.5.0.tgz#8ec0355919cd3338c28428a23d4f24ecc5fe738c"
   integrity sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==
@@ -28775,6 +28757,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
