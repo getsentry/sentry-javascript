@@ -28,9 +28,6 @@ export {
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export {
-  feedbackIntegrationShim as feedbackAsyncIntegration,
-  feedbackIntegrationShim as feedbackIntegration,
-};
+export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
