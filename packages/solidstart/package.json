@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@solidjs/router": "^0.15.0",
-    "@solidjs/start": "^1.0.0",
+    "@solidjs/start": "^1.2.1",
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
