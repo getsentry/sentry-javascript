@@ -45,7 +45,8 @@ jobs:
           labels: ${{ steps.sourceLabel.outputs.label }}
 
       # Scan System Info section for @sentry/* packages (from envinfo output)
-      - name: Detect @sentry packages and add labels
+      - name: Detect @sentry packages in System Info
+        id: packageLabels
         uses: actions/github-script@v7
         with:
           script: |
@@ -55,6 +56,7 @@ jobs:
             const systemInfoMatch = body.match(/### System Info\s*\n([\s\S]*?)(?=\n### |\n*$)/);
             if (!systemInfoMatch) {
               console.log('No System Info section found');
+              core.setOutput('labels', '');
               return;
             }
 
@@ -102,15 +104,12 @@ jobs:
               }
             }
 
-            if (labelsToAdd.size > 0) {
-              const labels = Array.from(labelsToAdd);
-              console.log('Adding labels:', labels);
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                labels: labels
-              });
-            } else {
-              console.log('No @sentry/* packages detected in System Info section');
-            }
+            const labels = Array.from(labelsToAdd).join('\n');
+            console.log('Detected labels:', labels);
+            core.setOutput('labels', labels);
+
+      - name: Add package labels if applicable
+        if: steps.packageLabels.outputs.labels != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.packageLabels.outputs.labels }}
