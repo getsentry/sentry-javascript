@@ -56,7 +56,7 @@ function aggregateExceptionsFromError(
 
   // Recursively call this function in order to walk down a chain of errors
   if (isInstanceOf(error[key], Error)) {
-    applyExceptionGroupFieldsForParentException(exception, exceptionId);
+    applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
     const newException = exceptionFromErrorImplementation(parser, error[key] as Error);
     const newExceptionId = newExceptions.length;
     applyExceptionGroupFieldsForChildException(newException, key, newExceptionId, exceptionId);
@@ -77,7 +77,7 @@ function aggregateExceptionsFromError(
   if (Array.isArray(error.errors)) {
     error.errors.forEach((childError, i) => {
       if (isInstanceOf(childError, Error)) {
-        applyExceptionGroupFieldsForParentException(exception, exceptionId);
+        applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
         const newException = exceptionFromErrorImplementation(parser, childError as Error);
         const newExceptionId = newExceptions.length;
         applyExceptionGroupFieldsForChildException(newException, `errors[${i}]`, newExceptionId, exceptionId);
@@ -98,12 +98,16 @@ function aggregateExceptionsFromError(
   return newExceptions;
 }
 
-function applyExceptionGroupFieldsForParentException(exception: Exception, exceptionId: number): void {
+function applyExceptionGroupFieldsForParentException(
+  exception: Exception,
+  exceptionId: number,
+  error: ExtendedError,
+): void {
   exception.mechanism = {
     handled: true,
     type: 'auto.core.linked_errors',
+    ...(Array.isArray(error.errors) && { is_exception_group: true }),
     ...exception.mechanism,
-    ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,
   };
 }
