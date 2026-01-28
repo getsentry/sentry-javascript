@@ -81,16 +81,12 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
       drainPromise,
       new Promise<boolean>(resolve => {
         const timer = setTimeout(() => resolve(false), timeout);
-        // Use unref() in Node.js to allow the process to exit naturally
-        // In browsers, setTimeout returns a number, so we check for that
         if (typeof timer !== 'number' && timer.unref) {
           timer.unref();
         }
       }),
     ];
 
-    // Promise.race will resolve to the first promise that resolves or rejects
-    // So if the drainPromise resolves, the timeout promise will be ignored
     return Promise.race(promises);
   }
 
