@@ -111,6 +111,13 @@ const tracingLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
   outputFileBase: () => 'bundles/bundle.tracing.logs.metrics',
 });
 
+const replayLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.replay.logs.metrics.ts'],
+  licenseTitle: '@sentry/browser (Replay, Logs, and Metrics)',
+  outputFileBase: () => 'bundles/bundle.replay.logs.metrics',
+});
+
 const tracingReplayFeedbackLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.replay.feedback.logs.metrics.ts'],
@@ -127,6 +134,7 @@ builds.push(
   ...makeBundleConfigVariants(replayFeedbackBaseBundleConfig),
   ...makeBundleConfigVariants(tracingReplayFeedbackBaseBundleConfig),
   ...makeBundleConfigVariants(tracingLogsMetricsBaseBundleConfig),
+  ...makeBundleConfigVariants(replayLogsMetricsBaseBundleConfig),
   ...makeBundleConfigVariants(tracingReplayFeedbackLogsMetricsBaseBundleConfig),
 );
 
