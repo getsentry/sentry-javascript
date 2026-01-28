@@ -290,4 +290,82 @@ describe('hoistNonReactStatics', () => {
     expect((Hoc2 as any).originalStatic).toBe('original');
     expect((Hoc2 as any).hoc1Static).toBe('hoc1');
   });
+
+  it('handles Symbol.hasInstance from Function.prototype without throwing', () => {
+    expect(Object.getOwnPropertySymbols(Function.prototype)).toContain(Symbol.hasInstance);
+
+    class Source extends React.Component {
+      static customStatic = 'value';
+    }
+    class Target extends React.Component {}
+
+    // This should not throw "Cannot convert a Symbol value to a string"
+    expect(() => hoistNonReactStatics(Target, Source)).not.toThrow();
+    expect((Target as any).customStatic).toBe('value');
+  });
+
+  it('handles components with Symbol.hasInstance defined', () => {
+    class Source extends React.Component {
+      static customStatic = 'value';
+      static [Symbol.hasInstance](instance: unknown) {
+        return instance instanceof Source;
+      }
+    }
+    class Target extends React.Component {}
+
+    // This should not throw
+    expect(() => hoistNonReactStatics(Target, Source)).not.toThrow();
+    expect((Target as any).customStatic).toBe('value');
+    // Symbol.hasInstance should be hoisted
+    expect(typeof (Target as any)[Symbol.hasInstance]).toBe('function');
+  });
+
+  it('does not rely on String() for symbol keys (simulating minifier transformation)', () => {
+    const sym = Symbol('test');
+    // eslint-disable-next-line prefer-template
+    expect(() => '' + (sym as any)).toThrow('Cannot convert a Symbol value to a string');
+
+    // But accessing an object with a symbol key should NOT throw
+    const obj: Record<string, boolean> = { name: true };
+    expect(obj[sym as any]).toBeUndefined(); // No error, just undefined
+
+    // Now test the actual function - it should work because it shouldn't
+    // need to convert symbols to strings
+    class Source extends React.Component {
+      static customStatic = 'value';
+    }
+    // Add a symbol property that will be iterated over
+    (Source as any)[Symbol.for('test.symbol')] = 'symbolValue';
+
+    class Target extends React.Component {}
+
+    expect(() => hoistNonReactStatics(Target, Source)).not.toThrow();
+    expect((Target as any).customStatic).toBe('value');
+    expect((Target as any)[Symbol.for('test.symbol')]).toBe('symbolValue');
+  });
+
+  it('works when String() throws for symbols (simulating aggressive minifier)', () => {
+    const OriginalString = globalThis.String;
+    globalThis.String = function (value: unknown) {
+      if (typeof value === 'symbol') {
+        throw new TypeError('Cannot convert a Symbol value to a string');
+      }
+      return OriginalString(value);
+    } as StringConstructor;
+
+    try {
+      class Source extends React.Component {
+        static customStatic = 'value';
+      }
+      (Source as any)[Symbol.for('test.symbol')] = 'symbolValue';
+
+      class Target extends React.Component {}
+
+      expect(() => hoistNonReactStatics(Target, Source)).not.toThrow();
+      expect((Target as any).customStatic).toBe('value');
+      expect((Target as any)[Symbol.for('test.symbol')]).toBe('symbolValue');
+    } finally {
+      globalThis.String = OriginalString;
+    }
+  });
 });
