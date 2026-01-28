@@ -63,7 +63,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
     "@types/node": "^18.19.1",
-    "wrangler": "4.22.0"
+    "wrangler": "4.61.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

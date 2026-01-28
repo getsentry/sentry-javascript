@@ -33,7 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "canary",
     "typescript": "^5",
-    "wrangler": "^4.59.2"
+    "wrangler": "^4.61.0"
   },
   "volta": {
     "extends": "../../package.json"

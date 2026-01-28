@@ -568,6 +568,7 @@ jobs:
           - bundle_min
           - bundle_replay
           - bundle_tracing
+          - bundle_logs_metrics
           - bundle_tracing_logs_metrics
           - bundle_replay_logs_metrics
           - bundle_tracing_replay

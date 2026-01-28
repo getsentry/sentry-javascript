@@ -187,6 +187,12 @@ module.exports = [
     limit: '43 KB',
   },
   {
+    name: 'CDN Bundle (incl. Logs, Metrics)',
+    path: createCDNPath('bundle.logs.metrics.min.js'),
+    gzip: true,
+    limit: '29 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
@@ -230,6 +236,13 @@ module.exports = [
     gzip: false,
     brotli: false,
     limit: '128 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
+    path: createCDNPath('bundle.logs.metrics.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '86 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics) - uncompressed',
