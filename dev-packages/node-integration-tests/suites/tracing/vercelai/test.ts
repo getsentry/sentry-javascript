@@ -796,4 +796,43 @@ describe('Vercel AI integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                // First call: Last message truncated (only C's remain, D's are cropped)
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[.*"text":"C+".*\]$/),
+                    [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to truncated messages',
+                  }),
+                }),
+                // Second call: Last message is small and kept intact
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining(
+                      'This is a small message that fits within the limit',
+                    ),
+                    [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to small message',
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
