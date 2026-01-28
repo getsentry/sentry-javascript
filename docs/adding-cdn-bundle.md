@@ -17,13 +17,13 @@ Feature combinations use dot notation:
 
 Given a feature combination, derive these variants:
 
-| Placeholder                     | Example (`replay.logs.metrics`)   |
-| ------------------------------- | --------------------------------- |
-| `{FEATURE_COMBO}`               | `replay.logs.metrics`             |
-| `{feature_combo}`               | `replay_logs_metrics`             |
-| `{featureCombo}`                | `replayLogsMetrics`               |
-| `{Human Readable Features}`     | `Replay, Logs, Metrics`           |
-| `{Human Readable Feature List}` | `Replay, Logs, and Metrics`       |
+| Placeholder                     | Example (`replay.logs.metrics`) |
+| ------------------------------- | ------------------------------- |
+| `{FEATURE_COMBO}`               | `replay.logs.metrics`           |
+| `{feature_combo}`               | `replay_logs_metrics`           |
+| `{featureCombo}`                | `replayLogsMetrics`             |
+| `{Human Readable Features}`     | `Replay, Logs, Metrics`         |
+| `{Human Readable Feature List}` | `Replay, Logs, and Metrics`     |
 
 ## Files to Create
 

@@ -8,13 +8,13 @@ Follow the detailed guide at [docs/adding-cdn-bundle.md](../../docs/adding-cdn-b
 
 ## Quick Reference - Naming Conventions
 
-| Placeholder                     | Example (`replay.logs.metrics`)   |
-| ------------------------------- | --------------------------------- |
-| `{FEATURE_COMBO}`               | `replay.logs.metrics`             |
-| `{feature_combo}`               | `replay_logs_metrics`             |
-| `{featureCombo}`                | `replayLogsMetrics`               |
-| `{Human Readable Features}`     | `Replay, Logs, Metrics`           |
-| `{Human Readable Feature List}` | `Replay, Logs, and Metrics`       |
+| Placeholder                     | Example (`replay.logs.metrics`) |
+| ------------------------------- | ------------------------------- |
+| `{FEATURE_COMBO}`               | `replay.logs.metrics`           |
+| `{feature_combo}`               | `replay_logs_metrics`           |
+| `{featureCombo}`                | `replayLogsMetrics`             |
+| `{Human Readable Features}`     | `Replay, Logs, Metrics`         |
+| `{Human Readable Feature List}` | `Replay, Logs, and Metrics`     |
 
 ## Quick Reference - Files to Create/Modify
 
