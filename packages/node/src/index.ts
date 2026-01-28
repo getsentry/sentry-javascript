@@ -131,6 +131,8 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
@@ -139,6 +141,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   createLangChainCallbackHandler,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
 } from '@sentry/core';
 
 export type {
