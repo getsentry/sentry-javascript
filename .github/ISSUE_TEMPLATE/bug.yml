@@ -39,14 +39,17 @@ body:
     id: system-info
     attributes:
       label: System Info
-      description: Run `npx envinfo --binaries --npmPackages "@sentry/*"` and paste the output here.
+      description:
+        If you are using an NPM package, run `npx envinfo --binaries --npmPackages "@sentry/*"` and paste the output
+        here.
       render: shell
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: package-manager
     attributes:
       label: Package Manager
+      description: If you are using an NPM package, which package manager are you using?
       options:
         - npm
         - yarn
@@ -54,7 +57,7 @@ body:
         - bun
         - deno
     validations:
-      required: true
+      required: false
   - type: input
     id: link-to-sentry
     attributes:

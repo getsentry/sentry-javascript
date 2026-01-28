@@ -10,138 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !github.event.issue.pull_request }}
     steps:
-      - name: Get used package from issue body
+      - name: Get SDK source from issue body
         # https://github.com/actions-ecosystem/action-regex-match
         uses: actions-ecosystem/action-regex-match@v2
-        id: packageName
+        id: sdkSource
         with:
-          # Parse used package from issue body
+          # Parse SDK source from issue body
           text: ${{ github.event.issue.body }}
-          regex: '### Which SDK are you using\?\n\n(.*)\n\n'
+          regex: '### Where are you installing the Sentry SDK from\?\n\n(.*)\n\n'
 
-      - name: Map package to issue label
+      - name: Map SDK source to issue label
         # https://github.com/kanga333/variable-mapper
         uses: kanga333/variable-mapper@v0.3.0
-        id: packageLabel
-        if: steps.packageName.outputs.match != ''
+        id: sourceLabel
+        if: steps.sdkSource.outputs.match != ''
         with:
-          key: '${{ steps.packageName.outputs.group1 }}'
-          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
-          map: |
-            {
-              "@sentry.angular": {
-                "label": "Angular"
-              },
-              "@sentry.astro": {
-                "label": "Astro"
-              },
-              "@sentry.aws-serverless": {
-                "label": "AWS Lambda"
-              },
-              "@sentry.browser": {
-                "label": "Browser"
-              },
-              "@sentry.bun": {
-                "label": "Bun"
-              },
-              "@sentry.cloudflare.-.hono": {
-                "label": "Hono"
-              },
-              "@sentry.cloudflare": {
-                "label": "Cloudflare Workers"
-              },
-              "@sentry.deno": {
-                "label": "Deno"
-              },
-              "@sentry.ember": {
-                "label": "Ember"
-              },
-              "@sentry.gatsby": {
-                "label": "Gatbsy"
-              },
-              "@sentry.google-cloud-serverless": {
-                "label": "Google Cloud Functions"
-              },
-              "@sentry.nestjs": {
-                "label": "Nest.js"
-              },
-              "@sentry.nextjs": {
-                "label": "Next.js"
-              },
-              "@sentry.node.-.express": {
-                "label": "Express"
-              },
-              "@sentry.node.-.fastify": {
-                "label": "Fastify"
-              },
-              "@sentry.node.-.koa": {
-                "label": "Koa"
-              },
-              "@sentry.node.-.hapi": {
-                "label": "Hapi"
-              },
-              "@sentry.node.-.connect": {
-                "label": "Connect"
-              },
-              "@sentry.node": {
-                "label": "Node.js"
-              },
-              "@sentry.nuxt": {
-                "label": "Nuxt"
-              },
-              "@sentry.react-router": {
-                "label": "React Router Framework"
-              },
-              "@sentry.react": {
-                "label": "React"
-              },
-              "@sentry.remix": {
-                "label": "Remix"
-              },
-              "@sentry.solid": {
-                "label": "Solid"
-              },
-              "@sentry.solidstart": {
-                "label": "SolidStart"
-              },
-              "@sentry.sveltekit": {
-                "label": "SvelteKit"
-              },
-              "@sentry.svelte": {
-                "label": "Svelte"
-              },
-              "@sentry.vue": {
-                "label": "Vue"
-              },
-              "@sentry.tanstackstart-react": {
-                "label": "Tanstack Start React"
-              },
-              "@sentry.wasm": {
-                "label": "WASM"
-              },
-              "Sentry.Browser.Loader": {
-                "label": "Browser"
-              },
-              "Sentry.Browser.CDN.bundle": {
-                "label": "Browser"
-              }
-            }
-          export_to: output
-
-      - name: Add package label if applicable
-        # Note: We only add the label if the issue is still open
-        if: steps.packageLabel.outputs.label != ''
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          labels: ${{ steps.packageLabel.outputs.label }}
-
-      - name: Map additional to issue label
-        # https://github.com/kanga333/variable-mapper
-        uses: kanga333/variable-mapper@v0.3.0
-        id: additionalLabel
-        if: steps.packageName.outputs.match != ''
-        with:
-          key: '${{ steps.packageName.outputs.group1 }}'
+          key: '${{ steps.sdkSource.outputs.group1 }}'
           # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
           map: |
             {
@@ -154,9 +38,79 @@ jobs:
             }
           export_to: output
 
-      - name: Add additional label if applicable
-        # Note: We only add the label if the issue is still open
-        if: steps.additionalLabel.outputs.label != ''
+      - name: Add SDK source label if applicable
+        if: steps.sourceLabel.outputs.label != ''
         uses: actions-ecosystem/action-add-labels@v1
         with:
-          labels: ${{ steps.additionalLabel.outputs.label }}
+          labels: ${{ steps.sourceLabel.outputs.label }}
+
+      # Scan System Info section for @sentry/* packages (from envinfo output)
+      - name: Detect @sentry packages and add labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+
+            // Extract only the System Info section to avoid matching free-form text
+            const systemInfoMatch = body.match(/### System Info\s*\n([\s\S]*?)(?=\n### |\n*$)/);
+            if (!systemInfoMatch) {
+              console.log('No System Info section found');
+              return;
+            }
+
+            const systemInfoSection = systemInfoMatch[1];
+            console.log('Scanning System Info section for @sentry/* packages');
+
+            // Map of package patterns to labels
+            const packageToLabel = {
+              '@sentry/angular': 'Angular',
+              '@sentry/astro': 'Astro',
+              '@sentry/aws-serverless': 'AWS Lambda',
+              '@sentry/browser': 'Browser',
+              '@sentry/bun': 'Bun',
+              '@sentry/cloudflare': 'Cloudflare Workers',
+              '@sentry/deno': 'Deno',
+              '@sentry/ember': 'Ember',
+              '@sentry/gatsby': 'Gatsby',
+              '@sentry/google-cloud-serverless': 'Google Cloud Functions',
+              '@sentry/nestjs': 'Nest.js',
+              '@sentry/nextjs': 'Next.js',
+              '@sentry/node': 'Node.js',
+              '@sentry/nuxt': 'Nuxt',
+              '@sentry/react-router': 'React Router Framework',
+              '@sentry/react': 'React',
+              '@sentry/remix': 'Remix',
+              '@sentry/solid': 'Solid',
+              '@sentry/solidstart': 'SolidStart',
+              '@sentry/svelte': 'Svelte',
+              '@sentry/sveltekit': 'SvelteKit',
+              '@sentry/tanstackstart-react': 'Tanstack Start React',
+              '@sentry/vue': 'Vue',
+              '@sentry/wasm': 'WASM',
+            };
+
+            const labelsToAdd = new Set();
+
+            // Check for each package in the System Info section
+            for (const [pkg, label] of Object.entries(packageToLabel)) {
+              // Escape special regex characters in package name
+              const escapedPkg = pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Match package name followed by colon (envinfo format) or version pattern
+              const regex = new RegExp(escapedPkg + '[:\\s]', 'i');
+              if (regex.test(systemInfoSection)) {
+                labelsToAdd.add(label);
+              }
+            }
+
+            if (labelsToAdd.size > 0) {
+              const labels = Array.from(labelsToAdd);
+              console.log('Adding labels:', labels);
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            } else {
+              console.log('No @sentry/* packages detected in System Info section');
+            }
