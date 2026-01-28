@@ -5,11 +5,13 @@ import {
   getFirstSentryEnvelopeRequest,
   properFullEnvelopeRequestParser,
   shouldSkipMetricsTest,
+  shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
 sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) => {
-  // Only run this for npm package exports and CDN bundles with metrics
-  if (shouldSkipMetricsTest()) {
+  // Only run this for npm package exports and CDN bundles with metrics and tracing
+  // (the test uses Sentry.startSpan which requires tracing)
+  if (shouldSkipMetricsTest() || shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
