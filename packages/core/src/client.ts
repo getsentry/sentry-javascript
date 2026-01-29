@@ -1150,7 +1150,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
     let ticked = 0;
 
-    // if no timeout is provided, we wait "forever" until everything is processed
     while (!timeout || ticked < timeout) {
       await new Promise(resolve => setTimeout(resolve, 1));
 
