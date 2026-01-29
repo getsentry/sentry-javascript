@@ -67,7 +67,7 @@ describe('addDatabaseInstrumentation', () => {
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it('should not log debug message when experimental.database is set to false but debug is true', () => {
+    it('should log debug message when experimental.database is explicitly false and debug is true', () => {
       const nitroConfig: NitroConfig = { experimental: { database: false } };
       const moduleOptions: SentryNuxtModuleOptions = { debug: true };
 
