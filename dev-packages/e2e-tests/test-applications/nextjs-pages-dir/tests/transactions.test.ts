@@ -51,7 +51,7 @@ test('Sends a pageload transaction', async ({ page }) => {
   );
 });
 
-test.only('Sends a navigation transaction', async ({ page }) => {
+test('Sends a navigation transaction', async ({ page }) => {
   // Skip in dev mode - flaky due to slow compilation affecting transaction timing
   test.skip(isDevMode, 'Skipped in dev mode due to flakiness from slow compilation');
 
