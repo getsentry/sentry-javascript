@@ -2207,18 +2207,24 @@ describe('Client', () => {
     });
 
     test('flush returns immediately when nothing is processing', async () => {
-      vi.useRealTimers();
+      vi.useFakeTimers();
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
-      const startTime = Date.now();
-      const result = await client.flush(1000);
-      const elapsed = Date.now() - startTime;
+      // just to ensure the client init'd
+      vi.advanceTimersByTime(100);
 
-      expect(result).toBe(true);
-      expect(elapsed).toBeLessThan(100);
+      const elapsed = Date.now();
+      const done = client.flush(1000).then(result => {
+        expect(result).toBe(true);
+        expect(Date.now() - elapsed).toBeLessThan(2);
+      });
+
+      // ensures that only after 1 ms, we're already done flushing
+      vi.advanceTimersByTime(1);
+      await done;
     });
 
     test('flush with early exit when processing completes', async () => {
