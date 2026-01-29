@@ -4,6 +4,64 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.38.0
+
+### Important Changes
+
+- **feat(tanstackstart-react): Auto-instrument request middleware ([#18989](https://github.com/getsentry/sentry-javascript/pull/18989))**
+
+The `sentryTanstackStart` Vite plugin now automatically instruments `middleware` arrays in `createFileRoute()`. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+
+### Other Changes
+
+- feat: Use v4.8.0 bundler plugins ([#18993](https://github.com/getsentry/sentry-javascript/pull/18993))
+- feat(browser): Add `logs.metrics` bundle ([#19020](https://github.com/getsentry/sentry-javascript/pull/19020))
+- feat(browser): Add `replay.logs.metrics` bundle ([#19021](https://github.com/getsentry/sentry-javascript/pull/19021))
+- feat(browser): Add `tracing.replay.logs.metrics` bundle ([#19039](https://github.com/getsentry/sentry-javascript/pull/19039))
+- feat(deps): bump import-in-the-middle from 2.0.1 to 2.0.6 ([#19042](https://github.com/getsentry/sentry-javascript/pull/19042))
+- feat(node): Add AI manual instrumentation exports to Node ([#19063](https://github.com/getsentry/sentry-javascript/pull/19063))
+- feat(wasm): initialised sentryWasmImages for webworkers ([#18812](https://github.com/getsentry/sentry-javascript/pull/18812))
+- fix(core): Classify custom `AggregateError`s as exception groups ([#19053](https://github.com/getsentry/sentry-javascript/pull/19053))
+- fix(nextjs): Turn off debugID injection if sourcemaps are explicitly disabled ([#19010](https://github.com/getsentry/sentry-javascript/pull/19010))
+- fix(react): Avoid `String(key)` to fix Symbol conversion error ([#18982](https://github.com/getsentry/sentry-javascript/pull/18982))
+- fix(react): Prevent lazy route handlers from updating wrong navigation span ([#18898](https://github.com/getsentry/sentry-javascript/pull/18898))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+- feat(deps-dev): bump @types/rsvp from 4.0.4 to 4.0.9 ([#19038](https://github.com/getsentry/sentry-javascript/pull/19038))
+- ci(build): Run full test suite on new bundle with logs+metrics ([#19065](https://github.com/getsentry/sentry-javascript/pull/19065))
+- ci(deps): bump actions/create-github-app-token from 1 to 2 ([#19028](https://github.com/getsentry/sentry-javascript/pull/19028))
+- ci(deps): bump peter-evans/create-pull-request from 8.0.0 to 8.1.0 ([#19029](https://github.com/getsentry/sentry-javascript/pull/19029))
+- chore: Add external contributor to CHANGELOG.md ([#19005](https://github.com/getsentry/sentry-javascript/pull/19005))
+- chore(aws-serverless): Fix local cache issues ([#19081](https://github.com/getsentry/sentry-javascript/pull/19081))
+- chore(dependabot): Allow all packages to update ([#19024](https://github.com/getsentry/sentry-javascript/pull/19024))
+- chore(dependabot): Update ignore patterns and add more groups ([#19037](https://github.com/getsentry/sentry-javascript/pull/19037))
+- chore(dependabot): Update ignore patterns and add more groups ([#19043](https://github.com/getsentry/sentry-javascript/pull/19043))
+- chore(deps-dev): bump @edge-runtime/types from 3.0.1 to 4.0.0 ([#19032](https://github.com/getsentry/sentry-javascript/pull/19032))
+- chore(deps-dev): bump @vercel/nft from 0.29.4 to 1.3.0 ([#19030](https://github.com/getsentry/sentry-javascript/pull/19030))
+- chore(deps): bump @actions/artifact from 2.1.11 to 5.0.3 ([#19031](https://github.com/getsentry/sentry-javascript/pull/19031))
+- chore(deps): bump hono from 4.11.4 to 4.11.7 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#19009](https://github.com/getsentry/sentry-javascript/pull/19009))
+- chore(deps): bump next from 16.0.9 to 16.1.5 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#19012](https://github.com/getsentry/sentry-javascript/pull/19012))
+- chore(deps): Bump trpc v11 dependency in e2e test ([#19061](https://github.com/getsentry/sentry-javascript/pull/19061))
+- chore(deps): Bump wrangler to 4.61.0 ([#19023](https://github.com/getsentry/sentry-javascript/pull/19023))
+- chore(deps): Upgrade @remix-run deps to 2.17.4 ([#19040](https://github.com/getsentry/sentry-javascript/pull/19040))
+- chore(deps): Upgrade `next` versions 15 and 16 ([#19057](https://github.com/getsentry/sentry-javascript/pull/19057))
+- chore(deps): Upgrade Lerna to v8 ([#19050](https://github.com/getsentry/sentry-javascript/pull/19050))
+- chore(deps): Upgrade next to 14.2.35 ([#19055](https://github.com/getsentry/sentry-javascript/pull/19055))
+- chore(deps): Upgrade react-router, @react-router/node, @react-router/serve, @react-router/dev to 7.13.0 ([#19026](https://github.com/getsentry/sentry-javascript/pull/19026))
+- chore(llm): Add claude skill + cursor command for adding new cdn bundles ([#19048](https://github.com/getsentry/sentry-javascript/pull/19048))
+- chore(llm): Ignore local Claude settings ([#18893](https://github.com/getsentry/sentry-javascript/pull/18893))
+- chore(react): Update react-router-5 dev dependency to another than 5.0.0 ([#19047](https://github.com/getsentry/sentry-javascript/pull/19047))
+- chore(release): Add generate-changelog script ([#18999](https://github.com/getsentry/sentry-javascript/pull/18999))
+- chore(remix): Upgrade @remix-run/router to ^1.23.2 ([#19045](https://github.com/getsentry/sentry-javascript/pull/19045))
+- chore(solidstart): Bump peer dependencies of @solidjs/start ([#19051](https://github.com/getsentry/sentry-javascript/pull/19051))
+- chore(solidstart): Upgrade Vinxi to update h3 peer dependency ([#19018](https://github.com/getsentry/sentry-javascript/pull/19018))
+- chore(tests): Reject messages from unknown origins in integration tests ([#19016](https://github.com/getsentry/sentry-javascript/pull/19016))
+
+</details>
+
+Work in this release was contributed by @harshit078. Thank you for your contribution!
+
 ## 10.37.0
 
 ### Important Changes

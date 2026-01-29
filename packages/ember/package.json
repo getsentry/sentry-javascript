@@ -57,7 +57,7 @@
     "@types/ember-resolver": "5.0.13",
     "@types/ember__debug": "^3.16.5",
     "@types/qunit": "~2.19.11",
-    "@types/rsvp": "~4.0.3",
+    "@types/rsvp": "~4.0.9",
     "babel-eslint": "~10.1.0",
     "broccoli-asset-rev": "~3.0.0",
     "ember-cli": "~4.12.3",

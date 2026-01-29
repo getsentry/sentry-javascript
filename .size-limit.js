@@ -187,16 +187,34 @@ module.exports = [
     limit: '43 KB',
   },
   {
+    name: 'CDN Bundle (incl. Logs, Metrics)',
+    path: createCDNPath('bundle.logs.metrics.min.js'),
+    gzip: true,
+    limit: '29 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
     limit: '44 KB',
   },
   {
+    name: 'CDN Bundle (incl. Replay, Logs, Metrics)',
+    path: createCDNPath('bundle.replay.logs.metrics.min.js'),
+    gzip: true,
+    limit: '69 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
     limit: '80 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
+    path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
+    gzip: true,
+    limit: '81 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
@@ -226,6 +244,13 @@ module.exports = [
     limit: '128 KB',
   },
   {
+    name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
+    path: createCDNPath('bundle.logs.metrics.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '86 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
@@ -233,11 +258,25 @@ module.exports = [
     limit: '130 KB',
   },
   {
+    name: 'CDN Bundle (incl. Replay, Logs, Metrics) - uncompressed',
+    path: createCDNPath('bundle.replay.logs.metrics.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '209 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
     limit: '245 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics) - uncompressed',
+    path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '250 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',

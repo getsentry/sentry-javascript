@@ -1308,3 +1308,128 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   expect(event.contexts?.trace?.op).toBe('navigation');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
 });
+
+test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
+  page,
+}) => {
+  // Validates fix for race condition where captureCurrentLocation would use stale WINDOW.location.
+  // Navigate to slow route, then quickly to another route before lazy handler resolves.
+  await page.goto('/');
+
+  const allNavigationTransactions: Array<{ name: string; traceId: string }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+      allNavigationTransactions.push({
+        name: transactionEvent.transaction,
+        traceId: transactionEvent.contexts.trace.trace_id || '',
+      });
+    }
+    return allNavigationTransactions.length >= 2;
+  });
+
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await expect(slowFetchLink).toBeVisible();
+  await slowFetchLink.click();
+
+  // Navigate away quickly before slow-fetch's async handler resolves
+  await page.waitForTimeout(50);
+
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+
+  await page.waitForTimeout(2000);
+
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
+  ]).catch(() => {});
+
+  expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // /another-lazy transaction must have correct name (not corrupted by slow-fetch handler)
+  const anotherLazyTransaction = allNavigationTransactions.find(t => t.name.startsWith('/another-lazy/sub'));
+  expect(anotherLazyTransaction).toBeDefined();
+
+  const corruptedToRoot = allNavigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+
+  if (allNavigationTransactions.length >= 2) {
+    const uniqueNames = new Set(allNavigationTransactions.map(t => t.name));
+    expect(uniqueNames.size).toBe(allNavigationTransactions.length);
+  }
+});
+
+test('Second navigation span is not corrupted by first slow lazy handler completing late', async ({ page }) => {
+  // Validates fix for race condition where slow lazy handler would update the wrong span.
+  // Navigate to slow route (which fetches /api/slow-data), then quickly to fast route.
+  // Without fix: second transaction gets wrong name and/or contains leaked spans.
+
+  await page.goto('/');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allNavigationTransactions: Array<{ name: string; traceId: string; spans: any[] }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+      allNavigationTransactions.push({
+        name: transactionEvent.transaction,
+        traceId: transactionEvent.contexts.trace.trace_id || '',
+        spans: transactionEvent.spans || [],
+      });
+    }
+    return false;
+  });
+
+  // Navigate to slow-fetch (500ms lazy delay, fetches /api/slow-data)
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await expect(slowFetchLink).toBeVisible();
+  await slowFetchLink.click();
+
+  // Wait 150ms (before 500ms lazy loading completes), then navigate away
+  await page.waitForTimeout(150);
+
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+
+  // Wait for slow-fetch lazy handler to complete and transactions to be sent
+  await page.waitForTimeout(2000);
+
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
+  ]).catch(() => {});
+
+  expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // /another-lazy transaction must have correct name, not "/slow-fetch/:id"
+  const anotherLazyTransaction = allNavigationTransactions.find(t => t.name.startsWith('/another-lazy/sub'));
+  expect(anotherLazyTransaction).toBeDefined();
+
+  // Key assertion 2: /another-lazy transaction must NOT contain spans from /slow-fetch route
+  // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading
+  if (anotherLazyTransaction) {
+    const leakedSpans = anotherLazyTransaction.spans.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (span: any) => span.description?.includes('slow-data') || span.data?.url?.includes('slow-data'),
+    );
+    expect(leakedSpans.length).toBe(0);
+  }
+
+  // Key assertion 3: If slow-fetch transaction exists, verify it has the correct name
+  // (not corrupted to /another-lazy)
+  const slowFetchTransaction = allNavigationTransactions.find(t => t.name.includes('slow-fetch'));
+  if (slowFetchTransaction) {
+    expect(slowFetchTransaction.name).toMatch(/\/slow-fetch/);
+    // Verify slow-fetch transaction doesn't contain spans that belong to /another-lazy
+    const wrongSpans = slowFetchTransaction.spans.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (span: any) => span.description?.includes('another-lazy') || span.data?.url?.includes('another-lazy'),
+    );
+    expect(wrongSpans.length).toBe(0);
+  }
+});

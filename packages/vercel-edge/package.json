@@ -44,7 +44,7 @@
     "@sentry/core": "10.37.0"
   },
   "devDependencies": {
-    "@edge-runtime/types": "3.0.1",
+    "@edge-runtime/types": "4.0.0",
     "@opentelemetry/core": "^2.5.0",
     "@opentelemetry/sdk-trace-base": "^2.5.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",

@@ -17,7 +17,7 @@
     "@types/node": "^18.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "next": "^15.5.4",
+    "next": "^15.5.10",
     "react": "^19",
     "react-dom": "^19",
     "typescript": "~5.0.0"
