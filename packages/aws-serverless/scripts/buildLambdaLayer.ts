@@ -2,6 +2,7 @@
 import { nodeFileTrace } from '@vercel/nft';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { version } from '../package.json';
 
@@ -23,11 +24,19 @@ async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
   buildPackageJson();
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-  run('yarn install --prod --cwd ./build/aws/dist-serverless/nodejs');
+  // Use a temporary cache folder to avoid stale cache references to local file: packages.
+  // Yarn's global cache can contain outdated references to build artifacts from other
+  // @sentry/* packages (e.g., build/node_modules paths that no longer exist), causing
+  // ENOENT errors during file copying.
+  // The cache folder must be outside the monorepo to avoid recursive nesting when Yarn
+  // follows file: links and copies package directories.
+  const cacheFolder = path.join(os.tmpdir(), `sentry-lambda-build-cache-${Date.now()}`);
+  run(`yarn install --prod --cwd ./build/aws/dist-serverless/nodejs --cache-folder "${cacheFolder}"`);
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
   fs.rmSync('./build/aws/dist-serverless/nodejs/yarn.lock', { force: true });
+  fs.rmSync(cacheFolder, { recursive: true, force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
