@@ -1149,10 +1149,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * `false` otherwise
    */
   protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
-    if (!this._numProcessing) {
-      return true;
-    }
-
     let ticked = 0;
 
     while (!timeout || ticked < timeout) {
