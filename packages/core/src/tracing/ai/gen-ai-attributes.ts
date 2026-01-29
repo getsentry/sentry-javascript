@@ -118,13 +118,20 @@ export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 /**
  * Original length of messages array, used to indicate truncations had occured
  */
-export const GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.request.messages.original_length';
+export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.gen_ai.input.messages.original_length';
 
 /**
  * The prompt messages
  * Only recorded when recordInputs is enabled
  */
-export const GEN_AI_REQUEST_MESSAGES_ATTRIBUTE = 'gen_ai.request.messages';
+export const GEN_AI_INPUT_MESSAGES_ATTRIBUTE = 'gen_ai.input.messages';
+
+/**
+ * The system instructions extracted from system messages
+ * Only recorded when recordInputs is enabled
+ * According to OpenTelemetry spec: https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-system-instructions
+ */
+export const GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE = 'gen_ai.system_instructions';
 
 /**
  * The response text
@@ -232,6 +239,31 @@ export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed_many
  */
 export const GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE = 'gen_ai.execute_tool';
 
+/**
+ * The tool name for tool call spans
+ */
+export const GEN_AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name';
+
+/**
+ * The tool call ID
+ */
+export const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
+
+/**
+ * The tool type (e.g., 'function')
+ */
+export const GEN_AI_TOOL_TYPE_ATTRIBUTE = 'gen_ai.tool.type';
+
+/**
+ * The tool input/arguments
+ */
+export const GEN_AI_TOOL_INPUT_ATTRIBUTE = 'gen_ai.tool.input';
+
+/**
+ * The tool output/result
+ */
+export const GEN_AI_TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.output';
+
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================
@@ -266,13 +298,12 @@ export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens'
 // =============================================================================
 
 /**
- * OpenAI API operations
+ * OpenAI API operations following OpenTelemetry semantic conventions
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
-  RESPONSES: 'responses',
   EMBEDDINGS: 'embeddings',
-  CONVERSATIONS: 'conversations',
 } as const;
 
 // =============================================================================

@@ -1309,4 +1309,144 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       }
     });
   });
+
+  describe('allRoutes global set (lazy routes behavior)', () => {
+    it('should allow adding routes to allRoutes after initial setup', () => {
+      // Clear the set first
+      allRoutes.clear();
+
+      const initialRoutes: RouteObject[] = [{ path: '/', element: <div>Home</div> }];
+      const lazyRoutes: RouteObject[] = [{ path: '/lazy/:id', element: <div>Lazy</div> }];
+
+      // Add initial routes
+      addRoutesToAllRoutes(initialRoutes);
+      expect(allRoutes.size).toBe(1);
+      expect(allRoutes.has(initialRoutes[0]!)).toBe(true);
+
+      // Simulate lazy route loading via patchRoutesOnNavigation
+      addRoutesToAllRoutes(lazyRoutes);
+      expect(allRoutes.size).toBe(2);
+      expect(allRoutes.has(lazyRoutes[0]!)).toBe(true);
+    });
+
+    it('should not duplicate routes when adding same route multiple times', () => {
+      allRoutes.clear();
+
+      const routes: RouteObject[] = [{ path: '/users', element: <div>Users</div> }];
+
+      addRoutesToAllRoutes(routes);
+      addRoutesToAllRoutes(routes); // Add same route again
+
+      // Set should have unique entries only
+      expect(allRoutes.size).toBe(1);
+    });
+
+    it('should recursively add nested children routes', () => {
+      allRoutes.clear();
+
+      const parentRoute: RouteObject = {
+        path: '/parent',
+        element: <div>Parent</div>,
+        children: [
+          {
+            path: ':id',
+            element: <div>Child</div>,
+            children: [{ path: 'nested', element: <div>Nested</div> }],
+          },
+        ],
+      };
+
+      addRoutesToAllRoutes([parentRoute]);
+
+      // Should add parent and all nested children
+      expect(allRoutes.size).toBe(3);
+      expect(allRoutes.has(parentRoute)).toBe(true);
+      expect(allRoutes.has(parentRoute.children![0]!)).toBe(true);
+      expect(allRoutes.has(parentRoute.children![0]!.children![0]!)).toBe(true);
+    });
+
+    // Regression test: Verify that routes added AFTER a span starts are still accessible
+    // This is the key fix for the lazy routes pageload bug where patchSpanEnd
+    // was using a stale snapshot instead of the global allRoutes set.
+    it('should maintain reference to global set (not snapshot) for late route additions', () => {
+      allRoutes.clear();
+
+      // Initial routes at "pageload start" time
+      const initialRoutes: RouteObject[] = [
+        { path: '/', element: <div>Home</div> },
+        { path: '/slow-fetch', element: <div>Slow Fetch Parent</div> },
+      ];
+      addRoutesToAllRoutes(initialRoutes);
+
+      // Capture a reference to allRoutes (simulating what patchSpanEnd does AFTER the fix)
+      const routesReference = allRoutes;
+
+      // Later, lazy routes are loaded via patchRoutesOnNavigation
+      const lazyLoadedRoutes: RouteObject[] = [{ path: ':id', element: <div>Lazy Child</div> }];
+      addRoutesToAllRoutes(lazyLoadedRoutes);
+
+      // The reference should see the newly added routes (fix behavior)
+      // Before the fix, a snapshot (new Set(allRoutes)) was taken, which wouldn't see new routes
+      expect(routesReference.size).toBe(3);
+      expect(routesReference.has(lazyLoadedRoutes[0]!)).toBe(true);
+
+      // Convert to array and verify all routes are present
+      const allRoutesArray = Array.from(routesReference);
+      expect(allRoutesArray).toContain(initialRoutes[0]);
+      expect(allRoutesArray).toContain(initialRoutes[1]);
+      expect(allRoutesArray).toContain(lazyLoadedRoutes[0]);
+    });
+  });
+
+  describe('wrapPatchRoutesOnNavigation race condition fix', () => {
+    it('should use captured span instead of current active span in args.patch callback', () => {
+      const endedSpanJson = {
+        op: 'navigation',
+        timestamp: 1234567890, // Span has ended
+      };
+
+      vi.mocked(spanToJSON).mockReturnValue(endedSpanJson as any);
+
+      const endedSpan = {
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+      } as unknown as Span;
+
+      updateNavigationSpan(
+        endedSpan,
+        { pathname: '/test', search: '', hash: '', state: null, key: 'test' },
+        [],
+        false,
+        vi.fn(() => []),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(endedSpan.updateName).not.toHaveBeenCalled();
+    });
+
+    it('should not fall back to WINDOW.location.pathname after async operations', () => {
+      const validSpanJson = {
+        op: 'navigation',
+        timestamp: undefined, // Span hasn't ended
+      };
+
+      vi.mocked(spanToJSON).mockReturnValue(validSpanJson as any);
+
+      const validSpan = {
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+      } as unknown as Span;
+
+      updateNavigationSpan(
+        validSpan,
+        { pathname: '/captured/path', search: '', hash: '', state: null, key: 'test' },
+        [],
+        false,
+        vi.fn(() => []),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(validSpan.updateName).toHaveBeenCalled();
+    });
+  });
 });

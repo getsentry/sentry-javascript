@@ -143,12 +143,12 @@ export function hoistNonReactStatics<
     const sourceStatics = getStatics(sourceComponent);
 
     for (const key of keys) {
-      const keyStr = String(key);
+      // Use key directly - String(key) throws for Symbols if minified to '' + key (#18966)
       if (
-        !KNOWN_STATICS[keyStr as keyof typeof KNOWN_STATICS] &&
-        !excludelist?.[keyStr] &&
-        !sourceStatics?.[keyStr] &&
-        !targetStatics?.[keyStr] &&
+        !KNOWN_STATICS[key as keyof typeof KNOWN_STATICS] &&
+        !(excludelist && excludelist[key as keyof C]) &&
+        !sourceStatics?.[key as string] &&
+        !targetStatics?.[key as string] &&
         !getOwnPropertyDescriptor(targetComponent, key) // Don't overwrite existing properties
       ) {
         const descriptor = getOwnPropertyDescriptor(sourceComponent, key);

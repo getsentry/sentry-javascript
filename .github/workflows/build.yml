@@ -547,21 +547,24 @@ jobs:
           - esm
           - bundle
           - bundle_min
+          - bundle_logs_metrics
           - bundle_replay
+          - bundle_replay_logs_metrics
           - bundle_tracing
           - bundle_tracing_logs_metrics
           - bundle_tracing_replay
+          - bundle_tracing_replay_logs_metrics
           - bundle_tracing_replay_feedback
-          - bundle_tracing_replay_feedback_min
           - bundle_tracing_replay_feedback_logs_metrics
+          - bundle_tracing_replay_feedback_logs_metrics_min
         project:
           - chromium
         include:
           # Only check all projects for full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
             project: chromium

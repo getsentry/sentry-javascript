@@ -13,6 +13,7 @@
     "build:tarball": "run-s clean:tarballs build:tarballs",
     "build:tarballs": "lerna run build:tarball",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
+    "generate-changelog": "ts-node ./scripts/generate-changelog.ts",
     "circularDepCheck": "lerna run circularDepCheck",
     "clean": "run-s clean:build clean:caches",
     "clean:build": "lerna run clean",
@@ -150,8 +151,7 @@
     "gauge/strip-ansi": "6.0.1",
     "wide-align/string-width": "4.2.3",
     "cliui/wrap-ansi": "7.0.0",
-    "sucrase": "getsentry/sucrase#es2020-polyfills",
-    "import-in-the-middle": "2.0.1"
+    "sucrase": "getsentry/sucrase#es2020-polyfills"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",
