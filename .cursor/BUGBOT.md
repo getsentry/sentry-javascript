@@ -61,5 +61,5 @@ Do not flag the issues below if they appear in tests.
 
 ## Platform-safe code
 
-- When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` or `safeUnref()` are called.
-  Not unref'ing a timer can cause CLI or node scripts to run longer than before, due to the process waiting on timers started by the SDK.
+- When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` nor `safeUnref()` are called.
+  Not unref'ing a timer can keep CLI-like applications or node scripts from exiting immediately, due to the process waiting on timers started by the SDK.
