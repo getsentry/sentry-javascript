@@ -12,21 +12,21 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
-    allow:
-      - dependency-name: '@sentry/*'
-      - dependency-name: '@playwright/test'
-      - dependency-name: '@opentelemetry/*'
     ignore:
       - dependency-name: '@opentelemetry/instrumentation'
       - dependency-name: '@opentelemetry/instrumentation-*'
+      - dependency-name: 'typescript'
     groups:
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
+      remix:
+        patterns:
+          - '@remix-run/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat
-      prefix-development: feat
+      prefix-development: chore
       include: scope
     exclude-paths:
-      - 'dev-packages/e2e-tests/test-applications/'
+      - 'dev-packages/e2e-tests/test-applications/**'

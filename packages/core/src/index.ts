@@ -25,6 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   isInitialized,
   isEnabled,
   startSession,
@@ -120,6 +121,7 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -313,6 +315,7 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
 } from './utils/url';
 export {
   eventFromMessage,
@@ -393,7 +396,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {

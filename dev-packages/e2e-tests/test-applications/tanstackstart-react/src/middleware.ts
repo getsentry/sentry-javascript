@@ -2,13 +2,15 @@ import { createMiddleware } from '@tanstack/react-start';
 import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
 
 // Global request middleware - runs on every request
-const globalRequestMiddleware = createMiddleware().server(async ({ next }) => {
+// NOTE: This is exported unwrapped to test auto-instrumentation via the Vite plugin
+export const globalRequestMiddleware = createMiddleware().server(async ({ next }) => {
   console.log('Global request middleware executed');
   return next();
 });
 
 // Global function middleware - runs on every server function
-const globalFunctionMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
+// NOTE: This is exported unwrapped to test auto-instrumentation via the Vite plugin
+export const globalFunctionMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   console.log('Global function middleware executed');
   return next();
 });
@@ -19,8 +21,8 @@ const serverFnMiddleware = createMiddleware({ type: 'function' }).server(async (
   return next();
 });
 
-// Server route request middleware
-const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
+// Server route request middleware - exported unwrapped for auto-instrumentation via Vite plugin
+export const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
   console.log('Server route request middleware executed');
   return next();
 });
@@ -37,19 +39,10 @@ const errorMiddleware = createMiddleware({ type: 'function' }).server(async () =
   throw new Error('Middleware Error Test');
 });
 
-// Manually wrap middlewares with Sentry
-export const [
-  wrappedGlobalRequestMiddleware,
-  wrappedGlobalFunctionMiddleware,
-  wrappedServerFnMiddleware,
-  wrappedServerRouteRequestMiddleware,
-  wrappedEarlyReturnMiddleware,
-  wrappedErrorMiddleware,
-] = wrapMiddlewaresWithSentry({
-  globalRequestMiddleware,
-  globalFunctionMiddleware,
-  serverFnMiddleware,
-  serverRouteRequestMiddleware,
-  earlyReturnMiddleware,
-  errorMiddleware,
-});
+// Manually wrap middlewares with Sentry (for middlewares that won't be auto-instrumented)
+export const [wrappedServerFnMiddleware, wrappedEarlyReturnMiddleware, wrappedErrorMiddleware] =
+  wrapMiddlewaresWithSentry({
+    serverFnMiddleware,
+    earlyReturnMiddleware,
+    errorMiddleware,
+  });

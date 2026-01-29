@@ -64,3 +64,6 @@ packages/gatsby/gatsby-node.d.ts
 
 #junit reports
 packages/**/*.junit.xml
+
+# Local Claude Code settings that should not be committed
+.claude/settings.local.json
