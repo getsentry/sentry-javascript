@@ -428,7 +428,7 @@ jobs:
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -527,7 +527,7 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -625,7 +625,7 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
         uses: getsentry/codecov-action@main
@@ -686,7 +686,7 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         uses: getsentry/codecov-action@main
         if: cancelled() == false
         continue-on-error: true
@@ -760,7 +760,7 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
         uses: getsentry/codecov-action@main
@@ -827,7 +827,7 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
         uses: getsentry/codecov-action@main
@@ -1018,7 +1018,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Compute test coverage
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
         uses: getsentry/codecov-action@main
