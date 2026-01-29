@@ -159,8 +159,11 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
 
       const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+      const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
       span.setAttributes({
-        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+        [AI_PROMPT_ATTRIBUTE]: truncatedMessages,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
         [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
@@ -176,9 +179,11 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+        const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
         span.setAttributes({
-          [AI_PROMPT_MESSAGES_ATTRIBUTE]: undefined,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
