@@ -58,6 +58,7 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   MULTIPLEXED_TRANSPORT_EXTRA_KEY,
+  MULTIPLEXED_METRIC_ROUTING_KEY,
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,

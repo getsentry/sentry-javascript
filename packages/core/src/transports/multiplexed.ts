@@ -4,6 +4,7 @@ import type { Event } from '../types-hoist/event';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
 import { dsnFromString } from '../utils/dsn';
 import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
+import type { SerializedMetric } from '../types-hoist/metric';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -16,6 +17,7 @@ interface MatchParam {
    * @param types Defaults to ['event']
    */
   getEvent(types?: EnvelopeItemType[]): Event | undefined;
+  getMetric(): SerializedMetric | undefined;
 }
 
 type RouteTo = { dsn: string; release: string };
@@ -26,6 +28,8 @@ type Matcher = (param: MatchParam) => (string | RouteTo)[];
  * Should contain an array of `{ dsn: string, release?: string }` objects.
  */
 export const MULTIPLEXED_TRANSPORT_EXTRA_KEY = 'MULTIPLEXED_TRANSPORT_EXTRA_KEY';
+
+export const MULTIPLEXED_METRIC_ROUTING_KEY = 'sentry.routing';
 
 /**
  * Gets an event from an envelope.
@@ -109,6 +113,13 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         ) {
           return event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY];
         }
+        const metric = args.getMetric();
+        if (
+          metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY] &&
+          Array.isArray(metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY])
+        ) {
+          return metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY] as RouteTo[];
+        }
         return [];
       });
 
@@ -142,7 +153,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         return eventFromEnvelope(envelope, eventTypes);
       }
 
-      const transports = actualMatcher({ envelope, getEvent })
+      const transports = actualMatcher({ envelope, getEvent, getMetric: () => undefined })
         .map(result => {
           if (typeof result === 'string') {
             return getTransport(result, undefined);
