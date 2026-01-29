@@ -84,8 +84,12 @@ export function createTransport(
           }
 
           // We don't want to throw on NOK responses, but we want to at least log them
-          if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
-            DEBUG_BUILD && debug.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
+          if (
+            DEBUG_BUILD &&
+            response.statusCode !== undefined &&
+            (response.statusCode < 200 || response.statusCode >= 300)
+          ) {
+            debug.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
           }
 
           rateLimits = updateRateLimits(rateLimits, response);
