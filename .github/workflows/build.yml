@@ -429,6 +429,8 @@ jobs:
         if: github.event_name != 'pull_request'
 
       - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -528,6 +530,8 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
