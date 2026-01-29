@@ -111,6 +111,16 @@ export function convertPromptToMessages(prompt: string): { role: string; content
   try {
     const p = JSON.parse(prompt);
     if (!!p && typeof p === 'object') {
+      // Handle messages array format: { messages: [...] }
+      const { messages } = p as { messages?: unknown };
+      if (Array.isArray(messages)) {
+        return messages.filter(
+          (m: unknown): m is { role: string; content: string } =>
+            !!m && typeof m === 'object' && 'role' in m && 'content' in m,
+        );
+      }
+
+      // Handle prompt/system string format: { prompt: "...", system: "..." }
       const { prompt, system } = p;
       if (typeof prompt === 'string' || typeof system === 'string') {
         const messages: { role: string; content: string }[] = [];

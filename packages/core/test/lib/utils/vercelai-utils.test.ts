@@ -37,6 +37,54 @@ describe('vercel-ai-utils', () => {
       ).toStrictEqual([{ role: 'user', content: 'Hello, robot' }]);
     });
 
+    it('should convert a messages array with multiple messages', () => {
+      expect(
+        convertPromptToMessages(
+          JSON.stringify({
+            messages: [
+              { role: 'user', content: 'What is the weather?' },
+              { role: 'assistant', content: "I'll check." },
+              { role: 'user', content: 'Also New York?' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'user', content: 'What is the weather?' },
+        { role: 'assistant', content: "I'll check." },
+        { role: 'user', content: 'Also New York?' },
+      ]);
+    });
+
+    it('should convert a messages array with a single message', () => {
+      expect(
+        convertPromptToMessages(
+          JSON.stringify({
+            messages: [{ role: 'user', content: 'Hello' }],
+          }),
+        ),
+      ).toStrictEqual([{ role: 'user', content: 'Hello' }]);
+    });
+
+    it('should filter out invalid entries in messages array', () => {
+      expect(
+        convertPromptToMessages(
+          JSON.stringify({
+            messages: [
+              { role: 'user', content: 'Hello' },
+              'not an object',
+              null,
+              { role: 'user' },
+              { content: 'missing role' },
+              { role: 'assistant', content: 'Valid' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Valid' },
+      ]);
+    });
+
     it('should ignore unexpected data', () => {
       expect(
         convertPromptToMessages(
