@@ -56,6 +56,8 @@ let _matchRoutes: MatchRoutes;
 
 let _enableAsyncRouteHandlers: boolean = false;
 let _lazyRouteTimeout = 3000;
+let _lazyRouteManifest: string[] | undefined;
+let _basename: string = '';
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
@@ -196,6 +198,25 @@ export interface ReactRouterOptions {
    * @default idleTimeout * 3
    */
   lazyRouteTimeout?: number;
+
+  /**
+   * Static route manifest for resolving parameterized route names with lazy routes.
+   *
+   * Requires `enableAsyncRouteHandlers: true`. When provided, the manifest is used
+   * as the primary source for determining transaction names. This is more reliable
+   * than depending on React Router's lazy route resolution timing.
+   *
+   * @example
+   * ```ts
+   * lazyRouteManifest: [
+   *   '/',
+   *   '/users',
+   *   '/users/:userId',
+   *   '/org/:orgSlug/projects/:projectId',
+   * ]
+   * ```
+   */
+  lazyRouteManifest?: string[];
 }
 
 type V6CompatibleVersion = '6' | '7';
@@ -355,7 +376,9 @@ export function updateNavigationSpan(
       allRoutes,
       allRoutes,
       (currentBranches as RouteMatch[]) || [],
-      '',
+      _basename,
+      _lazyRouteManifest,
+      _enableAsyncRouteHandlers,
     );
 
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
@@ -520,6 +543,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
       });
     }
 
+    // Store basename for use in updateNavigationSpan
+    _basename = basename || '';
+
     setupRouterSubscription(router, routes, version, basename, activeRootSpan);
 
     return router;
@@ -614,6 +640,9 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       });
     }
 
+    // Store basename for use in updateNavigationSpan
+    _basename = basename || '';
+
     setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan);
 
     return router;
@@ -640,6 +669,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     instrumentPageLoad = true,
     instrumentNavigation = true,
     lazyRouteTimeout,
+    lazyRouteManifest,
   } = options;
 
   return {
@@ -683,6 +713,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       _matchRoutes = matchRoutes;
       _createRoutesFromChildren = createRoutesFromChildren;
       _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
+      _lazyRouteManifest = lazyRouteManifest;
 
       // Initialize the router utils with the required dependencies
       initializeRouterUtils(matchRoutes, stripBasename || false);
@@ -932,6 +963,8 @@ export function handleNavigation(opts: {
       allRoutes || routes,
       branches as RouteMatch[],
       basename,
+      _lazyRouteManifest,
+      _enableAsyncRouteHandlers,
     );
 
     const locationKey = computeLocationKey(location);
@@ -1071,6 +1104,8 @@ function updatePageloadTransaction({
       allRoutes || routes,
       branches,
       basename,
+      _lazyRouteManifest,
+      _enableAsyncRouteHandlers,
     );
 
     getCurrentScope().setTransactionName(name || '/');
@@ -1158,7 +1193,15 @@ function tryUpdateSpanNameBeforeEnd(
       return;
     }
 
-    const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, basename);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      routesToUse,
+      routesToUse,
+      branches,
+      basename,
+      _lazyRouteManifest,
+      _enableAsyncRouteHandlers,
+    );
 
     const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
     const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;

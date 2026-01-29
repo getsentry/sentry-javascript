@@ -2,6 +2,7 @@ import type { Span, TransactionSource } from '@sentry/core';
 import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
+import { matchRouteManifest } from './route-manifest';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
@@ -303,7 +304,18 @@ export function resolveRouteNameAndSource(
   allRoutes: RouteObject[],
   branches: RouteMatch[],
   basename: string = '',
+  lazyRouteManifest?: string[],
+  enableAsyncRouteHandlers?: boolean,
 ): [string, TransactionSource] {
+  // When lazy route manifest is provided, use it as the primary source for transaction names
+  if (enableAsyncRouteHandlers && lazyRouteManifest && lazyRouteManifest.length > 0) {
+    const manifestMatch = matchRouteManifest(location.pathname, lazyRouteManifest, basename);
+    if (manifestMatch) {
+      return [manifestMatch, 'route'];
+    }
+  }
+
+  // Fall back to React Router route matching
   let name: string | undefined;
   let source: TransactionSource = 'url';
 
