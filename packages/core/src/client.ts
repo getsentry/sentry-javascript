@@ -1152,7 +1152,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     let ticked = 0;
 
     while (!timeout || ticked < timeout) {
-      await new Promise(resolve => safeUnref(setTimeout(resolve, 1)));
+      await new Promise(resolve => setTimeout(resolve, 1));
 
       if (!this._numProcessing) {
         return true;
