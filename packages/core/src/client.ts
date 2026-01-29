@@ -49,7 +49,6 @@ import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
-import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
