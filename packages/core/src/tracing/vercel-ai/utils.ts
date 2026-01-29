@@ -133,12 +133,13 @@ export function convertPromptToMessages(prompt: string): { role: string; content
  * invoke_agent op
  */
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
-  const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
-    typeof prompt === 'string' &&
+    typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
+    // No messages array is present, so we need to convert the prompt to the proper messages format
+    const prompt = attributes[AI_PROMPT_ATTRIBUTE];
     const messages = convertPromptToMessages(prompt);
     if (messages.length) {
       const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
@@ -154,6 +155,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
+    // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
     try {
       const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
       if (Array.isArray(messages)) {
