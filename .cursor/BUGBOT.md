@@ -58,3 +58,8 @@ Do not flag the issues below if they appear in tests.
 - Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
 - Flag usage of conditionals in one test and recommend splitting up the test for the different paths.
 - Flag usage of loops testing multiple scenarios in one test and recommend using `(it)|(test).each` instead.
+
+## Platform-safe code
+
+- When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` or `safeUnref()` are called.
+  Not unref'ing a timer can cause CLI or node scripts to run longer than before, due to the process waiting on timers started by the SDK.
