@@ -1,0 +1,62 @@
+import { expect, test } from '@playwright/test';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+
+test.describe('Cloudflare Runtime', () => {
+  test('Should report cloudflare as the runtime in API route transactions', async ({ request }) => {
+    const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
+      console.log('transactionEvent', transactionEvent.transaction);
+      return transactionEvent?.transaction === 'GET /api/test-success';
+    });
+
+    const response = await request.get('/api/test-success');
+    expect(await response.json()).toStrictEqual({ success: true });
+
+    const transaction = await transactionPromise;
+
+    expect(transaction.contexts?.runtime).toEqual({
+      name: 'cloudflare',
+    });
+  });
+
+  test('Should report cloudflare as the runtime in API route error events', async ({ request }) => {
+    const errorEventPromise = waitForError('nextjs-16-cf-workers', errorEvent => {
+      return !!errorEvent?.exception?.values?.some(value =>
+        value.value?.includes('This is a test error from an API route'),
+      );
+    });
+
+    // This will throw an error
+    request.get('/api/test-error').catch(() => {
+      // Expected to fail
+    });
+
+    const errorEvent = await errorEventPromise;
+
+    expect(errorEvent.contexts?.runtime).toEqual({
+      name: 'cloudflare',
+    });
+  });
+
+  test('Should include cloudflare in the SDK metadata for API routes', async ({ request }) => {
+    const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
+      return transactionEvent?.transaction === 'GET /api/test-success';
+    });
+
+    const response = await request.get('/api/test-success');
+    expect(await response.json()).toStrictEqual({ success: true });
+
+    const transaction = await transactionPromise;
+
+    // The SDK info should include cloudflare in the packages
+    expect(transaction.sdk?.packages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'npm:@sentry/nextjs',
+        }),
+        expect.objectContaining({
+          name: 'npm:@sentry/cloudflare',
+        }),
+      ]),
+    );
+  });
+});

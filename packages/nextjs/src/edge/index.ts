@@ -28,7 +28,7 @@ import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attribu
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
-import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -73,13 +73,23 @@ export function init(options: VercelEdgeOptions = {}): void {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  const opts = {
+  // Detect if running on OpenNext/Cloudflare
+  const isRunningOnCloudflare = isCloudflareWaitUntilAvailable();
+
+  const opts: VercelEdgeOptions = {
     defaultIntegrations: customDefaultIntegrations,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
+    // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
+    ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };
 
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
+  // Use appropriate SDK metadata based on the runtime environment
+  if (isRunningOnCloudflare) {
+    applySdkMetadata(opts, 'nextjs', ['nextjs', 'cloudflare']);
+  } else {
+    applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
+  }
 
   const client = vercelEdgeInit(opts);
 
