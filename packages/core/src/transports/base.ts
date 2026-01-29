@@ -71,6 +71,18 @@ export function createTransport(
     const requestTask = (): PromiseLike<TransportMakeRequestResponse> =>
       makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
         response => {
+          // Handle 413 Content Too Large
+          // Loss of envelope content is expected so we record a send_error client report
+          // https://develop.sentry.dev/sdk/expected-features/#dealing-with-network-failures
+          if (response.statusCode === 413) {
+            DEBUG_BUILD &&
+              debug.error(
+                'Sentry responded with status code 413. Envelope was discarded due to exceeding size limits.',
+              );
+            recordEnvelopeLoss('send_error');
+            return response;
+          }
+
           // We don't want to throw on NOK responses, but we want to at least log them
           if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
             DEBUG_BUILD && debug.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
