@@ -5,7 +5,6 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
@@ -90,7 +89,6 @@ describe('Vercel AI integration', () => {
       // Third span - explicit telemetry enabled, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -230,7 +228,6 @@ describe('Vercel AI integration', () => {
       // First span - no telemetry config, should enable telemetry AND record inputs/outputs when sendDefaultPii: true
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the first span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -303,7 +300,6 @@ describe('Vercel AI integration', () => {
       // Third span - explicitly enabled telemetry, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -375,7 +371,6 @@ describe('Vercel AI integration', () => {
       // Fifth span - tool call generateText span (should include prompts when sendDefaultPii: true)
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"What is the weather in San Francisco?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',

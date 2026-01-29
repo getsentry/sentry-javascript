@@ -133,10 +133,6 @@ export function convertPromptToMessages(prompt: string): { role: string; content
  * invoke_agent op
  */
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
-  if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
-    span.setAttribute('gen_ai.prompt', truncatedPrompt);
-  }
   const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
     typeof prompt === 'string' &&
