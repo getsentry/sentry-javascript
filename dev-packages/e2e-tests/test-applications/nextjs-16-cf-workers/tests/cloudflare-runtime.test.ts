@@ -9,7 +9,6 @@ test.describe('Cloudflare Runtime', () => {
       );
     });
 
-    // This will throw an error
     request.get('/api/test-error').catch(() => {
       // Expected to fail
     });
