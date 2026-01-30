@@ -78,11 +78,49 @@ interface StandaloneWebVitalSpanOptions {
  * @returns an inactive, standalone and NOT YET ended span
  */
 export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptions): Span | undefined {
+  const client = getClient();
+  if (!client) {
+    return;
+  }
 
-  const { name, attributes: passedAttributes, startTime } = options;
+  const { name, transaction, attributes: passedAttributes, startTime } = options;
 
+  const { release, environment, sendDefaultPii } = client.getOptions();
+  // We need to get the replay, user, and activeTransaction from the current scope
+  // so that we can associate replay id, profile id, and a user display to the span
+  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
+  const replayId = replay?.getReplayId();
+
+  const scope = getCurrentScope();
+
+  const user = scope.getUser();
+  const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
+
+  let profileId: string | undefined;
+  try {
+    // @ts-expect-error skip optional chaining to save bundle size with try catch
+    profileId = scope.getScopeData().contexts.profile.profile_id;
+  } catch {
+    // do nothing
+  }
 
   const attributes: SpanAttributes = {
+    release,
+    environment,
+
+    user: userDisplay || undefined,
+    profile_id: profileId || undefined,
+    replay_id: replayId || undefined,
+
+    transaction,
+
+    // Web vital score calculation relies on the user agent to account for different
+    // browsers setting different thresholds for what is considered a good/meh/bad value.
+    // For example: Chrome vs. Chrome Mobile
+    'user_agent.original': WINDOW.navigator?.userAgent,
+
+    // This tells Sentry to infer the IP address from the request
+    'client.address': sendDefaultPii ? '{{auto}}' : undefined,
 
     ...passedAttributes,
   };
@@ -91,6 +129,9 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     name,
     attributes,
     startTime,
+    experimental: {
+      standalone: true,
+    },
   });
 }
 

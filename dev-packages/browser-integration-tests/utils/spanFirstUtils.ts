@@ -57,6 +57,64 @@ export async function waitForV2Spans(page: Page, callback?: (spans: SpanV2JSON[]
   return spanEnvelope[1][0][1].items;
 }
 
+export async function waitForV2Span(page: Page, callback: (span: SpanV2JSON) => boolean): Promise<SpanV2JSON> {
+  const spanEnvelope = await waitForSpanV2Envelope(page, envelope => {
+    if (callback) {
+      const spans = envelope[1][0][1].items;
+      return spans.some(span => callback(span));
+    }
+    return true;
+  });
+  const firstMatchingSpan = spanEnvelope[1][0][1].items.find(span => callback(span));
+  if (!firstMatchingSpan) {
+    throw new Error(
+      'No matching span found but envelope search matched previously. Something is likely off with this function. Debug me.',
+    );
+  }
+  return firstMatchingSpan;
+}
+
+/**
+ * Observes outgoing requests and looks for sentry envelope requests. If an envelope request is found, it applies
+ * @param callback to check for a matching span.
+ *
+ * Important: This function only observes requests and does not block the test when it ends. Use this primarily to
+ * throw errors if you encounter unwanted spans. You most likely want to use {@link waitForV2Span} instead!
+ */
+export async function observeV2Span(page: Page, callback: (span: SpanV2JSON) => boolean): Promise<void> {
+  page.on('request', request => {
+    const postData = request.postData();
+    if (!postData) {
+      return;
+    }
+
+    try {
+      const spanEnvelope = properFullEnvelopeParser<SpanV2Envelope>(request);
+
+      const envelopeItemHeader = spanEnvelope[1][0][0];
+
+      if (
+        envelopeItemHeader?.type !== 'span' ||
+        envelopeItemHeader?.content_type !== 'application/vnd.sentry.items.span.v2+json'
+      ) {
+        return false;
+      }
+
+      const spans = spanEnvelope[1][0][1].items;
+
+      for (const span of spans) {
+        if (callback(span)) {
+          return true;
+        }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function getSpanOp(span: SpanV2JSON): string | undefined {
   return span.attributes?.['sentry.op']?.type === 'string' ? span.attributes?.['sentry.op']?.value : undefined;
 }

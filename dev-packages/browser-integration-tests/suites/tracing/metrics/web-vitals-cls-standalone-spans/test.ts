@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/core';
+import { type Event as SentryEvent, type EventEnvelope, type SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
@@ -8,6 +8,7 @@ import {
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
+import { observeV2Span, waitForSpanV2Envelope, waitForV2Span } from '../../../../utils/spanFirstUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -41,12 +42,13 @@ function hidePage(page: Page): Promise<void> {
 }
 
 sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', async ({ getLocalTestUrl, page }) => {
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+  const spanEnvelopePromise = waitForSpanV2Envelope(
     page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
+    spanEnvelope =>
+      !!spanEnvelope[1]?.[0]?.[1]?.items?.find(i => i.attributes?.['sentry.op']?.value === 'ui.webvital.cls'),
   );
+
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.05`);
@@ -55,65 +57,110 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
 
   await hidePage(page);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
+  const pageloadSpan = await pageloadSpanPromise;
+  const spanEnvelope = await spanEnvelopePromise;
 
-  const spanEnvelopeHeaders = spanEnvelope[0];
+  const clsSpanEnvelopeHeaders = spanEnvelope[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
 
-  expect(spanEnvelopeItem).toEqual({
-    data: {
-      'sentry.exclusive_time': 0,
-      'sentry.op': 'ui.webvital.cls',
-      'sentry.origin': 'auto.http.browser.cls',
-      'sentry.report_event': 'pagehide',
-      transaction: expect.stringContaining('index.html'),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
-      'cls.source.1': expect.stringContaining('body > div#content > p'),
-    },
-    description: expect.stringContaining('body > div#content > p'),
-    exclusive_time: 0,
-    measurements: {
-      cls: {
-        unit: '',
-        value: expect.any(Number), // better check below,
+  const clsSpan = spanEnvelopeItem.items.find(i => i.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
+
+  expect(clsSpan?.trace_id).toEqual(pageloadSpan.trace_id);
+
+  expect(clsSpan).toEqual({
+    attributes: {
+      'sentry.exclusive_time': { value: 0, type: 'integer' },
+      'sentry.op': { value: 'ui.webvital.cls', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser.cls', type: 'string' },
+      'sentry.report_event': { value: 'pagehide', type: 'string' },
+      transaction: { value: expect.stringContaining('index.html'), type: 'string' },
+
+      'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.stringContaining('Chrome'),
+      },
+
+      'sentry.pageload.span_id': { value: expect.stringMatching(/[a-f\d]{16}/), type: 'string' },
+
+      'browser.web_vital.cls.value': { value: expect.any(Number), type: 'double' },
+      cls: { value: expect.any(Number), type: 'double' },
+
+      'browser.web_vital.cls.source.1': { value: expect.stringContaining('body > div#content > p'), type: 'string' },
+
+      'sentry.sdk.name': {
+        type: 'string',
+        value: 'sentry.javascript.browser',
+      },
+      'sentry.sdk.version': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'sentry.segment.id': {
+        type: 'string',
+        value: clsSpan?.span_id,
+      },
+      'sentry.segment.name': {
+        type: 'string',
+        value: expect.stringContaining('body > div#content > p'),
+      },
+      'sentry.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'sentry.span.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'url.full': {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html#0.05',
       },
     },
-    op: 'ui.webvital.cls',
-    origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    name: expect.stringContaining('body > div#content > p'),
     span_id: expect.stringMatching(/[a-f\d]{16}/),
-    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: spanEnvelopeItem.start_timestamp,
-    trace_id: expect.stringMatching(/[a-f\d]{32}/),
+    end_timestamp: expect.any(Number),
+    trace_id: pageloadSpan.trace_id,
+    status: 'ok',
+    is_segment: true,
   });
 
-  // Flakey value dependent on timings -> we check for a range
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.03);
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.07);
+  const clsValue = clsSpan?.attributes?.['browser.web_vital.cls.value']?.value;
 
-  expect(spanEnvelopeHeaders).toEqual({
+  // Flakey value dependent on timings -> we check for a range
+  expect(clsValue).toBeGreaterThan(0.03);
+  expect(clsValue).toBeLessThan(0.07);
+
+  expect(clsSpanEnvelopeHeaders).toEqual({
     sent_at: expect.any(String),
     trace: {
       environment: 'production',
       public_key: 'public',
       sample_rate: '1',
       sampled: 'true',
-      trace_id: spanEnvelopeItem.trace_id,
+      trace_id: pageloadSpan.trace_id,
       sample_rand: expect.any(String),
-      // no transaction, because span source is URL
+    },
+    sdk: {
+      name: 'sentry.javascript.browser',
+      packages: [
+        {
+          name: 'npm:@sentry/browser',
+          version: expect.any(String),
+        },
+      ],
+      settings: {
+        infer_ip: 'never',
+      },
+      version: expect.any(String),
     },
   });
 });
 
 sentryTest('captures a "MEH" CLS vital with its source as a standalone span', async ({ getLocalTestUrl, page }) => {
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.21`);
@@ -125,65 +172,77 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
     window.dispatchEvent(new Event('pagehide'));
   });
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
+  const clsSpan = await clsSpanPromise;
 
-  const spanEnvelopeHeaders = spanEnvelope[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+  expect(clsSpan).toEqual({
+    attributes: {
+      'sentry.exclusive_time': { value: 0, type: 'integer' },
+      'sentry.op': { value: 'ui.webvital.cls', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser.cls', type: 'string' },
+      'sentry.report_event': { value: 'pagehide', type: 'string' },
+      transaction: { value: expect.stringContaining('index.html'), type: 'string' },
 
-  expect(spanEnvelopeItem).toEqual({
-    data: {
-      'sentry.exclusive_time': 0,
-      'sentry.op': 'ui.webvital.cls',
-      'sentry.origin': 'auto.http.browser.cls',
-      'sentry.report_event': 'pagehide',
-      transaction: expect.stringContaining('index.html'),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
-      'cls.source.1': expect.stringContaining('body > div#content > p'),
-    },
-    description: expect.stringContaining('body > div#content > p'),
-    exclusive_time: 0,
-    measurements: {
-      cls: {
-        unit: '',
-        value: expect.any(Number), // better check below,
+      'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.stringContaining('Chrome'),
+      },
+
+      'sentry.pageload.span_id': { value: expect.stringMatching(/[a-f\d]{16}/), type: 'string' },
+
+      'browser.web_vital.cls.value': { value: expect.any(Number), type: 'double' },
+      cls: { value: expect.any(Number), type: 'double' },
+
+      'browser.web_vital.cls.source.1': { value: expect.stringContaining('body > div#content > p'), type: 'string' },
+
+      'sentry.sdk.name': {
+        type: 'string',
+        value: 'sentry.javascript.browser',
+      },
+      'sentry.sdk.version': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'sentry.segment.id': {
+        type: 'string',
+        value: clsSpan?.span_id,
+      },
+      'sentry.segment.name': {
+        type: 'string',
+        value: expect.stringContaining('body > div#content > p'),
+      },
+      'sentry.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'sentry.span.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'url.full': {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html#0.21',
       },
     },
-    op: 'ui.webvital.cls',
-    origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    name: expect.stringContaining('body > div#content > p'),
     span_id: expect.stringMatching(/[a-f\d]{16}/),
-    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: spanEnvelopeItem.start_timestamp,
+    end_timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f\d]{32}/),
+    status: 'ok',
+    is_segment: true,
   });
+
+  const clsValue = clsSpan?.attributes?.['browser.web_vital.cls.value']?.value;
 
   // Flakey value dependent on timings -> we check for a range
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.18);
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.23);
-
-  expect(spanEnvelopeHeaders).toEqual({
-    sent_at: expect.any(String),
-    trace: {
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: spanEnvelopeItem.trace_id,
-      sample_rand: expect.any(String),
-      // no transaction, because span source is URL
-    },
-  });
+  expect(clsValue).toBeGreaterThan(0.18);
+  expect(clsValue).toBeLessThan(0.23);
 });
 
 sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', async ({ getLocalTestUrl, page }) => {
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.35`);
@@ -193,67 +252,79 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
   // Page hide to trigger CLS emission
   await hidePage(page);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
+  const clsSpan = await clsSpanPromise;
 
-  const spanEnvelopeHeaders = spanEnvelope[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+  expect(clsSpan).toEqual({
+    attributes: {
+      'sentry.exclusive_time': { value: 0, type: 'integer' },
+      'sentry.op': { value: 'ui.webvital.cls', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser.cls', type: 'string' },
+      'sentry.report_event': { value: 'pagehide', type: 'string' },
+      transaction: { value: expect.stringContaining('index.html'), type: 'string' },
 
-  expect(spanEnvelopeItem).toEqual({
-    data: {
-      'sentry.exclusive_time': 0,
-      'sentry.op': 'ui.webvital.cls',
-      'sentry.origin': 'auto.http.browser.cls',
-      'sentry.report_event': 'pagehide',
-      transaction: expect.stringContaining('index.html'),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
-      'cls.source.1': expect.stringContaining('body > div#content > p'),
-    },
-    description: expect.stringContaining('body > div#content > p'),
-    exclusive_time: 0,
-    measurements: {
-      cls: {
-        unit: '',
-        value: expect.any(Number), // better check below,
+      'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.stringContaining('Chrome'),
+      },
+
+      'sentry.pageload.span_id': { value: expect.stringMatching(/[a-f\d]{16}/), type: 'string' },
+
+      'browser.web_vital.cls.value': { value: expect.any(Number), type: 'double' },
+      cls: { value: expect.any(Number), type: 'double' },
+
+      'browser.web_vital.cls.source.1': { value: expect.stringContaining('body > div#content > p'), type: 'string' },
+
+      'sentry.sdk.name': {
+        type: 'string',
+        value: 'sentry.javascript.browser',
+      },
+      'sentry.sdk.version': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'sentry.segment.id': {
+        type: 'string',
+        value: clsSpan?.span_id,
+      },
+      'sentry.segment.name': {
+        type: 'string',
+        value: expect.stringContaining('body > div#content > p'),
+      },
+      'sentry.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'sentry.span.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'url.full': {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html#0.35',
       },
     },
-    op: 'ui.webvital.cls',
-    origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    name: expect.stringContaining('body > div#content > p'),
     span_id: expect.stringMatching(/[a-f\d]{16}/),
-    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: spanEnvelopeItem.start_timestamp,
+    end_timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f\d]{32}/),
+    status: 'ok',
+    is_segment: true,
   });
+
+  const clsValue = clsSpan?.attributes?.['browser.web_vital.cls.value']?.value;
 
   // Flakey value dependent on timings -> we check for a range
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.33);
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.38);
-
-  expect(spanEnvelopeHeaders).toEqual({
-    sent_at: expect.any(String),
-    trace: {
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: spanEnvelopeItem.trace_id,
-      sample_rand: expect.any(String),
-      // no transaction, because span source is URL
-    },
-  });
+  expect(clsValue).toBeGreaterThan(0.33);
+  expect(clsValue).toBeLessThan(0.38);
 });
 
 sentryTest(
   'captures a 0 CLS vital as a standalone span if no layout shift occurred',
   async ({ getLocalTestUrl, page }) => {
-    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-      page,
-      1,
-      { envelopeType: 'span' },
-      properFullEnvelopeRequestParser,
-    );
+    const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
@@ -262,50 +333,64 @@ sentryTest(
 
     await hidePage(page);
 
-    const spanEnvelope = (await spanEnvelopePromise)[0];
+    const clsSpan = await clsSpanPromise;
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
+    expect(clsSpan).toEqual({
+      attributes: {
+        'sentry.exclusive_time': { value: 0, type: 'integer' },
+        'sentry.op': { value: 'ui.webvital.cls', type: 'string' },
+        'sentry.origin': { value: 'auto.http.browser.cls', type: 'string' },
+        'sentry.report_event': { value: 'pagehide', type: 'string' },
+        transaction: { value: expect.stringContaining('index.html'), type: 'string' },
 
-    expect(spanEnvelopeItem).toEqual({
-      data: {
-        'sentry.exclusive_time': 0,
-        'sentry.op': 'ui.webvital.cls',
-        'sentry.origin': 'auto.http.browser.cls',
-        'sentry.report_event': 'pagehide',
-        transaction: expect.stringContaining('index.html'),
-        'user_agent.original': expect.stringContaining('Chrome'),
-        'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
-      },
-      description: 'Layout shift',
-      exclusive_time: 0,
-      measurements: {
-        cls: {
-          unit: '',
-          value: 0,
+        'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
+
+        'http.request.header.user_agent': {
+          type: 'string',
+          value: expect.stringContaining('Chrome'),
+        },
+
+        'sentry.pageload.span_id': { value: expect.stringMatching(/[a-f\d]{16}/), type: 'string' },
+
+        'browser.web_vital.cls.value': { value: expect.any(Number), type: 'integer' },
+        cls: { value: expect.any(Number), type: 'integer' },
+
+        'sentry.sdk.name': {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        'sentry.sdk.version': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'sentry.segment.id': {
+          type: 'string',
+          value: clsSpan?.span_id,
+        },
+        'sentry.segment.name': {
+          type: 'string',
+          value: expect.stringContaining('Layout shift'),
+        },
+        'sentry.source': {
+          type: 'string',
+          value: 'custom',
+        },
+        'sentry.span.source': {
+          type: 'string',
+          value: 'custom',
+        },
+        'url.full': {
+          type: 'string',
+          value: 'http://sentry-test.io/index.html',
         },
       },
-      op: 'ui.webvital.cls',
-      origin: 'auto.http.browser.cls',
-      parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+      name: expect.stringContaining('Layout shift'),
       span_id: expect.stringMatching(/[a-f\d]{16}/),
-      segment_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      timestamp: spanEnvelopeItem.start_timestamp,
+      end_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-    });
-
-    expect(spanEnvelopeHeaders).toEqual({
-      sent_at: expect.any(String),
-      trace: {
-        environment: 'production',
-        public_key: 'public',
-        sample_rate: '1',
-        sampled: 'true',
-        trace_id: spanEnvelopeItem.trace_id,
-        sample_rand: expect.any(String),
-        // no transaction, because span source is URL
-      },
+      status: 'ok',
+      is_segment: true,
     });
   },
 );
@@ -315,109 +400,92 @@ sentryTest(
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+    const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
+    const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
-    expect(eventData.type).toBe('transaction');
-    expect(eventData.contexts?.trace?.op).toBe('pageload');
+    await page.goto(url);
 
-    const pageloadSpanId = eventData.contexts?.trace?.span_id;
-    const pageloadTraceId = eventData.contexts?.trace?.trace_id;
+    const pageloadSpan = await pageloadSpanPromise;
+    expect(pageloadSpan.attributes?.['sentry.op']?.value).toBe('pageload');
+
+    const pageloadSpanId = pageloadSpan.span_id;
+    const pageloadTraceId = pageloadSpan.trace_id;
 
     expect(pageloadSpanId).toMatch(/[a-f\d]{16}/);
     expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
-
-    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-      page,
-      1,
-      { envelopeType: 'span' },
-      properFullEnvelopeRequestParser,
-    );
 
     await triggerAndWaitForLayoutShift(page);
 
     await hidePage(page);
 
-    const spanEnvelope = (await spanEnvelopePromise)[0];
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
+    const clsSpan = await clsSpanPromise;
     // Flakey value dependent on timings -> we check for a range
-    expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.05);
-    expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
+    expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeGreaterThan(0.05);
+    expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeLessThan(0.15);
 
     // Ensure the CLS span is connected to the pageload span and trace
-    expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadSpanId);
-    expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
+    expect(clsSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpanId);
+    expect(clsSpan.trace_id).toEqual(pageloadTraceId);
 
-    expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('pagehide');
+    expect(clsSpan.attributes?.['sentry.report_event']?.value).toBe('pagehide');
   },
 );
 
 sentryTest('sends CLS of the initial page when soft-navigating to a new page', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
 
-  expect(pageloadEventData.type).toBe('transaction');
-  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
+  await page.goto(url);
 
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  const pageloadSpan = await pageloadSpanPromise;
+
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
   await triggerAndWaitForLayoutShift(page);
 
   await page.goto(`${url}#soft-navigation`);
 
-  const pageloadTraceId = pageloadEventData.contexts?.trace?.trace_id;
+  const pageloadTraceId = pageloadSpan.trace_id;
   expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+  const clsSpan = await clsSpanPromise;
   // Flakey value dependent on timings -> we check for a range
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.05);
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
-  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
-  expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
+  expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeGreaterThan(0.05);
+  expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeLessThan(0.15);
+  expect(clsSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+  expect(clsSpan.trace_id).toEqual(pageloadTraceId);
 
-  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
+  expect(clsSpan.attributes?.['sentry.report_event']?.value).toBe('navigation');
 });
 
 sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestUrl, page }) => {
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
+
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
-
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  await pageloadSpanPromise;
 
   await triggerAndWaitForLayoutShift(page);
 
   await page.goto(`${url}#soft-navigation`);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0);
-  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
+  const clsSpan = await clsSpanPromise;
+  expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeGreaterThan(0);
+  expect(clsSpan.attributes?.['sentry.report_event']?.value).toBe('navigation');
 
-  getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
-    throw new Error('Unexpected span - This should not happen!');
+  observeV2Span(page, span => {
+    if (span.attributes?.['sentry.op']?.value === 'ui.webvital.cls') {
+      throw new Error(
+        `Unexpected CLS span (${span.name}, ${span.attributes?.['sentry.op']?.value}) - This should not happen!`,
+      );
+    }
+    return false;
   });
 
-  const navigationTxnPromise = getMultipleSentryEnvelopeRequests<EventEnvelope>(
-    page,
-    1,
-    { envelopeType: 'transaction' },
-    properFullEnvelopeRequestParser,
-  );
+  const navigationSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'navigation');
 
   // activate both CLS emission triggers:
   await page.goto(`${url}#soft-navigation-2`);
@@ -426,43 +494,36 @@ sentryTest("doesn't send further CLS after the first navigation", async ({ getLo
   // assumption: If we would send another CLS span on the 2nd navigation, it would be sent before the navigation
   // transaction ends. This isn't 100% safe to ensure we don't send something but otherwise we'd need to wait for
   // a timeout or something similar.
-  await navigationTxnPromise;
+  await navigationSpanPromise;
 });
 
 sentryTest("doesn't send further CLS after the first page hide", async ({ getLocalTestUrl, page }) => {
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
+
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
-
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  await pageloadSpanPromise;
 
   await triggerAndWaitForLayoutShift(page);
 
   await hidePage(page);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
-  expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0);
-  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('pagehide');
+  const clsSpan = await clsSpanPromise;
+  expect(clsSpan.attributes?.['browser.web_vital.cls.value']?.value).toBeGreaterThan(0);
+  expect(clsSpan.attributes?.['sentry.report_event']?.value).toBe('pagehide');
 
-  getMultipleSentryEnvelopeRequests<SpanEnvelope>(page, 1, { envelopeType: 'span' }, () => {
-    throw new Error('Unexpected span - This should not happen!');
+  observeV2Span(page, span => {
+    if (span.attributes?.['sentry.op']?.value === 'ui.webvital.cls') {
+      throw new Error(
+        `Unexpected CLS span (${span.name}, ${span.attributes?.['sentry.op']?.value}) - This should not happen!`,
+      );
+    }
+    return false;
   });
 
-  const navigationTxnPromise = getMultipleSentryEnvelopeRequests<EventEnvelope>(
-    page,
-    1,
-    { envelopeType: 'transaction' },
-    properFullEnvelopeRequestParser,
-  );
+  const navigationSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'navigation');
 
   // activate both CLS emission triggers:
   await page.goto(`${url}#soft-navigation-2`);
@@ -471,39 +532,30 @@ sentryTest("doesn't send further CLS after the first page hide", async ({ getLoc
   // assumption: If we would send another CLS span on the 2nd navigation, it would be sent before the navigation
   // transaction ends. This isn't 100% safe to ensure we don't send something but otherwise we'd need to wait for
   // a timeout or something similar.
-  await navigationTxnPromise;
+  await navigationSpanPromise;
 });
 
 sentryTest('CLS span timestamps are set correctly', async ({ getLocalTestUrl, page }) => {
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+  const pageloadSpan = await pageloadSpanPromise;
+  const pageloadEndTimestamp = pageloadSpan.end_timestamp;
 
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-  expect(eventData.timestamp).toBeDefined();
-
-  const pageloadEndTimestamp = eventData.timestamp!;
-
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+  const clsSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'ui.webvital.cls');
 
   await triggerAndWaitForLayoutShift(page);
 
   await hidePage(page);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+  const clsSpan = await clsSpanPromise;
 
-  expect(spanEnvelopeItem.start_timestamp).toBeDefined();
-  expect(spanEnvelopeItem.timestamp).toBeDefined();
+  expect(clsSpan.start_timestamp).toBeDefined();
+  expect(clsSpan.end_timestamp).toBeDefined();
 
-  const clsSpanStartTimestamp = spanEnvelopeItem.start_timestamp!;
-  const clsSpanEndTimestamp = spanEnvelopeItem.timestamp!;
+  const clsSpanStartTimestamp = clsSpan.start_timestamp;
+  const clsSpanEndTimestamp = clsSpan.end_timestamp;
 
   // CLS performance entries have no duration ==> start and end timestamp should be the same
   expect(clsSpanStartTimestamp).toEqual(clsSpanEndTimestamp);

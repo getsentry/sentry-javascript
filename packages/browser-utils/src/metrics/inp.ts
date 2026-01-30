@@ -7,8 +7,11 @@ import {
   htmlTreeAsString,
   isBrowser,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE,
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
@@ -19,7 +22,7 @@ import {
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
 } from './instrument';
-import { getBrowserPerformanceAPI, msToSec } from './utils';
+import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
 
 interface InteractionContext {
   span: Span | undefined;
@@ -40,10 +43,10 @@ const MAX_PLAUSIBLE_INP_DURATION = 60;
 /**
  * Start tracking INP webvital events.
  */
-export function startTrackingINP(): () => void {
+export function startTrackingINP(isSpanStreaming?: boolean): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
-    const inpCallback = _trackINP();
+    const inpCallback = _trackINP(isSpanStreaming);
 
     return (): void => {
       inpCallback();
@@ -85,14 +88,14 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 /** Starts tracking the Interaction to Next Paint on the current page. #
  * exported only for testing
  */
-export function _trackINP(): () => void {
-  return addInpInstrumentationHandler(_onInp);
+export function _trackINP(isSpanStreaming?: boolean): () => void {
+  return addInpInstrumentationHandler(metric => _onInp(metric, isSpanStreaming));
 }
 
 /**
  * exported only for testing
  */
-export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
+export const _onInp: InstrumentationHandlerCallback = ({ metric }, isSpanStreaming?: boolean) => {
   if (metric.value == undefined) {
     return;
   }
@@ -137,8 +140,8 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
 
     // TODO: Relay currently expects 'inp', but we should consider 'inp.value'
-    'inp': metric.value,
-    'inp.value': metric.value,
+    inp: metric.value,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE]: metric.value,
 
     transaction: routeName,
 
@@ -148,11 +151,33 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
     'user_agent.original': WINDOW.navigator?.userAgent,
   };
 
-  startInactiveSpan({
+  if (isSpanStreaming) {
+    // send INP as v2 span
+    startInactiveSpan({
+      name,
+      attributes,
+      startTime,
+      parentSpan: null, // start this span as a segment
+    })?.end(startTime + duration);
+
+    return;
+  }
+
+  const v1Span = startStandaloneWebVitalSpan({
     name,
-    attributes,
+    transaction: routeName,
     startTime,
-  })?.end(startTime + duration);
+    attributes,
+  });
+
+  if (v1Span) {
+    v1Span.addEvent('inp', {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
+    });
+
+    v1Span.end(startTime + duration);
+  }
 };
 
 /**

@@ -65,6 +65,7 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
+export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_TIME_TO_FIRST_BYTE = 'http.request.time_to_first_byte';
 export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
 export const SEMANTIC_ATTRIBUTE_URL_QUERY = 'url.query';
 
@@ -118,3 +119,32 @@ export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
+
+// Web vital attributes
+
+// LCP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID = 'browser.web_vital.lcp.id';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL = 'browser.web_vital.lcp.url';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME = 'browser.web_vital.lcp.load_time';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME = 'browser.web_vital.lcp.render_time';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE = 'browser.web_vital.lcp.size';
+
+// CLS
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES = 'browser.web_vital.cls.source';
+
+// INP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE = 'browser.web_vital.inp.value';
+
+// TTFB
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_VALUE = 'browser.web_vital.ttfb.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_REQUEST_TIME = 'browser.web_vital.ttfb.request_time';
+
+// FP/FCP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_FP_VALUE = 'browser.web_vital.fp.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value';
+
+// Browser connection information
+export const SEMANTIC_ATTRIBUTE_BROWSER_CONNECTION_RTT = 'browser.connection.rtt';

@@ -87,6 +87,17 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 }
 
 /**
+ * Runs the `beforeSetup` hooks of the given integrations on the given client.
+ */
+export function beforeSetupIntegrations(client: Client, integrations: Integration[]): void {
+  for (const integration of integrations) {
+    if (integration?.beforeSetup) {
+      integration.beforeSetup(client);
+    }
+  }
+}
+
+/**
  * Execute the `afterAllSetup` hooks of the given integrations.
  */
 export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {

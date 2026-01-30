@@ -5,7 +5,7 @@ import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
-import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import { afterSetupIntegrations, beforeSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope, ScopeData } from './scope';
@@ -1146,6 +1146,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
     const { integrations } = this._options;
+
+    beforeSetupIntegrations(this, integrations);
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
   }

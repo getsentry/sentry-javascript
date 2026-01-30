@@ -3,13 +3,12 @@ import { expect } from '@playwright/test';
 import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
-  envelopeRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
-  waitForTransactionRequest,
 } from '../../../../utils/helpers';
+import { waitForSpanV2Envelope, waitForV2Span } from '../../../../utils/spanFirstUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -26,14 +25,12 @@ function hidePage(page: Page): Promise<void> {
 }
 
 sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, page }) => {
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+  const pageloadSpanPromise = waitForV2Span(page, span => span.attributes?.['sentry.op']?.value === 'pageload');
+  const lcpSpanEnvelopePromise = waitForSpanV2Envelope(
     page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
+    spanEnvelope =>
+      !!spanEnvelope[1]?.[0]?.[1]?.items?.find(i => i.attributes?.['sentry.op']?.value === 'ui.webvital.lcp'),
   );
-
-  const pageloadEnvelopePromise = waitForTransactionRequest(page, e => e.contexts?.trace?.op === 'pageload');
 
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
@@ -47,62 +44,146 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
 
   // Wait for LCP to be captured
   await page.waitForTimeout(1000);
-
   await hidePage(page);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const pageloadTransactionEvent = envelopeRequestParser(await pageloadEnvelopePromise);
-
-  const spanEnvelopeHeaders = spanEnvelope[0];
+  const spanEnvelope = await lcpSpanEnvelopePromise;
   const spanEnvelopeItem = spanEnvelope[1][0][1];
+  const lcpSpanEnvelopeHeaders = spanEnvelope[0];
+  const lcpSpan = spanEnvelopeItem.items.find(i => i.attributes?.['sentry.op']?.value === 'ui.webvital.lcp');
 
-  const pageloadTraceId = pageloadTransactionEvent.contexts?.trace?.trace_id;
+  const pageloadSpan = await pageloadSpanPromise;
+  const pageloadTraceId = pageloadSpan.trace_id;
   expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
-  expect(spanEnvelopeItem).toEqual({
-    data: {
-      'sentry.exclusive_time': 0,
-      'sentry.op': 'ui.webvital.lcp',
-      'sentry.origin': 'auto.http.browser.lcp',
-      'sentry.report_event': 'pagehide',
-      transaction: expect.stringContaining('index.html'),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
-      'lcp.element': 'body > img',
-      'lcp.loadTime': expect.any(Number),
-      'lcp.renderTime': expect.any(Number),
-      'lcp.size': expect.any(Number),
-      'lcp.url': 'https://sentry-test-site.example/my/image.png',
-    },
-    description: expect.stringContaining('body > img'),
-    exclusive_time: 0,
-    measurements: {
+  expect(lcpSpan).toEqual({
+    attributes: {
+      'sentry.op': {
+        value: 'ui.webvital.lcp',
+        type: 'string',
+      },
+      'sentry.origin': {
+        value: 'auto.http.browser.lcp',
+        type: 'string',
+      },
+      'sentry.report_event': {
+        value: 'pagehide',
+        type: 'string',
+      },
+      'sentry.exclusive_time': {
+        type: 'integer',
+        value: 0,
+      },
+      transaction: {
+        value: expect.stringContaining('index.html'),
+        type: 'string',
+      },
+      'user_agent.original': {
+        value: expect.stringContaining('Chrome'),
+        type: 'string',
+      },
+      'sentry.pageload.span_id': {
+        value: expect.stringMatching(/[a-f\d]{16}/),
+        type: 'string',
+      },
       lcp: {
-        unit: 'millisecond',
         value: expect.any(Number),
+        type: expect.stringMatching(/double|integer/),
+      },
+      'browser.web_vital.lcp.url': {
+        value: 'https://sentry-test-site.example/my/image.png',
+        type: 'string',
+      },
+      'browser.web_vital.lcp.element': {
+        value: 'body > img',
+        type: 'string',
+      },
+      'browser.web_vital.lcp.load_time': {
+        value: expect.any(Number),
+        type: expect.stringMatching(/double|integer/),
+      },
+      'browser.web_vital.lcp.render_time': {
+        value: expect.any(Number),
+        type: expect.stringMatching(/double|integer/),
+      },
+      'browser.web_vital.lcp.size': {
+        value: expect.any(Number),
+        type: expect.stringMatching(/double|integer/),
+      },
+      'browser.web_vital.lcp.value': {
+        value: expect.any(Number),
+        type: 'integer',
+      },
+      'browser.web_vital.lcp.id': {
+        type: 'string',
+        value: '',
+      },
+      'sentry.sdk.name': {
+        type: 'string',
+        value: 'sentry.javascript.browser',
+      },
+      'sentry.sdk.version': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'sentry.segment.id': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'sentry.segment.name': {
+        type: 'string',
+        value: expect.stringContaining('body > img'),
+      },
+      'sentry.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'sentry.span.source': {
+        type: 'string',
+        value: 'custom',
+      },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.stringContaining('Chrome'),
+      },
+      'url.full': {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html',
       },
     },
-    op: 'ui.webvital.lcp',
-    origin: 'auto.http.browser.lcp',
-    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    name: expect.stringContaining('body > img'),
     span_id: expect.stringMatching(/[a-f\d]{16}/),
-    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: spanEnvelopeItem.start_timestamp, // LCP is a point-in-time metric
+    end_timestamp: lcpSpan?.start_timestamp, // LCP is a point-in-time metric
     trace_id: pageloadTraceId,
+    status: 'ok',
+    is_segment: true,
   });
 
   // LCP value should be greater than 0
-  expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
+  const lcpValue = lcpSpan?.attributes?.['browser.web_vital.lcp.value']?.value;
+  expect(lcpValue).toBeGreaterThan(0);
 
-  expect(spanEnvelopeHeaders).toEqual({
+  expect(lcpSpanEnvelopeHeaders).toEqual({
+    sdk: {
+      name: 'sentry.javascript.browser',
+      packages: [
+        {
+          name: 'npm:@sentry/browser',
+          version: expect.any(String),
+        },
+      ],
+      settings: {
+        infer_ip: 'never',
+      },
+      version: expect.any(String),
+    },
     sent_at: expect.any(String),
     trace: {
       environment: 'production',
       public_key: 'public',
       sample_rate: '1',
       sampled: 'true',
-      trace_id: spanEnvelopeItem.trace_id,
+      trace_id: pageloadTraceId,
       sample_rand: expect.any(String),
     },
   });
