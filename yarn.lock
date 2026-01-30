@@ -8158,10 +8158,10 @@
   resolved "https://registry.yarnpkg.com/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.8.tgz#69c746a7c232094c117c50dedbd1279fc64887b7"
   integrity sha512-esgN+54+q0NjB0Y/4BomT9samII7jGwNy/2a3wNZbT2A2RpmXsXwUt24LvLhx6jUq2gVk4cWEvcRO6MFQbOfNA==
 
-"@sveltejs/kit@^2.49.5":
-  version "2.49.5"
-  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.49.5.tgz#da173805592e3ebd483bb77d45ef424078f0aaff"
-  integrity sha512-dCYqelr2RVnWUuxc+Dk/dB/SjV/8JBndp1UovCyCZdIQezd8TRwFLNZctYkzgHxRJtaNvseCSRsuuHPeUgIN/A==
+"@sveltejs/kit@^2.50.1":
+  version "2.50.1"
+  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.50.1.tgz#22dd5cb7e3013560289b30c7876bd90bad2b1836"
+  integrity sha512-XRHD2i3zC4ukhz2iCQzO4mbsts081PAZnnMAQ7LNpWeYgeBmwMsalf0FGSwhFXBbtr2XViPKnFJBDCckWqrsLw==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
     "@sveltejs/acorn-typescript" "^1.0.5"
