@@ -99,6 +99,19 @@ describe('NodeClient', () => {
       });
     });
 
+    test('uses custom runtime when provided in options', () => {
+      const options = getDefaultNodeClientOptions({ runtime: { name: 'cloudflare' } });
+      const client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
+
+      expect(event.contexts?.runtime).toEqual({
+        name: 'cloudflare',
+      });
+    });
+
     test('adds server name to event when value passed in options', () => {
       const options = getDefaultNodeClientOptions({ serverName: 'foo' });
       const client = new NodeClient(options);
