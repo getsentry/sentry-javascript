@@ -28,5 +28,18 @@ export function applySdkMetadata(options: CoreOptions, name: string, names = [na
     };
   }
 
+  if (!metadata.sdk) {
+    metadata.sdk = {};
+  }
+
+  if (!metadata.sdk.name) {
+    metadata.sdk.name = `sentry.javascript.${name}`;
+    metadata.sdk.packages = names.map(name => ({
+      name: `${source}:@sentry/${name}`,
+      version: SDK_VERSION,
+    }));
+    metadata.sdk.version = SDK_VERSION;
+  }
+
   options._metadata = metadata;
 }

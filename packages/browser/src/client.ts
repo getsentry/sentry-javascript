@@ -91,6 +91,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
+    console.log('xx opts._metadata', opts._metadata);
+
     // Only allow IP inferral by Relay if sendDefaultPii is true
     if (opts._metadata?.sdk) {
       opts._metadata.sdk.settings = {
