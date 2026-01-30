@@ -44,8 +44,7 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Sentry TanStack Start] Could not determine server output directory. ' +
-              'Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+            '[Sentry TanStack Start] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
               'The instrument.server.mjs file will not be copied to the build output automatically.',
           );
         });

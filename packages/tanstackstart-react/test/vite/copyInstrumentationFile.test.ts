@@ -119,7 +119,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       expect(fs.promises.access).toHaveBeenCalled();
     });
 
-    it('does not set output dir when neither Nitro nor Cloudflare/Netlify is detected', () => {
+    it('logs a warning and does not set output dir when no recognized plugin is detected', () => {
       const resolvedConfig = {
         root: '/project',
         plugins: [{ name: 'some-other-plugin' }],
@@ -131,26 +131,11 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       (plugin.closeBundle as AnyFunction)();
 
-      expect(fs.promises.access).not.toHaveBeenCalled();
-
-      warnSpy.mockRestore();
-    });
-
-    it('logs a warning when no recognized deployment plugin is detected', () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'some-other-plugin' }],
-      } as unknown as ResolvedConfig;
-
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      (plugin.configResolved as AnyFunction)(resolvedConfig);
-
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Sentry TanStack Start] Could not determine server output directory. ' +
-          'Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+        '[Sentry TanStack Start] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
           'The instrument.server.mjs file will not be copied to the build output automatically.',
       );
+      expect(fs.promises.access).not.toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });
