@@ -1,4 +1,4 @@
-import type { Attributes } from '../attributes';
+import type { Attributes, RawAttributes } from '../attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -36,7 +36,10 @@ export type SpanAttributes = Partial<{
 export type SpanTimeInput = HrTime | number | Date;
 
 /**
- * JSON representation of a v2 span, as it should be sent to Sentry.
+ * Intermediate JSON reporesentation of a v2 span, which users and our SDK integrations will interact with.
+ * This is NOT the final serialized JSON span, but an intermediate step still holding raw attributes.
+ * The final, serialized span is a {@link SerializedSpan}.
+ * Main reason: Make it easier and safer for users to work with attributes.
  */
 export interface SpanV2JSON {
   trace_id: string;
@@ -47,19 +50,24 @@ export interface SpanV2JSON {
   end_timestamp: number;
   status: 'ok' | 'error';
   is_segment: boolean;
-  attributes?: Attributes;
-  links?: SpanLinkJSON<Attributes>[];
+  attributes?: RawAttributes<Record<string, unknown>>;
+  links?: SpanLinkJSON<RawAttributes<Record<string, unknown>>>[];
 }
 
 /**
- * A SpanV2JSON with an attached reference to the segment span.
- * This reference is used to compute dynamic sampling context before sending.
- * The reference MUST be removed before sending the span envelope.
+ * Serialized span item.
+ * This is the final, serialized span format that is sent to Sentry.
+ * The intermediate representation is {@link SpanV2JSON}.
+ * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
-export interface SpanV2JSONWithSegmentRef extends SpanV2JSON {
-  _segmentSpan: Span;
-}
+export type SerializedSpan = Omit<SpanV2JSON, 'attributes' | 'links'> & {
+  attributes: Attributes;
+  links: SpanLinkJSON<Attributes>[];
+};
 
+/**
+ * Envelope span item container.
+ */
 export type SerializedSpanContainer = {
   items: Array<SpanV2JSON>;
 };

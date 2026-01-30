@@ -453,8 +453,8 @@ export type {
   SpanContextData,
   TraceFlag,
   SpanV2JSON,
-  SpanV2JSONWithSegmentRef,
   SerializedSpanContainer,
+  SerializedSpan,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
