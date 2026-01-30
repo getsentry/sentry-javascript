@@ -15,20 +15,14 @@ import { SDK_VERSION } from '../utils/version';
  * @param names list of package names
  */
 export function applySdkMetadata(options: CoreOptions, name: string, names = [name], source = 'npm'): void {
-  const metadata = options._metadata || {};
+  const sdk = ((options._metadata = options._metadata || {}).sdk = options._metadata.sdk || {});
 
-  if (!metadata.sdk) {
-    metadata.sdk = {};
-  }
-
-  if (!metadata.sdk.name) {
-    metadata.sdk.name = `sentry.javascript.${name}`;
-    metadata.sdk.packages = names.map(name => ({
+  if (!sdk.name) {
+    sdk.name = `sentry.javascript.${name}`;
+    sdk.packages = names.map(name => ({
       name: `${source}:@sentry/${name}`,
       version: SDK_VERSION,
     }));
-    metadata.sdk.version = SDK_VERSION;
+    sdk.version = SDK_VERSION;
   }
-
-  options._metadata = metadata;
 }
