@@ -39,12 +39,9 @@ export interface MetricOptions {
  */
 function captureMetric(type: MetricType, name: string, value: number, options?: MetricOptions): void {
   const attributes = options?.routing
-  ? { ...options.attributes, [MULTIPLEXED_METRIC_ROUTING_KEY]: options.routing }
-  : options?.attributes;
-  _INTERNAL_captureMetric(
-    { type, name, value, unit: options?.unit, attributes },
-    { scope: options?.scope },
-  );
+    ? { ...options.attributes, [MULTIPLEXED_METRIC_ROUTING_KEY]: options.routing }
+    : options?.attributes;
+  _INTERNAL_captureMetric({ type, name, value, unit: options?.unit, attributes }, { scope: options?.scope });
 }
 
 /**
