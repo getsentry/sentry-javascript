@@ -137,6 +137,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStreamSpan,
 } from '@sentry/core';
 
 export type {

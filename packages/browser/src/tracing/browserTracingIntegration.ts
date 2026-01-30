@@ -22,6 +22,7 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -282,7 +283,15 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    /**
+     * @deprecated To send CLS values as spans, set `traceLifecycle` to `stream` or
+     * register the `spanStreamingIntegration` integration in `Sentry.init()` instead.
+     */
     enableStandaloneClsSpans: boolean;
+    /**
+     * @deprecated To send LCP values as spans, set `traceLifecycle` to `stream` or
+     * register the `spanStreamingIntegration` integration in `Sentry.init()` instead.
+     */
     enableStandaloneLcpSpans: boolean;
   }>;
 
@@ -358,7 +367,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -420,6 +429,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     latestRoute.name = finalStartSpanOptions.name;
     latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
+    const isSpanStreaming = hasSpanStreamingEnabled(client);
+
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
@@ -431,8 +442,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         // but technically, it is optional, so we guard here to be extra safe
         _collectWebVitals?.();
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !enableStandaloneLcpSpans,
+          recordClsOnPageloadSpan: !isSpanStreaming,
+          recordLcpOnPageloadSpan: !isSpanStreaming,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
         });
@@ -486,14 +497,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     setup(client) {
       registerSpanErrorInstrumentation();
 
-      _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
-        client,
-      });
+      _collectWebVitals = startTrackingWebVitals({ client });
 
       if (enableInp) {
-        startTrackingINP();
+        startTrackingINP(hasSpanStreamingEnabled(client));
       }
 
       if (enableElementTiming) {

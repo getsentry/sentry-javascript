@@ -4,6 +4,7 @@
  *
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
+export const SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE = 'sentry.span.source';
 
 /**
  * Attributes that holds the sample rate that was locally applied to a span.
@@ -64,7 +65,9 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
+export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_TIME_TO_FIRST_BYTE = 'http.request.time_to_first_byte';
 export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
+export const SEMANTIC_ATTRIBUTE_URL_QUERY = 'url.query';
 
 /**
  * A span link attribute to mark the link as a special span link.
@@ -92,3 +95,56 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * For LangGraph: configurable.thread_id
  */
 export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
+
+// some attributes for span streaming, put onto every v2 span:
+// @see https://develop.sentry.dev/sdk/telemetry/spans/span-protocol/#common-attribute-keys
+
+/** The release version of the application */
+export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
+/** The environment name (e.g., "production", "staging", "development") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
+/** The segment name (e.g., "GET /users") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
+/** The id of the segment that this span belongs to. */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
+/** The user ID (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
+/** The user email (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
+/** The user IP address (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
+/** The user username (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
+/** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
+/** The version of the Sentry SDK */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
+
+// Web vital attributes
+
+// LCP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID = 'browser.web_vital.lcp.id';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL = 'browser.web_vital.lcp.url';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME = 'browser.web_vital.lcp.load_time';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME = 'browser.web_vital.lcp.render_time';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE = 'browser.web_vital.lcp.size';
+
+// CLS
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES = 'browser.web_vital.cls.source';
+
+// INP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE = 'browser.web_vital.inp.value';
+
+// TTFB
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_VALUE = 'browser.web_vital.ttfb.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_REQUEST_TIME = 'browser.web_vital.ttfb.request_time';
+
+// FP/FCP
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_FP_VALUE = 'browser.web_vital.fp.value';
+export const SEMANTIC_ATTRIBUTE_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value';
+
+// Browser connection information
+export const SEMANTIC_ATTRIBUTE_BROWSER_CONNECTION_RTT = 'browser.connection.rtt';

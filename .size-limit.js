@@ -8,14 +8,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25.5 KB',
+    limit: '26KB',
   },
   {
     name: '@sentry/browser - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '24.1 KB',
+    limit: '25 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
 
@@ -47,6 +47,13 @@ module.exports = [
     gzip: true,
     limit: '48 KB',
   },
+  // {
+  //   name: '@sentry/browser (incl. Tracing Span-First)',
+  //   path: 'packages/browser/build/npm/esm/index.js',
+  //   import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
+  //   gzip: true,
+  //   limit: '44 KB',
+  // },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
@@ -82,14 +89,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '85.55 KB',
+    limit: '87 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '98 KB',
+    limit: '99 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -148,7 +155,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '44.5 KB',
+    limit: '46 KB',
   },
   // Vue SDK (ESM)
   {
@@ -156,14 +163,14 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '44.1 KB',
+    limit: '45 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -171,20 +178,20 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25.5 KB',
+    limit: '26 KB',
   },
   // Browser CDN bundles
   {
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28 KB',
+    limit: '28.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics)',
@@ -208,7 +215,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '80 KB',
+    limit: '81 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
@@ -234,21 +241,14 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    limit: '82 KB',
+    limit: '83 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing) - uncompressed',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '128 KB',
-  },
-  {
-    name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
-    path: createCDNPath('bundle.logs.metrics.min.js'),
-    gzip: false,
-    brotli: false,
-    limit: '86 KB',
+    limit: '129 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics) - uncompressed',
@@ -269,7 +269,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '245 KB',
+    limit: '247 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics) - uncompressed',
@@ -299,7 +299,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '47 KB',
+    limit: '48 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -308,7 +308,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   // Node-Core SDK (ESM)
   {
@@ -326,14 +326,14 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '167 KB',
+    limit: '166 KB',
   },
   {
     name: '@sentry/node - without tracing',
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '95 KB',
+    limit: '97 KB',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -356,7 +356,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '111 KB',
+    limit: '112 KB',
   },
 ];
 

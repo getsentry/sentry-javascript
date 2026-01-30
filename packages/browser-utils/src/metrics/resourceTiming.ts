@@ -1,5 +1,5 @@
 import type { SpanAttributes } from '@sentry/core';
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { browserPerformanceTimeOrigin, SEMANTIC_ATTRIBUTE_HTTP_REQUEST_TIME_TO_FIRST_BYTE } from '@sentry/core';
 import { extractNetworkProtocol, getBrowserPerformanceAPI } from './utils';
 
 function getAbsoluteTime(time: number | undefined): number | undefined {
@@ -57,7 +57,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     // For TTFB we actually want the relative time from timeOrigin to responseStart
     // This way, TTFB always measures the "first page load" experience.
     // see: https://web.dev/articles/ttfb#measure-resource-requests
-    'http.request.time_to_first_byte':
+    [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_TIME_TO_FIRST_BYTE]:
       resourceTiming.responseStart != null ? resourceTiming.responseStart / 1000 : undefined,
   });
 }
