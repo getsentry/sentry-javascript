@@ -129,12 +129,13 @@ describe('Server init()', () => {
 
     afterEach(() => {
       // Clean up the cloudflare context
-      delete (GLOBAL_OBJ as Record<symbol, unknown>)[cloudflareContextSymbol];
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol];
     });
 
     it('sets cloudflare runtime when OpenNext context is available', () => {
       // Mock the OpenNext Cloudflare context
-      (GLOBAL_OBJ as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
         ctx: {
           waitUntil: vi.fn(),
         },
@@ -151,7 +152,7 @@ describe('Server init()', () => {
 
     it('sets cloudflare in SDK metadata when OpenNext context is available', () => {
       // Mock the OpenNext Cloudflare context
-      (GLOBAL_OBJ as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
         ctx: {
           waitUntil: vi.fn(),
         },
