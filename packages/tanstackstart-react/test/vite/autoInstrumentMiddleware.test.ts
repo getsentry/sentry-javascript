@@ -6,6 +6,7 @@ import {
   makeAutoInstrumentMiddlewarePlugin,
   wrapGlobalMiddleware,
   wrapRouteMiddleware,
+  wrapServerFnMiddleware,
 } from '../../src/vite/autoInstrumentMiddleware';
 
 type PluginWithTransform = Plugin & {
@@ -326,6 +327,86 @@ export const Route = createFileRoute('/foo')({
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Auto-wrapping middleware'));
 
     consoleLogSpy.mockRestore();
+  });
+});
+
+describe('wrapServerFnMiddleware', () => {
+  it('wraps single middleware in createServerFn().middleware()', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('wraps multiple middlewares in createServerFn().middleware()', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware, loggingMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware, loggingMiddleware }))');
+  });
+
+  it('does not wrap empty middleware arrays', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toHaveLength(0);
+  });
+
+  it('does not wrap middleware containing function calls', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([createMiddleware()])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.skipped).toContain('.middleware(');
+  });
+
+  it('handles multiple server functions in same file', () => {
+    const code = `
+const serverFn1 = createServerFn()
+  .middleware([authMiddleware])
+  .handler(async () => ({}));
+
+const serverFn2 = createServerFn()
+  .middleware([loggingMiddleware])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ loggingMiddleware }))');
+  });
+
+  it('handles trailing commas in middleware arrays', () => {
+    const code = `
+const serverFn = createServerFn()
+  .middleware([authMiddleware,])
+  .handler(async () => ({}));
+`;
+    const result = wrapServerFnMiddleware(code, '/app/routes/foo.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
   });
 });
 
