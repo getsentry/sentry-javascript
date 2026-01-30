@@ -18,17 +18,6 @@ export function applySdkMetadata(options: CoreOptions, name: string, names = [na
   const metadata = options._metadata || {};
 
   if (!metadata.sdk) {
-    metadata.sdk = {
-      name: `sentry.javascript.${name}`,
-      packages: names.map(name => ({
-        name: `${source}:@sentry/${name}`,
-        version: SDK_VERSION,
-      })),
-      version: SDK_VERSION,
-    };
-  }
-
-  if (!metadata.sdk) {
     metadata.sdk = {};
   }
 
