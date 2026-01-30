@@ -1,5 +1,5 @@
 export default function Page() {
-  <p>Hello World!</p>;
+  return <p>Hello World!</p>;
 }
 
 // getServerSideProps makes this page dynamic and allows tracing data to be inserted
