@@ -1,6 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makeCopyInstrumentationFilePlugin } from './copyInstrumentationFile';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -52,6 +53,9 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   }
 
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+
+  // copy instrumentation file to build output
+  plugins.push(makeCopyInstrumentationFilePlugin());
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
