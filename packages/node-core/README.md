@@ -116,6 +116,119 @@ If it is not possible for you to pass the `--import` flag to the Node.js binary,
 NODE_OPTIONS="--import ./instrument.mjs" npm run start
 ```
 
+## Errors-only Lightweight Mode
+
+> **⚠️ Experimental**: The `@sentry/node-core/light` subpath export is experimental and may receive breaking changes in minor or patch releases.
+
+If you only need error monitoring without performance tracing, you can use the lightweight mode which doesn't require OpenTelemetry dependencies. This mode is ideal for:
+
+- Applications that only need error tracking
+- Reducing bundle size and runtime overhead
+- Environments where OpenTelemetry isn't needed
+
+### Installation (Light Mode)
+
+```bash
+npm install @sentry/node-core
+
+# Or yarn
+yarn add @sentry/node-core
+```
+
+### Usage (Light Mode)
+
+Import from `@sentry/node-core/light` instead of `@sentry/node-core`:
+
+```js
+// ESM
+import * as Sentry from '@sentry/node-core/light';
+
+// CJS
+const Sentry = require('@sentry/node-core/light');
+
+// Initialize Sentry BEFORE creating your HTTP server
+Sentry.init({
+  dsn: '__DSN__',
+  // ...
+});
+
+// Then create your server (Express, Fastify, etc.)
+const app = express();
+```
+
+**Important:** Initialize Sentry **before** creating your HTTP server to enable automatic request isolation.
+
+### Features in Light Mode
+
+**Included:**
+
+- Error tracking and reporting
+- Automatic request isolation (Node.js 22+)
+- Breadcrumbs
+- Context and user data
+- Local variables capture
+- Distributed tracing (via `sentry-trace` and `baggage` headers)
+
+**Not included:**
+
+- Performance monitoring (no spans/transactions)
+
+### Automatic Request Isolation
+
+Light mode includes automatic request isolation for HTTP servers (requires Node.js 22+). This ensures that context (tags, user data, breadcrumbs) set during a request doesn't leak to other concurrent requests.
+
+No manual middleware or `--import` flag is required - just initialize Sentry before creating your server:
+
+```js
+import * as Sentry from '@sentry/node-core/light';
+import express from 'express';
+
+// Initialize FIRST
+Sentry.init({ dsn: '__DSN__' });
+
+// Then create server
+const app = express();
+
+app.get('/error', (req, res) => {
+  // This data is automatically isolated per request
+  Sentry.setTag('userId', req.params.id);
+  Sentry.captureException(new Error('Something went wrong'));
+  res.status(500).send('Error');
+});
+```
+
+### Manual Request Isolation (Node.js < 22)
+
+If you're using Node.js versions below 22, automatic request isolation is not available. You'll need to manually wrap your request handlers with `withIsolationScope`:
+
+```js
+import * as Sentry from '@sentry/node-core/light';
+import express from 'express';
+
+Sentry.init({ dsn: '__DSN__' });
+
+const app = express();
+
+// Add middleware to manually isolate requests
+app.use((req, res, next) => {
+  Sentry.withIsolationScope(() => {
+    next();
+  });
+});
+
+app.get('/error', (req, res) => {
+  Sentry.setTag('userId', req.params.id);
+  Sentry.captureException(new Error('Something went wrong'));
+  res.status(500).send('Error');
+});
+```
+
+**Caveats:**
+
+- Manual isolation prevents scope data leakage between requests
+- However, **distributed tracing will not work correctly** - incoming `sentry-trace` and `baggage` headers won't be automatically extracted and propagated
+- For full distributed tracing support, use Node.js 22+ or the full `@sentry/node` SDK with OpenTelemetry
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
