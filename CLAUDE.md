@@ -120,6 +120,44 @@ Each package typically contains:
 - Integration tests use Playwright extensively
 - Never change the volta, yarn, or package manager setup in general unless explicitly asked for
 
+### E2E Testing
+
+E2E tests are located in `dev-packages/e2e-tests/` and verify SDK behavior in real-world framework scenarios.
+
+#### How Verdaccio Registry Works
+
+E2E tests use [Verdaccio](https://verdaccio.org/), a lightweight npm registry running in Docker. Before tests run:
+
+1. SDK packages are built and packed into tarballs (`yarn build && yarn build:tarball`)
+2. Tarballs are published to Verdaccio at `http://127.0.0.1:4873`
+3. Test applications install packages from Verdaccio instead of public npm
+
+#### The `.npmrc` Requirement
+
+Every E2E test application needs an `.npmrc` file with:
+
+```
+@sentry:registry=http://127.0.0.1:4873
+@sentry-internal:registry=http://127.0.0.1:4873
+```
+
+Without this file, pnpm installs from the public npm registry instead of Verdaccio, so your local changes won't be tested. This is a common cause of "tests pass in CI but fail locally" or vice versa.
+
+#### Running a Single E2E Test
+
+Run the e2e skill.
+
+#### Common Pitfalls and Debugging
+
+1. **Missing `.npmrc`**: Most common issue. Always verify the test app has the correct `.npmrc` file.
+
+2. **Stale tarballs**: After SDK changes, must re-run `yarn build:tarball`.
+
+3. **Debugging tips**:
+   - Check browser console logs for SDK initialization errors
+   - Use `debug: true` in Sentry config
+   - Verify installed package version: check `node_modules/@sentry/*/package.json`
+
 ### Notes for Background Tasks
 
 - Make sure to use [volta](https://volta.sh/) for development. Volta is used to manage the node, yarn and pnpm version used.

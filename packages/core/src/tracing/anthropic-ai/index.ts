@@ -12,7 +12,6 @@ import {
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
@@ -24,13 +23,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import {
-  buildMethodPath,
-  getFinalOperationName,
-  getSpanOperation,
-  getTruncatedJsonString,
-  setTokenUsageAttributes,
-} from '../ai/utils';
+import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
@@ -39,7 +32,7 @@ import type {
   AnthropicAiStreamingEvent,
   ContentBlock,
 } from './types';
-import { handleResponseError, messagesFromParams, shouldInstrument } from './utils';
+import { handleResponseError, messagesFromParams, setMessagesAttribute, shouldInstrument } from './utils';
 
 /**
  * Extract request attributes from method arguments
@@ -83,15 +76,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
  */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   const messages = messagesFromParams(params);
-  if (messages.length) {
-    const truncatedMessages = getTruncatedJsonString(messages);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
-  }
-
-  if ('input' in params) {
-    const truncatedInput = getTruncatedJsonString(params.input);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
-  }
+  setMessagesAttribute(span, messages);
 
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });

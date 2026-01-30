@@ -159,7 +159,7 @@ jobs:
           head: ${{ env.HEAD_COMMIT }}
 
       - name: NX cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         # Disable cache when:
         # - on release branches
         # - when PR has `ci-skip-cache` label or on nightly builds
@@ -181,7 +181,7 @@ jobs:
         run: yarn build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: ${{ env.CACHED_BUILD_PATHS }}
@@ -386,7 +386,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ github.sha }}
           retention-days: 90
@@ -568,9 +568,11 @@ jobs:
           - bundle_min
           - bundle_replay
           - bundle_tracing
+          - bundle_tracing_logs_metrics
           - bundle_tracing_replay
           - bundle_tracing_replay_feedback
           - bundle_tracing_replay_feedback_min
+          - bundle_tracing_replay_feedback_logs_metrics
         project:
           - chromium
         include:
@@ -629,7 +631,7 @@ jobs:
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name:
@@ -692,7 +694,7 @@ jobs:
           yarn test:loader
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
@@ -881,7 +883,7 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -892,7 +894,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Stores tarballs in cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
@@ -959,7 +961,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
@@ -1009,7 +1011,7 @@ jobs:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
@@ -1023,7 +1025,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1084,7 +1086,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
@@ -1135,7 +1137,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})

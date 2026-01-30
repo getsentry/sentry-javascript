@@ -22,6 +22,7 @@ import { isPlainObject } from './utils/is';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
+import { safeMathRandom } from './utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
@@ -50,6 +51,7 @@ export interface ScopeContext {
   attributes?: RawAttributes<Record<string, unknown>>;
   fingerprint: string[];
   propagationContext: PropagationContext;
+  conversationId?: string;
 }
 
 export interface SdkProcessingMetadata {
@@ -84,6 +86,7 @@ export interface ScopeData {
   level?: SeverityLevel;
   transactionName?: string;
   span?: Span;
+  conversationId?: string;
 }
 
 /**
@@ -152,6 +155,9 @@ export class Scope {
   /** Contains the last event id of a captured event.  */
   protected _lastEventId?: string;
 
+  /** Conversation ID */
+  protected _conversationId?: string;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -168,7 +174,7 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
-      sampleRand: Math.random(),
+      sampleRand: safeMathRandom(),
     };
   }
 
@@ -201,6 +207,7 @@ export class Scope {
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
     newScope._lastEventId = this._lastEventId;
+    newScope._conversationId = this._conversationId;
 
     _setSpanForScope(newScope, _getSpanForScope(this));
 
@@ -284,6 +291,16 @@ export class Scope {
   }
 
   /**
+   * Set the conversation ID for this scope.
+   * Set to `null` to unset the conversation ID.
+   */
+  public setConversationId(conversationId: string | null | undefined): this {
+    this._conversationId = conversationId || undefined;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
    * Set an object that will be merged into existing tags on the scope,
    * and will be sent as tags data with the event.
    */
@@ -306,8 +323,8 @@ export class Scope {
   /**
    * Sets attributes onto the scope.
    *
-   * These attributes are currently only applied to logs.
-   * In the future, they will also be applied to metrics and spans.
+   * These attributes are currently applied to logs and metrics.
+   * In the future, they will also be applied to spans.
    *
    * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
    * more complex attribute types. We'll add this support in the future but already specify the wider type to
@@ -338,8 +355,8 @@ export class Scope {
   /**
    * Sets an attribute onto the scope.
    *
-   * These attributes are currently only applied to logs.
-   * In the future, they will also be applied to metrics and spans.
+   * These attributes are currently applied to logs and metrics.
+   * In the future, they will also be applied to spans.
    *
    * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
    * more complex attribute types. We'll add this support in the future but already specify the wider type to
@@ -506,6 +523,7 @@ export class Scope {
       level,
       fingerprint = [],
       propagationContext,
+      conversationId,
     } = scopeInstance || {};
 
     this._tags = { ...this._tags, ...tags };
@@ -529,6 +547,10 @@ export class Scope {
       this._propagationContext = propagationContext;
     }
 
+    if (conversationId) {
+      this._conversationId = conversationId;
+    }
+
     return this;
   }
 
@@ -548,9 +570,13 @@ export class Scope {
     this._transactionName = undefined;
     this._fingerprint = undefined;
     this._session = undefined;
+    this._conversationId = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+    this.setPropagationContext({
+      traceId: generateTraceId(),
+      sampleRand: safeMathRandom(),
+    });
 
     this._notifyScopeListeners();
     return this;
@@ -637,6 +663,7 @@ export class Scope {
       sdkProcessingMetadata: this._sdkProcessingMetadata,
       transactionName: this._transactionName,
       span: _getSpanForScope(this),
+      conversationId: this._conversationId,
     };
   }
 

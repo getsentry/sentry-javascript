@@ -110,7 +110,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
           clearTimeout(timeout);
           if (options.setupCommand) {
             try {
-              execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+              // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
+              const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
+              execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
             } catch (e) {
               log('Error running docker setup command', e);
             }
@@ -172,6 +174,7 @@ type StartResult = {
   childHasExited(): boolean;
   getLogs(): string[];
   getPort(): number | undefined;
+  sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
@@ -667,6 +670,9 @@ export function createRunner(...paths: string[]) {
         },
         getPort(): number | undefined {
           return scenarioServerPort;
+        },
+        sendSignal(signal: NodeJS.Signals): void {
+          child?.kill(signal);
         },
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',

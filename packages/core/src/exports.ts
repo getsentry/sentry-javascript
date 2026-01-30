@@ -112,6 +112,15 @@ export function setUser(user: User | null): void {
 }
 
 /**
+ * Sets the conversation ID for the current isolation scope.
+ *
+ * @param conversationId The conversation ID to set. Pass `null` or `undefined` to unset the conversation ID.
+ */
+export function setConversationId(conversationId: string | null | undefined): void {
+  getIsolationScope().setConversationId(conversationId);
+}
+
+/**
  * The last error event id of the isolation scope.
  *
  * Warning: This function really returns the last recorded error event id on the current

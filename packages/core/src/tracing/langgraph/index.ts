@@ -3,11 +3,13 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
@@ -119,6 +121,15 @@ function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_REQUEST_MODEL_ATTRIBUTE, modelName);
             }
 
+            // Extract thread_id from the config (second argument)
+            // LangGraph uses config.configurable.thread_id for conversation/session linking
+            const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
+            const configurable = config?.configurable as Record<string, unknown> | undefined;
+            const threadId = configurable?.thread_id;
+            if (threadId && typeof threadId === 'string') {
+              span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, threadId);
+            }
+
             // Extract available tools from the graph instance
             const tools = extractToolsFromCompiledGraph(graphInstance);
             if (tools) {
@@ -134,7 +145,10 @@ function instrumentCompiledGraphInvoke(
             if (inputMessages && recordInputs) {
               const normalizedMessages = normalizeLangChainMessages(inputMessages);
               const truncatedMessages = truncateGenAiMessages(normalizedMessages);
-              span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, JSON.stringify(truncatedMessages));
+              span.setAttributes({
+                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages),
+                [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: normalizedMessages.length,
+              });
             }
 
             // Call original invoke

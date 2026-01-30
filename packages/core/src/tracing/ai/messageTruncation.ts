@@ -294,11 +294,17 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
  * @returns Array containing the truncated message, or empty array if truncation fails
  */
 function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
-  /* c8 ignore start - unreachable */
-  if (!message || typeof message !== 'object') {
+  if (!message) return [];
+
+  // Handle plain strings (e.g., embeddings input)
+  if (typeof message === 'string') {
+    const truncated = truncateTextByBytes(message, maxBytes);
+    return truncated ? [truncated] : [];
+  }
+
+  if (typeof message !== 'object') {
     return [];
   }
-  /* c8 ignore stop */
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
@@ -374,19 +380,19 @@ function stripInlineMediaFromMessages(messages: unknown[]): unknown[] {
  * Truncate an array of messages to fit within a byte limit.
  *
  * Strategy:
- * - Keeps the newest messages (from the end of the array)
- * - Uses O(n) algorithm: precompute sizes once, then find largest suffix under budget
- * - If no complete messages fit, attempts to truncate the newest single message
+ * - Always keeps only the last (newest) message
+ * - Strips inline media from the message
+ * - Truncates the message content if it exceeds the byte limit
  *
  * @param messages - Array of messages to truncate
- * @param maxBytes - Maximum total byte limit for all messages
- * @returns Truncated array of messages
+ * @param maxBytes - Maximum total byte limit for the message
+ * @returns Array containing only the last message (possibly truncated)
  *
  * @example
  * ```ts
  * const messages = [msg1, msg2, msg3, msg4]; // newest is msg4
  * const truncated = truncateMessagesByBytes(messages, 10000);
- * // Returns [msg3, msg4] if they fit, or [msg4] if only it fits, etc.
+ * // Returns [msg4] (truncated if needed)
  * ```
  */
 function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown[] {
@@ -395,46 +401,21 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
     return messages;
   }
 
-  // strip inline media first. This will often get us below the threshold,
-  // while preserving human-readable information about messages sent.
-  const stripped = stripInlineMediaFromMessages(messages);
+  // Always keep only the last message
+  const lastMessage = messages[messages.length - 1];
 
-  // Fast path: if all messages fit, return as-is
-  const totalBytes = jsonBytes(stripped);
-  if (totalBytes <= maxBytes) {
+  // Strip inline media from the single message
+  const stripped = stripInlineMediaFromMessages([lastMessage]);
+  const strippedMessage = stripped[0];
+
+  // Check if it fits
+  const messageBytes = jsonBytes(strippedMessage);
+  if (messageBytes <= maxBytes) {
     return stripped;
   }
 
-  // Precompute each message's JSON size once for efficiency
-  const messageSizes = stripped.map(jsonBytes);
-
-  // Find the largest suffix (newest messages) that fits within the budget
-  let bytesUsed = 0;
-  let startIndex = stripped.length; // Index where the kept suffix starts
-
-  for (let i = stripped.length - 1; i >= 0; i--) {
-    const messageSize = messageSizes[i];
-
-    if (messageSize && bytesUsed + messageSize > maxBytes) {
-      // Adding this message would exceed the budget
-      break;
-    }
-
-    if (messageSize) {
-      bytesUsed += messageSize;
-    }
-    startIndex = i;
-  }
-
-  // If no complete messages fit, try truncating just the newest message
-  if (startIndex === stripped.length) {
-    // we're truncating down to one message, so all others dropped.
-    const newestMessage = stripped[stripped.length - 1];
-    return truncateSingleMessage(newestMessage, maxBytes);
-  }
-
-  // Return the suffix that fits
-  return stripped.slice(startIndex);
+  // Truncate the single message if needed
+  return truncateSingleMessage(strippedMessage, maxBytes);
 }
 
 /**

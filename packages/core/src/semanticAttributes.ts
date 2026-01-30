@@ -77,3 +77,18 @@ export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
  * @see https://develop.sentry.dev/sdk/telemetry/traces/span-links/#link-types
  */
 export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
+
+/**
+ * =============================================================================
+ * GEN AI ATTRIBUTES
+ * Based on OpenTelemetry Semantic Conventions for Generative AI
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/
+ * =============================================================================
+ */
+
+/**
+ * The conversation ID for linking messages across API calls.
+ * For OpenAI Assistants API: thread_id
+ * For LangGraph: configurable.thread_id
+ */
+export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';

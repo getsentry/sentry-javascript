@@ -5,6 +5,20 @@ module.exports = {
 
   overrides: [
     {
+      // Vendor scripts are injected as inline <script> tags and must use ES5 syntax
+      // to ensure compatibility with older browsers that cannot transpile inline scripts.
+      // Setting ecmaVersion: 5 ensures ESLint will error on ANY ES6+ syntax at parse time.
+      files: ['vendor/**/*.js'],
+      parserOptions: {
+        sourceType: 'script',
+        ecmaVersion: 5,
+      },
+      env: {
+        browser: true,
+        node: false,
+      },
+    },
+    {
       // addon files
       files: ['{addon,app,tests}/**/*.{js,ts,d.ts}'],
       parserOptions: {

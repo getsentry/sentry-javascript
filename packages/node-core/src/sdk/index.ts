@@ -3,6 +3,7 @@ import {
   applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
+  conversationIdIntegration,
   debug,
   functionToStringIntegration,
   getCurrentScope,
@@ -55,6 +56,7 @@ export function getDefaultIntegrations(): Integration[] {
     linkedErrorsIntegration(),
     requestDataIntegration(),
     systemErrorIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
@@ -142,6 +144,15 @@ function _init(
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
+
+  // Ensure we flush events when vercel functions are ended
+  // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
+  if (process.env.VERCEL) {
+    process.on('SIGTERM', async () => {
+      // We have 500ms for processing here, so we try to make sure to have enough time to send the events
+      await client.flush(200);
+    });
+  }
 
   return client;
 }
