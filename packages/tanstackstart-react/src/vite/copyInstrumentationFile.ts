@@ -20,27 +20,35 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
     enforce: 'post',
 
     configResolved(resolvedConfig: ResolvedConfig) {
-      // Nitro case: read server dir from the nitro environment config
-      // Vite 6 environment configs are not part of the public type definitions yet,
-      // so we need to access them via an index signature.
-      const environments = (resolvedConfig as Record<string, unknown>)['environments'] as
-        | Record<string, { build?: { rollupOptions?: { output?: { dir?: string } | Array<{ dir?: string }> } } }>
-        | undefined;
-      const nitroEnv = environments?.nitro;
-      if (nitroEnv) {
-        const rollupOutput = nitroEnv.build?.rollupOptions?.output;
-        const dir = Array.isArray(rollupOutput) ? rollupOutput[0]?.dir : rollupOutput?.dir;
-        if (dir) {
-          serverOutputDir = dir;
-          return;
-        }
-      }
-
-      // Cloudflare/Netlify case: detect by plugin name
       const plugins = resolvedConfig.plugins || [];
-      const hasCloudflareOrNetlify = plugins.some(p => /cloudflare|netlify/i.test(p.name));
-      if (hasCloudflareOrNetlify) {
+      const hasPlugin = (name: string): boolean => plugins.some(p => p.name === name);
+
+      if (hasPlugin('nitro')) {
+        // Nitro case: read server dir from the nitro environment config
+        // Vite 6 environment configs are not part of the public type definitions yet,
+        // so we need to access them via an index signature.
+        const environments = (resolvedConfig as Record<string, unknown>)['environments'] as
+          | Record<string, { build?: { rollupOptions?: { output?: { dir?: string } | Array<{ dir?: string }> } } }>
+          | undefined;
+        const nitroEnv = environments?.nitro;
+        if (nitroEnv) {
+          const rollupOutput = nitroEnv.build?.rollupOptions?.output;
+          const dir = Array.isArray(rollupOutput) ? rollupOutput[0]?.dir : rollupOutput?.dir;
+          if (dir) {
+            serverOutputDir = dir;
+          }
+        }
+      } else if (hasPlugin('cloudflare') || hasPlugin('netlify')) {
         serverOutputDir = path.resolve(resolvedConfig.root, 'dist', 'server');
+      } else {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Sentry TanStack Start] Could not determine server output directory. ' +
+              'Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+              'The instrument.server.mjs file will not be copied to the build output automatically.',
+          );
+        });
       }
     },
 

@@ -45,7 +45,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('detects Nitro environment and reads output dir', () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [],
+        plugins: [{ name: 'nitro' }],
         environments: {
           nitro: {
             build: {
@@ -71,7 +71,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('detects Nitro environment with array rollup output', () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [],
+        plugins: [{ name: 'nitro' }],
         environments: {
           nitro: {
             build: {
@@ -94,7 +94,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('detects Cloudflare plugin and sets dist/server as output dir', () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [{ name: 'vite-plugin-cloudflare' }],
+        plugins: [{ name: 'cloudflare' }],
       } as unknown as ResolvedConfig;
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
@@ -108,7 +108,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('detects Netlify plugin and sets dist/server as output dir', () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [{ name: 'netlify-plugin' }],
+        plugins: [{ name: 'netlify' }],
       } as unknown as ResolvedConfig;
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
@@ -125,11 +125,34 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
         plugins: [{ name: 'some-other-plugin' }],
       } as unknown as ResolvedConfig;
 
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
       (plugin.closeBundle as AnyFunction)();
 
       expect(fs.promises.access).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it('logs a warning when no recognized deployment plugin is detected', () => {
+      const resolvedConfig = {
+        root: '/project',
+        plugins: [{ name: 'some-other-plugin' }],
+      } as unknown as ResolvedConfig;
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      (plugin.configResolved as AnyFunction)(resolvedConfig);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Sentry TanStack Start] Could not determine server output directory. ' +
+          'Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+          'The instrument.server.mjs file will not be copied to the build output automatically.',
+      );
+
+      warnSpy.mockRestore();
     });
   });
 
@@ -137,7 +160,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('copies instrumentation file when it exists and output dir is set', async () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [],
+        plugins: [{ name: 'nitro' }],
         environments: {
           nitro: {
             build: {
@@ -176,18 +199,22 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
         plugins: [{ name: 'some-other-plugin' }],
       } as unknown as ResolvedConfig;
 
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
       await (plugin.closeBundle as AnyFunction)();
 
       expect(fs.promises.access).not.toHaveBeenCalled();
       expect(fs.promises.copyFile).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
     });
 
     it('does nothing when instrumentation file does not exist', async () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [],
+        plugins: [{ name: 'nitro' }],
         environments: {
           nitro: {
             build: {
@@ -214,7 +241,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('logs a warning when copy fails', async () => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [],
+        plugins: [{ name: 'nitro' }],
         environments: {
           nitro: {
             build: {
