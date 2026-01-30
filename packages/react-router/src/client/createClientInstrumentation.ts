@@ -19,6 +19,10 @@ const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 // Tracks active numeric navigation span to prevent duplicate spans when popstate fires
 let currentNumericNavigationSpan: Span | undefined;
 
+// Tracks middleware execution index per route, keyed by Request object.
+// Uses WeakMap to isolate counters per navigation and allow GC of cancelled navigations.
+const middlewareCountersMap = new WeakMap<object, Record<string, number>>();
+
 const SENTRY_CLIENT_INSTRUMENTATION_FLAG = '__sentryReactRouterClientInstrumentationUsed';
 // Intentionally never reset - once set, instrumentation API handles all navigations for the session.
 const SENTRY_NAVIGATE_HOOK_INVOKED_FLAG = '__sentryReactRouterNavigateHookInvoked';
@@ -214,6 +218,8 @@ export function createSentryClientInstrumentation(
     },
 
     route(route: InstrumentableRoute) {
+      const routeId = route.id;
+
       route.instrument({
         async loader(callLoader, info) {
           const urlPath = getPathFromRequest(info.request);
@@ -267,12 +273,33 @@ export function createSentryClientInstrumentation(
           const urlPath = getPathFromRequest(info.request);
           const routePattern = normalizeRoutePath(getPattern(info)) || urlPath;
 
+          // Get or create counters for this navigation's Request
+          let counters = middlewareCountersMap.get(info.request);
+          if (!counters) {
+            counters = {};
+            middlewareCountersMap.set(info.request, counters);
+          }
+
+          // Get middleware index and increment for next middleware
+          const middlewareIndex = counters[routeId] ?? 0;
+          counters[routeId] = middlewareIndex + 1;
+
+          // Try to get the actual middleware function name
+          const middlewareName = getClientMiddlewareName(routeId, middlewareIndex);
+
+          // Build display name: prefer function name, fallback to routeId
+          const displayName = middlewareName || routeId;
+
           await startSpan(
             {
-              name: routePattern,
+              name: `middleware ${displayName}`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                'react_router.route.id': routeId,
+                'react_router.route.pattern': routePattern,
+                ...(middlewareName && { 'react_router.middleware.name': middlewareName }),
+                'react_router.middleware.index': middlewareIndex,
               },
             },
             async span => {
@@ -324,4 +351,31 @@ export function isClientInstrumentationApiUsed(): boolean {
  */
 export function isNavigateHookInvoked(): boolean {
   return !!GLOBAL_WITH_FLAGS[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG];
+}
+
+interface RouteModule {
+  [key: string]: unknown;
+  clientMiddleware?: Array<{ name?: string }>;
+}
+
+interface GlobalObjWithRouteModules {
+  __reactRouterRouteModules?: Record<string, RouteModule>;
+}
+
+/**
+ * Get client middleware function name from __reactRouterRouteModules.
+ * @internal
+ */
+function getClientMiddlewareName(routeId: string, index: number): string | undefined {
+  const globalWithModules = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalObjWithRouteModules;
+  const routeModules = globalWithModules.__reactRouterRouteModules;
+  if (!routeModules) return undefined;
+
+  const routeModule = routeModules[routeId];
+  // Client middleware is exposed as clientMiddleware in route modules
+  const clientMiddleware = routeModule?.clientMiddleware;
+  if (!Array.isArray(clientMiddleware)) return undefined;
+
+  const middlewareFn = clientMiddleware[index];
+  return middlewareFn?.name || undefined;
 }

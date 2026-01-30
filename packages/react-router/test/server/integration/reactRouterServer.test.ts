@@ -1,4 +1,4 @@
-import * as SentryNode from '@sentry/node';
+import type { Event } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReactRouterInstrumentation } from '../../../src/server/instrumentation/reactRouter';
 import { reactRouterServerIntegration } from '../../../src/server/integration/reactRouterServer';
@@ -14,11 +14,6 @@ vi.mock('@sentry/node', () => {
     generateInstrumentOnce: vi.fn((_name: string, callback: () => any) => {
       return Object.assign(callback, { id: 'test' });
     }),
-    NODE_VERSION: {
-      major: 0,
-      minor: 0,
-      patch: 0,
-    },
   };
 });
 
@@ -27,39 +22,79 @@ describe('reactRouterServerIntegration', () => {
     vi.clearAllMocks();
   });
 
-  it('sets up ReactRouterInstrumentation for Node 20.18', () => {
-    vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 18, patch: 0 });
-
+  it('sets up ReactRouterInstrumentation on setupOnce', () => {
     const integration = reactRouterServerIntegration();
     integration.setupOnce!();
 
     expect(ReactRouterInstrumentation).toHaveBeenCalled();
   });
 
-  it('sets up ReactRouterInstrumentationfor Node.js 22.11', () => {
-    vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 11, patch: 0 });
-
+  it('always sets up ReactRouterInstrumentation to capture ServerBuild for middleware name resolution', () => {
+    // The instrumentation is always installed to capture the ServerBuild reference,
+    // which is needed for middleware name resolution. The OTEL wrapper internally
+    // skips creating loader/action spans when the instrumentation API is active.
     const integration = reactRouterServerIntegration();
     integration.setupOnce!();
 
-    expect(ReactRouterInstrumentation).toHaveBeenCalled();
+    expect(ReactRouterInstrumentation).toHaveBeenCalledTimes(1);
   });
 
-  it('does not set up ReactRouterInstrumentation for Node.js 20.19', () => {
-    vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 20, minor: 19, patch: 0 });
-
+  it('has processEvent that removes bogus http.route attribute', () => {
     const integration = reactRouterServerIntegration();
-    integration.setupOnce!();
 
-    expect(ReactRouterInstrumentation).not.toHaveBeenCalled();
-  });
+    // Test with bogus * route and non-* transaction name
+    const event1 = {
+      type: 'transaction' as const,
+      contexts: {
+        trace: {
+          span_id: 'test-span-id',
+          trace_id: 'test-trace-id',
+          data: {
+            'http.route': '*',
+          },
+        },
+      },
+      transaction: 'GET /users',
+    } as Event;
 
-  it('does not set up ReactRouterInstrumentation for Node.js 22.12', () => {
-    vi.spyOn(SentryNode, 'NODE_VERSION', 'get').mockReturnValue({ major: 22, minor: 12, patch: 0 });
+    const result1 = integration.processEvent!(event1, {}, {} as any) as Event | null;
+    expect(result1?.contexts?.trace?.data?.['http.route']).toBeUndefined();
 
-    const integration = reactRouterServerIntegration();
-    integration.setupOnce!();
+    // Test with bogus * route but GET * transaction name (should keep)
+    const event2 = {
+      type: 'transaction' as const,
+      contexts: {
+        trace: {
+          span_id: 'test-span-id',
+          trace_id: 'test-trace-id',
+          data: {
+            'http.route': '*',
+          },
+        },
+      },
+      transaction: 'GET *',
+    } as Event;
 
-    expect(ReactRouterInstrumentation).not.toHaveBeenCalled();
+    const result2 = integration.processEvent!(event2, {}, {} as any) as Event | null;
+    expect(result2?.contexts?.trace?.data?.['http.route']).toBe('*');
+
+    // Test with instrumentation_api origin (should always remove)
+    const event3 = {
+      type: 'transaction' as const,
+      contexts: {
+        trace: {
+          span_id: 'test-span-id',
+          trace_id: 'test-trace-id',
+          origin: 'auto.http.react_router.instrumentation_api',
+          data: {
+            'http.route': '*',
+          },
+        },
+      },
+      transaction: 'GET *',
+    } as Event;
+
+    const result3 = integration.processEvent!(event3, {}, {} as any) as Event | null;
+    expect(result3?.contexts?.trace?.data?.['http.route']).toBeUndefined();
   });
 });
