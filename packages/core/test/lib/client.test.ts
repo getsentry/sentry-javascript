@@ -2020,13 +2020,8 @@ describe('Client', () => {
 
       client.captureMessage('test message');
 
-      // Without the fix, this would cause infinite recursion:
-      // 1. captureMessage -> processor throws -> captureException(__sentry__: true)
-      // 2. captureException -> processor throws again -> captureException(__sentry__: true)
-      // 3. Infinite loop...
-      //
-      // With the fix, the processor is called once for the original message,
-      // and the internal exception event skips event processors entirely.
+      // Should be called once for the original message
+      // internal exception events skips event processors entirely.
       expect(processorCallCount).toBe(1);
 
       // Verify the processor error was captured and sent
