@@ -4,7 +4,7 @@ overview: Break down the span streaming refactor from `lms/feat-span-streaming-p
 todos:
   - id: pr1-types
     content: 'PR 1: SpanV2JSON and Envelope Type Definitions'
-    status: pending
+    status: completed
   - id: pr2-lifecycle
     content: 'PR 2: traceLifecycle Option and beforeSendSpan Type Updates'
     status: pending
@@ -497,7 +497,7 @@ To mark a PR as complete, add "DONE" to the node label. Example: `PR1[PR1: SpanV
 
 ```mermaid
 flowchart TD
-    PR1[PR1: SpanV2JSON Types]
+    PR1[PR1: SpanV2JSON Types DONE]
     PR2[PR2: traceLifecycle Option]
     PR3[PR3: Semantic Attributes]
     PR4[PR4: beforeSetup Hook]
@@ -646,7 +646,7 @@ flowchart TD
 
 |----|--------|------|
 
-| PR 1 | pending | |
+| PR 1 | completed | https://github.com/getsentry/sentry-javascript/pull/19100 |
 
 | PR 2 | pending | |
 
