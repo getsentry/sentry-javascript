@@ -20,7 +20,8 @@ jobs:
   check_for_issue_reference:
     runs-on: ubuntu-latest
     if: |
-      !contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow')
+      (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'master')
+      && !contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow')
       && !startsWith(github.event.pull_request.head.ref, 'external-contributor/')
       && !startsWith(github.event.pull_request.head.ref, 'prepare-release/')
       && !startsWith(github.event.pull_request.head.ref, 'dependabot/')
