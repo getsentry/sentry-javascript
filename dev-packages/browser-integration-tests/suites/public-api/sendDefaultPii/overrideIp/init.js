@@ -10,7 +10,7 @@ Sentry.init({
     sdk: {
       settings: {
         infer_ip: 'auto',
-      }
-    }
-  }
+      },
+    },
+  },
 });
