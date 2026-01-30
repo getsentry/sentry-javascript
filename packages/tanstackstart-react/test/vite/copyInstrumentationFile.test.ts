@@ -262,6 +262,77 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
         '[Sentry TanStack Start] Failed to copy instrument.server.mjs to build output.',
         expect.any(Error),
       );
+    });
+
+    it('uses custom instrumentation file path when provided', async () => {
+      const customPlugin = makeCopyInstrumentationFilePlugin('custom/path/my-instrument.mjs');
+
+      const resolvedConfig = {
+        root: '/project',
+        plugins: [{ name: 'nitro' }],
+        environments: {
+          nitro: {
+            build: {
+              rollupOptions: {
+                output: {
+                  dir: '/project/.output/server',
+                },
+              },
+            },
+          },
+        },
+      } as unknown as ResolvedConfig;
+
+      (customPlugin.configResolved as AnyFunction)(resolvedConfig);
+
+      vi.mocked(fs.promises.access).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.mkdir).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.copyFile).mockResolvedValueOnce(undefined);
+
+      await (customPlugin.closeBundle as AnyFunction)();
+
+      expect(fs.promises.access).toHaveBeenCalledWith(
+        path.resolve(process.cwd(), 'custom/path/my-instrument.mjs'),
+        fs.constants.F_OK,
+      );
+      expect(fs.promises.copyFile).toHaveBeenCalledWith(
+        path.resolve(process.cwd(), 'custom/path/my-instrument.mjs'),
+        path.resolve('/project/.output/server', 'my-instrument.mjs'),
+      );
+    });
+
+    it('warns with custom file name when custom instrumentation file is not found', async () => {
+      const customPlugin = makeCopyInstrumentationFilePlugin('custom/my-instrument.mjs');
+
+      const resolvedConfig = {
+        root: '/project',
+        plugins: [{ name: 'nitro' }],
+        environments: {
+          nitro: {
+            build: {
+              rollupOptions: {
+                output: {
+                  dir: '/project/.output/server',
+                },
+              },
+            },
+          },
+        },
+      } as unknown as ResolvedConfig;
+
+      (customPlugin.configResolved as AnyFunction)(resolvedConfig);
+
+      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await (customPlugin.closeBundle as AnyFunction)();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Sentry TanStack Start] No custom/my-instrument.mjs file found in project root. ' +
+          'The Sentry instrumentation file will not be copied to the build output.',
+      );
+      expect(fs.promises.copyFile).not.toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });

@@ -20,6 +20,15 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * @default true
    */
   autoInstrumentMiddleware?: boolean;
+
+  /**
+   * Path to the instrumentation file to be copied to the server build output directory.
+   *
+   * Relative paths are resolved from the current working directory.
+   *
+   * @default 'instrument.server.mjs'
+   */
+  instrumentationFilePath?: string;
 }
 
 /**
@@ -55,7 +64,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
 
   // copy instrumentation file to build output
-  plugins.push(makeCopyInstrumentationFilePlugin());
+  plugins.push(makeCopyInstrumentationFilePlugin(options.instrumentationFilePath));
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {

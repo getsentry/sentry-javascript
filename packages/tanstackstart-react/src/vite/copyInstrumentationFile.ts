@@ -4,14 +4,17 @@ import * as path from 'path';
 import type { Plugin, ResolvedConfig } from 'vite';
 
 /**
- * Creates a Vite plugin that copies the user's `instrument.server.mjs` file
+ * Creates a Vite plugin that copies the user's instrumentation file
  * to the server build output directory after the build completes.
+ *
+ * By default, copies `instrument.server.mjs` from the project root.
+ * A custom file path can be provided via `instrumentationFilePath`.
  *
  * Supports:
  * - Nitro deployments (reads output dir from the Nitro Vite environment config)
  * - Cloudflare/Netlify deployments (outputs to `dist/server`)
  */
-export function makeCopyInstrumentationFilePlugin(): Plugin {
+export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: string): Plugin {
   let serverOutputDir: string | undefined;
 
   return {
@@ -57,7 +60,8 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
         return;
       }
 
-      const instrumentationSource = path.resolve(process.cwd(), 'instrument.server.mjs');
+      const instrumentationFileName = instrumentationFilePath || 'instrument.server.mjs';
+      const instrumentationSource = path.resolve(process.cwd(), instrumentationFileName);
 
       try {
         await fs.promises.access(instrumentationSource, fs.constants.F_OK);
@@ -65,26 +69,27 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Sentry TanStack Start] No instrument.server.mjs file found in project root. ' +
+            `[Sentry TanStack Start] No ${instrumentationFileName} file found in project root. ` +
               'The Sentry instrumentation file will not be copied to the build output.',
           );
         });
         return;
       }
 
-      const destination = path.resolve(serverOutputDir, 'instrument.server.mjs');
+      const destinationFileName = path.basename(instrumentationFileName);
+      const destination = path.resolve(serverOutputDir, destinationFileName);
 
       try {
         await fs.promises.mkdir(serverOutputDir, { recursive: true });
         await fs.promises.copyFile(instrumentationSource, destination);
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
-          console.log(`[Sentry TanStack Start] Copied instrument.server.mjs to ${destination}`);
+          console.log(`[Sentry TanStack Start] Copied ${destinationFileName} to ${destination}`);
         });
       } catch (error) {
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
-          console.warn('[Sentry TanStack Start] Failed to copy instrument.server.mjs to build output.', error);
+          console.warn(`[Sentry TanStack Start] Failed to copy ${destinationFileName} to build output.`, error);
         });
       }
     },
