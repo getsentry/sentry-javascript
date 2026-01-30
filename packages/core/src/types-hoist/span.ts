@@ -61,8 +61,8 @@ export interface SpanV2JSON {
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
 export type SerializedSpan = Omit<SpanV2JSON, 'attributes' | 'links'> & {
-  attributes: Attributes;
-  links: SpanLinkJSON<Attributes>[];
+  attributes?: Attributes;
+  links?: SpanLinkJSON<Attributes>[];
 };
 
 /**
