@@ -49,6 +49,7 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
           );
         });
       }
+
     },
 
     async closeBundle() {
@@ -61,7 +62,13 @@ export function makeCopyInstrumentationFilePlugin(): Plugin {
       try {
         await fs.promises.access(instrumentationSource, fs.constants.F_OK);
       } catch {
-        // No instrumentation file found — nothing to copy
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Sentry TanStack Start] No instrument.server.mjs file found in project root. ' +
+              'The Sentry instrumentation file will not be copied to the build output.',
+          );
+        });
         return;
       }
 

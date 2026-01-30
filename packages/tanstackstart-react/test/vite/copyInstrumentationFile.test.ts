@@ -196,7 +196,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       warnSpy.mockRestore();
     });
 
-    it('does nothing when instrumentation file does not exist', async () => {
+    it('warns and does not copy when instrumentation file does not exist', async () => {
       const resolvedConfig = {
         root: '/project',
         plugins: [{ name: 'nitro' }],
@@ -217,10 +217,18 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
 
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       await (plugin.closeBundle as AnyFunction)();
 
       expect(fs.promises.access).toHaveBeenCalled();
       expect(fs.promises.copyFile).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Sentry TanStack Start] No instrument.server.mjs file found in project root. ' +
+          'The Sentry instrumentation file will not be copied to the build output.',
+      );
+
+      warnSpy.mockRestore();
     });
 
     it('logs a warning when copy fails', async () => {
