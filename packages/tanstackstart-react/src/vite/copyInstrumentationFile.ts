@@ -52,7 +52,6 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
           );
         });
       }
-
     },
 
     async closeBundle() {
