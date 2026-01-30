@@ -4,13 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+
 ## 10.38.0
 
 ### Important Changes
 
 - **feat(tanstackstart-react): Auto-instrument request middleware ([#18989](https://github.com/getsentry/sentry-javascript/pull/18989))**
 
-The `sentryTanstackStart` Vite plugin now automatically instruments `middleware` arrays in `createFileRoute()`. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+  The `sentryTanstackStart` Vite plugin now automatically instruments `middleware` arrays in `createFileRoute()`. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
 
 ### Other Changes
 
