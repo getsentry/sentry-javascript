@@ -2007,6 +2007,31 @@ describe('Client', () => {
       });
     });
 
+    test('client-level event processor that throws on all events does not cause infinite recursion', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      let processorCallCount = 0;
+      // Add processor at client level - this runs on ALL events including internal exceptions
+      client.addEventProcessor(() => {
+        processorCallCount++;
+        throw new Error('Processor always throws');
+      });
+
+      client.captureMessage('test message');
+
+      // Should be called once for the original message
+      // internal exception events skips event processors entirely.
+      expect(processorCallCount).toBe(1);
+
+      // Verify the processor error was captured and sent
+      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
+        type: 'Error',
+        value: 'Processor always throws',
+        mechanism: { type: 'internal', handled: false },
+      });
+    });
+
     test('records events dropped due to `sampleRate` option', () => {
       expect.assertions(1);
 
