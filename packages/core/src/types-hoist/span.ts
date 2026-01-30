@@ -69,7 +69,7 @@ export type SerializedSpan = Omit<SpanV2JSON, 'attributes' | 'links'> & {
  * Envelope span item container.
  */
 export type SerializedSpanContainer = {
-  items: Array<SpanV2JSON>;
+  items: Array<SerializedSpan>;
 };
 
 /** A JSON representation of a span. */
