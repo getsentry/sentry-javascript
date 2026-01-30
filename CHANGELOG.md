@@ -6,6 +6,8 @@
 
 Work in this release was contributed by @limbonaut. Thank you for your contribution!
 
+### Important Changes
+
 - **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
 
   The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
@@ -24,6 +26,33 @@ export default withSentryConfig(nextConfig, {
   },
 });
 ```
+
+- **feat(node-core): Add node-core/light ([#18502](https://github.com/getsentry/sentry-javascript/pull/18502))**
+
+  This release adds a new light-weight `@sentry/node-core/light` export to `@sentry/node-core`. The export acts as a light-weight errors-only SDK that does not depend on OpenTelemetry.
+
+  Use this SDK when:
+  - You only need error tracking without performance monitoring
+  - You want to minimize bundle size and runtime overhead
+  - You don't need OpenTelemetry instrumentation
+
+  It supports basic error tracking and report, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
+
+  Install the SDK by running
+
+  ```bash
+  npm install @sentry/node-core
+  ```
+
+  and add Sentry at the top of your application's entry file:
+
+  ```js
+  import * as Sentry from '@sentry/node-core/light';
+
+  Sentry.init({
+    dsn: '__DSN__',
+  });
+  ```
 
 ## 10.38.0
 
