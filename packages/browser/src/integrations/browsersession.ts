@@ -3,7 +3,7 @@ import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
-export interface BrowserSessionOptions {
+interface BrowserSessionOptions {
   /**
    * Controls when sessions are created.
    *
