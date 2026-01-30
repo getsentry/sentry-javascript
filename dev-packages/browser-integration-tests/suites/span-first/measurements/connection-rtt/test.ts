@@ -1,0 +1,76 @@
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { Event } from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+
+sentryTest.beforeEach(({ browserName }) => {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+    sentryTest.skip();
+  }
+});
+
+async function createSessionWithLatency(page: Page, latency: number) {
+  const session = await page.context().newCDPSession(page);
+  await session.send('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: latency,
+    downloadThroughput: (25 * 1024) / 8,
+    uploadThroughput: (5 * 1024) / 8,
+  });
+
+  return session;
+}
+
+sentryTest('captures a `connection.rtt` metric.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+  expect(eventData.measurements).toBeDefined();
+  expect(eventData.measurements?.['connection.rtt']?.value).toBe(0);
+});
+
+sentryTest(
+  'should capture a `connection.rtt` metric with emulated value 200ms on Chromium.',
+  async ({ getLocalTestUrl, page }) => {
+    const session = await createSessionWithLatency(page, 200);
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    await session.detach();
+
+    expect(eventData.measurements).toBeDefined();
+    expect(eventData.measurements?.['connection.rtt']?.value).toBe(200);
+  },
+);
+
+sentryTest(
+  'should capture a `connection.rtt` metric with emulated value 100ms on Chromium.',
+  async ({ getLocalTestUrl, page }) => {
+    const session = await createSessionWithLatency(page, 100);
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    await session.detach();
+
+    expect(eventData.measurements).toBeDefined();
+    expect(eventData.measurements?.['connection.rtt']?.value).toBe(100);
+  },
+);
+
+sentryTest(
+  'should capture a `connection.rtt` metric with emulated value 50ms on Chromium.',
+  async ({ getLocalTestUrl, page }) => {
+    const session = await createSessionWithLatency(page, 50);
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    await session.detach();
+
+    expect(eventData.measurements).toBeDefined();
+    expect(eventData.measurements?.['connection.rtt']?.value).toBe(50);
+  },
+);

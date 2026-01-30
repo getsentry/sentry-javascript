@@ -3,12 +3,17 @@ import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, St
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
-  getClient,
   getComponentName,
+  hasSpanStreamingEnabled,
   htmlTreeAsString,
   isPrimitive,
   parseUrl,
+  SEMANTIC_ATTRIBUTE_BROWSER_CONNECTION_RTT,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_FCP_VALUE,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_FP_VALUE,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_REQUEST_TIME,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_VALUE,
   setMeasurement,
   spanToJSON,
   stringMatchesSomePattern,
@@ -76,8 +81,6 @@ let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
 interface StartTrackingWebVitalsOptions {
-  recordClsStandaloneSpans: boolean;
-  recordLcpStandaloneSpans: boolean;
   client: Client;
 }
 
@@ -87,25 +90,23 @@ interface StartTrackingWebVitalsOptions {
  *
  * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals({
-  recordClsStandaloneSpans,
-  recordLcpStandaloneSpans,
-  client,
-}: StartTrackingWebVitalsOptions): () => void {
+export function startTrackingWebVitals({ client }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
+
+    const isSpanStreaming = hasSpanStreamingEnabled(client);
+    const lcpCleanupCallback = isSpanStreaming ? trackLcpAsStandaloneSpan(client) : _trackLCP();
+    const clsCleanupCallback = isSpanStreaming ? trackClsAsStandaloneSpan(client) : _trackCLS();
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
       lcpCleanupCallback?.();
-      ttfbCleanupCallback();
       clsCleanupCallback?.();
+      ttfbCleanupCallback();
     };
   }
 
@@ -387,6 +388,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   _performanceCursor = Math.max(performanceEntries.length - 1, 0);
 
+  const isSpanStreaming = hasSpanStreamingEnabled();
+
   _trackNavigator(span);
 
   // Measurements are only available for pageload transactions
@@ -403,14 +406,41 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       delete _measurements.lcp;
     }
 
-    const isSpanFirst = getClient()?.getOptions().traceLifecycle === 'stream';
-    Object.entries(_measurements).forEach(([measurementName, measurement]) => {
-      if (isSpanFirst) {
-        span.setAttribute(`ui.web_vital.${measurementName}`, measurement.value);
-        return;
+    if (isSpanStreaming) {
+      if (_measurements.ttfb != null) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_VALUE, _measurements.ttfb.value);
+        // TODO: remove this once relay supports `browser.web_vital.*` attributes.
+        span.setAttribute('ttfb', _measurements.ttfb.value);
       }
-      setMeasurement(measurementName, measurement.value, measurement.unit);
-    });
+
+      if (_measurements['ttfb.requestTime'] != null) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_WEB_VITAL_TTFB_REQUEST_TIME, _measurements['ttfb.requestTime'].value);
+        // TODO: remove this once relay supports `browser.web_vital.*` attributes.
+        span.setAttribute('ttfb.requestTime', _measurements['ttfb.requestTime'].value);
+      }
+
+      if (_measurements.fp != null) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_WEB_VITAL_FP_VALUE, _measurements.fp.value);
+        // TODO: remove this once relay supports `browser.web_vital.*` attributes.
+        span.setAttribute('fp', _measurements.fp.value);
+      }
+
+      if (_measurements.fcp != null) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_WEB_VITAL_FCP_VALUE, _measurements.fcp.value);
+        // TODO: remove this once relay supports `browser.web_vital.*` attributes.
+        span.setAttribute('fcp', _measurements.fcp.value);
+      }
+
+      if (_measurements['connection.rtt'] != null) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_BROWSER_CONNECTION_RTT, _measurements['connection.rtt'].value);
+        // TODO: remove this once relay supports `browser.web_vital.*` attributes.
+        span.setAttribute('connection.rtt', _measurements['connection.rtt'].value);
+      }
+    } else {
+      Object.entries(_measurements).forEach(([measurementName, measurement]) =>
+        setMeasurement(measurementName, measurement.value, measurement.unit),
+      );
+    }
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
     span.setAttribute('performance.timeOrigin', timeOrigin);

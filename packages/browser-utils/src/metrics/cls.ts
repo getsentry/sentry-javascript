@@ -7,6 +7,8 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
@@ -74,8 +76,8 @@ export function _sendStandaloneClsSpan(
     'sentry.report_event': reportEvent,
 
     // TODO: Relay currently expects 'cls', but we should consider 'cls.value'
-    'cls': clsValue,
-    'cls.value': clsValue,
+    cls: clsValue,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE]: clsValue,
 
     transaction: routeName,
 
@@ -89,7 +91,7 @@ export function _sendStandaloneClsSpan(
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift/sources
   if (entry?.sources) {
     entry.sources.forEach((source, index) => {
-      attributes[`cls.source.${index + 1}`] = htmlTreeAsString(source.node);
+      attributes[`${SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES}.${index + 1}`] = htmlTreeAsString(source.node);
     });
   }
 
@@ -99,5 +101,6 @@ export function _sendStandaloneClsSpan(
     name,
     attributes,
     startTime,
+    parentSpan: null, // start this span as a segment
   })?.end(startTime);
 }

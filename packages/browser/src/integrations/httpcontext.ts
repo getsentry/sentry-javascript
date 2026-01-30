@@ -1,5 +1,6 @@
 import {
   defineIntegration,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_URL_FULL,
@@ -24,18 +25,16 @@ export const httpContextIntegration = defineIntegration(() => {
       }
 
       if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-        if (client.getOptions().traceLifecycle === 'stream') {
-          client.on('processSpan', spanJSON => {
-            if (spanJSON.is_segment) {
-              const { url, headers } = getHttpRequestData();
+        if (hasSpanStreamingEnabled(client)) {
+          client.on('processSegmentSpan', spanJSON => {
+            const { url, headers } = getHttpRequestData();
 
-              const attributeHeaders = httpHeadersToSpanAttributes(headers);
+            const attributeHeaders = httpHeadersToSpanAttributes(headers);
 
-              safeSetSpanJSONAttributes(spanJSON, {
-                [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
-                ...attributeHeaders,
-              });
-            }
+            safeSetSpanJSONAttributes(spanJSON, {
+              [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
+              ...attributeHeaders,
+            });
           });
         }
       }

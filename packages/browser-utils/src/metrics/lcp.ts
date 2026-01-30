@@ -7,6 +7,13 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE,
   startInactiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
@@ -72,16 +79,16 @@ export function _sendStandaloneLcpSpan(
     // describes what triggered the web vital to be reported
     'sentry.report_event': reportEvent,
 
-    // TODO: Relay currently expects 'lcp', but we should consider 'lcp.value'
-    'lcp': lcpValue,
-    'lcp.value': lcpValue,
+    // TODO: Relay currently expects 'lcp', but we should remove this in favor of 'browser.web_vital.lcp.value'
+    lcp: lcpValue,
 
-    'lcp.element': entry?.element ? htmlTreeAsString(entry.element) : undefined,
-    'lcp.id': entry?.id,
-    'lcp.url': entry?.url,
-    'lcp.loadTime': entry?.loadTime,
-    'lcp.renderTime': entry?.renderTime,
-    'lcp.size': entry?.size,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE]: lcpValue,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT]: entry?.element ? htmlTreeAsString(entry.element) : undefined,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID]: entry?.id,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL]: entry?.url,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE]: entry?.size,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME]: entry?.loadTime,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME]: entry?.renderTime,
 
     transaction: routeName,
 
@@ -95,5 +102,6 @@ export function _sendStandaloneLcpSpan(
     name,
     attributes,
     startTime,
+    parentSpan: null, // start this span as a segment
   })?.end(startTime);
 }

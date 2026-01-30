@@ -150,11 +150,14 @@ export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric 
   return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
 }
 
-export type InstrumentationHandlerCallback = (data: {
-  metric: Omit<Metric, 'entries'> & {
-    entries: PerformanceEventTiming[];
-  };
-}) => void;
+export type InstrumentationHandlerCallback = (
+  data: {
+    metric: Omit<Metric, 'entries'> & {
+      entries: PerformanceEventTiming[];
+    };
+  },
+  isSpanStreaming?: boolean,
+) => void;
 
 /**
  * Add a callback that will be triggered when a INP metric is available.

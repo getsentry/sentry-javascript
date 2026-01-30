@@ -23,26 +23,52 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
     debug.warn('SpanStreaming batchLimit must be between 1 and 1000, defaulting to 1000');
   }
 
+  let sdkConfigured = false;
+
   return {
     name: 'SpanStreaming',
-    setup(client) {
-      const buffer = new SpanBuffer(client);
+    beforeSetup(client) {
       const clientOptions = client.getOptions();
-      const beforeSendSpan = clientOptions.beforeSendSpan;
+      if (!clientOptions.traceLifecycle) {
+        client.getOptions().traceLifecycle = 'stream';
+      }
 
       const initialMessage = 'spanStreamingIntegration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';
 
+      if (!clientOptions.traceLifecycle) {
+        // For browser, we auto-enable span streaming already if this integration is enabled
+        // This avoids requiring users to manually opt into span streaming via 2 mechanisms
+        // so we set `traceLifecycle` to `stream` if it's not set.
+        client.getOptions().traceLifecycle = 'stream';
+      }
+
       if (clientOptions.traceLifecycle !== 'stream') {
-        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "stream"! ${fallbackMsg}`);
+        // If there's a conflict between this integration being added and `traceLifecycle` being set to `static`
+        // we prefer static (non-span-streaming) mode.
+        DEBUG_BUILD &&
+          debug.warn(
+            `${initialMessage} \`traceLifecycle\` is set to ${clientOptions.traceLifecycle}. ${fallbackMsg}. Either remove \`spanStreamingIntegration\` or set \`traceLifecycle\` to "stream".`,
+          );
         return;
       }
 
+      const beforeSendSpan = clientOptions.beforeSendSpan;
       if (beforeSendSpan && !isV2BeforeSendSpanCallback(beforeSendSpan)) {
         client.getOptions().traceLifecycle = 'static';
         debug.warn(`${initialMessage} a beforeSendSpan callback using \`withStreamSpan\`! ${fallbackMsg}`);
         return;
       }
+
+      sdkConfigured = true;
+    },
+    setup(client) {
+      if (!sdkConfigured) {
+        // options validation failed in beforeSetup, so we don't do anything here
+        return;
+      }
+
+      const buffer = new SpanBuffer(client);
 
       client.on('enqueueSpan', spanJSON => {
         buffer.addSpan(spanJSON);
@@ -52,7 +78,7 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
         captureSpan(span, client);
       });
 
-      client.on('processSpan', (spanJSON) => {
+      client.on('processSpan', spanJSON => {
         safeSetSpanJSONAttributes(spanJSON, {
           // browser-only: tell Sentry to infer the IP address from the request
           'client.address': client.getOptions().sendDefaultPii ? '{{auto}}' : undefined,
