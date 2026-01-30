@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { stringMatchesSomePattern } from '@sentry/core';
 import type { Plugin } from 'vite';
 
@@ -119,7 +120,8 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
 
     transform(code, id) {
       // Skip if not a TS/JS file
-      if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id)) {
+      const fileExtension = path.extname(id);
+      if (!['.ts', '.tsx', '.js', '.jsx', '.mjs', '.mts'].includes(fileExtension)) {
         return null;
       }
 
