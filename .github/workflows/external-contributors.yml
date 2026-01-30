@@ -37,13 +37,13 @@ jobs:
 
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
         with:
           token: ${{ steps.app-token.outputs.token }}
           commit-message: 'chore: Add external contributor to CHANGELOG.md'

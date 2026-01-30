@@ -20,7 +20,7 @@
     "@opennextjs/cloudflare": "^1.14.9",
     "@sentry/nextjs": "latest || *",
     "@sentry/core": "latest || *",
-    "next": "16.0.10",
+    "next": "16.1.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -33,7 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "canary",
     "typescript": "^5",
-    "wrangler": "^4.59.2"
+    "wrangler": "^4.61.0"
   },
   "volta": {
     "extends": "../../package.json"

@@ -391,5 +391,81 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error');
       });
     });
+
+    describe('HTTP 413 Content Too Large', () => {
+      it('should record send_error outcome when receiving 413 response', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
+          resolvedSyncPromise({ statusCode: 413 }),
+        );
+
+        const result = await transport.send(ERROR_ENVELOPE);
+
+        // Should resolve without throwing
+        expect(result).toEqual({ statusCode: 413 });
+        // recordDroppedEvent SHOULD be called with send_error reason
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+      });
+
+      it('should record send_error for each item in envelope when receiving 413', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+
+        const multiItemEnvelope = createEnvelope<EventEnvelope>(
+          { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+          [
+            [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
+            [{ type: 'transaction' }, { event_id: 'bb3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
+          ],
+        );
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
+          resolvedSyncPromise({ statusCode: 413 }),
+        );
+
+        await transport.send(multiItemEnvelope);
+
+        // recordDroppedEvent SHOULD be called for each item
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(2);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'transaction');
+      });
+
+      it('should not record outcomes for client reports when receiving 413', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
+          resolvedSyncPromise({ statusCode: 413 }),
+        );
+
+        const result = await transport.send(CLIENT_REPORT_ENVELOPE);
+
+        // Should resolve without throwing
+        expect(result).toEqual({ statusCode: 413 });
+        // recordDroppedEvent should NOT be called for client reports to avoid feedback loop
+        expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
+      });
+
+      it('should not apply rate limits after receiving 413', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+        const mockRequestExecutor = vi.fn(() => resolvedSyncPromise({ statusCode: 413 }));
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
+
+        // First request gets 413
+        await transport.send(ERROR_ENVELOPE);
+        expect(mockRequestExecutor).toHaveBeenCalledTimes(1);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        mockRequestExecutor.mockClear();
+        mockRecordDroppedEventCallback.mockClear();
+
+        // Second request should still be sent (no rate limiting applied from 413)
+        mockRequestExecutor.mockImplementation(() => resolvedSyncPromise({}));
+        await transport.send(ERROR_ENVELOPE);
+        expect(mockRequestExecutor).toHaveBeenCalledTimes(1);
+        // No send_error recorded for successful request
+        expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
+      });
+    });
   });
 });

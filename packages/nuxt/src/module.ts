@@ -117,7 +117,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (serverConfigFile) {
       addMiddlewareImports();
       addStorageInstrumentation(nuxt);
-      addDatabaseInstrumentation(nuxt.options.nitro);
+      addDatabaseInstrumentation(nuxt.options.nitro, moduleOptions);
     }
 
     // Add the sentry config file to the include array

@@ -772,33 +772,6 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return <SentryRoutes routes={routes} locationArg={locationArg} />;
   };
 }
-
-/**
- * Helper to update the current span (navigation or pageload) with lazy-loaded route information.
- * Reduces code duplication in patchRoutesOnNavigation wrapper.
- */
-function updateSpanWithLazyRoutes(pathname: string, forceUpdate: boolean): void {
-  const currentActiveRootSpan = getActiveRootSpan();
-  if (!currentActiveRootSpan) {
-    return;
-  }
-
-  const spanOp = (spanToJSON(currentActiveRootSpan) as { op?: string }).op;
-  const location = { pathname, search: '', hash: '', state: null, key: 'default' };
-  const routesArray = Array.from(allRoutes);
-
-  if (spanOp === 'navigation') {
-    updateNavigationSpan(currentActiveRootSpan, location, routesArray, forceUpdate, _matchRoutes);
-  } else if (spanOp === 'pageload') {
-    updatePageloadTransaction({
-      activeRootSpan: currentActiveRootSpan,
-      location,
-      routes: routesArray,
-      allRoutes: routesArray,
-    });
-  }
-}
-
 function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
   isMemoryRouter = false,
@@ -853,9 +826,25 @@ function wrapPatchRoutesOnNavigation(
               }
             }
 
-            // Only update if we have a valid targetPath (patchRoutesOnNavigation can be called without path)
-            if (targetPath) {
-              updateSpanWithLazyRoutes(targetPath, true);
+            // Use the captured activeRootSpan instead of getActiveRootSpan() to avoid race conditions
+            // where user navigates away during lazy route loading and we'd update the wrong span
+            const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
+            // Only update if we have a valid targetPath (patchRoutesOnNavigation can be called without path),
+            // the captured span exists, hasn't ended, and is a navigation span
+            if (
+              targetPath &&
+              activeRootSpan &&
+              spanJson &&
+              !spanJson.timestamp && // Span hasn't ended yet
+              spanJson.op === 'navigation'
+            ) {
+              updateNavigationSpan(
+                activeRootSpan,
+                { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
+                Array.from(allRoutes),
+                true,
+                _matchRoutes,
+              );
             }
             return originalPatch(routeId, children);
           };
@@ -877,9 +866,28 @@ function wrapPatchRoutesOnNavigation(
           }
         }
 
-        const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
-        if (pathname) {
-          updateSpanWithLazyRoutes(pathname, false);
+        // Use the captured activeRootSpan instead of getActiveRootSpan() to avoid race conditions
+        // where user navigates away during lazy route loading and we'd update the wrong span
+        const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
+        if (
+          activeRootSpan &&
+          spanJson &&
+          !spanJson.timestamp && // Span hasn't ended yet
+          spanJson.op === 'navigation'
+        ) {
+          // Use targetPath consistently - don't fall back to WINDOW.location which may have changed
+          // if the user navigated away during async loading
+          const pathname = targetPath;
+
+          if (pathname) {
+            updateNavigationSpan(
+              activeRootSpan,
+              { pathname, search: '', hash: '', state: null, key: 'default' },
+              Array.from(allRoutes),
+              false,
+              _matchRoutes,
+            );
+          }
         }
 
         return result;

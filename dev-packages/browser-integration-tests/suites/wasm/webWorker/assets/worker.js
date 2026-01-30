@@ -48,6 +48,10 @@ function getBuildId(module) {
 
 // Handle messages from the main thread
 self.addEventListener('message', async event => {
+  if (event.origin !== '' && event.origin !== self.location.origin) {
+    return;
+  }
+
   function crash() {
     throw new Error('WASM error from worker');
   }
