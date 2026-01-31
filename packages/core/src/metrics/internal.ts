@@ -87,9 +87,7 @@ export interface InternalCaptureMetricOptions {
  * @param attributes - The attributes to strip the routing information from.
  * @returns The attributes without the routing information.
  */
-function _stripRoutingAttributes(
-  attributes: Record<string, unknown> | undefined,
-): Record<string, unknown> | undefined {
+function _stripRoutingAttributes(attributes: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!attributes) return attributes;
 
   const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...rest } = attributes;
