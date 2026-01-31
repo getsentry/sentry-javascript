@@ -8,11 +8,18 @@ import {
   makeMultiplexedTransport,
   parseEnvelope,
 } from '../../../src';
-import { eventFromEnvelope, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '../../../src/transports/multiplexed';
+import {
+  eventFromEnvelope,
+  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
+  metricFromEnvelope,
+  MULTIPLEXED_METRIC_ROUTING_KEY,
+} from '../../../src/transports/multiplexed';
 import type { ClientReport } from '../../../src/types-hoist/clientreport';
 import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
 import type { TransactionEvent } from '../../../src/types-hoist/event';
 import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
+import type { SerializedMetric } from '../../../src/types-hoist/metric';
+import { createMetricEnvelope } from '../../../src/metrics/envelope';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
@@ -319,5 +326,159 @@ describe('makeMultiplexedTransport() with default matcher', () => {
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(envelope);
+  });
+});
+
+describe('makeMultiplexedTransport with metrics', () => {
+  const METRIC: SerializedMetric = {
+    timestamp: 1234567890,
+    trace_id: 'trace123',
+    name: 'test.metric',
+    type: 'counter',
+    value: 1,
+    attributes: {},
+  };
+
+  it('routes metrics to DSN specified in attributes', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport((url, _, env) => {
+        expect(url).toBe(DSN2_URL);
+        expect(env[0].dsn).toBe(DSN2);
+      }),
+    );
+
+    const metricWithRouting: SerializedMetric = {
+      ...METRIC,
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [{ dsn: DSN2, release: 'cart@1.0.0' }] as any,
+      },
+    };
+
+    const envelope = createMetricEnvelope([metricWithRouting], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('custom matcher can route metrics based on attributes', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN2_URL);
+      }),
+      ({ getMetric }) => {
+        const metric = getMetric();
+        const featureAttr = metric?.attributes?.feature as any;
+        expect(featureAttr?.value || featureAttr).toBe('cart');
+        if ((featureAttr?.value || featureAttr) === 'cart') {
+          return [DSN2];
+        }
+        return [];
+      },
+    );
+
+    const metricWithFeature: SerializedMetric = {
+      ...METRIC,
+      attributes: { feature: { type: 'string', value: 'cart' } },
+    };
+
+    const envelope = createMetricEnvelope([metricWithFeature], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('falls back to default DSN when no metric routing info', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+    );
+
+    const envelope = createMetricEnvelope([METRIC], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('routes metrics to multiple DSNs', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(
+        url => {
+          expect(url).toBe(DSN1_URL);
+        },
+        url => {
+          expect(url).toBe(DSN2_URL);
+        },
+      ),
+    );
+
+    const metricWithRouting: SerializedMetric = {
+      ...METRIC,
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [DSN1, DSN2] as any,
+      },
+    };
+
+    const envelope = createMetricEnvelope([metricWithRouting], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('uses MULTIPLEXED_METRIC_ROUTING_KEY for routing', async () => {
+    expect.assertions(3);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport((url, _, envelope) => {
+        expect(url).toBe(DSN2_URL);
+        const metric = metricFromEnvelope(envelope);
+        expect(metric?.attributes?.['sentry.release']).toBe('cart@1.0.0');
+        expect(envelope[0].dsn).toBe(DSN2);
+      }),
+    );
+
+    const metricWithRouting: SerializedMetric = {
+      ...METRIC,
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [{ dsn: DSN2, release: 'cart@1.0.0' }] as any,
+      },
+    };
+
+    const envelope = createMetricEnvelope([metricWithRouting], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+});
+
+describe('metricFromEnvelope', () => {
+  it('extracts metric from trace_metric envelope', () => {
+    const metric: SerializedMetric = {
+      timestamp: 1234567890,
+      trace_id: 'trace123',
+      name: 'test.metric',
+      type: 'counter' as const,
+      value: 1,
+      attributes: { foo: { type: 'string', value: 'bar' } },
+    };
+
+    const envelope = createMetricEnvelope([metric], undefined, undefined, undefined);
+    const extracted = metricFromEnvelope(envelope);
+
+    expect(extracted).toEqual(metric);
+  });
+
+  it('returns undefined for non-metric envelopes', () => {
+    const extracted = metricFromEnvelope(ERROR_ENVELOPE);
+    expect(extracted).toBeUndefined();
+  });
+
+  it('returns undefined for empty metric container', () => {
+    const envelope = createMetricEnvelope([], undefined, undefined, undefined);
+    const extracted = metricFromEnvelope(envelope);
+    expect(extracted).toBeUndefined();
   });
 });

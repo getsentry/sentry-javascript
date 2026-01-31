@@ -1050,3 +1050,85 @@ describe('_INTERNAL_captureMetric', () => {
     });
   });
 });
+
+describe('routing attribute stripping', () => {
+  it('strips routing attributes before serialization', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureMetric(
+      {
+        type: 'counter',
+        name: 'test.metric',
+        value: 1,
+        attributes: {
+          'sentry.routing': [{ dsn: 'https://test.dsn', release: 'v1.0.0' }],
+          normalAttribute: 'value',
+        },
+      },
+      { scope },
+    );
+
+    const buffer = _INTERNAL_getMetricBuffer(client);
+    expect(buffer).toHaveLength(1);
+    expect(buffer?.[0]?.attributes).toEqual({
+      normalAttribute: {
+        type: 'string',
+        value: 'value',
+      },
+    });
+    expect(buffer?.[0]?.attributes).not.toHaveProperty('sentry.routing');
+  });
+
+  it('handles missing attributes when stripping routing', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureMetric(
+      {
+        type: 'counter',
+        name: 'test.metric',
+        value: 1,
+      },
+      { scope },
+    );
+
+    const buffer = _INTERNAL_getMetricBuffer(client);
+    expect(buffer).toHaveLength(1);
+    expect(buffer?.[0]?.attributes).toEqual({});
+  });
+
+  it('preserves other attributes when routing is stripped', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, release: 'v1.0.0', environment: 'production' });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    _INTERNAL_captureMetric(
+      {
+        type: 'counter',
+        name: 'test.metric',
+        value: 1,
+        attributes: {
+          'sentry.routing': [{ dsn: 'https://test.dsn' }],
+          feature: 'cart',
+          userId: '12345',
+        },
+      },
+      { scope },
+    );
+
+    const buffer = _INTERNAL_getMetricBuffer(client);
+    const attrs = buffer?.[0]?.attributes;
+
+    expect(attrs).toHaveProperty('feature');
+    expect(attrs).toHaveProperty('userId');
+    expect(attrs).toHaveProperty('sentry.release');
+    expect(attrs).toHaveProperty('sentry.environment');
+    expect(attrs).not.toHaveProperty('sentry.routing');
+  });
+});
