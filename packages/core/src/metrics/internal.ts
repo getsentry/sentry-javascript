@@ -5,7 +5,7 @@ import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes'
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
-import type { Metric, SerializedMetric } from '../types-hoist/metric';
+import type { Metric, MetricRoutingInfo, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
@@ -13,6 +13,7 @@ import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
+import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
 
@@ -73,6 +74,26 @@ export interface InternalCaptureMetricOptions {
    * A function to capture the serialized metric.
    */
   captureSerializedMetric?: (client: Client, metric: SerializedMetric) => void;
+
+  /**
+   * The routing information for the metric.
+   */
+  routing?: Array<MetricRoutingInfo>;
+}
+
+/**
+ * A helper function which strips the routing information from the attributes.
+ * It is used to prevent the routing information from being sent to Sentry.
+ * @param attributes - The attributes to strip the routing information from.
+ * @returns The attributes without the routing information.
+ */
+function _stripRoutingAttributes(
+  attributes: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!attributes) return attributes;
+
+  const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...rest } = attributes;
+  return rest;
 }
 
 /**
@@ -145,7 +166,7 @@ function _buildSerializedMetric(
     value: metric.value,
     attributes: {
       ...serializeAttributes(scopeAttributes),
-      ...serializeAttributes(metric.attributes, 'skip-undefined'),
+      ...serializeAttributes(_stripRoutingAttributes(metric.attributes), 'skip-undefined'),
     },
   };
 }

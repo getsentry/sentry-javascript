@@ -4,7 +4,7 @@ import type { Event } from '../types-hoist/event';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
 import { dsnFromString } from '../utils/dsn';
 import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
-import type { SerializedMetric } from '../types-hoist/metric';
+import type { SerializedMetric, SerializedMetricContainer } from '../types-hoist/metric';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -51,7 +51,28 @@ export function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Eve
 }
 
 /**
- * Creates a transport that overrides the release on all events.
+ * Gets a metric from an envelope.
+ *
+ * This is only exported for use in tests and advanced use cases.
+ */
+export function metricFromEnvelope(env: Envelope): SerializedMetric | undefined {
+  let metric: SerializedMetric | undefined;
+
+  forEachEnvelopeItem(env, (item, type) => {
+    if (type === 'trace_metric') {
+      const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
+      if (container && container.items && Array.isArray(container.items) && container.items.length > 0) {
+        metric = container.items[0];
+      }
+    }
+    return !!metric;
+  });
+
+  return metric;
+}
+
+/**
+ * Creates a transport that overrides the release on all events and metrics.
  */
 function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
   createTransport: (options: TO) => Transport,
@@ -68,6 +89,15 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
         if (event) {
           event.release = release;
         }
+        const metric = metricFromEnvelope(envelope);
+        if (metric) {
+          // This is mainly for tracking/debugging purposes
+          if (!metric.attributes) {
+            metric.attributes = {};
+          }
+          metric.attributes['sentry.release'] = { type: 'string', value: release };
+        }
+
         return transport.send(envelope);
       },
     };
@@ -153,7 +183,11 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         return eventFromEnvelope(envelope, eventTypes);
       }
 
-      const transports = actualMatcher({ envelope, getEvent, getMetric: () => undefined })
+      function getMetric(): SerializedMetric | undefined {
+        return metricFromEnvelope(envelope);
+      }
+
+      const transports = actualMatcher({ envelope, getEvent, getMetric })
         .map(result => {
           if (typeof result === 'string') {
             return getTransport(result, undefined);

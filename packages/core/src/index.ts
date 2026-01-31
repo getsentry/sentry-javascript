@@ -59,6 +59,7 @@ export {
   makeMultiplexedTransport,
   MULTIPLEXED_TRANSPORT_EXTRA_KEY,
   MULTIPLEXED_METRIC_ROUTING_KEY,
+  metricFromEnvelope,
 } from './transports/multiplexed';
 export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
 export {
