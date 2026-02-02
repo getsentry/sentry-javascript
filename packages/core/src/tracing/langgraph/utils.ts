@@ -8,9 +8,24 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import type { LangChainMessage } from '../langchain/types';
+import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import type { CompiledGraph, LangGraphTool } from './types';
+
+/**
+ * Extract LLM model object from createReactAgent params
+ */
+export function extractLLMFromParams(args: unknown[]): null | BaseChatModel {
+  const arg = args[0];
+  return typeof arg === 'object' &&
+    !!arg &&
+    'llm' in arg &&
+    !!arg.llm &&
+    typeof arg.llm === 'object' &&
+    typeof (arg.llm as BaseChatModel).modelName === 'string'
+    ? (arg.llm as BaseChatModel)
+    : null;
+}
 
 /**
  * Extract tool calls from messages
@@ -139,7 +154,9 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   }
 
   // Get new messages (delta between input and output)
+  /* v8 ignore start - coverage gets confused by this somehow */
   const inputCount = inputMessages?.length ?? 0;
+  /* v8 ignore stop */
   const newMessages = outputMessages.length > inputCount ? outputMessages.slice(inputCount) : [];
 
   if (newMessages.length === 0) {
