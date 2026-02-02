@@ -1,7 +1,7 @@
 import type { Scope } from '../scope';
+import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 import type { Metric, MetricRoutingInfo, MetricType } from '../types-hoist/metric';
 import { _INTERNAL_captureMetric } from './internal';
-import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 
 /**
  * Options for capturing a metric.

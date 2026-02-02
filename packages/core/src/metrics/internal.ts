@@ -4,6 +4,7 @@ import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
+import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 import type { Integration } from '../types-hoist/integration';
 import type { Metric, MetricRoutingInfo, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
@@ -13,7 +14,6 @@ import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
-import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
 
@@ -90,6 +90,7 @@ export interface InternalCaptureMetricOptions {
 function _stripRoutingAttributes(attributes: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!attributes) return attributes;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...rest } = attributes;
   return rest;
 }

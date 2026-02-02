@@ -8,18 +8,18 @@ import {
   makeMultiplexedTransport,
   parseEnvelope,
 } from '../../../src';
+import { createMetricEnvelope } from '../../../src/metrics/envelope';
 import {
   eventFromEnvelope,
-  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
   metricFromEnvelope,
   MULTIPLEXED_METRIC_ROUTING_KEY,
+  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
 } from '../../../src/transports/multiplexed';
 import type { ClientReport } from '../../../src/types-hoist/clientreport';
 import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
 import type { TransactionEvent } from '../../../src/types-hoist/event';
-import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
 import type { SerializedMetric } from '../../../src/types-hoist/metric';
-import { createMetricEnvelope } from '../../../src/metrics/envelope';
+import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
@@ -436,7 +436,7 @@ describe('makeMultiplexedTransport with metrics', () => {
       createTestTransport((url, _, envelope) => {
         expect(url).toBe(DSN2_URL);
         const metric = metricFromEnvelope(envelope);
-        expect(metric?.attributes?.['sentry.release']).toBe('cart@1.0.0');
+        expect(metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY]).toEqual({ type: 'string', value: 'cart@1.0.0' });
         expect(envelope[0].dsn).toBe(DSN2);
       }),
     );

@@ -1,10 +1,10 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
 import type { Event } from '../types-hoist/event';
+import type { SerializedMetric, SerializedMetricContainer } from '../types-hoist/metric';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
 import { dsnFromString } from '../utils/dsn';
 import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
-import type { SerializedMetric, SerializedMetricContainer } from '../types-hoist/metric';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -61,8 +61,9 @@ export function metricFromEnvelope(env: Envelope): SerializedMetric | undefined 
   forEachEnvelopeItem(env, (item, type) => {
     if (type === 'trace_metric') {
       const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
-      if (container && container.items && Array.isArray(container.items) && container.items.length > 0) {
-        metric = container.items[0];
+      const containerItems = container?.items;
+      if (containerItems) {
+        metric = containerItems[0];
       }
     }
     return !!metric;
