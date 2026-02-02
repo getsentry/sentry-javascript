@@ -41,7 +41,7 @@ export type SpanTimeInput = HrTime | number | Date;
  * The final, serialized span is a {@link SerializedSpan}.
  * Main reason: Make it easier and safer for users to work with attributes.
  */
-export interface SpanV2JSON {
+export interface StreamedSpanJSON {
   trace_id: string;
   parent_span_id?: string;
   span_id: string;
@@ -57,10 +57,10 @@ export interface SpanV2JSON {
 /**
  * Serialized span item.
  * This is the final, serialized span format that is sent to Sentry.
- * The intermediate representation is {@link SpanV2JSON}.
+ * The intermediate representation is {@link StreamedSpanJSON}.
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
-export type SerializedSpan = Omit<SpanV2JSON, 'attributes' | 'links'> & {
+export type SerializedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
   attributes?: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
