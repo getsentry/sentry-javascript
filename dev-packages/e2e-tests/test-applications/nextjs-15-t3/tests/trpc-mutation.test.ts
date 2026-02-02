@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create transaction with trpc input for mutation', async ({ page }) => {
-  const trpcTransactionPromise = waitForTransaction('nextjs-t3', async transactionEvent => {
+  const trpcTransactionPromise = waitForTransaction('nextjs-15-t3', async transactionEvent => {
     return transactionEvent?.transaction === 'POST /api/trpc/[trpc]';
   });
 
