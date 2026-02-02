@@ -2,6 +2,8 @@
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "extends": ["../.oxlintrc.json"],
   "rules": {
-    "typescript/no-explicit-any": "off"
+    "typescript/no-explicit-any": "off",
+    "max-lines": "off",
+    "no-unused-expressions": "off"
   }
 }
