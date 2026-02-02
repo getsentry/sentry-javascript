@@ -22,9 +22,9 @@ export interface SpanLink {
  * Link interface for the event envelope item. It's a flattened representation of `SpanLink`.
  * Can include additional fields defined by OTel.
  */
-export interface SpanLinkJSON extends Record<string, unknown> {
+export interface SpanLinkJSON<TAttributes = SpanLinkAttributes> extends Record<string, unknown> {
   span_id: string;
   trace_id: string;
   sampled?: boolean;
-  attributes?: SpanLinkAttributes;
+  attributes?: TAttributes;
 }
