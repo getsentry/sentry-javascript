@@ -105,32 +105,37 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
 }
 
 /**
- * Convert the prompt string to messages array
+ * Normalize the user input (prompt, system, messages) to messages array
  */
 export function convertPromptToMessages(prompt: string): { role: string; content: string }[] {
   try {
     const p = JSON.parse(prompt);
     if (!!p && typeof p === 'object') {
+      const { messages, prompt, system } = p;
+      const result: { role: string; content: string }[] = [];
+
+      // Prepend top-level system instruction if present
+      if (typeof system === 'string') {
+        result.push({ role: 'system', content: system });
+      }
+
       // Handle messages array format: { messages: [...] }
-      const { messages } = p as { messages?: unknown };
       if (Array.isArray(messages)) {
-        return messages.filter(
+        const filtered = messages.filter(
           (m: unknown): m is { role: string; content: string } =>
             !!m && typeof m === 'object' && 'role' in m && 'content' in m,
         );
+        result.push(...filtered);
+        return result;
       }
 
-      // Handle prompt/system string format: { prompt: "...", system: "..." }
-      const { prompt, system } = p;
-      if (typeof prompt === 'string' || typeof system === 'string') {
-        const messages: { role: string; content: string }[] = [];
-        if (typeof system === 'string') {
-          messages.push({ role: 'system', content: system });
-        }
-        if (typeof prompt === 'string') {
-          messages.push({ role: 'user', content: prompt });
-        }
-        return messages;
+      // Handle prompt string format: { prompt: "..." }
+      if (typeof prompt === 'string') {
+        result.push({ role: 'user', content: prompt });
+      }
+
+      if (result.length > 0) {
+        return result;
       }
     }
     // eslint-disable-next-line no-empty

@@ -96,6 +96,24 @@ describe('vercel-ai-utils', () => {
       ).toStrictEqual([]);
     });
 
+    it('should prepend system instruction to messages array', () => {
+      expect(
+        convertPromptToMessages(
+          JSON.stringify({
+            system: 'You are a friendly robot',
+            messages: [
+              { role: 'user', content: 'Hello' },
+              { role: 'assistant', content: 'Hi there!' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'system', content: 'You are a friendly robot' },
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ]);
+    });
+
     it('should not break on invalid json', () => {
       expect(convertPromptToMessages('this is not json')).toStrictEqual([]);
     });
