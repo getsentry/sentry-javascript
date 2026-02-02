@@ -121,7 +121,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
     transform(code, id) {
       // Skip if not a TS/JS file
       const fileExtension = path.extname(id);
-      if (!['.ts', '.tsx', '.js', '.jsx', '.mjs', '.mts'].includes(fileExtension)) {
+      if (!['.ts', '.tsx'].includes(fileExtension)) {
         return null;
       }
 
