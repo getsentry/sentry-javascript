@@ -1,23 +1,22 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "jsdoc", "jest", "vitest"],
-  "categories": {
-    "correctness": "error"
-  },
+  "categories": {},
   "rules": {
+    // === Base rules from eslint-config-sdk/base.js ===
     "no-console": "error",
     "no-alert": "error",
     "no-param-reassign": ["error", { "props": false }],
     "prefer-template": "error",
-    "no-bitwise": "error",
-    "complexity": "error",
-    "no-unused-expressions": ["error", { "allowShortCircuit": true }],
+    "no-bitwise": "off",
+    "complexity": "warn",
+    "no-unused-expressions": "off",
     "guard-for-in": "error",
     "array-callback-return": ["error", { "allowImplicit": true }],
     "quotes": ["error", "single", { "avoidEscape": true }],
     "no-return-await": "error",
 
-    "typescript/no-unused-vars": "off",
+    // === TypeScript rules ===
     "typescript/ban-ts-comment": "error",
     "typescript/consistent-type-imports": "error",
     "typescript/prefer-optional-chain": "error",
@@ -28,21 +27,22 @@
     "typescript/no-unsafe-member-access": "error",
     "typescript/unbound-method": "error",
     "typescript/no-empty-function": "off",
-    "typescript/explicit-function-return-type": "off",
     "typescript/no-explicit-any": "warn",
 
+    // === Import rules ===
+    "import/namespace": "off",
+    "import/no-unresolved": "off",
+
+    // === Jest/Vitest rules ===
     "jest/no-focused-tests": "error",
     "jest/no-disabled-tests": "error",
 
-    "import/namespace": "off",
-
+    // === Rules turned off (not enforced in ESLint or causing false positives) ===
     "no-control-regex": "off",
     "jsdoc/check-tag-names": "off",
     "jsdoc/require-yields": "off",
-    "no-unused-vars": "off",
     "no-useless-rename": "off",
     "no-constant-binary-expression": "off",
-
     "jest/no-conditional-expect": "off",
     "jest/expect-expect": "off",
     "jest/no-standalone-expect": "off",
@@ -52,25 +52,13 @@
     "jest/valid-describe-callback": "off",
     "vitest/hoisted-apis-on-top": "off",
     "vitest/no-conditional-tests": "off",
-
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
-    "no-unassigned-vars": "off"
+    "no-unused-vars": "off"
   },
   "overrides": [
     {
-      "files": [
-        "**/test/**/*.ts",
-        "**/test/**/*.tsx",
-        "**/test/**/*.js",
-        "**/tests/**/*.ts",
-        "**/tests/**/*.js",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/*.test.js",
-        "**/*.test.jsx",
-        "**/vite.config.ts"
-      ],
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.test.js", "**/*.test.jsx", "**/test/**", "**/tests/**"],
       "rules": {
         "typescript/explicit-function-return-type": "off",
         "no-unused-expressions": "off",
@@ -82,24 +70,24 @@
       }
     },
     {
-      "files": ["*.config.js", "*.config.mjs", "*.config.ts"],
+      "files": ["*.tsx"],
+      "rules": {
+        "jsdoc/require-jsdoc": "off"
+      }
+    },
+    {
+      "files": ["*.config.js", "*.config.mjs", "*.config.ts", "vite.config.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["scenarios/**", "dev-packages/rollup-utils/**", "dev-packages/bundle-analyzer-scenarios/**"],
       "rules": {
         "no-console": "off"
       }
     }
   ],
-  "settings": {
-    "jsdoc": {
-      "ignorePrivate": false,
-      "ignoreInternal": false,
-      "ignoreReplacesDocs": true,
-      "overrideReplacesDocs": true,
-      "augmentsExtendsReplacesDocs": false,
-      "implementsReplacesDocs": false,
-      "exemptDestructuredRootsFromChecks": false,
-      "tagNamePreference": {}
-    }
-  },
   "env": {
     "es2017": true,
     "node": true
@@ -115,8 +103,6 @@
     "test/manual/**",
     "types/**",
     "scripts/*.js",
-    "node_modules/**",
-    "dev-packages/e2e-tests/test-applications/**",
-    "dev-packages/browser-integration-tests/**"
+    "node_modules/**"
   ]
 }

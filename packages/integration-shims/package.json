@@ -41,8 +41,8 @@
     "build:dev:watch": "run-p build:watch",
     "build:transpile:watch": "yarn build:transpile --watch",
     "clean": "rimraf build",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "oxlint . --fix",
+    "lint": "oxlint .",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run"
   },

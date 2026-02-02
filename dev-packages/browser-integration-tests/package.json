@@ -10,8 +10,8 @@
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix",
+    "lint": "oxlint .",
+    "fix": "oxlint . --fix",
     "type-check": "tsc",
     "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",

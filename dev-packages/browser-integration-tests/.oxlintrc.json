@@ -1,0 +1,25 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../.oxlintrc.json"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "suites/**/subject.js",
+    "suites/**/dist/*",
+    "loader-suites/**/dist/*",
+    "loader-suites/**/subject.js",
+    "scripts/**",
+    "fixtures/**",
+    "tmp/**"
+  ],
+  "overrides": [
+    {
+      "files": ["loader-suites/**/{subject,init}.js"],
+      "globals": {
+        "Sentry": "readonly"
+      }
+    }
+  ]
+}

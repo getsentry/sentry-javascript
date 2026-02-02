@@ -1,0 +1,25 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../.oxlintrc.json"],
+  "env": {
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["suites/**/*.ts", "suites/**/*.mjs"],
+      "globals": {
+        "fetch": "readonly"
+      },
+      "rules": {
+        "typescript/ban-ts-comment": [
+          "error",
+          {
+            "ts-ignore": "allow-with-description",
+            "ts-expect-error": true
+          }
+        ],
+        "import/first": "off"
+      }
+    }
+  ]
+}

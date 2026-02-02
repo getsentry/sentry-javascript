@@ -45,9 +45,9 @@
   ],
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "eslint . --format stylish",
+    "lint": "oxlint .",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
-    "fix": "eslint . --format stylish --fix",
+    "fix": "oxlint . --fix",
     "build": "yarn build:types && yarn build:transpile",
     "build:transpile": "yarn rollup -c rollup.npm.config.mjs",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",

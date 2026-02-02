@@ -10,8 +10,8 @@
   "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix"
+    "lint": "oxlint .",
+    "fix": "oxlint . --fix"
   },
   "dependencies": {
     "@actions/artifact": "5.0.3",

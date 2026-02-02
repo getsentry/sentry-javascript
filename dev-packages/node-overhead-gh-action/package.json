@@ -19,8 +19,8 @@
     "clean": "rimraf -g **/node_modules",
     "db:up": "docker compose up",
     "db:down": "docker compose down --volumes",
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix"
+    "lint": "oxlint .",
+    "fix": "oxlint . --fix"
   },
   "dependencies": {
     "@sentry/node": "10.39.0",

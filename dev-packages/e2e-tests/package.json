@@ -4,8 +4,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "oxlint . --fix",
+    "lint": "oxlint .",
     "lint:ts": "tsc --noEmit",
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",
