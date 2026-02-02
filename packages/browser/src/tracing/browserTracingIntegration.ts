@@ -594,8 +594,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         }
         maybeEndActiveSpan();
 
-        const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
-        const baggage = traceOptions.baggage || getMetaContent('baggage');
+        const sentryTrace =
+          traceOptions.sentryTrace || getMetaContent('sentry-trace') || getServerTiming('sentry-trace');
+        const baggage = traceOptions.baggage || getMetaContent('baggage') || getServerTiming('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
@@ -776,6 +777,13 @@ export function getMetaContent(metaName: string): string | undefined {
 
   const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
   return metaTag?.getAttribute('content') || undefined;
+}
+
+/** Returns the description of a server timing entry */
+export function getServerTiming(name: string): string | undefined {
+  const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
+  const entry = navigation?.serverTiming?.find(entry => entry.name === name);
+  return entry?.description;
 }
 
 /** Start listener for interaction transactions */
