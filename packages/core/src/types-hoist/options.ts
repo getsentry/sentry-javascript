@@ -6,7 +6,7 @@ import type { Log } from './log';
 import type { Metric } from './metric';
 import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
-import type { SpanJSON } from './span';
+import type { SpanJSON, StreamedSpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
@@ -501,10 +501,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   strictTraceContinuation?: boolean;
 
   /**
-   * [Experimental] The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete, or
-   * in batches, following interval- and action-based triggers.
-   *
-   * @experimental this option is currently still experimental and its type, name, or entire presence is subject to break and change at any time.
+   * The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete,
+   * or streamed in batches, following interval- and action-based triggers.
    *
    * @default 'static'
    */
@@ -596,7 +594,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: BeforeSendSpanCallback;
+  beforeSendSpan?: ((span: SpanJSON) => SpanJSON) | BeforeSendStramedSpanCallback;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
@@ -629,15 +627,11 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 }
 
 /**
- * A callback for processing spans before they are sent.
+ * A callback for processing streamed spans before they are sent.
  *
- * By default, this callback receives and returns {@link SpanJSON} objects.
- * When using `traceLifecycle: 'stream'`, wrap your callback with `withStreamedSpan`
- * to receive and return {@link StreamedSpanJSON} objects instead.
- *
- * @see StreamedSpanJSON for the streamed span format used with `traceLifecycle: 'stream'`
+ * @see {@link StreamedSpanJSON} for the streamed span format used with `traceLifecycle: 'stream'`
  */
-export type BeforeSendSpanCallback = ((span: SpanJSON) => SpanJSON) & {
+export type BeforeSendStramedSpanCallback = ((span: StreamedSpanJSON) => StreamedSpanJSON) & {
   /**
    * When true, indicates this callback is designed to handle the {@link StreamedSpanJSON} format
    * used with `traceLifecycle: 'stream'`. Set this by wrapping your callback with `withStreamedSpan`.

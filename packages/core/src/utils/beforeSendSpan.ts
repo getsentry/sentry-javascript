@@ -1,4 +1,4 @@
-import type { BeforeSendSpanCallback, ClientOptions } from '../types-hoist/options';
+import type { BeforeSendStramedSpanCallback, ClientOptions } from '../types-hoist/options';
 import type { StreamedSpanJSON } from '../types-hoist/span';
 import { addNonEnumerableProperty } from './object';
 
@@ -23,10 +23,9 @@ import { addNonEnumerableProperty } from './object';
  */
 export function withStreamedSpan(
   callback: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): BeforeSendSpanCallback {
+): BeforeSendStramedSpanCallback {
   addNonEnumerableProperty(callback, '_streamed', true);
-  // type-casting here because TS can't infer the type correctly
-  return callback as unknown as BeforeSendSpanCallback;
+  return callback;
 }
 
 /**
@@ -37,6 +36,6 @@ export function withStreamedSpan(
  */
 export function isStreamedBeforeSendSpanCallback(
   callback: ClientOptions['beforeSendSpan'],
-): callback is BeforeSendSpanCallback & { _streamed: true } {
+): callback is BeforeSendStramedSpanCallback {
   return !!callback && '_streamed' in callback && !!callback._streamed;
 }

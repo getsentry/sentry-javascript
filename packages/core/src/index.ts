@@ -67,7 +67,7 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
-export { withStreamedSpan, isStreamedBeforeSendSpanCallback } from './utils/beforeSendSpan';
+export { withStreamedSpan } from './utils/beforeSendSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -398,12 +398,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type {
-  BeforeSendSpanCallback,
-  ClientOptions,
-  CoreOptions as Options,
-  ServerRuntimeOptions,
-} from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
