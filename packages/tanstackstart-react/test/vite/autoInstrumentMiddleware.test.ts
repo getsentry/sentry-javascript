@@ -30,7 +30,7 @@ export const Route = createFileRoute('/foo')({
 });
 `;
 
-  it('does not instrument non-TS/JS files', () => {
+  it('does not instrument non-TS/TSX files', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
     const result = plugin.transform(createStartFile, '/app/start.css');
 
