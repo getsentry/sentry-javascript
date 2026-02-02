@@ -1,3 +1,4 @@
+import type { Attributes, RawAttributes } from '../attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -33,6 +34,43 @@ export type SpanAttributes = Partial<{
 
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
+
+/**
+ * Intermediate JSON reporesentation of a v2 span, which users and our SDK integrations will interact with.
+ * This is NOT the final serialized JSON span, but an intermediate step still holding raw attributes.
+ * The final, serialized span is a {@link SerializedSpan}.
+ * Main reason: Make it easier and safer for users to work with attributes.
+ */
+export interface StreamedSpanJSON {
+  trace_id: string;
+  parent_span_id?: string;
+  span_id: string;
+  name: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  status: 'ok' | 'error';
+  is_segment: boolean;
+  attributes?: RawAttributes<Record<string, unknown>>;
+  links?: SpanLinkJSON<RawAttributes<Record<string, unknown>>>[];
+}
+
+/**
+ * Serialized span item.
+ * This is the final, serialized span format that is sent to Sentry.
+ * The intermediate representation is {@link StreamedSpanJSON}.
+ * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
+ */
+export type SerializedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
+  attributes?: Attributes;
+  links?: SpanLinkJSON<Attributes>[];
+};
+
+/**
+ * Envelope span item container.
+ */
+export type SerializedSpanContainer = {
+  items: Array<SerializedSpan>;
+};
 
 /** A JSON representation of a span. */
 export interface SpanJSON {
