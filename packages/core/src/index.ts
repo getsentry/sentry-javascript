@@ -386,6 +386,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  SpanV2Envelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -453,6 +454,9 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  StreamedSpanJSON,
+  SerializedSpanContainer,
+  SerializedSpan,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
