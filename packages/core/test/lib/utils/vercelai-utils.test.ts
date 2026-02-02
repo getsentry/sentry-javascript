@@ -114,6 +114,22 @@ describe('vercel-ai-utils', () => {
       ]);
     });
 
+    it('should handle double-encoded messages array', () => {
+      expect(
+        convertPromptToMessages(
+          JSON.stringify({
+            messages: JSON.stringify([
+              { role: 'user', content: 'Hello' },
+              { role: 'assistant', content: 'Hi there!' },
+            ]),
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ]);
+    });
+
     it('should not break on invalid json', () => {
       expect(convertPromptToMessages('this is not json')).toStrictEqual([]);
     });

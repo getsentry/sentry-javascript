@@ -111,12 +111,22 @@ export function convertPromptToMessages(prompt: string): { role: string; content
   try {
     const p = JSON.parse(prompt);
     if (!!p && typeof p === 'object') {
-      const { messages, prompt, system } = p;
+      let { messages } = p;
+      const { prompt, system } = p;
       const result: { role: string; content: string }[] = [];
 
       // Prepend top-level system instruction if present
       if (typeof system === 'string') {
         result.push({ role: 'system', content: system });
+      }
+
+      // Handle stringified messages array
+      if (typeof messages === 'string') {
+        try {
+          messages = JSON.parse(messages);
+        } catch {
+          // ignore parse errors
+        }
       }
 
       // Handle messages array format: { messages: [...] }
