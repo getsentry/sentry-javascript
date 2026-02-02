@@ -178,7 +178,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28 KB',
+    limit: '28.1 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',

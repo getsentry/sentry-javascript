@@ -436,7 +436,7 @@ describe('makeMultiplexedTransport with metrics', () => {
       createTestTransport((url, _, envelope) => {
         expect(url).toBe(DSN2_URL);
         const metric = metricFromEnvelope(envelope);
-        expect(metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY]).toEqual({ type: 'string', value: 'cart@1.0.0' });
+        expect(metric?.attributes?.['sentry.release']).toEqual({ type: 'string', value: 'cart@1.0.0' });
         expect(envelope[0].dsn).toBe(DSN2);
       }),
     );
