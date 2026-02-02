@@ -199,7 +199,8 @@ export class UIProfiler implements ContinuousProfiler<Client> {
   private _setupTraceLifecycleListeners(client: Client): void {
     client.on('spanStart', span => {
       if (!this._sessionSampled) {
-        DEBUG_BUILD && debug.log('[Profiling] Session not sampled because of negative sampling decision.');
+        DEBUG_BUILD &&
+          debug.log('[Profiling] Span not profiled because of negative sampling decision for user session.');
         return;
       }
       if (span !== getRootSpan(span)) {
@@ -400,7 +401,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
         ...(sdkInfo && { sdk: sdkInfo }),
         ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
       },
-      [[{ type: 'profile_chunk' }, chunk]],
+      [[{ type: 'profile_chunk', platform: 'javascript' }, chunk]],
     );
 
     client.sendEnvelope(envelope).then(null, reason => {

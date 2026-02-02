@@ -14,7 +14,7 @@ import {
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { FastifyOtelInstrumentation } from './fastify-otel/index';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from './types';
+import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 
 /**
@@ -244,7 +244,7 @@ function defaultShouldHandleError(_error: Error, _request: FastifyRequest, reply
  * app.listen({ port: 3000 });
  * ```
  */
-export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Partial<FastifyHandlerOptions>): void {
+export function setupFastifyErrorHandler(fastify: FastifyMinimal, options?: Partial<FastifyHandlerOptions>): void {
   if (options?.shouldHandleError) {
     getFastifyIntegration()?.setShouldHandleError(options.shouldHandleError);
   }
@@ -282,7 +282,7 @@ function addFastifySpanAttributes(span: Span): void {
     return;
   }
 
-  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request-handler' : '<unknown>';
+  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request_handler' : '<unknown>';
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',

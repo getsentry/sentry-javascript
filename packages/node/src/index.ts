@@ -83,6 +83,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -130,6 +131,8 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
@@ -138,6 +141,8 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   createLangChainCallbackHandler,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
 } from '@sentry/core';
 
 export type {
@@ -158,7 +163,11 @@ export type {
   User,
   Span,
   Metric,
+  Log,
+  LogSeverityLevel,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
@@ -178,6 +187,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  processSessionIntegration,
   pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,

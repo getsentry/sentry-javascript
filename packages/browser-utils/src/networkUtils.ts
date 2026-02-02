@@ -2,6 +2,9 @@ import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { NetworkMetaWarning } from './types';
 
+// Symbol used by e.g. the Replay integration to store original body on Request objects
+export const ORIGINAL_REQ_BODY = Symbol.for('sentry__originalRequestBody');
+
 /**
  * Serializes FormData.
  *
@@ -45,14 +48,28 @@ export function getBodyString(body: unknown, _debug: typeof debug = debug): [str
 /**
  * Parses the fetch arguments to extract the request payload.
  *
- * We only support getting the body from the fetch options.
+ * In case of a Request object, this function attempts to retrieve the original body by looking for a Sentry-patched symbol.
  */
 export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
-  if (fetchArgs.length !== 2 || typeof fetchArgs[1] !== 'object') {
-    return undefined;
+  // Second argument with body options takes precedence
+  if (fetchArgs.length >= 2 && fetchArgs[1] && typeof fetchArgs[1] === 'object' && 'body' in fetchArgs[1]) {
+    return (fetchArgs[1] as RequestInit).body;
   }
 
-  return (fetchArgs[1] as RequestInit).body;
+  if (fetchArgs.length >= 1 && fetchArgs[0] instanceof Request) {
+    const request = fetchArgs[0];
+    /* The Request interface's body is a ReadableStream, which we cannot directly access.
+       Some integrations (e.g. Replay) patch the Request object to store the original body. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    const originalBody = (request as any)[ORIGINAL_REQ_BODY];
+    if (originalBody !== undefined) {
+      return originalBody;
+    }
+
+    return undefined; // Fall back to returning undefined (as we don't want to return a ReadableStream)
+  }
+
+  return undefined;
 }
 
 /**

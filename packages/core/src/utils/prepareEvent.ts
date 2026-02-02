@@ -1,17 +1,17 @@
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
 import type { CaptureContext, ScopeContext } from '../scope';
 import { Scope } from '../scope';
 import type { Event, EventHint } from '../types-hoist/event';
 import type { ClientOptions } from '../types-hoist/options';
 import type { StackParser } from '../types-hoist/stacktrace';
-import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 import { getFilenameToDebugIdMap } from './debug-ids';
 import { addExceptionMechanism, uuid4 } from './misc';
 import { normalize } from './normalize';
+import { applyScopeDataToEvent, getCombinedScopeData } from './scopeData';
 import { truncate } from './string';
+import { resolvedSyncPromise } from './syncpromise';
 import { dateTimestampInSeconds } from './time';
 
 /**
@@ -79,17 +79,7 @@ export function prepareEvent(
   // This should be the last thing called, since we want that
   // {@link Scope.addEventProcessor} gets the finished prepared event.
   // Merge scope data together
-  const data = getGlobalScope().getScopeData();
-
-  if (isolationScope) {
-    const isolationData = isolationScope.getScopeData();
-    mergeScopeData(data, isolationData);
-  }
-
-  if (finalScope) {
-    const finalScopeData = finalScope.getScopeData();
-    mergeScopeData(data, finalScopeData);
-  }
+  const data = getCombinedScopeData(isolationScope, finalScope);
 
   const attachments = [...(hint.attachments || []), ...data.attachments];
   if (attachments.length) {
@@ -104,7 +94,11 @@ export function prepareEvent(
     ...data.eventProcessors,
   ];
 
-  const result = notifyEventProcessors(eventProcessors, prepared, hint);
+  // Skip event processors for internal exceptions to prevent recursion
+  const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+  const result = isInternalException
+    ? resolvedSyncPromise(prepared)
+    : notifyEventProcessors(eventProcessors, prepared, hint);
 
   return result.then(evt => {
     if (evt) {

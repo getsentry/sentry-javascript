@@ -249,6 +249,62 @@ describe('handleRunAfterProductionCompile', () => {
     });
   });
 
+  describe('sourcemaps disabled', () => {
+    it('skips debug ID injection when sourcemaps.disable is true', async () => {
+      const optionsWithDisabledSourcemaps: SentryBuildOptions = {
+        ...mockSentryBuildOptions,
+        sourcemaps: {
+          disable: true,
+        },
+      };
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        optionsWithDisabledSourcemaps,
+      );
+
+      expect(mockSentryBuildPluginManager.injectDebugIds).not.toHaveBeenCalled();
+      expect(mockSentryBuildPluginManager.uploadSourcemaps).toHaveBeenCalled();
+    });
+
+    it('still injects debug IDs when sourcemaps.disable is false', async () => {
+      const optionsWithEnabledSourcemaps: SentryBuildOptions = {
+        ...mockSentryBuildOptions,
+        sourcemaps: {
+          disable: false,
+        },
+      };
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        optionsWithEnabledSourcemaps,
+      );
+
+      expect(mockSentryBuildPluginManager.injectDebugIds).toHaveBeenCalledWith(['/path/to/.next']);
+    });
+
+    it('still injects debug IDs when sourcemaps option is undefined', async () => {
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        mockSentryBuildOptions,
+      );
+
+      expect(mockSentryBuildPluginManager.injectDebugIds).toHaveBeenCalledWith(['/path/to/.next']);
+    });
+  });
+
   describe('path handling', () => {
     it('correctly passes distDir to debug ID injection', async () => {
       const customDistDir = '/custom/dist/path';

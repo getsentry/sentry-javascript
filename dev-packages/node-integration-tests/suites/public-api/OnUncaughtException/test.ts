@@ -1,6 +1,7 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
+import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
 describe('OnUncaughtException integration', () => {
@@ -100,5 +101,130 @@ describe('OnUncaughtException integration', () => {
       })
       .start()
       .completed();
+  });
+
+  conditionalTest({ max: 18 })('Worker thread error handling Node 18', () => {
+    test('should capture uncaught worker thread errors - without childProcess integration', async () => {
+      await createRunner(__dirname, 'worker-thread/uncaught-worker.mjs')
+        .withInstrument(path.join(__dirname, 'worker-thread/instrument.mjs'))
+        .expect({
+          event: {
+            level: 'fatal',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'job failed',
+                  mechanism: {
+                    type: 'auto.node.onuncaughtexception',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
+                },
+              ],
+            },
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  // childProcessIntegration only exists in Node 20+
+  conditionalTest({ min: 20 })('Worker thread error handling Node 20+', () => {
+    test.each(['mjs', 'js'])('should not interfere with worker thread error handling ".%s"', async extension => {
+      const runner = createRunner(__dirname, `worker-thread/caught-worker.${extension}`)
+        .withFlags(
+          extension === 'mjs' ? '--import' : '--require',
+          path.join(__dirname, `worker-thread/instrument.${extension}`),
+        )
+        .expect({
+          event: {
+            level: 'error',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'job failed',
+                  mechanism: {
+                    type: 'auto.child_process.worker_thread',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
+                },
+              ],
+            },
+          },
+        })
+        .start();
+
+      await runner.completed();
+
+      const logs = runner.getLogs();
+
+      expect(logs).toEqual(expect.arrayContaining([expect.stringMatching(/^caught Error: job failed/)]));
+    });
+
+    test('should not interfere with worker thread error handling when required inline', async () => {
+      const runner = createRunner(__dirname, 'worker-thread/caught-worker-inline.js')
+        .expect({
+          event: {
+            level: 'error',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'job failed',
+                  mechanism: {
+                    type: 'auto.child_process.worker_thread',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
+                },
+              ],
+            },
+          },
+        })
+        .start();
+
+      await runner.completed();
+
+      const logs = runner.getLogs();
+
+      expect(logs).toEqual(expect.arrayContaining([expect.stringMatching(/^caught Error: job failed/)]));
+    });
+
+    test('should capture uncaught worker thread errors', async () => {
+      await createRunner(__dirname, 'worker-thread/uncaught-worker.mjs')
+        .withInstrument(path.join(__dirname, 'worker-thread/instrument.mjs'))
+        .expect({
+          event: {
+            level: 'error',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'job failed',
+                  mechanism: {
+                    type: 'auto.child_process.worker_thread',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
+                },
+              ],
+            },
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 });

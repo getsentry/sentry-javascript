@@ -1,11 +1,21 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
 import {
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+  GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE,
+  GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
+  GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
+  GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -130,10 +140,75 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
   const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
     typeof prompt === 'string' &&
-    !attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] &&
+    !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
     const messages = convertPromptToMessages(prompt);
-    if (messages.length) span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, getTruncatedJsonString(messages));
+    if (messages.length) {
+      const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+      if (systemInstructions) {
+        span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+      }
+
+      const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+      span.setAttributes({
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+        [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+      });
+    }
+  } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
+    try {
+      const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
+      if (Array.isArray(messages)) {
+        const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+        if (systemInstructions) {
+          span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+        }
+
+        const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+        span.setAttributes({
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: undefined,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+        });
+      }
+      // eslint-disable-next-line no-empty
+    } catch {}
+  }
+}
+
+/**
+ * Maps a Vercel AI span name to the corresponding Sentry op.
+ */
+export function getSpanOpFromName(name: string): string | undefined {
+  switch (name) {
+    case 'ai.generateText':
+    case 'ai.streamText':
+    case 'ai.generateObject':
+    case 'ai.streamObject':
+    case 'ai.embed':
+    case 'ai.embedMany':
+      return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
+    case 'ai.generateText.doGenerate':
+      return GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE;
+    case 'ai.streamText.doStream':
+      return GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE;
+    case 'ai.generateObject.doGenerate':
+      return GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE;
+    case 'ai.streamObject.doStream':
+      return GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE;
+    case 'ai.embed.doEmbed':
+      return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
+    case 'ai.embedMany.doEmbed':
+      return GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE;
+    case 'ai.toolCall':
+      return GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE;
+    default:
+      if (name.startsWith('ai.stream')) {
+        return 'ai.run';
+      }
+      return undefined;
   }
 }

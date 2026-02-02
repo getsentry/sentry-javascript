@@ -26,6 +26,7 @@ export { anrIntegration, disableAnrDetectionForCallback } from './integrations/a
 export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { childProcessIntegration } from './integrations/childProcess';
+export { processSessionIntegration } from './integrations/processSession';
 export { createSentryWinstonTransport } from './integrations/winston';
 export { pinoIntegration } from './integrations/pino';
 
@@ -50,7 +51,7 @@ export { NodeClient } from './sdk/client';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 
-export type { NodeOptions } from './types';
+export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
 export {
   // This needs exporting so the NodeClient can be used without calling init
@@ -156,6 +157,8 @@ export type {
   User,
   Span,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export { logger };

@@ -128,7 +128,7 @@ jobs:
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true' ||
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v6
@@ -159,7 +159,7 @@ jobs:
           head: ${{ env.HEAD_COMMIT }}
 
       - name: NX cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         # Disable cache when:
         # - on release branches
         # - when PR has `ci-skip-cache` label or on nightly builds
@@ -175,13 +175,10 @@ jobs:
             'nx-never-restore'}}
 
       - name: Build packages
-        # Set the CODECOV_TOKEN for Bundle Analysis
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: ${{ env.CACHED_BUILD_PATHS }}
@@ -386,7 +383,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ github.sha }}
           retention-days: 90
@@ -431,18 +428,12 @@ jobs:
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
 
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -538,18 +529,12 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
 
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_browser_playwright_tests:
     name:
@@ -566,19 +551,24 @@ jobs:
           - esm
           - bundle
           - bundle_min
+          - bundle_logs_metrics
           - bundle_replay
+          - bundle_replay_logs_metrics
           - bundle_tracing
+          - bundle_tracing_logs_metrics
           - bundle_tracing_replay
+          - bundle_tracing_replay_logs_metrics
           - bundle_tracing_replay_feedback
-          - bundle_tracing_replay_feedback_min
+          - bundle_tracing_replay_feedback_logs_metrics
+          - bundle_tracing_replay_feedback_logs_metrics_min
         project:
           - chromium
         include:
           # Only check all projects for full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
             project: chromium
@@ -629,7 +619,7 @@ jobs:
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name:
@@ -639,13 +629,13 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -692,7 +682,7 @@ jobs:
           yarn test:loader
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
@@ -700,13 +690,13 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
+        uses: getsentry/codecov-action@main
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -774,13 +764,13 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -841,13 +831,13 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: packages/remix
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -881,7 +871,7 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -892,7 +882,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Stores tarballs in cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
@@ -959,7 +949,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
@@ -1009,7 +999,7 @@ jobs:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
@@ -1023,7 +1013,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1032,13 +1022,13 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: dev-packages/e2e-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
@@ -1084,7 +1074,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
@@ -1135,7 +1125,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1143,15 +1133,6 @@ jobs:
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
-
-      - name: Deploy Astro to Cloudflare
-        uses: cloudflare/wrangler-action@v3
-        if: matrix.test-application == 'cloudflare-astro'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          workingDirectory: ${{ runner.temp }}/test-application
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
-import { createTestServer } from '../../../../utils/server';
 
 test('strips and handles query params in spans of outgoing fetch requests', async () => {
   expect.assertions(4);

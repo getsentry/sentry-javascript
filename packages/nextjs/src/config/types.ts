@@ -11,8 +11,8 @@ type NextRewrite = {
 };
 
 interface WebpackPluginInstance {
-  [index: string]: any;
-  apply: (compiler: any) => void;
+  [index: string]: unknown;
+  apply: (compiler: unknown) => void;
 }
 
 export type NextConfigObject = {
@@ -112,6 +112,36 @@ export type SentryBuildWebpackOptions = {
      * Removes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
      */
     removeDebugLogging?: boolean;
+
+    /**
+     * Setting this to true will treeshake any SDK code that is related to tracing and performance monitoring.
+     */
+    removeTracing?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing iframe content with Session Replay.
+     * It's only relevant when using Session Replay. Enable this flag if you don't want to record any iframes.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing shadow dom elements with Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you don't want to record any shadow DOM elements.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayShadowDOM?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code that is related to the included compression web worker for Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you want to host a compression worker yourself.
+     * See Using a Custom Compression Worker for details.
+     * We don't recommend enabling this flag unless you provide a custom worker URL.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayCompressionWorker?: boolean;
   };
 
   /**
@@ -231,7 +261,8 @@ export type SentryBuildOptions = {
     /**
      * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
      *
-     * Default: `[]`
+     * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
+     * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
      *
      * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
      *
@@ -403,7 +434,7 @@ export type SentryBuildOptions = {
    */
   bundleSizeOptimizations?: {
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) any debugging code within itself during the build.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) any debugging code within itself during the build.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * Setting this option to `true` will disable features like the SDK's `debug` option.
@@ -411,14 +442,14 @@ export type SentryBuildOptions = {
     excludeDebugStatements?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code within itself that is related to tracing and performance monitoring.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code within itself that is related to tracing and performance monitoring.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
      */
     excludeTracing?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
@@ -426,7 +457,7 @@ export type SentryBuildOptions = {
     excludeReplayShadowDom?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
@@ -434,7 +465,7 @@ export type SentryBuildOptions = {
     excludeReplayIframe?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay's Compression Web Worker.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay's Compression Web Worker.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
@@ -461,7 +492,7 @@ export type SentryBuildOptions = {
      * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
      */
     ignoredComponents?: string[];
-  };
+  }; // TODO(v11): remove this option
 
   /**
    * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry Next.js SDK.
@@ -470,7 +501,7 @@ export type SentryBuildOptions = {
    * Please note that this option is unstable and may change in a breaking way in any release.
    * @deprecated Use `webpack.unstable_sentryWebpackPluginOptions` instead.
    */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
+  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions; // TODO(v11): remove this option
 
   /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
@@ -492,19 +523,19 @@ export type SentryBuildOptions = {
    * Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentServerFunctions` instead.
    */
-  autoInstrumentServerFunctions?: boolean;
+  autoInstrumentServerFunctions?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentMiddleware` instead.
    */
-  autoInstrumentMiddleware?: boolean;
+  autoInstrumentMiddleware?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentAppDirectory` instead.
    */
-  autoInstrumentAppDirectory?: boolean;
+  autoInstrumentAppDirectory?: boolean; // TODO(v11): remove this option
 
   /**
    * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
@@ -537,7 +568,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.treeshake.removeDebugLogging` instead.
    */
-  disableLogger?: boolean;
+  disableLogger?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
@@ -546,7 +577,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.automaticVercelMonitors` instead.
    */
-  automaticVercelMonitors?: boolean;
+  automaticVercelMonitors?: boolean; // TODO(v11): remove this option
 
   /**
    * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
@@ -573,20 +604,59 @@ export type SentryBuildOptions = {
   /**
    * Disables automatic injection of the route manifest into the client bundle.
    *
+   * @deprecated Use `routeManifestInjection: false` instead.
+   *
+   * @default false
+   */
+  disableManifestInjection?: boolean; // TODO(v11): remove this option
+
+  /**
+   * Options for the route manifest injection feature.
+   *
    * The route manifest is a build-time generated mapping of your Next.js App Router
    * routes that enables Sentry to group transactions by parameterized route names
    * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
    *
-   * **Disable this option if:**
-   * - You want to minimize client bundle size
-   * - You're experiencing build issues related to route scanning
-   * - You're using custom routing that the scanner can't detect
-   * - You prefer raw URLs in transaction names
-   * - You're only using Pages Router (this feature is only supported in the App Router)
+   * Set to `false` to disable route manifest injection entirely.
    *
-   * @default false
+   * @example
+   * ```js
+   * // Disable route manifest injection
+   * routeManifestInjection: false
+   *
+   * // Exclude specific routes
+   * routeManifestInjection: {
+   *   exclude: [
+   *     '/admin',           // Exact match
+   *     /^\/internal\//,    // Regex: all routes starting with /internal/
+   *     /\/secret-/,        // Regex: any route containing /secret-
+   *   ]
+   * }
+   *
+   * // Exclude using a function
+   * routeManifestInjection: {
+   *   exclude: (route) => route.includes('hidden')
+   * }
+   * ```
    */
-  disableManifestInjection?: boolean;
+  routeManifestInjection?:
+    | false
+    | {
+        /**
+         * Exclude specific routes from the route manifest.
+         *
+         * Use this option to prevent certain routes from being included in the client bundle's
+         * route manifest. This is useful for:
+         * - Hiding confidential or unreleased feature routes
+         * - Excluding internal/admin routes you don't want exposed
+         * - Reducing bundle size by omitting rarely-used routes
+         *
+         * Can be specified as:
+         * - An array of strings (exact match) or RegExp patterns
+         * - A function that receives a route path and returns `true` to exclude it
+         */
+        exclude?: Array<string | RegExp> | ((route: string) => boolean);
+      };
 
   /**
    * Disables automatic injection of Sentry's Webpack configuration.
@@ -600,7 +670,7 @@ export type SentryBuildOptions = {
    *
    * @default false
    */
-  disableSentryWebpackConfig?: boolean;
+  disableSentryWebpackConfig?: boolean; // TODO(v11): remove this option
 
   /**
    * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads

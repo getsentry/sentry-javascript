@@ -70,3 +70,44 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     },
   });
 });
+
+test('sends pageload transaction with web vitals measurements', async ({ page }) => {
+  const transactionPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/`);
+
+  const transaction = await transactionPromise;
+
+  expect(transaction).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.solid.tanstack_router',
+      },
+    },
+    transaction: '/',
+    transaction_info: {
+      source: 'route',
+    },
+    measurements: expect.objectContaining({
+      ttfb: expect.objectContaining({
+        value: expect.any(Number),
+        unit: 'millisecond',
+      }),
+      lcp: expect.objectContaining({
+        value: expect.any(Number),
+        unit: 'millisecond',
+      }),
+      fp: expect.objectContaining({
+        value: expect.any(Number),
+        unit: 'millisecond',
+      }),
+      fcp: expect.objectContaining({
+        value: expect.any(Number),
+        unit: 'millisecond',
+      }),
+    }),
+  });
+});

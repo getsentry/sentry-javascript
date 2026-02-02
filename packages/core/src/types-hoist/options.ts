@@ -12,6 +12,95 @@ import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
 /**
+ * Base options for WinterTC-compatible server-side JavaScript runtimes.
+ * This interface contains common configuration options shared between
+ * SDKs.
+ */
+export interface ServerRuntimeOptions {
+  /**
+   * List of strings/regex controlling to which outgoing requests
+   * the SDK will attach tracing headers.
+   *
+   * By default the SDK will attach those headers to all outgoing
+   * requests. If this option is provided, the SDK will match the
+   * request URL of outgoing requests against the items in this
+   * array, and only attach tracing headers if a match was found.
+   *
+   * @example
+   * ```js
+   * Sentry.init({
+   *   tracePropagationTargets: ['api.site.com'],
+   * });
+   * ```
+   */
+  tracePropagationTargets?: TracePropagationTargets;
+
+  /**
+   * Sets an optional server name (device name).
+   *
+   * This is useful for identifying which server or instance is sending events.
+   */
+  serverName?: string;
+
+  /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
+
+  /**
+   * If set to `false`, the SDK will not automatically detect the `serverName`.
+   *
+   * This is useful if you are using the SDK in a CLI app or Electron where the
+   * hostname might be considered PII.
+   *
+   * @default true
+   */
+  includeServerName?: boolean;
+
+  /**
+   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
+   * If you want to disable these warnings, set this to `true`.
+   */
+  disableInstrumentationWarnings?: boolean;
+
+  /**
+   * Controls how many milliseconds to wait before shutting down. The default is 2 seconds. Setting this too low can cause
+   * problems for sending events from command line applications. Setting it too
+   * high can cause the application to block for users with network connectivity
+   * problems.
+   */
+  shutdownTimeout?: number;
+
+  /**
+   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
+   */
+  clientReportFlushInterval?: number;
+
+  /**
+   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
+   * The SDK will automatically clean up spans that have no finished parent after this duration.
+   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
+   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
+   * In this case, you can increase this duration to a value that fits your expected data.
+   *
+   * Defaults to 300 seconds (5 minutes).
+   */
+  maxSpanWaitDuration?: number;
+
+  /**
+   * Callback that is executed when a fatal global error occurs.
+   */
+  onFatalError?(this: void, error: Error): void;
+}
+
+/**
  * A filter object for ignoring spans.
  * At least one of the properties (`op` or `name`) must be set.
  */
@@ -78,7 +167,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dsn?: string;
+  dsn?: string | undefined;
 
   /**
    * Sets the release. Release names are strings, but some formats are detected by Sentry and might be
@@ -88,7 +177,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  release?: string;
+  release?: string | undefined;
 
   /**
    * The current environment of your application (e.g. "production").
@@ -98,7 +187,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default "production"
    */
-  environment?: string;
+  environment?: string | undefined;
 
   /**
    * Sets the distribution of the application. Distributions are used to disambiguate build or
@@ -106,7 +195,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dist?: string;
+  dist?: string | undefined;
 
   /**
    * List of integrations that should be installed after SDK was initialized.
@@ -268,6 +357,21 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   sendDefaultPii?: boolean;
 
   /**
+   * Controls whether and how to enhance fetch error messages by appending the request hostname.
+   * Generic fetch errors like "Failed to fetch" will be enhanced to include the hostname
+   * (e.g., "Failed to fetch (example.com)").
+   *
+   * - `'always'` (default): Modifies the actual error message directly. This may break third-party packages
+   *   that rely on exact message matching (e.g., is-network-error, p-retry).
+   * - `'report-only'`: Only enhances the message when sending to Sentry. The original error
+   *   message remains unchanged, preserving compatibility with third-party packages.
+   * - `false`: Disables hostname enhancement completely.
+   *
+   * @default 'always'
+   */
+  enhanceFetchErrorMessages?: 'always' | 'report-only' | false;
+
+  /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
    *
@@ -368,6 +472,20 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
   tracePropagationTargets?: TracePropagationTargets;
+
+  /**
+   * If set to `true`, the SDK propagates the W3C `traceparent` header to any outgoing requests,
+   * in addition to the `sentry-trace` and `baggage` headers. Use the {@link CoreOptions.tracePropagationTargets}
+   * option to control to which outgoing requests the header will be attached.
+   *
+   * **Important:** If you set this option to `true`, make sure that you configured your servers'
+   * CORS settings to allow the `traceparent` header. Otherwise, requests might get blocked.
+   *
+   * @see https://www.w3.org/TR/trace-context/
+   *
+   * @default false
+   */
+  propagateTraceparent?: boolean;
 
   /**
    * If set to `true`, the SDK will only continue a trace if the `organization ID` of the incoming trace found in the

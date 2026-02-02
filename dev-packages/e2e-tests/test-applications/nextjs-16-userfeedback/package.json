@@ -1,0 +1,32 @@
+{
+  "name": "nextjs-16-userfeedback",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "next": "^16",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

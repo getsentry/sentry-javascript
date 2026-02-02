@@ -9,12 +9,13 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "latest || *",
-    "@tanstack/react-start": "^1.139.12",
-    "@tanstack/react-router": "^1.139.12",
+    "@tanstack/react-start": "^1.136.0",
+    "@tanstack/react-router": "^1.136.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

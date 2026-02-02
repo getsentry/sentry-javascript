@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Context as OtelContext, Span } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { Context } from 'aws-lambda';

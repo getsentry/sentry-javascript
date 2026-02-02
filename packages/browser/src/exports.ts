@@ -16,6 +16,10 @@ export type {
   User,
   Session,
   ReportDialogOptions,
+  CaptureContext,
+  ExclusiveEventHintOrCaptureContext,
+  Log,
+  LogSeverityLevel,
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';

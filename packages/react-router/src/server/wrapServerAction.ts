@@ -1,6 +1,7 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
 import {
+  debug,
   flushIfServerless,
   getActiveSpan,
   getRootSpan,
@@ -12,11 +13,16 @@ import {
   updateSpanName,
 } from '@sentry/core';
 import type { ActionFunctionArgs } from 'react-router';
+import { DEBUG_BUILD } from '../common/debug-build';
+import { isInstrumentationApiUsed } from './serverGlobals';
 
 type SpanOptions = {
   name?: string;
   attributes?: SpanAttributes;
 };
+
+// Track if we've already warned about duplicate instrumentation
+let hasWarnedAboutDuplicateActionInstrumentation = false;
 
 /**
  * Wraps a React Router server action function with Sentry performance monitoring.
@@ -37,8 +43,23 @@ type SpanOptions = {
  * );
  * ```
  */
-export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: ActionFunctionArgs) => Promise<T>) {
-  return async function (args: ActionFunctionArgs) {
+export function wrapServerAction<T>(
+  options: SpanOptions = {},
+  actionFn: (args: ActionFunctionArgs) => Promise<T>,
+): (args: ActionFunctionArgs) => Promise<T> {
+  return async function (args: ActionFunctionArgs): Promise<T> {
+    // Skip instrumentation if instrumentation API is already handling it
+    if (isInstrumentationApiUsed()) {
+      if (DEBUG_BUILD && !hasWarnedAboutDuplicateActionInstrumentation) {
+        hasWarnedAboutDuplicateActionInstrumentation = true;
+        debug.warn(
+          'wrapServerAction is redundant when using the instrumentation API. ' +
+            'The action is already instrumented automatically. You can safely remove wrapServerAction.',
+        );
+      }
+      return actionFn(args);
+    }
+
     const name = options.name || 'Executing Server Action';
     const active = getActiveSpan();
     if (active) {
@@ -67,7 +88,7 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
           ...options,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
             ...options.attributes,
           },
         },

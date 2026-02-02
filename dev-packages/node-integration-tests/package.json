@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "10.30.0",
+  "version": "10.38.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -30,15 +30,16 @@
     "@hapi/hapi": "^21.3.10",
     "@hono/node-server": "^1.19.4",
     "@langchain/anthropic": "^0.3.10",
-    "@langchain/core": "^0.3.28",
+    "@langchain/core": "^0.3.80",
     "@langchain/langgraph": "^0.2.32",
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
+    "@prisma/adapter-pg": "7.2.0",
     "@prisma/client": "6.15.0",
-    "@sentry/aws-serverless": "10.30.0",
-    "@sentry/core": "10.30.0",
-    "@sentry/node": "10.30.0",
+    "@sentry/aws-serverless": "10.38.0",
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -54,7 +55,7 @@
     "express": "^4.21.1",
     "generic-pool": "^3.9.0",
     "graphql": "^16.3.0",
-    "hono": "^4.9.8",
+    "hono": "^4.11.7",
     "http-terminator": "^3.2.0",
     "ioredis": "^5.4.1",
     "kafkajs": "2.2.4",
@@ -83,7 +84,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "10.30.0",
+    "@sentry-internal/test-utils": "10.38.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",

@@ -17,6 +17,8 @@ export type {
   User,
   FeatureFlagsIntegration,
   Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
@@ -46,6 +48,7 @@ export {
   Scope,
   SDK_VERSION,
   setContext,
+  setConversationId,
   setExtra,
   setExtras,
   setTag,
@@ -134,6 +137,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   honoIntegration,
@@ -148,6 +152,10 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,

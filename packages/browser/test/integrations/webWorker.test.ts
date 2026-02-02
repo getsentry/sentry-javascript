@@ -209,6 +209,194 @@ describe('webWorkerIntegration', () => {
           'main.js': 'main-debug',
         });
       });
+
+      it('processes module metadata from worker', () => {
+        (helpers.WINDOW as any)._sentryModuleMetadata = undefined;
+        const moduleMetadata = {
+          'Error\n    at worker-file1.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+          'Error\n    at worker-file2.js:2:2': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockDebugLog).toHaveBeenCalledWith('Sentry module metadata web worker message received', mockEvent.data);
+        expect((helpers.WINDOW as any)._sentryModuleMetadata).toEqual(moduleMetadata);
+      });
+
+      it('handles message with both debug IDs and module metadata', () => {
+        (helpers.WINDOW as any)._sentryModuleMetadata = undefined;
+        const moduleMetadata = {
+          'Error\n    at worker-file.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryDebugIds: { 'worker-file.js': 'debug-id-1' },
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect((helpers.WINDOW as any)._sentryModuleMetadata).toEqual(moduleMetadata);
+        expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
+          'worker-file.js': 'debug-id-1',
+        });
+      });
+
+      it('accepts message with only module metadata', () => {
+        (helpers.WINDOW as any)._sentryModuleMetadata = undefined;
+        const moduleMetadata = {
+          'Error\n    at worker-file.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect((helpers.WINDOW as any)._sentryModuleMetadata).toEqual(moduleMetadata);
+      });
+
+      it('ignores invalid module metadata', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: 'not-an-object',
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
+      it('processes WASM images from worker', () => {
+        (helpers.WINDOW as any)._sentryWasmImages = undefined;
+        const wasmImages = [
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/worker.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+        ];
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: wasmImages,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockDebugLog).toHaveBeenCalledWith('Sentry WASM images web worker message received', mockEvent.data);
+        expect((helpers.WINDOW as any)._sentryWasmImages).toEqual(wasmImages);
+      });
+
+      it('deduplicates WASM images by code_file URL', () => {
+        (helpers.WINDOW as any)._sentryWasmImages = [
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/existing.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+        ];
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: [
+            {
+              type: 'wasm',
+              code_id: 'abc123',
+              code_file: 'http://localhost:8001/existing.wasm', // duplicate, should be ignored
+              debug_file: null,
+              debug_id: 'abc12300000000000000000000000000',
+            },
+            {
+              type: 'wasm',
+              code_id: 'def456',
+              code_file: 'http://localhost:8001/new.wasm', // new, should be added
+              debug_file: null,
+              debug_id: 'def45600000000000000000000000000',
+            },
+          ],
+        };
+
+        messageHandler(mockEvent);
+
+        expect((helpers.WINDOW as any)._sentryWasmImages).toEqual([
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/existing.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+          {
+            type: 'wasm',
+            code_id: 'def456',
+            code_file: 'http://localhost:8001/new.wasm',
+            debug_file: null,
+            debug_id: 'def45600000000000000000000000000',
+          },
+        ]);
+      });
+
+      it('ignores invalid WASM images (not an array)', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: 'not-an-array',
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
+      it('ignores WASM images with invalid array elements (null, undefined, missing code_file)', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: [null, undefined, { type: 'wasm' }, { code_file: 123 }],
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
+      it('gives main thread precedence over worker for conflicting module metadata', () => {
+        (helpers.WINDOW as any)._sentryModuleMetadata = {
+          'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true, source: 'main' },
+          'Error\n    at main-only.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: {
+            'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:worker-app': true, source: 'worker' },
+            'Error\n    at worker-only.js:1:1': { '_sentryBundlerPluginAppKey:worker-app': true },
+          },
+        };
+
+        messageHandler(mockEvent);
+
+        expect((helpers.WINDOW as any)._sentryModuleMetadata).toEqual({
+          'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true, source: 'main' }, // Main thread wins
+          'Error\n    at main-only.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true }, // Main thread preserved
+          'Error\n    at worker-only.js:1:1': { '_sentryBundlerPluginAppKey:worker-app': true }, // Worker added
+        });
+      });
     });
   });
 });
@@ -218,6 +406,7 @@ describe('registerWebWorker', () => {
     postMessage: ReturnType<typeof vi.fn>;
     addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
+    _sentryModuleMetadata?: Record<string, any>;
   };
 
   beforeEach(() => {
@@ -236,6 +425,7 @@ describe('registerWebWorker', () => {
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
     });
   });
 
@@ -254,6 +444,7 @@ describe('registerWebWorker', () => {
         'worker-file1.js': 'debug-id-1',
         'worker-file2.js': 'debug-id-2',
       },
+      _sentryModuleMetadata: undefined,
     });
   });
 
@@ -266,6 +457,57 @@ describe('registerWebWorker', () => {
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
+    });
+  });
+
+  it('includes raw module metadata when available', () => {
+    const rawMetadata = {
+      'Error\n    at worker-file1.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+      'Error\n    at worker-file2.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockWorkerSelf._sentryModuleMetadata = rawMetadata;
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: undefined,
+      _sentryModuleMetadata: rawMetadata,
+    });
+  });
+
+  it('sends undefined module metadata when not available', () => {
+    mockWorkerSelf._sentryModuleMetadata = undefined;
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
+    });
+  });
+
+  it('includes both debug IDs and module metadata when both available', () => {
+    const rawMetadata = {
+      'Error\n    at worker-file.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockWorkerSelf._sentryDebugIds = {
+      'worker-file.js': 'debug-id-1',
+    };
+    mockWorkerSelf._sentryModuleMetadata = rawMetadata;
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: {
+        'worker-file.js': 'debug-id-1',
+      },
+      _sentryModuleMetadata: rawMetadata,
     });
   });
 });
@@ -335,6 +577,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
     expect(mockWorker.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: mockWorker._sentryDebugIds,
+      _sentryModuleMetadata: undefined,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
@@ -355,6 +598,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
     expect(mockWorker3.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: mockWorker3._sentryDebugIds,
+      _sentryModuleMetadata: undefined,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({

@@ -352,6 +352,7 @@ describe('sentryAstro integration', () => {
 
   it('injects runtime config into client and server init scripts and warns about deprecation', async () => {
     const integration = sentryAstro({
+      project: 'my-project',
       environment: 'test',
       release: '1.0.0',
       dsn: 'https://test.sentry.io/123',

@@ -2007,6 +2007,31 @@ describe('Client', () => {
       });
     });
 
+    test('client-level event processor that throws on all events does not cause infinite recursion', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      let processorCallCount = 0;
+      // Add processor at client level - this runs on ALL events including internal exceptions
+      client.addEventProcessor(() => {
+        processorCallCount++;
+        throw new Error('Processor always throws');
+      });
+
+      client.captureMessage('test message');
+
+      // Should be called once for the original message
+      // internal exception events skips event processors entirely.
+      expect(processorCallCount).toBe(1);
+
+      // Verify the processor error was captured and sent
+      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
+        type: 'Error',
+        value: 'Processor always throws',
+        mechanism: { type: 'internal', handled: false },
+      });
+    });
+
     test('records events dropped due to `sampleRate` option', () => {
       expect.assertions(1);
 
@@ -2204,6 +2229,53 @@ describe('Client', () => {
           expect(true).toEqual(true);
         }),
       ]);
+    });
+
+    test('flush returns immediately when nothing is processing', async () => {
+      vi.useFakeTimers();
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      // just to ensure the client init'd
+      vi.advanceTimersByTime(100);
+
+      const elapsed = Date.now();
+      const done = client.flush(1000).then(result => {
+        expect(result).toBe(true);
+        expect(Date.now() - elapsed).toBeLessThan(2);
+      });
+
+      // ensures that only after 1 ms, we're already done flushing
+      vi.advanceTimersByTime(1);
+      await done;
+    });
+
+    test('flush with early exit when processing completes', async () => {
+      vi.useRealTimers();
+      expect.assertions(3);
+
+      const { makeTransport, getSendCalled, getSentCount } = makeFakeTransport(50);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+          transport: makeTransport,
+        }),
+      );
+
+      client.captureMessage('test');
+      expect(getSendCalled()).toEqual(1);
+
+      const startTime = Date.now();
+      await client.flush(5000);
+      const elapsed = Date.now() - startTime;
+
+      expect(getSentCount()).toEqual(1);
+      // if this flakes, remove the test
+      expect(elapsed).toBeLessThan(1000);
     });
   });
 

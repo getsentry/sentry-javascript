@@ -33,6 +33,13 @@ describe('getBuildPluginOptions', () => {
             '/path/to/.next/static/chunks/framework.*',
             '/path/to/.next/static/chunks/polyfills-*',
             '/path/to/.next/static/chunks/webpack-*',
+            '**/page_client-reference-manifest.js',
+            '**/server-reference-manifest.js',
+            '**/next-font-manifest.js',
+            '**/middleware-build-manifest.js',
+            '**/interception-route-rewrite-manifest.js',
+            '**/route_client-reference-manifest.js',
+            '**/middleware-react-loadable-manifest.js',
           ],
           filesToDeleteAfterUpload: undefined,
           rewriteSources: expect.any(Function),
@@ -121,6 +128,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -142,6 +156,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
     });
 
@@ -161,6 +182,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -181,6 +209,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -205,6 +240,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -228,6 +270,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -444,7 +493,7 @@ describe('getBuildPluginOptions', () => {
       expect(result.sourcemaps?.assets).toEqual(customAssets);
     });
 
-    it('uses custom sourcemap ignore patterns when provided', () => {
+    it('merges custom sourcemap ignore patterns with defaults', () => {
       const customIgnore = ['**/vendor/**', '**/node_modules/**'];
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
@@ -461,7 +510,58 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.ignore).toEqual(customIgnore);
+      // Custom patterns should be appended to defaults, not replace them
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
+        '**/vendor/**',
+        '**/node_modules/**',
+      ]);
+    });
+
+    it('handles single string custom sourcemap ignore pattern', () => {
+      const customIgnore = '**/vendor/**';
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          ignore: customIgnore,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      // Single string pattern should be appended to defaults
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
+        '**/vendor/**',
+      ]);
     });
 
     it('disables sourcemaps when disable flag is set', () => {
@@ -769,6 +869,13 @@ describe('getBuildPluginOptions', () => {
           '/path/to/.next/static/chunks/framework.*',
           '/path/to/.next/static/chunks/polyfills-*',
           '/path/to/.next/static/chunks/webpack-*',
+          '**/page_client-reference-manifest.js',
+          '**/server-reference-manifest.js',
+          '**/next-font-manifest.js',
+          '**/middleware-build-manifest.js',
+          '**/interception-route-rewrite-manifest.js',
+          '**/route_client-reference-manifest.js',
+          '**/middleware-react-loadable-manifest.js',
         ],
         filesToDeleteAfterUpload: undefined,
         rewriteSources: expect.any(Function),

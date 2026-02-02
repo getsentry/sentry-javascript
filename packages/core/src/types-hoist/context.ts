@@ -99,6 +99,7 @@ export interface ResponseContext extends Record<string, unknown> {
 }
 
 export interface TraceContext extends Record<string, unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: { [key: string]: any };
   op?: string;
   parent_span_id?: string;

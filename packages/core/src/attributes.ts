@@ -1,6 +1,4 @@
-import { DEBUG_BUILD } from './debug-build';
 import type { DurationUnit, FractionUnit, InformationUnit } from './types-hoist/measurement';
-import { debug } from './utils/debug-logger';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,33 +64,91 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
 /**
  * Converts an attribute value to a typed attribute value.
  *
- * Does not allow mixed arrays. In case of a mixed array, the value is stringified and the type is 'string'.
- * All values besides the supported attribute types (see {@link AttributeTypeMap}) are stringified to a string attribute value.
+ * For now, we intentionally only support primitive values and attribute objects with primitive values.
+ * If @param useFallback is true, we stringify non-primitive values to a string attribute value. Otherwise
+ * we return `undefined` for unsupported values.
  *
  * @param value - The value of the passed attribute.
+ * @param useFallback - If true, unsupported values will be stringified to a string attribute value.
+ *                      Defaults to false. In this case, `undefined` is returned for unsupported values.
  * @returns The typed attribute.
  */
-export function attributeValueToTypedAttributeValue(rawValue: unknown): TypedAttributeValue {
+export function attributeValueToTypedAttributeValue(
+  rawValue: unknown,
+  useFallback?: boolean | 'skip-undefined',
+): TypedAttributeValue | void {
   const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
-  return { ...getTypedAttributeValue(value), ...(unit && typeof unit === 'string' ? { unit } : {}) };
+  const attributeValue = getTypedAttributeValue(value);
+  const checkedUnit = unit && typeof unit === 'string' ? { unit } : {};
+  if (attributeValue) {
+    return { ...attributeValue, ...checkedUnit };
+  }
+
+  if (!useFallback || (useFallback === 'skip-undefined' && value === undefined)) {
+    return;
+  }
+
+  // Fallback: stringify the value
+  // TODO(v11): be smarter here and use String constructor if stringify fails
+  // (this is a breaking change for already existing attribute values)
+  let stringValue = '';
+  try {
+    stringValue = JSON.stringify(value) ?? '';
+  } catch {
+    // Do nothing
+  }
+  return {
+    value: stringValue,
+    type: 'string',
+    ...checkedUnit,
+  };
 }
 
-// Only allow string, boolean, or number types
-const getPrimitiveType: (
-  item: unknown,
-) => keyof Pick<AttributeTypeMap, 'string' | 'integer' | 'double' | 'boolean'> | null = item =>
-  typeof item === 'string'
-    ? 'string'
-    : typeof item === 'boolean'
-      ? 'boolean'
-      : typeof item === 'number' && !Number.isNaN(item)
-        ? Number.isInteger(item)
-          ? 'integer'
-          : 'double'
-        : null;
+/**
+ * Serializes raw attributes to typed attributes as expected in our envelopes.
+ *
+ * @param attributes The raw attributes to serialize.
+ * @param fallback   If true, unsupported values will be stringified to a string attribute value.
+ *                   Defaults to false. In this case, `undefined` is returned for unsupported values.
+ *
+ * @returns The serialized attributes.
+ */
+export function serializeAttributes<T>(
+  attributes: RawAttributes<T> | undefined,
+  fallback: boolean | 'skip-undefined' = false,
+): Attributes {
+  const serializedAttributes: Attributes = {};
+  for (const [key, value] of Object.entries(attributes ?? {})) {
+    const typedValue = attributeValueToTypedAttributeValue(value, fallback);
+    if (typedValue) {
+      serializedAttributes[key] = typedValue;
+    }
+  }
+  return serializedAttributes;
+}
 
-function getTypedAttributeValue(value: unknown): TypedAttributeValue {
-  const primitiveType = getPrimitiveType(value);
+/**
+ * NOTE: We intentionally do not return anything for non-primitive values:
+ *  - array support will come in the future but if we stringify arrays now,
+ *    sending arrays (unstringified) later will be a subtle breaking change.
+ *  - Objects are not supported yet and product support is still TBD.
+ *  - We still keep the type signature for TypedAttributeValue wider to avoid a
+ *    breaking change once we add support for non-primitive values.
+ *  - Once we go back to supporting arrays and stringifying all other values,
+ *    we already implemented the serialization logic here:
+ *    https://github.com/getsentry/sentry-javascript/pull/18165
+ */
+function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
+  const primitiveType =
+    typeof value === 'string'
+      ? 'string'
+      : typeof value === 'boolean'
+        ? 'boolean'
+        : typeof value === 'number' && !Number.isNaN(value)
+          ? Number.isInteger(value)
+            ? 'integer'
+            : 'double'
+          : null;
   if (primitiveType) {
     // @ts-expect-error - TS complains because {@link TypedAttributeValue} is strictly typed to
     // avoid setting the wrong `type` on the attribute value.
@@ -102,40 +158,4 @@ function getTypedAttributeValue(value: unknown): TypedAttributeValue {
     // Therefore, we ignore it.
     return { value, type: primitiveType };
   }
-
-  if (Array.isArray(value)) {
-    const coherentArrayType = value.reduce((acc: 'string' | 'boolean' | 'integer' | 'double' | null, item) => {
-      if (!acc || getPrimitiveType(item) !== acc) {
-        return null;
-      }
-      return acc;
-    }, getPrimitiveType(value[0]));
-
-    if (coherentArrayType) {
-      return { value, type: `${coherentArrayType}[]` };
-    }
-  }
-
-  // Fallback: stringify the passed value
-  let fallbackValue = '';
-  try {
-    fallbackValue = JSON.stringify(value) ?? String(value);
-  } catch {
-    try {
-      fallbackValue = String(value);
-    } catch {
-      DEBUG_BUILD && debug.warn('Failed to stringify attribute value', value);
-      // ignore
-    }
-  }
-
-  // This is quite a low-quality message but we cannot safely log the original `value`
-  // here due to String() or JSON.stringify() potentially throwing.
-  DEBUG_BUILD &&
-    debug.log(`Stringified attribute value to ${fallbackValue} because it's not a supported attribute value type`);
-
-  return {
-    value: fallbackValue,
-    type: 'string',
-  };
 }

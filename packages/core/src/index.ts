@@ -25,6 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   isInitialized,
   isEnabled,
   startSession,
@@ -61,8 +62,9 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
+export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
@@ -100,7 +102,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
@@ -119,6 +121,7 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -269,6 +272,7 @@ export {
   generateSentryTraceHeader,
   propagationContextFromHeaders,
   shouldContinueTrace,
+  generateTraceparentHeader,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';
@@ -311,8 +315,15 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
 } from './utils/url';
-export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
+export {
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+  parseStackFrames,
+  _enhanceErrorWithSentryInfo as _INTERNAL_enhanceErrorWithSentryInfo,
+} from './utils/eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
@@ -320,6 +331,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
@@ -384,7 +396,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
@@ -447,6 +459,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
+  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
@@ -511,3 +524,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';

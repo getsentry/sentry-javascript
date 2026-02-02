@@ -50,7 +50,8 @@ export async function handleRunAfterProductionCompile(
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
 
-  if (!usesNativeDebugIds) {
+  // Skip debug ID injection if sourcemaps are disabled which are only relevant for sourcemap correlation
+  if (!usesNativeDebugIds && sentryBuildOptions.sourcemaps?.disable !== true) {
     await sentryBuildPluginManager.injectDebugIds([distDir]);
   }
 

@@ -11,7 +11,12 @@ import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
-import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils/url';
+import {
+  getSanitizedUrlStringFromUrlObject,
+  isURLObjectRelative,
+  parseStringToURLObject,
+  stripDataUrlContent,
+} from './utils/url';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -111,7 +116,9 @@ export function instrumentFetchRequest(
   if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
-    const options: { [key: string]: unknown } = handlerData.args[1] || {};
+    // Shallow clone the options object to avoid mutating the original user-provided object
+    // Examples: users re-using same options object for multiple fetch calls, frozen objects
+    const options: { [key: string]: unknown } = { ...(handlerData.args[1] || {}) };
 
     const headers = _addTracingHeadersToFetchRequest(
       request,
@@ -315,9 +322,22 @@ function getSpanStartOptions(
   method: string,
   spanOrigin: SpanOrigin,
 ): Parameters<typeof startInactiveSpan>[0] {
+  // Data URLs need special handling because parseStringToURLObject treats them as "relative"
+  // (no "://"), causing getSanitizedUrlStringFromUrlObject to return just the pathname
+  // without the "data:" prefix, making later stripDataUrlContent calls ineffective.
+  // So for data URLs, we strip the content first and use that directly.
+  if (url.startsWith('data:')) {
+    const sanitizedUrl = stripDataUrlContent(url);
+    return {
+      name: `${method} ${sanitizedUrl}`,
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin),
+    };
+  }
+
   const parsedUrl = parseStringToURLObject(url);
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
-    name: parsedUrl ? `${method} ${getSanitizedUrlStringFromUrlObject(parsedUrl)}` : method,
+    name: `${method} ${sanitizedUrl}`,
     attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
   };
 }
@@ -329,7 +349,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    url,
+    url: stripDataUrlContent(url),
     type: 'fetch',
     'http.method': method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
@@ -337,7 +357,7 @@ function getFetchSpanAttributes(
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['http.url'] = parsedUrl.href;
+      attributes['http.url'] = stripDataUrlContent(parsedUrl.href);
       attributes['server.address'] = parsedUrl.host;
     }
     if (parsedUrl.search) {

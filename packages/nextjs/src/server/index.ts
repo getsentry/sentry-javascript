@@ -1,9 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { context } from '@opentelemetry/api';
 import {
-  ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
   ATTR_URL_QUERY,
   SEMATTRS_HTTP_METHOD,
@@ -14,23 +12,15 @@ import {
   applySdkMetadata,
   debug,
   extractTraceparentData,
-  getCapturedScopesOnSpan,
   getClient,
-  getCurrentScope,
   getGlobalScope,
-  getIsolationScope,
-  getRootSpan,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCapturedScopesOnSpan,
-  spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -40,11 +30,12 @@ import {
   TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
-import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
-import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
+import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { handleOnSpanStart } from './handleOnSpanStart';
+import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 
 export * from '@sentry/node';
 
@@ -101,10 +92,30 @@ export function showReportDialog(): void {
   return;
 }
 
+/**
+ * Returns the runtime configuration for the SDK based on the environment.
+ * When running on OpenNext/Cloudflare, returns cloudflare runtime config.
+ */
+function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined {
+  if (isCloudflareWaitUntilAvailable()) {
+    // todo: add version information?
+    return { runtime: { name: 'cloudflare' } };
+  }
+  return undefined;
+}
+
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): NodeClient | undefined {
+  prepareSafeIdGeneratorContext();
   if (isBuild()) {
     return;
+  }
+
+  if (!DEBUG_BUILD && options.debug) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+    );
   }
 
   const customDefaultIntegrations = getDefaultIntegrations(options)
@@ -130,11 +141,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  // Detect if running on OpenNext/Cloudflare and get runtime config
+  const cloudflareConfig = getCloudflareRuntimeConfig();
+
   const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
+    // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
+    ...cloudflareConfig,
   };
 
   if (DEBUG_BUILD && opts.debug) {
@@ -148,9 +164,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
     return;
   }
 
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
+  // Use appropriate SDK metadata based on the runtime environment
+  applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
+
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
@@ -171,67 +189,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', span => {
-    const spanAttributes = spanToJSON(span).data;
-    const rootSpan = getRootSpan(span);
-    const isRootSpan = span === rootSpan;
-
-    dropMiddlewareTunnelRequests(span, spanAttributes);
-
-    // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
-    // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
-    if (typeof spanAttributes?.[ATTR_NEXT_ROUTE] === 'string') {
-      const rootSpanAttributes = spanToJSON(rootSpan).data;
-      // Only hoist the http.route attribute if the transaction doesn't already have it
-      if (
-        // eslint-disable-next-line deprecation/deprecation
-        (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
-        !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
-      ) {
-        const route = spanAttributes[ATTR_NEXT_ROUTE].replace(/\/route$/, '');
-        rootSpan.updateName(route);
-        rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
-        // Preserving the original attribute despite internally not depending on it
-        rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
-      }
-    }
-
-    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') {
-      const middlewareName = spanAttributes[ATTR_NEXT_SPAN_NAME];
-      if (typeof middlewareName === 'string') {
-        rootSpan.updateName(middlewareName);
-        rootSpan.setAttribute(ATTR_HTTP_ROUTE, middlewareName);
-        rootSpan.setAttribute(ATTR_NEXT_SPAN_NAME, middlewareName);
-      }
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
-    }
-
-    // We want to skip span data inference for any spans generated by Next.js. Reason being that Next.js emits spans
-    // with patterns (e.g. http.server spans) that will produce confusing data.
-    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] !== undefined) {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
-    }
-
-    if (isRootSpan) {
-      const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers;
-      addHeadersAsAttributes(headers, rootSpan);
-    }
-
-    // We want to fork the isolation scope for incoming requests
-    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' && isRootSpan) {
-      const scopes = getCapturedScopesOnSpan(span);
-
-      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-      const scope = scopes.scope || getCurrentScope();
-
-      const currentScopesPointer = getScopesFromContext(context.active());
-      if (currentScopesPointer) {
-        currentScopesPointer.isolationScope = isolationScope;
-      }
-
-      setCapturedScopesOnSpan(span, scope, isolationScope);
-    }
-  });
+  client?.on('spanStart', handleOnSpanStart);
 
   getGlobalScope().addEventProcessor(
     Object.assign(
