@@ -1,5 +1,5 @@
-import * as path from 'path';
 import { stringMatchesSomePattern } from '@sentry/core';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 
 type AutoInstrumentMiddlewareOptions = {
