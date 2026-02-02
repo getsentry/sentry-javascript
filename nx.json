@@ -51,7 +51,7 @@
       "inputs": ["default"],
       "dependsOn": ["^build:types", "build:types"],
       "outputs": [],
-      "cache": true
+      "cache": false
     },
     "test:unit": {
       "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
