@@ -182,25 +182,46 @@ Oxlint (full repo with type-aware):
 
 **Note**: The `yarn lint:lerna` command has overhead from Nx orchestration. For fastest results, use `yarn lint:oxlint` which runs Oxlint directly on the entire repo.
 
-### Per-Package Results (Oxlint)
+### Per-Package Results
 
-| Package           | Files | Time |
-| ----------------- | ----- | ---- |
-| `core`            | 365   | 53ms |
-| `browser`         | 136   | 55ms |
-| `node`            | 105   | 64ms |
-| `node-core`       | 101   | 56ms |
-| `nextjs`          | 181   | 79ms |
-| `sveltekit`       | 63    | 71ms |
-| `opentelemetry`   | 58    | 52ms |
-| `cloudflare`      | 43    | 45ms |
-| `remix`           | 38    | 42ms |
-| `react`           | 39    | 49ms |
-| `feedback`        | 38    | 48ms |
-| `replay-internal` | 152   | 38ms |
-| `vue`             | 24    | 48ms |
-| `svelte`          | 15    | 52ms |
-| `angular`         | 12    | 37ms |
+Here's the complete comparison table with all packages and dev-packages:
+
+#### SDK Packages
+
+| Package           | Files | ESLint | Oxlint | Speedup  |
+| ----------------- | ----- | ------ | ------ | -------- |
+| `core`            | 365   | 9.6s   | 53ms   | **181x** |
+| `browser`         | 136   | 6.8s   | 55ms   | **124x** |
+| `node`            | 105   | 6.1s   | 64ms   | **95x**  |
+| `node-core`       | 101   | 6.2s   | 56ms   | **111x** |
+| `nextjs`          | 181   | 10.9s  | 79ms   | **138x** |
+| `sveltekit`       | 63    | 6.4s   | 71ms   | **90x**  |
+| `opentelemetry`   | 58    | 4.3s   | 52ms   | **83x**  |
+| `cloudflare`      | 43    | 3.8s   | 45ms   | **84x**  |
+| `remix`           | 38    | 7.1s   | 42ms   | **169x** |
+| `react`           | 39    | 6.5s   | 49ms   | **133x** |
+| `feedback`        | 38    | 3.8s   | 48ms   | **79x**  |
+| `replay-internal` | 152   | 5.6s   | 38ms   | **147x** |
+| `vue`             | 24    | 4.0s   | 48ms   | **83x**  |
+| `svelte`          | 15    | 4.0s   | 52ms   | **77x**  |
+| `angular`         | 12    | 3.7s   | 37ms   | **100x** |
+
+#### Dev Packages
+
+| Package                        | Files | ESLint   | Oxlint | Speedup  |
+| ------------------------------ | ----- | -------- | ------ | -------- |
+| `browser-integration-tests`    | 778   | 10.8s    | 209ms  | **52x**  |
+| `node-integration-tests`       | 605   | 9.0s     | 291ms  | **31x**  |
+| `node-core-integration-tests`  | 268   | 6.2s     | 74ms   | **84x**  |
+| `e2e-tests`                    | 10    | 2.6s     | 44ms   | **59x**  |
+| `cloudflare-integration-tests` | 27    | 2.5s     | 35ms   | **71x**  |
+| `test-utils`                   | 5     | 2.4s     | 21ms   | **114x** |
+| `rollup-utils`                 | 13    | ❌ error | 22ms   | N/A      |
+| `bundler-tests`                | 3     | ❌ error | 51ms   | N/A      |
+
+**Average speedup: ~95x faster**
+
+**Average speedup: ~113x faster per package**
 
 All packages lint in under 100ms with Oxlint.
 
