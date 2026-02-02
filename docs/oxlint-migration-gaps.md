@@ -25,6 +25,26 @@ This document tracks the ESLint rules that are not natively supported in Oxlint,
 5. Fixed actual code issues found:
    - Redundant `type` modifier in imports
    - Missing `import type` in `.d.ts` files
+6. Removed all `.eslintrc.js` and `.eslintrc.cjs` files from the codebase (61 files total)
+
+## ESLint Cleanup
+
+All ESLint configuration files have been removed from the codebase:
+
+- Removed 50 `.eslintrc.js` files from packages/, dev-packages/, and root
+- Removed 11 `.eslintrc.cjs` files from packages/ and dev-packages/
+
+**Kept**:
+
+- `packages/eslint-config-sdk` - Published ESLint config for SDK users
+- `packages/eslint-plugin-sdk` - Published ESLint plugin for SDK users
+- ESLint in `dev-packages/e2e-tests/test-applications/*` - These are real framework test apps that use ESLint
+
+**Configuration hierarchy now**:
+
+- `.oxlintrc.json` (root) - Base rules
+- `packages/*/.oxlintrc.json` - Extends root, package-specific overrides
+- `dev-packages/*/.oxlintrc.json` - Extends root, dev-package-specific overrides
 
 ## Rules Status After Re-evaluation
 
@@ -183,6 +203,33 @@ Oxlint (full repo with type-aware):
 | `angular`         | 12    | 37ms |
 
 All packages lint in under 100ms with Oxlint.
+
+## Next Steps
+
+### Short Term
+
+1. **Address remaining warnings (45)** - Review the `complexity` warnings and consider refactoring functions that exceed the limit of 20
+2. **Enable type-aware linting in CI** - Add `yarn lint:oxlint:type-aware` to CI for enhanced TypeScript checks (catches more bugs but slower)
+3. **Update pre-commit hooks** - If using husky/lint-staged, update to use `oxlint` instead of `eslint`
+
+### Medium Term
+
+4. **Implement custom Sentry rules via JS plugins** - Port the 4 remaining custom rules from `@sentry-internal/eslint-plugin-sdk`:
+   - `no-eq-empty` - Disallow `=== []` or `=== {}`
+   - `no-class-field-initializers` - Disallow class field initializers (bundle size)
+   - `no-regexp-constructor` - Warn about `new RegExp()` usage
+   - `no-unsafe-random-apis` - Disallow `Math.random()` etc
+5. **Re-evaluate disabled rules** - Periodically check if `no-unused-vars` can be re-enabled with better catch param handling
+6. **Import sorting** - Consider using Prettier or dprint for import sorting since `simple-import-sort` is not supported
+
+### Long Term
+
+7. **Deprecate `eslint-config-sdk` and `eslint-plugin-sdk`** - Once Oxlint adoption is widespread, consider deprecating these packages or providing Oxlint equivalents
+8. **Monitor Oxlint releases** - Track new rule support in Oxlint releases that may fill current gaps:
+   - `@typescript-eslint/member-ordering`
+   - `@typescript-eslint/naming-convention`
+   - `import/no-extraneous-dependencies`
+   - `jsdoc/require-jsdoc`
 
 ## References
 
