@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import type { NumericRange, type RequestEvent } from '@sveltejs/kit';
+import type { NumericRange, RequestEvent } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {

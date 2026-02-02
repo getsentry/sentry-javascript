@@ -16,8 +16,8 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix",
+    "lint": "oxlint .",
+    "fix": "oxlint . --fix",
     "type-check": "tsc",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
