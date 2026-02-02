@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Add `exclude` option for auto-instrumented middleware ([#19007](https://github.com/getsentry/sentry-javascript/pull/19007))**
+
+  The `autoInstrumentMiddleware` option in `sentryTanstackStart()` now accepts an object with an `exclude` property to skip specific files from automatic instrumentation. Patterns can be strings (matched as substrings) or regular expressions matched against the full file path.
+
+  ```ts
+  sentryTanstackStart({
+    autoInstrumentMiddleware: {
+      exclude: ['/routes/admin/', /\.test\.ts$/],
+    },
+  });
+  ```
+
 - **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
 
   The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
