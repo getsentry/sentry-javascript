@@ -6,15 +6,16 @@
     // === Base rules from eslint-config-sdk/base.js ===
     "no-console": "error",
     "no-alert": "error",
-    "no-param-reassign": ["error", { "props": false }],
+    "no-param-reassign": "error",
     "prefer-template": "error",
-    "no-bitwise": "off",
+    "no-bitwise": "error",
     "complexity": "warn",
-    "no-unused-expressions": "off",
+    "no-unused-expressions": ["error", { "allowShortCircuit": true }],
     "guard-for-in": "error",
     "array-callback-return": ["error", { "allowImplicit": true }],
     "quotes": ["error", "single", { "avoidEscape": true }],
     "no-return-await": "error",
+    "max-lines": ["error", { "max": 300, "skipComments": true, "skipBlankLines": true }],
 
     // === TypeScript rules ===
     "typescript/ban-ts-comment": "error",
@@ -27,7 +28,7 @@
     "typescript/no-unsafe-member-access": "error",
     "typescript/unbound-method": "error",
     "typescript/no-empty-function": "off",
-    "typescript/no-explicit-any": "warn",
+    "typescript/no-explicit-any": "error",
 
     // === Import rules ===
     "import/namespace": "off",
@@ -66,7 +67,8 @@
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-explicit-any": "off",
         "typescript/no-non-null-assertion": "off",
-        "typescript/no-floating-promises": "off"
+        "typescript/no-floating-promises": "off",
+        "max-lines": "off"
       }
     },
     {
@@ -76,15 +78,28 @@
       }
     },
     {
-      "files": ["*.config.js", "*.config.mjs", "*.config.ts", "vite.config.ts"],
+      "files": ["*.config.js", "*.config.mjs", "*.config.ts", "vite.config.ts", ".size-limit.js"],
+      "rules": {
+        "no-console": "off",
+        "max-lines": "off"
+      }
+    },
+    {
+      "files": [
+        "**/scenarios/**",
+        "**/rollup-utils/**",
+        "**/bundle-analyzer-scenarios/**",
+        "**/bundle-analyzer-scenarios/*.cjs",
+        "**/bundle-analyzer-scenarios/*.js"
+      ],
       "rules": {
         "no-console": "off"
       }
     },
     {
-      "files": ["scenarios/**", "dev-packages/rollup-utils/**", "dev-packages/bundle-analyzer-scenarios/**"],
+      "files": ["**/src/**"],
       "rules": {
-        "no-console": "off"
+        "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
       }
     }
   ],
