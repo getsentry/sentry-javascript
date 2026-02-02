@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-// eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+// eslint-disable-next-line jest/no-disabled-tests
 describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
