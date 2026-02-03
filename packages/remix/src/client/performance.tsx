@@ -13,12 +13,6 @@ import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLo
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
-import {
-  clearNavigationTraceCache,
-  getMetaTagTraceContext,
-  getNavigationTraceContext,
-  getNavigationTraceContextAsync,
-} from './serverTimingTracePropagation';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -91,17 +85,6 @@ function getTransactionNameAndSource(
   return { name: routeId, source: 'route' };
 }
 
-// Flag to prevent async callback from creating a span after navigation has occurred
-let pageloadSpanStarted = false;
-
-/**
- * Resets navigation state and trace cache when starting a new navigation.
- */
-function resetNavigationState(): void {
-  clearNavigationTraceCache();
-  pageloadSpanStarted = true;
-}
-
 export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
@@ -113,37 +96,13 @@ export function startPageloadSpan(client: Client): void {
   const spanName = parameterizedRoute || initPathName;
   const source = parameterizedRoute ? 'route' : 'url';
 
-  const spanContext: StartSpanOptions = {
+  startBrowserTracingPageLoadSpan(client, {
     name: spanName,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
-  };
-
-  // Priority: Server-Timing header > meta tags > async retry
-  const serverTimingTrace = getNavigationTraceContext();
-  if (serverTimingTrace) {
-    pageloadSpanStarted = true;
-    startBrowserTracingPageLoadSpan(client, spanContext, serverTimingTrace);
-    return;
-  }
-
-  const metaTagTrace = getMetaTagTraceContext();
-  if (metaTagTrace) {
-    pageloadSpanStarted = true;
-    startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
-    return;
-  }
-
-  getNavigationTraceContextAsync(trace => {
-    // Skip if pageload span was already started (e.g., navigation occurred during retry)
-    if (pageloadSpanStarted) {
-      return;
-    }
-    pageloadSpanStarted = true;
-    startBrowserTracingPageLoadSpan(client, spanContext, trace ?? undefined);
   });
 }
 
@@ -239,9 +198,6 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
       }
 
       if (_instrumentNavigation && matches?.length) {
-        // Reset navigation state when starting a new navigation
-        resetNavigationState();
-
         if (activeRootSpan) {
           activeRootSpan.end();
         }
