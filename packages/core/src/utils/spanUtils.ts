@@ -1,5 +1,5 @@
 import { getAsyncContextStrategy } from '../asyncContext';
-import type { Attributes, RawAttributes } from '../attributes';
+import type { RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
