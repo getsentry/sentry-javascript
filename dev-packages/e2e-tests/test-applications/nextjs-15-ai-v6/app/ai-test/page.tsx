@@ -1,5 +1,5 @@
 import { generateText, rerank } from 'ai';
-import { MockLanguageModelV1, MockRerankingModelV1 } from 'ai/test';
+import { MockLanguageModelV3, MockRerankingModelV3 } from 'ai/test';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ async function runAITest() {
   // Test generateText - should still work with AI SDK v6
   const textResult = await generateText({
     experimental_telemetry: { isEnabled: true },
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         rawCall: { rawPrompt: null, rawSettings: {} },
         finishReason: 'stop',
@@ -22,7 +22,7 @@ async function runAITest() {
   // Test rerank - new feature in AI SDK v6
   const rerankResult = await rerank({
     experimental_telemetry: { isEnabled: true },
-    model: new MockRerankingModelV1({
+    model: new MockRerankingModelV3({
       doRerank: async () => ({
         ranking: [
           { originalIndex: 1, score: 0.95, document: 'Document B' },
