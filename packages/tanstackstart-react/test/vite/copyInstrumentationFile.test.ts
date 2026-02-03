@@ -44,19 +44,21 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
   });
 
   describe('configResolved', () => {
-    it('detects Nitro environment and reads output dir', () => {
+    it('detects Nitro environment and reads output dir', async () => {
       const resolvedConfig = createNitroConfig();
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
-      // Verify by calling closeBundle - it should attempt to access the file
-      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
-      (plugin.closeBundle as AnyFunction)();
+      vi.mocked(fs.promises.access).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.mkdir).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.copyFile).mockResolvedValueOnce(undefined);
 
-      expect(fs.promises.access).toHaveBeenCalled();
+      await (plugin.closeBundle as AnyFunction)();
+
+      expect(fs.promises.mkdir).toHaveBeenCalledWith('/project/.output/server', { recursive: true });
     });
 
-    it.each(['cloudflare', 'netlify'])('detects %s plugin and sets dist/server as output dir', pluginName => {
+    it.each(['cloudflare', 'netlify'])('detects %s plugin and sets dist/server as output dir', async pluginName => {
       const resolvedConfig = {
         root: '/project',
         plugins: [{ name: pluginName }],
@@ -64,10 +66,13 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
-      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
-      (plugin.closeBundle as AnyFunction)();
+      vi.mocked(fs.promises.access).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.mkdir).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.copyFile).mockResolvedValueOnce(undefined);
 
-      expect(fs.promises.access).toHaveBeenCalled();
+      await (plugin.closeBundle as AnyFunction)();
+
+      expect(fs.promises.mkdir).toHaveBeenCalledWith(path.resolve('/project', 'dist', 'server'), { recursive: true });
     });
 
     it('logs a warning and does not set output dir when no recognized plugin is detected', () => {
@@ -91,7 +96,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       warnSpy.mockRestore();
     });
 
-    it('uses serverOutputDir option when provided, bypassing auto-detection', () => {
+    it('uses serverOutputDir option when provided, bypassing auto-detection', async () => {
       const customPlugin = makeCopyInstrumentationFilePlugin({ serverOutputDir: 'build/custom-server' });
 
       const resolvedConfig = {
@@ -106,34 +111,22 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       // No warning should be logged since serverOutputDir is provided
       expect(warnSpy).not.toHaveBeenCalled();
 
-      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
-      (customPlugin.closeBundle as AnyFunction)();
-
-      // Should attempt to access the file (indicating serverOutputDir was set)
-      expect(fs.promises.access).toHaveBeenCalled();
-
-      warnSpy.mockRestore();
-    });
-
-    it('serverOutputDir option overrides auto-detected Nitro output dir', async () => {
-      const customPlugin = makeCopyInstrumentationFilePlugin({ serverOutputDir: 'custom/output' });
-
-      const resolvedConfig = createNitroConfig();
-
-      (customPlugin.configResolved as AnyFunction)(resolvedConfig);
-
       vi.mocked(fs.promises.access).mockResolvedValueOnce(undefined);
       vi.mocked(fs.promises.mkdir).mockResolvedValueOnce(undefined);
       vi.mocked(fs.promises.copyFile).mockResolvedValueOnce(undefined);
 
       await (customPlugin.closeBundle as AnyFunction)();
 
-      // Should use the custom serverOutputDir, not Nitro's auto-detected dir
-      expect(fs.promises.mkdir).toHaveBeenCalledWith(path.resolve('/project', 'custom/output'), { recursive: true });
+      // Verify the custom serverOutputDir is used
+      expect(fs.promises.mkdir).toHaveBeenCalledWith(path.resolve('/project', 'build/custom-server'), {
+        recursive: true,
+      });
       expect(fs.promises.copyFile).toHaveBeenCalledWith(
         path.resolve(process.cwd(), 'instrument.server.mjs'),
-        path.resolve('/project', 'custom/output', 'instrument.server.mjs'),
+        path.resolve('/project', 'build/custom-server', 'instrument.server.mjs'),
       );
+
+      warnSpy.mockRestore();
     });
   });
 
