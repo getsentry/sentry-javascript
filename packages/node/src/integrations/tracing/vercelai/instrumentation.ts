@@ -26,6 +26,7 @@ const INSTRUMENTED_METHODS = [
   'streamObject',
   'embed',
   'embedMany',
+  'rerank',
 ] as const;
 
 interface MethodFirstArg extends Record<string, unknown> {
