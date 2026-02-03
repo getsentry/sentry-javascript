@@ -132,7 +132,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       (plugin.closeBundle as AnyFunction)();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Sentry TanStack Start] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+        '[Sentry] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
           'The instrument.server.mjs file will not be copied to the build output automatically.',
       );
       expect(fs.promises.access).not.toHaveBeenCalled();
@@ -283,7 +283,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       expect(fs.promises.access).toHaveBeenCalled();
       expect(fs.promises.copyFile).not.toHaveBeenCalled();
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Sentry TanStack Start] No instrument.server.mjs file found in project root. ' +
+        '[Sentry] No instrument.server.mjs file found in project root. ' +
           'The Sentry instrumentation file will not be copied to the build output.',
       );
 
@@ -318,7 +318,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       await (plugin.closeBundle as AnyFunction)();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Sentry TanStack Start] Failed to copy instrument.server.mjs to build output.',
+        '[Sentry] Failed to copy instrument.server.mjs to build output.',
         expect.any(Error),
       );
     });
@@ -388,7 +388,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       await (customPlugin.closeBundle as AnyFunction)();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        '[Sentry TanStack Start] No custom/my-instrument.mjs file found in project root. ' +
+        '[Sentry] No custom/my-instrument.mjs file found in project root. ' +
           'The Sentry instrumentation file will not be copied to the build output.',
       );
       expect(fs.promises.copyFile).not.toHaveBeenCalled();

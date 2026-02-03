@@ -1,4 +1,3 @@
-import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, ResolvedConfig } from 'vite';
@@ -56,13 +55,11 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
         // There seems to be no way for users to configure the server output dir for these plugins, so we just assume it's `dist/server`, which is the default output dir.
         serverOutputDir = path.resolve(resolvedConfig.root, 'dist', 'server');
       } else {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry TanStack Start] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
-              'The instrument.server.mjs file will not be copied to the build output automatically.',
-          );
-        });
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] Could not detect nitro, cloudflare, or netlify vite plugin. ' +
+            'The instrument.server.mjs file will not be copied to the build output automatically.',
+        );
       }
     },
 
@@ -77,13 +74,11 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
       try {
         await fs.promises.access(instrumentationSource, fs.constants.F_OK);
       } catch {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry TanStack Start] No ${instrumentationFileName} file found in project root. ` +
-              'The Sentry instrumentation file will not be copied to the build output.',
-          );
-        });
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] No ${instrumentationFileName} file found in project root. ` +
+            'The Sentry instrumentation file will not be copied to the build output.',
+        );
         return;
       }
 
@@ -93,15 +88,11 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
       try {
         await fs.promises.mkdir(serverOutputDir, { recursive: true });
         await fs.promises.copyFile(instrumentationSource, destination);
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry TanStack Start] Copied ${destinationFileName} to ${destination}`);
-        });
+        // eslint-disable-next-line no-console
+        console.log(`[Sentry] Copied ${destinationFileName} to ${destination}`);
       } catch (error) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(`[Sentry TanStack Start] Failed to copy ${destinationFileName} to build output.`, error);
-        });
+        // eslint-disable-next-line no-console
+        console.warn(`[Sentry] Failed to copy ${destinationFileName} to build output.`, error);
       }
     },
   };
