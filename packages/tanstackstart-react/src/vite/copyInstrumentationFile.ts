@@ -24,7 +24,7 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
 
     configResolved(resolvedConfig: ResolvedConfig) {
       const plugins = resolvedConfig.plugins || [];
-      const hasPlugin = (name: string): boolean => plugins.some(p => p.name === name);
+      const hasPlugin = (name: string): boolean => plugins.some(p => p.name?.includes(name));
 
       if (hasPlugin('nitro')) {
         // Nitro case: read server dir from the nitro environment config
