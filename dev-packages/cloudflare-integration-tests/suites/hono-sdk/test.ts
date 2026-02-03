@@ -1,4 +1,3 @@
-import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
