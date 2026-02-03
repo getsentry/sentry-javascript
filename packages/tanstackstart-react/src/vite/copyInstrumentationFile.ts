@@ -30,8 +30,9 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
       console.log('plugins', plugins);
 
       if (hasPlugin('nitro')) {
-        // Nitro case: read server dir from the nitro environment config
-        console.log('resolvedConfig', resolvedConfig);
+        // I don't think we have a way to access the nitro instance directly to get the server dir, so we need to access it via the vite environment config.
+        // This works because Nitro's Vite bundler sets the rollup output dir to the resolved serverDir:
+        // https://github.com/nitrojs/nitro/blob/1954b824597f6ac52fb8b064415cb85d0feda078/src/build/vite/bundler.ts#L35
         const environments = (resolvedConfig as { environments?: ViteEnvironments }).environments;
         const nitroEnv = environments?.nitro;
         if (nitroEnv) {
