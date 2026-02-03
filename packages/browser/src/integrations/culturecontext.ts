@@ -1,5 +1,6 @@
 import type { CultureContext, IntegrationFn } from '@sentry/core';
-import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'CultureContext';
 
@@ -40,11 +41,12 @@ export const cultureContextIntegration = defineIntegration(_cultureContextIntegr
  */
 function getCultureContext(): CultureContext | undefined {
   try {
-    if (typeof (GLOBAL_OBJ as { Intl?: typeof Intl }).Intl === 'undefined') {
+    const intl = (WINDOW as { Intl?: typeof Intl }).Intl;
+    if (!intl) {
       return undefined;
     }
 
-    const options = Intl.DateTimeFormat().resolvedOptions();
+    const options = intl.DateTimeFormat().resolvedOptions();
 
     return {
       locale: options.locale,
