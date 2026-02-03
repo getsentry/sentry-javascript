@@ -16,6 +16,8 @@ import type { Plugin, ResolvedConfig } from 'vite';
  */
 export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: string): Plugin {
   let serverOutputDir: string | undefined;
+  type RollupOutputDir = { dir?: string } | Array<{ dir?: string }>;
+  type ViteEnvironments = Record<string, { build?: { rollupOptions?: { output?: RollupOutputDir } } }>;
 
   return {
     name: 'sentry-tanstackstart-copy-instrumentation-file',
@@ -25,14 +27,12 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
     configResolved(resolvedConfig: ResolvedConfig) {
       const plugins = resolvedConfig.plugins || [];
       const hasPlugin = (name: string): boolean => plugins.some(p => p.name?.includes(name));
+      console.log('plugins', plugins);
 
       if (hasPlugin('nitro')) {
         // Nitro case: read server dir from the nitro environment config
-        // Vite 6 environment configs are not part of the public type definitions yet,
-        // so we need to access them via an index signature.
-        const environments = (resolvedConfig as Record<string, unknown>)['environments'] as
-          | Record<string, { build?: { rollupOptions?: { output?: { dir?: string } | Array<{ dir?: string }> } } }>
-          | undefined;
+        console.log('resolvedConfig', resolvedConfig);
+        const environments = (resolvedConfig as { environments?: ViteEnvironments }).environments;
         const nitroEnv = environments?.nitro;
         if (nitroEnv) {
           const rollupOutput = nitroEnv.build?.rollupOptions?.output;
