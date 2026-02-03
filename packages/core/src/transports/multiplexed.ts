@@ -79,14 +79,14 @@ function applyReleaseToMetrics(envelope: Envelope, release: string): void {
   forEachEnvelopeItem(envelope, (item, type) => {
     if (type === 'trace_metric') {
       const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
-      const containerItems = container?.items;
-      if (containerItems) {
-        for (const metric of containerItems) {
-          if (!metric.attributes) {
-            metric.attributes = {};
-          }
-          metric.attributes['sentry.release'] = { type: 'string', value: release };
-        }
+      if (container?.items) {
+        container.items = container.items.map(metric => ({
+          ...metric,
+          attributes: {
+            ...metric.attributes,
+            'sentry.release': { type: 'string', value: release },
+          },
+        }));
       }
     }
   });
@@ -104,7 +104,9 @@ function stripRoutingAttributesFromMetrics(envelope: Envelope): void {
       if (containerItems) {
         for (const metric of containerItems) {
           if (metric.attributes && MULTIPLEXED_METRIC_ROUTING_KEY in metric.attributes) {
-            delete metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY];
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...restAttributes } = metric.attributes;
+            metric.attributes = restAttributes;
           }
         }
       }
@@ -247,6 +249,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         .filter((t): t is [string, Transport] => !!t);
 
       stripRoutingAttributesFromMetrics(envelope);
+
       // If we have no transports to send to, use the fallback transport
       // Don't override the DSN in the header for the fallback transport. '' is falsy
       const transportsWithFallback: [string, Transport][] = transports.length ? transports : [['', fallbackTransport]];
