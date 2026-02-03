@@ -76,13 +76,17 @@ export { addAutoIpAddressToSession } from './utils/ipAddress';
 export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
+  getV2SpanLinks,
   spanToTraceHeader,
   spanToJSON,
+  spanToV2JSON,
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
+  getV2StatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,

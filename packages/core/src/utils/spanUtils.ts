@@ -1,4 +1,6 @@
 import { getAsyncContextStrategy } from '../asyncContext';
+import type { Attributes } from '../attributes';
+import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import {
@@ -12,7 +14,7 @@ import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
-import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
+import type { SerializedSpan, Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
@@ -106,6 +108,25 @@ export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] 
 }
 
 /**
+ * Converts the span links array to a flattened version with serialized attributes for V2 spans.
+ *
+ * If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function getV2SpanLinks(links?: SpanLink[]): SpanLinkJSON<Attributes>[] | undefined {
+  if (links?.length) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      ...(attributes && { attributes: serializeAttributes(attributes) }),
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
+}
+
+/**
  * Convert a span time input into a timestamp in seconds.
  */
 export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
@@ -187,6 +208,59 @@ export function spanToJSON(span: Span): SpanJSON {
   };
 }
 
+/**
+ * Convert a span to a SerializedSpan representation (V2 span format).
+ */
+export function spanToV2JSON(span: Span): SerializedSpan {
+  // Check if the span has a getSpanV2JSON method (added in SentrySpan in later PRs)
+  if (typeof (span as SentrySpan & { getSpanV2JSON?: () => SerializedSpan }).getSpanV2JSON === 'function') {
+    return (span as SentrySpan & { getSpanV2JSON: () => SerializedSpan }).getSpanV2JSON();
+  }
+
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
+
+  // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
+  if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
+    const { attributes, startTime, name, endTime, status, links } = span;
+
+    // In preparation for the next major of OpenTelemetry, we want to support
+    // looking up the parent span id according to the new API
+    // In OTel v1, the parent span id is accessed as `parentSpanId`
+    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
+    const parentSpanId =
+      'parentSpanId' in span
+        ? span.parentSpanId
+        : 'parentSpanContext' in span
+          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+          : undefined;
+
+    return {
+      name,
+      span_id,
+      trace_id,
+      parent_span_id: parentSpanId,
+      start_timestamp: spanTimeInputToSeconds(startTime),
+      end_timestamp: spanTimeInputToSeconds(endTime),
+      is_segment: span === INTERNAL_getSegmentSpan(span),
+      status: getV2StatusMessage(status),
+      attributes: serializeAttributes(attributes),
+      links: getV2SpanLinks(links),
+    };
+  }
+
+  // Finally, as a fallback, at least we have `spanContext()`....
+  // This should not actually happen in reality, but we need to handle it for type safety.
+  return {
+    span_id,
+    trace_id,
+    start_timestamp: 0,
+    name: '',
+    end_timestamp: 0,
+    status: 'ok',
+    is_segment: span === INTERNAL_getSegmentSpan(span),
+  };
+}
+
 function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
   const castSpan = span as Partial<OpenTelemetrySdkTraceBaseSpan>;
   return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
@@ -235,6 +309,13 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
   }
 
   return status.message || 'internal_error';
+}
+
+/**
+ * Convert the various statuses to the ones expected by Sentry for V2 spans ('ok' is default).
+ */
+export function getV2StatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
+  return !status || status.code === SPAN_STATUS_OK || status.code === SPAN_STATUS_UNSET ? 'ok' : 'error';
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
@@ -298,7 +379,12 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
 /**
  * Returns the root span of a given span.
  */
-export function getRootSpan(span: SpanWithPotentialChildren): Span {
+export const getRootSpan = INTERNAL_getSegmentSpan;
+
+/**
+ * Returns the segment span of a given span.
+ */
+export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
   return span[ROOT_SPAN_FIELD] || span;
 }
 
