@@ -10,9 +10,6 @@ vi.mock('fs', () => ({
     mkdir: vi.fn(),
     copyFile: vi.fn(),
   },
-  constants: {
-    F_OK: 0,
-  },
 }));
 
 type AnyFunction = (...args: unknown[]) => unknown;
@@ -53,29 +50,6 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
       // Verify by calling closeBundle - it should attempt to access the file
-      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
-      (plugin.closeBundle as AnyFunction)();
-
-      expect(fs.promises.access).toHaveBeenCalled();
-    });
-
-    it('detects Nitro environment with array rollup output', () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: [{ dir: '/project/.output/server' }],
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
-
-      (plugin.configResolved as AnyFunction)(resolvedConfig);
-
       vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
       (plugin.closeBundle as AnyFunction)();
 
@@ -175,10 +149,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       await (plugin.closeBundle as AnyFunction)();
 
-      expect(fs.promises.access).toHaveBeenCalledWith(
-        path.resolve(process.cwd(), 'instrument.server.mjs'),
-        fs.constants.F_OK,
-      );
+      expect(fs.promises.access).toHaveBeenCalledWith(path.resolve(process.cwd(), 'instrument.server.mjs'));
       expect(fs.promises.mkdir).toHaveBeenCalledWith('/project/.output/server', { recursive: true });
       expect(fs.promises.copyFile).toHaveBeenCalledWith(
         path.resolve(process.cwd(), 'instrument.server.mjs'),
@@ -259,10 +230,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       await (customPlugin.closeBundle as AnyFunction)();
 
-      expect(fs.promises.access).toHaveBeenCalledWith(
-        path.resolve(process.cwd(), 'custom/path/my-instrument.mjs'),
-        fs.constants.F_OK,
-      );
+      expect(fs.promises.access).toHaveBeenCalledWith(path.resolve(process.cwd(), 'custom/path/my-instrument.mjs'));
       expect(fs.promises.copyFile).toHaveBeenCalledWith(
         path.resolve(process.cwd(), 'custom/path/my-instrument.mjs'),
         path.resolve('/project/.output/server', 'my-instrument.mjs'),

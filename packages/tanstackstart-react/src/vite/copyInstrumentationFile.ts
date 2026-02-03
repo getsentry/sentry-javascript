@@ -14,13 +14,15 @@ interface CopyInstrumentationFilePluginOptions {
  * By default, copies `instrument.server.mjs` from the project root.
  * A custom file path can be provided via `instrumentationFilePath`.
  *
- * Supports:
- * - Nitro deployments (reads output dir from the Nitro Vite environment config)
- * - Cloudflare/Netlify deployments (outputs to `dist/server`)
+ * The server output directory can be configured via `serverOutputDir`.
+ * By default, it will be auto-detected based on the vite plugin being used.
+ *
+ * For nitro deployments, we use the Nitro Vite environment config to get the server output directory.
+ * For cloudflare and netlify deployments, we assume the server output directory is `dist/server`, which is the default output directory for these plugins.
  */
 export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationFilePluginOptions): Plugin {
   let serverOutputDir: string | undefined;
-  type RollupOutputDir = { dir?: string } | Array<{ dir?: string }>;
+  type RollupOutputDir = { dir?: string };
   type ViteEnvironments = Record<string, { build?: { rollupOptions?: { output?: RollupOutputDir } } }>;
 
   return {
@@ -39,14 +41,14 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
       const hasPlugin = (name: string): boolean => plugins.some(p => p.name?.includes(name));
 
       if (hasPlugin('nitro')) {
-        // I don't think we have a way to access the nitro instance directly to get the server dir, so we need to access it via the vite environment config.
+        // There seems to be no way to access the nitro instance directly to get the server dir, so we need to access it via the vite environment config.
         // This works because Nitro's Vite bundler sets the rollup output dir to the resolved serverDir:
         // https://github.com/nitrojs/nitro/blob/1954b824597f6ac52fb8b064415cb85d0feda078/src/build/vite/bundler.ts#L35
         const environments = (resolvedConfig as { environments?: ViteEnvironments }).environments;
         const nitroEnv = environments?.nitro;
         if (nitroEnv) {
           const rollupOutput = nitroEnv.build?.rollupOptions?.output;
-          const dir = Array.isArray(rollupOutput) ? rollupOutput[0]?.dir : rollupOutput?.dir;
+          const dir = rollupOutput?.dir;
           if (dir) {
             serverOutputDir = dir;
           }
@@ -64,6 +66,7 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
     },
 
     async closeBundle() {
+      // Auto-detection failed, so we don't copy the instrumentation file.
       if (!serverOutputDir) {
         return;
       }
@@ -71,8 +74,9 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
       const instrumentationFileName = options?.instrumentationFilePath || 'instrument.server.mjs';
       const instrumentationSource = path.resolve(process.cwd(), instrumentationFileName);
 
+      // Check if the instrumentation file exists.
       try {
-        await fs.promises.access(instrumentationSource, fs.constants.F_OK);
+        await fs.promises.access(instrumentationSource);
       } catch {
         // eslint-disable-next-line no-console
         console.warn(
@@ -82,6 +86,7 @@ export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationF
         return;
       }
 
+      // Copy the instrumentation file to the server output directory.
       const destinationFileName = path.basename(instrumentationFileName);
       const destination = path.resolve(serverOutputDir, destinationFileName);
 
