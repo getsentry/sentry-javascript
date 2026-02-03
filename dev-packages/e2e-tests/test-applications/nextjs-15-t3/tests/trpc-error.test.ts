@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should capture error with trpc context', async ({ page }) => {
-  const errorEventPromise = waitForError('nextjs-t3', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-15-t3', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Error thrown in trpc router';
   });
 
@@ -27,7 +27,7 @@ test('should capture error with trpc context', async ({ page }) => {
 });
 
 test('should create transaction with trpc input for error', async ({ page }) => {
-  const trpcTransactionPromise = waitForTransaction('nextjs-t3', async transactionEvent => {
+  const trpcTransactionPromise = waitForTransaction('nextjs-15-t3', async transactionEvent => {
     return transactionEvent?.transaction === 'POST /api/trpc/[trpc]';
   });
 

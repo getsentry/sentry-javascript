@@ -22,11 +22,11 @@ test('Sends spans for multiple middlewares and verifies they are siblings under 
   // Find both middleware spans
   const serverFnMiddlewareSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
-      span.description === 'serverFnMiddleware' && span.origin === 'manual.middleware.tanstackstart',
+      span.description === 'serverFnMiddleware' && span.origin === 'auto.middleware.tanstackstart',
   );
   const globalFunctionMiddlewareSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
-      span.description === 'globalFunctionMiddleware' && span.origin === 'manual.middleware.tanstackstart',
+      span.description === 'globalFunctionMiddleware' && span.origin === 'auto.middleware.tanstackstart',
   );
 
   // Verify both middleware spans exist with expected properties
@@ -34,7 +34,7 @@ test('Sends spans for multiple middlewares and verifies they are siblings under 
     expect.objectContaining({
       description: 'serverFnMiddleware',
       op: 'middleware.tanstackstart',
-      origin: 'manual.middleware.tanstackstart',
+      origin: 'auto.middleware.tanstackstart',
       status: 'ok',
     }),
   );
@@ -42,7 +42,7 @@ test('Sends spans for multiple middlewares and verifies they are siblings under 
     expect.objectContaining({
       description: 'globalFunctionMiddleware',
       op: 'middleware.tanstackstart',
-      origin: 'manual.middleware.tanstackstart',
+      origin: 'auto.middleware.tanstackstart',
       status: 'ok',
     }),
   );
@@ -73,7 +73,7 @@ test('Sends spans for global function middleware', async ({ page }) => {
       expect.objectContaining({
         description: 'globalFunctionMiddleware',
         op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
+        origin: 'auto.middleware.tanstackstart',
         status: 'ok',
       }),
     ]),
@@ -100,7 +100,7 @@ test('Sends spans for global request middleware', async ({ page }) => {
       expect.objectContaining({
         description: 'globalRequestMiddleware',
         op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
+        origin: 'auto.middleware.tanstackstart',
         status: 'ok',
       }),
     ]),
@@ -127,7 +127,7 @@ test('Sends spans for server route request middleware', async ({ page }) => {
       expect.objectContaining({
         description: 'serverRouteRequestMiddleware',
         op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
+        origin: 'auto.middleware.tanstackstart',
         status: 'ok',
       }),
     ]),
@@ -156,7 +156,7 @@ test('Sends span for middleware that returns early without calling next()', asyn
       expect.objectContaining({
         description: 'earlyReturnMiddleware',
         op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
+        origin: 'auto.middleware.tanstackstart',
         status: 'ok',
       }),
     ]),
@@ -185,7 +185,7 @@ test('Sends span for middleware that throws an error', async ({ page }) => {
       expect.objectContaining({
         description: 'errorMiddleware',
         op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
+        origin: 'auto.middleware.tanstackstart',
       }),
     ]),
   );

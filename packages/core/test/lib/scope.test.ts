@@ -10,6 +10,7 @@ import {
 import { Scope } from '../../src/scope';
 import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
 import type { Event } from '../../src/types-hoist/event';
+import { uuid4 } from '../../src/utils/misc';
 import { applyScopeDataToEvent } from '../../src/utils/scopeData';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { clearGlobalScope } from '../testutils';
@@ -1008,6 +1009,54 @@ describe('Scope', () => {
         expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
         scope,
       );
+    });
+
+    it('should return event_id from event object when provided', () => {
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const customEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: customEventId });
+
+      expect(eventId).toBe(customEventId);
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: customEventId }),
+        expect.objectContaining({ event_id: customEventId }),
+        scope,
+      );
+    });
+
+    it('should prefer event.event_id over hint.event_id', () => {
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const eventEventId = uuid4();
+      const hintEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: eventEventId }, { event_id: hintEventId });
+
+      expect(eventId).toBe(eventEventId);
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: eventEventId }),
+        expect.objectContaining({ event_id: eventEventId }),
+        scope,
+      );
+    });
+
+    it('should return event_id from event object when no client is configured', () => {
+      const scope = new Scope();
+
+      const customEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: customEventId });
+
+      expect(eventId).toBe(customEventId);
     });
   });
 

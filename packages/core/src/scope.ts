@@ -755,7 +755,7 @@ export class Scope {
    * @returns {string} The id of the captured event.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const eventId = hint?.event_id || uuid4();
+    const eventId = event.event_id || hint?.event_id || uuid4();
 
     if (!this._client) {
       DEBUG_BUILD && debug.warn('No client configured on scope - will not capture event!');
