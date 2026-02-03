@@ -238,6 +238,20 @@ describe('serverTimingTracePropagation', () => {
       expect(result.headers.get('Server-Timing')).toBe('cache;dur=100, sentry-trace;desc="test"');
     });
 
+    it('skips injection when sentry-trace already exists in header', () => {
+      const existingHeader = 'sentry-trace;desc="existing-trace-id-1234567890123456-1", baggage;desc="existing"';
+      const mockResponse = new Response('test body', {
+        status: 200,
+        headers: new Headers({ 'Server-Timing': existingHeader }),
+      });
+
+      const result = injectServerTimingHeaderValue(mockResponse, 'sentry-trace;desc="new-trace"');
+
+      // Should return original response unchanged
+      expect(result).toBe(mockResponse);
+      expect(result.headers.get('Server-Timing')).toBe(existingHeader);
+    });
+
     it('preserves response body', async () => {
       const mockResponse = new Response('test body content', {
         status: 200,

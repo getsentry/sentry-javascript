@@ -114,6 +114,12 @@ export function injectServerTimingHeaderValue(response: Response, serverTimingVa
     const headers = new Headers(response.headers);
     const existing = headers.get('Server-Timing');
 
+    // Skip injection if Sentry trace data already exists to prevent duplicates
+    if (existing?.includes('sentry-trace')) {
+      DEBUG_BUILD && debug.log('Server-Timing header already contains sentry-trace, skipping injection');
+      return response;
+    }
+
     headers.set('Server-Timing', existing ? `${existing}, ${serverTimingValue}` : serverTimingValue);
 
     return new Response(response.body, {
