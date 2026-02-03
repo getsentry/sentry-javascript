@@ -12,6 +12,7 @@ import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
+import { cultureContextIntegration } from './integrations/culturecontext';
 import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
@@ -39,6 +40,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    cultureContextIntegration(),
     browserSessionIntegration(),
   ];
 }
