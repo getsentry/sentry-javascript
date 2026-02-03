@@ -235,6 +235,11 @@ export const GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed';
 export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed_many';
 
 /**
+ * The span operation name for reranking
+ */
+export const GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE = 'gen_ai.rerank';
+
+/**
  * The span operation name for executing a tool
  */
 export const GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE = 'gen_ai.execute_tool';
