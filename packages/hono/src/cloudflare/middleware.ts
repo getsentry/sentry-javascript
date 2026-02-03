@@ -1,5 +1,5 @@
 import { withSentry } from '@sentry/cloudflare';
-import { type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
 import type { Context, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 
@@ -11,6 +11,8 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
   const isDebug = options.debug;
 
   isDebug && debug.log('Initialized Sentry Hono middleware (Cloudflare)');
+
+  applySdkMetadata(options, 'hono');
 
   withSentry(() => options, app);
 

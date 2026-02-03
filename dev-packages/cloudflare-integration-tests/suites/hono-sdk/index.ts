@@ -13,10 +13,8 @@ app.use(
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
     debug: true,
-    // todo - what is going on with this
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    integrations: integrations => integrations.filter(integration => integration.name !== 'Hono'),
+    // fixme - check out what removing this integration changes
+    // integrations: integrations => integrations.filter(integration => integration.name !== 'Hono'),
   }),
 );
 

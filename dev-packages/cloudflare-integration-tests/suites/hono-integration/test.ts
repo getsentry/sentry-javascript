@@ -28,7 +28,7 @@ it('Hono app captures errors', async ({ signal }) => {
             url: expect.any(String),
           },
         },
-        true,
+        { includeSampleRand: true },
       ),
     )
     // Second envelope: transaction event

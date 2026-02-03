@@ -1,45 +1,36 @@
 import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
-import { SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
+import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
 
 it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const [, envelopeItems] = envelope;
-      const [itemHeader, itemPayload] = envelopeItems[0];
-
-      expect(itemHeader.type).toBe('event');
-
-      // todo: check with function eventEnvelope
-
-      // Validate error event structure
-      expect(itemPayload).toMatchObject({
-        level: 'error',
-        platform: 'javascript',
-        transaction: 'GET /error',
-        // fixme: should be hono
-        sdk: { name: 'sentry.javascript.cloudflare', version: SDK_VERSION },
-        // fixme: should contain trace
-        // trace: expect.objectContaining({ trace_id: UUID_MATCHER }),
-        exception: {
-          values: expect.arrayContaining([
-            expect.objectContaining({
-              type: 'Error',
-              value: 'Test error from Hono app',
-              mechanism: expect.objectContaining({
-                type: 'generic', // fixme: should be 'auto.faas.hono.error_handler'
-                handled: true, // fixme: should be false
-              }),
-            }),
-          ]),
+    .expect(
+      eventEnvelope(
+        {
+          level: 'error',
+          transaction: 'GET /error',
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'Test error from Hono app',
+                stacktrace: {
+                  frames: expect.any(Array),
+                },
+                mechanism: { type: 'auto.faas.hono.error_handler', handled: false },
+              },
+            ],
+          },
+          request: {
+            headers: expect.any(Object),
+            method: 'GET',
+            url: expect.any(String),
+          },
         },
-        request: expect.objectContaining({
-          method: 'GET',
-          url: expect.stringContaining('/error'),
-        }),
-      });
-    })
+        { includeSampleRand: true, sdk: 'hono' },
+      ),
+    )
     .expect(envelope => {
       const [, envelopeItems] = envelope;
       const [itemHeader, itemPayload] = envelopeItems[0];
