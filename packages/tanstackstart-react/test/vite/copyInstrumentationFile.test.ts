@@ -139,6 +139,65 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
       warnSpy.mockRestore();
     });
+
+    it('uses serverOutputDir option when provided, bypassing auto-detection', () => {
+      const customPlugin = makeCopyInstrumentationFilePlugin({ serverOutputDir: 'build/custom-server' });
+
+      const resolvedConfig = {
+        root: '/project',
+        plugins: [{ name: 'some-other-plugin' }],
+      } as unknown as ResolvedConfig;
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      (customPlugin.configResolved as AnyFunction)(resolvedConfig);
+
+      // No warning should be logged since serverOutputDir is provided
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
+      (customPlugin.closeBundle as AnyFunction)();
+
+      // Should attempt to access the file (indicating serverOutputDir was set)
+      expect(fs.promises.access).toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it('serverOutputDir option overrides auto-detected Nitro output dir', async () => {
+      const customPlugin = makeCopyInstrumentationFilePlugin({ serverOutputDir: 'custom/output' });
+
+      const resolvedConfig = {
+        root: '/project',
+        plugins: [{ name: 'nitro' }],
+        environments: {
+          nitro: {
+            build: {
+              rollupOptions: {
+                output: {
+                  dir: '/project/.output/server',
+                },
+              },
+            },
+          },
+        },
+      } as unknown as ResolvedConfig;
+
+      (customPlugin.configResolved as AnyFunction)(resolvedConfig);
+
+      vi.mocked(fs.promises.access).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.mkdir).mockResolvedValueOnce(undefined);
+      vi.mocked(fs.promises.copyFile).mockResolvedValueOnce(undefined);
+
+      await (customPlugin.closeBundle as AnyFunction)();
+
+      // Should use the custom serverOutputDir, not Nitro's auto-detected dir
+      expect(fs.promises.mkdir).toHaveBeenCalledWith(path.resolve('/project', 'custom/output'), { recursive: true });
+      expect(fs.promises.copyFile).toHaveBeenCalledWith(
+        path.resolve(process.cwd(), 'instrument.server.mjs'),
+        path.resolve('/project', 'custom/output', 'instrument.server.mjs'),
+      );
+    });
   });
 
   describe('closeBundle', () => {
@@ -265,7 +324,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     });
 
     it('uses custom instrumentation file path when provided', async () => {
-      const customPlugin = makeCopyInstrumentationFilePlugin('custom/path/my-instrument.mjs');
+      const customPlugin = makeCopyInstrumentationFilePlugin({ instrumentationFilePath: 'custom/path/my-instrument.mjs' });
 
       const resolvedConfig = {
         root: '/project',
@@ -302,7 +361,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     });
 
     it('warns with custom file name when custom instrumentation file is not found', async () => {
-      const customPlugin = makeCopyInstrumentationFilePlugin('custom/my-instrument.mjs');
+      const customPlugin = makeCopyInstrumentationFilePlugin({ instrumentationFilePath: 'custom/my-instrument.mjs' });
 
       const resolvedConfig = {
         root: '/project',

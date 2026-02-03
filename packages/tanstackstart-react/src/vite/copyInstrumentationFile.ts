@@ -3,6 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, ResolvedConfig } from 'vite';
 
+interface CopyInstrumentationFilePluginOptions {
+  instrumentationFilePath?: string;
+  serverOutputDir?: string;
+}
+
 /**
  * Creates a Vite plugin that copies the user's instrumentation file
  * to the server build output directory after the build completes.
@@ -14,7 +19,7 @@ import type { Plugin, ResolvedConfig } from 'vite';
  * - Nitro deployments (reads output dir from the Nitro Vite environment config)
  * - Cloudflare/Netlify deployments (outputs to `dist/server`)
  */
-export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: string): Plugin {
+export function makeCopyInstrumentationFilePlugin(options?: CopyInstrumentationFilePluginOptions): Plugin {
   let serverOutputDir: string | undefined;
   type RollupOutputDir = { dir?: string } | Array<{ dir?: string }>;
   type ViteEnvironments = Record<string, { build?: { rollupOptions?: { output?: RollupOutputDir } } }>;
@@ -25,9 +30,14 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
     enforce: 'post',
 
     configResolved(resolvedConfig: ResolvedConfig) {
+      // If user provided serverOutputDir, use it directly and skip auto-detection
+      if (options?.serverOutputDir) {
+        serverOutputDir = path.resolve(resolvedConfig.root, options.serverOutputDir);
+        return;
+      }
+
       const plugins = resolvedConfig.plugins || [];
       const hasPlugin = (name: string): boolean => plugins.some(p => p.name?.includes(name));
-      console.log('plugins', plugins);
 
       if (hasPlugin('nitro')) {
         // I don't think we have a way to access the nitro instance directly to get the server dir, so we need to access it via the vite environment config.
@@ -43,6 +53,7 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
           }
         }
       } else if (hasPlugin('cloudflare') || hasPlugin('netlify')) {
+        // There seems to be no way for users to configure the server output dir for these plugins, so we just assume it's `dist/server`, which is the default output dir.
         serverOutputDir = path.resolve(resolvedConfig.root, 'dist', 'server');
       } else {
         consoleSandbox(() => {
@@ -60,7 +71,7 @@ export function makeCopyInstrumentationFilePlugin(instrumentationFilePath?: stri
         return;
       }
 
-      const instrumentationFileName = instrumentationFilePath || 'instrument.server.mjs';
+      const instrumentationFileName = options?.instrumentationFilePath || 'instrument.server.mjs';
       const instrumentationSource = path.resolve(process.cwd(), instrumentationFileName);
 
       try {
