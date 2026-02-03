@@ -27,15 +27,15 @@ test('should create AI spans including rerank with correct attributes', async ({
   expect(rerankSpans.length).toBeGreaterThanOrEqual(1);
 
   // Verify generateText span has expected attributes
-  const generatePipelineSpan = aiPipelineSpans.find(
-    span => span.data?.['vercel.ai.prompt']?.includes('Test prompt for AI SDK v6'),
+  const generatePipelineSpan = aiPipelineSpans.find(span =>
+    span.data?.['vercel.ai.prompt']?.includes('Test prompt for AI SDK v6'),
   );
   expect(generatePipelineSpan).toBeDefined();
   expect(generatePipelineSpan?.data?.['gen_ai.response.text']).toContain('Generated text from v6!');
 
   // Verify rerank span has expected attributes
-  const rerankPipelineSpan = aiPipelineSpans.find(
-    span => span.data?.['gen_ai.request.rerank.query']?.includes('search query for reranking'),
+  const rerankPipelineSpan = aiPipelineSpans.find(span =>
+    span.data?.['gen_ai.request.rerank.query']?.includes('search query for reranking'),
   );
   expect(rerankPipelineSpan).toBeDefined();
   expect(rerankPipelineSpan?.data?.['gen_ai.request.rerank.documents_count']).toBe(3);
