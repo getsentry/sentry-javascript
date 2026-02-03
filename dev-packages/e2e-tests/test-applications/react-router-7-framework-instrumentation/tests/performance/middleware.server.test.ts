@@ -23,8 +23,7 @@ interface Span {
   origin?: string;
 }
 
-// Note: React Router middleware instrumentation now works in Framework Mode.
-// Previously this was a known limitation (see: https://github.com/remix-run/react-router/discussions/12950)
+// Middleware names require ESM loader hook on Node 20.19+/22.12+ - see instrument.mjs for setup.
 test.describe('server - instrumentation API middleware', () => {
   test('should instrument server middleware with instrumentation API origin', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
@@ -64,24 +63,27 @@ test.describe('server - instrumentation API middleware', () => {
       (span: Span) => span.data?.['sentry.op'] === 'function.react_router.middleware',
     );
 
+    expect(middlewareSpan).toBeDefined();
     expect(middlewareSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      data: {
+      data: expect.objectContaining({
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/with-middleware',
         'react_router.route.pattern': '/performance/with-middleware',
-        'react_router.middleware.name': 'authMiddleware',
         'react_router.middleware.index': 0,
-      },
-      description: 'middleware authMiddleware',
+      }),
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       op: 'function.react_router.middleware',
       origin: 'auto.function.react_router.instrumentation_api',
     });
+
+    // Middleware name is available via OTEL patching of createRequestHandler
+    expect(middlewareSpan!.data?.['react_router.middleware.name']).toBe('authMiddleware');
+    expect(middlewareSpan!.description).toBe('middleware authMiddleware');
   });
 
   test('should have middleware span run before loader span', async ({ page }) => {
@@ -108,7 +110,7 @@ test.describe('server - instrumentation API middleware', () => {
     expect(middlewareSpan!.start_timestamp).toBeLessThanOrEqual(loaderSpan!.start_timestamp!);
   });
 
-  test('should track multiple middlewares with correct indices and names', async ({ page }) => {
+  test('should track multiple middlewares with correct indices', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance/multi-middleware';
     });
@@ -134,47 +136,47 @@ test.describe('server - instrumentation API middleware', () => {
         (a.data?.['react_router.middleware.index'] ?? 0) - (b.data?.['react_router.middleware.index'] ?? 0),
     );
 
-    // First middleware: multiAuthMiddleware (index 0)
+    // First middleware (index 0)
     expect(sortedSpans[0]).toMatchObject({
       data: expect.objectContaining({
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/multi-middleware',
         'react_router.route.pattern': '/performance/multi-middleware',
-        'react_router.middleware.name': 'multiAuthMiddleware',
         'react_router.middleware.index': 0,
       }),
-      description: 'middleware multiAuthMiddleware',
     });
 
-    // Second middleware: multiLoggingMiddleware (index 1)
+    // Second middleware (index 1)
     expect(sortedSpans[1]).toMatchObject({
       data: expect.objectContaining({
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/multi-middleware',
         'react_router.route.pattern': '/performance/multi-middleware',
-        'react_router.middleware.name': 'multiLoggingMiddleware',
         'react_router.middleware.index': 1,
       }),
-      description: 'middleware multiLoggingMiddleware',
     });
 
-    // Third middleware: multiValidationMiddleware (index 2)
+    // Third middleware (index 2)
     expect(sortedSpans[2]).toMatchObject({
       data: expect.objectContaining({
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/multi-middleware',
         'react_router.route.pattern': '/performance/multi-middleware',
-        'react_router.middleware.name': 'multiValidationMiddleware',
         'react_router.middleware.index': 2,
       }),
-      description: 'middleware multiValidationMiddleware',
     });
 
     // Verify execution order: middleware spans should be sequential
     expect(sortedSpans[0]!.start_timestamp).toBeLessThanOrEqual(sortedSpans[1]!.start_timestamp!);
     expect(sortedSpans[1]!.start_timestamp).toBeLessThanOrEqual(sortedSpans[2]!.start_timestamp!);
+
+    // Verify middleware names are correctly resolved via OTEL patching
+    expect(sortedSpans[0]!.data?.['react_router.middleware.name']).toBe('multiAuthMiddleware');
+    expect(sortedSpans[1]!.data?.['react_router.middleware.name']).toBe('multiLoggingMiddleware');
+    expect(sortedSpans[2]!.data?.['react_router.middleware.name']).toBe('multiValidationMiddleware');
   });
 
+  // Note: Remaining tests focus on index tracking. Name resolution is verified above.
   test('should isolate middleware indices between different routes', async ({ page }) => {
     // First visit the route with different middleware
     const txPromise1 = waitForTransaction(APP_NAME, async transactionEvent => {
@@ -199,10 +201,8 @@ test.describe('server - instrumentation API middleware', () => {
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/other-middleware',
         'react_router.route.pattern': '/performance/other-middleware',
-        'react_router.middleware.name': 'rateLimitMiddleware',
         'react_router.middleware.index': 0,
       }),
-      description: 'middleware rateLimitMiddleware',
     });
 
     // Now visit the multi-middleware route
@@ -253,9 +253,5 @@ test.describe('server - instrumentation API middleware', () => {
     // Indices should be 0, 1, 2 (reset for new request)
     const indices = middlewareSpans!.map((span: Span) => span.data?.['react_router.middleware.index']).sort();
     expect(indices).toEqual([0, 1, 2]);
-
-    // Names should still be correct
-    const names = middlewareSpans!.map((span: Span) => span.data?.['react_router.middleware.name']).sort();
-    expect(names).toEqual(['multiAuthMiddleware', 'multiLoggingMiddleware', 'multiValidationMiddleware']);
   });
 });

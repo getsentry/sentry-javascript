@@ -23,14 +23,10 @@ export const reactRouterServerIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // Always install the OTEL instrumentation to capture the ServerBuild reference.
-      // This is needed for middleware name resolution regardless of Node version.
-      // When the instrumentation API is active, the OTEL wrapper captures the
-      // ServerBuild but returns the original handler without per-request wrapping.
-      //
-      // Note: On Node 20.19+ and 22.12+, ESM module patching requires the
-      // --import @sentry/node/import flag. Without it, middleware names will
-      // gracefully fall back to using routeId.
+      // Install OTEL instrumentation to capture ServerBuild for middleware name resolution.
+      // When instrumentation API is active, the wrapper captures ServerBuild but skips
+      // per-request wrapping. On Node 20.19+/22.12+, users must import
+      // '@sentry/react-router/loader' first for ESM patching; otherwise names fall back to routeId.
       instrumentReactRouterServer();
     },
     processEvent(event) {
