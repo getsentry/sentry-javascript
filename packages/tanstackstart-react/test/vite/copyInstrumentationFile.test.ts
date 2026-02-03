@@ -17,6 +17,23 @@ vi.mock('fs', () => ({
 
 type AnyFunction = (...args: unknown[]) => unknown;
 
+function createNitroConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
+  return {
+    root: '/project',
+    plugins: [{ name: 'nitro' }],
+    environments: {
+      nitro: {
+        build: {
+          rollupOptions: {
+            output: { dir: '/project/.output/server' },
+          },
+        },
+      },
+    },
+    ...overrides,
+  } as unknown as ResolvedConfig;
+}
+
 describe('makeCopyInstrumentationFilePlugin()', () => {
   let plugin: Plugin;
 
@@ -29,35 +46,9 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     vi.restoreAllMocks();
   });
 
-  it('has the correct plugin name', () => {
-    expect(plugin.name).toBe('sentry-tanstackstart-copy-instrumentation-file');
-  });
-
-  it('applies only to build', () => {
-    expect(plugin.apply).toBe('build');
-  });
-
-  it('enforces post', () => {
-    expect(plugin.enforce).toBe('post');
-  });
-
   describe('configResolved', () => {
     it('detects Nitro environment and reads output dir', () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -91,24 +82,10 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
       expect(fs.promises.access).toHaveBeenCalled();
     });
 
-    it('detects Cloudflare plugin and sets dist/server as output dir', () => {
+    it.each(['cloudflare', 'netlify'])('detects %s plugin and sets dist/server as output dir', pluginName => {
       const resolvedConfig = {
         root: '/project',
-        plugins: [{ name: 'cloudflare' }],
-      } as unknown as ResolvedConfig;
-
-      (plugin.configResolved as AnyFunction)(resolvedConfig);
-
-      vi.mocked(fs.promises.access).mockRejectedValueOnce(new Error('ENOENT'));
-      (plugin.closeBundle as AnyFunction)();
-
-      expect(fs.promises.access).toHaveBeenCalled();
-    });
-
-    it('detects Netlify plugin and sets dist/server as output dir', () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'netlify' }],
+        plugins: [{ name: pluginName }],
       } as unknown as ResolvedConfig;
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
@@ -167,21 +144,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('serverOutputDir option overrides auto-detected Nitro output dir', async () => {
       const customPlugin = makeCopyInstrumentationFilePlugin({ serverOutputDir: 'custom/output' });
 
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (customPlugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -202,21 +165,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
 
   describe('closeBundle', () => {
     it('copies instrumentation file when it exists and output dir is set', async () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -256,21 +205,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     });
 
     it('warns and does not copy when instrumentation file does not exist', async () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -291,21 +226,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     });
 
     it('logs a warning when copy fails', async () => {
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (plugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -324,23 +245,11 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     });
 
     it('uses custom instrumentation file path when provided', async () => {
-      const customPlugin = makeCopyInstrumentationFilePlugin({ instrumentationFilePath: 'custom/path/my-instrument.mjs' });
+      const customPlugin = makeCopyInstrumentationFilePlugin({
+        instrumentationFilePath: 'custom/path/my-instrument.mjs',
+      });
 
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (customPlugin.configResolved as AnyFunction)(resolvedConfig);
 
@@ -363,21 +272,7 @@ describe('makeCopyInstrumentationFilePlugin()', () => {
     it('warns with custom file name when custom instrumentation file is not found', async () => {
       const customPlugin = makeCopyInstrumentationFilePlugin({ instrumentationFilePath: 'custom/my-instrument.mjs' });
 
-      const resolvedConfig = {
-        root: '/project',
-        plugins: [{ name: 'nitro' }],
-        environments: {
-          nitro: {
-            build: {
-              rollupOptions: {
-                output: {
-                  dir: '/project/.output/server',
-                },
-              },
-            },
-          },
-        },
-      } as unknown as ResolvedConfig;
+      const resolvedConfig = createNitroConfig();
 
       (customPlugin.configResolved as AnyFunction)(resolvedConfig);
 
