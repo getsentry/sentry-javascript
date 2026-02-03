@@ -1,5 +1,5 @@
 import { getAsyncContextStrategy } from '../asyncContext';
-import type { Attributes } from '../attributes';
+import type { Attributes, RawAttributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
@@ -14,7 +14,15 @@ import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
-import type { SerializedSpan, Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
+import type {
+  SerializedSpan,
+  Span,
+  SpanAttributes,
+  SpanJSON,
+  SpanOrigin,
+  SpanTimeInput,
+  StreamedSpanJSON,
+} from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
@@ -112,13 +120,15 @@ export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] 
  *
  * If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
  */
-export function getV2SpanLinks(links?: SpanLink[]): SpanLinkJSON<Attributes>[] | undefined {
+export function getStreamedSpanLinks(
+  links?: SpanLink[],
+): SpanLinkJSON<RawAttributes<Record<string, unknown>>>[] | undefined {
   if (links?.length) {
     return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
       span_id: spanId,
       trace_id: traceId,
       sampled: traceFlags === TRACE_FLAG_SAMPLED,
-      ...(attributes && { attributes: serializeAttributes(attributes) }),
+      attributes,
       ...restContext,
     }));
   } else {
@@ -209,12 +219,12 @@ export function spanToJSON(span: Span): SpanJSON {
 }
 
 /**
- * Convert a span to a SerializedSpan representation (V2 span format).
+ * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
  */
-export function spanToV2JSON(span: Span): SerializedSpan {
+export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
   // Check if the span has a getSpanV2JSON method (added in SentrySpan in later PRs)
-  if (typeof (span as SentrySpan & { getSpanV2JSON?: () => SerializedSpan }).getSpanV2JSON === 'function') {
-    return (span as SentrySpan & { getSpanV2JSON: () => SerializedSpan }).getSpanV2JSON();
+  if (typeof (span as SentrySpan & { getSpanV2JSON?: () => SerializedSpan }).getStreamedSpanJSON === 'function') {
+    return (span as SentrySpan & { getSpanV2JSON: () => SerializedSpan }).getStreamedSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
@@ -242,9 +252,9 @@ export function spanToV2JSON(span: Span): SerializedSpan {
       start_timestamp: spanTimeInputToSeconds(startTime),
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
-      status: getV2StatusMessage(status),
-      attributes: serializeAttributes(attributes),
-      links: getV2SpanLinks(links),
+      status: getSimpleStatusMessage(status),
+      attributes,
+      links: getStreamedSpanLinks(links),
     };
   }
 
@@ -258,6 +268,22 @@ export function spanToV2JSON(span: Span): SerializedSpan {
     end_timestamp: 0,
     status: 'ok',
     is_segment: span === INTERNAL_getSegmentSpan(span),
+  };
+}
+
+/**
+ * Converts a {@link StreamedSpanJSON} to a {@link SerializedSpan}.
+ * This is the final serialized span format that is sent to Sentry.
+ * The returned serilaized spans must not be consumed by users or SDK integrations.
+ */
+export function spanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedSpan {
+  return {
+    ...spanJson,
+    attributes: serializeAttributes(spanJson.attributes),
+    links: spanJson.links?.map(link => ({
+      ...link,
+      attributes: serializeAttributes(link.attributes),
+    })),
   };
 }
 
@@ -312,9 +338,9 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
 }
 
 /**
- * Convert the various statuses to the ones expected by Sentry for V2 spans ('ok' is default).
+ * Convert the various statuses to the simple onces expected by Sentry for steamed spans ('ok' is default).
  */
-export function getV2StatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
+export function getSimpleStatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
   return !status || status.code === SPAN_STATUS_OK || status.code === SPAN_STATUS_UNSET ? 'ok' : 'error';
 }
 

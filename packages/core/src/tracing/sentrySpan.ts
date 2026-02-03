@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -21,6 +22,7 @@ import type {
   SpanJSON,
   SpanOrigin,
   SpanTimeInput,
+  StreamedSpanJSON,
 } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
@@ -29,8 +31,10 @@ import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   convertSpanLinksForEnvelope,
   getRootSpan,
+  getSimpleStatusMessage,
   getSpanDescendants,
   getStatusMessage,
+  getStreamedSpanLinks,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
@@ -238,6 +242,30 @@ export class SentrySpan implements Span {
       is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
       segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
       links: convertSpanLinksForEnvelope(this._links),
+    };
+  }
+
+  /**
+   * Get {@link StreamedSpanJSON} representation of this span.
+   *
+   * @hidden
+   * @internal This method is purely for internal purposes and should not be used outside
+   * of SDK code. If you need to get a JSON representation of a span,
+   * use `spanToV2JSON(span)` instead.
+   */
+  public getStreamedSpanJSON(): StreamedSpanJSON {
+    return {
+      name: this._name ?? '',
+      span_id: this._spanId,
+      trace_id: this._traceId,
+      parent_span_id: this._parentSpanId,
+      start_timestamp: this._startTime,
+      // just in case _endTime is not set, we use the start time (i.e. duration 0)
+      end_timestamp: this._endTime ?? this._startTime,
+      is_segment: this._isStandaloneSpan || this === getRootSpan(this),
+      status: getSimpleStatusMessage(this._status),
+      attributes: this._attributes,
+      links: getStreamedSpanLinks(this._links),
     };
   }
 
