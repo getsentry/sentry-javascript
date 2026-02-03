@@ -432,13 +432,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         return res;
       };
 
-      // Only continue trace if there's an incoming sentry-trace header.
-      // Otherwise, start a fresh trace in the isolation scope.
-      if (sentryTrace) {
-        return continueTrace({ sentryTrace, baggage: baggage || '' }, handleRequest);
-      }
-
-      return handleRequest();
+      return continueTrace({ sentryTrace: sentryTrace || '', baggage: baggage || '' }, handleRequest);
     });
   };
 }
