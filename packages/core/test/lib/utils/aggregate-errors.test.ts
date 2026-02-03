@@ -20,6 +20,16 @@ class FakeAggregateError extends Error {
   }
 }
 
+class CustomAggregateError extends FakeAggregateError {
+  public cause?: Error;
+
+  constructor(errors: Error[], message: string, cause?: Error) {
+    super(errors, message);
+    this.name = 'CustomAggregateError';
+    this.cause = cause;
+  }
+}
+
 describe('applyAggregateErrorsToEvent()', () => {
   test('should not do anything if event does not contain an exception', () => {
     const event: Event = { exception: undefined };
@@ -311,6 +321,58 @@ describe('applyAggregateErrorsToEvent()', () => {
               handled: true,
               type: 'instrument',
             },
+          },
+        ],
+      },
+    });
+  });
+
+  test('marks custom AggregateErrors as exception groups', () => {
+    const customAggregateError = new CustomAggregateError(
+      [new Error('Nested Error 1')],
+      'my CustomAggregateError',
+      new Error('Aggregate Cause'),
+    );
+
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, customAggregateError)] } };
+    const eventHint: EventHint = { originalException: customAggregateError };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+
+    expect(event).toStrictEqual({
+      exception: {
+        values: [
+          {
+            mechanism: {
+              exception_id: 2,
+              handled: true,
+              parent_id: 0,
+              source: 'errors[0]',
+              type: 'chained',
+            },
+            type: 'Error',
+            value: 'Nested Error 1',
+          },
+          {
+            mechanism: {
+              exception_id: 1,
+              handled: true,
+              parent_id: 0,
+              source: 'cause',
+              type: 'chained',
+            },
+            type: 'Error',
+            value: 'Aggregate Cause',
+          },
+          {
+            mechanism: {
+              exception_id: 0,
+              handled: true,
+              type: 'instrument',
+              is_exception_group: true,
+            },
+            type: 'CustomAggregateError',
+            value: 'my CustomAggregateError',
           },
         ],
       },

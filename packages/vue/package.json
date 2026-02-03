@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vue",
-  "version": "10.36.0",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for Vue.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vue",
@@ -51,8 +51,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.36.0",
-    "@sentry/core": "10.36.0"
+    "@sentry/browser": "10.38.0",
+    "@sentry/core": "10.38.0"
   },
   "peerDependencies": {
     "@tanstack/vue-router": "^1.64.0",

@@ -3,6 +3,7 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -16,6 +17,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -666,6 +668,7 @@ describe('Anthropic integration', () => {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                     // Messages should be present (truncation happened) and should be a JSON array
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
                   }),
@@ -682,6 +685,7 @@ describe('Anthropic integration', () => {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                     // Small message should be kept intact
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
@@ -716,6 +720,7 @@ describe('Anthropic integration', () => {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                   [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                   [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                  [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
                   // Only the last message (with filtered media) should be kept
                   [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                     {
@@ -745,4 +750,32 @@ describe('Anthropic integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-system-instructions.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('extracts system instructions from messages', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
+                      { type: 'text', content: 'You are a helpful assistant' },
+                    ]),
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
