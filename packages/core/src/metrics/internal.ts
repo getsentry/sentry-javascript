@@ -5,7 +5,7 @@ import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes'
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
-import type { Metric, MetricRoutingInfo, SerializedMetric } from '../types-hoist/metric';
+import type { Metric, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
@@ -73,11 +73,6 @@ export interface InternalCaptureMetricOptions {
    * A function to capture the serialized metric.
    */
   captureSerializedMetric?: (client: Client, metric: SerializedMetric) => void;
-
-  /**
-   * The routing information for the metric.
-   */
-  routing?: Array<MetricRoutingInfo>;
 }
 
 /**
