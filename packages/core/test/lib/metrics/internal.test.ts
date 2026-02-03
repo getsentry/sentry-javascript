@@ -1051,8 +1051,8 @@ describe('_INTERNAL_captureMetric', () => {
   });
 });
 
-describe('routing attribute stripping', () => {
-  it('strips routing attributes before serialization', () => {
+describe('routing attribute preservation', () => {
+  it('preserves routing attributes during serialization', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -1078,11 +1078,14 @@ describe('routing attribute stripping', () => {
         type: 'string',
         value: 'value',
       },
+      'sentry.routing': {
+        type: 'string',
+        value: JSON.stringify([{ dsn: 'https://test.dsn', release: 'v1.0.0' }]),
+      },
     });
-    expect(buffer?.[0]?.attributes).not.toHaveProperty('sentry.routing');
   });
 
-  it('handles missing attributes when stripping routing', () => {
+  it('handles missing attributes during serialization', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -1102,7 +1105,7 @@ describe('routing attribute stripping', () => {
     expect(buffer?.[0]?.attributes).toEqual({});
   });
 
-  it('preserves other attributes when routing is stripped', () => {
+  it('preserves all attributes including routing', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, release: 'v1.0.0', environment: 'production' });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -1129,6 +1132,6 @@ describe('routing attribute stripping', () => {
     expect(attrs).toHaveProperty('userId');
     expect(attrs).toHaveProperty('sentry.release');
     expect(attrs).toHaveProperty('sentry.environment');
-    expect(attrs).not.toHaveProperty('sentry.routing');
+    expect(attrs).toHaveProperty('sentry.routing');
   });
 });

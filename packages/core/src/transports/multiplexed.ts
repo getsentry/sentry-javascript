@@ -73,6 +73,26 @@ export function metricFromEnvelope(env: Envelope): SerializedMetric | undefined 
 }
 
 /**
+ * Applies the release to all metrics in an envelope.
+ */
+function applyReleaseToMetrics(envelope: Envelope, release: string): void {
+  forEachEnvelopeItem(envelope, (item, type) => {
+    if (type === 'trace_metric') {
+      const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
+      const containerItems = container?.items;
+      if (containerItems) {
+        for (const metric of containerItems) {
+          if (!metric.attributes) {
+            metric.attributes = {};
+          }
+          metric.attributes['sentry.release'] = { type: 'string', value: release };
+        }
+      }
+    }
+  });
+}
+
+/**
  * Creates a transport that overrides the release on all events and metrics.
  */
 function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
@@ -90,14 +110,8 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
         if (event) {
           event.release = release;
         }
-        const metric = metricFromEnvelope(envelope);
-        if (metric) {
-          // This is mainly for tracking/debugging purposes
-          if (!metric.attributes) {
-            metric.attributes = {};
-          }
-          metric.attributes['sentry.release'] = { type: 'string', value: release };
-        }
+
+        applyReleaseToMetrics(envelope, release);
 
         return transport.send(envelope);
       },
@@ -145,11 +159,25 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
           return event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY];
         }
         const metric = args.getMetric();
-        if (
-          metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY] &&
-          Array.isArray(metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY])
-        ) {
-          return metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY] as RouteTo[];
+        if (metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY]) {
+          const routingAttr = metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY];
+          let routingValue: unknown;
+          if (typeof routingAttr === 'object' && routingAttr !== null && 'value' in routingAttr) {
+            routingValue = routingAttr.value;
+            if (typeof routingValue === 'string') {
+              try {
+                routingValue = JSON.parse(routingValue);
+              } catch {
+                return [];
+              }
+            }
+          } else {
+            routingValue = routingAttr;
+          }
+
+          if (Array.isArray(routingValue)) {
+            return routingValue as RouteTo[];
+          }
         }
         return [];
       });

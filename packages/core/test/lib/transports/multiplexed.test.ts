@@ -4,6 +4,7 @@ import {
   createEnvelope,
   createTransport,
   dsnFromString,
+  forEachEnvelopeItem,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeMultiplexedTransport,
   parseEnvelope,
@@ -449,6 +450,58 @@ describe('makeMultiplexedTransport with metrics', () => {
     };
 
     const envelope = createMetricEnvelope([metricWithRouting], undefined, undefined, undefined);
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('applies release to all metrics in batch', async () => {
+    expect.assertions(4);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport((url, _, envelope) => {
+        expect(url).toBe(DSN2_URL);
+
+        const metrics: SerializedMetric[] = [];
+        forEachEnvelopeItem(envelope, (item, type) => {
+          if (type === 'trace_metric') {
+            const container = Array.isArray(item) ? (item[1] as any) : undefined;
+            if (container?.items) {
+              metrics.push(...container.items);
+            }
+          }
+        });
+
+        expect(metrics).toHaveLength(3);
+        expect(metrics[0]?.attributes?.['sentry.release']).toEqual({ type: 'string', value: 'batch@1.0.0' });
+        expect(metrics[2]?.attributes?.['sentry.release']).toEqual({ type: 'string', value: 'batch@1.0.0' });
+      }),
+    );
+
+    const metric1: SerializedMetric = {
+      ...METRIC,
+      name: 'metric1',
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [{ dsn: DSN2, release: 'batch@1.0.0' }] as any,
+      },
+    };
+
+    const metric2: SerializedMetric = {
+      ...METRIC,
+      name: 'metric2',
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [{ dsn: DSN2, release: 'batch@1.0.0' }] as any,
+      },
+    };
+
+    const metric3: SerializedMetric = {
+      ...METRIC,
+      name: 'metric3',
+      attributes: {
+        [MULTIPLEXED_METRIC_ROUTING_KEY]: [{ dsn: DSN2, release: 'batch@1.0.0' }] as any,
+      },
+    };
+
+    const envelope = createMetricEnvelope([metric1, metric2, metric3], undefined, undefined, undefined);
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(envelope);
   });

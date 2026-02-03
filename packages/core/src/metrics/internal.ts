@@ -4,7 +4,6 @@ import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
 import type { Integration } from '../types-hoist/integration';
 import type { Metric, MetricRoutingInfo, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
@@ -82,20 +81,6 @@ export interface InternalCaptureMetricOptions {
 }
 
 /**
- * A helper function which strips the routing information from the attributes.
- * It is used to prevent the routing information from being sent to Sentry.
- * @param attributes - The attributes to strip the routing information from.
- * @returns The attributes without the routing information.
- */
-function _stripRoutingAttributes(attributes: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
-  if (!attributes) return attributes;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...rest } = attributes;
-  return rest;
-}
-
-/**
  * Enriches metric with all contextual attributes (user, SDK metadata, replay, etc.)
  */
 function _enrichMetricAttributes(beforeMetric: Metric, client: Client, user: User): Metric {
@@ -165,7 +150,7 @@ function _buildSerializedMetric(
     value: metric.value,
     attributes: {
       ...serializeAttributes(scopeAttributes),
-      ...serializeAttributes(_stripRoutingAttributes(metric.attributes), 'skip-undefined'),
+      ...serializeAttributes(metric.attributes, 'skip-undefined'),
     },
   };
 }
