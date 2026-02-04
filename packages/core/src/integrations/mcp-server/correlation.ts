@@ -2,8 +2,12 @@
  * Request-span correlation system for MCP server instrumentation
  *
  * Handles mapping requestId to span data for correlation with handler execution.
- * Uses WeakMap to scope correlation maps per transport instance, preventing
- * request ID collisions between different MCP sessions.
+ *
+ * Uses sessionId as the primary key for stateful transports. This handles the wrapper
+ * transport pattern (e.g., NodeStreamableHTTPServerTransport wrapping WebStandardStreamableHTTPServerTransport)
+ * where onmessage and send may receive different `this` values but share the same sessionId.
+ *
+ * Falls back to WeakMap by transport instance for stateless transports (no sessionId).
  */
 
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -14,22 +18,42 @@ import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse
 import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
 
 /**
- * Transport-scoped correlation system that prevents collisions between different MCP sessions
- * @internal Each transport instance gets its own correlation map, eliminating request ID conflicts
+ * Session-scoped correlation for stateful transports (with sessionId)
+ * @internal Using sessionId as key handles wrapper transport patterns where
+ * different transport objects share the same logical session
  */
-const transportToSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
+const sessionToSpanMap = new Map<string, Map<RequestId, RequestSpanMapValue>>();
 
 /**
- * Gets or creates the span map for a specific transport instance
+ * Transport-scoped correlation fallback for stateless transports (no sessionId)
+ * @internal WeakMap allows automatic cleanup when transport is garbage collected
+ */
+const statelessSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
+
+/**
+ * Gets or creates the span map for a transport, using sessionId when available
  * @internal
  * @param transport - MCP transport instance
- * @returns Span map for the transport
+ * @returns Span map for the transport/session
  */
 function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
-  let spanMap = transportToSpanMap.get(transport);
+  const sessionId = transport.sessionId;
+
+  if (sessionId) {
+    // Stateful transport - use sessionId as key (handles wrapper pattern)
+    let spanMap = sessionToSpanMap.get(sessionId);
+    if (!spanMap) {
+      spanMap = new Map();
+      sessionToSpanMap.set(sessionId, spanMap);
+    }
+    return spanMap;
+  }
+
+  // Stateless fallback - use transport instance as key
+  let spanMap = statelessSpanMap.get(transport);
   if (!spanMap) {
     spanMap = new Map();
-    transportToSpanMap.set(transport, spanMap);
+    statelessSpanMap.set(transport, spanMap);
   }
   return spanMap;
 }
@@ -98,7 +122,26 @@ export function completeSpanWithResults(
  * @param transport - MCP transport instance
  */
 export function cleanupPendingSpansForTransport(transport: MCPTransport): void {
-  const spanMap = transportToSpanMap.get(transport);
+  const sessionId = transport.sessionId;
+
+  // Try sessionId-based cleanup first (for stateful transports)
+  if (sessionId) {
+    const spanMap = sessionToSpanMap.get(sessionId);
+    if (spanMap) {
+      for (const [, spanData] of spanMap) {
+        spanData.span.setStatus({
+          code: SPAN_STATUS_ERROR,
+          message: 'cancelled',
+        });
+        spanData.span.end();
+      }
+      sessionToSpanMap.delete(sessionId);
+    }
+    return;
+  }
+
+  // Fallback to transport-based cleanup (for stateless transports)
+  const spanMap = statelessSpanMap.get(transport);
   if (spanMap) {
     for (const [, spanData] of spanMap) {
       spanData.span.setStatus({
@@ -108,5 +151,6 @@ export function cleanupPendingSpansForTransport(transport: MCPTransport): void {
       spanData.span.end();
     }
     spanMap.clear();
+    // Note: WeakMap entries are automatically cleaned up when transport is GC'd
   }
 }
