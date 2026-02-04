@@ -267,7 +267,7 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
  * This is the final serialized span format that is sent to Sentry.
  * The returned serilaized spans must not be consumed by users or SDK integrations.
  */
-export function spanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedSpan {
+export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedSpan {
   return {
     ...spanJson,
     attributes: serializeAttributes(spanJson.attributes),

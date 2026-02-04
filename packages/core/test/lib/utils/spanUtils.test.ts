@@ -23,7 +23,7 @@ import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils
 import {
   getRootSpan,
   spanIsSampled,
-  spanJsonToSerializedSpan,
+  streamedSpanJsonToSerializedSpan,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToStreamedSpanJSON,
@@ -578,7 +578,7 @@ describe('spanToJSON', () => {
     });
   });
 
-  describe('spanJsonToSerializedSpan', () => {
+  describe('streamedSpanJsonToSerializedSpan', () => {
     it('converts a streamed span JSON with links to a serialized span', () => {
       const spanJson: StreamedSpanJSON = {
         name: 'test name',
@@ -609,7 +609,7 @@ describe('spanToJSON', () => {
         ],
       };
 
-      expect(spanJsonToSerializedSpan(spanJson)).toEqual({
+      expect(streamedSpanJsonToSerializedSpan(spanJson)).toEqual({
         name: 'test name',
         parent_span_id: '1234',
         span_id: '5678',
