@@ -181,23 +181,12 @@ export function spanToJSON(span: Span): SpanJSON {
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, status, links } = span;
 
-    // In preparation for the next major of OpenTelemetry, we want to support
-    // looking up the parent span id according to the new API
-    // In OTel v1, the parent span id is accessed as `parentSpanId`
-    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
-    const parentSpanId =
-      'parentSpanId' in span
-        ? span.parentSpanId
-        : 'parentSpanContext' in span
-          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
-          : undefined;
-
     return {
       span_id,
       trace_id,
       data: attributes,
       description: name,
-      parent_span_id: parentSpanId,
+      parent_span_id: getOtelParentSpanId(span),
       start_timestamp: spanTimeInputToSeconds(startTime),
       // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
       timestamp: spanTimeInputToSeconds(endTime) || undefined,
@@ -232,22 +221,11 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, status, links } = span;
 
-    // In preparation for the next major of OpenTelemetry, we want to support
-    // looking up the parent span id according to the new API
-    // In OTel v1, the parent span id is accessed as `parentSpanId`
-    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
-    const parentSpanId =
-      'parentSpanId' in span
-        ? span.parentSpanId
-        : 'parentSpanContext' in span
-          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
-          : undefined;
-
     return {
       name,
       span_id,
       trace_id,
-      parent_span_id: parentSpanId,
+      parent_span_id: getOtelParentSpanId(span),
       start_timestamp: spanTimeInputToSeconds(startTime),
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
@@ -268,6 +246,20 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
     status: 'ok',
     is_segment: span === INTERNAL_getSegmentSpan(span),
   };
+}
+
+/**
+ * In preparation for the next major of OpenTelemetry, we want to support
+ * looking up the parent span id according to the new API
+ * In OTel v1, the parent span id is accessed as `parentSpanId`
+ * In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
+ */
+function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | undefined {
+  return 'parentSpanId' in span
+    ? span.parentSpanId
+    : 'parentSpanContext' in span
+      ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+      : undefined;
 }
 
 /**
