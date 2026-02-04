@@ -12,7 +12,7 @@ import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
 
 /**
- * todo
+ * Request handler for Hono framework
  */
 export function requestHandler(context: Context): void {
   const defaultScope = getDefaultIsolationScope();
@@ -26,7 +26,7 @@ export function requestHandler(context: Context): void {
 }
 
 /**
- * todo
+ * Response handler for Hono framework
  */
 export function responseHandler(context: Context): void {
   const activeSpan = getActiveSpan();

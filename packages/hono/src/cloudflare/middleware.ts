@@ -13,7 +13,6 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
   isDebug && debug.log('Initialized Sentry Hono middleware (Cloudflare)');
 
   applySdkMetadata(options, 'hono');
-
   withSentry(() => options, app);
 
   return async (context, next) => {

@@ -41,3 +41,22 @@ Either set the `nodejs_als` or `nodejs_compat` compatibility flags in your `wran
 compatibility_flags = ["nodejs_als"]
 # compatibility_flags = ["nodejs_compat"]
 ```
+
+### Initialize Sentry in your Hono app
+
+Initialize the Sentry Hono middleware as early as possible in your app:
+
+```typescript
+import { sentry } from '@sentry/hono/cloudflare';
+
+const app = new Hono();
+
+app.use(
+  '*',
+  sentry(app, {
+    dsn: 'your-sentry-dsn',
+  }),
+);
+
+export default app;
+```

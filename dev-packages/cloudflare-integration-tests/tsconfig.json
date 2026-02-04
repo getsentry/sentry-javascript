@@ -8,7 +8,6 @@
     // global fetch available in tests in lower Node versions.
     "lib": ["ES2020"],
     "esModuleInterop": true,
-    "types": ["@cloudflare/workers-types"],
-    "moduleResolution": "bundler"
+    "types": ["@cloudflare/workers-types"]
   }
 }
