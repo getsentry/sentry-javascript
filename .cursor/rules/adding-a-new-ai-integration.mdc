@@ -30,16 +30,19 @@ Multi-runtime considerations:
 ## Span Hierarchy
 
 **Two span types:**
+
 - `gen_ai.invoke_agent` - Parent/pipeline spans (chains, agents, orchestration)
 - `gen_ai.chat`, `gen_ai.generate_text`, etc. - Child spans (actual LLM calls)
 
 **Hierarchy example:**
+
 ```
 gen_ai.invoke_agent (ai.generateText)
   └── gen_ai.generate_text (ai.generateText.doGenerate)
 ```
 
 **References:**
+
 - Vercel AI: `packages/core/src/tracing/vercel-ai/constants.ts:8-23`
 - LangChain: `packages/core/src/tracing/langchain/index.ts:199-207`
 
@@ -50,6 +53,7 @@ gen_ai.invoke_agent (ai.generateText)
 **Non-streaming:** Use `startSpan()`, set attributes immediately from response
 
 **Streaming:** Use `startSpanManual()` with this pattern:
+
 ```typescript
 interface StreamingState {
   responseTexts: string[];  // Accumulate fragments
@@ -74,11 +78,13 @@ async function* instrumentStream(stream, span, recordOutputs) {
 ```
 
 **Key rules:**
+
 - Accumulate with arrays/strings, don't overwrite
 - Set `GEN_AI_RESPONSE_STREAMING_ATTRIBUTE: true`
 - Call `span.end()` in finally block
 
 **References:**
+
 - OpenAI: `packages/core/src/tracing/openai/streaming.ts`
 - Anthropic: `packages/core/src/tracing/anthropic-ai/streaming.ts`
 - Detection: `packages/core/src/tracing/openai/index.ts:183-221`
@@ -88,11 +94,13 @@ async function* instrumentStream(stream, span, recordOutputs) {
 ## Token Accumulation
 
 **Child spans (LLM calls):** Set tokens directly from API response
+
 ```typescript
 setTokenUsageAttributes(span, inputTokens, outputTokens, totalTokens);
 ```
 
 **Parent spans (invoke_agent):** Accumulate from children using event processor
+
 ```typescript
 // First pass: accumulate from children
 for (const span of event.spans) {
@@ -120,6 +128,7 @@ Location: `packages/core/src/tracing/ai/`
 ### `gen-ai-attributes.ts`
 
 OpenTelemetry Semantic Convention attribute names. **Always use these constants!**
+
 - `GEN_AI_SYSTEM_ATTRIBUTE` - 'openai', 'anthropic', etc.
 - `GEN_AI_REQUEST_MODEL_ATTRIBUTE` - Model from request
 - `GEN_AI_RESPONSE_MODEL_ATTRIBUTE` - Model from response
@@ -205,10 +214,12 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 **RULE:** AI SDKs should be auto-enabled in Node.js runtime if possible.
 
 ✅ **Auto-enable if:**
+
 - SDK works in Node.js runtime
 - OTel only patches when package imported (zero cost if unused)
 
 ❌ **Don't auto-enable if:**
+
 - SDK is niche/experimental
 - Integration has significant limitations
 
@@ -257,6 +268,7 @@ export { {provider}Integration } from './integrations/tracing/{provider}';
 ```
 
 **4. Add E2E test** in `packages/node-integration-tests/suites/{provider}/`
+
 - Verify spans created automatically (no manual setup)
 - Test `recordInputs` and `recordOutputs` options
 - Test integration can be disabled
@@ -295,7 +307,7 @@ packages/
 
 1. **Respect `sendDefaultPii`** for recordInputs/recordOutputs
 2. **Use semantic attributes** from `gen-ai-attributes.ts` (never hardcode)
-3. **Set Sentry origin**: `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'`
+3. **Set Sentry origin**: `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.openai'` (use provider name: `openai`, `anthropic`, `vercelai`, etc. - only alphanumerics, `_`, and `.` allowed)
 4. **Truncate large data**: Use helper functions from `utils.ts`
 5. **Correct span operations**: `gen_ai.invoke_agent` for parent, `gen_ai.chat` for children
 6. **Streaming**: Use `startSpanManual()`, accumulate state, call `span.end()`
