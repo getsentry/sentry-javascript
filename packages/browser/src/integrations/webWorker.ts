@@ -1,4 +1,4 @@
-import type { Integration, IntegrationFn } from '@sentry/core';
+import type { DebugImage, Integration, IntegrationFn } from '@sentry/core';
 import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
@@ -10,7 +10,9 @@ export const INTEGRATION_NAME = 'WebWorker';
 interface WebWorkerMessage {
   _sentryMessage: boolean;
   _sentryDebugIds?: Record<string, string>;
+  _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
+  _sentryWasmImages?: Array<DebugImage>;
 }
 
 interface SerializedWorkerError {
@@ -122,6 +124,35 @@ function listenForSentryMessages(worker: Worker): void {
         };
       }
 
+      // Handle module metadata
+      if (event.data._sentryModuleMetadata) {
+        DEBUG_BUILD && debug.log('Sentry module metadata web worker message received', event.data);
+        // Merge worker's raw metadata into the global object
+        // It will be parsed lazily when needed by getMetadataForUrl
+        WINDOW._sentryModuleMetadata = {
+          ...event.data._sentryModuleMetadata,
+          // Module metadata of the main thread have precedence over the worker's in case of a collision.
+          ...WINDOW._sentryModuleMetadata,
+        };
+      }
+
+      // Handle WASM images from worker
+      if (event.data._sentryWasmImages) {
+        DEBUG_BUILD && debug.log('Sentry WASM images web worker message received', event.data);
+        const existingImages =
+          (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages || [];
+        const newImages = event.data._sentryWasmImages.filter(
+          (newImg: unknown) =>
+            isPlainObject(newImg) &&
+            typeof newImg.code_file === 'string' &&
+            !existingImages.some(existing => existing.code_file === newImg.code_file),
+        );
+        (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages = [
+          ...existingImages,
+          ...newImages,
+        ];
+      }
+
       // Handle unhandled rejections forwarded from worker
       if (event.data._sentryWorkerError) {
         DEBUG_BUILD && debug.log('Sentry worker rejection message received', event.data._sentryWorkerError);
@@ -187,7 +218,10 @@ interface MinimalDedicatedWorkerGlobalScope {
 }
 
 interface RegisterWebWorkerOptions {
-  self: MinimalDedicatedWorkerGlobalScope & { _sentryDebugIds?: Record<string, string> };
+  self: MinimalDedicatedWorkerGlobalScope & {
+    _sentryDebugIds?: Record<string, string>;
+    _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  };
 }
 
 /**
@@ -195,6 +229,7 @@ interface RegisterWebWorkerOptions {
  *
  * This function will:
  * - Send debug IDs to the parent thread
+ * - Send module metadata to the parent thread (for thirdPartyErrorFilterIntegration)
  * - Set up a handler for unhandled rejections in the worker
  * - Forward unhandled rejections to the parent thread for capture
  *
@@ -215,10 +250,12 @@ interface RegisterWebWorkerOptions {
  *   - `self`: The worker instance you're calling this function from (self).
  */
 export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
-  // Send debug IDs to parent thread
+  // Send debug IDs and raw module metadata to parent thread
+  // The metadata will be parsed lazily on the main thread when needed
   self.postMessage({
     _sentryMessage: true,
     _sentryDebugIds: self._sentryDebugIds ?? undefined,
+    _sentryModuleMetadata: self._sentryModuleMetadata ?? undefined,
   });
 
   // Set up unhandledrejection handler inside the worker
@@ -251,11 +288,13 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
     return false;
   }
 
-  // Must have at least one of: debug IDs or worker error
+  // Must have at least one of: debug IDs, module metadata, worker error, or WASM images
   const hasDebugIds = '_sentryDebugIds' in eventData;
+  const hasModuleMetadata = '_sentryModuleMetadata' in eventData;
   const hasWorkerError = '_sentryWorkerError' in eventData;
+  const hasWasmImages = '_sentryWasmImages' in eventData;
 
-  if (!hasDebugIds && !hasWorkerError) {
+  if (!hasDebugIds && !hasModuleMetadata && !hasWorkerError && !hasWasmImages) {
     return false;
   }
 
@@ -264,8 +303,27 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
     return false;
   }
 
+  // Validate module metadata if present
+  if (
+    hasModuleMetadata &&
+    !(isPlainObject(eventData._sentryModuleMetadata) || eventData._sentryModuleMetadata === undefined)
+  ) {
+    return false;
+  }
+
   // Validate worker error if present
   if (hasWorkerError && !isPlainObject(eventData._sentryWorkerError)) {
+    return false;
+  }
+
+  // Validate WASM images if present
+  if (
+    hasWasmImages &&
+    (!Array.isArray(eventData._sentryWasmImages) ||
+      !eventData._sentryWasmImages.every(
+        (img: unknown) => isPlainObject(img) && typeof (img as { code_file?: unknown }).code_file === 'string',
+      ))
+  ) {
     return false;
   }
 

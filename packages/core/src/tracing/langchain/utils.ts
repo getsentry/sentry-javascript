@@ -1,10 +1,11 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
@@ -17,6 +18,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
@@ -24,6 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
+import { extractSystemInstructions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -124,12 +127,16 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 2) Then try constructor name (SystemMessage / HumanMessage / ...)
-    const ctor = (message as { constructor?: { name?: string } }).constructor?.name;
-    if (ctor) {
+    // 2) Serialized LangChain format (lc: 1) - check before constructor name
+    // This is more reliable than constructor.name which can be lost during serialization
+    if (message.lc === 1 && message.kwargs) {
+      const id = message.id;
+      const messageType = Array.isArray(id) && id.length > 0 ? id[id.length - 1] : '';
+      const role = typeof messageType === 'string' ? normalizeRoleNameFromCtor(messageType) : 'user';
+
       return {
-        role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
-        content: asString(message.content),
+        role: normalizeMessageRole(role),
+        content: asString(message.kwargs?.content),
       };
     }
 
@@ -142,7 +149,8 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 4) Then objects with `{ role, content }`
+    // 4) Then objects with `{ role, content }` - check before constructor name
+    // Plain objects have constructor.name="Object" which would incorrectly default to "user"
     if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
@@ -150,15 +158,13 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       };
     }
 
-    // 5) Serialized LangChain format (lc: 1)
-    if (message.lc === 1 && message.kwargs) {
-      const id = message.id;
-      const messageType = Array.isArray(id) && id.length > 0 ? id[id.length - 1] : '';
-      const role = typeof messageType === 'string' ? normalizeRoleNameFromCtor(messageType) : 'user';
-
+    // 5) Then try constructor name (SystemMessage / HumanMessage / ...)
+    // Only use this if we haven't matched a more specific case
+    const ctor = (message as { constructor?: { name?: string } }).constructor?.name;
+    if (ctor && ctor !== 'Object') {
       return {
-        role: normalizeMessageRole(role),
-        content: asString(message.kwargs?.content),
+        role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
+        content: asString(message.content),
       };
     }
 
@@ -215,18 +221,18 @@ function extractCommonRequestAttributes(
 
 /**
  * Small helper to assemble boilerplate attributes shared by both request extractors.
+ * Always uses 'chat' as the operation type for all LLM and chat model operations.
  */
 function baseRequestAttributes(
   system: unknown,
   modelName: unknown,
-  operation: 'pipeline' | 'chat',
   serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
   return {
     [GEN_AI_SYSTEM_ATTRIBUTE]: asString(system ?? 'langchain'),
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operation,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: asString(modelName),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
@@ -236,7 +242,8 @@ function baseRequestAttributes(
 /**
  * Extracts attributes for plain LLM invocations (string prompts).
  *
- * - Operation is tagged as `pipeline` to distinguish from chat-style invocations.
+ * - Operation is tagged as `chat` following OpenTelemetry semantic conventions.
+ *   LangChain LLM operations are treated as chat operations.
  * - When `recordInputs` is true, string prompts are wrapped into `{role:"user"}`
  *   messages to align with the chat schema used elsewhere.
  */
@@ -250,11 +257,12 @@ export function extractLLMRequestAttributes(
   const system = langSmithMetadata?.ls_provider;
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'pipeline', llm, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
     const messages = prompts.map(p => ({ role: 'user', content: p }));
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(messages));
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(messages));
   }
 
   return attrs;
@@ -263,7 +271,8 @@ export function extractLLMRequestAttributes(
 /**
  * Extracts attributes for ChatModel invocations (array-of-arrays of messages).
  *
- * - Operation is tagged as `chat`.
+ * - Operation is tagged as `chat` following OpenTelemetry semantic conventions.
+ *   LangChain chat model operations are chat operations.
  * - We flatten LangChain's `LangChainMessage[][]` and normalize shapes into a
  *   consistent `{ role, content }` array when `recordInputs` is true.
  * - Provider system value falls back to `serialized.id?.[2]`.
@@ -278,12 +287,22 @@ export function extractChatModelRequestAttributes(
   const system = langSmithMetadata?.ls_provider ?? llm.id?.[2];
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'chat', llm, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
     const normalized = normalizeLangChainMessages(langChainMessages.flat());
-    const truncated = truncateGenAiMessages(normalized);
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(truncated));
+
+    const { systemInstructions, filteredMessages } = extractSystemInstructions(normalized);
+
+    if (systemInstructions) {
+      setIfDefined(attrs, GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+    }
+
+    const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredLength);
+
+    const truncated = truncateGenAiMessages(filteredMessages as unknown[]);
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(truncated));
   }
 
   return attrs;

@@ -12,6 +12,7 @@ export * from './config';
 export * from './client';
 export * from './server';
 export * from './common';
+export * from './vite';
 
 /** Initializes Sentry TanStack Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
@@ -34,3 +35,5 @@ export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegra
 export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
 export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
+
+export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;

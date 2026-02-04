@@ -5,21 +5,18 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
-  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
@@ -31,16 +28,33 @@ import type {
 } from './types';
 import {
   addChatCompletionAttributes,
+  addConversationAttributes,
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
   buildMethodPath,
+  extractRequestParameters,
   getOperationName,
   getSpanOperation,
   isChatCompletionResponse,
+  isConversationResponse,
   isEmbeddingsResponse,
   isResponsesApiResponse,
   shouldInstrument,
 } from './utils';
+
+/**
+ * Extract available tools from request parameters
+ */
+function extractAvailableTools(params: Record<string, unknown>): string | undefined {
+  const tools = Array.isArray(params.tools) ? params.tools : [];
+  const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
+  const webSearchOptions = hasWebSearchOptions
+    ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
+    : [];
+
+  const availableTools = [...tools, ...webSearchOptions];
+  return availableTools.length > 0 ? JSON.stringify(availableTools) : undefined;
+}
 
 /**
  * Extract request attributes from method arguments
@@ -52,36 +66,15 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
-  // Chat completion API accepts web_search_options and tools as parameters
-  // we append web search options to the available tools to capture all tool calls
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const tools = Array.isArray(params.tools) ? params.tools : [];
-    const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
-    const webSearchOptions = hasWebSearchOptions
-      ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
-      : [];
-
-    const availableTools = [...tools, ...webSearchOptions];
-
-    if (availableTools.length > 0) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(availableTools);
+    const availableTools = extractAvailableTools(params);
+    if (availableTools) {
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = availableTools;
     }
-  }
 
-  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
-    const params = args[0] as Record<string, unknown>;
-
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
-    if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-    if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
-    if ('frequency_penalty' in params)
-      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-    if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
-    if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
-    if ('encoding_format' in params) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = params.encoding_format;
-    if ('dimensions' in params) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = params.dimensions;
+    Object.assign(attributes, extractRequestParameters(params));
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
@@ -91,7 +84,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 
 /**
  * Add response attributes to spans
- * This currently supports both Chat Completion and Responses API responses
+ * This supports Chat Completion, Responses API, Embeddings, and Conversations API responses
  */
 function addResponseAttributes(span: Span, result: unknown, recordOutputs?: boolean): void {
   if (!result || typeof result !== 'object') return;
@@ -111,18 +104,60 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
     }
   } else if (isEmbeddingsResponse(response)) {
     addEmbeddingsAttributes(span, response);
+  } else if (isConversationResponse(response)) {
+    addConversationAttributes(span, response);
   }
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  if ('messages' in params) {
-    const truncatedMessages = getTruncatedJsonString(params.messages);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
+function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // Store embeddings input on a separate attribute and do not truncate it
+  if (operationName === OPENAI_OPERATIONS.EMBEDDINGS && 'input' in params) {
+    const input = params.input;
+
+    // No input provided
+    if (input == null) {
+      return;
+    }
+
+    // Empty input string
+    if (typeof input === 'string' && input.length === 0) {
+      return;
+    }
+
+    // Empty array input
+    if (Array.isArray(input) && input.length === 0) {
+      return;
+    }
+
+    // Store strings as-is, arrays/objects as JSON
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
+    return;
   }
-  if ('input' in params) {
-    const truncatedInput = getTruncatedJsonString(params.input);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
+
+  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
+
+  if (!src) {
+    return;
+  }
+
+  if (Array.isArray(src) && src.length === 0) {
+    return;
+  }
+
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
+
+  if (systemInstructions) {
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+  }
+
+  const truncatedInput = getTruncatedJsonString(filteredMessages);
+  span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
+
+  if (Array.isArray(filteredMessages)) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
+  } else {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
   }
 }
 
@@ -156,7 +191,7 @@ function instrumentMethod<T extends unknown[], R>(
         async (span: Span) => {
           try {
             if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
+              addRequestAttributes(span, params, operationName);
             }
 
             const result = await originalMethod.apply(context, args);
@@ -195,7 +230,7 @@ function instrumentMethod<T extends unknown[], R>(
         async (span: Span) => {
           try {
             if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
+              addRequestAttributes(span, params, operationName);
             }
 
             const result = await originalMethod.apply(context, args);

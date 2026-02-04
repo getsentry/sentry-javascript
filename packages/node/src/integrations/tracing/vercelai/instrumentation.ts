@@ -15,6 +15,8 @@ import {
 import { INTEGRATION_NAME } from './constants';
 import type { TelemetrySettings, VercelAiIntegration } from './types';
 
+const SUPPORTED_VERSIONS = ['>=3.0.0 <7'];
+
 // List of patched methods
 // From: https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#collected-data
 const INSTRUMENTED_METHODS = [
@@ -24,6 +26,7 @@ const INSTRUMENTED_METHODS = [
   'streamObject',
   'embed',
   'embedMany',
+  'rerank',
 ] as const;
 
 interface MethodFirstArg extends Record<string, unknown> {
@@ -186,7 +189,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <6'], this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition('ai', SUPPORTED_VERSIONS, this._patch.bind(this));
     return module;
   }
 
@@ -261,7 +264,10 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     if (Object.prototype.toString.call(moduleExports) === '[object Module]') {
       // In ESM we take the usual route and just replace the exports we want to instrument
       for (const method of INSTRUMENTED_METHODS) {
-        moduleExports[method] = generatePatch(moduleExports[method]);
+        // Skip methods that don't exist in this version of the AI SDK (e.g., rerank was added in v6)
+        if (moduleExports[method] != null) {
+          moduleExports[method] = generatePatch(moduleExports[method]);
+        }
       }
 
       return moduleExports;
@@ -269,7 +275,10 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
       // In CJS we can't replace the exports in the original module because they
       // don't have setters, so we create a new object with the same properties
       const patchedModuleExports = INSTRUMENTED_METHODS.reduce((acc, curr) => {
-        acc[curr] = generatePatch(moduleExports[curr]);
+        // Skip methods that don't exist in this version of the AI SDK (e.g., rerank was added in v6)
+        if (moduleExports[curr] != null) {
+          acc[curr] = generatePatch(moduleExports[curr]);
+        }
         return acc;
       }, {} as PatchedModuleExports);
 

@@ -145,17 +145,7 @@ Without this file, pnpm installs from the public npm registry instead of Verdacc
 
 #### Running a Single E2E Test
 
-```bash
-# Build packages first
-yarn build && yarn build:tarball
-
-# Run a specific test app
-cd dev-packages/e2e-tests
-yarn test:run <app-name>
-
-# Run with a specific variant (e.g., Next.js 15)
-yarn test:run <app-name> --variant <variant-name>
-```
+Run the e2e skill.
 
 #### Common Pitfalls and Debugging
 

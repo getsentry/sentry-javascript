@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { _addTracingHeadersToFetchRequest } from '../../src/fetch';
+import { _addTracingHeadersToFetchRequest, instrumentFetchRequest } from '../../src/fetch';
+import type { Span } from '../../src/types-hoist/span';
 
 const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE } = vi.hoisted(() => ({
   DEFAULT_SENTRY_TRACE: 'defaultTraceId-defaultSpanId-1',
@@ -406,6 +407,97 @@ describe('_addTracingHeadersToFetchRequest', () => {
           baggage: CUSTOM_BAGGAGE.trim(),
         });
       });
+    });
+  });
+});
+
+describe('instrumentFetchRequest', () => {
+  describe('options object mutation', () => {
+    it('does not mutate the original options object', () => {
+      const originalOptions = { method: 'POST', body: JSON.stringify({ data: 'test' }) };
+      const originalOptionsSnapshot = { ...originalOptions };
+
+      const handlerData = {
+        fetchData: { url: '/api/test', method: 'POST' },
+        args: ['/api/test', originalOptions] as unknown[],
+        startTimestamp: Date.now(),
+      };
+
+      const spans: Record<string, Span> = {};
+
+      instrumentFetchRequest(
+        handlerData,
+        () => true,
+        () => true,
+        spans,
+        { spanOrigin: 'auto.http.browser' },
+      );
+
+      // original options object was not mutated
+      expect(originalOptions).toEqual(originalOptionsSnapshot);
+      expect(originalOptions).not.toHaveProperty('headers');
+    });
+
+    it('does not throw with a frozen options object', () => {
+      const frozenOptions = Object.freeze({ method: 'POST', body: JSON.stringify({ data: 'test' }) });
+
+      const handlerData = {
+        fetchData: { url: '/api/test', method: 'POST' },
+        args: ['/api/test', frozenOptions] as unknown[],
+        startTimestamp: Date.now(),
+      };
+
+      const spans: Record<string, Span> = {};
+
+      // This should not throw, even though the original object is frozen
+      expect(() => {
+        instrumentFetchRequest(
+          handlerData,
+          () => true,
+          () => true,
+          spans,
+          { spanOrigin: 'auto.http.browser' },
+        );
+      }).not.toThrow();
+
+      // args[1] is a new object with headers (not the frozen one)
+      const resultOptions = handlerData.args[1] as { headers?: unknown };
+      expect(resultOptions).toHaveProperty('headers');
+      expect(resultOptions).not.toBe(frozenOptions);
+    });
+
+    it('preserves existing properties when cloning options', () => {
+      const originalOptions = {
+        method: 'POST',
+        body: JSON.stringify({ data: 'test' }),
+        credentials: 'include' as const,
+        mode: 'cors' as const,
+      };
+
+      const handlerData = {
+        fetchData: { url: '/api/test', method: 'POST' },
+        args: ['/api/test', originalOptions] as unknown[],
+        startTimestamp: Date.now(),
+      };
+
+      const spans: Record<string, Span> = {};
+
+      instrumentFetchRequest(
+        handlerData,
+        () => true,
+        () => true,
+        spans,
+        { spanOrigin: 'auto.http.browser' },
+      );
+
+      const resultOptions = handlerData.args[1] as Record<string, unknown>;
+
+      // all original properties are preserved in the new object
+      expect(resultOptions.method).toBe('POST');
+      expect(resultOptions.body).toBe(originalOptions.body);
+      expect(resultOptions.credentials).toBe('include');
+      expect(resultOptions.mode).toBe('cors');
+      expect(resultOptions).toHaveProperty('headers');
     });
   });
 });

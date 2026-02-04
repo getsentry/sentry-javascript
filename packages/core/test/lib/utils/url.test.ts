@@ -6,6 +6,7 @@ import {
   isURLObjectRelative,
   parseStringToURLObject,
   parseUrl,
+  stripDataUrlContent,
   stripUrlQueryAndFragment,
 } from '../../../src/utils/url';
 
@@ -635,6 +636,122 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'url.full': 'https://api.example.com/users',
       'server.address': 'api.example.com',
       'url.scheme': 'https:',
+    });
+  });
+});
+
+describe('stripDataUrlContent', () => {
+  it('returns regular URLs unchanged', () => {
+    expect(stripDataUrlContent('https://example.com/api')).toBe('https://example.com/api');
+    expect(stripDataUrlContent('http://localhost:3000/test')).toBe('http://localhost:3000/test');
+    expect(stripDataUrlContent('/relative/path')).toBe('/relative/path');
+  });
+
+  it('should be applied BEFORE parseStringToURLObject for data URLs', () => {
+    // This test documents an important behavior:
+    // Data URLs are treated as "relative" by parseStringToURLObject because they don't contain "://".
+    // This means getSanitizedUrlStringFromUrlObject returns just the pathname (without "data:" prefix),
+    // and stripDataUrlContent won't match since it checks url.startsWith('data:').
+    // Therefore, stripDataUrlContent MUST be applied to the original URL before parsing.
+    const dataUrl = 'data:text/javascript;base64,SGVsbG8gV29ybGQ=';
+
+    // Verify data URLs are treated as relative
+    const parsedUrl = parseStringToURLObject(dataUrl);
+    expect(parsedUrl).toBeDefined();
+    expect(isURLObjectRelative(parsedUrl!)).toBe(true);
+
+    // getSanitizedUrlStringFromUrlObject returns just the pathname for relative URLs
+    const sanitizedWithoutStripping = getSanitizedUrlStringFromUrlObject(parsedUrl!);
+    // The pathname doesn't start with 'data:', so stripDataUrlContent wouldn't work on it
+    expect(sanitizedWithoutStripping.startsWith('data:')).toBe(false);
+    // Applying stripDataUrlContent AFTER parsing is ineffective
+    expect(stripDataUrlContent(sanitizedWithoutStripping)).toBe(sanitizedWithoutStripping);
+
+    // CORRECT approach: strip data URL content FIRST, before any URL parsing
+    const strippedUrl = stripDataUrlContent(dataUrl);
+    // Default behavior includes first 10 chars of data for debugging (e.g., magic bytes)
+    expect(strippedUrl).toBe('data:text/javascript,base64,SGVsbG8gV2... [truncated]');
+    // The stripped URL is already sanitized and can be used directly as the span name
+  });
+
+  describe('with includeDataPrefix=true (default)', () => {
+    it('includes first 10 chars of data for base64 data URLs', () => {
+      // SGVsbG8gV29ybGQ= is "Hello World" in base64
+      expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=')).toBe(
+        'data:text/javascript,base64,SGVsbG8gV2... [truncated]',
+      );
+      expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9')).toBe(
+        'data:application/json,base64,eyJrZXkiOi... [truncated]',
+      );
+    });
+
+    it('includes first 10 chars of data for non-base64 data URLs', () => {
+      expect(stripDataUrlContent('data:text/plain,Hello%20World')).toBe('data:text/plain,Hello%20Wo... [truncated]');
+      expect(stripDataUrlContent('data:text/html,<h1>Hello</h1>')).toBe('data:text/html,<h1>Hello<... [truncated]');
+    });
+
+    it('includes all data if less than 10 chars', () => {
+      expect(stripDataUrlContent('data:text/plain,Hi')).toBe('data:text/plain,Hi');
+      expect(stripDataUrlContent('data:text/plain;base64,SGk=')).toBe('data:text/plain,base64,SGk=');
+    });
+
+    it('helps identify WASM by magic bytes (AGFzbQ)', () => {
+      // WASM magic bytes: \0asm -> base64: AGFzbQ
+      const wasmDataUrl = 'data:application/wasm;base64,AGFzbQEAAAA=';
+      expect(stripDataUrlContent(wasmDataUrl)).toBe('data:application/wasm,base64,AGFzbQEAAA... [truncated]');
+    });
+
+    it('handles various MIME types', () => {
+      expect(stripDataUrlContent('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA')).toBe(
+        'data:image/png,base64,iVBORw0KGg... [truncated]',
+      );
+      expect(stripDataUrlContent('data:image/svg+xml;base64,PHN2Zz4=')).toBe('data:image/svg+xml,base64,PHN2Zz4=');
+    });
+
+    it('defaults to text/plain for data URLs without MIME type', () => {
+      expect(stripDataUrlContent('data:,Hello')).toBe('data:text/plain,Hello');
+      expect(stripDataUrlContent('data:;base64,SGVsbG8=')).toBe('data:text/plain,base64,SGVsbG8=');
+    });
+
+    it('handles empty data URLs', () => {
+      expect(stripDataUrlContent('data:')).toBe('data:text/plain');
+    });
+
+    it('handles very long base64 encoded data URLs', () => {
+      const longBase64 = 'A'.repeat(10000);
+      expect(stripDataUrlContent(`data:text/javascript;base64,${longBase64}`)).toBe(
+        'data:text/javascript,base64,AAAAAAAAAA... [truncated]',
+      );
+    });
+  });
+
+  describe('with includeDataPrefix=false', () => {
+    it('strips all content from base64 data URLs', () => {
+      expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=', false)).toBe(
+        'data:text/javascript,base64',
+      );
+      expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9', false)).toBe(
+        'data:application/json,base64',
+      );
+    });
+
+    it('strips all content from non-base64 data URLs', () => {
+      expect(stripDataUrlContent('data:text/plain,Hello%20World', false)).toBe('data:text/plain');
+      expect(stripDataUrlContent('data:text/html,<h1>Hello</h1>', false)).toBe('data:text/html');
+    });
+
+    it('handles various MIME types', () => {
+      expect(stripDataUrlContent('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA', false)).toBe(
+        'data:image/png,base64',
+      );
+      expect(stripDataUrlContent('data:application/wasm;base64,AGFzbQEAAAA=', false)).toBe(
+        'data:application/wasm,base64',
+      );
+    });
+
+    it('defaults to text/plain for data URLs without MIME type', () => {
+      expect(stripDataUrlContent('data:,Hello', false)).toBe('data:text/plain');
+      expect(stripDataUrlContent('data:;base64,SGVsbG8=', false)).toBe('data:text/plain,base64');
     });
   });
 });

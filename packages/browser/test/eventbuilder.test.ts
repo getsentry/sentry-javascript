@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { addNonEnumerableProperty } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultStackParser } from '../src';
 import { eventFromMessage, eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
@@ -258,5 +259,79 @@ describe('eventFromMessage ', () => {
     const syntheticException = new Error('Test message');
     const event = await eventFromMessage(defaultStackParser, 'Test message', 'info', { syntheticException }, false);
     expect(event.exception).toBeUndefined();
+  });
+});
+
+describe('__sentry_fetch_url_host__ error enhancement', () => {
+  it('should enhance error message when __sentry_fetch_url_host__ property is present', () => {
+    const error = new Error('Failed to fetch');
+    // Simulate what fetch instrumentation does
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'example.com');
+
+    const message = extractMessage(error);
+
+    expect(message).toBe('Failed to fetch (example.com)');
+  });
+
+  it('should not enhance error message when property is missing', () => {
+    const error = new Error('Failed to fetch');
+
+    const message = extractMessage(error);
+
+    expect(message).toBe('Failed to fetch');
+  });
+
+  it('should preserve original error message unchanged', () => {
+    const error = new Error('Failed to fetch');
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'api.example.com');
+
+    // Original error message should still be accessible
+    expect(error.message).toBe('Failed to fetch');
+
+    // But Sentry exception should have enhanced message
+    const message = extractMessage(error);
+    expect(message).toBe('Failed to fetch (api.example.com)');
+  });
+
+  it.each([
+    { message: 'Failed to fetch', host: 'example.com', expected: 'Failed to fetch (example.com)' },
+    { message: 'Load failed', host: 'api.test.com', expected: 'Load failed (api.test.com)' },
+    {
+      message: 'NetworkError when attempting to fetch resource.',
+      host: 'localhost:3000',
+      expected: 'NetworkError when attempting to fetch resource. (localhost:3000)',
+    },
+  ])('should work with all network error types ($message)', ({ message, host, expected }) => {
+    const error = new Error(message);
+
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', host);
+
+    const enhancedMessage = extractMessage(error);
+    expect(enhancedMessage).toBe(expected);
+  });
+
+  it('should not enhance if property value is not a string', () => {
+    const error = new Error('Failed to fetch');
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 123); // Not a string
+
+    const message = extractMessage(error);
+    expect(message).toBe('Failed to fetch');
+  });
+
+  it('should handle errors with stack traces', () => {
+    const error = new Error('Failed to fetch');
+    error.stack = 'TypeError: Failed to fetch\n    at fetch (test.js:1:1)';
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'example.com');
+
+    const message = extractMessage(error);
+    expect(message).toBe('Failed to fetch (example.com)');
+  });
+
+  it('should preserve hostname with port', () => {
+    const error = new Error('Failed to fetch');
+    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'localhost:8080');
+
+    const message = extractMessage(error);
+    expect(message).toBe('Failed to fetch (localhost:8080)');
   });
 });

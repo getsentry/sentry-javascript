@@ -12,6 +12,7 @@ export default defineConfig({
       org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
       project: process.env.E2E_TEST_SENTRY_PROJECT,
       authToken: process.env.E2E_TEST_AUTH_TOKEN,
+      applicationKey: 'browser-webworker-vite',
     }),
   ],
 
@@ -21,6 +22,7 @@ export default defineConfig({
         org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
         project: process.env.E2E_TEST_SENTRY_PROJECT,
         authToken: process.env.E2E_TEST_AUTH_TOKEN,
+        applicationKey: 'browser-webworker-vite',
       }),
     ],
   },
