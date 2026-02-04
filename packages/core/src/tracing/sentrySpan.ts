@@ -251,7 +251,7 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal This method is purely for internal purposes and should not be used outside
    * of SDK code. If you need to get a JSON representation of a span,
-   * use `spanToV2JSON(span)` instead.
+   * use `spanToStreamedSpanJSON(span)` instead.
    */
   public getStreamedSpanJSON(): StreamedSpanJSON {
     return {
