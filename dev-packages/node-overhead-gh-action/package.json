@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@sentry/node": "10.38.0",
-    "express": "^4.21.1",
+    "express": "^4.22.1",
     "mysql2": "^3.14.4"
   },
   "devDependencies": {

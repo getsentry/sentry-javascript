@@ -44,7 +44,7 @@
     "@playwright/test": "~1.56.0"
   },
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.22.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

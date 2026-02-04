@@ -52,7 +52,7 @@
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "dataloader": "2.2.2",
-    "express": "^4.21.1",
+    "express": "^4.22.1",
     "generic-pool": "^3.9.0",
     "graphql": "^16.3.0",
     "hono": "^4.11.7",
