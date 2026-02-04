@@ -38,7 +38,7 @@ export type SpanTimeInput = HrTime | number | Date;
 /**
  * Intermediate JSON reporesentation of a v2 span, which users and our SDK integrations will interact with.
  * This is NOT the final serialized JSON span, but an intermediate step still holding raw attributes.
- * The final, serialized span is a {@link SerializedSpan}.
+ * The final, serialized span is a {@link SerializedStreamedSpan}.
  * Main reason: Make it easier and safer for users to work with attributes.
  */
 export interface StreamedSpanJSON {
@@ -60,7 +60,7 @@ export interface StreamedSpanJSON {
  * The intermediate representation is {@link StreamedSpanJSON}.
  * Main difference: Attributes are converted to {@link Attributes}, thus including the `type` annotation.
  */
-export type SerializedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
+export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
   attributes?: Attributes;
   links?: SpanLinkJSON<Attributes>[];
 };
@@ -68,8 +68,8 @@ export type SerializedSpan = Omit<StreamedSpanJSON, 'attributes' | 'links'> & {
 /**
  * Envelope span item container.
  */
-export type SerializedSpanContainer = {
-  items: Array<SerializedSpan>;
+export type SerializedStreamedSpanContainer = {
+  items: Array<SerializedStreamedSpan>;
 };
 
 /** A JSON representation of a span. */
