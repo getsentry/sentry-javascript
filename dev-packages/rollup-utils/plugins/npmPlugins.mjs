@@ -2,7 +2,7 @@
  * Replace plugin docs: https://rolldown.rs/builtin-plugins/replace#replace-plugin
  */
 
-import { replacePlugin } from "rolldown/plugins";
+import { replacePlugin } from 'rolldown/plugins';
 
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
@@ -44,7 +44,7 @@ import { replacePlugin } from "rolldown/plugins";
  */
 export function makeDebuggerPlugin(hookName) {
   return {
-    name: "debugger-plugin",
+    name: 'debugger-plugin',
     // eslint-disable-next-line no-unused-vars
     [hookName]: (..._args) => {
       // eslint-disable-next-line no-debugger
@@ -64,8 +64,7 @@ export function makeDebuggerPlugin(hookName) {
 export function makeDebugBuildStatementReplacePlugin() {
   return replacePlugin(
     {
-      __DEBUG_BUILD__:
-        "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
+      __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
     },
     {
       preventAssignment: true,
@@ -83,15 +82,15 @@ export function makeProductionReplacePlugin() {
 
   function stripDevBlocks(code) {
     if (!code) return null;
-    if (!code.includes("rollup-include-development-only")) return null;
+    if (!code.includes('rollup-include-development-only')) return null;
 
-    const replaced = code.replace(pattern, "");
+    const replaced = code.replace(pattern, '');
 
     return { code: replaced, map: null };
   }
 
   return {
-    name: "remove-dev-mode-blocks",
+    name: 'remove-dev-mode-blocks',
     renderChunk(code) {
       return stripDevBlocks(code);
     },
@@ -109,12 +108,12 @@ export function makeProductionReplacePlugin() {
 export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   const values = {};
 
-  if (typeof excludeShadowDom === "boolean") {
-    values["__RRWEB_EXCLUDE_SHADOW_DOM__"] = excludeShadowDom;
+  if (typeof excludeShadowDom === 'boolean') {
+    values['__RRWEB_EXCLUDE_SHADOW_DOM__'] = excludeShadowDom;
   }
 
-  if (typeof excludeIframe === "boolean") {
-    values["__RRWEB_EXCLUDE_IFRAME__"] = excludeIframe;
+  if (typeof excludeIframe === 'boolean') {
+    values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
   }
 
   return replacePlugin(values, {
