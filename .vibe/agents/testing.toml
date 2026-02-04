@@ -1,4 +1,6 @@
-# Testing Agent - Optimized for running and analyzing tests
+# Testing Agent
+# Optimized for running and analyzing tests with auto-approved bash commands.
+# Use: vibe --agent testing
 
 active_model = "devstral-2"
 system_prompt_id = "sentry-sdk"

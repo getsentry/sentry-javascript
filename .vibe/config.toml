@@ -1,6 +1,3 @@
-# Sentry JavaScript SDK - Vibe Configuration
-
-# Use devstral-2 for fast, cost-effective coding assistance
 active_model = "devstral-2"
 
 # Use custom system prompt optimized for Sentry SDK development
@@ -9,13 +6,10 @@ system_prompt_id = "sentry-sdk"
 # Load skills from the existing .claude/skills directory
 skill_paths = ["../.claude/skills"]
 
-# Use ./prompts/sentry-sdk.md as default
-system_prompt_id = "sentry-sdk"
-
-# Session logging for debugging and continuation
 [sessions]
+# Enable session logging for debugging and continuation
 log_sessions = true
-log_dir = ".vibe/logs"
+log_dir = "logs" # relative to .vibe
 
 # Reading Files
 [tools.read_file]

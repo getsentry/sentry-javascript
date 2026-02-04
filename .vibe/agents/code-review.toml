@@ -1,4 +1,6 @@
-# Code Review Agent - Read-only agent for code analysis
+# Code Review Agent
+# Read-only agent for code analysis, exploration, and review tasks.
+# Use: vibe --agent code-review
 
 active_model = "devstral-2"
 system_prompt_id = "sentry-sdk"

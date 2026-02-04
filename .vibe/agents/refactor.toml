@@ -1,4 +1,6 @@
-# Refactoring Agent - Auto-approves file edits for refactoring tasks
+# Refactoring Agent
+# Auto-approves file edits for refactoring tasks.
+# Use: vibe --agent refactor
 
 active_model = "devstral-2"
 system_prompt_id = "sentry-sdk"
