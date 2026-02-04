@@ -384,7 +384,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
-  SpanV2Envelope,
+  StreamedSpanEnvelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,

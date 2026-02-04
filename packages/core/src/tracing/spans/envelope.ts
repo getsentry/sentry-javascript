@@ -1,5 +1,5 @@
 import type { Client } from '../../client';
-import type { DynamicSamplingContext, SpanContainerItem, SpanV2Envelope } from '../../types-hoist/envelope';
+import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types-hoist/envelope';
 import type { SerializedSpan } from '../../types-hoist/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope } from '../../utils/envelope';
@@ -7,16 +7,16 @@ import { createEnvelope } from '../../utils/envelope';
 /**
  * Creates a span v2 span streaming envelope
  */
-export function createSpanV2Envelope(
+export function createStreamedSpanEnvelope(
   serializedSpans: Array<SerializedSpan>,
   dsc: Partial<DynamicSamplingContext>,
   client: Client,
-): SpanV2Envelope {
+): StreamedSpanEnvelope {
   const dsn = client.getDsn();
   const tunnel = client.getOptions().tunnel;
   const sdk = client.getOptions()._metadata?.sdk;
 
-  const headers: SpanV2Envelope[0] = {
+  const headers: StreamedSpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
     ...(sdk && { sdk }),
@@ -28,7 +28,7 @@ export function createSpanV2Envelope(
     { items: serializedSpans },
   ];
 
-  return createEnvelope<SpanV2Envelope>(headers, [spanContainer]);
+  return createEnvelope<StreamedSpanEnvelope>(headers, [spanContainer]);
 }
 
 function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {

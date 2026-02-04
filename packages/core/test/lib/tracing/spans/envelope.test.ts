@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSpanV2Envelope } from '../../../../src/tracing/spans/envelope';
+import { createStreamedSpanEnvelope } from '../../../../src/tracing/spans/envelope';
 import type { DynamicSamplingContext } from '../../../../src/types-hoist/envelope';
 import type { SerializedSpan } from '../../../../src/types-hoist/span';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -17,14 +17,14 @@ function createMockSerializedSpan(overrides: Partial<SerializedSpan> = {}): Seri
   };
 }
 
-describe('createSpanV2Envelope', () => {
+describe('createStreamedSpanEnvelope', () => {
   describe('envelope headers', () => {
     it('creates an envelope with sent_at header', () => {
       const mockSpan = createMockSerializedSpan();
       const mockClient = new TestClient(getDefaultTestClientOptions());
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).toHaveProperty('sent_at', expect.any(String));
     });
@@ -39,7 +39,7 @@ describe('createSpanV2Envelope', () => {
         release: 'v1.0.0',
       };
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).toHaveProperty('trace', dsc);
     });
@@ -51,7 +51,7 @@ describe('createSpanV2Envelope', () => {
         public_key: 'public-key-abc',
       };
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).not.toHaveProperty('trace');
     });
@@ -63,7 +63,7 @@ describe('createSpanV2Envelope', () => {
         trace_id: 'trace-123',
       };
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).not.toHaveProperty('trace');
     });
@@ -79,7 +79,7 @@ describe('createSpanV2Envelope', () => {
       );
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).toHaveProperty('sdk', { name: 'sentry.javascript.browser', version: '8.0.0' });
     });
@@ -89,7 +89,7 @@ describe('createSpanV2Envelope', () => {
       const mockClient = new TestClient(getDefaultTestClientOptions());
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).not.toHaveProperty('sdk');
     });
@@ -104,7 +104,7 @@ describe('createSpanV2Envelope', () => {
       );
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).toHaveProperty('dsn', 'https://abc123@example.sentry.io/456');
     });
@@ -118,7 +118,7 @@ describe('createSpanV2Envelope', () => {
       );
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).not.toHaveProperty('dsn');
     });
@@ -132,7 +132,7 @@ describe('createSpanV2Envelope', () => {
       );
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).not.toHaveProperty('dsn');
     });
@@ -154,7 +154,7 @@ describe('createSpanV2Envelope', () => {
         environment: 'production',
       };
 
-      const result = createSpanV2Envelope([mockSpan], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([mockSpan], dsc, mockClient);
 
       expect(result[0]).toEqual({
         sent_at: expect.any(String),
@@ -171,7 +171,7 @@ describe('createSpanV2Envelope', () => {
       const mockClient = new TestClient(getDefaultTestClientOptions());
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const envelopeItems = createSpanV2Envelope([mockSpan], dsc, mockClient)[1];
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
 
       expect(envelopeItems).toEqual([
         [
@@ -194,7 +194,7 @@ describe('createSpanV2Envelope', () => {
       const mockClient = new TestClient(getDefaultTestClientOptions());
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const envelopeItems = createSpanV2Envelope([mockSpan1, mockSpan2, mockSpan3], dsc, mockClient)[1];
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan1, mockSpan2, mockSpan3], dsc, mockClient)[1];
 
       expect(envelopeItems).toEqual([
         [
@@ -208,7 +208,7 @@ describe('createSpanV2Envelope', () => {
       const mockClient = new TestClient(getDefaultTestClientOptions());
       const dsc: Partial<DynamicSamplingContext> = {};
 
-      const result = createSpanV2Envelope([], dsc, mockClient);
+      const result = createStreamedSpanEnvelope([], dsc, mockClient);
 
       expect(result).toEqual([
         {
