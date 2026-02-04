@@ -1,0 +1,23 @@
+# Code Review Agent - Read-only agent for code analysis
+
+active_model = "devstral-2"
+system_prompt_id = "sentry-sdk"
+
+# Disable write operations for code review
+disabled_tools = ["write_file", "search_replace", "bash"]
+
+# Auto-approve safe read operations
+[tools.read_file]
+permission = "always"
+
+[tools.grep]
+permission = "always"
+
+[tools.list_dir]
+permission = "always"
+
+[tools.todo]
+permission = "always"
+
+[tools.ask_user_question]
+permission = "always"

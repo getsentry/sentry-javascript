@@ -1,0 +1,27 @@
+# Refactoring Agent - Auto-approves file edits for refactoring tasks
+
+active_model = "devstral-2"
+system_prompt_id = "sentry-sdk"
+
+# Auto-approve file operations for refactoring
+[tools.read_file]
+permission = "always"
+
+[tools.grep]
+permission = "always"
+
+[tools.write_file]
+permission = "always"
+
+[tools.search_replace]
+permission = "always"
+
+[tools.list_dir]
+permission = "always"
+
+[tools.todo]
+permission = "always"
+
+# Still require approval for shell commands (for safety)
+[tools.bash]
+permission = "ask"

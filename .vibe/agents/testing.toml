@@ -1,0 +1,27 @@
+# Testing Agent - Optimized for running and analyzing tests
+
+active_model = "devstral-2"
+system_prompt_id = "sentry-sdk"
+
+# Auto-approve read operations and bash commands for running tests
+[tools.read_file]
+permission = "always"
+
+[tools.grep]
+permission = "always"
+
+[tools.list_dir]
+permission = "always"
+
+[tools.bash]
+permission = "always"  # Auto-approve to run test commands
+
+[tools.todo]
+permission = "always"
+
+# Still require approval for file modifications
+[tools.write_file]
+permission = "ask"
+
+[tools.search_replace]
+permission = "ask"
