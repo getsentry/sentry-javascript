@@ -19,7 +19,7 @@ export function createSpanV2Envelope(
   const headers: SpanV2Envelope[0] = {
     sent_at: new Date().toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
-    ...(sdk && { sdk: sdk }),
+    ...(sdk && { sdk }),
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
