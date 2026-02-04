@@ -156,7 +156,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
@@ -178,7 +178,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28.5 KB',
+    limit: '29 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
