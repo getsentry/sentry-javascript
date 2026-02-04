@@ -2,7 +2,7 @@ import type { Client } from '../../client';
 import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types-hoist/envelope';
 import type { SerializedSpan } from '../../types-hoist/span';
 import { dsnToString } from '../../utils/dsn';
-import { createEnvelope } from '../../utils/envelope';
+import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
 
 /**
  * Creates a span v2 span streaming envelope
@@ -14,7 +14,7 @@ export function createStreamedSpanEnvelope(
 ): StreamedSpanEnvelope {
   const dsn = client.getDsn();
   const tunnel = client.getOptions().tunnel;
-  const sdk = client.getOptions()._metadata?.sdk;
+  const sdk = getSdkMetadataForEnvelopeHeader(client.getOptions()._metadata);
 
   const headers: StreamedSpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
