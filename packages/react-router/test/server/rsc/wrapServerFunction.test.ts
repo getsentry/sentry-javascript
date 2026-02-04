@@ -138,6 +138,22 @@ describe('wrapServerFunction', () => {
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
+  it('should not capture not-found errors as exceptions', async () => {
+    const notFoundResponse = new Response(null, { status: 404 });
+    const mockServerFn = vi.fn().mockRejectedValue(notFoundResponse);
+    const mockSetStatus = vi.fn();
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
+
+    const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
+
+    await expect(wrappedFn()).rejects.toBe(notFoundResponse);
+    expect(mockSetStatus).toHaveBeenCalledWith({ code: 2, message: 'not_found' });
+    expect(core.captureException).not.toHaveBeenCalled();
+  });
+
   it('should preserve function name', () => {
     const mockServerFn = vi.fn().mockResolvedValue('result');
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);

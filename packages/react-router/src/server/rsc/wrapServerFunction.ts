@@ -10,7 +10,13 @@ import {
   SPAN_STATUS_OK,
   startSpan,
 } from '@sentry/core';
-import { isErrorCaptured, isRedirectResponse, markErrorAsCaptured, safeFlushServerless } from './responseUtils';
+import {
+  isErrorCaptured,
+  isNotFoundResponse,
+  isRedirectResponse,
+  markErrorAsCaptured,
+  safeFlushServerless,
+} from './responseUtils';
 import type { WrapServerFunctionOptions } from './types';
 
 /**
@@ -73,8 +79,13 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
         } catch (error) {
           // Check if the error is a redirect (common pattern in server functions)
           if (isRedirectResponse(error)) {
-            // Don't capture redirects as errors, but still end the span
             span.setStatus({ code: SPAN_STATUS_OK });
+            throw error;
+          }
+
+          // Check if the error is a not-found response (404)
+          if (isNotFoundResponse(error)) {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             throw error;
           }
 
