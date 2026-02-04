@@ -7315,14 +7315,6 @@
     "@sentry/bundler-plugin-core" "4.8.0"
     unplugin "1.0.1"
 
-"@sentry/solid@10.38.0":
-  version "10.38.0"
-  resolved "https://registry.yarnpkg.com/@sentry/solid/-/solid-10.38.0.tgz#1d9f742162075dfef1c899cd3a39ef46889657f9"
-  integrity sha512-CfRysFB2bqSbCW+5s7GBksScT8kFulMswglN46RzL3BYjUufC7iCE7cGz7kL1nqRWx9Jp3p/QcsHpNnglIpFsA==
-  dependencies:
-    "@sentry/browser" "10.38.0"
-    "@sentry/core" "10.38.0"
-
 "@sentry/vite-plugin@^4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.8.0.tgz#3d0a5edb57ca34aa45c72c1869b1c654287cc521"
