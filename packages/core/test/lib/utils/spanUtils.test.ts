@@ -23,11 +23,11 @@ import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils
 import {
   getRootSpan,
   spanIsSampled,
-  streamedSpanJsonToSerializedSpan,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToStreamedSpanJSON,
   spanToTraceContext,
+  streamedSpanJsonToSerializedSpan,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
   updateSpanName,
