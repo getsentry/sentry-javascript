@@ -34,6 +34,7 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { isStreamedBeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -1502,7 +1503,9 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
+  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
