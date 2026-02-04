@@ -7098,20 +7098,6 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
-"@sentry-internal/browser-utils@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/browser-utils/-/browser-utils-10.34.0.tgz#a90ef399a48ce55f1786558d34b46885f138f5a8"
-  integrity sha512-0YNr60rGHyedmwkO0lbDBjNx2KAmT3kWamjaqu7Aw+jsESoPLgt+fzaTVvUBvkftBDui2PeTSzXm/nqzssctYg==
-  dependencies:
-    "@sentry/core" "10.34.0"
-
-"@sentry-internal/feedback@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-10.34.0.tgz#377e86753706ca63aeb629419d5c4d763dabdf13"
-  integrity sha512-wgGnq+iNxsFSOe9WX/FOvtoItSTjgLJJ4dQkVYtcVM6WGBVIg4wgNYfECCnRNztUTPzpZHLjC9r+4Pym451DDQ==
-  dependencies:
-    "@sentry/core" "10.34.0"
-
 "@sentry-internal/node-cpu-profiler@^2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/node-cpu-profiler/-/node-cpu-profiler-2.2.0.tgz#0640d4aebb4d36031658ccff83dc22b76f437ede"
@@ -7127,22 +7113,6 @@
   dependencies:
     detect-libc "^2.0.4"
     node-abi "^3.73.0"
-
-"@sentry-internal/replay-canvas@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/replay-canvas/-/replay-canvas-10.34.0.tgz#f0a741386ea56472e0377d84bf1fd35ad7d9ac19"
-  integrity sha512-XWH/9njtgMD+LLWjc4KKgBpb+dTCkoUEIFDxcvzG/87d+jirmzf0+r8EfpLwKG+GrqNiiGRV39zIqu0SfPl+cw==
-  dependencies:
-    "@sentry-internal/replay" "10.34.0"
-    "@sentry/core" "10.34.0"
-
-"@sentry-internal/replay@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/replay/-/replay-10.34.0.tgz#4ad2b581a3fa178da0110bb63c56df3413ed8233"
-  integrity sha512-Vmea0GcOg57z/S1bVSj3saFcRvDqdLzdy4wd9fQMpMgy5OCbTlo7lxVUndKzbcZnanma6zF6VxwnWER1WuN9RA==
-  dependencies:
-    "@sentry-internal/browser-utils" "10.34.0"
-    "@sentry/core" "10.34.0"
 
 "@sentry-internal/rrdom@2.34.0":
   version "2.34.0"
@@ -7217,17 +7187,6 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.8.0.tgz#6705126a7726bd248f93acc79b8f3c8921b1c385"
   integrity sha512-cy/9Eipkv23MsEJ4IuB4dNlVwS9UqOzI3Eu+QPake5BVFgPYCX0uP0Tr3Z43Ime6Rb+BiDnWC51AJK9i9afHYw==
 
-"@sentry/browser@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-10.34.0.tgz#4d94405aa696b177ab919fa21e5c2bb7f364965b"
-  integrity sha512-8WCsAXli5Z+eIN8dMY8KGQjrS3XgUp1np/pjdeWNrVPVR8q8XpS34qc+f+y/LFrYQC9bs2Of5aIBwRtDCIvRsg==
-  dependencies:
-    "@sentry-internal/browser-utils" "10.34.0"
-    "@sentry-internal/feedback" "10.34.0"
-    "@sentry-internal/replay" "10.34.0"
-    "@sentry-internal/replay-canvas" "10.34.0"
-    "@sentry/core" "10.34.0"
-
 "@sentry/bundler-plugin-core@4.8.0", "@sentry/bundler-plugin-core@^4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.8.0.tgz#2e7a4493795a848951e1e074a1b15b650fe0e6b0"
@@ -7301,11 +7260,6 @@
     "@sentry/cli-win32-arm64" "2.58.4"
     "@sentry/cli-win32-i686" "2.58.4"
     "@sentry/cli-win32-x64" "2.58.4"
-
-"@sentry/core@10.34.0":
-  version "10.34.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-10.34.0.tgz#63dd8d27d65f89d2f74a80c070221fce201b2c23"
-  integrity sha512-4FFpYBMf0VFdPcsr4grDYDOR87mRu6oCfb51oQjU/Pndmty7UgYo0Bst3LEC/8v0SpytBtzXq+Wx/fkwulBesg==
 
 "@sentry/rollup-plugin@^4.8.0":
   version "4.8.0"
