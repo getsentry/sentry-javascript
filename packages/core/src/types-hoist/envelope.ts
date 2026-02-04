@@ -11,7 +11,7 @@ import type { Profile, ProfileChunk } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, SessionAggregates } from './session';
-import type { SerializedSpanContainer, SpanJSON } from './span';
+import type { SerializedStreamedSpanContainer, SpanJSON } from './span';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
@@ -138,7 +138,7 @@ export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
-export type SpanContainerItem = BaseEnvelopeItem<SpanContainerItemHeaders, SerializedSpanContainer>;
+export type SpanContainerItem = BaseEnvelopeItem<SpanContainerItemHeaders, SerializedStreamedSpanContainer>;
 export type LogContainerItem = BaseEnvelopeItem<LogContainerItemHeaders, SerializedLogContainer>;
 export type MetricContainerItem = BaseEnvelopeItem<MetricContainerItemHeaders, SerializedMetricContainer>;
 export type RawSecurityItem = BaseEnvelopeItem<RawSecurityHeaders, LegacyCSPReport>;

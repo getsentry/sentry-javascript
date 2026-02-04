@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createStreamedSpanEnvelope } from '../../../../src/tracing/spans/envelope';
 import type { DynamicSamplingContext } from '../../../../src/types-hoist/envelope';
-import type { SerializedSpan } from '../../../../src/types-hoist/span';
+import type { SerializedStreamedSpan } from '../../../../src/types-hoist/span';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
-function createMockSerializedSpan(overrides: Partial<SerializedSpan> = {}): SerializedSpan {
+function createMockSerializedSpan(overrides: Partial<SerializedStreamedSpan> = {}): SerializedStreamedSpan {
   return {
     trace_id: 'abc123',
     span_id: 'def456',

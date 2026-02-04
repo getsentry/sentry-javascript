@@ -1,6 +1,6 @@
 import type { Client } from '../../client';
 import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } from '../../types-hoist/envelope';
-import type { SerializedSpan } from '../../types-hoist/span';
+import type { SerializedStreamedSpan } from '../../types-hoist/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
 
@@ -8,7 +8,7 @@ import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/env
  * Creates a span v2 span streaming envelope
  */
 export function createStreamedSpanEnvelope(
-  serializedSpans: Array<SerializedSpan>,
+  serializedSpans: Array<SerializedStreamedSpan>,
   dsc: Partial<DynamicSamplingContext>,
   client: Client,
 ): StreamedSpanEnvelope {
