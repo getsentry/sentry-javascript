@@ -222,9 +222,8 @@ export function spanToJSON(span: Span): SpanJSON {
  * Convert a span to the intermediate {@link StreamedSpanJSON} representation.
  */
 export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
-  // Check if the span has a getSpanV2JSON method (added in SentrySpan in later PRs)
-  if (typeof (span as SentrySpan & { getSpanV2JSON?: () => SerializedSpan }).getStreamedSpanJSON === 'function') {
-    return (span as SentrySpan & { getSpanV2JSON: () => SerializedSpan }).getStreamedSpanJSON();
+  if (spanIsSentrySpan(span)) {
+    return span.getStreamedSpanJSON();
   }
 
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
