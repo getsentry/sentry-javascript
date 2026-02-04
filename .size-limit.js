@@ -103,7 +103,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '31 KB',
+    limit: '32 KB',
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
@@ -171,14 +171,14 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25.5 KB',
+    limit: '26 KB',
   },
   // Browser CDN bundles
   {
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28 KB',
+    limit: '28.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
