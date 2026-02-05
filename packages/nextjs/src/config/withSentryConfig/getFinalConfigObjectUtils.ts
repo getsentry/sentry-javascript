@@ -252,16 +252,10 @@ export function getNextMajor(nextJsVersion: string | undefined): number | undefi
 }
 
 /**
- * Reads and returns the Vercel crons configuration from vercel.json.
- * Returns undefined if not running on Vercel, if the option is disabled,
- * or if vercel.json doesn't exist or doesn't contain crons.
+ * Reads the Vercel crons configuration from vercel.json.
+ * Returns undefined if vercel.json doesn't exist or doesn't contain crons.
  */
-export function maybeGetVercelCronsConfig(userSentryOptions: SentryBuildOptions): VercelCronsConfig {
-  // Only read crons config if running on Vercel and the experimental option is enabled
-  if (!process.env.VERCEL || !userSentryOptions._experimental?.vercelCronsMonitoring) {
-    return undefined;
-  }
-
+function readVercelCronsConfig(): VercelCronsConfig {
   try {
     const vercelJsonPath = path.join(process.cwd(), 'vercel.json');
     const vercelJsonContents = fs.readFileSync(vercelJsonPath, 'utf8');
@@ -269,20 +263,81 @@ export function maybeGetVercelCronsConfig(userSentryOptions: SentryBuildOptions)
     const cronsConfig = JSON.parse(vercelJsonContents).crons as VercelCronsConfig;
 
     if (cronsConfig && Array.isArray(cronsConfig) && cronsConfig.length > 0) {
-      debug.log(
-        "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in your Next.js config.",
-      );
       return cronsConfig;
     }
-
     return undefined;
   } catch (e) {
     if ((e as { code: string }).code === 'ENOENT') {
-      // noop if file does not exist
       return undefined;
     }
-    // log but noop
     debug.error('[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation', e);
     return undefined;
   }
+}
+
+/** Strategy for Vercel cron monitoring instrumentation */
+export type VercelCronsStrategy = 'spans' | 'wrapper';
+
+export type VercelCronsConfigResult = {
+  /** The crons configuration from vercel.json, if available */
+  config: VercelCronsConfig;
+  /**
+   * The instrumentation strategy to use:
+   * - `spans`: New span-based approach (works for both App Router and Pages Router)
+   * - `wrapper`: Old wrapper-based approach (Pages Router only)
+   * - `undefined`: No cron monitoring enabled
+   */
+  strategy: VercelCronsStrategy | undefined;
+};
+
+/**
+ * Reads and returns the Vercel crons configuration from vercel.json along with
+ * information about which instrumentation approach to use.
+ *
+ * - `_experimental.vercelCronsMonitoring`: New span-based approach (works for both App Router and Pages Router)
+ * - `automaticVercelMonitors`: Old wrapper-based approach (Pages Router only)
+ *
+ * If both are enabled, the new approach is preferred and a warning is logged.
+ */
+export function maybeGetVercelCronsConfig(userSentryOptions: SentryBuildOptions): VercelCronsConfigResult {
+  const result: VercelCronsConfigResult = { config: undefined, strategy: undefined };
+
+  if (!process.env.VERCEL) {
+    return result;
+  }
+
+  const experimentalEnabled = userSentryOptions._experimental?.vercelCronsMonitoring === true;
+  const legacyEnabled = userSentryOptions.webpack?.automaticVercelMonitors === true;
+
+  if (!experimentalEnabled && !legacyEnabled) {
+    return result;
+  }
+
+  const config = readVercelCronsConfig();
+  if (!config) {
+    return result;
+  }
+
+  result.config = config;
+
+  if (experimentalEnabled && legacyEnabled) {
+    debug.warn(
+      "[@sentry/nextjs] Both '_experimental.vercelCronsMonitoring' and 'webpack.automaticVercelMonitors' are enabled. " +
+        "Using the new span-based approach from '_experimental.vercelCronsMonitoring'. " +
+        "You can remove 'webpack.automaticVercelMonitors' from your config.",
+    );
+    result.strategy = 'spans';
+  } else if (experimentalEnabled) {
+    debug.log(
+      '[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs using span-based instrumentation.',
+    );
+    result.strategy = 'spans';
+  } else {
+    debug.log(
+      "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in your Next.js config.",
+    );
+    result.strategy = 'wrapper';
+  }
+
+  return result;
 }

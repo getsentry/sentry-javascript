@@ -36,7 +36,9 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
     return;
   }
 
-  // Get headers from the isolation scope
+  // The strategy here is to check if the request is a Vercel cron
+  // request by checking the user agent, vercel always sets the user agent to 'vercel-cron/1.0'
+
   const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers as
     | Record<string, string | string[] | undefined>
     | undefined;
@@ -45,16 +47,12 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
     return;
   }
 
-  // Check if this is a Vercel cron request
   const userAgent = Array.isArray(headers['user-agent']) ? headers['user-agent'][0] : headers['user-agent'];
-
   if (!userAgent?.includes('vercel-cron')) {
     return;
   }
 
-  // Find matching cron configuration
   const matchedCron = vercelCronsConfig.find(cron => cron.path === route);
-
   if (!matchedCron?.path || !matchedCron.schedule) {
     return;
   }
@@ -62,24 +60,17 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
   const monitorSlug = matchedCron.path;
   const startTime = _INTERNAL_safeDateNow() / 1000;
 
-  // Start the check-in
   const checkInId = captureCheckIn(
+    { monitorSlug, status: 'in_progress' },
     {
-      monitorSlug,
-      status: 'in_progress',
-    },
-    {
-      maxRuntime: 60 * 12, // 12 hours - high arbitrary number since we don't know the actual duration
-      schedule: {
-        type: 'crontab',
-        value: matchedCron.schedule,
-      },
+      maxRuntime: 60 * 12,
+      schedule: { type: 'crontab', value: matchedCron.schedule },
     },
   );
 
   DEBUG_BUILD && debug.log(`[Cron] Started check-in for "${monitorSlug}" with ID "${checkInId}"`);
 
-  // Store check-in data on the span for completion later
+  // Store marking attributes on the span so we can complete the check-in later
   span.setAttribute(ATTR_SENTRY_CRON_CHECK_IN_ID, checkInId);
   span.setAttribute(ATTR_SENTRY_CRON_MONITOR_SLUG, monitorSlug);
   span.setAttribute(ATTR_SENTRY_CRON_START_TIME, startTime);
@@ -91,7 +82,6 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
  */
 export function maybeCompleteCronCheckIn(span: Span): void {
   const spanData = spanToJSON(span).data;
-
   const checkInId = spanData?.[ATTR_SENTRY_CRON_CHECK_IN_ID];
   const monitorSlug = spanData?.[ATTR_SENTRY_CRON_MONITOR_SLUG];
   const startTime = spanData?.[ATTR_SENTRY_CRON_START_TIME];
@@ -102,10 +92,6 @@ export function maybeCompleteCronCheckIn(span: Span): void {
 
   const duration = _INTERNAL_safeDateNow() / 1000 - startTime;
   const spanStatus = spanToJSON(span).status;
-
-  // Determine check-in status based on span status
-  // Only mark as error if span status is explicitly 'error', otherwise treat as success
-  // Span status can be 'ok', 'error', or undefined (unset) - undefined means success
   const checkInStatus = spanStatus === 'error' ? 'error' : 'ok';
 
   captureCheckIn({
@@ -115,7 +101,7 @@ export function maybeCompleteCronCheckIn(span: Span): void {
     duration,
   });
 
-  // Clean up the cron attributes from the span
+  // Cleanup marking attributes so they don't pollute user span data
   span.setAttribute(ATTR_SENTRY_CRON_CHECK_IN_ID, undefined);
   span.setAttribute(ATTR_SENTRY_CRON_MONITOR_SLUG, undefined);
   span.setAttribute(ATTR_SENTRY_CRON_START_TIME, undefined);

@@ -45,7 +45,7 @@ export function getFinalConfigObject(
   }
 
   const routeManifest = maybeCreateRouteManifest(incomingUserNextConfigObject, userSentryOptions);
-  const vercelCronsConfig = maybeGetVercelCronsConfig(userSentryOptions);
+  const vercelCronsConfigResult = maybeGetVercelCronsConfig(userSentryOptions);
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
@@ -65,7 +65,7 @@ export function getFinalConfigObject(
     routeManifest,
     nextJsVersion,
     bundlerInfo,
-    vercelCronsConfig,
+    vercelCronsConfigResult,
   );
 
   const shouldUseRunAfterProductionCompileHook = resolveUseRunAfterProductionCompileHookOption(
@@ -96,7 +96,7 @@ export function getFinalConfigObject(
       nextJsVersion,
       shouldUseRunAfterProductionCompileHook,
       bundlerInfo,
-      vercelCronsConfig,
+      vercelCronsConfigResult,
     }),
     ...getTurbopackPatch(bundlerInfo, turboPackConfig),
   };
