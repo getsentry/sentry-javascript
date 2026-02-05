@@ -1140,7 +1140,16 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (this._context.traceIds.length === 0) {
       const currentTraceId = getCurrentScope().getPropagationContext().traceId;
       if (currentTraceId) {
-        this._context.traceIds.push([-1, currentTraceId]);
+        // Previously, in order to associate a replay with a trace, sdk waits
+        // until after a `type: transaction` event is sent successfully. it's
+        // possible that the replay integration is loaded after this event is
+        // sent and never gets associated with any trace. in this case, use the
+        // trace from current scope and propagation context. We associate the
+        // current trace w/ the earliest timestamp in event buffer.
+        //
+        // This is in seconds to be consistent with how we normally collect
+        // trace ids from the SDK hook event
+        this._context.traceIds.push([this._context.initialTimestamp / 1000, currentTraceId]);
       }
     }
     const _context = {
