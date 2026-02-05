@@ -31,8 +31,10 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 
 ### Linting and Formatting
 
-- `yarn lint` - Run ESLint and Prettier checks
+- `yarn lint` - Run ESLint and Oxfmt checks
 - `yarn fix` - Auto-fix linting and formatting issues
+- `yarn format:check` - Check file formatting only
+- `yarn format` - Auto-fix formatting issues
 - `yarn lint:es-compatibility` - Check ES compatibility
 
 ## Git Flow Branching Strategy
