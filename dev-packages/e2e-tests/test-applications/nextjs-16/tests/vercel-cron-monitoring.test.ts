@@ -5,7 +5,9 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
   const inProgressEnvelopePromise = waitForEnvelopeItem('nextjs-16', envelope => {
     return (
       envelope[0].type === 'check_in' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['monitor_slug'] === '/api/cron-test' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'in_progress'
     );
   });
@@ -13,12 +15,13 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
   const okEnvelopePromise = waitForEnvelopeItem('nextjs-16', envelope => {
     return (
       envelope[0].type === 'check_in' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['monitor_slug'] === '/api/cron-test' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'ok'
     );
   });
 
-  // Simulate Vercel cron request with the special user agent
   const response = await request.get('/api/cron-test', {
     headers: {
       'User-Agent': 'vercel-cron/1.0',
@@ -55,7 +58,7 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
     }),
   );
 
-  // Check-in IDs should match
+  // @ts-expect-error envelope[1] is untyped
   expect(okEnvelope[1]['check_in_id']).toBe(inProgressEnvelope[1]['check_in_id']);
 });
 
@@ -63,7 +66,9 @@ test('Sends cron check-in envelope with error status for failed cron job', async
   const inProgressEnvelopePromise = waitForEnvelopeItem('nextjs-16', envelope => {
     return (
       envelope[0].type === 'check_in' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['monitor_slug'] === '/api/cron-test-error' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'in_progress'
     );
   });
@@ -71,12 +76,13 @@ test('Sends cron check-in envelope with error status for failed cron job', async
   const errorEnvelopePromise = waitForEnvelopeItem('nextjs-16', envelope => {
     return (
       envelope[0].type === 'check_in' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['monitor_slug'] === '/api/cron-test-error' &&
+      // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'error'
     );
   });
 
-  // Simulate Vercel cron request with the special user agent
   await request.get('/api/cron-test-error', {
     headers: {
       'User-Agent': 'vercel-cron/1.0',
@@ -110,29 +116,31 @@ test('Sends cron check-in envelope with error status for failed cron job', async
     }),
   );
 
-  // Check-in IDs should match
+  // @ts-expect-error envelope[1] is untyped
   expect(errorEnvelope[1]['check_in_id']).toBe(inProgressEnvelope[1]['check_in_id']);
 });
 
-test('Does not send cron check-in envelope for regular requests without vercel-cron user agent', async ({ request }) => {
-  // Use a flag to track if any check-in envelope is received
+test('Does not send cron check-in envelope for regular requests without vercel-cron user agent', async ({
+  request,
+}) => {
   let checkInReceived = false;
 
-  const checkInPromise = waitForEnvelopeItem('nextjs-16', envelope => {
-    if (envelope[0].type === 'check_in' && envelope[1]['monitor_slug'] === '/api/cron-test') {
+  waitForEnvelopeItem('nextjs-16', envelope => {
+    if (
+      envelope[0].type === 'check_in' && // @ts-expect-error envelope[1] is untyped
+      envelope[1]['monitor_slug'] === '/api/cron-test'
+    ) {
       checkInReceived = true;
       return true;
     }
     return false;
   });
 
-  // Make a regular request without the vercel-cron user agent
   const response = await request.get('/api/cron-test');
 
   expect(response.status()).toBe(200);
   expect(await response.json()).toStrictEqual({ message: 'Cron job executed successfully' });
 
-  // Wait a bit to ensure no check-in is sent
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   expect(checkInReceived).toBe(false);
