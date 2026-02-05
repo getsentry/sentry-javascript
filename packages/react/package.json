@@ -46,7 +46,7 @@
     "react": "^16.14.0 || 17.x || 18.x || 19.x"
   },
   "devDependencies": {
-    "@testing-library/react": "^13.0.0",
+    "@testing-library/react": "^15.0.5",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
