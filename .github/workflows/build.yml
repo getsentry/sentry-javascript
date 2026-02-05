@@ -339,7 +339,7 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier
+        run: yarn format:check
 
   job_circular_dep_check:
     name: Circular Dependency Check
