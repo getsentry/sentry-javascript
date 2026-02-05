@@ -24,9 +24,7 @@ const RSC_PLUGINS_CONFIG = { plugins: [{ name: 'react-router/rsc' }] };
 const NON_RSC_PLUGINS_CONFIG = { plugins: [{ name: 'react-router' }] };
 
 /** Creates a plugin with RSC mode detected (simulates `configResolved` with RSC plugins). */
-function createPluginWithRSCDetected(
-  options: Parameters<typeof makeAutoInstrumentRSCPlugin>[0] = {},
-): PluginWithHooks {
+function createPluginWithRSCDetected(options: Parameters<typeof makeAutoInstrumentRSCPlugin>[0] = {}): PluginWithHooks {
   const plugin = makeAutoInstrumentRSCPlugin(options) as PluginWithHooks;
   plugin.configResolved(RSC_PLUGINS_CONFIG);
   return plugin;

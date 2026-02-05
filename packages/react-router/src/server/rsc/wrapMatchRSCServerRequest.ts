@@ -9,7 +9,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { isErrorCaptured, markErrorAsCaptured } from './responseUtils';
+import { isAlreadyCaptured } from './responseUtils';
 import type { MatchRSCServerRequestArgs, MatchRSCServerRequestFn, RSCMatch } from './types';
 
 /**
@@ -32,12 +32,10 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
   return async function sentryWrappedMatchRSCServerRequest(args: MatchRSCServerRequestArgs): Promise<Response> {
     const { request, generateResponse, loadServerAction, onError, ...rest } = args;
 
-    // Set transaction name based on request URL
     const url = new URL(request.url);
     const isolationScope = getIsolationScope();
     isolationScope.setTransactionName(`RSC ${request.method} ${url.pathname}`);
 
-    // Update root span attributes if available
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const rootSpan = getRootSpan(activeSpan);
@@ -66,14 +64,11 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
         },
         span => {
           try {
-            // Wrap the inner onError to capture RSC stream errors.
-            // Always provide a wrappedInnerOnError so Sentry captures stream errors
-            // even when the caller does not provide an onError callback.
+            // Wrap the inner onError to capture RSC stream errors even when the caller
+            // does not provide an onError callback.
             const originalOnError = options.onError;
             const wrappedInnerOnError = (error: unknown): string | undefined => {
-              // Only capture if not already captured
-              if (!isErrorCaptured(error)) {
-                markErrorAsCaptured(error);
+              if (!isAlreadyCaptured(error)) {
                 captureException(error, {
                   mechanism: {
                     type: 'instrument',
@@ -95,9 +90,7 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
             return response;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            // Capture errors thrown directly in generateResponse
-            if (!isErrorCaptured(error)) {
-              markErrorAsCaptured(error);
+            if (!isAlreadyCaptured(error)) {
               captureException(error, {
                 mechanism: {
                   type: 'instrument',
@@ -132,8 +125,7 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
                 return result;
               } catch (error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                if (!isErrorCaptured(error)) {
-                  markErrorAsCaptured(error);
+                if (!isAlreadyCaptured(error)) {
                   captureException(error, {
                     mechanism: {
                       type: 'instrument',
@@ -152,11 +144,9 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
         }
       : undefined;
 
-    // Enhanced onError handler that captures RSC server errors not already captured by inner wrappers
+    // Outer onError handler — captures RSC server errors not already captured by inner wrappers
     const wrappedOnError = (error: unknown): void => {
-      // Only capture if not already captured by generateResponse or loadServerAction wrappers
-      if (!isErrorCaptured(error)) {
-        markErrorAsCaptured(error);
+      if (!isAlreadyCaptured(error)) {
         captureException(error, {
           mechanism: {
             type: 'instrument',
@@ -168,7 +158,6 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
         });
       }
 
-      // Call original onError if provided
       if (onError) {
         onError(error);
       }
