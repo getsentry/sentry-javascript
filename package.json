@@ -64,6 +64,7 @@
     "packages/feedback",
     "packages/gatsby",
     "packages/google-cloud-serverless",
+    "packages/hono",
     "packages/integration-shims",
     "packages/nestjs",
     "packages/nextjs",
