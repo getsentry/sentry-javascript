@@ -105,9 +105,21 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
 }
 
 /**
+ * Filter out invalid entries in messages array
+ * @param input - The input array to filter
+ * @returns The filtered array
+ */
+function filterMessagesArray(input: unknown[]): { role: string; content: string }[] {
+  return input.filter(
+    (m: unknown): m is { role: string; content: string } => !!m && typeof m === 'object' && 'role' in m && 'content' in m,
+  );
+}
+
+/**
  * Normalize the user input (stringified object with prompt, system, messages) to messages array
  */
 export function convertUserInputToMessagesFormat(userInput: string): { role: string; content: string }[] {
+  console.log('convertUserInputStringToMessagesFormat', userInput);
   try {
     const p = JSON.parse(userInput);
     if (!!p && typeof p === 'object') {
@@ -131,11 +143,13 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
 
       // Handle messages array format: { messages: [...] }
       if (Array.isArray(messages)) {
-        const filtered = messages.filter(
-          (m: unknown): m is { role: string; content: string } =>
-            !!m && typeof m === 'object' && 'role' in m && 'content' in m,
-        );
-        result.push(...filtered);
+        result.push(...filterMessagesArray(messages));
+        return result;
+      }
+
+      // Handle prompt array format: { prompt: [...] }
+      if (Array.isArray(prompt)) {
+        result.push(...filterMessagesArray(prompt));
         return result;
       }
 
