@@ -49,6 +49,7 @@ import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
+import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -137,11 +138,14 @@ function setupWeightBasedFlushing<
       // This prevents flushing being delayed by items that arrive close to the timeout limit
       // and thus resetting the flushing timeout and delaying items being flushed.
       isTimerActive = true;
-      flushTimeout = setTimeout(() => {
-        flushFn(client);
-        // Note: isTimerActive is reset by the flushHook handler above, not here,
-        // to avoid race conditions when new items arrive during the flush.
-      }, DEFAULT_FLUSH_INTERVAL);
+      // Use safeUnref so the timer doesn't prevent the process from exiting
+      flushTimeout = safeUnref(
+        setTimeout(() => {
+          flushFn(client);
+          // Note: isTimerActive is reset by the flushHook handler above, not here,
+          // to avoid race conditions when new items arrive during the flush.
+        }, DEFAULT_FLUSH_INTERVAL),
+      );
     }
   });
 
