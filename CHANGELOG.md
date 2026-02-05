@@ -36,7 +36,7 @@ export default withSentryConfig(nextConfig, {
   - You want to minimize bundle size and runtime overhead
   - You don't need OpenTelemetry instrumentation
 
-  It supports basic error tracking and report, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
+  It supports basic error tracking and reporting, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
 
   Install the SDK by running
 
