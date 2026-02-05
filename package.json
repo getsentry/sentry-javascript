@@ -25,6 +25,8 @@
     "fix": "run-s fix:oxfmt fix:lerna",
     "fix:lerna": "lerna run fix",
     "fix:oxfmt": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "format": "oxfmt . --write",
     "lint": "run-s lint:oxfmt lint:lerna",
     "lint:lerna": "lerna run lint",
     "lint:oxfmt": "oxfmt . --check",
