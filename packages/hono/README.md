@@ -26,20 +26,16 @@ npm install @sentry/hono
 
 ### Enable Node.js compatibility
 
-Either set the `nodejs_als` or `nodejs_compat` compatibility flags in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
+Either set the `nodejs_compat` compatibility flags in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
 
 ```jsonc {tabTitle:JSON} {filename:wrangler.jsonc}
 {
-  "compatibility_flags": [
-    "nodejs_als",
-    // "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
 }
 ```
 
 ```toml {tabTitle:Toml} {filename:wrangler.toml}
-compatibility_flags = ["nodejs_als"]
-# compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat"]
 ```
 
 ### Initialize Sentry in your Hono app
