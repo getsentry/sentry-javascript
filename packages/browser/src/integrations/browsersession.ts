@@ -5,17 +5,17 @@ import { WINDOW } from '../helpers';
 
 interface BrowserSessionOptions {
   /**
-   * Controls when sessions are created.
+   * Controls the session lifecycle - when new sessions are created.
    *
-   * - `'single'`: A session is created once when the page is loaded. Session is not
+   * - `'route'`: A session is created on page load and on every navigation.
+   *   This is the default behavior.
+   * - `'page'`: A session is created once when the page is loaded. Session is not
    *   updated on navigation. This is useful for webviews or single-page apps where
    *   URL changes should not trigger new sessions.
-   * - `'navigation'`: A session is created on page load and on every navigation.
-   *   This is the default behavior.
    *
-   * @default 'navigation'
+   * @default 'route'
    */
-  mode?: 'single' | 'navigation';
+  lifecycle?: 'route' | 'page';
 }
 
 /**
@@ -25,7 +25,7 @@ interface BrowserSessionOptions {
  * Note: In order for session tracking to work, you need to set up Releases: https://docs.sentry.io/product/releases/
  */
 export const browserSessionIntegration = defineIntegration((options: BrowserSessionOptions = {}) => {
-  const mode = options.mode ?? 'navigation';
+  const lifecycle = options.lifecycle ?? 'route';
 
   return {
     name: 'BrowserSession',
@@ -43,7 +43,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       startSession({ ignoreDuration: true });
       captureSession();
 
-      if (mode === 'navigation') {
+      if (lifecycle === 'route') {
         // We want to create a session for every navigation as well
         addHistoryInstrumentationHandler(({ from, to }) => {
           // Don't create an additional session for the initial route or if the location did not change

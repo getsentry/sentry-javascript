@@ -3,7 +3,7 @@ import type { SessionContext } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
 
-sentryTest('should start a session on pageload in single mode.', async ({ getLocalTestUrl, page }) => {
+sentryTest('should start a session on pageload with page lifecycle.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const sessions = await getMultipleSentryEnvelopeRequests<SessionContext>(page, 1, {
@@ -21,7 +21,7 @@ sentryTest('should start a session on pageload in single mode.', async ({ getLoc
 });
 
 sentryTest(
-  'should NOT start a new session on pushState navigation in single mode.',
+  'should NOT start a new session on pushState navigation with page lifecycle.',
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
