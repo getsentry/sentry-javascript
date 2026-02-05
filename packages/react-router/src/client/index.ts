@@ -36,17 +36,6 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
 }
 
 /**
- * Just a passthrough in case this is imported from the client.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function wrapServerFunctions<T extends Record<string, (...args: any[]) => Promise<any>>>(
-  _moduleName: string,
-  serverFunctions: T,
-): T {
-  return serverFunctions;
-}
-
-/**
  * @deprecated ErrorBoundary is deprecated, use React Router's error boundary instead.
  * See https://docs.sentry.io/platforms/javascript/guides/react-router/#report-errors-from-error-boundaries
  */

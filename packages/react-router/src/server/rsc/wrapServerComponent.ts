@@ -59,14 +59,12 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
             if (span) {
               span.setStatus({ code: SPAN_STATUS_OK });
             }
-          }
-          else if (isNotFoundResponse(error)) {
+          } else if (isNotFoundResponse(error)) {
             shouldCapture = false;
             if (span) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             }
-          }
-          else {
+          } else {
             if (span) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
