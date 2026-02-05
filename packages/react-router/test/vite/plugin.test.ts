@@ -41,7 +41,9 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual(mockConfigInjectorPlugin);
+    expect(result).toContainEqual(mockServerBuildCapturePlugin);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
 
@@ -51,7 +53,9 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin when not in build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual(mockConfigInjectorPlugin);
+    expect(result).toContainEqual(mockServerBuildCapturePlugin);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -59,7 +63,9 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin in development build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'build', mode: 'development' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual(mockConfigInjectorPlugin);
+    expect(result).toContainEqual(mockServerBuildCapturePlugin);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -70,18 +76,33 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([
-      mockConfigInjectorPlugin,
-      mockServerBuildCapturePlugin,
-      mockSourceMapsPlugin,
-      ...mockPlugins,
-    ]);
+    expect(result).toHaveLength(5);
+    expect(result).toContainEqual(mockConfigInjectorPlugin);
+    expect(result).toContainEqual(mockServerBuildCapturePlugin);
+    expect(result).toContainEqual(mockSourceMapsPlugin);
+    expect(result).toContainEqual(mockPlugins[0]);
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith({});
     expect(makeServerBuildCapturePlugin).toHaveBeenCalled();
     expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith({});
 
     process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('should always include RSC auto-instrument plugin by default', async () => {
+    const result = await sentryReactRouter({}, { command: 'serve', mode: 'development' });
+
+    expect(result).toContainEqual(expect.objectContaining({ name: 'sentry-react-router-rsc-auto-instrument' }));
+  });
+
+  it('should not include RSC auto-instrument plugin when enabled is explicitly false', async () => {
+    const result = await sentryReactRouter(
+      { experimental_rscAutoInstrumentation: { enabled: false } },
+      { command: 'serve', mode: 'development' },
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result).not.toContainEqual(expect.objectContaining({ name: 'sentry-react-router-rsc-auto-instrument' }));
   });
 
   it('should pass release configuration to plugins', async () => {
