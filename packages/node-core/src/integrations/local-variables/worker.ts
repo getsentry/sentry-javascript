@@ -184,6 +184,5 @@ startDebugger().catch(e => {
   log('Failed to start debugger', e);
 });
 
-setInterval(() => {
-  // Stop the worker from exiting
-}, 10_000);
+// We purposefully not unref this interval to prevent the worker from exiting
+setInterval(() => {}, 10_000);
