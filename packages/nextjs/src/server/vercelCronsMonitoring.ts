@@ -7,6 +7,15 @@ import type { VercelCronsConfig } from '../common/types';
 const ATTR_SENTRY_CRON_CHECK_IN_ID = 'sentry.cron.checkInId';
 const ATTR_SENTRY_CRON_MONITOR_SLUG = 'sentry.cron.monitorSlug';
 const ATTR_SENTRY_CRON_START_TIME = 'sentry.cron.startTime';
+const ATTR_SENTRY_CRON_SCHEDULE = 'sentry.cron.schedule';
+
+/**
+ * Converts a route path to a valid monitor slug.
+ * e.g., '/api/health' -> 'api-health'
+ */
+function pathToMonitorSlug(path: string): string {
+  return path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\//g, '-');
+}
 
 /**
  * Gets the Vercel crons configuration that was injected at build time.
@@ -57,7 +66,7 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
     return;
   }
 
-  const monitorSlug = matchedCron.path;
+  const monitorSlug = pathToMonitorSlug(matchedCron.path);
   const startTime = _INTERNAL_safeDateNow() / 1000;
 
   const checkInId = captureCheckIn(
@@ -74,6 +83,7 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
   span.setAttribute(ATTR_SENTRY_CRON_CHECK_IN_ID, checkInId);
   span.setAttribute(ATTR_SENTRY_CRON_MONITOR_SLUG, monitorSlug);
   span.setAttribute(ATTR_SENTRY_CRON_START_TIME, startTime);
+  span.setAttribute(ATTR_SENTRY_CRON_SCHEDULE, matchedCron.schedule);
 }
 
 /**
@@ -85,6 +95,7 @@ export function maybeCompleteCronCheckIn(span: Span): void {
   const checkInId = spanData?.[ATTR_SENTRY_CRON_CHECK_IN_ID];
   const monitorSlug = spanData?.[ATTR_SENTRY_CRON_MONITOR_SLUG];
   const startTime = spanData?.[ATTR_SENTRY_CRON_START_TIME];
+  const schedule = spanData?.[ATTR_SENTRY_CRON_SCHEDULE];
 
   if (!checkInId || !monitorSlug || typeof startTime !== 'number') {
     return;
@@ -95,17 +106,30 @@ export function maybeCompleteCronCheckIn(span: Span): void {
   // Span status is 'ok' for success, undefined for unset, or an error message like 'internal_error'
   const checkInStatus = spanStatus && spanStatus !== 'ok' ? 'error' : 'ok';
 
-  captureCheckIn({
-    checkInId: checkInId as string,
-    monitorSlug: monitorSlug as string,
-    status: checkInStatus,
-    duration,
-  });
+  // Include monitor_config for upsert in case the in_progress check-in was lost
+  const monitorConfig =
+    typeof schedule === 'string'
+      ? {
+          maxRuntime: 60 * 12,
+          schedule: { type: 'crontab' as const, value: schedule },
+        }
+      : undefined;
+
+  captureCheckIn(
+    {
+      checkInId: checkInId as string,
+      monitorSlug: monitorSlug as string,
+      status: checkInStatus,
+      duration,
+    },
+    monitorConfig,
+  );
 
   // Cleanup marking attributes so they don't pollute user span data
   span.setAttribute(ATTR_SENTRY_CRON_CHECK_IN_ID, undefined);
   span.setAttribute(ATTR_SENTRY_CRON_MONITOR_SLUG, undefined);
   span.setAttribute(ATTR_SENTRY_CRON_START_TIME, undefined);
+  span.setAttribute(ATTR_SENTRY_CRON_SCHEDULE, undefined);
 
   DEBUG_BUILD && debug.log(`[Cron] Completed check-in for "${monitorSlug}" with status "${checkInStatus}"`);
 }
