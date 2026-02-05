@@ -51,7 +51,7 @@ function setupH3TracingChannels(): void {
     return;
   }
 
-  const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.request.handler', data => {
+  const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.fetch', data => {
     const parsedUrl = parseStringToURLObject(data.event.url.href);
     const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.h3', {
       method: data.event.req.method,
