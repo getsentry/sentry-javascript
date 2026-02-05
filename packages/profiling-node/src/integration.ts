@@ -9,6 +9,7 @@ import {
   getIsolationScope,
   getRootSpan,
   LRUMap,
+  safeUnref,
   spanToJSON,
   uuid4,
 } from '@sentry/core';
@@ -305,21 +306,20 @@ class ContinuousProfiler {
         }
 
         // Enqueue a timeout to prevent profiles from running over max duration.
-        const timeout = global.setTimeout(() => {
-          DEBUG_BUILD &&
-            debug.log(
-              '[Profiling] max profile duration elapsed, stopping profiling for:',
-              spanToJSON(span).description,
-            );
+        safeUnref(
+          global.setTimeout(() => {
+            DEBUG_BUILD &&
+              debug.log(
+                '[Profiling] max profile duration elapsed, stopping profiling for:',
+                spanToJSON(span).description,
+              );
 
-          const profile = stopSpanProfile(span, profile_id);
-          if (profile) {
-            addToProfileQueue(profile_id, profile);
-          }
-        }, maxProfileDurationMs);
-
-        // Unref timeout so it doesn't keep the process alive.
-        timeout.unref();
+            const profile = stopSpanProfile(span, profile_id);
+            if (profile) {
+              addToProfileQueue(profile_id, profile);
+            }
+          }, maxProfileDurationMs),
+        );
 
         getIsolationScope().setContext('profile', { profile_id });
         spanToProfileIdMap.set(span, profile_id);
@@ -539,15 +539,14 @@ class ContinuousProfiler {
     CpuProfilerBindings.startProfiling(chunk.id);
     DEBUG_BUILD && debug.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
-    chunk.timer = global.setTimeout(() => {
-      DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
-      this._stopChunkProfiling();
-      DEBUG_BUILD && debug.log('[Profiling] Starting new profiling chunk.');
-      setImmediate(this._restartChunkProfiling.bind(this));
-    }, CHUNK_INTERVAL_MS);
-
-    // Unref timeout so it doesn't keep the process alive.
-    chunk.timer.unref();
+    chunk.timer = safeUnref(
+      global.setTimeout(() => {
+        DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
+        this._stopChunkProfiling();
+        DEBUG_BUILD && debug.log('[Profiling] Starting new profiling chunk.');
+        setImmediate(this._restartChunkProfiling.bind(this));
+      }, CHUNK_INTERVAL_MS),
+    );
   }
 
   /**

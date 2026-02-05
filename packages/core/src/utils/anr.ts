@@ -1,6 +1,7 @@
 import type { StackFrame } from '../types-hoist/stackframe';
 import { filenameIsInApp } from './node-stack-trace';
 import { UNKNOWN_FUNCTION } from './stacktrace';
+import { safeUnref } from './timer';
 
 type WatchdogReturn = {
   /** Resets the watchdog timer */
@@ -28,20 +29,22 @@ export function watchdogTimer(
   let triggered = false;
   let enabled = true;
 
-  setInterval(() => {
-    const diffMs = timer.getTimeMs();
+  safeUnref(
+    setInterval(() => {
+      const diffMs = timer.getTimeMs();
 
-    if (triggered === false && diffMs > pollInterval + anrThreshold) {
-      triggered = true;
-      if (enabled) {
-        callback();
+      if (triggered === false && diffMs > pollInterval + anrThreshold) {
+        triggered = true;
+        if (enabled) {
+          callback();
+        }
       }
-    }
 
-    if (diffMs < pollInterval + anrThreshold) {
-      triggered = false;
-    }
-  }, 20);
+      if (diffMs < pollInterval + anrThreshold) {
+        triggered = false;
+      }
+    }, 20),
+  );
 
   return {
     poll: () => {

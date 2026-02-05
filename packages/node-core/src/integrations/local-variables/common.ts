@@ -1,4 +1,5 @@
 import type { Debugger } from 'node:inspector';
+import { safeUnref } from '@sentry/core';
 
 export type Variables = Record<string, unknown>;
 
@@ -26,28 +27,30 @@ export function createRateLimiter(
   let retrySeconds = 5;
   let disabledTimeout = 0;
 
-  setInterval(() => {
-    if (disabledTimeout === 0) {
-      if (count > maxPerSecond) {
-        retrySeconds *= 2;
-        disable(retrySeconds);
-
-        // Cap at one day
-        if (retrySeconds > 86400) {
-          retrySeconds = 86400;
-        }
-        disabledTimeout = retrySeconds;
-      }
-    } else {
-      disabledTimeout -= 1;
-
+  safeUnref(
+    setInterval(() => {
       if (disabledTimeout === 0) {
-        enable();
-      }
-    }
+        if (count > maxPerSecond) {
+          retrySeconds *= 2;
+          disable(retrySeconds);
 
-    count = 0;
-  }, 1_000).unref();
+          // Cap at one day
+          if (retrySeconds > 86400) {
+            retrySeconds = 86400;
+          }
+          disabledTimeout = retrySeconds;
+        }
+      } else {
+        disabledTimeout -= 1;
+
+        if (disabledTimeout === 0) {
+          enable();
+        }
+      }
+
+      count = 0;
+    }, 1_000),
+  );
 
   return () => {
     count += 1;
