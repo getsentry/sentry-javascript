@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { convertPromptToMessages } from '../../../src/tracing/vercel-ai/utils';
+import { convertUserInputToMessagesFormat } from '../../../src/tracing/vercel-ai/utils';
 
 describe('vercel-ai-utils', () => {
-  describe('convertPromptToMessages', () => {
+  describe('convertUserInputToMessagesFormat', () => {
     it('should convert a prompt with system to a messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             system: 'You are a friendly robot',
             prompt: 'Hello, robot',
@@ -19,7 +19,7 @@ describe('vercel-ai-utils', () => {
 
     it('should convert a system prompt to a messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             system: 'You are a friendly robot',
           }),
@@ -29,7 +29,7 @@ describe('vercel-ai-utils', () => {
 
     it('should convert a user only prompt to a messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             prompt: 'Hello, robot',
           }),
@@ -39,7 +39,7 @@ describe('vercel-ai-utils', () => {
 
     it('should convert a messages array with multiple messages', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             messages: [
               { role: 'user', content: 'What is the weather?' },
@@ -57,7 +57,7 @@ describe('vercel-ai-utils', () => {
 
     it('should convert a messages array with a single message', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             messages: [{ role: 'user', content: 'Hello' }],
           }),
@@ -67,7 +67,7 @@ describe('vercel-ai-utils', () => {
 
     it('should filter out invalid entries in messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             messages: [
               { role: 'user', content: 'Hello' },
@@ -87,7 +87,7 @@ describe('vercel-ai-utils', () => {
 
     it('should ignore unexpected data', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             randomField: 'Hello, robot',
             nothing: 'that we know how to handle',
@@ -98,7 +98,7 @@ describe('vercel-ai-utils', () => {
 
     it('should prepend system instruction to messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             system: 'You are a friendly robot',
             messages: [
@@ -116,7 +116,7 @@ describe('vercel-ai-utils', () => {
 
     it('should handle double-encoded messages array', () => {
       expect(
-        convertPromptToMessages(
+        convertUserInputToMessagesFormat(
           JSON.stringify({
             messages: JSON.stringify([
               { role: 'user', content: 'Hello' },
@@ -131,7 +131,61 @@ describe('vercel-ai-utils', () => {
     });
 
     it('should not break on invalid json', () => {
-      expect(convertPromptToMessages('this is not json')).toStrictEqual([]);
+      expect(convertUserInputToMessagesFormat('this is not json')).toStrictEqual([]);
+    });
+
+    it('should convert a prompt array to a messages array', () => {
+      expect(
+        convertUserInputToMessagesFormat(
+          JSON.stringify({
+            prompt: [
+              { role: 'user', content: 'Hello' },
+              { role: 'assistant', content: 'Hi there!' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ]);
+    });
+
+    it('should prepend system instruction to prompt array', () => {
+      expect(
+        convertUserInputToMessagesFormat(
+          JSON.stringify({
+            system: 'You are a friendly robot',
+            prompt: [
+              { role: 'user', content: 'Hello' },
+              { role: 'assistant', content: 'Hi there!' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'system', content: 'You are a friendly robot' },
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi there!' },
+      ]);
+    });
+
+    it('should filter out invalid entries in prompt array', () => {
+      expect(
+        convertUserInputToMessagesFormat(
+          JSON.stringify({
+            prompt: [
+              { role: 'user', content: 'Hello' },
+              'not an object',
+              null,
+              { role: 'user' },
+              { content: 'missing role' },
+              { role: 'assistant', content: 'Valid' },
+            ],
+          }),
+        ),
+      ).toStrictEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Valid' },
+      ]);
     });
   });
 });
