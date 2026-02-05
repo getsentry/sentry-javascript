@@ -105,11 +105,11 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
 }
 
 /**
- * Normalize the user input (prompt, system, messages) to messages array
+ * Normalize the user input (stringified object with prompt, system, messages) to messages array
  */
-export function convertPromptToMessages(prompt: string): { role: string; content: string }[] {
+export function convertUserInputToMessagesFormat(userInput: string): { role: string; content: string }[] {
   try {
-    const p = JSON.parse(prompt);
+    const p = JSON.parse(userInput);
     if (!!p && typeof p === 'object') {
       let { messages } = p;
       const { prompt, system } = p;
@@ -158,14 +158,18 @@ export function convertPromptToMessages(prompt: string): { role: string; content
  * invoke_agent op
  */
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
+  console.log('attributes', attributes);
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
     // No messages array is present, so we need to convert the prompt to the proper messages format
-    const prompt = attributes[AI_PROMPT_ATTRIBUTE];
-    const messages = convertPromptToMessages(prompt);
+    // This is the case for ai.generateText spans
+    // The ai.prompt attribute is a stringified object with prompt, system, messages attributes
+    // The format of these is described in the vercel docs, for instance: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object#parameters
+    const userInput = attributes[AI_PROMPT_ATTRIBUTE];
+    const messages = convertUserInputToMessagesFormat(userInput);
     if (messages.length) {
       const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
@@ -184,6 +188,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
     // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
+    // This is the case for ai.generateText.doGenerate spans
     try {
       const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
       if (Array.isArray(messages)) {
