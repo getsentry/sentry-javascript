@@ -6,11 +6,7 @@
 
 Work in this release was contributed by @limbonaut. Thank you for your contribution!
 
-- **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
-
-  The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
-
-- **feat(tanstackstart-react)!: Export Vite plugin from `@sentry/tanstackstart-react/vite` subpath ([#XXXX](https://github.com/getsentry/sentry-javascript/pull/XXXX))**
+- **feat(tanstackstart-react)!: Export Vite plugin from `@sentry/tanstackstart-react/vite` subpath ([#19182](https://github.com/getsentry/sentry-javascript/pull/19182))**
 
   The `sentryTanstackStart` Vite plugin is now exported from a dedicated subpath. Update your import:
 
@@ -18,6 +14,10 @@ Work in this release was contributed by @limbonaut. Thank you for your contribut
   - import { sentryTanstackStart } from '@sentry/tanstackstart-react';
   + import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite';
   ```
+
+- **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
 
 ## 10.38.0
 
