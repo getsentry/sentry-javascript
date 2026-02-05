@@ -17,6 +17,7 @@ import {
 import {
   getNextMajor,
   maybeCreateRouteManifest,
+  maybeGetVercelCronsConfig,
   maybeSetClientTraceMetadataOption,
   maybeSetInstrumentationHookOption,
   maybeSetUpTunnelRouteRewriteRules,
@@ -44,6 +45,7 @@ export function getFinalConfigObject(
   }
 
   const routeManifest = maybeCreateRouteManifest(incomingUserNextConfigObject, userSentryOptions);
+  const vercelCronsConfig = maybeGetVercelCronsConfig(userSentryOptions);
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
 
   const nextJsVersion = getNextjsVersion();
@@ -63,6 +65,7 @@ export function getFinalConfigObject(
     routeManifest,
     nextJsVersion,
     bundlerInfo,
+    vercelCronsConfig,
   );
 
   const shouldUseRunAfterProductionCompileHook = resolveUseRunAfterProductionCompileHookOption(
@@ -93,6 +96,7 @@ export function getFinalConfigObject(
       nextJsVersion,
       shouldUseRunAfterProductionCompileHook,
       bundlerInfo,
+      vercelCronsConfig,
     }),
     ...getTurbopackPatch(bundlerInfo, turboPackConfig),
   };

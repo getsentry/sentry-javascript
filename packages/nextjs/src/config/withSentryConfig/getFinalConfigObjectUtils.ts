@@ -1,5 +1,8 @@
-import { isMatchingPattern, parseSemver } from '@sentry/core';
+import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { VercelCronsConfig } from '../../common/types';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
@@ -246,4 +249,40 @@ export function getNextMajor(nextJsVersion: string | undefined): number | undefi
 
   const { major } = parseSemver(nextJsVersion);
   return major;
+}
+
+/**
+ * Reads and returns the Vercel crons configuration from vercel.json.
+ * Returns undefined if not running on Vercel, if the option is disabled,
+ * or if vercel.json doesn't exist or doesn't contain crons.
+ */
+export function maybeGetVercelCronsConfig(userSentryOptions: SentryBuildOptions): VercelCronsConfig {
+  // Only read crons config if running on Vercel and the experimental option is enabled
+  if (!process.env.VERCEL || !userSentryOptions._experimental?.vercelCronsMonitoring) {
+    return undefined;
+  }
+
+  try {
+    const vercelJsonPath = path.join(process.cwd(), 'vercel.json');
+    const vercelJsonContents = fs.readFileSync(vercelJsonPath, 'utf8');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const cronsConfig = JSON.parse(vercelJsonContents).crons as VercelCronsConfig;
+
+    if (cronsConfig && Array.isArray(cronsConfig) && cronsConfig.length > 0) {
+      debug.log(
+        "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in your Next.js config.",
+      );
+      return cronsConfig;
+    }
+
+    return undefined;
+  } catch (e) {
+    if ((e as { code: string }).code === 'ENOENT') {
+      // noop if file does not exist
+      return undefined;
+    }
+    // log but noop
+    debug.error('[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation', e);
+    return undefined;
+  }
 }

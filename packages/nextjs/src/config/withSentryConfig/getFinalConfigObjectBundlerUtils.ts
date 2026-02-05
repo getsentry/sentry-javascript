@@ -1,3 +1,4 @@
+import type { VercelCronsConfig } from '../../common/types';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
@@ -70,6 +71,7 @@ export function maybeConstructTurbopackConfig(
   routeManifest: RouteManifest | undefined,
   nextJsVersion: string | undefined,
   bundlerInfo: BundlerInfo,
+  vercelCronsConfig: VercelCronsConfig,
 ): TurbopackOptions | undefined {
   if (!bundlerInfo.isTurbopack) {
     return undefined;
@@ -80,6 +82,7 @@ export function maybeConstructTurbopackConfig(
     userSentryOptions,
     routeManifest,
     nextJsVersion,
+    vercelCronsConfig,
   });
 }
 
@@ -251,6 +254,7 @@ export function getWebpackPatch({
   nextJsVersion,
   shouldUseRunAfterProductionCompileHook,
   bundlerInfo,
+  vercelCronsConfig,
 }: {
   incomingUserNextConfigObject: NextConfigObject;
   userSentryOptions: SentryBuildOptions;
@@ -259,6 +263,7 @@ export function getWebpackPatch({
   nextJsVersion: string | undefined;
   shouldUseRunAfterProductionCompileHook: boolean;
   bundlerInfo: BundlerInfo;
+  vercelCronsConfig: VercelCronsConfig;
 }): Partial<NextConfigObject> {
   if (!bundlerInfo.isWebpack || userSentryOptions.webpack?.disableSentryConfig) {
     return {};
@@ -272,6 +277,7 @@ export function getWebpackPatch({
       routeManifest,
       nextJsVersion,
       useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+      vercelCronsConfig,
     }),
   };
 }
