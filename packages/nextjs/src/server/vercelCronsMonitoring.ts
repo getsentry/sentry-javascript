@@ -92,7 +92,8 @@ export function maybeCompleteCronCheckIn(span: Span): void {
 
   const duration = _INTERNAL_safeDateNow() / 1000 - startTime;
   const spanStatus = spanToJSON(span).status;
-  const checkInStatus = spanStatus === 'error' ? 'error' : 'ok';
+  // Span status is 'ok' for success, undefined for unset, or an error message like 'internal_error'
+  const checkInStatus = spanStatus && spanStatus !== 'ok' ? 'error' : 'ok';
 
   captureCheckIn({
     checkInId: checkInId as string,
