@@ -28,7 +28,7 @@
     "eslint-plugin-regexp": "^1.15.0",
     "glob": "8.0.3",
     "rimraf": "^5.0.10",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "yaml": "2.8.2"
   },
   "volta": {
