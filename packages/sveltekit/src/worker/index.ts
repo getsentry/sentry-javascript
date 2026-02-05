@@ -16,6 +16,7 @@ export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 // Re-export some functions from Cloudflare SDK
 export {
+  addAttachment,
   addBreadcrumb,
   addEventProcessor,
   addIntegration,

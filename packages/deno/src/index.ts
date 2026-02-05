@@ -21,6 +21,7 @@ export type {
 export type { DenoOptions } from './types';
 
 export {
+  addAttachment,
   addEventProcessor,
   addBreadcrumb,
   captureException,

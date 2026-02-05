@@ -9,6 +9,7 @@ import { handleRequest } from './server/middleware';
 // Hence, we export everything from the Node SDK explicitly:
 export {
   addBreadcrumb,
+  addAttachment,
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
