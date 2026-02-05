@@ -13,5 +13,13 @@
     "**/test.ts-snapshots/**",
     "/.nx/cache",
     "/.nx/workspace-data"
+  ],
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdc"],
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }
   ]
 }
