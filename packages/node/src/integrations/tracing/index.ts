@@ -3,6 +3,7 @@ import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
+import { effectIntegration, instrumentEffect } from './effect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
@@ -62,6 +63,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     googleGenAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
+    effectIntegration(),
   ];
 }
 
@@ -101,5 +103,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentAnthropicAi,
     instrumentGoogleGenAI,
     instrumentLangGraph,
+    instrumentEffect,
   ];
 }
