@@ -32,6 +32,7 @@ function getVercelCronsConfig(): VercelCronsConfig {
   try {
     return JSON.parse(globalWithCronsConfig._sentryVercelCronsConfig) as VercelCronsConfig;
   } catch {
+    DEBUG_BUILD && debug.log('[@sentry/nextjs] Failed to parse Vercel crons config');
     return undefined;
   }
 }
