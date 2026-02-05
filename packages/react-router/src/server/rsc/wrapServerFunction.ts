@@ -10,13 +10,7 @@ import {
   SPAN_STATUS_OK,
   startSpan,
 } from '@sentry/core';
-import {
-  isErrorCaptured,
-  isNotFoundResponse,
-  isRedirectResponse,
-  markErrorAsCaptured,
-  safeFlushServerless,
-} from './responseUtils';
+import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse, safeFlushServerless } from './responseUtils';
 import type { WrapServerFunctionOptions } from './types';
 
 /**
@@ -53,7 +47,6 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
   const wrappedFunction = async function (this: unknown, ...args: Parameters<T>): Promise<ReturnType<T>> {
     const spanName = options.name || `serverFunction/${functionName}`;
 
-    // Set transaction name on isolation scope (consistent with other RSC wrappers)
     const isolationScope = getIsolationScope();
     isolationScope.setTransactionName(spanName);
 
@@ -77,13 +70,11 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
           const result = await serverFunction.apply(this, args);
           return result;
         } catch (error) {
-          // Check if the error is a redirect (common pattern in server functions)
           if (isRedirectResponse(error)) {
             span.setStatus({ code: SPAN_STATUS_OK });
             throw error;
           }
 
-          // Check if the error is a not-found response (404)
           if (isNotFoundResponse(error)) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             throw error;
@@ -91,9 +82,7 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
 
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
-          // Only capture if not already captured (error may bubble through nested server functions or components)
-          if (!isErrorCaptured(error)) {
-            markErrorAsCaptured(error);
+          if (!isAlreadyCaptured(error)) {
             captureException(error, {
               mechanism: {
                 type: 'instrument',
@@ -107,7 +96,6 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
           }
           throw error;
         } finally {
-          // Fire-and-forget flush to avoid swallowing original errors
           safeFlushServerless(flushIfServerless);
         }
       },

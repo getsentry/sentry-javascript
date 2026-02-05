@@ -49,6 +49,34 @@ test.describe('RSC - Server Component Wrapper', () => {
     });
   });
 
+  test('does not send duplicate errors when error bubbles through multiple wrappers', async ({ page }) => {
+    const errorMessage = 'RSC Server Component Error: Mamma mia!';
+
+    const errorPromise = waitForError(APP_NAME, errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === errorMessage;
+    });
+
+    await page.goto(`/rsc/server-component-error`);
+
+    const error = await errorPromise;
+
+    // The error should be captured by the innermost wrapper (wrapServerComponent),
+    // not by the outer request handler. This proves dedup is working — the error
+    // bubbles through multiple wrappers but is only captured once.
+    expect(error.exception?.values?.[0]?.mechanism?.data?.function).toBe('ServerComponent');
+
+    // If dedup were broken, a second error event (from the outer wrapper, e.g.
+    // matchRSCServerRequest.onError) would also be sent. Verify none arrives.
+    const maybeDuplicate = await Promise.race([
+      waitForError(APP_NAME, errorEvent => {
+        return errorEvent?.exception?.values?.[0]?.value === errorMessage;
+      }),
+      new Promise<'no-duplicate'>(resolve => setTimeout(() => resolve('no-duplicate'), 3000)),
+    ]);
+
+    expect(maybeDuplicate).toBe('no-duplicate');
+  });
+
   test('server component page loads with loader data', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
       const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
@@ -60,7 +88,6 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     await page.goto(`/rsc/server-component`);
 
-    // Verify the page renders with loader data
     await expect(page.getByTestId('loader-message')).toContainText('Hello from server loader!');
 
     const transaction = await txPromise;
@@ -101,7 +128,6 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     await page.goto(`/rsc/server-component-async`);
 
-    // Verify the page renders async content
     await expect(page.getByTestId('title')).toHaveText('Async Server Component');
     await expect(page.getByTestId('content')).toHaveText('This content was fetched asynchronously on the server.');
 
@@ -143,7 +169,6 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     await page.goto(`/rsc/server-component/my-test-param`);
 
-    // Verify the param was passed correctly
     await expect(page.getByTestId('param')).toContainText('my-test-param');
 
     const transaction = await txPromise;

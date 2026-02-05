@@ -9,7 +9,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { isErrorCaptured, markErrorAsCaptured } from './responseUtils';
+import { isAlreadyCaptured } from './responseUtils';
 import type { DecodedPayload, RouteRSCServerRequestArgs, RouteRSCServerRequestFn, RSCPayload } from './types';
 
 /**
@@ -32,12 +32,10 @@ export function wrapRouteRSCServerRequest(originalFn: RouteRSCServerRequestFn): 
   return async function sentryWrappedRouteRSCServerRequest(args: RouteRSCServerRequestArgs): Promise<Response> {
     const { request, renderHTML, fetchServer, ...rest } = args;
 
-    // Set transaction name based on request URL
     const url = new URL(request.url);
     const isolationScope = getIsolationScope();
     isolationScope.setTransactionName(`RSC SSR ${request.method} ${url.pathname}`);
 
-    // Update root span attributes if available
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const rootSpan = getRootSpan(activeSpan);
@@ -69,8 +67,7 @@ export function wrapRouteRSCServerRequest(originalFn: RouteRSCServerRequestFn): 
             return response;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            if (!isErrorCaptured(error)) {
-              markErrorAsCaptured(error);
+            if (!isAlreadyCaptured(error)) {
               captureException(error, {
                 mechanism: {
                   type: 'instrument',
@@ -105,8 +102,7 @@ export function wrapRouteRSCServerRequest(originalFn: RouteRSCServerRequestFn): 
             return result;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            if (!isErrorCaptured(error)) {
-              markErrorAsCaptured(error);
+            if (!isAlreadyCaptured(error)) {
               captureException(error, {
                 mechanism: {
                   type: 'instrument',
@@ -132,8 +128,7 @@ export function wrapRouteRSCServerRequest(originalFn: RouteRSCServerRequestFn): 
       });
     } catch (error) {
       // Only capture errors that weren't already captured by inner wrappers
-      if (!isErrorCaptured(error)) {
-        markErrorAsCaptured(error);
+      if (!isAlreadyCaptured(error)) {
         captureException(error, {
           mechanism: {
             type: 'instrument',

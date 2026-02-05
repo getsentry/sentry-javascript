@@ -7,13 +7,7 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
 } from '@sentry/core';
-import {
-  isErrorCaptured,
-  isNotFoundResponse,
-  isRedirectResponse,
-  markErrorAsCaptured,
-  safeFlushServerless,
-} from './responseUtils';
+import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse, safeFlushServerless } from './responseUtils';
 import type { ServerComponentContext } from './types';
 
 /**
@@ -47,12 +41,10 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
 ): T {
   const { componentRoute, componentType } = context;
 
-  // Use a Proxy to wrap the function while preserving its properties
   return new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
       const isolationScope = getIsolationScope();
 
-      // Set transaction name with component context
       const transactionName = `${componentType} Server Component (${componentRoute})`;
       isolationScope.setTransactionName(transactionName);
 
@@ -62,30 +54,25 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
           const span = getActiveSpan();
           let shouldCapture = true;
 
-          // Check if error is a redirect response (3xx)
           if (isRedirectResponse(error)) {
             shouldCapture = false;
             if (span) {
               span.setStatus({ code: SPAN_STATUS_OK });
             }
           }
-          // Check if error is a not-found response (404)
           else if (isNotFoundResponse(error)) {
             shouldCapture = false;
             if (span) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             }
           }
-          // Regular error
           else {
             if (span) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
           }
 
-          // Only capture if not already captured by other wrappers to prevent double-capture
-          if (shouldCapture && !isErrorCaptured(error)) {
-            markErrorAsCaptured(error);
+          if (shouldCapture && !isAlreadyCaptured(error)) {
             captureException(error, {
               mechanism: {
                 type: 'instrument',
@@ -100,7 +87,6 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
           }
         },
         () => {
-          // Fire-and-forget flush to avoid swallowing original errors
           safeFlushServerless(flushIfServerless);
         },
       );
