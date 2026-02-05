@@ -1,8 +1,10 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import { DEBUG_BUILD } from '../debug-build';
 import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
 import type { Event } from '../types-hoist/event';
 import type { SerializedMetric, SerializedMetricContainer } from '../types-hoist/metric';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
+import { debug } from '../utils/debug-logger';
 import { dsnFromString } from '../utils/dsn';
 import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
 
@@ -51,14 +53,31 @@ export function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Eve
 }
 
 /**
+ * It iterates over metric containers in an envelope.
+ */
+function forEachMetricContainer(
+  envelope: Envelope,
+  callback: (container: SerializedMetricContainer, metrics: SerializedMetric[]) => void | boolean,
+): void {
+  forEachEnvelopeItem(envelope, (item, type) => {
+    if (type === 'trace_metric') {
+      const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
+      if (container?.items) {
+        return callback(container, container.items);
+      }
+    }
+  });
+}
+
+/**
  * Gets a metric from an envelope.
  *
  * This is only exported for use in tests and advanced use cases.
  */
-export function metricFromEnvelope(env: Envelope): SerializedMetric | undefined {
+export function metricFromEnvelope(envelope: Envelope): SerializedMetric | undefined {
   let metric: SerializedMetric | undefined;
 
-  forEachEnvelopeItem(env, (item, type) => {
+  forEachEnvelopeItem(envelope, (item, type) => {
     if (type === 'trace_metric') {
       const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
       const containerItems = container?.items;
@@ -76,19 +95,14 @@ export function metricFromEnvelope(env: Envelope): SerializedMetric | undefined 
  * Applies the release to all metrics in an envelope.
  */
 function applyReleaseToMetrics(envelope: Envelope, release: string): void {
-  forEachEnvelopeItem(envelope, (item, type) => {
-    if (type === 'trace_metric') {
-      const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
-      if (container?.items) {
-        container.items = container.items.map(metric => ({
-          ...metric,
-          attributes: {
-            ...metric.attributes,
-            'sentry.release': { type: 'string', value: release },
-          },
-        }));
-      }
-    }
+  forEachMetricContainer(envelope, (container, metrics) => {
+    container.items = metrics.map(metric => ({
+      ...metric,
+      attributes: {
+        ...metric.attributes,
+        'sentry.release': { type: 'string', value: release },
+      },
+    }));
   });
 }
 
@@ -97,18 +111,14 @@ function applyReleaseToMetrics(envelope: Envelope, release: string): void {
  * This prevents the routing information from being sent to Sentry.
  */
 function stripRoutingAttributesFromMetrics(envelope: Envelope): void {
-  forEachEnvelopeItem(envelope, (item, type) => {
-    if (type === 'trace_metric') {
-      const container = Array.isArray(item) ? (item[1] as SerializedMetricContainer) : undefined;
-      const containerItems = container?.items;
-      if (containerItems) {
-        for (const metric of containerItems) {
-          if (metric.attributes && MULTIPLEXED_METRIC_ROUTING_KEY in metric.attributes) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...restAttributes } = metric.attributes;
-            metric.attributes = restAttributes;
-          }
-        }
+  let strippedCount = 0;
+  forEachMetricContainer(envelope, (_container, metrics) => {
+    for (const metric of metrics) {
+      if (metric.attributes && MULTIPLEXED_METRIC_ROUTING_KEY in metric.attributes) {
+        DEBUG_BUILD && strippedCount++;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [MULTIPLEXED_METRIC_ROUTING_KEY]: _routing, ...restAttributes } = metric.attributes;
+        metric.attributes = restAttributes;
       }
     }
   });
@@ -183,13 +193,17 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         const metric = args.getMetric();
         if (metric?.attributes?.[MULTIPLEXED_METRIC_ROUTING_KEY]) {
           const routingAttr = metric.attributes[MULTIPLEXED_METRIC_ROUTING_KEY];
+          DEBUG_BUILD && debug.log('[Multiplexed Transport] Found metric routing attribute:', routingAttr);
+
           let routingValue: unknown;
           if (typeof routingAttr === 'object' && routingAttr !== null && 'value' in routingAttr) {
             routingValue = routingAttr.value;
             if (typeof routingValue === 'string') {
               try {
                 routingValue = JSON.parse(routingValue);
-              } catch {
+                DEBUG_BUILD && debug.log('[Multiplexed Transport] Parsed routing value:', routingValue);
+              } catch (e) {
+                DEBUG_BUILD && debug.warn('[Multiplexed Transport] Failed to parse routing JSON:', e);
                 return [];
               }
             }
@@ -198,7 +212,11 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
           }
 
           if (Array.isArray(routingValue)) {
-            return routingValue as RouteTo[];
+            const validRoutes = routingValue.filter(
+              (route): route is RouteTo => route !== null && route !== undefined && typeof route === 'object',
+            );
+            DEBUG_BUILD && debug.log('[Multiplexed Transport] Valid routes:', validRoutes);
+            return validRoutes;
           }
         }
         return [];
