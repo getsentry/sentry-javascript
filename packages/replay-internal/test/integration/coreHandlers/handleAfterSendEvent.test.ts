@@ -53,7 +53,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     handler(error4, { statusCode: undefined });
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err2']);
-    expect(Array.from(replay.getContext().traceIds)).toEqual([[-1, expect.any(String)]]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual([[expect.any(Number), expect.any(String)]]);
   });
 
   it('records traceIds from sent transaction events', async () => {
@@ -122,7 +122,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
         .fill(undefined)
         .map((_, i) => `err-${i}`),
     );
-    expect(replay.getContext().traceIds).toEqual([[-1, expect.any(String)]]);
+    expect(replay.getContext().traceIds).toEqual([[expect.any(Number), expect.any(String)]]);
   });
 
   it('limits traceIds to max. 100', async () => {

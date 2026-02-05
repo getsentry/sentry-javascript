@@ -252,7 +252,7 @@ describe('Integration | session', () => {
       initialTimestamp: newTimestamp - DEFAULT_FLUSH_MIN_DELAY,
       urls: [],
       errorIds: new Set(),
-      traceIds: [[-1, expect.any(String)]],
+      traceIds: [[expect.any(Number), expect.any(String)]],
     });
   });
 

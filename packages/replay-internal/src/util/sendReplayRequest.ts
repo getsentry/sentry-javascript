@@ -44,9 +44,7 @@ export async function sendReplayRequest({
     timestamp: timestamp / 1000,
     error_ids: errorIds,
     trace_ids: uniqueTraceIds,
-    traces_by_timestamp: traceIds
-      .filter(([_ts, traceId]) => uniqueTraceIds.includes(traceId))
-      .map(([ts, traceId]) => [ts, traceId]),
+    traces_by_timestamp: traceIds.map(([ts, traceId]) => [ts, traceId]),
     urls,
     replay_id: replayId,
     segment_id,
