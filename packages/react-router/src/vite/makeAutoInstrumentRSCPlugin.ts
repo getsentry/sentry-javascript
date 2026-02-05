@@ -25,12 +25,11 @@ export function filePathToRoute(filePath: string, routesDirectory: string): stri
   const normalizedPath = filePath.replace(/\\/g, '/');
   const normalizedRoutesDir = routesDirectory.replace(/\\/g, '/');
 
-  // Search for the routes directory as a complete path segment (bounded by '/')
   const withSlashes = `/${normalizedRoutesDir}/`;
   let routesDirIndex = normalizedPath.lastIndexOf(withSlashes);
 
   if (routesDirIndex !== -1) {
-    routesDirIndex += 1; // Point past the leading '/'
+    routesDirIndex += 1;
   } else if (normalizedPath.startsWith(`${normalizedRoutesDir}/`)) {
     routesDirIndex = 0;
   } else {

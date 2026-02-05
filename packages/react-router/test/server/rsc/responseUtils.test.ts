@@ -1,63 +1,57 @@
+import { addNonEnumerableProperty } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  isErrorCaptured,
+  isAlreadyCaptured,
   isNotFoundResponse,
   isRedirectResponse,
-  markErrorAsCaptured,
   safeFlushServerless,
 } from '../../../src/server/rsc/responseUtils';
 
 describe('responseUtils', () => {
-  describe('isErrorCaptured / markErrorAsCaptured', () => {
-    it('should return false for uncaptured errors', () => {
+  describe('isAlreadyCaptured', () => {
+    it('should return false for errors without __sentry_captured__', () => {
+      expect(isAlreadyCaptured(new Error('test'))).toBe(false);
+    });
+
+    it('should return true for errors with __sentry_captured__ set', () => {
       const error = new Error('test');
-      expect(isErrorCaptured(error)).toBe(false);
+      addNonEnumerableProperty(error as unknown as Record<string, unknown>, '__sentry_captured__', true);
+      expect(isAlreadyCaptured(error)).toBe(true);
     });
 
-    it('should return true for captured errors', () => {
-      const error = new Error('test');
-      markErrorAsCaptured(error);
-      expect(isErrorCaptured(error)).toBe(true);
+    it('should return false for null', () => {
+      expect(isAlreadyCaptured(null)).toBe(false);
     });
 
-    it('should handle null errors', () => {
-      expect(isErrorCaptured(null)).toBe(false);
-      // markErrorAsCaptured should not throw for null
-      expect(() => markErrorAsCaptured(null)).not.toThrow();
+    it('should return false for undefined', () => {
+      expect(isAlreadyCaptured(undefined)).toBe(false);
     });
 
-    it('should handle undefined errors', () => {
-      expect(isErrorCaptured(undefined)).toBe(false);
-      expect(() => markErrorAsCaptured(undefined)).not.toThrow();
+    it('should return false for primitives', () => {
+      expect(isAlreadyCaptured('string')).toBe(false);
+      expect(isAlreadyCaptured(42)).toBe(false);
     });
 
-    it('should handle primitive errors (strings)', () => {
-      // Primitives cannot be tracked by WeakSet
-      const error = 'string error';
-      markErrorAsCaptured(error);
-      expect(isErrorCaptured(error)).toBe(false);
+    it('should return false for a Proxy that throws on property access', () => {
+      const proxy = new Proxy(
+        {},
+        {
+          get() {
+            throw new Error('proxy trap');
+          },
+        },
+      );
+      expect(isAlreadyCaptured(proxy)).toBe(false);
     });
 
-    it('should handle primitive errors (numbers)', () => {
-      const error = 42;
-      markErrorAsCaptured(error);
-      expect(isErrorCaptured(error)).toBe(false);
+    it('should return true for truthy non-boolean __sentry_captured__ values', () => {
+      const error = { __sentry_captured__: 1 };
+      expect(isAlreadyCaptured(error)).toBe(true);
     });
 
-    it('should track different error objects independently', () => {
-      const error1 = new Error('error 1');
-      const error2 = new Error('error 2');
-
-      markErrorAsCaptured(error1);
-
-      expect(isErrorCaptured(error1)).toBe(true);
-      expect(isErrorCaptured(error2)).toBe(false);
-    });
-
-    it('should handle object errors', () => {
-      const error = { message: 'custom error', code: 500 };
-      markErrorAsCaptured(error);
-      expect(isErrorCaptured(error)).toBe(true);
+    it('should return false for a frozen object without __sentry_captured__', () => {
+      const frozen = Object.freeze({ message: 'frozen error' });
+      expect(isAlreadyCaptured(frozen)).toBe(false);
     });
   });
 
@@ -201,7 +195,6 @@ describe('responseUtils', () => {
 
       safeFlushServerless(mockFlush);
 
-      // Wait for the promise to resolve
       await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mockFlush).toHaveBeenCalled();
@@ -218,7 +211,6 @@ describe('responseUtils', () => {
 
       expect(() => safeFlushServerless(mockFlush)).not.toThrow();
 
-      // Wait for the promise to reject (should be caught internally)
       await new Promise(resolve => setTimeout(resolve, 0));
     });
 
@@ -228,10 +220,8 @@ describe('responseUtils', () => {
 
       safeFlushServerless(mockFlush);
 
-      // Wait for the promise to reject
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      // Should not throw, error is caught internally
       expect(mockFlush).toHaveBeenCalled();
 
       consoleWarnSpy.mockRestore();
