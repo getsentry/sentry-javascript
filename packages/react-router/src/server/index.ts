@@ -20,26 +20,6 @@ export {
 } from './createServerInstrumentation';
 
 // React Server Components (RSC) - React Router v7.9.0+
-export {
-  wrapMatchRSCServerRequest,
-  wrapRouteRSCServerRequest,
-  wrapServerFunction,
-  wrapServerFunctions,
-  wrapServerComponent,
-  isServerComponentContext,
-} from './rsc';
+export { wrapServerFunction, wrapServerComponent } from './rsc';
 
-export type {
-  RSCRouteConfigEntry,
-  RSCPayload,
-  RSCMatch,
-  DecodedPayload,
-  RouterContextProvider,
-  MatchRSCServerRequestArgs,
-  MatchRSCServerRequestFn,
-  RouteRSCServerRequestArgs,
-  RouteRSCServerRequestFn,
-  RSCHydratedRouterProps,
-  ServerComponentContext,
-  WrapServerFunctionOptions,
-} from './rsc';
+export type { ServerComponentContext, WrapServerFunctionOptions } from './rsc';
