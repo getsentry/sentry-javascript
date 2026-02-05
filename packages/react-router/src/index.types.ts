@@ -31,4 +31,3 @@ export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
 export declare const wrapServerComponent: typeof serverSdk.wrapServerComponent;
 export declare const wrapServerFunction: typeof serverSdk.wrapServerFunction;
-export declare const wrapServerFunctions: typeof serverSdk.wrapServerFunctions;

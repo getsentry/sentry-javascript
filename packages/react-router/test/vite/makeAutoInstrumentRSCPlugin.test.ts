@@ -168,9 +168,7 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       const result = await plugin.load('/nonexistent/file.tsx?sentry-rsc-wrap');
       expect(result).toBeNull();
       // eslint-disable-next-line no-console
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[Sentry RSC] Failed to read original file:'),
-      );
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[Sentry RSC] Failed to read original file:'));
     });
   });
 

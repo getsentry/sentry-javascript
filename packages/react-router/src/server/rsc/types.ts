@@ -1,26 +1,4 @@
 /**
- * Type definitions for React Router RSC (React Server Components) APIs.
- *
- * These types mirror the unstable RSC APIs from react-router v7.9.0+.
- * All RSC APIs in React Router are prefixed with `unstable_` and subject to change.
- */
-
-/**
- * RSC route configuration entry - mirrors `unstable_RSCRouteConfigEntry` from react-router.
- */
-export interface RSCRouteConfigEntry {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  path?: string;
-  index?: boolean;
-  caseSensitive?: boolean;
-  id?: string;
-  children?: RSCRouteConfigEntry[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  lazy?: () => Promise<any>;
-}
-
-/**
  * RSC payload types - mirrors the various payload types from react-router.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,17 +35,6 @@ export type DecodeFormStateFunction = (actionResult: any, body: FormData, option
 export type LoadServerActionFunction = (id: string) => Promise<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SSRCreateFromReadableStreamFunction = (stream: ReadableStream<Uint8Array>) => Promise<any>;
-export type BrowserCreateFromReadableStreamFunction = (
-  stream: ReadableStream<Uint8Array>,
-  options?: { temporaryReferences?: unknown },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-) => Promise<any>;
-
-/**
- * Router context provider - mirrors `RouterContextProvider` from react-router.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type RouterContextProvider = any;
 
 /**
  * Arguments for `unstable_matchRSCServerRequest`.
@@ -80,7 +47,8 @@ export interface MatchRSCServerRequestArgs {
   /** Function to decode server function arguments */
   decodeReply?: DecodeReplyFunction;
   /** Per-request context provider instance */
-  requestContext?: RouterContextProvider;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  requestContext?: any;
   /** Function to load a server action by ID */
   loadServerAction?: LoadServerActionFunction;
   /** Function to decode server actions */
@@ -92,7 +60,8 @@ export interface MatchRSCServerRequestArgs {
   /** The Request to match against */
   request: Request;
   /** Route definitions */
-  routes: RSCRouteConfigEntry[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  routes: any[];
   /** Function to generate Response encoding the RSC payload */
   generateResponse: (
     match: RSCMatch,
@@ -127,22 +96,6 @@ export interface RouteRSCServerRequestArgs {
  * Function signature for `unstable_routeRSCServerRequest`.
  */
 export type RouteRSCServerRequestFn = (args: RouteRSCServerRequestArgs) => Promise<Response>;
-
-/**
- * Props for `unstable_RSCHydratedRouter` component.
- */
-export interface RSCHydratedRouterProps {
-  /** Function to decode RSC payloads from server */
-  createFromReadableStream: BrowserCreateFromReadableStreamFunction;
-  /** Optional fetch implementation */
-  fetch?: (request: Request) => Promise<Response>;
-  /** The decoded RSC payload to hydrate */
-  payload: RSCPayload;
-  /** Route discovery behavior: "eager" or "lazy" */
-  routeDiscovery?: 'eager' | 'lazy';
-  /** Function that returns a router context provider instance */
-  getContext?: () => RouterContextProvider;
-}
 
 /**
  * Context for server component wrapping.
