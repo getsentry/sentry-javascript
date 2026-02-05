@@ -1,0 +1,42 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "remix vite:build && pnpm typecheck",
+    "dev": "remix vite:dev",
+    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/server/index.js",
+    "typecheck": "tsc",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm playwright test"
+  },
+  "dependencies": {
+    "@sentry/remix": "latest || *",
+    "@remix-run/css-bundle": "2.17.4",
+    "@remix-run/node": "2.17.4",
+    "@remix-run/react": "2.17.4",
+    "@remix-run/serve": "2.17.4",
+    "isbot": "^3.6.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@remix-run/dev": "2.17.4",
+    "@remix-run/eslint-config": "2.17.4",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.34",
+    "@types/prop-types": "15.7.7",
+    "eslint": "^8.38.0",
+    "typescript": "^5.1.6",
+    "vite": "^5.4.11",
+    "vite-tsconfig-paths": "^4.2.1"
+  },
+  "resolutions": {
+    "@types/react": "18.2.22"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
