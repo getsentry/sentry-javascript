@@ -43,8 +43,8 @@ gen_ai.invoke_agent (ai.generateText)
 
 **References:**
 
-- Vercel AI: `packages/core/src/tracing/vercel-ai/constants.ts:8-23`
-- LangChain: `packages/core/src/tracing/langchain/index.ts:199-207`
+- Vercel AI: `packages/core/src/tracing/vercel-ai/constants.ts`
+- LangChain: `onChainStart` callback in `packages/core/src/tracing/langchain/index.ts`
 
 ---
 
@@ -52,7 +52,7 @@ gen_ai.invoke_agent (ai.generateText)
 
 **Non-streaming:** Use `startSpan()`, set attributes immediately from response
 
-**Streaming:** Use `startSpanManual()` with this pattern:
+**Streaming:** Use `startSpanManual()` and prefer event listeners/hooks when available (like Anthropic's `stream.on()`). If not available, use async generator pattern:
 
 ```typescript
 interface StreamingState {
@@ -83,11 +83,13 @@ async function* instrumentStream(stream, span, recordOutputs) {
 - Set `GEN_AI_RESPONSE_STREAMING_ATTRIBUTE: true`
 - Call `span.end()` in finally block
 
+**Detection:** Check request parameters for `stream: true` to determine if response will be streamed.
+
 **References:**
 
-- OpenAI: `packages/core/src/tracing/openai/streaming.ts`
-- Anthropic: `packages/core/src/tracing/anthropic-ai/streaming.ts`
-- Detection: `packages/core/src/tracing/openai/index.ts:183-221`
+- OpenAI async generator: `instrumentStream` in `packages/core/src/tracing/openai/streaming.ts`
+- Anthropic event listeners: `instrumentMessageStream` in `packages/core/src/tracing/anthropic-ai/streaming.ts`
+- Detection logic: Check `params.stream === true` in `packages/core/src/tracing/openai/index.ts`
 
 ---
 
@@ -117,7 +119,7 @@ for (const span of event.spans) {
 }
 ```
 
-**Reference:** `packages/core/src/tracing/vercel-ai/index.ts:110-140`
+**Reference:** `vercelAiEventProcessor` and `accumulateTokensForParent` in `packages/core/src/tracing/vercel-ai/`
 
 ---
 
@@ -158,7 +160,7 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 
 2. **Node.js:** Add performance optimization in `packages/node/src/integrations/tracing/{provider}/index.ts`
    - Use `callWhenPatched()` to defer processor registration
-   - Only register when package is actually imported (see vercelai:36)
+   - Only register when package is actually imported (see `vercelAIIntegration` function)
 
 3. **Edge:** Direct registration in `packages/cloudflare/src/integrations/tracing/{provider}.ts`
    - No OTel patching available
@@ -181,11 +183,11 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 2. **Node.js Instrumentation:** Patch module exports in `instrumentation.ts`
    - Wrap client constructor
    - Check `_INTERNAL_shouldSkipAiProviderWrapping()` (for LangChain)
-   - See openai/instrumentation.ts:70-86
+   - See `instrumentOpenAi` in `packages/node/src/integrations/tracing/openai/instrumentation.ts`
 
 3. **Node.js Integration:** Export instrumentation function
    - Use `generateInstrumentOnce()` helper
-   - See openai/index.ts:6-9
+   - See `openAIIntegration` in `packages/node/src/integrations/tracing/openai/index.ts`
 
 **Reference:** `packages/node/src/integrations/tracing/openai/`
 
@@ -203,7 +205,7 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 
 2. **Node.js Instrumentation:** Auto-inject callbacks
    - Patch runnable methods to add handler automatically
-   - **Important:** Disable underlying AI provider wrapping (langchain/instrumentation.ts:103-105)
+   - **Important:** Disable underlying AI provider wrapping (see `instrumentLangchain` in `packages/node/src/integrations/tracing/langchain/instrumentation.ts`)
 
 **Reference:** `packages/node/src/integrations/tracing/langchain/`
 
