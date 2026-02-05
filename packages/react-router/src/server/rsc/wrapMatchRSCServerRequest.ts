@@ -67,25 +67,25 @@ export function wrapMatchRSCServerRequest(originalFn: MatchRSCServerRequestFn): 
         span => {
           try {
             // Wrap the inner onError to capture RSC stream errors.
+            // Always provide a wrappedInnerOnError so Sentry captures stream errors
+            // even when the caller does not provide an onError callback.
             const originalOnError = options.onError;
-            const wrappedInnerOnError = originalOnError
-              ? (error: unknown): string | undefined => {
-                  // Only capture if not already captured
-                  if (!isErrorCaptured(error)) {
-                    markErrorAsCaptured(error);
-                    captureException(error, {
-                      mechanism: {
-                        type: 'instrument',
-                        handled: false,
-                        data: {
-                          function: 'generateResponse.onError',
-                        },
-                      },
-                    });
-                  }
-                  return originalOnError(error);
-                }
-              : undefined;
+            const wrappedInnerOnError = (error: unknown): string | undefined => {
+              // Only capture if not already captured
+              if (!isErrorCaptured(error)) {
+                markErrorAsCaptured(error);
+                captureException(error, {
+                  mechanism: {
+                    type: 'instrument',
+                    handled: false,
+                    data: {
+                      function: 'generateResponse.onError',
+                    },
+                  },
+                });
+              }
+              return originalOnError ? originalOnError(error) : undefined;
+            };
 
             const response = generateResponse(match, {
               ...options,
