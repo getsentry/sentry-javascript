@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   captureSpan,
-  getActiveSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -21,7 +20,6 @@ import {
   withScope,
   withStreamedSpan,
 } from '../../../../src';
-import { _setSpanForScope } from '../../../../src/utils/spanOnScope';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('captureSpan', () => {

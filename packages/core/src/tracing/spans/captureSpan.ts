@@ -17,7 +17,6 @@ import {
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { isStreamedBeforeSendSpanCallback } from '../../utils/beforeSendSpan';
-import { debug } from '../../utils/debug-logger';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
