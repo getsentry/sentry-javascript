@@ -127,12 +127,12 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
       const { prompt, system } = p;
       const result: { role: string; content: string }[] = [];
 
-      // Prepend top-level system instruction if present
+      // prepend top-level system instruction if present
       if (typeof system === 'string') {
         result.push({ role: 'system', content: system });
       }
 
-      // Handle stringified messages array
+      // stringified messages array
       if (typeof messages === 'string') {
         try {
           messages = JSON.parse(messages);
@@ -141,19 +141,19 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
         }
       }
 
-      // Handle messages array format: { messages: [...] }
+      // messages array format: { messages: [...] }
       if (Array.isArray(messages)) {
         result.push(...filterMessagesArray(messages));
         return result;
       }
 
-      // Handle prompt array format: { prompt: [...] }
+      // prompt array format: { prompt: [...] }
       if (Array.isArray(prompt)) {
         result.push(...filterMessagesArray(prompt));
         return result;
       }
 
-      // Handle prompt string format: { prompt: "..." }
+      // prompt string format: { prompt: "..." }
       if (typeof prompt === 'string') {
         result.push({ role: 'user', content: prompt });
       }
