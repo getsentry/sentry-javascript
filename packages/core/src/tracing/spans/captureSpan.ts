@@ -142,8 +142,8 @@ export function safeSetSpanJSONAttributes(
 ): void {
   const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
 
-  Object.keys(newAttributes).forEach(key => {
-    if (!(key in originalAttributes)) {
+  Object.entries(newAttributes).forEach(([key, value]) => {
+    if (value != null && !(key in originalAttributes)) {
       originalAttributes[key] = newAttributes[key];
     }
   });

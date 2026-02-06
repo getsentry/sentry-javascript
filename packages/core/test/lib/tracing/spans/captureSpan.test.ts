@@ -473,4 +473,13 @@ describe('safeSetSpanJSONAttributes', () => {
 
     expect(spanJSON.attributes).toEqual({ a: 1 });
   });
+
+  it("doesn't apply undefined or null values to attributes", () => {
+    const spanJSON = { attributes: {} };
+
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { a: undefined, b: null });
+
+    expect(spanJSON.attributes).toEqual({});
+  });
 });
