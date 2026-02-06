@@ -15,7 +15,7 @@ import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import type {
-  SerializedSpan,
+  SerializedStreamedSpan,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -267,7 +267,7 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
  * This is the final serialized span format that is sent to Sentry.
  * The returned serilaized spans must not be consumed by users or SDK integrations.
  */
-export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedSpan {
+export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedStreamedSpan {
   return {
     ...spanJson,
     attributes: serializeAttributes(spanJson.attributes),
