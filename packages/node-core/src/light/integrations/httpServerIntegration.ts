@@ -119,7 +119,7 @@ function instrumentServer(
         return target.apply(thisArg, args);
       }
 
-      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request (light mode)');
+      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
 
       const isolationScope = getIsolationScope().clone();
       const request = args[1] as IncomingMessage;
