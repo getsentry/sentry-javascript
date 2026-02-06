@@ -125,7 +125,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
   test('does not capture redirect as an error', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, errorEvent => {
-      return errorEvent?.request?.url?.includes('/rsc/server-component-redirect');
+      return !!errorEvent?.request?.url?.includes('/rsc/server-component-redirect');
     });
 
     await page.goto('/rsc/server-component-redirect');
@@ -144,7 +144,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
   test('does not capture 404 response as an error', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, errorEvent => {
-      return errorEvent?.request?.url?.includes('/rsc/server-component-not-found');
+      return !!errorEvent?.request?.url?.includes('/rsc/server-component-not-found');
     });
 
     await page.goto('/rsc/server-component-not-found');
