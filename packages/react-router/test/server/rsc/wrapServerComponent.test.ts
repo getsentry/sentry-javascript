@@ -62,7 +62,7 @@ describe('wrapServerComponent', () => {
     expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_ERROR, message: 'internal_error' });
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: {
-        type: 'instrument',
+        type: 'react_router.rsc',
         handled: false,
         data: {
           function: 'ServerComponent',
@@ -94,7 +94,7 @@ describe('wrapServerComponent', () => {
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: {
-        type: 'instrument',
+        type: 'react_router.rsc',
         handled: false,
         data: {
           function: 'ServerComponent',

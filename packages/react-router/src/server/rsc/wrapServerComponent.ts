@@ -104,7 +104,7 @@ function handleError(error: unknown, componentRoute: string, componentType: stri
   if (!isAlreadyCaptured(error)) {
     captureException(error, {
       mechanism: {
-        type: 'instrument',
+        type: 'react_router.rsc',
         handled: false,
         data: {
           function: 'ServerComponent',

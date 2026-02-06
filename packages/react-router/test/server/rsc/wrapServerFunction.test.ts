@@ -128,7 +128,7 @@ describe('wrapServerFunction', () => {
     expect(mockSetStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: {
-        type: 'instrument',
+        type: 'react_router.rsc',
         handled: false,
         data: {
           function: 'serverFunction',

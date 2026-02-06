@@ -21,7 +21,7 @@ test.describe('RSC - Server Component Wrapper', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'instrument',
+              type: 'react_router.rsc',
               data: {
                 function: 'ServerComponent',
                 component_route: '/rsc/server-component-error',
