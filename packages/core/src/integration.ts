@@ -77,6 +77,12 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach((integration: Integration | undefined) => {
+    if (integration?.beforeSetup) {
+      integration.beforeSetup(client);
+    }
+  });
+
+  integrations.forEach((integration: Integration | undefined) => {
     // guard against empty provided integrations
     if (integration) {
       setupIntegration(client, integration, integrationIndex);
