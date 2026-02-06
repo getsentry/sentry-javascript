@@ -6,7 +6,7 @@ run:
 		echo "Error: fzf is required. Install with: brew install fzf"; \
 		exit 1; \
 	fi
-	@suite=$$(echo "browser-integration-tests\nnode-integration-tests\nnode-core-integration-tests\ne2e-tests" | \
+	@suite=$$(printf '%s\n' browser-integration-tests node-integration-tests node-core-integration-tests e2e-tests | \
 		fzf --height=10 --layout=reverse --border=rounded --margin=1.5% \
 --color=dark --prompt="run test suite: "); \
 	[ -n "$$suite" ] && $(MAKE) -C $$suite run
