@@ -15,6 +15,19 @@ describe('Light Mode | SDK', () => {
       expect(client).toBeInstanceOf(LightNodeClient);
     });
 
+    it('sets correct SDK metadata', () => {
+      const client = mockLightSdkInit();
+
+      const metadata = client?.getOptions()._metadata;
+      expect(metadata?.sdk?.name).toBe('sentry.javascript.node-light');
+      expect(metadata?.sdk?.packages).toEqual([
+        {
+          name: 'npm:@sentry/node-core',
+          version: expect.any(String),
+        },
+      ]);
+    });
+
     it('sets the client on the current scope', () => {
       const client = mockLightSdkInit();
 

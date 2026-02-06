@@ -121,7 +121,7 @@ function _init(
     );
   }
 
-  applySdkMetadata(options, 'node-core', ['node-core-light']);
+  applySdkMetadata(options, 'node-light', ['node-core']);
 
   const client = new LightNodeClient(options);
   // The client is on the current scope, from where it generally is inherited

@@ -26,7 +26,7 @@ export class LightNodeClient extends ServerRuntimeClient<NodeClientOptions> {
       serverName,
     };
 
-    applySdkMetadata(clientOptions, 'node');
+    applySdkMetadata(clientOptions, 'node-light', ['node-core']);
 
     debug.log(`Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
 
