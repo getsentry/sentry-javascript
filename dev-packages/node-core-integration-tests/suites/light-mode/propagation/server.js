@@ -18,6 +18,10 @@ const server = http.createServer((req, res) => {
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ spanId1, spanId2 }));
+  } else if (req.url === '/test-trace-continuation') {
+    Sentry.captureException(new Error('Trace continuation error'));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
   } else {
     res.writeHead(404);
     res.end();
