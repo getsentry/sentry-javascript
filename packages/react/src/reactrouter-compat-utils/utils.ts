@@ -284,7 +284,7 @@ export function resolveRouteNameAndSource(
   if (enableAsyncRouteHandlers && lazyRouteManifest && lazyRouteManifest.length > 0) {
     const manifestMatch = matchRouteManifest(location.pathname, lazyRouteManifest, basename);
     if (manifestMatch) {
-      return [manifestMatch, 'route'];
+      return [(_stripBasename ? '' : basename) + manifestMatch, 'route'];
     }
   }
 
