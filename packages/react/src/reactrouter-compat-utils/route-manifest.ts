@@ -1,6 +1,33 @@
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
+/**
+ * Strip the basename from a pathname if exists.
+ *
+ * Vendored and modified from `react-router`
+ * https://github.com/remix-run/react-router/blob/462bb712156a3f739d6139a0f14810b76b002df6/packages/router/utils.ts#L1038
+ */
+export function stripBasenameFromPathname(pathname: string, basename: string): string {
+  if (!basename || basename === '/') {
+    return pathname;
+  }
+
+  if (!pathname.toLowerCase().startsWith(basename.toLowerCase())) {
+    return pathname;
+  }
+
+  // We want to leave trailing slash behavior in the user's control, so if they
+  // specify a basename with a trailing slash, we should support it
+  const startIndex = basename.endsWith('/') ? basename.length - 1 : basename.length;
+  const nextChar = pathname.charAt(startIndex);
+  if (nextChar && nextChar !== '/') {
+    // pathname does not start with basename/
+    return pathname;
+  }
+
+  return pathname.slice(startIndex) || '/';
+}
+
 // Cache for sorted manifests - keyed by manifest array reference
 const SORTED_MANIFEST_CACHE = new WeakMap<string[], string[]>();
 
@@ -13,17 +40,7 @@ export function matchRouteManifest(pathname: string, manifest: string[], basenam
     return null;
   }
 
-  let normalizedPathname = pathname;
-  if (basename && basename !== '/') {
-    const base = basename.endsWith('/') ? basename.slice(0, -1) : basename;
-    if (normalizedPathname.toLowerCase().startsWith(base.toLowerCase())) {
-      // Verify basename ends at segment boundary (followed by / or end of string)
-      const nextChar = normalizedPathname.charAt(base.length);
-      if (nextChar === '/' || nextChar === '') {
-        normalizedPathname = normalizedPathname.slice(base.length) || '/';
-      }
-    }
-  }
+  const normalizedPathname = basename ? stripBasenameFromPathname(pathname, basename) : pathname;
 
   let sorted = SORTED_MANIFEST_CACHE.get(manifest);
   if (!sorted) {

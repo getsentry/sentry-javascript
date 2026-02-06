@@ -2,7 +2,7 @@ import type { Span, TransactionSource } from '@sentry/core';
 import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
-import { matchRouteManifest } from './route-manifest';
+import { matchRouteManifest, stripBasenameFromPathname } from './route-manifest';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
@@ -133,33 +133,6 @@ function sendIndexPath(pathBuilder: string, pathname: string, basename: string):
 export function getNumberOfUrlSegments(url: string): number {
   // split at '/' or at '\/' to split regex urls correctly
   return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
-}
-
-/**
- * Strip the basename from a pathname if exists.
- *
- * Vendored and modified from `react-router`
- * https://github.com/remix-run/react-router/blob/462bb712156a3f739d6139a0f14810b76b002df6/packages/router/utils.ts#L1038
- */
-function stripBasenameFromPathname(pathname: string, basename: string): string {
-  if (!basename || basename === '/') {
-    return pathname;
-  }
-
-  if (!pathname.toLowerCase().startsWith(basename.toLowerCase())) {
-    return pathname;
-  }
-
-  // We want to leave trailing slash behavior in the user's control, so if they
-  // specify a basename with a trailing slash, we should support it
-  const startIndex = basename.endsWith('/') ? basename.length - 1 : basename.length;
-  const nextChar = pathname.charAt(startIndex);
-  if (nextChar && nextChar !== '/') {
-    // pathname does not start with basename/
-    return pathname;
-  }
-
-  return pathname.slice(startIndex) || '/';
 }
 
 // Exported utility functions
