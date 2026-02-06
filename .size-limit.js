@@ -196,7 +196,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
-    limit: '44 KB',
+    limit: '45 KB',
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics)',

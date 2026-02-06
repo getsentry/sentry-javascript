@@ -23,3 +23,6 @@ export {
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
 export { logSpanEnd, logSpanStart } from './logSpans';
+
+// Span Streaming
+export { captureSpan } from './spans/captureSpan';
