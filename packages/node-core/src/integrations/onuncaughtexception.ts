@@ -1,4 +1,4 @@
-import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import { captureException, debug, defineIntegration, getClient, safeUnref } from '@sentry/core';
 import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
@@ -149,15 +149,17 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
             // note that after hitting this branch, we might catch more errors where (caughtSecondError && !calledFatalError)
             //   we ignore them - they don't matter to us, we're just waiting for the second error timeout to finish
             caughtSecondError = true;
-            setTimeout(() => {
-              if (!calledFatalError) {
-                // it was probably case 1, let's treat err as the sendErr and call onFatalError
-                calledFatalError = true;
-                onFatalError(firstError, error);
-              } else {
-                // it was probably case 2, our first error finished capturing while we waited, cool, do nothing
-              }
-            }, timeout); // capturing could take at least sendTimeout to fail, plus an arbitrary second for how long it takes to collect surrounding source etc
+            safeUnref(
+              setTimeout(() => {
+                if (!calledFatalError) {
+                  // it was probably case 1, let's treat err as the sendErr and call onFatalError
+                  calledFatalError = true;
+                  onFatalError(firstError, error);
+                } else {
+                  // it was probably case 2, our first error finished capturing while we waited, cool, do nothing
+                }
+              }, timeout),
+            ); // capturing could take at least sendTimeout to fail, plus an arbitrary second for how long it takes to collect surrounding source etc
           }
         }
       }
