@@ -228,12 +228,8 @@ export function _instrumentPostgRESTFilterBuilderInstance(builder: PostgRESTFilt
     return;
   }
 
-  // Check if the instance has its own .then property (not inherited from prototype)
-  const hasOwnThen = Object.prototype.hasOwnProperty.call(builder, 'then');
-
-  // If the instance has its own .then that's not instrumented, we need to instrument it
-  // even if the prototype's .then is already instrumented
-  if (_isInstrumented(originalThen) && !hasOwnThen) {
+  // Skip if already instrumented (whether from prototype or own property)
+  if (_isInstrumented(originalThen)) {
     return;
   }
 
@@ -259,22 +255,18 @@ export function _instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () =
   // We need to wrap _all_ operations despite them sharing the same `PostgRESTFilterBuilder`
   // constructor, as we don't know which method will be called first, and we don't want to miss any calls.
   for (const operation of DB_OPERATIONS_TO_INSTRUMENT) {
-    type PostgRESTOperation = keyof Pick<PostgRESTQueryBuilder, 'select' | 'insert' | 'upsert' | 'update' | 'delete'>;
-    const prototypeWithOps = PostgRESTQueryBuilder.prototype as Partial<
-      Record<PostgRESTOperation, PostgRESTQueryBuilder[PostgRESTOperation]>
-    >;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prototypeWithOps = PostgRESTQueryBuilder.prototype as Record<string, any>;
 
-    const originalOperation = prototypeWithOps[operation];
-
-    if (_isInstrumented(originalOperation)) {
+    if (_isInstrumented(prototypeWithOps[operation])) {
       continue;
     }
 
-    if (!originalOperation) {
+    if (!prototypeWithOps[operation]) {
       continue;
     }
 
-    const wrappedOperation = new Proxy(originalOperation, {
+    prototypeWithOps[operation] = new Proxy(prototypeWithOps[operation], {
       apply(target: PostgRESTQueryOperationFn, thisArg: unknown, argumentsList: Parameters<PostgRESTQueryOperationFn>) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
         const PostgRESTFilterBuilderCtor = rv.constructor;
@@ -288,9 +280,7 @@ export function _instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () =
       },
     });
 
-    prototypeWithOps[operation] = wrappedOperation;
-
-    _markAsInstrumented(wrappedOperation);
+    _markAsInstrumented(prototypeWithOps[operation]);
   }
 }
 

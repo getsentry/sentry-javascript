@@ -50,7 +50,7 @@ export const FILTER_MAPPINGS = {
   not: 'not',
 };
 
-export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'] as const;
+export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'];
 
 export const QUEUE_RPC_OPERATIONS = new Set(['send', 'send_batch', 'pop', 'receive', 'read']);
 
