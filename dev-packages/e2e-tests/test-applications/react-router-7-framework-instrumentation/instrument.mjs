@@ -1,3 +1,8 @@
+// Register ESM hooks before importing any other modules.
+// This is required on Node 20.19+ and 22.12+ for OTEL module patching to work.
+// Without this, middleware function names won't be captured.
+import '@sentry/react-router/loader';
+
 import * as Sentry from '@sentry/react-router';
 
 // Initialize Sentry early (before the server starts)

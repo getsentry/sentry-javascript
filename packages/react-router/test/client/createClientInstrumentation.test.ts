@@ -453,7 +453,7 @@ describe('createSentryClientInstrumentation', () => {
     );
   });
 
-  it('should instrument route middleware with spans', async () => {
+  it('should instrument route middleware with spans (without function name)', async () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
@@ -478,14 +478,67 @@ describe('createSentryClientInstrumentation', () => {
 
     expect(core.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'middleware test-route',
         attributes: expect.objectContaining({
           'sentry.op': 'function.react_router.client_middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
+          'react_router.route.id': 'test-route',
+          'react_router.route.pattern': '/users/:id',
+          'react_router.middleware.index': 0,
         }),
       }),
       expect.any(Function),
     );
+  });
+
+  it('should use middleware function name when available from window.__reactRouterRouteModules', async () => {
+    const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+
+    // Use a unique route ID to avoid counter conflicts with other tests
+    const routeId = 'test-route-with-name';
+
+    // Mock window.__reactRouterRouteModules
+    (globalThis as any).__reactRouterRouteModules = {
+      [routeId]: {
+        clientMiddleware: [{ name: 'authClientMiddleware' }],
+      },
+    };
+
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({
+      id: routeId,
+      index: false,
+      path: '/users/:id',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.middleware(mockCallMiddleware, {
+      request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: '/users/:id',
+      context: undefined,
+    });
+
+    expect(core.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'middleware authClientMiddleware',
+        attributes: expect.objectContaining({
+          'sentry.op': 'function.react_router.client_middleware',
+          'react_router.route.id': routeId,
+          'react_router.middleware.name': 'authClientMiddleware',
+          'react_router.middleware.index': 0,
+        }),
+      }),
+      expect.any(Function),
+    );
+
+    // Cleanup
+    delete (globalThis as any).__reactRouterRouteModules;
   });
 
   it('should instrument lazy route loading with spans', async () => {
