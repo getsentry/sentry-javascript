@@ -28,6 +28,12 @@ const mockMiddlewarePlugin: Plugin = {
   transform: vi.fn(),
 };
 
+const mockCopyInstrumentationPlugin: Plugin = {
+  name: 'sentry-tanstackstart-copy-instrumentation-file',
+  apply: 'build',
+  enforce: 'post',
+};
+
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
@@ -35,6 +41,10 @@ vi.mock('../../src/vite/sourceMaps', () => ({
 
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
+}));
+
+vi.mock('../../src/vite/copyInstrumentationFile', () => ({
+  makeCopyInstrumentationFilePlugin: vi.fn(() => mockCopyInstrumentationPlugin),
 }));
 
 describe('sentryTanstackStart()', () => {
@@ -51,7 +61,12 @@ describe('sentryTanstackStart()', () => {
     it('returns source maps plugins in production mode', () => {
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockCopyInstrumentationPlugin,
+        mockEnableSourceMapsPlugin,
+      ]);
     });
 
     it('returns no plugins in development mode', () => {
@@ -68,7 +83,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockCopyInstrumentationPlugin]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
@@ -77,7 +92,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: 'disable-upload' },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockCopyInstrumentationPlugin]);
     });
 
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
@@ -86,7 +101,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: false },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockCopyInstrumentationPlugin,
+        mockEnableSourceMapsPlugin,
+      ]);
     });
   });
 
@@ -94,7 +114,12 @@ describe('sentryTanstackStart()', () => {
     it('includes middleware plugin by default', () => {
       const plugins = sentryTanstackStart({ sourcemaps: { disable: true } });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockCopyInstrumentationPlugin,
+        mockMiddlewarePlugin,
+      ]);
     });
 
     it('includes middleware plugin when autoInstrumentMiddleware is true', () => {
@@ -103,7 +128,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockMiddlewarePlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockCopyInstrumentationPlugin,
+        mockMiddlewarePlugin,
+      ]);
     });
 
     it('does not include middleware plugin when autoInstrumentMiddleware is false', () => {
@@ -112,7 +142,7 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockCopyInstrumentationPlugin]);
     });
 
     it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
