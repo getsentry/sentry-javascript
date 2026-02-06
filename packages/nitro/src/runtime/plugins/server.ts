@@ -20,9 +20,7 @@ import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
  * Global object with the trace channels
  */
 const globalWithTraceChannels = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __SENTRY_NITRO_H3_CHANNEL__: ReturnType<typeof tracingChannel<H3TracingRequestEvent>>;
-  __SENTRY_NITRO_SRVX_FETCH_CHANNEL__: ReturnType<typeof tracingChannel<SrvxRequestEvent>>;
-  __SENTRY_NITRO_SRVX_MIDDLEWARE_CHANNEL__: ReturnType<typeof tracingChannel<SrvxRequestEvent>>;
+  __SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__: boolean;
 };
 
 /**
@@ -31,8 +29,13 @@ const globalWithTraceChannels = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 const NOOP = (): void => {};
 
 export default definePlugin(() => {
+  if (globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__) {
+    return;
+  }
+
   setupH3TracingChannels();
   setupSrvxTracingChannels();
+  globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__ = true;
 });
 
 function onTraceEnd(data: { span?: Span }): void {
@@ -46,11 +49,6 @@ function onTraceError(data: { span?: Span; error: unknown }): void {
 }
 
 function setupH3TracingChannels(): void {
-  // Already registered, don't register again
-  if (globalWithTraceChannels.__SENTRY_NITRO_H3_CHANNEL__) {
-    return;
-  }
-
   const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.fetch', data => {
     const parsedUrl = parseStringToURLObject(data.event.url.href);
     const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.h3', {
@@ -76,18 +74,9 @@ function setupH3TracingChannels(): void {
     asyncEnd: onTraceEnd,
     error: onTraceError,
   });
-
-  globalWithTraceChannels.__SENTRY_NITRO_H3_CHANNEL__ = h3Channel;
 }
 
 function setupSrvxTracingChannels(): void {
-  if (
-    globalWithTraceChannels.__SENTRY_NITRO_SRVX_FETCH_CHANNEL__ ||
-    globalWithTraceChannels.__SENTRY_NITRO_SRVX_MIDDLEWARE_CHANNEL__
-  ) {
-    return;
-  }
-
   // Store the parent span for all middleware and fetch to share
   // This ensures they all appear as siblings in the trace
   let requestParentSpan: Span | null = null;
@@ -173,7 +162,4 @@ function setupSrvxTracingChannels(): void {
     asyncEnd: onTraceEnd,
     error: onTraceError,
   });
-
-  globalWithTraceChannels.__SENTRY_NITRO_SRVX_FETCH_CHANNEL__ = fetchChannel;
-  globalWithTraceChannels.__SENTRY_NITRO_SRVX_MIDDLEWARE_CHANNEL__ = middlewareChannel;
 }
