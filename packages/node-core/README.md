@@ -116,13 +116,13 @@ If it is not possible for you to pass the `--import` flag to the Node.js binary,
 NODE_OPTIONS="--import ./instrument.mjs" npm run start
 ```
 
-## Errors-only Lightweight Mode
+## Lightweight Mode
 
 > **⚠️ Experimental**: The `@sentry/node-core/light` subpath export is experimental and may receive breaking changes in minor or patch releases.
 
-If you only need error monitoring without performance tracing, you can use the lightweight mode which doesn't require OpenTelemetry dependencies. This mode is ideal for:
+If you don't need automatic spans/transactions, you can use the lightweight mode which doesn't require OpenTelemetry dependencies. This mode is ideal for:
 
-- Applications that only need error tracking
+- Applications that don't need automatic performance monitoring
 - Reducing bundle size and runtime overhead
 - Environments where OpenTelemetry isn't needed
 
@@ -163,6 +163,7 @@ const app = express();
 **Included:**
 
 - Error tracking and reporting
+- Logs and metrics
 - Automatic request isolation (Node.js 22+)
 - Breadcrumbs
 - Context and user data
@@ -171,7 +172,7 @@ const app = express();
 
 **Not included:**
 
-- Performance monitoring (no spans/transactions)
+- Automatic spans/transactions (no OpenTelemetry instrumentation)
 
 ### Automatic Request Isolation
 
