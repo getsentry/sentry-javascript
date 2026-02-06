@@ -25,7 +25,7 @@ import {
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 
-type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
+export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
 };
 
