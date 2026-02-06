@@ -73,7 +73,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
  * in light mode (without OpenTelemetry).
  *
  * This is a lightweight alternative to the OpenTelemetry-based httpServerIntegration.
- * It uses Node's native AsyncLocalStorage for scope isolation and Sentry's continueTrace for propagation.
+ * It uses Node's native AsyncLocalStorage for scope isolation and Sentry's continueTrace for trace propagation.
  *
  * Note: This integration requires Node.js 22+ (for http.server.request.start diagnostics channel).
  *
