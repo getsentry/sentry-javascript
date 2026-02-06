@@ -35,6 +35,3 @@ export {
 
 // Lazy route exports
 export { createAsyncHandlerProxy, handleAsyncHandlerResult, checkRouteForAsyncHandler } from './lazy-routes';
-
-// Route manifest exports
-export { matchRouteManifest } from './route-manifest';
