@@ -4,11 +4,11 @@ import {
   consoleIntegration,
   consoleSandbox,
   debug,
+  eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   GLOBAL_OBJ,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
@@ -43,9 +43,7 @@ import { httpServerIntegration } from './integrations/httpServerIntegration';
 export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),

@@ -14,8 +14,6 @@ export { localVariablesIntegration } from '../integrations/local-variables';
 export { modulesIntegration } from '../integrations/modules';
 export { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-// eslint-disable-next-line deprecation/deprecation
-export { anrIntegration, disableAnrDetectionForCallback } from '../integrations/anr';
 export { spotlightIntegration } from '../integrations/spotlight';
 export { systemErrorIntegration } from '../integrations/systemError';
 export { childProcessIntegration } from '../integrations/childProcess';
@@ -58,8 +56,6 @@ export {
   withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   addEventProcessor,
