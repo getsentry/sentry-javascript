@@ -144,7 +144,7 @@ export function safeSetSpanJSONAttributes(
 
   Object.entries(newAttributes).forEach(([key, value]) => {
     if (value != null && !(key in originalAttributes)) {
-      originalAttributes[key] = newAttributes[key];
+      originalAttributes[key] = value;
     }
   });
 }
