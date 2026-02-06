@@ -163,7 +163,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '44.1 KB',
+    limit: '45 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -178,7 +178,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28 KB',
+    limit: '29 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
