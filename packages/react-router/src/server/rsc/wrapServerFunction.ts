@@ -85,7 +85,7 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
             if (!isAlreadyCaptured(error)) {
               captureException(error, {
                 mechanism: {
-                  type: 'instrument',
+                  type: 'react_router.rsc',
                   handled: false,
                   data: {
                     function: 'serverFunction',

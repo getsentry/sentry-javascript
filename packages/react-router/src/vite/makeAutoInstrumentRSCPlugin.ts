@@ -109,9 +109,7 @@ function collectNamedExports(node: BabelExportNamedDeclaration, into: Set<string
 
   if (node.specifiers) {
     node.specifiers
-      .filter(
-        spec => spec.type === 'ExportSpecifier' && (spec as BabelExportSpecifier).exportKind !== 'type',
-      )
+      .filter(spec => spec.type === 'ExportSpecifier' && (spec as BabelExportSpecifier).exportKind !== 'type')
       .forEach(spec => {
         const name = getExportedName(spec.exported as t.Identifier | t.StringLiteral);
         if (name === 'default') {
