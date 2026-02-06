@@ -2,8 +2,7 @@ import type { IncomingMessage } from 'node:http';
 import type { Scope } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-
-export const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
+import { MAX_BODY_BYTE_LENGTH } from '../integrations/http/constants';
 
 /**
  * This method patches the request object to capture the body.
