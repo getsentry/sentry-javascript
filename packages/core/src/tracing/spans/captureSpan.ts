@@ -54,11 +54,11 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   if (span === segmentSpan) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
-    // Allow hook subscribers to add additional data to the segment span JSON
+    // Allow hook subscribers to mutate the segment span JSON
     client.emit('processSegmentSpan', spanJSON);
   }
 
-  // Allow hook subscribers to add additional data to the span JSON
+  // Allow hook subscribers to mutate the span JSON
   client.emit('processSpan', spanJSON);
 
   const { beforeSendSpan } = client.getOptions();
@@ -67,11 +67,12 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
 
-  // Backfill sentry.span.source from sentry.source for the PoC
-  // TODO(v11): Stop sending `sentry.source` attribute and only send `sentry.span.source`
-  if (processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]) {
+  // Backfill sentry.span.source from sentry.source. Only `sentry.span.source` is respected by Sentry.
+  // TODO(v11): Ensure we always only send `sentry.span.source` and remove this backfill.
+  const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  if (spanNameSource) {
     safeSetSpanJSONAttributes(processedSpan, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE],
+      [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: spanNameSource,
     });
     delete processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   }
@@ -142,7 +143,7 @@ export function safeSetSpanJSONAttributes(
   const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
 
   Object.keys(newAttributes).forEach(key => {
-    if (!originalAttributes?.[key]) {
+    if (!(key in originalAttributes)) {
       originalAttributes[key] = newAttributes[key];
     }
   });

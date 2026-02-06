@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
@@ -20,6 +21,7 @@ import {
   withScope,
   withStreamedSpan,
 } from '../../../../src';
+import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('captureSpan', () => {
@@ -412,5 +414,51 @@ describe('captureSpan', () => {
 
       consoleWarnSpy.mockRestore();
     });
+  });
+});
+
+describe('safeSetSpanJSONAttributes', () => {
+  it('sets attributes that do not exist', () => {
+    const spanJSON = { attributes: { a: 1, b: 2 } };
+
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { c: 3 });
+
+    expect(spanJSON.attributes).toEqual({ a: 1, b: 2, c: 3 });
+  });
+
+  it("doesn't set attributes that already exist", () => {
+    const spanJSON = { attributes: { a: 1, b: 2 } };
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { a: 3 });
+
+    expect(spanJSON.attributes).toEqual({ a: 1, b: 2 });
+  });
+
+  it.each([null, undefined])("doesn't overwrite attributes previously set to %s", val => {
+    const spanJSON = { attributes: { a: val, b: 2 } };
+
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { a: 1 });
+
+    expect(spanJSON.attributes).toEqual({ a: val, b: 2 });
+  });
+
+  it("doesn't overwrite falsy attribute values (%s)", () => {
+    const spanJSON = { attributes: { a: false, b: '', c: 0 } };
+
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { a: 1, b: 'test', c: 1 });
+
+    expect(spanJSON.attributes).toEqual({ a: false, b: '', c: 0 });
+  });
+
+  it('handles an undefined attributes property', () => {
+    const spanJSON: Partial<StreamedSpanJSON> = {};
+
+    // @ts-expect-error - only passing a partial object for this test
+    safeSetSpanJSONAttributes(spanJSON, { a: 1 });
+
+    expect(spanJSON.attributes).toEqual({ a: 1 });
   });
 });

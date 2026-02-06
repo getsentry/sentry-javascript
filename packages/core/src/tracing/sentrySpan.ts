@@ -264,7 +264,8 @@ export class SentrySpan implements Span {
       end_timestamp: this._endTime ?? this._startTime,
       is_segment: this._isStandaloneSpan || this === getRootSpan(this),
       status: getSimpleStatusMessage(this._status),
-      attributes: this._attributes,
+      // spread to avoid mutating the original object when later processing the span
+      attributes: { ...this._attributes },
       links: getStreamedSpanLinks(this._links),
     };
   }
