@@ -1,6 +1,6 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
+import type { Envelope, EnvelopeItemType, EventItem, MetricContainerItem } from '../types-hoist/envelope';
 import type { Event } from '../types-hoist/event';
 import type { SerializedMetric, SerializedMetricContainer } from '../types-hoist/metric';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
@@ -155,7 +155,7 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
 function overrideDsn(envelope: Envelope, dsn: string): Envelope {
   const clonedItems = envelope[1].map(item => {
     if (Array.isArray(item) && item[0]?.type === 'trace_metric') {
-      const [header, container] = item as [any, SerializedMetricContainer];
+      const [header, container] = item as MetricContainerItem;
       return [
         { ...header },
         {
