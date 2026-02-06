@@ -151,11 +151,6 @@ function instrumentServer(
       isolationScope.setTransactionName(bestEffortTransactionName);
 
       return withIsolationScope(isolationScope, () => {
-        // Set a new propagationSpanId for this request
-        // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
-        // This way we can save an "unnecessary" `withScope()` invocation
-        getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
-
         // Handle trace propagation using Sentry's continueTrace
         // This replaces OpenTelemetry's propagation.extract() + context.with()
         const sentryTrace = normalizedRequest.headers?.['sentry-trace'];
@@ -167,6 +162,9 @@ function instrumentServer(
             baggage: Array.isArray(baggage) ? baggage[0] : baggage,
           },
           () => {
+            // Set propagationSpanId after continueTrace because it calls withScope +
+            // setPropagationContext internally, which would overwrite any previously set value.
+            getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
             return target.apply(thisArg, args);
           },
         );
