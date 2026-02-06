@@ -15,6 +15,7 @@ import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../co
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
+import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
 
 /**
  * Handles the on span start event for Next.js spans.
@@ -44,6 +45,9 @@ export function handleOnSpanStart(span: Span): void {
       rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
       // Preserving the original attribute despite internally not depending on it
       rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
+
+      // Check if this is a Vercel cron request and start a check-in
+      maybeStartCronCheckIn(rootSpan, route);
     }
   }
 
