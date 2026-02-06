@@ -1,3 +1,4 @@
+import { wrapServerComponent } from '@sentry/react-router';
 import type { Route } from './+types/server-component-async';
 
 async function fetchData(): Promise<{ title: string; content: string }> {
@@ -8,7 +9,7 @@ async function fetchData(): Promise<{ title: string; content: string }> {
   };
 }
 
-export default async function AsyncServerComponent(_props: Route.ComponentProps) {
+async function AsyncServerComponent(_props: Route.ComponentProps) {
   const data = await fetchData();
 
   return (
@@ -18,6 +19,11 @@ export default async function AsyncServerComponent(_props: Route.ComponentProps)
     </main>
   );
 }
+
+export default wrapServerComponent(AsyncServerComponent, {
+  componentRoute: '/rsc/server-component-async',
+  componentType: 'Page',
+});
 
 export async function loader() {
   const data = await fetchData();

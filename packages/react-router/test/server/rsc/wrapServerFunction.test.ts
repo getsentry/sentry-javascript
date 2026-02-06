@@ -1,6 +1,6 @@
 import * as core from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { wrapServerFunction, wrapServerFunctions } from '../../../src/server/rsc/wrapServerFunction';
+import { wrapServerFunction } from '../../../src/server/rsc/wrapServerFunction';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -47,6 +47,26 @@ describe('wrapServerFunction', () => {
       expect.any(Function),
     );
     expect(core.flushIfServerless).toHaveBeenCalled();
+  });
+
+  it('should set forceTransaction to false when there is an active span', async () => {
+    const mockResult = { success: true };
+    const mockServerFn = vi.fn().mockResolvedValue(mockResult);
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
+    (core.getActiveSpan as any).mockReturnValue({ spanId: 'existing-span' });
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+
+    const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
+    await wrappedFn();
+
+    expect(core.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forceTransaction: false,
+      }),
+      expect.any(Function),
+    );
   });
 
   it('should use custom span name when provided', async () => {
@@ -154,11 +174,18 @@ describe('wrapServerFunction', () => {
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
-  it('should preserve function name', () => {
-    const mockServerFn = vi.fn().mockResolvedValue('result');
-    const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
+  it('should preserve function properties via Proxy', () => {
+    const namedServerFn = Object.assign(
+      async function myServerAction(): Promise<string> {
+        return 'result';
+      },
+      { customProp: 'value' },
+    );
+    const wrappedFn = wrapServerFunction('myServerAction', namedServerFn);
 
-    expect(wrappedFn.name).toBe('sentryWrapped_testFunction');
+    // Proxy should preserve original function name and properties
+    expect(wrappedFn.name).toBe('myServerAction');
+    expect((wrappedFn as any).customProp).toBe('value');
   });
 
   it('should propagate errors after capturing', async () => {
@@ -173,44 +200,22 @@ describe('wrapServerFunction', () => {
 
     await expect(wrappedFn()).rejects.toBe(mockError);
   });
-});
 
-describe('wrapServerFunctions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  it('should not double-capture already-captured errors', async () => {
+    const mockError = new Error('Already captured error');
+    // Mark the error as already captured by Sentry
+    Object.defineProperty(mockError, '__sentry_captured__', { value: true, enumerable: false });
 
-  it('should wrap all functions in an object', async () => {
-    const mockFn1 = vi.fn().mockResolvedValue('result1');
-    const mockFn2 = vi.fn().mockResolvedValue('result2');
+    const mockServerFn = vi.fn().mockRejectedValue(mockError);
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
-    const wrapped = wrapServerFunctions('myModule', {
-      fn1: mockFn1,
-      fn2: mockFn2,
-    });
+    const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
-    await wrapped.fn1();
-    await wrapped.fn2();
-
-    expect(mockFn1).toHaveBeenCalled();
-    expect(mockFn2).toHaveBeenCalled();
-    expect(mockSetTransactionName).toHaveBeenCalledWith('serverFunction/myModule.fn1');
-    expect(mockSetTransactionName).toHaveBeenCalledWith('serverFunction/myModule.fn2');
-  });
-
-  it('should skip non-function values', () => {
-    const mockFn = vi.fn().mockResolvedValue('result');
-
-    const wrapped = wrapServerFunctions('myModule', {
-      fn: mockFn,
-      notAFunction: 'string value' as any,
-    });
-
-    expect(typeof wrapped.fn).toBe('function');
-    expect(wrapped.notAFunction).toBe('string value');
+    await expect(wrappedFn()).rejects.toBe(mockError);
+    // captureException should NOT be called since the error is already captured
+    expect(core.captureException).not.toHaveBeenCalled();
   });
 });

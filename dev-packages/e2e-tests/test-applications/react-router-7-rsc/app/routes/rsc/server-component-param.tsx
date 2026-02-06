@@ -1,6 +1,7 @@
+import { wrapServerComponent } from '@sentry/react-router';
 import type { Route } from './+types/server-component-param';
 
-export default async function ParamServerComponent({ params }: Route.ComponentProps) {
+async function ParamServerComponent({ params }: Route.ComponentProps) {
   await new Promise(resolve => setTimeout(resolve, 10));
 
   return (
@@ -10,3 +11,8 @@ export default async function ParamServerComponent({ params }: Route.ComponentPr
     </main>
   );
 }
+
+export default wrapServerComponent(ParamServerComponent, {
+  componentRoute: '/rsc/server-component/:param',
+  componentType: 'Page',
+});

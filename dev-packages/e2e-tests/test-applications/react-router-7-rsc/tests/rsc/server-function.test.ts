@@ -4,15 +4,23 @@ import { APP_NAME } from '../constants';
 
 test.describe('RSC - Server Function Wrapper', () => {
   test('creates transaction for wrapped server function via action', async ({ page }) => {
+    await page.goto(`/rsc/server-function`);
+
+    // Listen after page load to skip the initial GET transaction.
+    // Match either a child span or a forceTransaction with the server function attribute.
     const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
       const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
-      const matchesRoute =
-        transactionEvent.transaction?.includes('/rsc/server-function') ||
-        transactionEvent.request?.url?.includes('/rsc/server-function');
-      return Boolean(isServerTransaction && matchesRoute && !transactionEvent.transaction?.includes('-error'));
+      // Match a transaction that either:
+      // (a) has a child span with the server function attribute, or
+      // (b) is the server function transaction itself (forceTransaction case)
+      const hasServerFunctionSpan = transactionEvent.spans?.some(
+        span => span.data?.['rsc.server_function.name'] === 'submitForm',
+      );
+      const isServerFunctionTransaction =
+        transactionEvent.contexts?.trace?.data?.['rsc.server_function.name'] === 'submitForm';
+      return Boolean(isServerTransaction && (hasServerFunctionSpan || isServerFunctionTransaction));
     });
 
-    await page.goto(`/rsc/server-function`);
     await page.locator('#submit').click();
 
     // Verify the form submission was successful
@@ -22,7 +30,6 @@ test.describe('RSC - Server Function Wrapper', () => {
 
     expect(transaction).toMatchObject({
       type: 'transaction',
-      transaction: expect.stringMatching(/\/rsc\/server-function|GET \*/),
       platform: 'node',
       environment: 'qa',
       contexts: {
@@ -31,7 +38,6 @@ test.describe('RSC - Server Function Wrapper', () => {
           trace_id: expect.any(String),
         },
       },
-      spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       sdk: {
@@ -44,12 +50,14 @@ test.describe('RSC - Server Function Wrapper', () => {
       },
     });
 
-    // Check for server function span in the transaction
+    // The server function span may be a child span or the transaction root itself.
     const serverFunctionSpan = transaction.spans?.find(
       span => span.data?.['rsc.server_function.name'] === 'submitForm',
     );
+    const traceData = transaction.contexts?.trace?.data;
 
     if (serverFunctionSpan) {
+      // Child span case: server function ran inside an active HTTP transaction
       expect(serverFunctionSpan).toMatchObject({
         data: expect.objectContaining({
           'sentry.op': 'function.rsc.server_function',
@@ -57,6 +65,14 @@ test.describe('RSC - Server Function Wrapper', () => {
           'rsc.server_function.name': 'submitForm',
         }),
       });
+    } else {
+      // forceTransaction case: server function is the transaction
+      expect(traceData).toMatchObject(
+        expect.objectContaining({
+          'sentry.op': 'function.rsc.server_function',
+          'rsc.server_function.name': 'submitForm',
+        }),
+      );
     }
   });
 
@@ -106,21 +122,88 @@ test.describe('RSC - Server Function Wrapper', () => {
     });
   });
 
-  test('server function page loads correctly', async ({ page }) => {
-    await page.goto(`/rsc/server-function`);
+  test('creates transaction for server function using export const arrow pattern', async ({ page }) => {
+    // Load the page first to avoid catching the GET page load transaction.
+    await page.goto('/rsc/server-function-arrow');
 
-    // Verify the page structure
-    await expect(page.locator('h1')).toHaveText('Server Function Test');
-    await expect(page.locator('#name')).toHaveValue('Sentry User');
-    await expect(page.locator('#submit')).toBeVisible();
-  });
+    // Set up listener after page load — filter for the server function span specifically.
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const hasServerFunctionSpan = transactionEvent.spans?.some(
+        span => span.data?.['rsc.server_function.name'] === 'submitFormArrow',
+      );
+      const isServerFunctionTransaction =
+        transactionEvent.contexts?.trace?.data?.['rsc.server_function.name'] === 'submitFormArrow';
+      return Boolean(isServerTransaction && (hasServerFunctionSpan || isServerFunctionTransaction));
+    });
 
-  test('server function form submission with custom input', async ({ page }) => {
-    await page.goto(`/rsc/server-function`);
-    await page.fill('#name', 'Test User');
     await page.locator('#submit').click();
 
-    // Verify the form submission result
-    await expect(page.getByTestId('message')).toContainText('Hello, Test User!');
+    await expect(page.getByTestId('message')).toContainText('Arrow: Hello, Arrow User!');
+
+    const transaction = await txPromise;
+
+    const serverFunctionSpan = transaction.spans?.find(
+      span => span.data?.['rsc.server_function.name'] === 'submitFormArrow',
+    );
+
+    if (serverFunctionSpan) {
+      expect(serverFunctionSpan).toMatchObject({
+        data: expect.objectContaining({
+          'sentry.op': 'function.rsc.server_function',
+          'rsc.server_function.name': 'submitFormArrow',
+        }),
+      });
+    } else {
+      // forceTransaction case: server function is the transaction
+      expect(transaction.contexts?.trace?.data).toMatchObject(
+        expect.objectContaining({
+          'sentry.op': 'function.rsc.server_function',
+          'rsc.server_function.name': 'submitFormArrow',
+        }),
+      );
+    }
+  });
+
+  test('creates transaction for server function with default export only', async ({ page }) => {
+    // Load the page first to avoid catching the GET page load transaction.
+    await page.goto('/rsc/server-function-default');
+
+    // Set up listener after page load — filter for the server function span specifically.
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const hasServerFunctionSpan = transactionEvent.spans?.some(
+        span => span.data?.['rsc.server_function.name'] === 'default',
+      );
+      const isServerFunctionTransaction =
+        transactionEvent.contexts?.trace?.data?.['rsc.server_function.name'] === 'default';
+      return Boolean(isServerTransaction && (hasServerFunctionSpan || isServerFunctionTransaction));
+    });
+
+    await page.locator('#submit').click();
+
+    await expect(page.getByTestId('message')).toContainText('Default: Hello, Default User!');
+
+    const transaction = await txPromise;
+
+    // The default export should be wrapped as "default", not as "defaultAction"
+    const serverFunctionSpan = transaction.spans?.find(span => span.data?.['rsc.server_function.name'] === 'default');
+
+    if (serverFunctionSpan) {
+      expect(serverFunctionSpan).toMatchObject({
+        data: expect.objectContaining({
+          'sentry.op': 'function.rsc.server_function',
+          'rsc.server_function.name': 'default',
+        }),
+      });
+    } else {
+      // forceTransaction case: server function is the transaction
+      expect(transaction.contexts?.trace?.data).toMatchObject(
+        expect.objectContaining({
+          'sentry.op': 'function.rsc.server_function',
+          'rsc.server_function.name': 'default',
+        }),
+      );
+    }
   });
 });
