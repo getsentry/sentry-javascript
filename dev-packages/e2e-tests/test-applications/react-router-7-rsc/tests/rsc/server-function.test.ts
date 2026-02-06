@@ -95,7 +95,7 @@ test.describe('RSC - Server Function Wrapper', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'instrument',
+              type: 'react_router.rsc',
               data: {
                 function: 'serverFunction',
                 server_function_name: 'submitFormWithError',
