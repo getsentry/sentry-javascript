@@ -1,6 +1,6 @@
-import type { Client, IntegrationFn } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';
@@ -8,12 +8,21 @@ import type { VercelAiOptions } from './types';
 export const instrumentVercelAi = generateInstrumentOnce(INTEGRATION_NAME, () => new SentryVercelAiInstrumentation({}));
 
 /**
- * Determines if the integration should be forced based on environment and package availability.
- * Returns true if the 'ai' package is available.
+ * Determines if the 'ai' package is installed and available.
+ *
+ * Uses require.resolve() to check for package availability without loading it.
+ * This approach avoids race conditions that can occur with filesystem-based
+ * detection during initialization in serverless environments (Lambda/Vercel).
+ *
+ * @returns true if the 'ai' package can be resolved, false otherwise
  */
-function shouldForceIntegration(client: Client): boolean {
-  const modules = client.getIntegrationByName<ReturnType<typeof modulesIntegration>>('Modules');
-  return !!modules?.getModules?.()?.ai;
+function shouldForceIntegration(): boolean {
+  try {
+    require.resolve('ai');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
@@ -26,13 +35,14 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       instrumentation = instrumentVercelAi();
     },
     afterAllSetup(client) {
-      // Auto-detect if we should force the integration when running with 'ai' package available
-      // Note that this can only be detected if the 'Modules' integration is available, and running in CJS mode
-      const shouldForce = options.force ?? shouldForceIntegration(client);
+      // Auto-detect if we should force the integration when the 'ai' package is available
+      // Uses require.resolve() for reliable detection in all environments
+      const shouldForce = options.force ?? shouldForceIntegration();
 
       if (shouldForce) {
         addVercelAiProcessors(client);
       } else {
+        // Lazy registration - only registers when 'ai' package is actually imported
         instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
     },
