@@ -1,7 +1,7 @@
 .PHONY: run
 
 run:
-	@if ! command -v fzf &> /dev/null; then \
+	@if ! command -v fzf > /dev/null 2>&1; then \
 		echo "Error: fzf is required. Install with: brew install fzf"; \
 		exit 1; \
 	fi

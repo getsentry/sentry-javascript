@@ -2,7 +2,7 @@
 
 # Fuzzy-pick which test suite to run, then fuzzy-pick a test within it
 run:
-	@if ! command -v fzf &> /dev/null; then \
+	@if ! command -v fzf > /dev/null 2>&1; then \
 		echo "Error: fzf is required. Install with: brew install fzf"; \
 		exit 1; \
 	fi
