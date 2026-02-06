@@ -13,4 +13,7 @@ test('should capture errors', async ({ request }) => {
   expect(errorEvent).toBeDefined();
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from light mode');
   expect(errorEvent.tags?.test).toBe('error');
+
+  // Ensure IP address is not leaked when sendDefaultPii is not set
+  expect(errorEvent.user?.ip_address).toBeUndefined();
 });

@@ -135,7 +135,10 @@ function instrumentServer(
       }
 
       // Update the isolation scope, isolate this request
-      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
+      isolationScope.setSDKProcessingMetadata({
+        normalizedRequest,
+        ...(client.getOptions().sendDefaultPii && { ipAddress }),
+      });
 
       // attempt to update the scope's `transactionName` based on the request URL
       // Ideally, framework instrumentations coming after the HttpInstrumentation
