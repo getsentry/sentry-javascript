@@ -69,6 +69,11 @@ app.get('/test-isolation-error/:userId', (req, res) => {
   res.json({ userId, captured: true });
 });
 
+app.get('/test-trace-continuation', (_req, res) => {
+  Sentry.captureException(new Error('Trace continuation error'));
+  res.json({ ok: true });
+});
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });

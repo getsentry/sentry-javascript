@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
@@ -64,4 +65,40 @@ test('should isolate errors across concurrent requests', async ({ request }) => 
 
   expect(error3?.user?.id).toBe('user-3');
   expect(error3?.tags?.user_id).toBe('user-3');
+
+  // Each error should have a trace context with a trace_id
+  const traceId1 = error1?.contexts?.trace?.trace_id;
+  const traceId2 = error2?.contexts?.trace?.trace_id;
+  const traceId3 = error3?.contexts?.trace?.trace_id;
+
+  expect(traceId1).toBeDefined();
+  expect(traceId2).toBeDefined();
+  expect(traceId3).toBeDefined();
+
+  // Trace IDs from different requests should be different (isolation)
+  expect(traceId1).not.toBe(traceId2);
+  expect(traceId1).not.toBe(traceId3);
+  expect(traceId2).not.toBe(traceId3);
+});
+
+test('should continue trace from incoming sentry-trace and baggage headers', async ({ request }) => {
+  const traceId = crypto.randomUUID().replace(/-/g, '');
+  const parentSpanId = traceId.substring(0, 16);
+
+  const errorPromise = waitForError('node-core-light-express', event => {
+    return event?.exception?.values?.[0]?.value === 'Trace continuation error';
+  });
+
+  await request.get('/test-trace-continuation', {
+    headers: {
+      'sentry-trace': `${traceId}-${parentSpanId}-1`,
+      baggage: `sentry-trace_id=${traceId},sentry-environment=test,sentry-public_key=public`,
+    },
+  });
+
+  const error = await errorPromise;
+
+  // The error should inherit the trace ID from the incoming sentry-trace header
+  expect(error?.contexts?.trace?.trace_id).toBe(traceId);
+  expect(error?.contexts?.trace?.parent_span_id).toBe(parentSpanId);
 });
