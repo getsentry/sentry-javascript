@@ -72,6 +72,7 @@ export interface SerializedMetric {
 
   /**
    * Arbitrary structured data that stores information about the metric.
+   * This can contain routing information via the `MULTIPLEXED_METRIC_ROUTING_KEY` key.
    */
   attributes?: Attributes;
 }
@@ -79,3 +80,15 @@ export interface SerializedMetric {
 export type SerializedMetricContainer = {
   items: Array<SerializedMetric>;
 };
+
+export interface MetricRoutingInfo {
+  /**
+   * The DSN of the Sentry project to send the metric to.
+   */
+  dsn: string;
+
+  /**
+   * The release of the Sentry project to send the metric to.
+   */
+  release?: string;
+}
