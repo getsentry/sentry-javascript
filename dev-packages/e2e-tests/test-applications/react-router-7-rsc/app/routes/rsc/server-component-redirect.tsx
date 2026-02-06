@@ -1,17 +1,11 @@
 import { redirect } from 'react-router';
-import type { Route } from './+types/server-component-redirect';
+import { wrapServerComponent } from '@sentry/react-router';
 
-// This route demonstrates that redirects are NOT captured as errors
-export async function loader() {
-  // Redirect to home page
+async function RedirectServerComponent() {
   throw redirect('/');
 }
 
-export default function RedirectServerComponentPage() {
-  return (
-    <main>
-      <h1>Redirect Server Component</h1>
-      <p>You should be redirected and not see this.</p>
-    </main>
-  );
-}
+export default wrapServerComponent(RedirectServerComponent, {
+  componentRoute: '/rsc/server-component-redirect',
+  componentType: 'Page',
+});

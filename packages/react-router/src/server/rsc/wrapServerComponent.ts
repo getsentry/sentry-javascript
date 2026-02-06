@@ -1,13 +1,14 @@
 import {
   captureException,
+  debug,
   flushIfServerless,
   getActiveSpan,
   getIsolationScope,
-  handleCallbackErrors,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
 } from '@sentry/core';
-import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse, safeFlushServerless } from './responseUtils';
+import { DEBUG_BUILD } from '../../common/debug-build';
+import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse } from './responseUtils';
 import type { ServerComponentContext } from './types';
 
 /**
@@ -16,19 +17,16 @@ import type { ServerComponentContext } from './types';
  * @experimental This API is experimental and may change in minor releases.
  * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
  *
- * @param serverComponent - The server component function to wrap
- * @param context - Context about the component for error reporting
- *
  * @example
  * ```ts
  * import { wrapServerComponent } from "@sentry/react-router";
  *
- * async function _UserPage({ params }: Route.ComponentProps) {
+ * async function UserPage({ params }: Route.ComponentProps) {
  *   const user = await getUser(params.id);
  *   return <UserProfile user={user} />;
  * }
  *
- * export const ServerComponent = wrapServerComponent(_UserPage, {
+ * export default wrapServerComponent(UserPage, {
  *   componentRoute: "/users/:id",
  *   componentType: "Page",
  * });
@@ -41,6 +39,8 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
 ): T {
   const { componentRoute, componentType } = context;
 
+  DEBUG_BUILD && debug.log(`[RSC] Wrapping server component: ${componentType} (${componentRoute})`);
+
   return new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
       const isolationScope = getIsolationScope();
@@ -48,65 +48,70 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
       const transactionName = `${componentType} Server Component (${componentRoute})`;
       isolationScope.setTransactionName(transactionName);
 
-      return handleCallbackErrors(
-        () => originalFunction.apply(thisArg, args),
-        error => {
-          const span = getActiveSpan();
-          let shouldCapture = true;
+      let result: ReturnType<T>;
+      try {
+        result = originalFunction.apply(thisArg, args);
+      } catch (error) {
+        handleError(error, componentRoute, componentType);
+        flushIfServerless().catch(() => undefined);
+        throw error;
+      }
 
-          if (isRedirectResponse(error)) {
-            shouldCapture = false;
-            if (span) {
-              span.setStatus({ code: SPAN_STATUS_OK });
-            }
-          } else if (isNotFoundResponse(error)) {
-            shouldCapture = false;
-            if (span) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-            }
-          } else {
-            if (span) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            }
-          }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      if (result && typeof (result as any).then === 'function') {
+        // Attach handlers as side-effects. These create new promises but we intentionally
+        // return the original so React sees the unmodified rejection.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        (result as any).then(
+          () => {
+            flushIfServerless().catch(() => undefined);
+          },
+          (error: unknown) => {
+            handleError(error, componentRoute, componentType);
+            flushIfServerless().catch(() => undefined);
+          },
+        );
+      } else {
+        flushIfServerless().catch(() => undefined);
+      }
 
-          if (shouldCapture && !isAlreadyCaptured(error)) {
-            captureException(error, {
-              mechanism: {
-                type: 'instrument',
-                handled: false,
-                data: {
-                  function: 'ServerComponent',
-                  component_route: componentRoute,
-                  component_type: componentType,
-                },
-              },
-            });
-          }
-        },
-        () => {
-          safeFlushServerless(flushIfServerless);
-        },
-      );
+      return result;
     },
   });
 }
 
-const VALID_COMPONENT_TYPES = new Set(['Page', 'Layout', 'Loading', 'Error', 'Template', 'Not-found', 'Unknown']);
+function handleError(error: unknown, componentRoute: string, componentType: string): void {
+  const span = getActiveSpan();
 
-/**
- * Type guard to check if a value is a valid ServerComponentContext.
- */
-export function isServerComponentContext(value: unknown): value is ServerComponentContext {
-  if (!value || typeof value !== 'object') {
-    return false;
+  if (isRedirectResponse(error)) {
+    if (span) {
+      span.setStatus({ code: SPAN_STATUS_OK });
+    }
+    return;
   }
 
-  const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.componentRoute === 'string' &&
-    obj.componentRoute.length > 0 &&
-    typeof obj.componentType === 'string' &&
-    VALID_COMPONENT_TYPES.has(obj.componentType)
-  );
+  if (isNotFoundResponse(error)) {
+    if (span) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+    }
+    return;
+  }
+
+  if (span) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  }
+
+  if (!isAlreadyCaptured(error)) {
+    captureException(error, {
+      mechanism: {
+        type: 'instrument',
+        handled: false,
+        data: {
+          function: 'ServerComponent',
+          component_route: componentRoute,
+          component_type: componentType,
+        },
+      },
+    });
+  }
 }

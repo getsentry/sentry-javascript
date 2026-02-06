@@ -1,118 +1,241 @@
 import { readFile } from 'node:fs/promises';
+import * as recast from 'recast';
 import type { Plugin } from 'vite';
+import { parser } from './recastTypescriptParser';
 import type { AutoInstrumentRSCOptions } from './types';
 
-const JS_EXTENSIONS_RE = /\.(ts|tsx|js|jsx|mjs|mts)$/;
+import t = recast.types.namedTypes;
 
-/** Query parameter suffix used to load the original (unwrapped) module. */
+const JS_EXTENSIONS_RE = /\.(ts|tsx|js|jsx|mjs|mts)$/;
 const WRAPPED_MODULE_SUFFIX = '?sentry-rsc-wrap';
 
+// Prevents the Sentry bundler plugin from transforming this import path
+const SENTRY_PACKAGE = '@sentry/react-router';
+
+/** Exported for testing. */
+export interface ModuleAnalysis {
+  hasUseClientDirective: boolean;
+  hasUseServerDirective: boolean;
+  hasDefaultExport: boolean;
+  hasManualServerFunctionWrapping: boolean;
+  namedExports: string[];
+}
+
+// Babel-specific extensions not present in recast's type definitions
+interface BabelExpressionStatement extends t.ExpressionStatement {
+  directive?: string;
+}
+interface BabelExportNamedDeclaration extends t.ExportNamedDeclaration {
+  exportKind?: string;
+}
+interface BabelExportSpecifier extends t.ExportSpecifier {
+  exportKind?: string;
+}
+
+/** Extracts directive values ("use client"/"use server") from the program. */
+function extractDirectives(program: t.Program): { useClient: boolean; useServer: boolean } {
+  let useClient = false;
+  let useServer = false;
+
+  // Babel puts directives in program.directives (e.g. "use strict", "use server")
+  if (program.directives) {
+    for (const d of program.directives) {
+      const value = d.value?.value;
+      if (value === 'use client') {
+        useClient = true;
+      }
+      if (value === 'use server') {
+        useServer = true;
+      }
+    }
+  }
+
+  // Some Babel versions may place directive-like expression statements in the body
+  for (const node of program.body) {
+    if (node.type !== 'ExpressionStatement') {
+      break;
+    }
+    const expr = node as BabelExpressionStatement;
+    let value = expr.directive;
+    if (!value && expr.expression.type === 'StringLiteral') {
+      value = expr.expression.value;
+    }
+    if (typeof value !== 'string') {
+      break;
+    }
+    if (value === 'use client') {
+      useClient = true;
+    }
+    if (value === 'use server') {
+      useServer = true;
+    }
+  }
+
+  return { useClient, useServer };
+}
+
 /**
- * Extracts a route path from a file path relative to the routes directory.
+ * Collects named export identifiers from an ExportNamedDeclaration node.
+ * Returns `true` when the node contains `export { x as default }`, which
+ * counts as a default export even though it is syntactically an
+ * ExportNamedDeclaration.
+ */
+function collectNamedExports(node: BabelExportNamedDeclaration, into: Set<string>): boolean {
+  if (node.exportKind === 'type') {
+    return false;
+  }
+
+  let hasDefault = false;
+
+  const decl = node.declaration;
+  if (decl) {
+    if (decl.type === 'TSTypeAliasDeclaration' || decl.type === 'TSInterfaceDeclaration') {
+      return false;
+    }
+
+    if (decl.type === 'VariableDeclaration') {
+      decl.declarations
+        .filter(declarator => declarator.type === 'VariableDeclarator' && declarator.id.type === 'Identifier')
+        .forEach(declarator => {
+          into.add((declarator.id as t.Identifier).name);
+        });
+    } else {
+      const name = getDeclarationName(decl);
+      if (name) {
+        into.add(name);
+      }
+    }
+  }
+
+  if (node.specifiers) {
+    node.specifiers
+      .filter(
+        spec => spec.type === 'ExportSpecifier' && (spec as BabelExportSpecifier).exportKind !== 'type',
+      )
+      .forEach(spec => {
+        const name = getExportedName(spec.exported as t.Identifier | t.StringLiteral);
+        if (name === 'default') {
+          hasDefault = true;
+        } else if (name) {
+          into.add(name);
+        }
+      });
+  }
+
+  return hasDefault;
+}
+
+function getExportedName(node: t.Identifier | t.StringLiteral): string | undefined {
+  if (node.type === 'Identifier') {
+    return node.name;
+  }
+  if (node.type === 'StringLiteral') {
+    return node.value;
+  }
+  return undefined;
+}
+
+function getDeclarationName(decl: t.Declaration): string | undefined {
+  if (decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') {
+    const id = decl.id as t.Identifier | null | undefined;
+    return id?.type === 'Identifier' ? id.name : undefined;
+  }
+  return undefined;
+}
+
+function importsWrapServerFunction(node: t.ImportDeclaration): boolean {
+  if (node.source.value !== SENTRY_PACKAGE || !node.specifiers) {
+    return false;
+  }
+  return node.specifiers.some(
+    spec =>
+      spec.type === 'ImportSpecifier' &&
+      spec.imported.type === 'Identifier' &&
+      spec.imported.name === 'wrapServerFunction',
+  );
+}
+
+/**
+ * AST-based analysis of a module's directives, exports, and Sentry wrapping.
+ * Uses recast + @babel/parser so that patterns inside comments or strings
+ * are never matched.
  *
- * Only supports filesystem-based nested directory routing
- * (e.g., `app/routes/rsc/page.tsx` -> `/rsc/page`).
- *
- * Limitations:
- * - Does not support React Router's dot-delimited flat file convention
- *   (e.g., `app/routes/rsc.page.tsx`).
- * - Does not read React Router's route config, so manually configured routes
- *   that differ from the filesystem path will produce incorrect `componentRoute` values.
+ * Returns `null` when the file cannot be parsed (the caller should skip it).
  *
  * Exported for testing.
  */
-export function filePathToRoute(filePath: string, routesDirectory: string): string {
-  const normalizedPath = filePath.replace(/\\/g, '/');
-  const normalizedRoutesDir = routesDirectory.replace(/\\/g, '/');
-
-  const withSlashes = `/${normalizedRoutesDir}/`;
-  let routesDirIndex = normalizedPath.lastIndexOf(withSlashes);
-
-  if (routesDirIndex !== -1) {
-    routesDirIndex += 1;
-  } else if (normalizedPath.startsWith(`${normalizedRoutesDir}/`)) {
-    routesDirIndex = 0;
-  } else {
-    return '/';
+export function analyzeModule(code: string): ModuleAnalysis | null {
+  let program: t.Program | undefined;
+  try {
+    const ast = recast.parse(code, { parser });
+    program = (ast as { program?: t.Program }).program;
+  } catch {
+    return null;
   }
 
-  let relativePath = normalizedPath.slice(routesDirIndex + normalizedRoutesDir.length);
-  if (relativePath.startsWith('/')) {
-    relativePath = relativePath.slice(1);
+  if (!program) {
+    return null;
   }
 
-  relativePath = relativePath.replace(/\.(tsx?|jsx?|mjs|mts)$/, '');
+  const directives = extractDirectives(program);
 
-  if (relativePath.endsWith('/index')) {
-    relativePath = relativePath.slice(0, -6);
-  } else if (relativePath === 'index') {
-    relativePath = '';
-  }
+  let hasDefaultExport = false;
+  let hasManualServerFunctionWrapping = false;
+  const namedExportSet = new Set<string>();
 
-  // Convert React Router's `$param` convention to `:param` for route matching
-  relativePath = relativePath.replace(/\$([^/]+)/g, ':$1');
+  recast.visit(program, {
+    visitExportDefaultDeclaration() {
+      hasDefaultExport = true;
+      return false;
+    },
+    visitExportNamedDeclaration(path) {
+      if (collectNamedExports(path.node as BabelExportNamedDeclaration, namedExportSet)) {
+        hasDefaultExport = true;
+      }
+      return false;
+    },
+    visitImportDeclaration(path) {
+      if (importsWrapServerFunction(path.node)) {
+        hasManualServerFunctionWrapping = true;
+      }
+      return false;
+    },
+  });
 
-  return `/${relativePath}`;
+  return {
+    hasUseClientDirective: directives.useClient,
+    hasUseServerDirective: directives.useServer,
+    hasDefaultExport,
+    hasManualServerFunctionWrapping,
+    namedExports: [...namedExportSet],
+  };
 }
 
-/** Checks for a `'use client'` directive at the start of the module (after comments/whitespace). */
-function hasUseClientDirective(code: string): boolean {
-  const stripped = code.replace(/^(?:\s|\/\/[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*/, '');
-  return /^(['"])use client\1/.test(stripped);
-}
-
-/** Checks whether the file already contains a manual `wrapServerComponent` call. */
-function hasManualWrapping(code: string): boolean {
-  return code.includes('wrapServerComponent(');
-}
-
-/**
- * Naive check for `export default` — may match inside comments or strings.
- * Acceptable for this experimental scope; a false positive causes the wrapper
- * to import a non-existent default export, which produces a build error.
- */
-function hasDefaultExport(code: string): boolean {
-  return /export\s+default\s+/.test(code);
-}
-
-/**
- * Generates wrapper module code that re-exports the original component wrapped
- * with `wrapServerComponent` via the `?sentry-rsc-wrap` virtual module suffix.
- *
- * Exported for testing.
- */
-export function getWrapperCode(originalId: string, componentRoute: string): string {
+/** Exported for testing. */
+export function getServerFunctionWrapperCode(
+  originalId: string,
+  exportNames: string[],
+  includeDefault: boolean = false,
+): string {
   const wrappedId = JSON.stringify(`${originalId}${WRAPPED_MODULE_SUFFIX}`);
-  const wrapOptions = `{ componentRoute: ${JSON.stringify(componentRoute)}, componentType: 'Page' }`;
-  // The interpolation prevents ESLint's `quotes` rule from flagging the template literal.
-  return [
-    `import { wrapServerComponent } from '${'@sentry/react-router'}';`,
-    `import _SentryComponent from ${wrappedId};`,
-    `export default wrapServerComponent(_SentryComponent, ${wrapOptions});`,
-    `export * from ${wrappedId};`,
-  ].join('');
+  const lines = [
+    "'use server';",
+    `import { wrapServerFunction } from '${SENTRY_PACKAGE}';`,
+    `import * as _sentry_original from ${wrappedId};`,
+    ...exportNames.map(
+      name =>
+        `export const ${name} = wrapServerFunction(${JSON.stringify(name)}, _sentry_original[${JSON.stringify(name)}]);`,
+    ),
+  ];
+  if (includeDefault) {
+    lines.push('export default wrapServerFunction("default", _sentry_original.default);');
+  }
+  return lines.join('\n');
 }
 
-/**
- * A Vite plugin that automatically instruments React Router RSC server components.
- *
- * Uses a virtual module pattern (similar to `@sentry/sveltekit`'s auto-instrumentation):
- * instead of rewriting exports with regex, the plugin intercepts route files in the `transform`
- * hook and replaces them with a thin wrapper module that imports the original file via a
- * `?sentry-rsc-wrap` query suffix, wraps the default export, and re-exports everything else.
- *
- * TODO: The `?sentry-rsc-wrap` suffix may appear in stack traces. Consider adding a
- * `rewriteFrames` integration rule to strip it for cleaner error reporting.
- *
- * @experimental This plugin is experimental and may change in minor releases.
- * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
- *
- * RSC mode is auto-detected via `configResolved` by checking for the `react-router/rsc`
- * Vite plugin. No explicit flag is needed — just use `sentryReactRouter({}, env)`.
- */
+/** @experimental May change in minor releases. */
 export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = {}): Plugin {
-  const { enabled = true, debug = false }: AutoInstrumentRSCOptions = options;
-  const normalizedRoutesDir = (options.routesDirectory ?? 'app/routes').replace(/\\/g, '/');
+  const { enabled = true, debug = false } = options;
 
   let rscDetected = false;
 
@@ -122,16 +245,12 @@ export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = 
 
     configResolved(config) {
       rscDetected = config.plugins.some(p => p.name.startsWith('react-router/rsc'));
-      debug &&
-        // eslint-disable-next-line no-console
-        console.log(`[Sentry RSC] RSC mode ${rscDetected ? 'detected' : 'not detected'}`);
+      // eslint-disable-next-line no-console
+      debug && console.log(`[Sentry RSC] RSC mode ${rscDetected ? 'detected' : 'not detected'}`);
     },
 
     resolveId(source) {
-      if (source.includes(WRAPPED_MODULE_SUFFIX)) {
-        return source;
-      }
-      return null;
+      return source.includes(WRAPPED_MODULE_SUFFIX) ? source : null;
     },
 
     async load(id: string) {
@@ -142,9 +261,8 @@ export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = 
       try {
         return await readFile(originalPath, 'utf-8');
       } catch {
-        debug &&
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry RSC] Failed to read original file: ${originalPath}`);
+        // eslint-disable-next-line no-console
+        debug && console.log(`[Sentry RSC] Failed to read original file: ${originalPath}`);
         return null;
       }
     },
@@ -153,45 +271,39 @@ export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = 
       if (id.includes(WRAPPED_MODULE_SUFFIX)) {
         return null;
       }
-
       if (!enabled || !rscDetected || !JS_EXTENSIONS_RE.test(id)) {
         return null;
       }
 
-      const normalizedId = id.replace(/\\/g, '/');
-
-      if (!normalizedId.includes(`/${normalizedRoutesDir}/`) && !normalizedId.startsWith(`${normalizedRoutesDir}/`)) {
-        return null;
-      }
-
-      if (hasUseClientDirective(code)) {
-        debug &&
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry RSC] Skipping client component: ${id}`);
-        return null;
-      }
-
-      if (hasManualWrapping(code)) {
-        debug &&
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry RSC] Skipping already wrapped: ${id}`);
-        return null;
-      }
-
-      if (!hasDefaultExport(code)) {
-        debug &&
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry RSC] Skipping no default export: ${id}`);
-        return null;
-      }
-
-      const componentRoute = filePathToRoute(normalizedId, normalizedRoutesDir);
-
-      debug &&
+      const analysis = analyzeModule(code);
+      if (!analysis) {
         // eslint-disable-next-line no-console
-        console.log(`[Sentry RSC] Auto-wrapping server component: ${id} -> ${componentRoute}`);
+        debug && console.log(`[Sentry RSC] Skipping unparseable: ${id}`);
+        return null;
+      }
 
-      return { code: getWrapperCode(id, componentRoute), map: null };
+      // Only handle "use server" files — server components must be wrapped manually
+      if (!analysis.hasUseServerDirective) {
+        return null;
+      }
+
+      if (analysis.hasManualServerFunctionWrapping) {
+        // eslint-disable-next-line no-console
+        debug && console.log(`[Sentry RSC] Skipping already wrapped: ${id}`);
+        return null;
+      }
+
+      const exportNames = analysis.namedExports;
+      const includeDefault = analysis.hasDefaultExport;
+      if (exportNames.length === 0 && !includeDefault) {
+        // eslint-disable-next-line no-console
+        debug && console.log(`[Sentry RSC] Skipping server function file with no exports: ${id}`);
+        return null;
+      }
+      const exportList = includeDefault ? [...exportNames, 'default'] : exportNames;
+      // eslint-disable-next-line no-console
+      debug && console.log(`[Sentry RSC] Auto-wrapping server functions: ${id} -> [${exportList.join(', ')}]`);
+      return { code: getServerFunctionWrapperCode(id, exportNames, includeDefault), map: null };
     },
   };
 }

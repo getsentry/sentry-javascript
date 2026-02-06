@@ -1,16 +1,10 @@
-import type { Route } from './+types/server-component-not-found';
+import { wrapServerComponent } from '@sentry/react-router';
 
-// This route demonstrates that 404 responses are NOT captured as errors
-export async function loader() {
-  // Throw a 404 response
+async function NotFoundServerComponent() {
   throw new Response('Not Found', { status: 404 });
 }
 
-export default function NotFoundServerComponentPage() {
-  return (
-    <main>
-      <h1>Not Found Server Component</h1>
-      <p>This triggers a 404 response.</p>
-    </main>
-  );
-}
+export default wrapServerComponent(NotFoundServerComponent, {
+  componentRoute: '/rsc/server-component-not-found',
+  componentType: 'Page',
+});

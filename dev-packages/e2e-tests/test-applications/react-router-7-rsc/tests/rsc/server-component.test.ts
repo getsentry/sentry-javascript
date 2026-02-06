@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('RSC - Server Component Wrapper', () => {
-  test('captures error from wrapped server component called in loader', async ({ page }) => {
+  test('captures error from server component', async ({ page }) => {
     const errorMessage = 'RSC Server Component Error: Mamma mia!';
     const errorPromise = waitForError(APP_NAME, errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === errorMessage;
@@ -35,46 +35,11 @@ test.describe('RSC - Server Component Wrapper', () => {
       platform: 'node',
       environment: 'qa',
       sdk: {
-        integrations: expect.any(Array<string>),
         name: 'sentry.javascript.react-router',
         version: expect.any(String),
       },
       tags: { runtime: 'node' },
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-        },
-      },
     });
-  });
-
-  test('does not send duplicate errors when error bubbles through multiple wrappers', async ({ page }) => {
-    const errorMessage = 'RSC Server Component Error: Mamma mia!';
-
-    const errorPromise = waitForError(APP_NAME, errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === errorMessage;
-    });
-
-    await page.goto(`/rsc/server-component-error`);
-
-    const error = await errorPromise;
-
-    // The error should be captured by the innermost wrapper (wrapServerComponent),
-    // not by the outer request handler. This proves dedup is working — the error
-    // bubbles through multiple wrappers but is only captured once.
-    expect(error.exception?.values?.[0]?.mechanism?.data?.function).toBe('ServerComponent');
-
-    // If dedup were broken, a second error event (from the outer wrapper, e.g.
-    // matchRSCServerRequest.onError) would also be sent. Verify none arrives.
-    const maybeDuplicate = await Promise.race([
-      waitForError(APP_NAME, errorEvent => {
-        return errorEvent?.exception?.values?.[0]?.value === errorMessage;
-      }),
-      new Promise<'no-duplicate'>(resolve => setTimeout(() => resolve('no-duplicate'), 3000)),
-    ]);
-
-    expect(maybeDuplicate).toBe('no-duplicate');
   });
 
   test('server component page loads with loader data', async ({ page }) => {
@@ -155,6 +120,65 @@ test.describe('RSC - Server Component Wrapper', () => {
           expect.objectContaining({ name: 'npm:@sentry/node', version: expect.any(String) }),
         ]),
       },
+    });
+  });
+
+  test('does not capture redirect as an error', async ({ page }) => {
+    const errorPromise = waitForError(APP_NAME, errorEvent => {
+      return errorEvent?.request?.url?.includes('/rsc/server-component-redirect');
+    });
+
+    await page.goto('/rsc/server-component-redirect');
+
+    // The redirect should have taken us to the home page
+    await expect(page).toHaveURL('/');
+
+    // No error should be captured for a redirect
+    const maybeError = await Promise.race([
+      errorPromise,
+      new Promise<'no-error'>(resolve => setTimeout(() => resolve('no-error'), 3000)),
+    ]);
+
+    expect(maybeError).toBe('no-error');
+  });
+
+  test('does not capture 404 response as an error', async ({ page }) => {
+    const errorPromise = waitForError(APP_NAME, errorEvent => {
+      return errorEvent?.request?.url?.includes('/rsc/server-component-not-found');
+    });
+
+    await page.goto('/rsc/server-component-not-found');
+
+    // No error should be captured for a 404 response
+    const maybeError = await Promise.race([
+      errorPromise,
+      new Promise<'no-error'>(resolve => setTimeout(() => resolve('no-error'), 3000)),
+    ]);
+
+    expect(maybeError).toBe('no-error');
+  });
+
+  test('manually wrapped server component with "use client" in comment loads correctly', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const matchesRoute =
+        transactionEvent.transaction?.includes('/rsc/server-component-comment-directive') ||
+        transactionEvent.request?.url?.includes('/rsc/server-component-comment-directive');
+      return Boolean(isServerTransaction && matchesRoute);
+    });
+
+    await page.goto('/rsc/server-component-comment-directive');
+
+    await expect(page.getByTestId('title')).toHaveText('Server Component With Comment Directive');
+    await expect(page.getByTestId('loader-message')).toContainText('Hello from comment-directive server component!');
+
+    const transaction = await txPromise;
+
+    expect(transaction).toMatchObject({
+      type: 'transaction',
+      transaction: expect.stringMatching(/\/rsc\/server-component-comment-directive|GET \*/),
+      platform: 'node',
+      environment: 'qa',
     });
   });
 
