@@ -91,7 +91,7 @@ export function assertEnvelopeHeader(actual: Envelope[0], expected: Partial<Enve
     event_id: expect.any(String),
     sent_at: expect.any(String),
     sdk: {
-      name: 'sentry.javascript.node',
+      name: 'sentry.javascript.node-core',
       version: SDK_VERSION,
     },
     ...expected,
