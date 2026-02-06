@@ -69,6 +69,15 @@ export class SpanBuffer {
     this._client.on('flush', () => {
       this.drain();
     });
+
+    this._client.on('close', () => {
+      // No need to drain the buffer here as `Client.close()` internally already calls `Client.flush()`
+      // which already invokes the `flush` hook and thus drains the buffer.
+      if (this._flushIntervalId) {
+        clearInterval(this._flushIntervalId);
+      }
+      this._traceMap.clear();
+    });
   }
 
   /**
@@ -134,7 +143,7 @@ export class SpanBuffer {
 
     const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
 
-    const cleanedSpans: SerializedStreamedSpan[] = Array.from(traceBucket).map(spanJSON => {
+    const cleanedSpans: SerializedStreamedSpan[] = spans.map(spanJSON => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _segmentSpan, ...cleanSpanJSON } = spanJSON;
       return cleanSpanJSON;
