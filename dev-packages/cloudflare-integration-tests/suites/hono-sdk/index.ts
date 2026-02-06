@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/cloudflare';
+import { sentry } from '@sentry/hono/cloudflare';
 import { Hono } from 'hono';
 
 interface Env {
@@ -6,6 +6,17 @@ interface Env {
 }
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use(
+  '*',
+  sentry(app, {
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    debug: true,
+    // fixme - check out what removing this integration changes
+    // integrations: integrations => integrations.filter(integration => integration.name !== 'Hono'),
+  }),
+);
 
 app.get('/', c => {
   return c.text('Hello from Hono on Cloudflare!');
@@ -24,10 +35,4 @@ app.get('/hello/:name', c => {
   return c.text(`Hello, ${name}!`);
 });
 
-export default Sentry.withSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    tracesSampleRate: 1.0,
-  }),
-  app,
-);
+export default app;
