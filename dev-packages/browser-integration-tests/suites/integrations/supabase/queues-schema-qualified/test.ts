@@ -5,7 +5,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 async function mockSupabaseRoute(page: Page) {
-  await page.route('**/rpc/send', route => {
+  await page.route('**/rpc/pgmq.send', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify([0]),
@@ -15,7 +15,7 @@ async function mockSupabaseRoute(page: Page) {
     });
   });
 
-  await page.route('**/rpc/pop', route => {
+  await page.route('**/rpc/pgmq.pop', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify([
@@ -36,7 +36,7 @@ if (bundle.startsWith('bundle')) {
   sentryTest.skip();
 }
 
-sentryTest('should capture Supabase queue spans from client.rpc', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture Supabase queue spans from schema-qualified RPC names', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
   }
