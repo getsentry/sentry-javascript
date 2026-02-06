@@ -1,15 +1,9 @@
 /**
  * Use this attribute to represent the source of a span name.
  * Must be one of: custom, url, route, view, component, task
- * TODO: Deprecate this attribute in favour of SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE
+ * TODO(v11): rename this to sentry.span.source'
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
-
-/**
- * Use this attribute to represent the source of a span name.
- * Must be one of: custom, url, route, view, component, task
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE = 'sentry.span.source';
 
 /**
  * Attributes that holds the sample rate that was locally applied to a span.

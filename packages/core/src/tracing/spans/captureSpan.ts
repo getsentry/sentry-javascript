@@ -9,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -68,13 +67,14 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
       : spanJSON;
 
   // Backfill sentry.span.source from sentry.source. Only `sentry.span.source` is respected by Sentry.
-  // TODO(v11): Ensure we always only send `sentry.span.source` and remove this backfill.
+  // TODO(v11): Remove this backfill once we renamed SEMANTIC_ATTRIBUTE_SENTRY_SOURCE to sentry.span.source
   const spanNameSource = processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   if (spanNameSource) {
     safeSetSpanJSONAttributes(processedSpan, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: spanNameSource,
+      // Purposefully not using a constant defined here like in other attributes:
+      // This will be the name for SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in v11
+      'sentry.span.source': spanNameSource,
     });
-    delete processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
   }
 
   return {

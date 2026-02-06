@@ -230,8 +230,7 @@ export function spanToStreamedSpanJSON(span: Span): StreamedSpanJSON {
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
       status: getSimpleStatusMessage(status),
-      // spread to avoid mutating the original object when later processing the span
-      attributes: { ...attributes },
+      attributes,
       links: getStreamedSpanLinks(links),
     };
   }

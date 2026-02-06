@@ -11,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -84,7 +83,7 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: {
+        'sentry.span.source': {
           value: 'custom',
           type: 'string',
         },
@@ -174,7 +173,7 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: {
+        'sentry.span.source': {
           value: 'custom',
           type: 'string',
         },
@@ -254,7 +253,7 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: {
+        'sentry.span.source': {
           value: 'custom',
           type: 'string',
         },
