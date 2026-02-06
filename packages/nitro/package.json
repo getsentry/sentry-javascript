@@ -1,6 +1,7 @@
 {
   "name": "@sentry/nitro",
-  "version": "10.32.1",
+  "private": true,
+  "version": "10.38.0",
   "description": "Official Sentry SDK for Nitro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro",
@@ -38,8 +39,8 @@
     "nitro": ">=3.0.1-alpha.1"
   },
   "dependencies": {
-    "@sentry/core": "10.32.1",
-    "@sentry/node": "10.32.1"
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0"
   },
   "devDependencies": {
     "nitro": "^3.0.1-alpha.1"
