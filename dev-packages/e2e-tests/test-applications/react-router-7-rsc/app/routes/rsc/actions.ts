@@ -1,8 +1,6 @@
 'use server';
 
-import { wrapServerFunction } from '@sentry/react-router';
-
-async function _submitForm(formData: FormData): Promise<{ success: boolean; message: string }> {
+export async function submitForm(formData: FormData): Promise<{ success: boolean; message: string }> {
   const name = formData.get('name') as string;
 
   // Simulate some async work
@@ -14,22 +12,16 @@ async function _submitForm(formData: FormData): Promise<{ success: boolean; mess
   };
 }
 
-export const submitForm = wrapServerFunction('submitForm', _submitForm);
-
-async function _submitFormWithError(_formData: FormData): Promise<{ success: boolean; message: string }> {
+export async function submitFormWithError(_formData: FormData): Promise<{ success: boolean; message: string }> {
   // Simulate an error in server function
   throw new Error('RSC Server Function Error: Something went wrong!');
 }
 
-export const submitFormWithError = wrapServerFunction('submitFormWithError', _submitFormWithError);
-
-async function _getData(): Promise<{ timestamp: number; data: string }> {
-  await new Promise(resolve => setTimeout(resolve, 20));
-
+export const submitFormArrow = async (formData: FormData): Promise<{ success: boolean; message: string }> => {
+  const name = formData.get('name') as string;
+  await new Promise(resolve => setTimeout(resolve, 50));
   return {
-    timestamp: Date.now(),
-    data: 'Fetched from server function',
+    success: true,
+    message: `Arrow: Hello, ${name}!`,
   };
-}
-
-export const getData = wrapServerFunction('getData', _getData);
+};

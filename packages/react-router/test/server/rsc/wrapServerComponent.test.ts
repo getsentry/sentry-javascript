@@ -1,6 +1,6 @@
 import * as core from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isServerComponentContext, wrapServerComponent } from '../../../src/server/rsc/wrapServerComponent';
+import { wrapServerComponent } from '../../../src/server/rsc/wrapServerComponent';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -8,11 +8,10 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     getIsolationScope: vi.fn(),
     getActiveSpan: vi.fn(),
-    handleCallbackErrors: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn().mockResolvedValue(undefined),
-    SPAN_STATUS_OK: { code: 1, message: 'ok' },
-    SPAN_STATUS_ERROR: { code: 2, message: 'internal_error' },
+    SPAN_STATUS_OK: 1,
+    SPAN_STATUS_ERROR: 2,
   };
 });
 
@@ -29,7 +28,6 @@ describe('wrapServerComponent', () => {
     (core.getIsolationScope as any).mockReturnValue({
       setTransactionName: mockSetTransactionName,
     });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any) => fn());
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/users/:id',
@@ -42,7 +40,7 @@ describe('wrapServerComponent', () => {
     expect(mockSetTransactionName).toHaveBeenCalledWith('Page Server Component (/users/:id)');
   });
 
-  it('should capture exceptions on error', () => {
+  it('should capture exceptions on sync error', () => {
     const mockError = new Error('Component render failed');
     const mockComponent = vi.fn().mockImplementation(() => {
       throw mockError;
@@ -54,16 +52,6 @@ describe('wrapServerComponent', () => {
       setTransactionName: mockSetTransactionName,
     });
     (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/users/:id',
@@ -85,6 +73,38 @@ describe('wrapServerComponent', () => {
     });
   });
 
+  it('should capture exceptions on async rejection', async () => {
+    const mockError = new Error('Async component failed');
+    const mockComponent = vi.fn().mockRejectedValue(mockError);
+    const mockSetStatus = vi.fn();
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+    (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/async-page',
+      componentType: 'Page',
+    });
+
+    const promise = wrappedComponent();
+    await expect(promise).rejects.toThrow('Async component failed');
+
+    expect(core.captureException).toHaveBeenCalledWith(mockError, {
+      mechanism: {
+        type: 'instrument',
+        handled: false,
+        data: {
+          function: 'ServerComponent',
+          component_route: '/async-page',
+          component_type: 'Page',
+        },
+      },
+    });
+  });
+
   it('should not capture redirect responses as errors', () => {
     const redirectResponse = new Response(null, {
       status: 302,
@@ -100,16 +120,6 @@ describe('wrapServerComponent', () => {
       setTransactionName: mockSetTransactionName,
     });
     (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/users/:id',
@@ -133,82 +143,6 @@ describe('wrapServerComponent', () => {
       setTransactionName: mockSetTransactionName,
     });
     (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
-
-    const wrappedComponent = wrapServerComponent(mockComponent, {
-      componentRoute: '/users/:id',
-      componentType: 'Page',
-    });
-
-    expect(() => wrappedComponent()).toThrow();
-    expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_ERROR, message: 'not_found' });
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should handle redirect-like objects with type property', () => {
-    const redirectObj = { type: 'redirect', location: '/new-path' };
-    const mockComponent = vi.fn().mockImplementation(() => {
-      throw redirectObj;
-    });
-    const mockSetStatus = vi.fn();
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-    (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
-
-    const wrappedComponent = wrapServerComponent(mockComponent, {
-      componentRoute: '/users/:id',
-      componentType: 'Layout',
-    });
-
-    expect(() => wrappedComponent()).toThrow();
-    expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_OK });
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should handle not-found objects with type property', () => {
-    const notFoundObj = { type: 'not-found' };
-    const mockComponent = vi.fn().mockImplementation(() => {
-      throw notFoundObj;
-    });
-    const mockSetStatus = vi.fn();
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-    (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/users/:id',
@@ -228,7 +162,6 @@ describe('wrapServerComponent', () => {
     (core.getIsolationScope as any).mockReturnValue({
       setTransactionName: mockSetTransactionName,
     });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any) => fn());
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/async-page',
@@ -240,17 +173,54 @@ describe('wrapServerComponent', () => {
     expect(mockSetTransactionName).toHaveBeenCalledWith('Page Server Component (/async-page)');
   });
 
-  it('should flush on completion for serverless environments', () => {
-    const mockComponent = vi.fn().mockReturnValue({ type: 'div' });
+  it('should handle a thenable that ignores the error callback gracefully', () => {
+    const thenableResult = {
+      then: (_resolve: (value: unknown) => void) => {},
+    };
+    const mockComponent = vi.fn().mockReturnValue(thenableResult);
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({
       setTransactionName: mockSetTransactionName,
     });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, _: any, finallyHandler: any) => {
-      const result = fn();
-      finallyHandler?.();
-      return result;
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/page',
+      componentType: 'Page',
+    });
+
+    expect(() => wrappedComponent()).not.toThrow();
+  });
+
+  it('should flush on completion for async components', async () => {
+    const mockResult = { type: 'div' };
+    const mockComponent = vi.fn().mockResolvedValue(mockResult);
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/async-page',
+      componentType: 'Page',
+    });
+    const result = wrappedComponent();
+
+    // Wait for the promise to resolve so the .then() handler fires
+    await result;
+    // Allow microtask queue to flush
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(core.flushIfServerless).toHaveBeenCalled();
+  });
+
+  it('should flush on completion for sync components', () => {
+    const mockComponent = vi.fn().mockReturnValue({ type: 'div' });
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
     });
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
@@ -273,16 +243,6 @@ describe('wrapServerComponent', () => {
       setTransactionName: mockSetTransactionName,
     });
     (core.getActiveSpan as any).mockReturnValue(undefined);
-    (core.handleCallbackErrors as any).mockImplementation((fn: any, errorHandler: any, finallyHandler: any) => {
-      try {
-        return fn();
-      } catch (error) {
-        errorHandler(error);
-        throw error;
-      } finally {
-        finallyHandler?.();
-      }
-    });
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/page',
@@ -303,91 +263,37 @@ describe('wrapServerComponent', () => {
     (core.getIsolationScope as any).mockReturnValue({
       setTransactionName: mockSetTransactionName,
     });
-    (core.handleCallbackErrors as any).mockImplementation((fn: any) => fn());
 
     const wrappedComponent = wrapServerComponent(mockComponent, {
       componentRoute: '/page',
       componentType: 'Page',
     });
 
-    // Proxy should preserve properties
     expect((wrappedComponent as any).displayName).toBe('MyComponent');
     expect((wrappedComponent as any).customProp).toBe('value');
   });
-});
 
-describe('isServerComponentContext', () => {
-  it('should return true for valid context', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: '/users/:id',
-        componentType: 'Page',
-      }),
-    ).toBe(true);
-  });
+  it('should not double-capture already-captured errors', () => {
+    const mockError = new Error('Already captured error');
+    Object.defineProperty(mockError, '__sentry_captured__', { value: true, enumerable: false });
 
-  it('should return false for null', () => {
-    expect(isServerComponentContext(null)).toBe(false);
-  });
+    const mockComponent = vi.fn().mockImplementation(() => {
+      throw mockError;
+    });
+    const mockSetStatus = vi.fn();
+    const mockSetTransactionName = vi.fn();
 
-  it('should return false for undefined', () => {
-    expect(isServerComponentContext(undefined)).toBe(false);
-  });
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+    (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
 
-  it('should return false for non-object', () => {
-    expect(isServerComponentContext('string')).toBe(false);
-    expect(isServerComponentContext(123)).toBe(false);
-  });
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/page',
+      componentType: 'Page',
+    });
 
-  it('should return false for missing componentRoute', () => {
-    expect(
-      isServerComponentContext({
-        componentType: 'Page',
-      }),
-    ).toBe(false);
-  });
-
-  it('should return false for missing componentType', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: '/users/:id',
-      }),
-    ).toBe(false);
-  });
-
-  it('should return false for non-string componentRoute', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: 123,
-        componentType: 'Page',
-      }),
-    ).toBe(false);
-  });
-
-  it('should return false for non-string componentType', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: '/users/:id',
-        componentType: 123,
-      }),
-    ).toBe(false);
-  });
-
-  it('should return false for empty componentRoute', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: '',
-        componentType: 'Page',
-      }),
-    ).toBe(false);
-  });
-
-  it('should return false for invalid componentType not in VALID_COMPONENT_TYPES', () => {
-    expect(
-      isServerComponentContext({
-        componentRoute: '/users/:id',
-        componentType: 'InvalidType',
-      }),
-    ).toBe(false);
+    expect(() => wrappedComponent()).toThrow('Already captured error');
+    expect(core.captureException).not.toHaveBeenCalled();
   });
 });
