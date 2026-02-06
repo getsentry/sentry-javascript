@@ -94,11 +94,11 @@ function collectNamedExports(node: BabelExportNamedDeclaration, into: Set<string
     }
 
     if (decl.type === 'VariableDeclaration') {
-      decl.declarations
-        .filter(declarator => declarator.type === 'VariableDeclarator' && declarator.id.type === 'Identifier')
-        .forEach(declarator => {
-          into.add((declarator.id as t.Identifier).name);
-        });
+      for (const declarator of decl.declarations) {
+        if (declarator.type === 'VariableDeclarator' && declarator.id.type === 'Identifier') {
+          into.add(declarator.id.name);
+        }
+      }
     } else {
       const name = getDeclarationName(decl);
       if (name) {
@@ -135,7 +135,7 @@ function getExportedName(node: t.Identifier | t.StringLiteral): string | undefin
 
 function getDeclarationName(decl: t.Declaration): string | undefined {
   if (decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') {
-    const id = decl.id as t.Identifier | null | undefined;
+    const id = (decl as t.FunctionDeclaration | t.ClassDeclaration).id;
     return id?.type === 'Identifier' ? id.name : undefined;
   }
   return undefined;
