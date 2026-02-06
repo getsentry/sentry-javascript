@@ -45,7 +45,6 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   }
 
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-    // FIX: Clone current scope as well to prevent leakage between concurrent requests
     const scope = getScopes().scope.clone();
     const isolationScope = getScopes().isolationScope.clone();
     return asyncStorage.run({ scope, isolationScope }, () => {
@@ -54,7 +53,6 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   }
 
   function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
-    // FIX: Clone current scope as well to prevent leakage between concurrent requests
     const scope = getScopes().scope.clone();
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
