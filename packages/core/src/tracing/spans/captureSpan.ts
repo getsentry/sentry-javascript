@@ -15,7 +15,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
-import { isStreamedBeforeSendSpanCallback } from '../../utils/beforeSendSpan';
+import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,

@@ -45,6 +45,7 @@ import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
+import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
@@ -315,6 +316,7 @@ export class SentrySpan implements Span {
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
+      client.emit('afterSpanEnd', this);
     }
 
     // A segment span is basically the root span of a local span tree.
@@ -337,6 +339,10 @@ export class SentrySpan implements Span {
           client.recordDroppedEvent('sample_rate', 'span');
         }
       }
+      return;
+    } else if (client && hasSpanStreamingEnabled(client)) {
+      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+      client?.emit('afterSegmentSpanEnd', this);
       return;
     }
 
