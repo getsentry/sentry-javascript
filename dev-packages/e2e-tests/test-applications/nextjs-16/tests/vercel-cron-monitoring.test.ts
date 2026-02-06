@@ -6,7 +6,7 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
     return (
       envelope[0].type === 'check_in' &&
       // @ts-expect-error envelope[1] is untyped
-      envelope[1]['monitor_slug'] === 'api-cron-test' &&
+      envelope[1]['monitor_slug'] === '/api/cron-test' &&
       // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'in_progress'
     );
@@ -16,7 +16,7 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
     return (
       envelope[0].type === 'check_in' &&
       // @ts-expect-error envelope[1] is untyped
-      envelope[1]['monitor_slug'] === 'api-cron-test' &&
+      envelope[1]['monitor_slug'] === '/api/cron-test' &&
       // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'ok'
     );
@@ -37,7 +37,7 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
   expect(inProgressEnvelope[1]).toEqual(
     expect.objectContaining({
       check_in_id: expect.any(String),
-      monitor_slug: 'api-cron-test',
+      monitor_slug: '/api/cron-test',
       status: 'in_progress',
       monitor_config: {
         schedule: {
@@ -52,7 +52,7 @@ test('Sends cron check-in envelope for successful cron job', async ({ request })
   expect(okEnvelope[1]).toEqual(
     expect.objectContaining({
       check_in_id: expect.any(String),
-      monitor_slug: 'api-cron-test',
+      monitor_slug: '/api/cron-test',
       status: 'ok',
       duration: expect.any(Number),
     }),
@@ -67,7 +67,7 @@ test('Sends cron check-in envelope with error status for failed cron job', async
     return (
       envelope[0].type === 'check_in' &&
       // @ts-expect-error envelope[1] is untyped
-      envelope[1]['monitor_slug'] === 'api-cron-test-error' &&
+      envelope[1]['monitor_slug'] === '/api/cron-test-error' &&
       // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'in_progress'
     );
@@ -77,7 +77,7 @@ test('Sends cron check-in envelope with error status for failed cron job', async
     return (
       envelope[0].type === 'check_in' &&
       // @ts-expect-error envelope[1] is untyped
-      envelope[1]['monitor_slug'] === 'api-cron-test-error' &&
+      envelope[1]['monitor_slug'] === '/api/cron-test-error' &&
       // @ts-expect-error envelope[1] is untyped
       envelope[1]['status'] === 'error'
     );
@@ -95,7 +95,7 @@ test('Sends cron check-in envelope with error status for failed cron job', async
   expect(inProgressEnvelope[1]).toEqual(
     expect.objectContaining({
       check_in_id: expect.any(String),
-      monitor_slug: 'api-cron-test-error',
+      monitor_slug: '/api/cron-test-error',
       status: 'in_progress',
       monitor_config: {
         schedule: {
@@ -110,7 +110,7 @@ test('Sends cron check-in envelope with error status for failed cron job', async
   expect(errorEnvelope[1]).toEqual(
     expect.objectContaining({
       check_in_id: expect.any(String),
-      monitor_slug: 'api-cron-test-error',
+      monitor_slug: '/api/cron-test-error',
       status: 'error',
       duration: expect.any(Number),
     }),

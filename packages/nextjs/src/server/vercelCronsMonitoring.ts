@@ -10,14 +10,6 @@ const ATTR_SENTRY_CRON_START_TIME = 'sentry.cron.startTime';
 const ATTR_SENTRY_CRON_SCHEDULE = 'sentry.cron.schedule';
 
 /**
- * Converts a route path to a valid monitor slug.
- * e.g., '/api/health' -> 'api-health'
- */
-function pathToMonitorSlug(path: string): string {
-  return path.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\//g, '-');
-}
-
-/**
  * Gets the Vercel crons configuration that was injected at build time.
  */
 function getVercelCronsConfig(): VercelCronsConfig {
@@ -67,7 +59,9 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
     return;
   }
 
-  const monitorSlug = pathToMonitorSlug(matchedCron.path);
+  // Use raw path as monitor slug to match legacy wrapApiHandlerWithSentryVercelCrons behavior,
+  // so migration from automaticVercelMonitors to vercelCronsMonitoring keeps the same monitors.
+  const monitorSlug = matchedCron.path;
   const startTime = _INTERNAL_safeDateNow() / 1000;
 
   const checkInId = captureCheckIn(
