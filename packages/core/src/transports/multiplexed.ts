@@ -153,6 +153,20 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
 
 /** Overrides the DSN in the envelope header  */
 function overrideDsn(envelope: Envelope, dsn: string): Envelope {
+  const clonedItems = envelope[1].map(item => {
+    if (Array.isArray(item) && item[0]?.type === 'trace_metric') {
+      const [header, container] = item as [any, SerializedMetricContainer];
+      return [
+        { ...header },
+        {
+          ...container,
+          items: container.items ? [...container.items] : [],
+        },
+      ];
+    }
+    return item;
+  });
+
   return createEnvelope(
     dsn
       ? {
@@ -160,7 +174,7 @@ function overrideDsn(envelope: Envelope, dsn: string): Envelope {
           dsn,
         }
       : envelope[0],
-    envelope[1],
+    clonedItems as (typeof envelope)[1],
   );
 }
 
@@ -213,7 +227,10 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
 
           if (Array.isArray(routingValue)) {
             const validRoutes = routingValue.filter(
-              (route): route is RouteTo => route !== null && route !== undefined && typeof route === 'object',
+              (route): route is string | RouteTo =>
+                route !== null &&
+                route !== undefined &&
+                (typeof route === 'string' || (typeof route === 'object' && 'dsn' in route)),
             );
             DEBUG_BUILD && debug.log('[Multiplexed Transport] Valid routes:', validRoutes);
             return validRoutes;
