@@ -1433,3 +1433,54 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
     expect(wrongSpans.length).toBe(0);
   }
 });
+
+// lazyRouteManifest: provides parameterized name when lazy routes don't resolve in time
+test('Route manifest provides correct name when navigation span ends before lazy route resolves', async ({ page }) => {
+  // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
+  await page.goto('/?idleTimeout=50&timeout=0');
+
+  // Wait for pageload to complete
+  await page.waitForTimeout(200);
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
+  const wildcardLazyLink = page.locator('id=navigation-to-wildcard-lazy');
+  await expect(wildcardLazyLink).toBeVisible();
+  await wildcardLazyLink.click();
+
+  const event = await navigationPromise;
+
+  // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({ page }) => {
+  // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  await page.goto('/wildcard-lazy/123?idleTimeout=50&timeout=0');
+
+  const event = await pageloadPromise;
+
+  // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
