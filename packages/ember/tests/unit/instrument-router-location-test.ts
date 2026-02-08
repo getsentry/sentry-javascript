@@ -1,9 +1,10 @@
-import type { EmberRouterMain } from '@sentry/ember/addon/types';
-import { _getLocationURL } from '@sentry/ember/instance-initializers/sentry-performance';
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-import type { SentryTestContext } from '../helpers/setup-sentry';
-import { setupSentryTest } from '../helpers/setup-sentry';
+import { _getLocationURL } from '@sentry/ember/performance';
+import { setupSentryTest } from '../helpers/setup-sentry.ts';
+
+import type { EmberRouterMain } from '@sentry/ember/performance';
+import type { SentryTestContext } from '../helpers/setup-sentry.ts';
 
 module('Unit | Utility | instrument-router-location', function (hooks) {
   setupTest(hooks);
@@ -18,7 +19,11 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '/#/test-route', 'Should prepend rootURL to hash URL when implementation is not set');
+    assert.strictEqual(
+      result,
+      '/#/test-route',
+      'Should prepend rootURL to hash URL when implementation is not set',
+    );
   });
 
   test('_getLocationURL handles hash location with implementation field', function (this: SentryTestContext, assert) {
@@ -31,7 +36,11 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '/#/test-route', 'Should prepend rootURL to hash URL when implementation is hash');
+    assert.strictEqual(
+      result,
+      '/#/test-route',
+      'Should prepend rootURL to hash URL when implementation is hash',
+    );
   });
 
   test('_getLocationURL handles history location', function (this: SentryTestContext, assert) {
@@ -44,7 +53,11 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '/test-route', 'Should return URL as-is for non-hash locations');
+    assert.strictEqual(
+      result,
+      '/test-route',
+      'Should return URL as-is for non-hash locations',
+    );
   });
 
   test('_getLocationURL handles none location type', function (this: SentryTestContext, assert) {
@@ -57,7 +70,11 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '', 'Should return empty string when URL is empty');
+    assert.strictEqual(
+      result,
+      '',
+      'Should return empty string when URL is empty',
+    );
   });
 
   test('_getLocationURL handles custom rootURL for hash location', function (this: SentryTestContext, assert) {
@@ -84,7 +101,11 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '', 'Should return empty string when getURL is not available');
+    assert.strictEqual(
+      result,
+      '',
+      'Should return empty string when getURL is not available',
+    );
   });
 
   test('_getLocationURL handles location without formatURL method', function (this: SentryTestContext, assert) {
@@ -95,6 +116,10 @@ module('Unit | Utility | instrument-router-location', function (hooks) {
     };
 
     const result = _getLocationURL(mockLocation);
-    assert.strictEqual(result, '', 'Should return empty string when formatURL is not available');
+    assert.strictEqual(
+      result,
+      '',
+      'Should return empty string when formatURL is not available',
+    );
   });
 });

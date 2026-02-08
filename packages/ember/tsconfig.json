@@ -1,28 +1,23 @@
+/**
+ * This tsconfig is not used for publishing.
+ * It's only for the local editing experience
+ * (and linting)
+ */
 {
-  "extends": "../../tsconfig.json",
+  "extends": "@ember/app-tsconfig",
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "unpublished-development-types/**/*",
+    "demo-app/**/*"
+  ],
   "compilerOptions": {
-    "target": "es2022",
-    "lib": ["DOM", "ES2022"],
-    "allowJs": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "alwaysStrict": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "noEmitOnError": false,
-    "noEmit": true,
-    "baseUrl": ".",
-    "module": "esnext",
-    "experimentalDecorators": true,
-    "paths": {
-      "dummy/tests/*": ["tests/*"],
-      "dummy/*": ["tests/dummy/app/*", "app/*"],
-      "@sentry/ember": ["addon"],
-      "@sentry/ember/*": ["addon/*"],
-      "@sentry/ember/test-support": ["addon-test-support"],
-      "@sentry/ember/test-support/*": ["addon-test-support/*"],
-      "*": ["types/*"]
-    }
-  },
-  "include": ["app/**/*", "addon/**/*", "tests/**/*", "types/**/*", "test-support/**/*", "addon-test-support/**/*"]
+    "rootDir": ".",
+    "types": [
+      "ember-source/types",
+      "vite/client",
+      "@embroider/core/virtual",
+      "@glint/ember-tsc/types"
+    ]
+  }
 }

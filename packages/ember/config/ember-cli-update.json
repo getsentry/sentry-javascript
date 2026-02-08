@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectName": "sentry-ember",
+  "packages": [
+    {
+      "name": "@ember/addon-blueprint",
+      "version": "0.17.0",
+      "blueprints": [
+        {
+          "name": "@ember/addon-blueprint",
+          "isBaseBlueprint": true,
+          "options": [
+            "--ci-provider=github",
+            "--pnpm",
+            "--typescript"
+          ]
+        }
+      ]
+    }
+  ]
+}
