@@ -1,10 +1,11 @@
-import Route from '@ember/routing/route';
-import { instrumentRoutePerformance } from '@sentry/ember';
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
+import Route from '@ember/routing/route';
+import { instrumentRoutePerformance } from '@sentry/ember';
 import sinon from 'sinon';
-import type { SentryTestContext } from '../helpers/setup-sentry';
-import { setupSentryTest } from '../helpers/setup-sentry';
+import { setupSentryTest } from '../helpers/setup-sentry.ts';
+
+import type { SentryTestContext } from '../helpers/setup-sentry.ts';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
   setupTest(hooks);
@@ -42,22 +43,43 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
 
     route.beforeModel('foo');
 
-    assert.ok(beforeModel.calledOn(route), 'The context for `beforeModel` is the route');
-    assert.ok(beforeModel.calledWith('foo'), 'The arguments for `beforeModel` are passed through');
+    assert.ok(
+      beforeModel.calledOn(route),
+      'The context for `beforeModel` is the route',
+    );
+    assert.ok(
+      beforeModel.calledWith('foo'),
+      'The arguments for `beforeModel` are passed through',
+    );
 
     route.model('bar');
 
     assert.ok(model.calledOn(route), 'The context for `model` is the route');
-    assert.ok(model.calledWith('bar'), 'The arguments for `model` are passed through');
+    assert.ok(
+      model.calledWith('bar'),
+      'The arguments for `model` are passed through',
+    );
 
     route.afterModel('bax');
 
-    assert.ok(afterModel.calledOn(route), 'The context for `afterModel` is the route');
-    assert.ok(afterModel.calledWith('bax'), 'The arguments for `afterModel` are passed through');
+    assert.ok(
+      afterModel.calledOn(route),
+      'The context for `afterModel` is the route',
+    );
+    assert.ok(
+      afterModel.calledWith('bax'),
+      'The arguments for `afterModel` are passed through',
+    );
 
     route.setupController('baz');
 
-    assert.ok(setupController.calledOn(route), 'The context for `setupController` is the route');
-    assert.ok(setupController.calledWith('baz'), 'The arguments for `setupController` are passed through');
+    assert.ok(
+      setupController.calledOn(route),
+      'The context for `setupController` is the route',
+    );
+    assert.ok(
+      setupController.calledWith('baz'),
+      'The arguments for `setupController` are passed through',
+    );
   });
 });

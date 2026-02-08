@@ -1,25 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <title>Dummy Tests</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <title>sentry-ember Tests</title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    {{content-for "head"}}
-    {{content-for "test-head"}}
-
-    <link rel="stylesheet" href="{{rootURL}}assets/vendor.css">
-    <link rel="stylesheet" href="{{rootURL}}assets/dummy.css">
-    <link rel="stylesheet" href="{{rootURL}}assets/test-support.css">
-
-    {{content-for "head-footer"}}
-    {{content-for "test-head-footer"}}
+    <!-- Sentry initial load performance mark (start) -->
+    <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-start');}</script>
   </head>
   <body>
-    {{content-for "body"}}
-    {{content-for "test-body"}}
-
     <div id="qunit"></div>
     <div id="qunit-fixture">
       <div id="ember-testing-container">
@@ -28,12 +18,17 @@
     </div>
 
     <script src="/testem.js" integrity="" data-embroider-ignore></script>
-    <script src="{{rootURL}}assets/vendor.js"></script>
-    <script src="{{rootURL}}assets/test-support.js"></script>
-    <script src="{{rootURL}}assets/dummy.js"></script>
-    <script src="{{rootURL}}assets/tests.js"></script>
+    <script type="module">
+      import "ember-testing";
+    </script>
 
-    {{content-for "body-footer"}}
-    {{content-for "test-body-footer"}}
+    <script type="module">
+      import { start } from "./test-helper.js";
+      import.meta.glob("./**/*.{js,ts,gjs,gts}", { eager: true });
+      start();
+    </script>
+
+    <!-- Sentry initial load performance mark (end) -->
+    <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-end');}</script>
   </body>
 </html>

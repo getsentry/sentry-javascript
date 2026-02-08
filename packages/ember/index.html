@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Demo App</title>
+  <meta name="description" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Sentry initial load performance mark (start) -->
+  <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-start');}</script>
+
+  <link rel="stylesheet" href="./demo-app/styles.css" />
+
+</head>
+
+<body>
+
+  <script type="module">
+    import { App } from './demo-app/app';
+
+    App.create({})
+  </script>
+
+  <!-- Sentry initial load performance mark (end) -->
+  <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-end');}</script>
+</body>
+
+</html>

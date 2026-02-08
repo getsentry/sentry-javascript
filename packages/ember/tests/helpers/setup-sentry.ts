@@ -1,6 +1,13 @@
-import type { TestContext } from '@ember/test-helpers';
-import { resetOnerror, setupOnerror } from '@ember/test-helpers';
+import { getContext, resetOnerror, setupOnerror } from '@ember/test-helpers';
+import {
+  setupPerformance,
+  _resetGlobalInstrumentation,
+} from '@sentry/ember/performance';
 import sinon from 'sinon';
+
+import type { TestContext } from '@ember/test-helpers';
+
+import type ApplicationInstance from '@ember/application/instance';
 
 export type SentryTestContext = TestContext & {
   errorMessages: string[];
@@ -10,9 +17,18 @@ export type SentryTestContext = TestContext & {
 };
 
 export function setupSentryTest(hooks: NestedHooks): void {
-  hooks.beforeEach(async function (this: SentryTestContext) {
-    await window._sentryPerformanceLoad;
+  hooks.beforeEach(function (this: SentryTestContext) {
     window._sentryTestEvents = [];
+
+    // Set up performance instrumentation using the test app instance
+    const context = getContext() as { owner?: ApplicationInstance } | undefined;
+    if (context?.owner) {
+      setupPerformance(context.owner, {
+        transitionTimeout: 5000,
+        minimumRunloopQueueDuration: 5,
+        minimumComponentRenderDuration: 0,
+      });
+    }
     const errorMessages: string[] = [];
     this.errorMessages = errorMessages;
 
@@ -28,7 +44,9 @@ export function setupSentryTest(hooks: NestedHooks): void {
     this.qunitOnUnhandledRejection = sinon.stub(
       QUnit,
       // @ts-expect-error this is OK
-      QUnit.onUncaughtException ? 'onUncaughtException' : 'onUnhandledRejection',
+      QUnit.onUncaughtException
+        ? 'onUncaughtException'
+        : 'onUnhandledRejection',
     );
 
     // @ts-expect-error this is fine
@@ -47,15 +65,22 @@ export function setupSentryTest(hooks: NestedHooks): void {
     /**
      * Will collect errors when run via testem in cli
      */
-    window.onerror = error => {
+    window.onerror = (error) => {
       errorMessages.push(error.toString().split('Error: ')[1]!);
     };
   });
 
   hooks.afterEach(function (this: SentryTestContext) {
+    _resetGlobalInstrumentation();
     this.fetchStub.restore();
     this.qunitOnUnhandledRejection.restore();
     window.onerror = this._windowOnError;
     resetOnerror();
   });
+}
+
+declare global {
+  interface Window {
+    _sentryTestEvents: unknown[];
+  }
 }

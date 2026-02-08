@@ -19,22 +19,7 @@ module.exports = function (environment) {
     },
   };
 
-  ENV['@sentry/ember'] = {
-    sentry: {
-      tracesSampleRate: 1,
-      dsn: process.env.E2E_TEST_DSN,
-      tracePropagationTargets: ['localhost', 'doesntexist.example'],
-      browserTracingOptions: {
-        _experiments: {
-          // This lead to some flaky tests, as that is sometimes logged
-          enableLongTask: false,
-        },
-      },
-    },
-    ignoreEmberOnErrorWarning: true,
-    minimumRunloopQueueDuration: 0,
-    minimumComponentRenderDuration: 0,
-  };
+  ENV.sentryDsn = process.env.E2E_TEST_DSN;
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
