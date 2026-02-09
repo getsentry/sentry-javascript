@@ -136,6 +136,15 @@ function _init(
 
   updateScopeFromEnvVariables();
 
+  // Ensure we flush events when vercel functions are ended
+  // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
+  if (process.env.VERCEL) {
+    process.on('SIGTERM', async () => {
+      // We have 500ms for processing here, so we try to make sure to have enough time to send the events
+      await client.flush(200);
+    });
+  }
+
   return client;
 }
 
