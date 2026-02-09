@@ -57,8 +57,9 @@ function onTraceEnd(data: { span?: Span; result?: unknown }): void {
   const statusCode = getResponseStatusCode(data.result);
   if (data.span && statusCode !== undefined) {
     setHttpStatus(data.span, statusCode);
-    data.span.end();
   }
+
+  data.span?.end();
 }
 
 function onTraceError(data: { span?: Span; error: unknown }): void {
@@ -68,7 +69,7 @@ function onTraceError(data: { span?: Span; error: unknown }): void {
 }
 
 function setupH3TracingChannels(): void {
-  const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.fetch', data => {
+  const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.request', data => {
     const parsedUrl = parseStringToURLObject(data.event.url.href);
     const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.h3', {
       method: data.event.req.method,
@@ -100,7 +101,7 @@ function setupSrvxTracingChannels(): void {
   // This ensures they all appear as siblings in the trace
   let requestParentSpan: Span | null = null;
 
-  const fetchChannel = tracingChannel<SrvxRequestEvent>('srvx.fetch', data => {
+  const fetchChannel = tracingChannel<SrvxRequestEvent>('srvx.request', data => {
     const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
     const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
       method: data.request.method,
