@@ -12,9 +12,7 @@ type SentryNitroOptions = {
  * @returns The modified config to be exported
  */
 export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitroOptions): NitroConfig {
-  setupSentryNitroModule(config, moduleOptions);
-
-  return config;
+  return setupSentryNitroModule(config, moduleOptions);
 }
 
 /**
@@ -25,13 +23,10 @@ export function setupSentryNitroModule(
   _moduleOptions?: SentryNitroOptions,
   _serverConfigFile?: string,
 ): NitroConfig {
-  // @ts-expect-error Nitro tracing config is not out yet - enable tracing channels for h3 and srvx
+  // @ts-expect-error Nitro tracing config is not out yet
   if (!config.tracing) {
-    // Explicitly set the full object instead of `true` to avoid relying on Nitro's
-    // internal normalization (resolveTracingOptions), which may not run in all environments.
     // @ts-expect-error Nitro tracing config is not out yet
-    // config.tracing = true;
-    config.tracing = { srvx: true, h3: true };
+    config.tracing = true;
   }
 
   config.modules = config.modules || [];
