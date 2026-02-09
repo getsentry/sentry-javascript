@@ -145,7 +145,6 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
         this._flushOutcomes();
       };
 
-      // We purposefully not unref this interval but we clear it in `this._clientReportOnExitFlushListener`.
       this._clientReportInterval = safeUnref(
         setTimeout(() => {
           DEBUG_BUILD && debug.log('Flushing client reports based on interval.');
