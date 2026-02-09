@@ -1,8 +1,14 @@
 {
-  "extends": ["nitro/tsconfig"],
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "paths": {
       "~/*": ["./*"]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "routes/**/*.ts", "vite.config.ts"]
 }
