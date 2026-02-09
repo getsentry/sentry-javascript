@@ -29,14 +29,14 @@ export default withSentryConfig(nextConfig, {
 
 - **feat(node-core): Add node-core/light ([#18502](https://github.com/getsentry/sentry-javascript/pull/18502))**
 
-  This release adds a new light-weight `@sentry/node-core/light` export to `@sentry/node-core`. The export acts as a light-weight errors-only SDK that does not depend on OpenTelemetry.
+  This release adds a new light-weight `@sentry/node-core/light` export to `@sentry/node-core`. The export acts as a light-weight SDK that does not depend on OpenTelemetry and emits no spans.
 
   Use this SDK when:
-  - You only need error tracking without performance monitoring
+  - You only need error tracking, logs or metrics without tracing data (no spans)
   - You want to minimize bundle size and runtime overhead
-  - You don't need OpenTelemetry instrumentation
+  - You don't need spans emitted by OpenTelemetry instrumentation
 
-  It supports basic error tracking and reporting, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
+  It supports error tracking and reporting, logs, metrics, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
 
   Install the SDK by running
 
