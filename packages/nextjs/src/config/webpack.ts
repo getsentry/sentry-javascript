@@ -21,7 +21,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getNextjsVersion } from './util';
+import { _getModules, getNextjsVersion } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
@@ -881,24 +881,6 @@ function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, 
     // Redirect perf_hooks imports to a polyfilled version
     perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
   };
-}
-
-function _getModules(projectDir: string): Record<string, string> {
-  try {
-    const packageJson = path.join(projectDir, 'package.json');
-    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
-    const packageJsonObject = JSON.parse(packageJsonContent) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-
-    return {
-      ...packageJsonObject.dependencies,
-      ...packageJsonObject.devDependencies,
-    };
-  } catch {
-    return {};
-  }
 }
 
 /**

@@ -1,6 +1,7 @@
 import { parseSemver } from '@sentry/core';
 import * as fs from 'fs';
 import { createRequire } from 'module';
+import * as path from 'path';
 
 /**
  * Returns the version of Next.js installed in the project, or undefined if it cannot be determined.
@@ -179,5 +180,26 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
     return 'turbopack';
   } else {
     return 'webpack';
+  }
+}
+
+/**
+ * Extract modules from project directory's package.json
+ */
+export function _getModules(projectDir: string): Record<string, string> {
+  try {
+    const packageJson = path.join(projectDir, 'package.json');
+    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
+    const packageJsonObject = JSON.parse(packageJsonContent) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+
+    return {
+      ...packageJsonObject.dependencies,
+      ...packageJsonObject.devDependencies,
+    };
+  } catch {
+    return {};
   }
 }

@@ -1,8 +1,8 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
+import { _getModules } from '../util';
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -43,7 +43,7 @@ export function generateValueInjectionRules({
   }
   // Inject server modules (matching webpack's __SENTRY_SERVER_MODULES__ behavior)
   // Use process.cwd() to get the project directory at build time
-  serverValues.__SENTRY_SERVER_MODULES__ = getModulesFromPackageJson(process.cwd());
+  serverValues.__SENTRY_SERVER_MODULES__ = _getModules(process.cwd());
 
   if (Object.keys(isomorphicValues).length > 0) {
     clientValues = { ...clientValues, ...isomorphicValues };
@@ -85,25 +85,4 @@ export function generateValueInjectionRules({
   }
 
   return rules;
-}
-
-/**
- * Extract modules from package.json (matching webpack's _getModules behavior)
- */
-function getModulesFromPackageJson(projectDir: string): Record<string, string> {
-  try {
-    const packageJsonPath = path.join(projectDir, 'package.json');
-    const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
-    const packageJsonObject = JSON.parse(packageJsonContent) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-
-    return {
-      ...packageJsonObject.dependencies,
-      ...packageJsonObject.devDependencies,
-    };
-  } catch {
-    return {};
-  }
 }
