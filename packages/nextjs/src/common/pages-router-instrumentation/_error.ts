@@ -3,7 +3,6 @@ import {
   getIsolationScope,
   checkOrSetAlreadyCaught,
   httpRequestToRequestData,
-  lastEventId,
   withScope,
 } from '@sentry/core';
 import type { NextPageContext } from 'next';
