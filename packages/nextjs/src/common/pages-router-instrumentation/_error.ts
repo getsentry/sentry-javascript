@@ -1,4 +1,11 @@
-import { captureException, getIsolationScope, httpRequestToRequestData, withScope } from '@sentry/core';
+import {
+  captureException,
+  getIsolationScope,
+  checkOrSetAlreadyCaught,
+  httpRequestToRequestData,
+  lastEventId,
+  withScope,
+} from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
@@ -38,6 +45,13 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     return;
   }
 
+  // If the error was already captured (e.g., by wrapped functions in data fetchers),
+  // return the existing event ID instead of capturing it again (needed for lastEventId() to work)
+  if (err && checkOrSetAlreadyCaught(err)) {
+    waitUntil(flushSafelyWithTimeout());
+    return getIsolationScope().lastEventId();
+  }
+
   const eventId = withScope(scope => {
     if (req) {
       const normalizedRequest = httpRequestToRequestData(req);
@@ -56,9 +70,6 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
       },
     });
   });
-
-  // Set the lastEventId on the isolation scope so it's accessible via lastEventId()
-  getIsolationScope().setLastEventId(eventId);
 
   waitUntil(flushSafelyWithTimeout());
 
