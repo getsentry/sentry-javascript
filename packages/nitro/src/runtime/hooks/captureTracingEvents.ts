@@ -7,6 +7,7 @@ import {
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   type Span,
   SPAN_STATUS_ERROR,
@@ -80,6 +81,7 @@ function setupH3TracingChannels(): void {
         name: spanName,
         attributes: {
           ...urlAttributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data?.type === 'middleware' ? 'middleware.nitro' : 'http.server',
         },
       },
@@ -119,6 +121,7 @@ function setupSrvxTracingChannels(): void {
         attributes: {
           ...urlAttributes,
           ...headerAttributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data.middleware ? 'middleware.nitro' : 'http.server',
           'server.port': data.server.options.port,
         },
@@ -155,7 +158,7 @@ function setupSrvxTracingChannels(): void {
     }
 
     const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
-    const [, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx.middleware', {
+    const [, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.srvx', {
       method: data.request.method,
     });
 
@@ -165,6 +168,7 @@ function setupSrvxTracingChannels(): void {
         name: `${data.middleware?.handler.name ?? 'unknown'} - ${data.request.method} ${data.request._url?.pathname}`,
         attributes: {
           ...urlAttributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
         },
         parentSpan: requestParentSpan || undefined,
