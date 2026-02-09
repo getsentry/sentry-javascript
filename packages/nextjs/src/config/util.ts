@@ -186,7 +186,7 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
 /**
  * Extract modules from project directory's package.json
  */
-export function _getModules(projectDir: string): Record<string, string> {
+export function getPackageModules(projectDir: string): Record<string, string> {
   try {
     const packageJson = path.join(projectDir, 'package.json');
     const packageJsonContent = fs.readFileSync(packageJson, 'utf8');

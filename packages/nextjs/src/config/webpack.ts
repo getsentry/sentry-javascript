@@ -21,7 +21,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { _getModules, getNextjsVersion } from './util';
+import { getNextjsVersion,getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
@@ -425,7 +425,7 @@ export function constructWebpackConfigFunction({
     newConfig.plugins = newConfig.plugins || [];
     newConfig.plugins.push(
       new buildContext.webpack.DefinePlugin({
-        __SENTRY_SERVER_MODULES__: JSON.stringify(_getModules(projectDir)),
+        __SENTRY_SERVER_MODULES__: JSON.stringify(getPackageModules(projectDir)),
       }),
     );
 
