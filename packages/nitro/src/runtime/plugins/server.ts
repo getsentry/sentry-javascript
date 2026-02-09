@@ -7,6 +7,7 @@ import {
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  setHttpStatus,
   type Span,
   SPAN_STATUS_ERROR,
   startSpanManual,
@@ -43,8 +44,24 @@ export default definePlugin(nitroApp => {
   globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__ = true;
 });
 
-function onTraceEnd(data: { span?: Span }): void {
-  data.span?.end();
+/**
+ * Extracts the HTTP status code from a tracing channel result.
+ * The result is the return value of the traced handler, which is a Response for srvx
+ * and may or may not be a Response for h3.
+ */
+function getResponseStatusCode(result: unknown): number | undefined {
+  if (result && typeof result === 'object' && 'status' in result && typeof result.status === 'number') {
+    return result.status;
+  }
+  return undefined;
+}
+
+function onTraceEnd(data: { span?: Span; result?: unknown }): void {
+  const statusCode = getResponseStatusCode(data.result);
+  if (data.span && statusCode !== undefined) {
+    setHttpStatus(data.span, statusCode);
+    data.span.end();
+  }
 }
 
 function onTraceError(data: { span?: Span; error: unknown }): void {
@@ -120,7 +137,6 @@ function setupSrvxTracingChannels(): void {
     asyncStart: () => {},
     end: () => {},
     asyncEnd: data => {
-      // data.span?.setAttribute('http.response.status_code', data.result.);
       onTraceEnd(data);
 
       // Reset parent span reference after the fetch handler completes
