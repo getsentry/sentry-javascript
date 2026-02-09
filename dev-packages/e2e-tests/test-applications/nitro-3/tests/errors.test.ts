@@ -6,7 +6,7 @@ test('Sends an error event to Sentry', async ({ request }) => {
     return !event.type && !!event.exception?.values?.some(v => v.value === 'This is a test error');
   });
 
-  await request.get('/test-error');
+  await request.get('/api/test-error');
 
   const errorEvent = await errorEventPromise;
 
@@ -39,7 +39,7 @@ test('Does not send 404 errors to Sentry', async ({ request }) => {
     return false;
   });
 
-  await request.get('/non-existent-route');
+  await request.get('/api/non-existent-route');
 
   expect(errorReceived).toBe(false);
 });
