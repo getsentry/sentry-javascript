@@ -1,4 +1,4 @@
-import { captureException, httpRequestToRequestData, withScope } from '@sentry/core';
+import { captureException, getIsolationScope, httpRequestToRequestData, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
@@ -56,6 +56,9 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
       },
     });
   });
+
+  // Set the lastEventId on the isolation scope so it's accessible via lastEventId()
+  getIsolationScope().setLastEventId(eventId);
 
   waitUntil(flushSafelyWithTimeout());
 

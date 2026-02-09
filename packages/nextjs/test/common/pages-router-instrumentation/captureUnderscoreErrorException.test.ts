@@ -1,5 +1,8 @@
+import { lastEventId } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureUnderscoreErrorException } from '../../../src/common/pages-router-instrumentation/_error';
+
+let storedLastEventId: string | undefined = undefined;
 
 const mockCaptureException = vi.fn(() => 'test-event-id');
 const mockWithScope = vi.fn((callback: (scope: any) => any) => {
@@ -8,6 +11,13 @@ const mockWithScope = vi.fn((callback: (scope: any) => any) => {
   };
   return callback(mockScope);
 });
+const mockLastEventId = vi.fn(() => storedLastEventId);
+const mockGetIsolationScope = vi.fn(() => ({
+  setLastEventId: (id: string | undefined) => {
+    storedLastEventId = id;
+  },
+  lastEventId: () => storedLastEventId,
+}));
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -16,6 +26,8 @@ vi.mock('@sentry/core', async () => {
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     withScope: (callback: (scope: any) => any) => mockWithScope(callback),
     httpRequestToRequestData: vi.fn(() => ({ url: 'http://test.com' })),
+    lastEventId: () => mockLastEventId(),
+    getIsolationScope: () => mockGetIsolationScope(),
   };
 });
 
@@ -27,6 +39,7 @@ vi.mock('../../../src/common/utils/responseEnd', () => ({
 describe('captureUnderscoreErrorException', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    storedLastEventId = undefined;
   });
 
   afterEach(() => {
@@ -113,5 +126,20 @@ describe('captureUnderscoreErrorException', () => {
 
     expect(result).toBeUndefined();
     expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('lastEventId() should return the event ID after captureUnderscoreErrorException', async () => {
+    const error = new Error('Test error');
+    const eventId = await captureUnderscoreErrorException({
+      err: error,
+      pathname: '/test',
+      res: { statusCode: 500 } as any,
+    });
+
+    expect(eventId).toBe('test-event-id');
+    expect(mockCaptureException).toHaveBeenCalled();
+
+    const lastId = lastEventId();
+    expect(lastId).toBe('test-event-id');
   });
 });
