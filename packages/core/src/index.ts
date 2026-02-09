@@ -176,6 +176,9 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
 } from './tracing/google-genai/types';
+
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
