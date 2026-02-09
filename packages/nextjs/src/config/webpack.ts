@@ -21,7 +21,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
 } from './types';
-import { getNextjsVersion,getPackageModules } from './util';
+import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
