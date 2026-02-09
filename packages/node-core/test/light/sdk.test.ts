@@ -86,7 +86,7 @@ describe('Light Mode | SDK', () => {
 
       // Check that some expected integrations are present
       const integrationNames = integrations.map(i => i.name);
-      expect(integrationNames).toContain('InboundFilters');
+      expect(integrationNames).toContain('EventFilters');
       expect(integrationNames).toContain('FunctionToString');
       expect(integrationNames).toContain('LinkedErrors');
       expect(integrationNames).toContain('OnUncaughtException');
