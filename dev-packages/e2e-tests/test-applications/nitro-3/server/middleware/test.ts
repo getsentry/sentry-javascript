@@ -1,6 +1,10 @@
-import { defineHandler, setResponseHeader } from 'nitro/h3';
+import { defineHandler, getQuery, setResponseHeader } from 'nitro/h3';
 
 export default defineHandler(event => {
-  // Simple middleware that adds a custom header to verify it ran
   setResponseHeader(event, 'x-sentry-test-middleware', 'executed');
+
+  const query = getQuery(event);
+  if (query['middleware-error'] === '1') {
+    throw new Error('Middleware error');
+  }
 });
