@@ -4,9 +4,26 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @limbonaut. Thank you for your contribution!
+
 - **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
 
   The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+
+- **feat(nextjs): New experimental automatic vercel cron monitoring ([#19066](https://github.com/getsentry/sentry-javascript/pull/19192))**
+
+Setting `_experimental.vercelCronMonitoring` to `true` in your Sentry configuration will automatically create Sentry cron monitors for your Vercel Cron Jobs.
+
+Please note that this is an experimental unstable feature and subject to change.
+
+```ts
+// next.config.ts
+export default withSentryConfig(nextConfig, {
+  _experimental: {
+    vercelCronMonitoring: true,
+  },
+});
+```
 
 ## 10.38.0
 

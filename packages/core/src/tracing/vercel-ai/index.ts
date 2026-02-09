@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, toolCallSpanMap } from './constants';
+import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -69,6 +69,9 @@ function mapVercelAiOperationName(operationName: string): string {
   }
   if (EMBEDDINGS_OPS.has(operationName)) {
     return 'embeddings';
+  }
+  if (RERANK_OPS.has(operationName)) {
+    return 'rerank';
   }
   if (operationName === 'ai.toolCall') {
     return 'execute_tool';
@@ -148,6 +151,13 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
+
+  // Parent spans (ai.streamText, ai.streamObject, etc.) use inputTokens/outputTokens instead of promptTokens/completionTokens
+  renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, 'ai.usage.outputTokens', GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
+
+  // AI SDK uses avgOutputTokensPerSecond, map to our expected attribute name
+  renameAttributeKey(attributes, 'ai.response.avgOutputTokensPerSecond', 'ai.response.avgCompletionTokensPerSecond');
 
   // Input tokens is the sum of prompt tokens and cached input tokens
   if (
@@ -289,6 +299,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
         break;
       case 'ai.embedMany.doEmbed':
         span.updateName(`embed_many ${modelId}`);
+        break;
+      case 'ai.rerank.doRerank':
+        span.updateName(`rerank ${modelId}`);
         break;
     }
   }

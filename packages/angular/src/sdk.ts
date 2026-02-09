@@ -3,6 +3,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
   browserSessionIntegration,
+  cultureContextIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
   init as browserInit,
@@ -43,6 +44,7 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    cultureContextIntegration(),
     browserSessionIntegration(),
   ];
 }
