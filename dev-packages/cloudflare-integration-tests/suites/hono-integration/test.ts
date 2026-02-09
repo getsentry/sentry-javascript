@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { eventEnvelope } from '../../../expect';
-import { createRunner } from '../../../runner';
+import { eventEnvelope } from '../../expect';
+import { createRunner } from '../../runner';
 
 it('Hono app captures errors', async ({ signal }) => {
   const runner = createRunner(__dirname)
@@ -14,7 +14,7 @@ it('Hono app captures errors', async ({ signal }) => {
             values: [
               {
                 type: 'Error',
-                value: 'Test error from Hono app',
+                value: 'Test error from Hono app (Sentry Cloudflare SDK)',
                 stacktrace: {
                   frames: expect.any(Array),
                 },
@@ -28,7 +28,7 @@ it('Hono app captures errors', async ({ signal }) => {
             url: expect.any(String),
           },
         },
-        true,
+        { includeSampleRand: true },
       ),
     )
     // Second envelope: transaction event

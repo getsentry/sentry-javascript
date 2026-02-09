@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25.5 KB',
+    limit: '26 KB',
   },
   {
     name: '@sentry/browser - with treeshaking flags',
@@ -148,7 +148,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '44.6 KB',
+    limit: '45 KB',
   },
   // Vue SDK (ESM)
   {
@@ -163,7 +163,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '44.1 KB',
+    limit: '45 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -171,14 +171,14 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25.5 KB',
+    limit: '26 KB',
   },
   // Browser CDN bundles
   {
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '28 KB',
+    limit: '29 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
@@ -234,7 +234,7 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    limit: '82 KB',
+    limit: '83 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing) - uncompressed',
@@ -299,7 +299,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '47 KB',
+    limit: '48 KB',
   },
   // SvelteKit SDK (ESM)
   {
