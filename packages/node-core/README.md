@@ -118,13 +118,17 @@ NODE_OPTIONS="--import ./instrument.mjs" npm run start
 
 ## Lightweight Mode
 
+> [!WARNING]
 > **⚠️ Experimental**: The `@sentry/node-core/light` subpath export is experimental and may receive breaking changes in minor or patch releases.
 
-If you don't need automatic spans/transactions, you can use the lightweight mode which doesn't require OpenTelemetry dependencies. This mode is ideal for:
+> [!IMPORTANT]
+> This SDK requires Node 22.12.0+ for full functionality. If you're using lower Node versions, this SDK only offers limited tracing support. Consider using `@sentry/node` or `@sentry/node-core` instead.
 
-- Applications that don't need automatic performance monitoring
-- Reducing bundle size and runtime overhead
-- Environments where OpenTelemetry isn't needed
+If you don't need automatic spans/transactions, you can use the lightweight mode which doesn't require OpenTelemetry dependencies. This mode is ideal for when:
+
+- you only need error tracking, logs or metrics without tracing data (no spans)
+- you want to minimize bundle size and runtime overhead
+- you don't need spans emitted by OpenTelemetry instrumentation
 
 ### Installation (Light Mode)
 
@@ -200,7 +204,7 @@ app.get('/error', (req, res) => {
 
 ### Manual Request Isolation (Node.js < 22)
 
-If you're using Node.js versions below 22, automatic request isolation is not available. You'll need to manually wrap your request handlers with `withIsolationScope`:
+If you're using Node.js versions below 22.12.0, automatic request isolation is not available. You'll need to manually wrap your request handlers with `withIsolationScope`:
 
 ```js
 import * as Sentry from '@sentry/node-core/light';
@@ -228,7 +232,7 @@ app.get('/error', (req, res) => {
 
 - Manual isolation prevents scope data leakage between requests
 - However, **distributed tracing will not work correctly** - incoming `sentry-trace` and `baggage` headers won't be automatically extracted and propagated
-- For full distributed tracing support, use Node.js 22+ or the full `@sentry/node` SDK with OpenTelemetry
+- For full distributed tracing support, use Node.js 22.12.0+ or the full `@sentry/node` SDK with OpenTelemetry
 
 ## Links
 
