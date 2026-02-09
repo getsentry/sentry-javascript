@@ -27,6 +27,16 @@
         "default": "./build/cjs/index.js"
       }
     },
+    "./light": {
+      "import": {
+        "types": "./build/types/light/index.d.ts",
+        "default": "./build/esm/light/index.js"
+      },
+      "require": {
+        "types": "./build/types/light/index.d.ts",
+        "default": "./build/cjs/light/index.js"
+      }
+    },
     "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
@@ -63,12 +73,38 @@
     "@opentelemetry/instrumentation": ">=0.57.1 <1",
     "@opentelemetry/resources": "^1.30.1 || ^2.1.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1 || ^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0"
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@sentry/opentelemetry": "10.38.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/context-async-hooks": {
+      "optional": true
+    },
+    "@opentelemetry/core": {
+      "optional": true
+    },
+    "@opentelemetry/instrumentation": {
+      "optional": true
+    },
+    "@opentelemetry/resources": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace-base": {
+      "optional": true
+    },
+    "@opentelemetry/semantic-conventions": {
+      "optional": true
+    },
+    "@sentry/opentelemetry": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@apm-js-collab/tracing-hooks": "^0.3.1",
     "@sentry/core": "10.38.0",
-    "@sentry/opentelemetry": "10.38.0",
     "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
