@@ -12,6 +12,7 @@ export const INVOKE_AGENT_OPS = new Set([
   'ai.streamObject',
   'ai.embed',
   'ai.embedMany',
+  'ai.rerank',
 ]);
 
 export const GENERATE_CONTENT_OPS = new Set([
@@ -22,3 +23,5 @@ export const GENERATE_CONTENT_OPS = new Set([
 ]);
 
 export const EMBEDDINGS_OPS = new Set(['ai.embed.doEmbed', 'ai.embedMany.doEmbed']);
+
+export const RERANK_OPS = new Set(['ai.rerank.doRerank']);

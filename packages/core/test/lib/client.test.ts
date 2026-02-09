@@ -23,6 +23,7 @@ import type { SpanJSON } from '../../src/types-hoist/span';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
 import * as miscModule from '../../src/utils/misc';
 import * as timeModule from '../../src/utils/time';
+import * as timerModule from '../../src/utils/timer';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
@@ -2007,6 +2008,31 @@ describe('Client', () => {
       });
     });
 
+    test('client-level event processor that throws on all events does not cause infinite recursion', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      let processorCallCount = 0;
+      // Add processor at client level - this runs on ALL events including internal exceptions
+      client.addEventProcessor(() => {
+        processorCallCount++;
+        throw new Error('Processor always throws');
+      });
+
+      client.captureMessage('test message');
+
+      // Should be called once for the original message
+      // internal exception events skips event processors entirely.
+      expect(processorCallCount).toBe(1);
+
+      // Verify the processor error was captured and sent
+      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
+        type: 'Error',
+        value: 'Processor always throws',
+        mechanism: { type: 'internal', handled: false },
+      });
+    });
+
     test('records events dropped due to `sampleRate` option', () => {
       expect.assertions(1);
 
@@ -2204,6 +2230,53 @@ describe('Client', () => {
           expect(true).toEqual(true);
         }),
       ]);
+    });
+
+    test('flush returns immediately when nothing is processing', async () => {
+      vi.useFakeTimers();
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      // just to ensure the client init'd
+      vi.advanceTimersByTime(100);
+
+      const elapsed = Date.now();
+      const done = client.flush(1000).then(result => {
+        expect(result).toBe(true);
+        expect(Date.now() - elapsed).toBeLessThan(2);
+      });
+
+      // ensures that only after 1 ms, we're already done flushing
+      vi.advanceTimersByTime(1);
+      await done;
+    });
+
+    test('flush with early exit when processing completes', async () => {
+      vi.useRealTimers();
+      expect.assertions(3);
+
+      const { makeTransport, getSendCalled, getSentCount } = makeFakeTransport(50);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+          transport: makeTransport,
+        }),
+      );
+
+      client.captureMessage('test');
+      expect(getSendCalled()).toEqual(1);
+
+      const startTime = Date.now();
+      await client.flush(5000);
+      const elapsed = Date.now() - startTime;
+
+      expect(getSentCount()).toEqual(1);
+      // if this flakes, remove the test
+      expect(elapsed).toBeLessThan(1000);
     });
   });
 
@@ -3004,6 +3077,27 @@ describe('Client', () => {
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
     });
+
+    it('uses safeUnref on flush timer to not block process exit', () => {
+      const safeUnrefSpy = vi.spyOn(timerModule, 'safeUnref');
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Capture a log which will start the flush timer
+      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+
+      // Verify safeUnref was called on the timer
+      expect(safeUnrefSpy).toHaveBeenCalledTimes(1);
+      expect(safeUnrefSpy).toHaveBeenCalledWith(expect.anything());
+
+      safeUnrefSpy.mockRestore();
+    });
   });
 
   describe('metric weight-based flushing', () => {
@@ -3069,6 +3163,26 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses safeUnref on flush timer to not block process exit', () => {
+      const safeUnrefSpy = vi.spyOn(timerModule, 'safeUnref');
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Capture a metric which will start the flush timer
+      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+
+      // Verify safeUnref was called on the timer
+      expect(safeUnrefSpy).toHaveBeenCalledTimes(1);
+      expect(safeUnrefSpy).toHaveBeenCalledWith(expect.anything());
+
+      safeUnrefSpy.mockRestore();
     });
   });
 

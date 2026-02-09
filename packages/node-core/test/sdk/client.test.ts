@@ -99,6 +99,19 @@ describe('NodeClient', () => {
       });
     });
 
+    test('uses custom runtime when provided in options', () => {
+      const options = getDefaultNodeClientOptions({ runtime: { name: 'cloudflare' } });
+      const client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
+
+      expect(event.contexts?.runtime).toEqual({
+        name: 'cloudflare',
+      });
+    });
+
     test('adds server name to event when value passed in options', () => {
       const options = getDefaultNodeClientOptions({ serverName: 'foo' });
       const client = new NodeClient(options);
@@ -384,6 +397,28 @@ describe('NodeClient', () => {
 
       // removes `_logOnExitFlushListener`
       expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+    });
+  });
+
+  describe('flush', () => {
+    it('flush returns immediately when nothing is processing', async () => {
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      const startTime = Date.now();
+      const result = await client.flush(1000);
+      const elapsed = Date.now() - startTime;
+
+      expect(result).toBe(true);
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    it('flush does not block process exit with unref timers', async () => {
+      const options = getDefaultNodeClientOptions();
+      const client = new NodeClient(options);
+
+      const result = await client.flush(5000);
+      expect(result).toBe(true);
     });
   });
 });

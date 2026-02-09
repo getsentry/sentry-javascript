@@ -22,7 +22,7 @@ export function getMiddlewareSpanOptions(name: string): StartSpanOptions {
     op: 'middleware.tanstackstart',
     name,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual.middleware.tanstackstart',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.tanstackstart',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.tanstackstart',
     },
   };

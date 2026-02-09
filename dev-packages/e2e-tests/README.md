@@ -1,5 +1,15 @@
 # E2E Tests
 
+> **Warning**
+>
+> These test applications are **not intended to be used as example apps or templates**. They may contain:
+>
+> - Outdated or deprecated dependency versions used for backwards compatibility testing
+> - Known security vulnerabilities in dependencies that we intentionally test against
+> - Non-production-ready configurations and code patterns
+>
+> For official examples and best practices, please refer to our [official documentation](https://docs.sentry.io/).
+
 E2E tests enable us to verify the behavior of the packages in this repository as if they were to be published in their
 current state.
 

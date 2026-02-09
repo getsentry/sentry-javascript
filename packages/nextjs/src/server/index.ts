@@ -31,10 +31,12 @@ import {
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
+import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 
 export * from '@sentry/node';
 
@@ -91,6 +93,18 @@ export function showReportDialog(): void {
   return;
 }
 
+/**
+ * Returns the runtime configuration for the SDK based on the environment.
+ * When running on OpenNext/Cloudflare, returns cloudflare runtime config.
+ */
+function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined {
+  if (isCloudflareWaitUntilAvailable()) {
+    // todo: add version information?
+    return { runtime: { name: 'cloudflare' } };
+  }
+  return undefined;
+}
+
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): NodeClient | undefined {
   prepareSafeIdGeneratorContext();
@@ -128,11 +142,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  // Detect if running on OpenNext/Cloudflare and get runtime config
+  const cloudflareConfig = getCloudflareRuntimeConfig();
+
   const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
+    // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
+    ...cloudflareConfig,
   };
 
   if (DEBUG_BUILD && opts.debug) {
@@ -146,9 +165,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
     return;
   }
 
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
+  // Use appropriate SDK metadata based on the runtime environment
+  applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
+
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
@@ -170,6 +191,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanEnd', maybeCompleteCronCheckIn);
 
   getGlobalScope().addEventProcessor(
     Object.assign(

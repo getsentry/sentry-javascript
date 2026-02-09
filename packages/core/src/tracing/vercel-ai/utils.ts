@@ -9,6 +9,7 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
+  GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
   GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
@@ -236,6 +237,7 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamObject':
     case 'ai.embed':
     case 'ai.embedMany':
+    case 'ai.rerank':
       return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
     case 'ai.generateText.doGenerate':
       return GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE;
@@ -249,6 +251,8 @@ export function getSpanOpFromName(name: string): string | undefined {
       return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
     case 'ai.embedMany.doEmbed':
       return GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE;
+    case 'ai.rerank.doRerank':
+      return GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE;
     case 'ai.toolCall':
       return GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE;
     default:
