@@ -3,15 +3,18 @@ import {
   getActiveSpan,
   getClient,
   getHttpSpanDetailsFromUrlObject,
+  getRootSpan,
   GLOBAL_OBJ,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   type Span,
   SPAN_STATUS_ERROR,
   startSpanManual,
+  updateSpanName,
 } from '@sentry/core';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import { tracingChannel } from 'otel-tracing-channel';
@@ -69,12 +72,37 @@ function onTraceError(data: { span?: Span; error: unknown }): void {
   data.span?.end();
 }
 
+/**
+ * Extracts the parameterized route pattern from the h3 event context.
+ */
+function getParameterizedRoute(event: H3TracingRequestEvent['event']): string | undefined {
+  const matchedRoute = event.context?.matchedRoute;
+  if (!matchedRoute) {
+    return undefined;
+  }
+
+  const routePath = matchedRoute.route;
+
+  // Skip catch-all routes as they're not useful for transaction grouping
+  if (!routePath || routePath === '/**') {
+    return undefined;
+  }
+
+  return routePath;
+}
+
 function setupH3TracingChannels(): void {
   const h3Channel = tracingChannel<H3TracingRequestEvent>('h3.request', data => {
     const parsedUrl = parseStringToURLObject(data.event.url.href);
-    const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(parsedUrl, 'server', 'auto.http.nitro.h3', {
-      method: data.event.req.method,
-    });
+    const routePattern = getParameterizedRoute(data.event);
+
+    const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(
+      parsedUrl,
+      'server',
+      'auto.http.nitro.h3',
+      { method: data.event.req.method },
+      routePattern,
+    );
 
     return startSpanManual(
       {
@@ -93,7 +121,30 @@ function setupH3TracingChannels(): void {
     start: NOOP,
     asyncStart: NOOP,
     end: NOOP,
-    asyncEnd: onTraceEnd,
+    asyncEnd: (data: H3TracingRequestEvent & { span?: Span; result?: unknown }) => {
+      onTraceEnd(data);
+
+      if (!data.span) {
+        return;
+      }
+
+      // Update the root span (srvx transaction) with the parameterized route name.
+      // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
+      // Note: data.type is always 'middleware' in asyncEnd regardless of handler type,
+      // so we rely on getParameterizedRoute() to filter out catch-all routes instead.
+      const rootSpan = getRootSpan(data.span);
+      if (rootSpan && rootSpan !== data.span) {
+        const routePattern = getParameterizedRoute(data.event);
+        if (routePattern) {
+          const method = data.event.req.method || 'GET';
+          updateSpanName(rootSpan, `${method} ${routePattern}`);
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            'http.route': routePattern,
+          });
+        }
+      }
+    },
     error: onTraceError,
   });
 }
