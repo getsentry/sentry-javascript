@@ -17,13 +17,13 @@ test('Sends a transaction event for a successful route', async ({ request }) => 
     }),
   );
 
-  expect(transactionEvent.contexts?.trace).toEqual(
-    expect.objectContaining({
-      op: expect.stringContaining('http'),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    }),
-  );
+  // srvx.request creates a span for the request
+  const srvxSpans = transactionEvent.spans?.filter(span => span.origin === 'auto.http.nitro.srvx');
+  expect(srvxSpans?.length).toBeGreaterThanOrEqual(1);
+
+  // h3 creates a child span for the route handler
+  const h3Spans = transactionEvent.spans?.filter(span => span.origin === 'auto.http.nitro.h3');
+  expect(h3Spans?.length).toBeGreaterThanOrEqual(1);
 });
 
 test('Sets correct HTTP status code on transaction', async ({ request }) => {
