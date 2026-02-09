@@ -26,7 +26,6 @@ import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { defaultStackParser, getSentryRelease } from '../sdk/api';
-import { initializeEsmLoader } from '../sdk/esmLoader';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
@@ -100,10 +99,6 @@ function _init(
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
       });
     }
-  }
-
-  if (options.registerEsmLoaderHooks !== false) {
-    initializeEsmLoader();
   }
 
   // Use AsyncLocalStorage-based context strategy instead of OpenTelemetry
