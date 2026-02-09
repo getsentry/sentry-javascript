@@ -25,6 +25,12 @@ export function setupSentryNitroModule(
   _moduleOptions?: SentryNitroOptions,
   _serverConfigFile?: string,
 ): NitroConfig {
+  // @ts-expect-error Nitro tracing config is not out yet
+  if (!config.tracing) {
+    // @ts-expect-error Nitro tracing config is not out yet
+    config.tracing = true;
+  }
+
   config.modules = config.modules || [];
   config.modules.push(createNitroModule());
 
