@@ -11,7 +11,6 @@ const mockWithScope = vi.fn((callback: (scope: any) => any) => {
   };
   return callback(mockScope);
 });
-const mockLastEventId = vi.fn(() => storedLastEventId);
 const mockGetIsolationScope = vi.fn(() => ({
   setLastEventId: (id: string | undefined) => {
     storedLastEventId = id;
@@ -26,7 +25,7 @@ vi.mock('@sentry/core', async () => {
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     withScope: (callback: (scope: any) => any) => mockWithScope(callback),
     httpRequestToRequestData: vi.fn(() => ({ url: 'http://test.com' })),
-    lastEventId: () => mockLastEventId(),
+    lastEventId: () => mockGetIsolationScope().lastEventId(),
     getIsolationScope: () => mockGetIsolationScope(),
   };
 });
@@ -128,18 +127,37 @@ describe('captureUnderscoreErrorException', () => {
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
-  it('lastEventId() should return the event ID after captureUnderscoreErrorException', async () => {
-    const error = new Error('Test error');
+  it('should return existing event ID for already captured errors without re-capturing', async () => {
+    // Set up an existing event ID in the isolation scope
+    storedLastEventId = 'existing-event-id';
+
+    // Create an error that has already been captured (marked with __sentry_captured__)
+    const error = new Error('Already captured error');
+    (error as any).__sentry_captured__ = true;
+
     const eventId = await captureUnderscoreErrorException({
       err: error,
       pathname: '/test',
       res: { statusCode: 500 } as any,
     });
 
+    // Should return the existing event ID
+    expect(eventId).toBe('existing-event-id');
+    // Should NOT call captureException again
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('should capture string errors even if they were marked as captured', async () => {
+    // String errors can't have __sentry_captured__ property, so they should always be captured
+    const errorString = 'String error';
+
+    const eventId = await captureUnderscoreErrorException({
+      err: errorString,
+      pathname: '/test',
+      res: { statusCode: 500 } as any,
+    });
+
     expect(eventId).toBe('test-event-id');
     expect(mockCaptureException).toHaveBeenCalled();
-
-    const lastId = lastEventId();
-    expect(lastId).toBe('test-event-id');
   });
 });
