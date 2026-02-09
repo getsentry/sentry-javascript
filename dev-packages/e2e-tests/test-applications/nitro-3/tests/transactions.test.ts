@@ -59,3 +59,12 @@ test('Sends a transaction event for a parameterized route', async ({ request }) 
     }),
   );
 });
+
+test('Sets Server-Timing response headers for trace propagation', async ({ request }) => {
+  const response = await request.get('/test-transaction');
+  const headers = response.headers();
+
+  expect(headers['server-timing']).toBeDefined();
+  expect(headers['server-timing']).toContain('sentry-trace;desc="');
+  expect(headers['server-timing']).toContain('baggage;desc="');
+});
