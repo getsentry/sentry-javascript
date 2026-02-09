@@ -3,16 +3,16 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a transaction event for a successful route', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('nitro-3', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-transaction';
+    return transactionEvent?.transaction === 'GET /api/test-transaction';
   });
 
-  await request.get('/test-transaction');
+  await request.get('/api/test-transaction');
 
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      transaction: 'GET /test-transaction',
+      transaction: 'GET /api/test-transaction',
       type: 'transaction',
     }),
   );
@@ -28,10 +28,10 @@ test('Sends a transaction event for a successful route', async ({ request }) => 
 
 test('Sets correct HTTP status code on transaction', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('nitro-3', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-transaction';
+    return transactionEvent?.transaction === 'GET /api/test-transaction';
   });
 
-  await request.get('/test-transaction');
+  await request.get('/api/test-transaction');
 
   const transactionEvent = await transactionEventPromise;
 
@@ -46,10 +46,10 @@ test('Sets correct HTTP status code on transaction', async ({ request }) => {
 
 test('Sends a transaction event for a parameterized route', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('nitro-3', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-param/123';
+    return transactionEvent?.transaction === 'GET /api/test-param/123';
   });
 
-  await request.get('/test-param/123');
+  await request.get('/api/test-param/123');
 
   const transactionEvent = await transactionEventPromise;
 
@@ -61,7 +61,7 @@ test('Sends a transaction event for a parameterized route', async ({ request }) 
 });
 
 test('Sets Server-Timing response headers for trace propagation', async ({ request }) => {
-  const response = await request.get('/test-transaction');
+  const response = await request.get('/api/test-transaction');
   const headers = response.headers();
 
   expect(headers['server-timing']).toBeDefined();
