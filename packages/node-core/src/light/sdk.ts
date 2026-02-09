@@ -31,6 +31,7 @@ import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
 import { envToBool } from '../utils/envToBool';
+import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';
 import { httpServerIntegration } from './integrations/httpServerIntegration';
@@ -143,8 +144,7 @@ function getClientOptions(
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClientOptions {
   const release = getRelease(options.release);
-  const spotlight =
-    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
+  const spotlight = getSpotlightConfig(options.spotlight);
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const mergedOptions = {
