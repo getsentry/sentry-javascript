@@ -15,6 +15,7 @@ import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import { definePlugin } from 'nitro';
 import { tracingChannel } from 'otel-tracing-channel';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
+import { captureErrorHook } from '../hooks/captureErrorHook';
 
 /**
  * Global object with the trace channels
@@ -28,10 +29,14 @@ const globalWithTraceChannels = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  */
 const NOOP = (): void => {};
 
-export default definePlugin(() => {
+export default definePlugin(nitroApp => {
   if (globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__) {
     return;
   }
+
+  // FIXME: Nitro hooks are not typed it seems
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  nitroApp.hooks.hook('error', captureErrorHook);
 
   setupH3TracingChannels();
   setupSrvxTracingChannels();
