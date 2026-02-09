@@ -44,9 +44,9 @@ test('Sets correct HTTP status code on transaction', async ({ request }) => {
   expect(transactionEvent.contexts?.trace?.status).toBe('ok');
 });
 
-test('Sends a transaction event for a parameterized route', async ({ request }) => {
+test('Uses parameterized route for transaction name', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('nitro-3', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /api/test-param/123';
+    return transactionEvent?.transaction === 'GET /api/test-param/:id';
   });
 
   await request.get('/api/test-param/123');
@@ -55,7 +55,15 @@ test('Sends a transaction event for a parameterized route', async ({ request }) 
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
+      transaction: 'GET /api/test-param/:id',
+      transaction_info: expect.objectContaining({ source: 'route' }),
       type: 'transaction',
+    }),
+  );
+
+  expect(transactionEvent.contexts?.trace?.data).toEqual(
+    expect.objectContaining({
+      'http.route': '/api/test-param/:id',
     }),
   );
 });
