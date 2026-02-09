@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "nitro build",
-    "start": "PORT=3030 NODE_OPTIONS='--import ./instrument.mjs' npx srvx --prod .output/",
+    "start": "PORT=3030 NODE_OPTIONS='--import ./instrument.mjs' srvx --prod .output/",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
@@ -17,8 +17,10 @@
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
     "nitro": "https://pkg.pr.new/nitrojs/nitro@4001",
-    "rolldown": "latest"
+    "rolldown": "latest",
+    "srvx": "^0.11.2"
   },
   "volta": {
     "extends": "../../package.json"
