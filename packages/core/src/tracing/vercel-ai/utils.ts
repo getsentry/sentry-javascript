@@ -106,22 +106,61 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
 }
 
 /**
- * Convert the prompt string to messages array
+ * Filter out invalid entries in messages array
+ * @param input - The input array to filter
+ * @returns The filtered array
  */
-export function convertPromptToMessages(prompt: string): { role: string; content: string }[] {
+function filterMessagesArray(input: unknown[]): { role: string; content: string }[] {
+  return input.filter(
+    (m: unknown): m is { role: string; content: string } =>
+      !!m && typeof m === 'object' && 'role' in m && 'content' in m,
+  );
+}
+
+/**
+ * Normalize the user input (stringified object with prompt, system, messages) to messages array
+ */
+export function convertUserInputToMessagesFormat(userInput: string): { role: string; content: string }[] {
   try {
-    const p = JSON.parse(prompt);
+    const p = JSON.parse(userInput);
     if (!!p && typeof p === 'object') {
+      let { messages } = p;
       const { prompt, system } = p;
-      if (typeof prompt === 'string' || typeof system === 'string') {
-        const messages: { role: string; content: string }[] = [];
-        if (typeof system === 'string') {
-          messages.push({ role: 'system', content: system });
+      const result: { role: string; content: string }[] = [];
+
+      // prepend top-level system instruction if present
+      if (typeof system === 'string') {
+        result.push({ role: 'system', content: system });
+      }
+
+      // stringified messages array
+      if (typeof messages === 'string') {
+        try {
+          messages = JSON.parse(messages);
+        } catch {
+          // ignore parse errors
         }
-        if (typeof prompt === 'string') {
-          messages.push({ role: 'user', content: prompt });
-        }
-        return messages;
+      }
+
+      // messages array format: { messages: [...] }
+      if (Array.isArray(messages)) {
+        result.push(...filterMessagesArray(messages));
+        return result;
+      }
+
+      // prompt array format: { prompt: [...] }
+      if (Array.isArray(prompt)) {
+        result.push(...filterMessagesArray(prompt));
+        return result;
+      }
+
+      // prompt string format: { prompt: "..." }
+      if (typeof prompt === 'string') {
+        result.push({ role: 'user', content: prompt });
+      }
+
+      if (result.length > 0) {
+        return result;
       }
     }
     // eslint-disable-next-line no-empty
@@ -134,17 +173,17 @@ export function convertPromptToMessages(prompt: string): { role: string; content
  * invoke_agent op
  */
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
-  if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
-    span.setAttribute('gen_ai.prompt', truncatedPrompt);
-  }
-  const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
-    typeof prompt === 'string' &&
+    typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
-    const messages = convertPromptToMessages(prompt);
+    // No messages array is present, so we need to convert the prompt to the proper messages format
+    // This is the case for ai.generateText spans
+    // The ai.prompt attribute is a stringified object with prompt, system, messages attributes
+    // The format of these is described in the vercel docs, for instance: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object#parameters
+    const userInput = attributes[AI_PROMPT_ATTRIBUTE];
+    const messages = convertUserInputToMessagesFormat(userInput);
     if (messages.length) {
       const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
@@ -153,12 +192,17 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
 
       const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+      const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
       span.setAttributes({
-        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+        [AI_PROMPT_ATTRIBUTE]: truncatedMessages,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
         [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
+    // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
+    // This is the case for ai.generateText.doGenerate spans
     try {
       const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
       if (Array.isArray(messages)) {
@@ -169,9 +213,11 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+        const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
         span.setAttributes({
-          [AI_PROMPT_MESSAGES_ATTRIBUTE]: undefined,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
