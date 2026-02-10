@@ -179,17 +179,13 @@ export function init(options: VercelEdgeOptions = {}): void {
             return null;
           }
 
-          // Defensive check: Drop empty BaseServer.handleRequest transactions that leaked through
-          // when dropNextjsRootContext() failed to set the drop attribute (e.g. due to AsyncLocalStorage
-          // context loss).
+          // Drop noisy empty BaseServer.handleRequest transactions
           if (isEmptyBaseServerTrace(event)) {
             return null;
           }
-
-          return event;
-        } else {
-          return event;
         }
+
+        return event;
       }) satisfies EventProcessor,
       { id: 'NextLowQualityTransactionsFilter' },
     ),
