@@ -22,9 +22,7 @@ describe('NextLowQualityTransactionsFilter', () => {
     init({});
 
     const eventProcessors = getGlobalScope()['_eventProcessors'];
-    const processor = eventProcessors.find(
-      (p: { id?: string }) => p.id === 'NextLowQualityTransactionsFilter',
-    );
+    const processor = eventProcessors.find((p: { id?: string }) => p.id === 'NextLowQualityTransactionsFilter');
     expect(processor).toBeDefined();
     return processor as (event: Event) => Event | null;
   }
@@ -32,17 +30,19 @@ describe('NextLowQualityTransactionsFilter', () => {
   it('drops transactions with sentry.drop_transaction attribute', () => {
     const processor = getEventProcessor();
 
-    const event: Event = {
+    const event = {
       type: 'transaction',
       transaction: 'GET /api/hello',
       contexts: {
         trace: {
+          trace_id: 'abc123',
+          span_id: 'def456',
           data: {
             'sentry.drop_transaction': true,
           },
         },
       },
-    };
+    } as Event;
 
     expect(processor(event)).toBeNull();
   });
@@ -50,7 +50,7 @@ describe('NextLowQualityTransactionsFilter', () => {
   it('drops empty BaseServer.handleRequest transactions (defensive check for context loss)', () => {
     const processor = getEventProcessor();
 
-    const event: Event = {
+    const event = {
       type: 'transaction',
       transaction: 'GET /api/hello',
       contexts: {
@@ -64,7 +64,7 @@ describe('NextLowQualityTransactionsFilter', () => {
         },
       },
       spans: [],
-    };
+    } as Event;
 
     expect(processor(event)).toBeNull();
   });
@@ -72,7 +72,7 @@ describe('NextLowQualityTransactionsFilter', () => {
   it('drops BaseServer.handleRequest transactions with undefined spans', () => {
     const processor = getEventProcessor();
 
-    const event: Event = {
+    const event = {
       type: 'transaction',
       transaction: 'GET /api/hello',
       contexts: {
@@ -85,7 +85,7 @@ describe('NextLowQualityTransactionsFilter', () => {
         },
       },
       // spans is undefined
-    };
+    } as Event;
 
     expect(processor(event)).toBeNull();
   });
@@ -93,7 +93,7 @@ describe('NextLowQualityTransactionsFilter', () => {
   it('keeps BaseServer.handleRequest transactions with child spans', () => {
     const processor = getEventProcessor();
 
-    const event: Event = {
+    const event = {
       type: 'transaction',
       transaction: 'GET /api/hello',
       contexts: {
@@ -112,10 +112,11 @@ describe('NextLowQualityTransactionsFilter', () => {
           parent_span_id: 'def456',
           start_timestamp: 1000,
           timestamp: 1001,
+          data: {},
           description: 'executing api route (pages) /api/hello',
         },
       ],
-    };
+    } as Event;
 
     expect(processor(event)).toBe(event);
   });
@@ -123,7 +124,7 @@ describe('NextLowQualityTransactionsFilter', () => {
   it('keeps non-BaseServer.handleRequest transactions even without spans', () => {
     const processor = getEventProcessor();
 
-    const event: Event = {
+    const event = {
       type: 'transaction',
       transaction: 'GET /api/hello',
       contexts: {
@@ -136,7 +137,7 @@ describe('NextLowQualityTransactionsFilter', () => {
         },
       },
       spans: [],
-    };
+    } as Event;
 
     expect(processor(event)).toBe(event);
   });
@@ -186,9 +187,9 @@ describe('isEmptyBaseServerTrace', () => {
     expect(
       isEmptyBaseServerTrace({
         type: 'transaction',
-        contexts: { trace: { data: { 'next.span_type': 'BaseServer.handleRequest' } } },
+        contexts: { trace: { trace_id: 'a', span_id: 'b', data: { 'next.span_type': 'BaseServer.handleRequest' } } },
         spans: [],
-      }),
+      } as Event),
     ).toBe(true);
   });
 
@@ -196,8 +197,8 @@ describe('isEmptyBaseServerTrace', () => {
     expect(
       isEmptyBaseServerTrace({
         type: 'transaction',
-        contexts: { trace: { data: { 'next.span_type': 'BaseServer.handleRequest' } } },
-      }),
+        contexts: { trace: { trace_id: 'a', span_id: 'b', data: { 'next.span_type': 'BaseServer.handleRequest' } } },
+      } as Event),
     ).toBe(true);
   });
 
@@ -205,9 +206,9 @@ describe('isEmptyBaseServerTrace', () => {
     expect(
       isEmptyBaseServerTrace({
         type: 'transaction',
-        contexts: { trace: { data: { 'next.span_type': 'BaseServer.handleRequest' } } },
-        spans: [{ span_id: 'child', trace_id: 'abc', start_timestamp: 0 }],
-      }),
+        contexts: { trace: { trace_id: 'a', span_id: 'b', data: { 'next.span_type': 'BaseServer.handleRequest' } } },
+        spans: [{ span_id: 'child', trace_id: 'a', start_timestamp: 0, data: {} }],
+      } as Event),
     ).toBe(false);
   });
 
@@ -215,9 +216,9 @@ describe('isEmptyBaseServerTrace', () => {
     expect(
       isEmptyBaseServerTrace({
         type: 'transaction',
-        contexts: { trace: { data: { 'sentry.origin': 'auto.http.nextjs' } } },
+        contexts: { trace: { trace_id: 'a', span_id: 'b', data: { 'sentry.origin': 'auto.http.nextjs' } } },
         spans: [],
-      }),
+      } as Event),
     ).toBe(false);
   });
 
