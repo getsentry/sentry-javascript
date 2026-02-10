@@ -1,29 +1,25 @@
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
 import type { ClientRequest, IncomingMessage, RequestOptions, Server } from 'node:http';
-import type { Integration, IntegrationFn, SanitizedRequestData } from '@sentry/core';
+import type { Integration, IntegrationFn } from '@sentry/core';
 import {
-  addBreadcrumb,
   continueTrace,
   debug,
   generateSpanId,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getClient,
   getCurrentScope,
   getIsolationScope,
-  getSanitizedUrlString,
-  getTraceData,
   httpRequestToRequestData,
-  isError,
   LRUMap,
-  parseUrl,
-  shouldPropagateTraceForUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
-import { mergeBaggageHeaders } from '../../utils/baggage';
 import { patchRequestToCaptureBody } from '../../utils/captureRequestBody';
+import {
+  addRequestBreadcrumb,
+  addTracePropagationHeadersToOutgoingRequest,
+  getRequestOptions,
+} from '../../utils/outgoingHttpRequest';
 import type { LightNodeClient } from '../client';
 
 const INTEGRATION_NAME = 'Http';
@@ -227,7 +223,7 @@ function onOutgoingRequestCreated(
     return;
   }
 
-  addTracePropagationHeaders(request, propagationDecisionMap);
+  addTracePropagationHeadersToOutgoingRequest(request, propagationDecisionMap);
 }
 
 function onOutgoingRequestFinish(
@@ -251,7 +247,7 @@ function onOutgoingRequestFinish(
     return;
   }
 
-  addOutgoingRequestBreadcrumb(request, response);
+  addRequestBreadcrumb(request, response);
 }
 
 /** Check if the given outgoing request should be ignored. */
@@ -265,135 +261,6 @@ function shouldIgnoreOutgoingRequest(
     return false;
   }
 
-  const url = getOutgoingRequestUrl(request);
-  const requestOptions = getOutgoingRequestOptions(request);
-  return ignoreOutgoingRequests(url, requestOptions);
-}
-
-// eslint-disable-next-line complexity
-function addTracePropagationHeaders(request: ClientRequest, propagationDecisionMap: LRUMap<string, boolean>): void {
-  const url = getOutgoingRequestUrl(request);
-
-  const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
-  const headersToAdd = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData({ propagateTraceparent })
-    : undefined;
-
-  if (!headersToAdd) {
-    return;
-  }
-
-  const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
-
-  if (sentryTrace && !request.getHeader('sentry-trace')) {
-    try {
-      request.setHeader('sentry-trace', sentryTrace);
-      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Added sentry-trace header to outgoing request');
-    } catch (error) {
-      DEBUG_BUILD &&
-        debug.error(
-          INTEGRATION_NAME,
-          'Failed to add sentry-trace header to outgoing request:',
-          isError(error) ? error.message : 'Unknown error',
-        );
-    }
-  }
-
-  if (traceparent && !request.getHeader('traceparent')) {
-    try {
-      request.setHeader('traceparent', traceparent);
-      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Added traceparent header to outgoing request');
-    } catch (error) {
-      DEBUG_BUILD &&
-        debug.error(
-          INTEGRATION_NAME,
-          'Failed to add traceparent header to outgoing request:',
-          isError(error) ? error.message : 'Unknown error',
-        );
-    }
-  }
-
-  if (baggage) {
-    const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
-    if (newBaggage) {
-      try {
-        request.setHeader('baggage', newBaggage);
-        DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Added baggage header to outgoing request');
-      } catch (error) {
-        DEBUG_BUILD &&
-          debug.error(
-            INTEGRATION_NAME,
-            'Failed to add baggage header to outgoing request:',
-            isError(error) ? error.message : 'Unknown error',
-          );
-      }
-    }
-  }
-}
-
-/** Add a breadcrumb for outgoing requests. */
-function addOutgoingRequestBreadcrumb(request: ClientRequest, response: IncomingMessage | undefined): void {
-  const data = getOutgoingBreadcrumbData(request);
-  const statusCode = response?.statusCode;
-  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
-
-  addBreadcrumb(
-    {
-      category: 'http',
-      data: {
-        status_code: statusCode,
-        ...data,
-      },
-      type: 'http',
-      level,
-    },
-    {
-      event: 'response',
-      request,
-      response,
-    },
-  );
-}
-
-function getOutgoingBreadcrumbData(request: ClientRequest): Partial<SanitizedRequestData> {
-  try {
-    const host = request.getHeader('host') || request.host;
-    const url = new URL(request.path, `${request.protocol}//${host}`);
-    const parsedUrl = parseUrl(url.toString());
-
-    const data: Partial<SanitizedRequestData> = {
-      url: getSanitizedUrlString(parsedUrl),
-      'http.method': request.method || 'GET',
-    };
-
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
-    }
-
-    return data;
-  } catch {
-    return {};
-  }
-}
-
-function getOutgoingRequestUrl(request: ClientRequest): string {
-  const hostname = request.getHeader('host') || request.host;
-  const protocol = request.protocol;
-  const path = request.path;
-
-  return `${protocol}//${hostname}${path}`;
-}
-
-function getOutgoingRequestOptions(request: ClientRequest): RequestOptions {
-  return {
-    method: request.method,
-    protocol: request.protocol,
-    host: request.host,
-    hostname: request.host,
-    path: request.path,
-    headers: request.getHeaders(),
-  };
+  const url = `${request.protocol}//${request.getHeader('host') || request.host}${request.path}`;
+  return ignoreOutgoingRequests(url, getRequestOptions(request));
 }
