@@ -60,6 +60,7 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
+    "@nuxt/nitro-server": "^3.21.1",
     "nuxi": "^3.25.1",
     "nuxt": "^3.21.1",
     "vite": "^5.4.11"

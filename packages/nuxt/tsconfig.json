@@ -5,6 +5,8 @@
 
   "compilerOptions": {
     // package-specific options
-    "module": "esnext"
+    "module": "esnext",
+    // https://github.com/nuxt/nuxt/pull/34039#issuecomment-3878908844
+    "types": ["@nuxt/nitro-server"]
   }
 }

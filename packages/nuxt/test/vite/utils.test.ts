@@ -89,7 +89,7 @@ describe('findDefaultSdkInitFile', () => {
           },
         ],
       },
-    } as Nuxt;
+    } as unknown as Nuxt;
 
     const result = findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
@@ -115,7 +115,7 @@ describe('findDefaultSdkInitFile', () => {
           },
         ],
       },
-    } as Nuxt;
+    } as unknown as Nuxt;
 
     const result = findDefaultSdkInitFile('server', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
@@ -137,7 +137,7 @@ describe('findDefaultSdkInitFile', () => {
           },
         ],
       },
-    } as Nuxt;
+    } as unknown as Nuxt;
 
     const result = findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch('packages/nuxt/sentry.client.config.ts');

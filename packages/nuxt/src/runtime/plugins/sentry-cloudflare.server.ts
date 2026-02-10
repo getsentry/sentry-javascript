@@ -99,7 +99,6 @@ export const sentryCloudflareNitroPlugin =
 
     nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
-    // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
       let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
 
