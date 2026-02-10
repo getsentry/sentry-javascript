@@ -78,7 +78,7 @@ describe('matchRouteManifest', () => {
   describe('specificity sorting (React Router parity)', () => {
     // Verifies our sorting matches React Router's computeScore() algorithm
     // See: https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
-    // React Router scoring: static=10, dynamic=3, splat=-2 penalty
+    // React Router scoring: base=segments.length, static=+10, dynamic=+3, empty=+1, splat=-2 (once)
     // For equal scores, manifest order is preserved (same as React Router)
 
     it('returns more specific route when multiple match', () => {
@@ -110,9 +110,21 @@ describe('matchRouteManifest', () => {
     });
 
     it('prefers static segments over dynamic in wildcard patterns (React Router: static=10 > dynamic=3)', () => {
-      // /a/b/* ranks higher than /:x/:y/:z/* despite fewer prefix segments
+      // Static segments outscore dynamic even with fewer total segments
       const m = ['/:x/:y/:z/*', '/a/b/*'];
       expect(matchRouteManifest('/a/b/c/d', m)).toBe('/a/b/*');
+    });
+
+    it('prefers more segments when base score outweighs segment types (React Router parity)', () => {
+      // More segments = higher base score, can outweigh static vs dynamic difference
+      const m = ['/d/*', '/:a/:b/:c/*'];
+      expect(matchRouteManifest('/d/e/f/g', m)).toBe('/:a/:b/:c/*');
+    });
+
+    it('treats invalid param patterns as static segments (React Router parity)', () => {
+      // React Router uses /^:[\w-]+$/ so bare ":" is not a param, scores as static
+      const m = ['/:', '/:id'];
+      expect(matchRouteManifest('/:', m)).toBe('/:');
     });
   });
 

@@ -111,7 +111,7 @@ function segmentMatches(pathSegment: string | undefined, patternSegment: string 
     return false;
   }
   // Parameter matches anything
-  if (patternSegment.startsWith(':')) {
+  if (PARAM_RE.test(patternSegment)) {
     return true;
   }
   // Literal must match exactly
@@ -126,23 +126,38 @@ function splitPath(path: string): string[] {
 }
 
 /**
- * React Router scoring weights.
+ * React Router scoring weights and param detection.
  * https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
  */
+const PARAM_RE = /^:[\w-]+$/;
 const STATIC_SEGMENT_SCORE = 10;
 const DYNAMIC_SEGMENT_SCORE = 3;
+const EMPTY_SEGMENT_SCORE = 1;
 const SPLAT_PENALTY = -2;
 
-/** Computes a specificity score for a route pattern. */
+/**
+ * Computes a specificity score for a route pattern.
+ * Matches React Router's computeScore() algorithm exactly.
+ */
 function computeScore(pattern: string): number {
-  const segments = splitPath(pattern);
-  let score = 0;
+  const segments = pattern.split('/');
+
+  // Base score is segment count (including empty segment from leading slash)
+  let score = segments.length;
+
+  // Apply splat penalty once if pattern contains wildcard
+  if (segments.includes('*')) {
+    score += SPLAT_PENALTY;
+  }
 
   for (const segment of segments) {
     if (segment === '*') {
-      score += SPLAT_PENALTY;
-    } else if (segment.startsWith(':')) {
+      // Splat penalty already applied globally above
+      continue;
+    } else if (PARAM_RE.test(segment)) {
       score += DYNAMIC_SEGMENT_SCORE;
+    } else if (segment === '') {
+      score += EMPTY_SEGMENT_SCORE;
     } else {
       score += STATIC_SEGMENT_SCORE;
     }
@@ -156,7 +171,7 @@ function computeScore(pattern: string): number {
  * Implements React Router's ranking algorithm from computeScore():
  * https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
  *
- * React Router scoring: static=10, dynamic=3, splat=-2 penalty
+ * React Router scoring: base=segments.length, static=+10, dynamic=+3, empty=+1, splat=-2 (once)
  * Higher score = more specific pattern.
  * Equal scores preserve manifest order (same as React Router).
  *
