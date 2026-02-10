@@ -6,7 +6,7 @@ import type { NitroModule } from 'nitro/types';
 export function createNitroModule(): NitroModule {
   return {
     name: 'sentry',
-    setup: nitro => {
+    setup: _nitro => {
       // TODO: Setup the Sentry SDK.
     },
   };
