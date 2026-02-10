@@ -61,7 +61,7 @@
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
     "nuxi": "^3.25.1",
-    "nuxt": "^3.13.2",
+    "nuxt": "^3.21.1",
     "vite": "^5.4.11"
   },
   "scripts": {
