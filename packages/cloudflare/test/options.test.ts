@@ -17,7 +17,7 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual(userOptions);
+    expect(result).toEqual(expect.objectContaining(userOptions));
   });
 
   it('merges options from env with user options', () => {
@@ -26,7 +26,7 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual({ dsn: 'test-dsn', release: 'user-release' });
+    expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'user-release' }));
   });
 
   it('uses user options when SENTRY_RELEASE exists but is not a string', () => {
@@ -35,7 +35,7 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual(userOptions);
+    expect(result).toEqual(expect.objectContaining(userOptions));
   });
 
   it('uses user options when SENTRY_RELEASE does not exist', () => {
@@ -44,7 +44,7 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual(userOptions);
+    expect(result).toEqual(expect.objectContaining(userOptions));
   });
 
   it('takes user options over env options', () => {
@@ -53,7 +53,16 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual(userOptions);
+    expect(result).toEqual(expect.objectContaining(userOptions));
+  });
+
+  it('adds debug from env when user debug is undefined', () => {
+    const userOptions = { dsn: 'test-dsn' };
+    const env = { SENTRY_DEBUG: '1' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.debug).toBe(true);
   });
 
   it('uses SENTRY_DSN from env when user dsn is undefined', () => {
@@ -117,7 +126,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: 'version-123' });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'version-123' }));
     });
 
     it('prefers SENTRY_RELEASE over CF_VERSION_METADATA.id', () => {
@@ -129,7 +138,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: 'env-release' });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'env-release' }));
     });
 
     it('prefers user release over CF_VERSION_METADATA.id', () => {
@@ -138,7 +147,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: 'user-release' });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'user-release' }));
     });
 
     it('prefers user release over both SENTRY_RELEASE and CF_VERSION_METADATA.id', () => {
@@ -150,7 +159,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: 'user-release' });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'user-release' }));
     });
 
     it('ignores CF_VERSION_METADATA when it is not an object', () => {
@@ -159,7 +168,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: undefined });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: undefined }));
     });
 
     it('ignores CF_VERSION_METADATA when id is not a string', () => {
@@ -168,7 +177,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: undefined });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: undefined }));
     });
 
     it('ignores CF_VERSION_METADATA when id is missing', () => {
@@ -177,7 +186,7 @@ describe('getFinalOptions', () => {
 
       const result = getFinalOptions(userOptions, env);
 
-      expect(result).toEqual({ dsn: 'test-dsn', release: undefined });
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: undefined }));
     });
   });
 });

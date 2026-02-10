@@ -51,7 +51,8 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
         ? env.CF_VERSION_METADATA.id
         : undefined;
 
-  const tracesSampleRate = userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACE_SAMPLE_RATE') ?? '');
+  const tracesSampleRate =
+    userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACES_SAMPLE_RATE') ?? '');
 
   return {
     release,
