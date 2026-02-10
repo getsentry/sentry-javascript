@@ -49,6 +49,13 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
     ? spanToJSON(rootSpan).description
     : getCurrentScope().getScopeData().transactionName;
 
+  const timeOrigin = browserPerformanceTimeOrigin();
+  if (!timeOrigin) {
+    // If there's no reliable time origin, we might as well not record the spans here
+    // as their data will be unreliable.
+    return;
+  }
+
   entries.forEach(entry => {
     const elementEntry = entry as PerformanceElementTiming;
 
@@ -70,9 +77,9 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
     // - `timestampInSeconds()` as a safeguard
     // see https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming/renderTime#cross-origin_image_render_time
     const [spanStartTime, spanStartTimeSource] = loadTime
-      ? [msToSec(loadTime), 'load-time']
+      ? [msToSec(timeOrigin + loadTime), 'load-time']
       : renderTime
-        ? [msToSec(renderTime), 'render-time']
+        ? [msToSec(timeOrigin + renderTime), 'render-time']
         : [timestampInSeconds(), 'entry-emission'];
 
     const duration =
@@ -92,18 +99,18 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
       // recording the source of the span start time, as it varies depending on available data
       'sentry.span_start_time_source': spanStartTimeSource,
       'sentry.transaction_name': transactionName,
-      'element.id': elementEntry.id,
-      'element.type': elementEntry.element?.tagName?.toLowerCase() || 'unknown',
-      'element.size':
+      'ui.element.id': elementEntry.id,
+      'ui.element.type': elementEntry.element?.tagName?.toLowerCase() || 'unknown',
+      'ui.element.dimensions':
         elementEntry.naturalWidth && elementEntry.naturalHeight
           ? `${elementEntry.naturalWidth}x${elementEntry.naturalHeight}`
           : undefined,
-      'element.render_time': renderTime,
-      'element.load_time': loadTime,
+      'ui.element.render_time': renderTime,
+      'ui.element.load_time': loadTime,
       // `url` is `0`(number) for text paints (hence we fall back to undefined)
-      'element.url': elementEntry.url || undefined,
-      'element.identifier': elementEntry.identifier,
-      'element.paint_type': paintType,
+      'ui.element.url': elementEntry.url || undefined,
+      'ui.element.identifier': elementEntry.identifier,
+      'ui.element.paint_type': paintType,
     };
 
     startSpan(
