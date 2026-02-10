@@ -33,6 +33,7 @@ import {
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
+import { isEmptyBaseServerTrace } from '../common/utils/tracingUtils';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
@@ -231,6 +232,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
           // Filter transactions that we explicitly want to drop.
           if (event.contexts?.trace?.data?.[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]) {
+            return null;
+          }
+
+          // Defensive check: Drop empty BaseServer.handleRequest transactions that leaked through
+          // when dropNextjsRootContext() failed to set the drop attribute (e.g. due to AsyncLocalStorage
+          // context loss).
+          if (isEmptyBaseServerTrace(event)) {
             return null;
           }
 

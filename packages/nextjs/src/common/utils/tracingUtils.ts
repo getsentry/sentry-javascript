@@ -1,5 +1,5 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
+import type { Event, PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getActiveSpan,
@@ -117,9 +117,29 @@ export function dropNextjsRootContext(): void {
     const rootSpan = getRootSpan(nextJsOwnedSpan);
     const rootSpanAttributes = spanToJSON(rootSpan).data;
     if (rootSpanAttributes?.['next.span_type']) {
-      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+      rootSpan.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
     }
+
+    return;
   }
+
+  DEBUG_BUILD &&
+    debug.warn(
+      'dropNextjsRootContext: No active span found. The BaseServer.handleRequest transaction may not be dropped.',
+    );
+}
+
+/**
+ * Checks if an event is an empty `BaseServer.handleRequest` transaction.
+ *
+ * A valid `BaseServer.handleRequest` transaction should always have child spans, so an empty one is safe to drop.
+ */
+export function isEmptyBaseServerTrace(event: Event): boolean {
+  return (
+    event.type === 'transaction' &&
+    event.contexts?.trace?.data?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' &&
+    (!event.spans || event.spans.length === 0)
+  );
 }
 
 /**
