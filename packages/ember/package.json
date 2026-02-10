@@ -17,10 +17,6 @@
       "types": "./declarations/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./performance": {
-      "types": "./declarations/performance.d.ts",
-      "default": "./dist/performance.js"
-    },
     "./addon-main.js": "./addon-main.cjs"
   },
   "files": [

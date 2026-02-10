@@ -1,58 +1,3 @@
-/**
- * Performance instrumentation for Ember.js applications.
- *
- * This module provides automatic performance tracking for:
- * - Page loads and navigation transitions
- * - Ember runloop queues
- * - Component rendering
- *
- * ## Migration from v1 addon
- *
- * In the v1 addon, performance instrumentation was automatic via an instance-initializer
- * that shipped with the addon. In v2, you must create this initializer yourself.
- *
- * ## Setup
- *
- * 1. Create `app/instance-initializers/sentry-performance.ts`:
- *
- * ```typescript
- * import type ApplicationInstance from '@ember/application/instance';
- * import { setupPerformance } from '@sentry/ember/performance';
- *
- * export function initialize(appInstance: ApplicationInstance): void {
- *   setupPerformance(appInstance);
- * }
- *
- * export default {
- *   initialize,
- * };
- * ```
- *
- * 2. Make sure Sentry is initialized in `app/app.ts` before the application starts:
- *
- * ```typescript
- * import Application from '@ember/application';
- * import * as Sentry from '@sentry/ember';
- *
- * Sentry.init({ dsn: 'YOUR_DSN' });
- *
- * export default class App extends Application {
- *   // ...
- * }
- * ```
- *
- * ## Configuration
- *
- * Pass options to `setupPerformance` to customize behavior:
- *
- * ```typescript
- * setupPerformance(appInstance, {
- *   disableRunloopPerformance: true,
- *   minimumComponentRenderDuration: 5,
- * });
- * ```
- */
-
 import { subscribe, unsubscribe } from '@ember/instrumentation';
 import { _backburner, run, scheduleOnce } from '@ember/runloop';
 import {
@@ -70,21 +15,17 @@ import {
   browserPerformanceTimeOrigin,
   timestampInSeconds,
 } from '@sentry/core';
+import {
+  getLocationURL,
+  getTransitionInformation,
+  isTransitionIntermediate,
+} from '../ember/router.ts';
 
 import type ApplicationInstance from '@ember/application/instance';
 import type RouterService from '@ember/routing/router-service';
 import type { BrowserClient } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-
-// This is private in Ember and not really exported, so we "mock" these types here.
-export interface EmberRouterMain {
-  location: {
-    getURL?: () => string;
-    formatURL?: (url: string) => string;
-    implementation?: string;
-    rootURL: string;
-  };
-}
+import type { EmberRouterMain } from '../ember/router.ts';
 
 // Module-level flag to prevent duplicate global listeners (runloop, components)
 // from accumulating across repeated setupPerformance calls (e.g., in tests or ember-engines).
@@ -109,12 +50,12 @@ export function _resetGlobalInstrumentation(): void {
 
 // Ember runloop queue names
 type EmberRunQueues =
-  | 'sync'
   | 'actions'
-  | 'routerTransitions'
-  | 'render'
   | 'afterRender'
-  | 'destroy';
+  | 'destroy'
+  | 'render'
+  | 'routerTransitions'
+  | 'sync';
 
 /**
  * Extended Backburner interface with the 'off' method that's not in the public types.
@@ -124,7 +65,24 @@ interface ExtendedBackburner {
   off(eventName: string, callback: (...args: unknown[]) => void): void;
 }
 
-export interface PerformanceOptions {
+interface PerformanceOptions {
+  /**
+   * Options to pass to browserTracingIntegration.
+   */
+  browserTracingOptions?: Parameters<typeof browserTracingIntegration>[0];
+
+  /**
+   * Whether to disable initial page load instrumentation.
+   * @default false
+   */
+  disableInitialLoadInstrumentation?: boolean;
+
+  /**
+   * Whether to disable component render tracking.
+   * @default false
+   */
+  disableInstrumentComponents?: boolean;
+
   /**
    * Whether to disable all performance instrumentation.
    * @default false
@@ -138,28 +96,10 @@ export interface PerformanceOptions {
   disableRunloopPerformance?: boolean;
 
   /**
-   * Whether to disable component render tracking.
-   * @default false
-   */
-  disableInstrumentComponents?: boolean;
-
-  /**
-   * Whether to disable initial page load instrumentation.
-   * @default false
-   */
-  disableInitialLoadInstrumentation?: boolean;
-
-  /**
    * Whether to enable component definition tracking.
    * @default false
    */
   enableComponentDefinitions?: boolean;
-
-  /**
-   * Minimum duration (ms) for runloop queue spans to be recorded.
-   * @default 5
-   */
-  minimumRunloopQueueDuration?: number;
 
   /**
    * Minimum duration (ms) for component render spans to be recorded.
@@ -168,15 +108,16 @@ export interface PerformanceOptions {
   minimumComponentRenderDuration?: number;
 
   /**
+   * Minimum duration (ms) for runloop queue spans to be recorded.
+   * @default 5
+   */
+  minimumRunloopQueueDuration?: number;
+
+  /**
    * Timeout (ms) for navigation transitions.
    * @default 5000
    */
   transitionTimeout?: number;
-
-  /**
-   * Options to pass to browserTracingIntegration.
-   */
-  browserTracingOptions?: Parameters<typeof browserTracingIntegration>[0];
 }
 
 function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
@@ -203,38 +144,6 @@ function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
   };
 }
 
-function getTransitionInformation(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transition: any,
-  router: RouterService,
-): { fromRoute?: string; toRoute?: string } {
-  const fromRoute = transition?.from?.name as string | undefined;
-  const toRoute =
-    (transition?.to?.name as string | undefined) ||
-    router.currentRouteName ||
-    undefined;
-  return {
-    fromRoute,
-    toRoute,
-  };
-}
-
-/**
- * Get the current URL from the Ember router location.
- */
-export function _getLocationURL(location: EmberRouterMain['location']): string {
-  if (!location?.getURL || !location?.formatURL) {
-    return '';
-  }
-  const url = location.formatURL(location.getURL());
-
-  // `implementation` is optional in Ember's predefined location types, so we also check if the URL starts with '#'.
-  if (location.implementation === 'hash' || url.startsWith('#')) {
-    return `${location.rootURL}${url}`;
-  }
-  return url;
-}
-
 function _instrumentEmberRouter(
   routerService: RouterService,
   routerMain: EmberRouterMain,
@@ -245,7 +154,7 @@ function _instrumentEmberRouter(
   let activeRootSpan: Span | undefined;
   let transitionSpan: Span | undefined;
 
-  const url = _getLocationURL(location);
+  const url = getLocationURL(location);
 
   const client = getClient<BrowserClient>();
 
@@ -297,7 +206,7 @@ function _instrumentEmberRouter(
     );
 
     // We want to ignore loading && error routes
-    if (transitionIsIntermediate(transition)) {
+    if (isTransitionIntermediate(transition)) {
       return;
     }
 
@@ -328,7 +237,7 @@ function _instrumentEmberRouter(
     if (
       !transitionSpan ||
       !activeRootSpan ||
-      transitionIsIntermediate(transition)
+      isTransitionIntermediate(transition)
     ) {
       return;
     }
@@ -614,7 +523,7 @@ function _hasPerformanceSupport(): {
  * ```typescript
  * // app/instance-initializers/sentry-performance.ts
  * import type ApplicationInstance from '@ember/application/instance';
- * import { setupPerformance } from '@sentry/ember/performance';
+ * import { setupPerformance } from '@sentry/ember';
  *
  * export function initialize(appInstance: ApplicationInstance): void {
  *   setupPerformance(appInstance, {
@@ -686,25 +595,4 @@ export function setupPerformance(
 
   routerService._hasMountedSentryPerformanceRouting = true;
   _instrumentEmberRouter(routerService, routerMain, options);
-}
-
-function transitionIsIntermediate(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transition: any,
-): boolean {
-  // We want to use ignore, as this may actually be defined on new versions
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore This actually exists on newer versions
-  const isIntermediate: boolean | undefined = transition.isIntermediate;
-
-  if (typeof isIntermediate === 'boolean') {
-    return isIntermediate;
-  }
-
-  // For versions without this, we look if the route is a `.loading` or `.error` route
-  // This is not perfect and may false-positive in some cases, but it's the best we can do
-  return (
-    transition.to?.localName === 'loading' ||
-    transition.to?.localName === 'error'
-  );
 }

@@ -126,7 +126,7 @@ In v1, performance instrumentation was automatic. In v2, create an instance-init
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
   setupPerformance(appInstance);
@@ -141,7 +141,7 @@ export default {
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
   setupPerformance(appInstance, {
@@ -211,7 +211,7 @@ import { instrumentRoutePerformance } from '@sentry/ember';
 import { instrumentRoutePerformance } from '@sentry/ember';
 
 // v2 - new import for setupPerformance
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 ```
 
 ### All @sentry/browser Exports
@@ -317,7 +317,7 @@ loadInitializers(App, config.modulePrefix);
 **app/instance-initializers/sentry-performance.ts:**
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
   setupPerformance(appInstance);
@@ -349,7 +349,7 @@ export default { initialize };
 
 Make sure you're importing from the correct path:
 ```typescript
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 ```
 
 ### Performance spans not appearing

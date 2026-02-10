@@ -62,7 +62,7 @@ For automatic performance instrumentation (page loads, navigation, runloop, comp
 ```typescript
 // app/instance-initializers/sentry-performance.ts
 import type ApplicationInstance from '@ember/application/instance';
-import { setupPerformance } from '@sentry/ember/performance';
+import { setupPerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
   setupPerformance(appInstance, {

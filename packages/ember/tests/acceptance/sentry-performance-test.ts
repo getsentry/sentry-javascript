@@ -1,3 +1,5 @@
+import { module, test } from 'qunit';
+import { setupApplicationTest } from 'ember-qunit';
 import {
   click,
   find,
@@ -6,8 +8,6 @@ import {
   setupOnerror,
   visit,
 } from '@ember/test-helpers';
-import { setupApplicationTest } from 'ember-qunit';
-import { module, test } from 'qunit';
 import { setupSentryTest } from '../helpers/setup-sentry.ts';
 import {
   assertSentryTransactionCount,

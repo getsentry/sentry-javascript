@@ -1,7 +1,7 @@
-import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-import Route from '@ember/routing/route';
+import { setupTest } from 'ember-qunit';
 import { instrumentRoutePerformance } from '@sentry/ember';
+import Route from '@ember/routing/route';
 import sinon from 'sinon';
 import { setupSentryTest } from '../helpers/setup-sentry.ts';
 
