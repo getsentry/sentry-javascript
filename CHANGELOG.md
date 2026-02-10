@@ -6,7 +6,7 @@
 
 Work in this release was contributed by @sebws, @harshit078, and @fedetorre. Thank you for your contributions!
 
-- **feat(tanstackstart-react): Auto-copy instrumentation file to server build output**
+- **feat(tanstackstart-react): Auto-copy instrumentation file to server build output ([#19104](https://github.com/getsentry/sentry-javascript/pull/19104))**
 
   The Sentry TanStack Start Vite plugin now automatically copies the `instrument.server.mjs` file to the correct server build output directory after the build completes. The output directory is auto-detected based on the deployment target (e.g., Nitro), so you no longer need to manually ensure the instrumentation file ends up in the right place. If auto-detection doesn't work for your setup, you can override the file path and output directory manually:
 
