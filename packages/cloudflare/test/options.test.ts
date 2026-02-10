@@ -56,6 +56,60 @@ describe('getFinalOptions', () => {
     expect(result).toEqual(userOptions);
   });
 
+  it('uses SENTRY_DSN from env when user dsn is undefined', () => {
+    const userOptions = { release: 'user-release' };
+    const env = { SENTRY_DSN: 'https://key@ingest.sentry.io/1' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.dsn).toBe('https://key@ingest.sentry.io/1');
+    expect(result.release).toBe('user-release');
+  });
+
+  it('uses SENTRY_ENVIRONMENT from env when user environment is undefined', () => {
+    const userOptions = { dsn: 'test-dsn' };
+    const env = { SENTRY_ENVIRONMENT: 'staging' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.environment).toBe('staging');
+  });
+
+  it('uses SENTRY_TRACES_SAMPLE_RATE from env when user tracesSampleRate is undefined', () => {
+    const userOptions = { dsn: 'test-dsn' };
+    const env = { SENTRY_TRACES_SAMPLE_RATE: '0.5' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.tracesSampleRate).toBe(0.5);
+  });
+
+  it('does not use SENTRY_TRACES_SAMPLE_RATE from env when it is gibberish', () => {
+    const env = { SENTRY_TRACES_SAMPLE_RATE: 'ʕっ•ᴥ•ʔっ' };
+
+    const result = getFinalOptions(undefined, env);
+
+    expect(result.tracesSampleRate).toBeUndefined();
+  });
+
+  it('prefers user dsn over env SENTRY_DSN', () => {
+    const userOptions = { dsn: 'user-dsn', release: 'user-release' };
+    const env = { SENTRY_DSN: 'https://env@ingest.sentry.io/1' };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.dsn).toBe('user-dsn');
+  });
+
+  it('ignores SENTRY_DSN when not a string', () => {
+    const userOptions = { dsn: undefined };
+    const env = { SENTRY_DSN: 123 };
+
+    const result = getFinalOptions(userOptions, env);
+
+    expect(result.dsn).toBeUndefined();
+  });
+
   describe('CF_VERSION_METADATA', () => {
     it('uses CF_VERSION_METADATA.id as release when no other release is set', () => {
       const userOptions = { dsn: 'test-dsn' };
