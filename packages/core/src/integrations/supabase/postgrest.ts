@@ -5,7 +5,7 @@ import { setHttpStatus, startInactiveSpan, withActiveSpan } from '../../tracing'
 import type { SpanAttributes } from '../../types-hoist/span';
 import { debug } from '../../utils/debug-logger';
 import { isPlainObject } from '../../utils/is';
-import { DB_OPERATIONS_TO_INSTRUMENT, QUEUE_RPC_OPERATIONS } from './constants';
+import { DB_OPERATIONS_TO_INSTRUMENT } from './constants';
 import { captureSupabaseError } from './errors';
 import type {
   PostgRESTFilterBuilder,
@@ -17,13 +17,7 @@ import type {
   SupabaseError,
   SupabaseResponse,
 } from './types';
-import {
-  _isInstrumented,
-  _markAsInstrumented,
-  _normalizeRpcFunctionName,
-  extractOperation,
-  translateFiltersIntoMethods,
-} from './utils';
+import { _isInstrumented, _markAsInstrumented, extractOperation, translateFiltersIntoMethods } from './utils';
 
 /**
  * Instruments PostgREST filter builder to trace database operations.
@@ -67,11 +61,9 @@ function _createInstrumentedPostgRESTThen(
 
       const pathParts = typedThis.url.pathname.split('/');
       const rpcIndex = pathParts.indexOf('rpc');
-      const rpcFunctionName = rpcIndex !== -1 && pathParts.length > rpcIndex + 1 ? pathParts[rpcIndex + 1] : undefined;
-
-      // Normalize RPC function name to handle schema-qualified names (e.g., 'pgmq.send' → 'send')
-      if (rpcFunctionName && QUEUE_RPC_OPERATIONS.has(_normalizeRpcFunctionName(rpcFunctionName))) {
-        // Queue RPC calls are instrumented in the dedicated queue instrumentation.
+      // Skip all RPC calls - they are fully instrumented in rpc.ts
+      // (both queue operations and generic RPC functions)
+      if (rpcIndex !== -1) {
         return Reflect.apply(target, thisArg, argumentsList);
       }
 
