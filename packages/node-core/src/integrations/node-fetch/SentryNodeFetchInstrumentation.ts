@@ -12,8 +12,8 @@ import {
   LRUMap,
   parseUrl,
   SDK_VERSION,
+  shouldPropagateTraceForUrl,
 } from '@sentry/core';
-import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import * as diagch from 'diagnostics_channel';
 import { NODE_MAJOR, NODE_MINOR } from '../../nodeVersion';
 import { mergeBaggageHeaders } from '../../utils/baggage';

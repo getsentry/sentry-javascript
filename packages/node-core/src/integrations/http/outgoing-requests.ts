@@ -8,8 +8,8 @@ import {
   getTraceData,
   isError,
   parseUrl,
+  shouldPropagateTraceForUrl,
 } from '@sentry/core';
-import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import type { ClientRequest, IncomingMessage, RequestOptions } from 'http';
 import { DEBUG_BUILD } from '../../debug-build';
 import { mergeBaggageHeaders } from '../../utils/baggage';
