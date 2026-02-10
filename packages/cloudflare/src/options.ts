@@ -1,3 +1,4 @@
+import { envToBool } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 
 /**
@@ -18,7 +19,9 @@ function isVersionMetadata(value: unknown): value is CfVersionMetadata {
 }
 
 function getEnvVar<T extends Record<string, unknown>>(env: unknown, varName: keyof T): string | undefined {
-  return typeof env === 'object' && env !== null && varName in env && typeof (env as T)[varName] === 'string' ? (env as T)[varName] as string : undefined;
+  return typeof env === 'object' && env !== null && varName in env && typeof (env as T)[varName] === 'string'
+    ? ((env as T)[varName] as string)
+    : undefined;
 }
 
 /**
@@ -51,10 +54,12 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
   const tracesSampleRate = userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACE_SAMPLE_RATE') ?? '');
 
   return {
+    release,
+    ...userOptions,
     dsn: userOptions.dsn ?? getEnvVar(env, 'SENTRY_DSN'),
     environment: userOptions.environment ?? getEnvVar(env, 'SENTRY_ENVIRONMENT'),
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
-    release,
-    ...userOptions,
+    debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
+    tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
   };
 }
