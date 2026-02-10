@@ -77,12 +77,12 @@ function matchesPattern(pathname: string, pattern: string): boolean {
 
   if (hasWildcard) {
     // Pattern with wildcard: path must have at least as many segments as pattern (minus wildcard)
-    const patternSegmentsWithoutWildcard = patternSegments.length - 1;
-    if (pathSegments.length < patternSegmentsWithoutWildcard) {
+    const patternSegmentsWithoutWildcard = patternSegments.slice(0, -1);
+    if (pathSegments.length < patternSegmentsWithoutWildcard.length) {
       return false;
     }
-    for (let i = 0; i < patternSegmentsWithoutWildcard; i++) {
-      if (!segmentMatches(pathSegments[i], patternSegments[i])) {
+    for (const [i, patternSegment] of patternSegmentsWithoutWildcard.entries()) {
+      if (!segmentMatches(pathSegments[i], patternSegment)) {
         return false;
       }
     }
@@ -94,8 +94,8 @@ function matchesPattern(pathname: string, pattern: string): boolean {
     return false;
   }
 
-  for (let i = 0; i < patternSegments.length; i++) {
-    if (!segmentMatches(pathSegments[i], patternSegments[i])) {
+  for (const [i, patternSegment] of patternSegments.entries()) {
+    if (!segmentMatches(pathSegments[i], patternSegment)) {
       return false;
     }
   }
