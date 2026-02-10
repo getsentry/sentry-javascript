@@ -1,5 +1,5 @@
+import type { Nuxt } from '@nuxt/schema';
 import * as fs from 'fs';
-import type { Nuxt } from 'nuxt/schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   addOTelCommonJSImportAlias,
