@@ -1,5 +1,5 @@
-import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
+import { setupApplicationTest } from 'ember-qunit';
 import { visit } from '@ember/test-helpers';
 import * as Sentry from '@sentry/ember';
 import { setupSentryTest } from '../helpers/setup-sentry.ts';

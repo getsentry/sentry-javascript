@@ -24,7 +24,6 @@ export default defineConfig({
     // built dist/ or npm-downloaded copies so Vite can bundle the test app.
     // This section can be removed if the addon is ever extracted to its own repo.
     alias: {
-      '@sentry/ember/performance': resolve(__dirname, 'dist/performance.js'),
       '@sentry/ember': resolve(__dirname, 'dist/index.js'),
       '@sentry/browser': resolve(__dirname, '.npm-deps/browser'),
       '@sentry/core': resolve(__dirname, '.npm-deps/core'),

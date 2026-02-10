@@ -1,8 +1,5 @@
 import { getContext, resetOnerror, setupOnerror } from '@ember/test-helpers';
-import {
-  setupPerformance,
-  _resetGlobalInstrumentation,
-} from '@sentry/ember/performance';
+import { setupPerformance, _resetGlobalInstrumentation } from '@sentry/ember';
 import sinon from 'sinon';
 
 import type { TestContext } from '@ember/test-helpers';
