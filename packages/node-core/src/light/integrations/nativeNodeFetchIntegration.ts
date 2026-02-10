@@ -1,26 +1,15 @@
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
-import type { Integration, IntegrationFn, SanitizedRequestData } from '@sentry/core';
-import {
-  addBreadcrumb,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getClient,
-  getSanitizedUrlString,
-  getTraceData,
-  LRUMap,
-  parseUrl,
-  shouldPropagateTraceForUrl,
-} from '@sentry/core';
+import type { Integration, IntegrationFn } from '@sentry/core';
+import { LRUMap } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../../integrations/node-fetch/types';
-import { mergeBaggageHeaders } from '../../utils/baggage';
+import {
+  addFetchRequestBreadcrumb,
+  addTracePropagationHeadersToFetchRequest,
+  getAbsoluteUrl,
+} from '../../utils/outgoingFetchRequest';
 
 const INTEGRATION_NAME = 'NodeFetch';
-
-const SENTRY_TRACE_HEADER = 'sentry-trace';
-const SENTRY_BAGGAGE_HEADER = 'baggage';
-
-// For baggage, we make sure to merge this into a possibly existing header
-const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
 
 export interface NativeNodeFetchIntegrationOptions {
   /**
@@ -78,7 +67,6 @@ export const nativeNodeFetchIntegration = _nativeNodeFetchIntegration as (
   setupOnce: () => void;
 };
 
-// eslint-disable-next-line complexity
 function onUndiciRequestCreated(
   request: UndiciRequest,
   options: { ignoreOutgoingRequests?: (url: string) => boolean },
@@ -92,62 +80,7 @@ function onUndiciRequestCreated(
     return;
   }
 
-  const url = getAbsoluteUrl(request.origin, request.path);
-
-  const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
-  const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData({ propagateTraceparent })
-    : undefined;
-
-  if (!addedHeaders) {
-    return;
-  }
-
-  const { 'sentry-trace': sentryTrace, baggage, traceparent } = addedHeaders;
-
-  // Undici request headers can be either an array (v6) or a string (v5)
-  if (Array.isArray(request.headers)) {
-    const requestHeaders = request.headers;
-
-    if (sentryTrace && !requestHeaders.includes(SENTRY_TRACE_HEADER)) {
-      requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
-    }
-
-    if (traceparent && !requestHeaders.includes('traceparent')) {
-      requestHeaders.push('traceparent', traceparent);
-    }
-
-    const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
-    if (baggage && existingBaggagePos === -1) {
-      requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
-    } else if (baggage) {
-      const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        requestHeaders[existingBaggagePos + 1] = merged;
-      }
-    }
-  } else {
-    const requestHeaders = request.headers;
-
-    if (sentryTrace && !requestHeaders.includes(`${SENTRY_TRACE_HEADER}:`)) {
-      request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
-    }
-
-    if (traceparent && !requestHeaders.includes('traceparent:')) {
-      request.headers += `traceparent: ${traceparent}\r\n`;
-    }
-
-    const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
-    if (baggage && !existingBaggage) {
-      request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
-    } else if (baggage) {
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
-      }
-    }
-  }
+  addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
 }
 
 function onUndiciResponseHeaders(
@@ -165,7 +98,7 @@ function onUndiciResponseHeaders(
     return;
   }
 
-  addFetchBreadcrumb(request, response);
+  addFetchRequestBreadcrumb(request, response);
 }
 
 /** Check if the given outgoing request should be ignored. */
@@ -181,70 +114,4 @@ function shouldIgnoreRequest(
 
   const url = getAbsoluteUrl(request.origin, request.path);
   return ignoreOutgoingRequests(url);
-}
-
-/** Add a breadcrumb for a fetch request. */
-function addFetchBreadcrumb(request: UndiciRequest, response: UndiciResponse): void {
-  const data = getFetchBreadcrumbData(request);
-  const statusCode = response.statusCode;
-  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
-
-  addBreadcrumb(
-    {
-      category: 'http',
-      data: {
-        status_code: statusCode,
-        ...data,
-      },
-      type: 'http',
-      level,
-    },
-    {
-      event: 'response',
-      request,
-      response,
-    },
-  );
-}
-
-function getFetchBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData> {
-  try {
-    const url = getAbsoluteUrl(request.origin, request.path);
-    const parsedUrl = parseUrl(url);
-
-    const data: Partial<SanitizedRequestData> = {
-      url: getSanitizedUrlString(parsedUrl),
-      'http.method': request.method || 'GET',
-    };
-
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
-    }
-
-    return data;
-  } catch {
-    return {};
-  }
-}
-
-function getAbsoluteUrl(origin: string, path: string = '/'): string {
-  try {
-    const url = new URL(path, origin);
-    return url.toString();
-  } catch {
-    const url = `${origin}`;
-
-    if (url.endsWith('/') && path.startsWith('/')) {
-      return `${url}${path.slice(1)}`;
-    }
-
-    if (!url.endsWith('/') && !path.startsWith('/')) {
-      return `${url}/${path.slice(1)}`;
-    }
-
-    return `${url}${path}`;
-  }
 }
