@@ -1,3 +1,4 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type { CoreOptions as Options } from '../types-hoist/options';
 import { debug } from './debug-logger';
 import type { LRUMap } from './lru';
@@ -22,13 +23,13 @@ export function shouldPropagateTraceForUrl(
 
   const cachedDecision = decisionMap?.get(url);
   if (cachedDecision !== undefined) {
-    !cachedDecision && debug.log(NOT_PROPAGATED_MESSAGE, url);
+    DEBUG_BUILD && !cachedDecision && debug.log(NOT_PROPAGATED_MESSAGE, url);
     return cachedDecision;
   }
 
   const decision = stringMatchesSomePattern(url, tracePropagationTargets);
   decisionMap?.set(url, decision);
 
-  !decision && debug.log(NOT_PROPAGATED_MESSAGE, url);
+  DEBUG_BUILD && !decision && debug.log(NOT_PROPAGATED_MESSAGE, url);
   return decision;
 }
