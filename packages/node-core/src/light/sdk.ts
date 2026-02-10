@@ -4,6 +4,7 @@ import {
   consoleIntegration,
   consoleSandbox,
   debug,
+  envToBool,
   eventFiltersIntegration,
   functionToStringIntegration,
   getCurrentScope,
@@ -29,7 +30,6 @@ import { defaultStackParser, getSentryRelease } from '../sdk/api';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
-import { envToBool } from '../utils/envToBool';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';

@@ -1,4 +1,4 @@
-import { envToBool } from './envToBool';
+import { envToBool } from '@sentry/core';
 
 /**
  * Parse the spotlight option with proper precedence:

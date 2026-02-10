@@ -5,6 +5,7 @@ import {
   consoleSandbox,
   conversationIdIntegration,
   debug,
+  envToBool,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
@@ -38,7 +39,6 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
-import { envToBool } from '../utils/envToBool';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
