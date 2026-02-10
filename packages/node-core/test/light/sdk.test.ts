@@ -93,11 +93,11 @@ describe('Light Mode | SDK', () => {
       expect(integrationNames).toContain('OnUnhandledRejection');
     });
 
-    it('includes Http.Server integration for request isolation', () => {
+    it('includes Http integration for request isolation and outgoing trace propagation', () => {
       const integrations = Sentry.getDefaultIntegrations();
       const integrationNames = integrations.map(i => i.name);
 
-      expect(integrationNames).toContain('Http.Server');
+      expect(integrationNames).toContain('Http');
     });
   });
 
