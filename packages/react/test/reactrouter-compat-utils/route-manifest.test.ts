@@ -78,7 +78,7 @@ describe('matchRouteManifest', () => {
   describe('specificity sorting (React Router parity)', () => {
     // Verifies our sorting matches React Router's computeScore() algorithm
     // See: https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
-    // React Router scoring: static=10, dynamic=3, splat=-2 penalty, index=+2 bonus
+    // React Router scoring: static=10, dynamic=3, splat=-2 penalty
     // For equal scores, manifest order is preserved (same as React Router)
 
     it('returns more specific route when multiple match', () => {
@@ -88,35 +88,31 @@ describe('matchRouteManifest', () => {
 
     it('prefers literal segments over parameters (React Router: static=10 > dynamic=3)', () => {
       const manifestWithOverlap = ['/users/:id', '/users/me'];
-      // /users/me: 2 + 10 + 10 = 22
-      // /users/:id: 2 + 10 + 3 = 15
       expect(matchRouteManifest('/users/me', manifestWithOverlap)).toBe('/users/me');
       expect(matchRouteManifest('/users/123', manifestWithOverlap)).toBe('/users/:id');
     });
 
     it('prefers more segments (React Router: higher segment count = higher base score)', () => {
       const m = ['/users', '/users/:id', '/users/:id/posts'];
-      // /users: 1 + 10 = 11
-      // /users/:id: 2 + 10 + 3 = 15
-      // /users/:id/posts: 3 + 10 + 3 + 10 = 26
       expect(matchRouteManifest('/users/123/posts', m)).toBe('/users/:id/posts');
     });
 
     it('prefers non-wildcard over wildcard (React Router: splat=-2 penalty)', () => {
       const m = ['/docs/*', '/docs/api'];
-      // /docs/*: 2 + 10 + (-2) = 10
-      // /docs/api: 2 + 10 + 10 = 22
       expect(matchRouteManifest('/docs/api', m)).toBe('/docs/api');
     });
 
     it('prefers longer wildcard prefix over shorter (React Router: more segments before splat)', () => {
       const m = ['/*', '/docs/*', '/docs/api/*'];
-      // /*: 1 + (-2) = -1
-      // /docs/*: 2 + 10 + (-2) = 10
-      // /docs/api/*: 3 + 10 + 10 + (-2) = 21
       expect(matchRouteManifest('/docs/api/methods', m)).toBe('/docs/api/*');
       expect(matchRouteManifest('/docs/guide', m)).toBe('/docs/*');
       expect(matchRouteManifest('/other', m)).toBe('/*');
+    });
+
+    it('prefers static segments over dynamic in wildcard patterns (React Router: static=10 > dynamic=3)', () => {
+      // /a/b/* ranks higher than /:x/:y/:z/* despite fewer prefix segments
+      const m = ['/:x/:y/:z/*', '/a/b/*'];
+      expect(matchRouteManifest('/a/b/c/d', m)).toBe('/a/b/*');
     });
   });
 

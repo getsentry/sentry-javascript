@@ -126,46 +126,48 @@ function splitPath(path: string): string[] {
 }
 
 /**
+ * React Router scoring weights.
+ * https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
+ */
+const STATIC_SEGMENT_SCORE = 10;
+const DYNAMIC_SEGMENT_SCORE = 3;
+const SPLAT_PENALTY = -2;
+
+/** Computes a specificity score for a route pattern. */
+function computeScore(pattern: string): number {
+  const segments = splitPath(pattern);
+  let score = 0;
+
+  for (const segment of segments) {
+    if (segment === '*') {
+      score += SPLAT_PENALTY;
+    } else if (segment.startsWith(':')) {
+      score += DYNAMIC_SEGMENT_SCORE;
+    } else {
+      score += STATIC_SEGMENT_SCORE;
+    }
+  }
+
+  return score;
+}
+
+/**
  * Sorts route patterns by specificity (most specific first).
- * Mimics React Router's ranking algorithm from computeScore():
+ * Implements React Router's ranking algorithm from computeScore():
  * https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/utils.ts
  *
- * React Router scoring: static=10, dynamic=3, splat=-2 penalty, index=+2 bonus
- * Our simplified approach produces equivalent ordering:
- * - Non-wildcard patterns are more specific than wildcard patterns
- * - More segments = more specific
- * - Among same-length patterns, more literal segments = more specific
- * - Equal specificity: preserves manifest order (same as React Router)
+ * React Router scoring: static=10, dynamic=3, splat=-2 penalty
+ * Higher score = more specific pattern.
+ * Equal scores preserve manifest order (same as React Router).
  *
  * Note: Users should order their manifest from most specific to least specific
  * when patterns have equal specificity (e.g., `/users/:id/settings` and `/:type/123/settings`).
  */
 function sortBySpecificity(manifest: string[]): string[] {
   return [...manifest].sort((a, b) => {
-    const aSegments = splitPath(a);
-    const bSegments = splitPath(b);
-    const aHasWildcard = aSegments.length > 0 && aSegments[aSegments.length - 1] === '*';
-    const bHasWildcard = bSegments.length > 0 && bSegments[bSegments.length - 1] === '*';
+    const aScore = computeScore(a);
+    const bScore = computeScore(b);
 
-    // Non-wildcard patterns are more specific than wildcard patterns
-    if (aHasWildcard !== bHasWildcard) {
-      return aHasWildcard ? 1 : -1;
-    }
-
-    // For comparison, exclude wildcard from segment count
-    const aLen = aHasWildcard ? aSegments.length - 1 : aSegments.length;
-    const bLen = bHasWildcard ? bSegments.length - 1 : bSegments.length;
-
-    // More segments = more specific
-    if (aLen !== bLen) {
-      return bLen - aLen;
-    }
-
-    // Same length: count literal segments (non-params, non-wildcards)
-    const aLiterals = aSegments.filter(s => !s.startsWith(':') && s !== '*').length;
-    const bLiterals = bSegments.filter(s => !s.startsWith(':') && s !== '*').length;
-
-    // More literals = more specific (equal specificity preserves original order)
-    return bLiterals - aLiterals;
+    return bScore - aScore;
   });
 }
