@@ -22,8 +22,8 @@ export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitr
  */
 export function setupSentryNitroModule(
   config: NitroConfig,
-  moduleOptions?: SentryNitroOptions,
-  serverConfigFile?: string,
+  _moduleOptions?: SentryNitroOptions,
+  _serverConfigFile?: string,
 ): NitroConfig {
   config.modules = config.modules || [];
   config.modules.push(createNitroModule());
