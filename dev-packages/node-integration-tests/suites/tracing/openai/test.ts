@@ -945,4 +945,42 @@ describe('OpenAI integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('preserves .withResponse() method and works correctly', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              // First call using .withResponse()
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
+                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-withresponse',
+                }),
+                description: 'chat gpt-4',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+              // Second call using .asResponse()
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
+                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-withresponse',
+                }),
+                description: 'chat gpt-4',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

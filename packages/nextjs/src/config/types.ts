@@ -689,6 +689,12 @@ export type SentryBuildOptions = {
    */
   _experimental?: Partial<{
     thirdPartyOriginStackFrames?: boolean;
+    /**
+     * Automatically instrument Vercel Cron Jobs in the App Router with Sentry Cron Monitors.
+     * When enabled, the SDK will detect Vercel cron requests and create check-ins in Sentry.
+     * Requires cron jobs to be configured in `vercel.json`.
+     */
+    vercelCronsMonitoring?: boolean;
   }>;
 
   /**

@@ -36,6 +36,7 @@ import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetada
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 
 export * from '@sentry/node';
 
@@ -190,6 +191,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanEnd', maybeCompleteCronCheckIn);
 
   getGlobalScope().addEventProcessor(
     Object.assign(

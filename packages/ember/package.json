@@ -76,8 +76,8 @@
     "loader.js": "~4.7.0",
     "qunit": "~2.22.0",
     "qunit-dom": "~3.2.1",
-    "sinon": "19.0.2",
-    "webpack": "~5.95.0"
+    "sinon": "21.0.1",
+    "webpack": "~5.104.1"
   },
   "engines": {
     "node": ">=18"
