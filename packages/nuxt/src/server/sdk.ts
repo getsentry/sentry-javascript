@@ -25,8 +25,9 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
+  const envFallback = !isCjs() && import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
   const sentryOptions = {
-    environment: !isCjs() && import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT,
+    environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     defaultIntegrations: getNuxtDefaultIntegrations(options),
     ...options,
   };
