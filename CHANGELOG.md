@@ -6,6 +6,33 @@
 
 Work in this release was contributed by @sebws, @harshit078, and @fedetorre. Thank you for your contributions!
 
+- **feat(tanstackstart-react): Auto-copy instrumentation file to server build output**
+
+  The Sentry TanStack Start Vite plugin now automatically copies the `instrument.server.mjs` file to the correct server build output directory after the build completes. The output directory is auto-detected based on the deployment target (e.g., Nitro), so you no longer need to manually ensure the instrumentation file ends up in the right place. If auto-detection doesn't work for your setup, you can override the file path and output directory manually:
+
+  ```ts
+  // vite.config.ts
+  import { defineConfig } from 'vite';
+  import { sentryTanstackStart } from '@sentry/tanstackstart-react';
+  import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+
+  export default defineConfig({
+    plugins: [
+      tanstackStart(),
+      sentryTanstackStart({
+        org: 'your-org',
+        project: 'your-project',
+
+        // Custom path to the instrumentation file (default: 'instrument.server.mjs')
+        instrumentationFilePath: 'my-instrument.server.mjs',
+
+        // Override the auto-detected server output directory
+        serverOutputDir: 'build/server',
+      }),
+    ],
+  });
+  ```
+
 - **feat(core): Introduces a new `Sentry.setConversationId()` API to track multi turn AI conversations across API calls. ([#18909](https://github.com/getsentry/sentry-javascript/pull/18909))**
 
   You can now set a conversation ID that will be automatically applied to spans within that scope. This allows you to link traces from the same conversation together.
