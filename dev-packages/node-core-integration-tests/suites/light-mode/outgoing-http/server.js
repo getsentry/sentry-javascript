@@ -37,13 +37,24 @@ function makeHttpRequest(url) {
   });
 }
 
-// Target server that captures headers from outgoing requests
-let capturedHeaders = {};
+let capturedV0 = {};
+let capturedV1 = {};
+let capturedV2 = {};
+
 const targetServer = http.createServer((req, res) => {
-  capturedHeaders[req.url] = {
+  const headers = {
     'sentry-trace': req.headers['sentry-trace'],
     baggage: req.headers['baggage'],
   };
+
+  if (req.url === '/api/v0') {
+    capturedV0 = headers;
+  } else if (req.url === '/api/v1') {
+    capturedV1 = headers;
+  } else if (req.url === '/api/v2') {
+    capturedV2 = headers;
+  }
+
   res.writeHead(200);
   res.end('ok');
 });
@@ -55,12 +66,14 @@ targetServer.listen(0, () => {
   const server = http.createServer(async (req, res) => {
     switch (req.url) {
       case '/test-auto-propagation': {
-        capturedHeaders = {};
+        capturedV0 = {};
+        capturedV1 = {};
+        capturedV2 = {};
         await makeHttpRequest(`${targetUrl}/api/v0`);
         await makeHttpRequest(`${targetUrl}/api/v1`);
         await makeHttpRequest(`${targetUrl}/api/v2`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(capturedHeaders));
+        res.end(JSON.stringify({ '/api/v0': capturedV0, '/api/v1': capturedV1, '/api/v2': capturedV2 }));
         break;
       }
       case '/test-breadcrumbs': {
