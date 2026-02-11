@@ -1,19 +1,12 @@
 import type { Package } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
 
 /**
  * Supported @sveltejs/adapters-[adapter] SvelteKit adapters
  */
 export type SupportedSvelteKitAdapters = 'node' | 'auto' | 'vercel' | 'cloudflare' | 'other';
-
-/**
- * Minimal svelte config shape needed for adapter detection.
- * SvelteKit's Adapter interface has a required `name` property (e.g. 'adapter-vercel').
- */
-export type SvelteConfigForAdapterDetection = {
-  kit?: { adapter?: { name?: string } };
-};
 
 /** Maps adapter.name from svelte.config.js to our SupportedSvelteKitAdapters */
 const ADAPTER_NAME_MAP: Record<string, SupportedSvelteKitAdapters> = {
@@ -36,7 +29,7 @@ const ADAPTER_NAME_MAP: Record<string, SupportedSvelteKitAdapters> = {
  * @param debug - Whether to log detection result. Pass `undefined` for false.
  */
 export async function detectAdapter(
-  svelteConfig: SvelteConfigForAdapterDetection | undefined,
+  svelteConfig: BackwardsForwardsCompatibleSvelteConfig | undefined,
   debug: boolean | undefined,
 ): Promise<SupportedSvelteKitAdapters> {
   const isDebug = debug ?? false;
