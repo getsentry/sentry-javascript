@@ -19,6 +19,7 @@ export default defineNitroPlugin(nitroApp => {
 
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
 
+  // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
     const headers = event.node.res?.getHeaders() || {};
 

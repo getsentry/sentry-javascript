@@ -5,10 +5,6 @@
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": [
-      "node",
-      // https://github.com/nuxt/nuxt/pull/34039#issuecomment-3878908844
-      "@nuxt/nitro-server"
-    ]
+    "types": ["node"]
   }
 }
