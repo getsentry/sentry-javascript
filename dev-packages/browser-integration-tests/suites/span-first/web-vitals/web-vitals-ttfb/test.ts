@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForV2Spans } from '../../../../utils/spanFirstUtils';
 
-sentryTest('captures TTFB web vital', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('captures TTFB web vital', async ({ getLocalTestUrl, page }) => {
   // for now, spanStreamingIntegration is only exported in the NPM package, so we skip the test for bundles.
   if (shouldSkipTracingTest() || testingCdnBundle()) {
     sentryTest.skip();

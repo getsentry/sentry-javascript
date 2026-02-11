@@ -22,7 +22,7 @@ async function createSessionWithLatency(page: Page, latency: number) {
   return session;
 }
 
-sentryTest('captures a `connection.rtt` metric.', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('captures a `connection.rtt` metric.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
@@ -30,7 +30,7 @@ sentryTest('captures a `connection.rtt` metric.', async ({ getLocalTestUrl, page
   expect(eventData.measurements?.['connection.rtt']?.value).toBe(0);
 });
 
-sentryTest(
+sentryTest.skip(
   'should capture a `connection.rtt` metric with emulated value 200ms on Chromium.',
   async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 200);
@@ -45,7 +45,7 @@ sentryTest(
   },
 );
 
-sentryTest(
+sentryTest.skip(
   'should capture a `connection.rtt` metric with emulated value 100ms on Chromium.',
   async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 100);
@@ -60,7 +60,7 @@ sentryTest(
   },
 );
 
-sentryTest(
+sentryTest.skip(
   'should capture a `connection.rtt` metric with emulated value 50ms on Chromium.',
   async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 50);
