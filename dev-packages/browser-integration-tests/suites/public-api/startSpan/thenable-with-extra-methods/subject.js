@@ -7,36 +7,22 @@
  *   jqXHR.abort(); // Should work!
  */
 
-// Mock a jqXHR-like object (simulates jQuery.ajax() return value)
-function createMockJqXHR() {
-  let resolvePromise;
-  const promise = new Promise(resolve => {
-    resolvePromise = resolve;
-  });
+// Load jQuery from CDN
+const script = document.createElement('script');
+script.src = 'https://code.jquery.com/jquery-3.7.1.min.js';
+script.integrity = 'sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=';
+script.crossOrigin = 'anonymous';
 
-  console.log('');
+script.onload = function () {
+  runTest();
+};
 
-  // Create an object that has both Promise methods and XHR methods
-  const mockJqXHR = {
-    then: promise.then.bind(promise),
-    catch: promise.catch.bind(promise),
-    finally: promise.finally.bind(promise),
-    abort: function () {
-      window.jqXHRAbortCalled = true;
-      window.jqXHRAbortResult = 'abort-successful';
-      return 'abort-successful';
-    },
-    // XHR-like properties
-    status: 0,
-    readyState: 1,
-    responseText: '',
-  };
+script.onerror = function () {
+  window.jqXHRTestError = 'Failed to load jQuery';
+  window.jqXHRMethodsPreserved = false;
+};
 
-  // Resolve after a short delay
-  //setTimeout(() => resolvePromise({ data: 'test response' }), 50);
-
-  return mockJqXHR;
-}
+document.head.appendChild(script);
 
 async function runTest() {
   window.jqXHRAbortCalled = false;
@@ -44,46 +30,69 @@ async function runTest() {
   window.jqXHRTestError = null;
 
   try {
-    // This simulates: const jqXHR = Sentry.startSpan(() => $.ajax(...));
-    const result = Sentry.startSpan({ name: 'test-jqxhr', op: 'http.client' }, () => {
-      const dd = createMockJqXHR();
-      const hasAbort = typeof dd.abort === 'function';
-      const hasStatus = 'status' in dd;
-      const hasReadyState = 'readyState' in dd;
+    if (!window.jQuery) {
+      throw new Error('jQuery not loaded');
+    }
 
-      console.log('ddhasAbort:', hasAbort, 'hasStatus:', hasStatus, 'hasReadyState:', hasReadyState);
-      return dd;
+    // Real-world test: Wrap actual jQuery $.ajax() call in startSpan
+    const result = Sentry.startSpan({ name: 'test-jqxhr', op: 'http.client' }, () => {
+      // Make a real AJAX request with jQuery
+      const d = window.jQuery.ajax({
+        url: 'https://httpbin.org/status/200',
+        method: 'GET',
+        timeout: 5000,
+      });
+      // Check if jqXHR methods are preserved
+      const hasAbort1 = typeof d.abort === 'function';
+      const hasStatus1 = 'status' in d;
+      const hasReadyState1 = 'readyState' in d;
+
+      console.log('jqXHR methods preserved:', d.readyState, { hasAbort1, hasStatus1, hasReadyState1 });
+
+      return d;
     });
 
-    console.log('result from startSpan:', result);
-
-    // Check if extra methods are preserved via Proxy
+    // Check if jqXHR methods are preserved using 'in' operator (tests has trap)
     const hasAbort = typeof result.abort === 'function';
-    const hasStatus = 'status' in result;
     const hasReadyState = 'readyState' in result;
 
-    console.log('hasAbort:', hasAbort, 'hasStatus:', hasStatus, 'hasReadyState:', hasReadyState);
+    console.log('Result from startSpan:', result.toString(), Object.keys(result));
 
-    if (hasAbort && hasStatus && hasReadyState) {
+    console.log('jqXHR methods preserved:', {
+      hasAbort,
+      hasReadyState,
+      readyStateValue: result.readyState,
+      abortType: typeof result.abort,
+    });
+
+    if (hasAbort && hasReadyState) {
       // Call abort() to test it works
-      const abortResult = result.abort();
-      window.jqXHRMethodsPreserved = true;
-      window.jqXHRAbortReturnValue = abortResult;
+      try {
+        result.abort();
+        window.jqXHRAbortCalled = true;
+        window.jqXHRAbortResult = 'abort-successful';
+        window.jqXHRMethodsPreserved = true;
+      } catch (e) {
+        window.jqXHRTestError = `abort() failed: ${e.message}`;
+        window.jqXHRMethodsPreserved = false;
+      }
     } else {
       window.jqXHRMethodsPreserved = false;
+      window.jqXHRTestError = 'jqXHR methods not preserved';
     }
 
-    // Verify promise functionality still works
+    // Since we aborted the request, it should be rejected
     try {
       await result;
-      window.jqXHRPromiseResolved = true;
+      window.jqXHRPromiseResolved = true; // Unexpected
     } catch (err) {
+      // Expected: aborted request rejects
       window.jqXHRPromiseResolved = false;
+      window.jqXHRPromiseRejected = true;
     }
   } catch (error) {
+    console.error('Test error:', error);
     window.jqXHRTestError = error.message;
     window.jqXHRMethodsPreserved = false;
   }
 }
-
-runTest();

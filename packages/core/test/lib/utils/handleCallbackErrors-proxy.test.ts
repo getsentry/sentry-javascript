@@ -28,10 +28,16 @@ describe('handleCallbackErrors - Proxy for thenable objects', () => {
     // Verify the result is thenable
     expect(typeof result.then).toBe('function');
 
-    // Important: Verify extra methods are preserved via Proxy
+    // Important: Verify extra methods are preserved via Proxy (property access)
     expect(typeof result.abort).toBe('function');
     expect(typeof result.status).toBe('number');
     expect(typeof result.readyState).toBe('number');
+
+    // Verify the 'in' operator works correctly (has trap)
+    expect('abort' in result).toBe(true);
+    expect('status' in result).toBe(true);
+    expect('readyState' in result).toBe(true);
+    expect('then' in result).toBe(true);
 
     const abortResult = result.abort();
     expect(abortResult).toBe('abort-successful');

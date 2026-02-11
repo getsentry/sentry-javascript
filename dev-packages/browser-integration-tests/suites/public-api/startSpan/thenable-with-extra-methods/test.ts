@@ -11,7 +11,7 @@ import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest
  *   jqXHR.abort(); // Now works! ✅
  */
 
-sentryTest('preserves extra methods on jqXHR-like thenable objects', async ({ getLocalTestUrl, page }) => {
+sentryTest('preserves extra methods on real jQuery jqXHR objects', async ({ getLocalTestUrl, page }) => {
   page.on('console', msg => {
     console.log(`Console log from page: ${msg.text()}`);
   });
@@ -27,8 +27,8 @@ sentryTest('preserves extra methods on jqXHR-like thenable objects', async ({ ge
 
   await page.goto(url);
 
-  // Wait for test to complete
-  await page.waitForTimeout(200);
+  // Wait for jQuery to load and test to complete
+  await page.waitForTimeout(1000);
 
   // Verify extra methods are preserved
   const methodsPreserved = await page.evaluate(() => (window as any).jqXHRMethodsPreserved);
@@ -38,8 +38,8 @@ sentryTest('preserves extra methods on jqXHR-like thenable objects', async ({ ge
   const abortCalled = await page.evaluate(() => (window as any).jqXHRAbortCalled);
   expect(abortCalled).toBe(true);
 
-  // Verify abort() returned the correct value
-  const abortReturnValue = await page.evaluate(() => (window as any).jqXHRAbortReturnValue);
+  // Verify abort() returned successfully
+  const abortReturnValue = await page.evaluate(() => (window as any).jqXHRAbortResult);
   expect(abortReturnValue).toBe('abort-successful');
 
   // Verify no errors occurred
@@ -52,7 +52,7 @@ sentryTest('preserves extra methods on jqXHR-like thenable objects', async ({ ge
   expect(transaction.spans).toBeDefined();
 });
 
-sentryTest('preserved methods maintain promise functionality', async ({ getLocalTestUrl, page }) => {
+sentryTest('aborted request rejects promise correctly', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -60,10 +60,14 @@ sentryTest('preserved methods maintain promise functionality', async ({ getLocal
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  // Wait for promise to resolve
-  await page.waitForTimeout(200);
+  // Wait for jQuery to load and test to complete
+  await page.waitForTimeout(1000);
 
-  // Verify promise resolved correctly despite having extra methods
+  // Verify the aborted request was rejected (not resolved)
+  const promiseRejected = await page.evaluate(() => (window as any).jqXHRPromiseRejected);
+  expect(promiseRejected).toBe(true);
+
+  // Should NOT have resolved
   const promiseResolved = await page.evaluate(() => (window as any).jqXHRPromiseResolved);
-  expect(promiseResolved).toBe(true);
+  expect(promiseResolved).toBe(false);
 });
