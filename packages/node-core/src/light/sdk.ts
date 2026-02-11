@@ -34,6 +34,7 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';
 import { httpIntegration } from './integrations/httpIntegration';
+import { nativeNodeFetchIntegration } from './integrations/nativeNodeFetchIntegration';
 
 /**
  * Get default integrations for the Light Node-Core SDK.
@@ -49,6 +50,7 @@ export function getDefaultIntegrations(): Integration[] {
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
+    nativeNodeFetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
