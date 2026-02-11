@@ -1,8 +1,18 @@
-import { click, find, visit } from '@ember/test-helpers';
-import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-import { setupSentryTest } from '../helpers/setup-sentry';
-import { assertSentryTransactionCount, assertSentryTransactions } from '../helpers/utils';
+import { setupApplicationTest } from 'ember-qunit';
+import {
+  click,
+  find,
+  resetOnerror,
+  settled,
+  setupOnerror,
+  visit,
+} from '@ember/test-helpers';
+import { setupSentryTest } from '../helpers/setup-sentry.ts';
+import {
+  assertSentryTransactionCount,
+  assertSentryTransactions,
+} from '../helpers/utils.ts';
 
 const SLOW_TRANSITION_WAIT = 3000;
 
@@ -15,10 +25,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
 
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {
-      spans: [
-        'ui.ember.transition | route:undefined -> route:tracing',
-        'ui.ember.component.render | component:test-section',
-      ],
+      spans: ['ui.ember.transition | route:undefined -> route:tracing'],
       transaction: 'route:tracing',
       attributes: {
         fromRoute: undefined,
@@ -44,11 +51,9 @@ module('Acceptance | Sentry Performance', function (hooks) {
         'ui.ember.route.after_model | slow-loading-route.index',
         'ui.ember.route.setup_controller | slow-loading-route',
         'ui.ember.route.setup_controller | slow-loading-route.index',
-        'ui.ember.component.render | component:slow-loading-list',
-        'ui.ember.component.render | component:slow-loading-list',
       ],
       transaction: 'route:slow-loading-route.index',
-      durationCheck: duration => duration > SLOW_TRANSITION_WAIT,
+      durationCheck: (duration) => duration > SLOW_TRANSITION_WAIT,
       attributes: {
         fromRoute: 'tracing',
         toRoute: 'slow-loading-route.index',
@@ -77,10 +82,23 @@ module('Acceptance | Sentry Performance', function (hooks) {
   });
 
   test('Test page with error state', async function (assert) {
-    await visit('/with-error');
+    // The route's model hook intentionally throws, so we need to handle errors
+    setupOnerror(() => {
+      // Swallow errors to let Ember transition to error substate
+    });
+
+    try {
+      await visit('/with-error');
+    } catch {
+      // visit() may reject when the route model hook throws
+    }
+
+    await settled();
+
+    resetOnerror();
 
     // Ensure we are on error page
-    assert.ok(find('#test-page-load-error'));
+    assert.ok(find('#test-page-load-error'), 'Error template is rendered');
 
     assertSentryTransactionCount(assert, 1);
     assertSentryTransactions(assert, 0, {

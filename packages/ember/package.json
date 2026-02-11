@@ -2,93 +2,119 @@
   "name": "@sentry/ember",
   "version": "10.38.0",
   "description": "Official Sentry SDK for Ember.js",
-  "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
-  "author": "Sentry",
-  "license": "MIT",
   "keywords": [
     "ember-addon"
   ],
-  "publishConfig": {
-    "access": "public"
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "license": "MIT",
+  "author": "Sentry",
+  "imports": {
+    "#src/*": "./src/*"
   },
-  "directories": {
-    "doc": "doc",
-    "test": "tests"
+  "exports": {
+    ".": {
+      "types": "./declarations/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./addon-main.js": "./addon-main.cjs"
   },
+  "files": [
+    "addon-main.cjs",
+    "declarations",
+    "dist",
+    "src"
+  ],
   "scripts": {
-    "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
-    "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try instance-initializers index.d.ts runloop.d.ts types.d.ts",
-    "lint": "run-p lint:js lint:hbs lint:ts",
-    "lint:hbs": "ember-template-lint .",
-    "lint:js": "eslint .",
-    "lint:ts": "tsc",
-    "fix": "eslint . --format stylish --fix",
-    "start": "ember serve",
-    "test": "ember b --prod && ember test",
-    "prepack": "ember ts:precompile",
-    "postpack": "ember ts:clean"
+    "build": "rollup --config",
+    "build:dev": "yarn build",
+    "build:tarball": "yarn build && npm pack",
+    "build:watch": "rollup --config --watch",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf dist declarations *.tgz .turbo",
+    "format": "prettier . --cache --write",
+    "lint": "concurrently \"yarn:lint:*(!fix)\" --names \"lint:\" --prefixColors auto",
+    "lint:fix": "concurrently \"yarn:lint:*:fix\" --names \"fix:\" --prefixColors auto && yarn format",
+    "lint:format": "prettier . --cache --check",
+    "lint:hbs": "ember-template-lint . --no-error-on-unmatched-pattern",
+    "lint:hbs:fix": "ember-template-lint . --fix --no-error-on-unmatched-pattern",
+    "lint:js": "eslint . --cache",
+    "lint:js:fix": "eslint . --fix",
+    "lint:types": "ember-tsc --noEmit",
+    "lint:publish": "yarn build && publint run --level error --pack npm",
+    "prepack": "rollup --config",
+    "start": "vite dev",
+    "test": "vite build --mode=development --out-dir dist-tests && testem --file testem.cjs ci --port 0",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {
-    "@babel/core": "^7.27.7",
-    "@embroider/macros": "^1.16.0",
+    "@embroider/addon-shim": "^1.10.2",
     "@sentry/browser": "10.38.0",
     "@sentry/core": "10.38.0",
-    "ember-auto-import": "^2.7.2",
-    "ember-cli-babel": "^8.2.0",
-    "ember-cli-htmlbars": "^6.1.1",
-    "ember-cli-typescript": "^5.3.0"
-  },
-  "peerDependencies": {
-    "ember-cli": ">=4"
-  },
-  "peerDependenciesMeta": {
-    "ember-cli": {
-      "optional": true
-    }
+    "decorator-transforms": "^2.3.1"
   },
   "devDependencies": {
-    "@ember/optional-features": "~1.3.0",
-    "@ember/test-helpers": "4.0.4",
-    "@embroider/test-setup": "~4.0.0",
-    "@glimmer/component": "~1.1.2",
-    "@glimmer/tracking": "~1.1.2",
-    "@types/ember": "~3.16.5",
-    "@types/ember-resolver": "5.0.13",
-    "@types/ember__debug": "^3.16.5",
-    "@types/qunit": "~2.19.11",
-    "@types/rsvp": "~4.0.9",
-    "babel-eslint": "~10.1.0",
-    "broccoli-asset-rev": "~3.0.0",
-    "ember-cli": "~4.12.3",
-    "ember-cli-dependency-checker": "~3.3.2",
-    "ember-cli-inject-live-reload": "~2.1.0",
-    "ember-cli-terser": "~4.0.2",
-    "ember-load-initializers": "~2.1.1",
-    "ember-qunit": "~8.1.0",
-    "ember-resolver": "13.0.2",
-    "ember-sinon-qunit": "7.5.0",
-    "ember-source": "~4.12.4",
-    "ember-template-lint": "~4.16.1",
-    "eslint-plugin-ember": "11.9.0",
-    "eslint-plugin-n": "15.0.0",
-    "eslint-plugin-qunit": "8.0.0",
-    "loader.js": "~4.7.0",
-    "qunit": "~2.22.0",
-    "qunit-dom": "~3.2.1",
-    "sinon": "21.0.1",
-    "webpack": "~5.104.1"
+    "@babel/core": "^7.29.0",
+    "@babel/eslint-parser": "^7.28.6",
+    "@babel/plugin-transform-typescript": "^7.28.6",
+    "@babel/runtime": "^7.28.6",
+    "@ember/app-tsconfig": "^1.0.3",
+    "@ember/library-tsconfig": "^1.1.3",
+    "@ember/test-helpers": "^5.4.1",
+    "@ember/test-waiters": "^4.1.1",
+    "@embroider/addon-dev": "^8.3.0",
+    "@embroider/compat": "^4.1.13",
+    "@embroider/core": "^4.4.3",
+    "@embroider/macros": "^1.19.7",
+    "@embroider/vite": "^1.5.2",
+    "@eslint/js": "^9.39.2",
+    "@glimmer/component": "^2.0.0",
+    "@glint/ember-tsc": "^1.1.1",
+    "@glint/template": "^1.7.4",
+    "@glint/tsserver-plugin": "^2.1.0",
+    "@rollup/plugin-babel": "^6.1.0",
+    "@types/qunit": "^2.19.13",
+    "@types/sinon": "^21.0.0",
+    "babel-plugin-ember-template-compilation": "^4.0.0",
+    "concurrently": "^9.2.1",
+    "ember-page-title": "^9.0.3",
+    "ember-qunit": "^9.0.4",
+    "ember-source": "^6.10.1",
+    "ember-strict-application-resolver": "^0.1.1",
+    "ember-template-lint": "^7.9.3",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-ember": "^12.7.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.23.2",
+    "globals": "^17.3.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-ember-template-tag": "^2.1.3",
+    "publint": "^0.3.17",
+    "qunit": "^2.25.0",
+    "qunit-dom": "^3.5.0",
+    "rollup": "^4.57.1",
+    "sinon": "^21.0.1",
+    "testem": "^3.17.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.55.0",
+    "vite": "^7.3.1"
   },
   "engines": {
     "node": ">=18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "ember": {
     "edition": "octane"
   },
   "ember-addon": {
-    "configPath": "tests/dummy/config"
-  },
-  "volta": {
-    "extends": "../../package.json"
+    "version": 2,
+    "type": "addon",
+    "main": "addon-main.cjs"
   }
 }
