@@ -62,20 +62,46 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   await fetch(`${baseURL}/kill-test-cron/test-cron-job`);
 });
 
-test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
+test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron job';
+    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron async job';
   });
 
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from cron job');
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.cron.nestjs.async',
+  });
+
   // kill cron so tests don't get stuck
-  await fetch(`${baseURL}/kill-test-cron/test-cron-error`);
+  await fetch(`${baseURL}/kill-test-cron/test-async-cron-error`);
+});
+
+test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs-basic', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron sync job';
+  });
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+  });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.cron.nestjs',
+  });
+
+  // kill cron so tests don't get stuck
+  await fetch(`${baseURL}/kill-test-cron/test-sync-cron-error`);
 });

@@ -1,9 +1,9 @@
 import { expect } from '@playwright/test';
 import type { SpanEnvelope } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getMultipleSentryEnvelopeRequests,
+  hidePage,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
@@ -34,9 +34,7 @@ sentryTest(
     await page.waitForTimeout(500);
 
     // Page hide to trigger INP
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event('pagehide'));
-    });
+    await hidePage(page);
 
     // Get the INP span envelope
     const spanEnvelope = (await spanEnvelopePromise)[0];
@@ -45,7 +43,7 @@ sentryTest(
     const spanEnvelopeItem = spanEnvelope[1][0][1];
 
     const traceId = spanEnvelopeHeaders.trace!.trace_id;
-    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    expect(traceId).toMatch(/[a-f\d]{32}/);
 
     expect(spanEnvelopeHeaders).toEqual({
       sent_at: expect.any(String),
@@ -56,6 +54,7 @@ sentryTest(
         sampled: 'true',
         trace_id: traceId,
         transaction: 'test-route',
+        sample_rand: expect.any(String),
       },
     });
 
@@ -82,8 +81,8 @@ sentryTest(
       origin: 'auto.http.browser.inp',
       segment_id: expect.not.stringMatching(spanEnvelopeItem.span_id!),
       // parent is the pageload span
-      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: traceId,

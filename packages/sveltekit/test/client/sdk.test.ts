@@ -1,9 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
-import { SDK_VERSION, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
-
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
@@ -35,6 +33,9 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
                 { name: 'npm:@sentry/svelte', version: SDK_VERSION },
               ],
+              settings: {
+                infer_ip: 'never',
+              },
             },
           },
         }),
@@ -45,7 +46,6 @@ describe('Sentry client SDK', () => {
       it.each([
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
-        ['enableTracing', { enableTracing: true }],
         ['no tracing option set', {}],
       ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
@@ -65,7 +65,7 @@ describe('Sentry client SDK', () => {
 
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          enableTracing: true,
+          tracesSampleRate: 1,
         });
 
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');

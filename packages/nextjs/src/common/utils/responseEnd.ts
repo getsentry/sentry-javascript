@@ -1,6 +1,6 @@
-import type { ServerResponse } from 'http';
 import type { Span } from '@sentry/core';
-import { fill, flush, logger, setHttpStatus } from '@sentry/core';
+import { debug, fill, flush, GLOBAL_OBJ, setHttpStatus, vercelWaitUntil } from '@sentry/core';
+import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
@@ -47,10 +47,60 @@ export function finishSpan(span: Span, res: ServerResponse): void {
  */
 export async function flushSafelyWithTimeout(): Promise<void> {
   try {
-    DEBUG_BUILD && logger.log('Flushing events...');
+    DEBUG_BUILD && debug.log('Flushing events...');
     await flush(2000);
-    DEBUG_BUILD && logger.log('Done flushing events');
+    DEBUG_BUILD && debug.log('Done flushing events');
   } catch (e) {
-    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+    DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
   }
+}
+
+/**
+ * Uses platform-specific waitUntil function to wait for the provided task to complete without blocking.
+ */
+export function waitUntil(task: Promise<unknown>): void {
+  // If deployed on Cloudflare, use the Cloudflare waitUntil function to flush the events
+  if (isCloudflareWaitUntilAvailable()) {
+    cloudflareWaitUntil(task);
+    return;
+  }
+
+  // otherwise, use vercel's
+  vercelWaitUntil(task);
+}
+
+type MinimalCloudflareContext = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  waitUntil(promise: Promise<any>): void;
+};
+
+/**
+ * Gets the Cloudflare context from the global object.
+ * Relevant to opennext
+ * https://github.com/opennextjs/opennextjs-cloudflare/blob/b53a046bd5c30e94a42e36b67747cefbf7785f9a/packages/cloudflare/src/cli/templates/init.ts#L17
+ */
+function _getOpenNextCloudflareContext(): MinimalCloudflareContext | undefined {
+  const openNextCloudflareContextSymbol = Symbol.for('__cloudflare-context__');
+
+  return (
+    GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+      [openNextCloudflareContextSymbol]?: {
+        ctx: MinimalCloudflareContext;
+      };
+    }
+  )[openNextCloudflareContextSymbol]?.ctx;
+}
+
+/**
+ * Function that delays closing of a Cloudflare lambda until the provided promise is resolved.
+ */
+export function cloudflareWaitUntil(task: Promise<unknown>): void {
+  _getOpenNextCloudflareContext()?.waitUntil(task);
+}
+
+/**
+ * Checks if the Cloudflare waitUntil function is available globally.
+ */
+export function isCloudflareWaitUntilAvailable(): boolean {
+  return typeof _getOpenNextCloudflareContext()?.waitUntil === 'function';
 }

@@ -1,20 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as sentryCore from '@sentry/core';
-import * as sentryUtils from '@sentry/core';
-import { createStackParser } from '@sentry/core';
 import type { HandlerDataFetch, Integration } from '@sentry/core';
-
+import * as sentryCore from '@sentry/core';
+import { createStackParser } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudflareClient } from '../../src/client';
 import { fetchIntegration } from '../../src/integrations/fetch';
 
 class FakeClient extends CloudflareClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'Fetch' ? (fetchIntegration() as Integration as T) : undefined;
+    return name === 'Fetch' ? (fetchIntegration() as T) : undefined;
   }
 }
 
-const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
+const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryCore, 'addFetchInstrumentationHandler');
 const instrumentFetchRequestSpy = vi.spyOn(sentryCore, 'instrumentFetchRequest');
 const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
 
@@ -26,7 +23,6 @@ describe('WinterCGFetch instrumentation', () => {
 
     client = new FakeClient({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      enableTracing: true,
       tracesSampleRate: 1,
       integrations: [],
       transport: () => ({
@@ -62,7 +58,7 @@ describe('WinterCGFetch instrumentation', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      'auto.http.fetch',
+      { spanOrigin: 'auto.http.fetch' },
     );
 
     const [, shouldCreateSpan, shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;
@@ -105,8 +101,8 @@ describe('WinterCGFetch instrumentation', () => {
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'https://dsn.ingest.sentry.io/1337', method: 'POST' },
-      args: ['https://dsn.ingest.sentry.io/1337'],
+      fetchData: { url: 'https://dsn.ingest.sentry.io/1337?sentry_key=123', method: 'POST' },
+      args: ['https://dsn.ingest.sentry.io/1337?sentry_key=123'],
       startTimestamp: Date.now(),
     };
     fetchInstrumentationHandlerCallback(startHandlerData);

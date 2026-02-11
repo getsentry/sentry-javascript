@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import { createBrowserHistory } from 'history';
-// biome-ignore lint/nursery/noUnusedImports: <explanation>
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Route, Router, Switch } from 'react-router-dom';

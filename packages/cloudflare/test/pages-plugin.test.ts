@@ -3,7 +3,6 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { CloudflareOptions } from '../src/client';
-
 import { sentryPagesPlugin } from '../src/pages-plugin';
 
 const MOCK_OPTIONS: CloudflareOptions = {
@@ -53,6 +52,8 @@ describe('sentryPagesPlugin', () => {
       pluginArgs: MOCK_OPTIONS,
     });
 
-    expect(result).toBe(response);
+    // Response may be wrapped for streaming detection, verify content
+    expect(result.status).toBe(response.status);
+    expect(await result.text()).toBe('test');
   });
 });

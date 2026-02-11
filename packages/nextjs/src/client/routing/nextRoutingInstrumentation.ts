@@ -1,6 +1,5 @@
 import type { Client } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-
 import { appRouterInstrumentNavigation, appRouterInstrumentPageLoad } from './appRouterRoutingInstrumentation';
 import { pagesRouterInstrumentNavigation, pagesRouterInstrumentPageLoad } from './pagesRouterRoutingInstrumentation';
 

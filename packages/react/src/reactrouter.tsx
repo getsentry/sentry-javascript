@@ -1,23 +1,22 @@
 import {
-  WINDOW,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  WINDOW,
 } from '@sentry/browser';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
-import hoistNonReactStatics from 'hoist-non-react-statics';
-import * as React from 'react';
 import type { ReactElement } from 'react';
-
+import * as React from 'react';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type { Action, Location } from './types';
 
 // We need to disable eslint no-explicit-any because any is required for the

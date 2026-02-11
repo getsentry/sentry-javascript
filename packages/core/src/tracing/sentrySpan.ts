@@ -9,35 +9,35 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import type { SpanEnvelope } from '../types-hoist/envelope';
+import type { TransactionEvent } from '../types-hoist/event';
+import type { SpanLink } from '../types-hoist/link';
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributeValue,
   SpanAttributes,
+  SpanAttributeValue,
   SpanContextData,
-  SpanEnvelope,
   SpanJSON,
   SpanOrigin,
-  SpanStatus,
   SpanTimeInput,
-  TimedEvent,
-  TransactionEvent,
-  TransactionSource,
-} from '../types-hoist';
-import { logger } from '../utils-hoist/logger';
-import { dropUndefinedKeys } from '../utils-hoist/object';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import type { TimedEvent } from '../types-hoist/timedEvent';
+import { debug } from '../utils/debug-logger';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
+  convertSpanLinksForEnvelope,
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
+import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -55,6 +55,7 @@ export class SentrySpan implements Span {
   protected _sampled: boolean | undefined;
   protected _name?: string | undefined;
   protected _attributes: SpanAttributes;
+  protected _links?: SpanLink[];
   /** Epoch timestamp in seconds when the span started. */
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
@@ -78,6 +79,7 @@ export class SentrySpan implements Span {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
+    this._links = spanContext.links;
 
     this._attributes = {};
     this.setAttributes({
@@ -109,25 +111,23 @@ export class SentrySpan implements Span {
     }
   }
 
-  /**
-   * This should generally not be used,
-   * but it is needed for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
-  public addLink(_link: unknown): this {
+  /** @inheritDoc */
+  public addLink(link: SpanLink): this {
+    if (this._links) {
+      this._links.push(link);
+    } else {
+      this._links = [link];
+    }
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but it is needed for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
-  public addLinks(_links: unknown[]): this {
+  /** @inheritDoc */
+  public addLinks(links: SpanLink[]): this {
+    if (this._links) {
+      this._links.push(...links);
+    } else {
+      this._links = links;
+    }
     return this;
   }
 
@@ -221,7 +221,7 @@ export class SentrySpan implements Span {
    * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
-    return dropUndefinedKeys({
+    return {
       data: this._attributes,
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
@@ -237,7 +237,8 @@ export class SentrySpan implements Span {
       measurements: timedEventsToMeasurements(this._events),
       is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
       segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
-    });
+      links: convertSpanLinksForEnvelope(this._links),
+    };
   }
 
   /** @inheritdoc */
@@ -253,7 +254,7 @@ export class SentrySpan implements Span {
     attributesOrStartTime?: SpanAttributes | SpanTimeInput,
     startTime?: SpanTimeInput,
   ): this {
-    DEBUG_BUILD && logger.log('[Tracing] Adding an event to span:', name);
+    DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
     const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
@@ -303,7 +304,7 @@ export class SentrySpan implements Span {
         sendSpanEnvelope(createSpanEnvelope([this], client));
       } else {
         DEBUG_BUILD &&
-          logger.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+          debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
         if (client) {
           client.recordDroppedEvent('sample_rate', 'span');
         }
@@ -328,11 +329,13 @@ export class SentrySpan implements Span {
     }
 
     if (!this._name) {
-      DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      DEBUG_BUILD && debug.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this._name = '<unlabeled transaction>';
     }
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
+
+    const normalizedRequest = capturedSpanScope?.getScopeData().sdkProcessingMetadata?.normalizedRequest;
 
     if (this._sampled !== true) {
       return undefined;
@@ -343,13 +346,13 @@ export class SentrySpan implements Span {
 
     const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
-    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */
     delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     spans.forEach(span => {
-      span.data && delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+      delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     });
     // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
 
@@ -370,10 +373,9 @@ export class SentrySpan implements Span {
       sdkProcessingMetadata: {
         capturedSpanScope,
         capturedSpanIsolationScope,
-        ...dropUndefinedKeys({
-          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
-        }),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
+      request: normalizedRequest,
       ...(source && {
         transaction_info: {
           source,
@@ -386,7 +388,7 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Measurements] Adding measurements to transaction event',
           JSON.stringify(measurements, undefined, 2),
         );

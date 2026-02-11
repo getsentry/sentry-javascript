@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
+/* eslint-disable import/export */
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
 // which is not allowed, unless we redefine the colliding exports in this file - which we do below.
-export * from './config';
-export * from './client';
-export * from './server';
-export * from './edge';
-
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
-
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
+
+export * from './config';
+export * from './client';
+export * from './server';
+export * from './edge';
 
 /** Initializes Sentry Next.js SDK */
 export declare function init(
@@ -21,6 +23,9 @@ export declare function init(
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
+
+// Different implementation in server and worker
+export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
@@ -31,6 +36,8 @@ export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
 export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
+
+export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
 export { withSentryConfig } from './config';
 
@@ -136,3 +143,11 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
 export { captureRequestError } from './common/captureRequestError';
+
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
+export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;
+export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
+export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
+export declare const unleashIntegration: typeof clientSdk.unleashIntegration;

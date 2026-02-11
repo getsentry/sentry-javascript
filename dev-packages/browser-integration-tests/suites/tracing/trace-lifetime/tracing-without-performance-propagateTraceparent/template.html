@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Purposefully emitting the `sampled` flag in the sentry-trace tag -->
+    <meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456" />
+    <meta
+      name="baggage"
+      content="sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod,sentry-sample_rand=0.42"
+    />
+  </head>
+  <body>
+    <button id="errorBtn">Throw Error</button>
+    <button id="fetchBtn">Fetch Request</button>
+    <button id="xhrBtn">XHR Request</button>
+  </body>
+</html>

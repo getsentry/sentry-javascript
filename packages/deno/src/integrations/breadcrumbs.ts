@@ -42,6 +42,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      // TODO(v11): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
       }

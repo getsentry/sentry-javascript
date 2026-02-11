@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "jsx": "react"
+  }
+}

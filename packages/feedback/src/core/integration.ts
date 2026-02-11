@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
@@ -5,7 +7,7 @@ import type {
   Integration,
   IntegrationFn,
 } from '@sentry/core';
-import { addIntegration, isBrowser, logger } from '@sentry/core';
+import { addIntegration, debug, isBrowser } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -14,11 +16,14 @@ import {
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
+  HIDE_TOOL_TEXT,
+  HIGHLIGHT_TOOL_TEXT,
   IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
   NAME_PLACEHOLDER,
+  REMOVE_HIGHLIGHT_TEXT,
   REMOVE_SCREENSHOT_LABEL,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
@@ -110,6 +115,9 @@ export const buildFeedbackIntegration = ({
     successMessageText = SUCCESS_MESSAGE_TEXT,
     triggerLabel = TRIGGER_LABEL,
     triggerAriaLabel = '',
+    highlightToolText = HIGHLIGHT_TOOL_TEXT,
+    hideToolText = HIDE_TOOL_TEXT,
+    removeHighlightText = REMOVE_HIGHLIGHT_TEXT,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -152,6 +160,9 @@ export const buildFeedbackIntegration = ({
       isRequiredLabel,
       addScreenshotButtonLabel,
       removeScreenshotButtonLabel,
+      highlightToolText,
+      hideToolText,
+      removeHighlightText,
 
       onFormClose,
       onFormOpen,
@@ -175,7 +186,7 @@ export const buildFeedbackIntegration = ({
         _shadow = host.attachShadow({ mode: 'open' });
         _shadow.appendChild(createMainStyles(options));
       }
-      return _shadow as ShadowRoot;
+      return _shadow;
     };
 
     const _loadAndRenderDialog = async (
@@ -194,7 +205,7 @@ export const buildFeedbackIntegration = ({
         addIntegration(modalIntegration);
       } catch {
         DEBUG_BUILD &&
-          logger.error(
+          debug.error(
             '[Feedback] Error when trying to load feedback integrations. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
           );
         throw new Error('[Feedback] Missing feedback modal integration!');
@@ -213,7 +224,7 @@ export const buildFeedbackIntegration = ({
         }
       } catch {
         DEBUG_BUILD &&
-          logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
+          debug.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
       const dialog = modalIntegration.createDialog({
@@ -243,7 +254,7 @@ export const buildFeedbackIntegration = ({
         typeof el === 'string' ? DOCUMENT.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
       if (!targetEl) {
-        DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
+        DEBUG_BUILD && debug.error('[Feedback] Unable to attach to target element');
         throw new Error('Unable to attach to target element');
       }
 

@@ -1,6 +1,5 @@
-import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/core';
+import { debug, dsnFromString, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-
 import { DEBUG_BUILD } from '../common/debug-build';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -26,9 +25,9 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
         tunnelPath += `&r=${regionCode}`;
       }
       options.tunnel = tunnelPath;
-      DEBUG_BUILD && logger.info(`Tunneling events to "${tunnelPath}"`);
+      DEBUG_BUILD && debug.log(`Tunneling events to "${tunnelPath}"`);
     } else {
-      DEBUG_BUILD && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
+      DEBUG_BUILD && debug.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
     }
   }
 }

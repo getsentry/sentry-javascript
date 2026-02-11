@@ -47,6 +47,7 @@ interface SentryFetchData {
 }
 
 export interface HandlerDataFetch {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: any[];
   fetchData: SentryFetchData; // This data is among other things dumped directly onto the fetch breadcrumb data
   startTimestamp: number;
@@ -61,6 +62,8 @@ export interface HandlerDataFetch {
   error?: unknown;
   // This is to be consumed by the HttpClient integration
   virtualError?: unknown;
+  /** Headers that the user passed to the fetch request. */
+  headers?: WebFetchHeaders;
 }
 
 export interface HandlerDataDom {
@@ -72,11 +75,14 @@ export interface HandlerDataDom {
 
 export interface HandlerDataConsole {
   level: ConsoleLevel;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: any[];
 }
 
 export interface HandlerDataHistory {
+  /** The full URL of the previous page */
   from: string | undefined;
+  /** The full URL of the new page */
   to: string;
 }
 

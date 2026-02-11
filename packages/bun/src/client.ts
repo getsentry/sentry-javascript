@@ -1,14 +1,10 @@
-import * as os from 'os';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
-
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
+import * as os from 'os';
 import type { BunClientOptions } from './types';
 
 /**
- * The Sentry Bun SDK Client.
- *
- * @see BunClientOptions for documentation on configuration options.
- * @see SentryClient for usage documentation.
+ * @deprecated This client is no longer used in v9.
  */
 export class BunClient extends ServerRuntimeClient<BunClientOptions> {
   /**

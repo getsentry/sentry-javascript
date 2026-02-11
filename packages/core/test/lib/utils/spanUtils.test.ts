@@ -1,19 +1,23 @@
+import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
+  convertSpanLinksForEnvelope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
+  setCurrentClient,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
-  SentrySpan,
-  TRACEPARENT_REGEXP,
-  setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
   startSpan,
   timestampInSeconds,
+  TRACEPARENT_REGEXP,
 } from '../../../src';
-import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
+import type { SpanLink } from '../../../src/types-hoist/link';
+import type { Span, SpanAttributes, SpanTimeInput } from '../../../src/types-hoist/span';
+import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
   getRootSpan,
@@ -21,9 +25,11 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
   updateSpanName,
 } from '../../../src/utils/spanUtils';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 function createMockedOtelSpan({
   spanId,
@@ -153,6 +159,115 @@ describe('spanToTraceContext', () => {
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
       trace_id: 'ABCD',
     });
+  });
+});
+
+describe('convertSpanLinksForEnvelope', () => {
+  it('returns undefined for undefined input', () => {
+    expect(convertSpanLinksForEnvelope(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty array input', () => {
+    expect(convertSpanLinksForEnvelope([])).toBeUndefined();
+  });
+
+  it('converts a single span link to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+    ]);
+  });
+
+  it('converts multiple span links to a flattened envelope item', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        context: {
+          spanId: 'span2',
+          traceId: 'trace2',
+          traceFlags: TRACE_FLAG_NONE,
+        },
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+        attributes: {
+          'sentry.link.type': 'previous_trace',
+        },
+      },
+      {
+        span_id: 'span2',
+        trace_id: 'trace2',
+        sampled: false,
+        attributes: {
+          'sentry.link.type': 'another_trace',
+        },
+      },
+    ]);
+  });
+
+  it('handles span links without attributes', () => {
+    const links: SpanLink[] = [
+      {
+        context: {
+          spanId: 'span1',
+          traceId: 'trace1',
+          traceFlags: TRACE_FLAG_SAMPLED,
+        },
+      },
+    ];
+
+    const result = convertSpanLinksForEnvelope(links);
+
+    result?.forEach(item => expect(item).not.toHaveProperty('context'));
+    expect(result).toEqual([
+      {
+        span_id: 'span1',
+        trace_id: 'trace1',
+        sampled: true,
+      },
+    ]);
   });
 });
 

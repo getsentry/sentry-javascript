@@ -1,4 +1,3 @@
-// biome-ignore format: Disabled due to trailing comma not working in IE10/11
 (function(
   _window,
   _document,

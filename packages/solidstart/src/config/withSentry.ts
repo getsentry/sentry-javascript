@@ -1,6 +1,6 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { Nitro } from 'nitropack';
-import { addSentryPluginToVite } from '../vite';
+import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
   addDynamicImportEntryFileWrapper,
@@ -37,10 +37,11 @@ export function withSentry(
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   const hooks = server.hooks || {};
+  const viteConfig = solidStartConfig.vite;
   const vite =
-    typeof solidStartConfig.vite === 'function'
-      ? (...args: unknown[]) => addSentryPluginToVite(solidStartConfig.vite(...args), sentryPluginOptions)
-      : addSentryPluginToVite(solidStartConfig.vite, sentryPluginOptions);
+    typeof viteConfig === 'function'
+      ? (...args: Parameters<typeof viteConfig>) => addSentryPluginToVite(viteConfig(...args), sentryPluginOptions)
+      : addSentryPluginToVite(viteConfig, sentryPluginOptions);
 
   return {
     ...solidStartConfig,
@@ -54,7 +55,7 @@ export function withSentry(
             await addDynamicImportEntryFileWrapper({ nitro, rollupConfig: config, sentryPluginOptions });
 
             sentrySolidStartPluginOptions.debug &&
-              logger.log(
+              debug.log(
                 'Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
               );
           } else {

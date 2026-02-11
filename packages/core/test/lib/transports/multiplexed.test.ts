@@ -1,13 +1,4 @@
-import type {
-  BaseTransportOptions,
-  ClientReport,
-  Envelope,
-  EventEnvelope,
-  EventItem,
-  TransactionEvent,
-  Transport,
-} from '../../../src/types-hoist';
-
+import { describe, expect, it, vi } from 'vitest';
 import {
   createClientReportEnvelope,
   createEnvelope,
@@ -17,7 +8,11 @@ import {
   makeMultiplexedTransport,
   parseEnvelope,
 } from '../../../src';
-import { eventFromEnvelope } from '../../../src/transports/multiplexed';
+import { eventFromEnvelope, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '../../../src/transports/multiplexed';
+import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
+import type { TransactionEvent } from '../../../src/types-hoist/event';
+import type { BaseTransportOptions, Transport } from '../../../src/types-hoist/transport';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
@@ -95,7 +90,7 @@ describe('makeMultiplexedTransport', () => {
 
   it('Falls back to options DSN when a matched DSN is invalid', async () => {
     // Hide warning logs in the test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect.assertions(1);
 
@@ -109,7 +104,7 @@ describe('makeMultiplexedTransport', () => {
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(ERROR_ENVELOPE);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('DSN can be overridden via match callback', async () => {
@@ -245,5 +240,84 @@ describe('makeMultiplexedTransport', () => {
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(TRANSACTION_ENVELOPE);
+  });
+});
+
+describe('makeMultiplexedTransport() with default matcher', () => {
+  it('sends events to targets provided in event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(
+        url => {
+          expect(url).toBe(DSN1_URL);
+        },
+        url => {
+          expect(url).toBe(DSN2_URL);
+        },
+      ),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+          extra: {
+            [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [DSN1, DSN2],
+          },
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('sends events to default DSN if event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY] is not set', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('sends events to default DSN if event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY] is an empty array', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'event' },
+        {
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+          extra: {
+            [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [],
+          },
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
   });
 });

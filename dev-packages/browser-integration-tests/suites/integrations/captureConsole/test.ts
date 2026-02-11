@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
 
@@ -97,7 +96,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
   expect(errorWithErrorEvent?.exception?.values?.[0].value).toBe('console error with error object');
   expect(errorWithErrorEvent?.exception?.values?.[0].mechanism).toEqual({
     handled: true,
-    type: 'console',
+    type: 'auto.core.capture_console',
   });
   expect(traceWithErrorEvent).toEqual(
     expect.objectContaining({

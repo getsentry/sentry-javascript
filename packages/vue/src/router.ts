@@ -1,13 +1,13 @@
 import { captureException } from '@sentry/browser';
+import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
-import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
@@ -50,35 +50,19 @@ export function instrumentVueRouter(
   },
   startNavigationSpanFn: (context: StartSpanOptions) => void,
 ): void {
-  let isFirstPageLoad = true;
+  let hasHandledFirstPageLoad = false;
 
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 
-  router.beforeEach((to, from, next) => {
-    // According to docs we could use `from === VueRouter.START_LOCATION` but I couldn't get it working for Vue 2
-    // https://router.vuejs.org/api/#router-start-location
-    // https://next.router.vuejs.org/api/#start-location
-    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (this is never 0).
-    // Therefore, a flag was added to track the page-load: isFirstPageLoad
+  router.beforeEach((to, _from, next) => {
+    // We avoid trying to re-fetch the page load span when we know we already handled it the first time
+    const activePageLoadSpan = !hasHandledFirstPageLoad ? getActivePageLoadSpan() : undefined;
 
-    // from.name:
-    // - Vue 2: null
-    // - Vue 3: undefined
-    // - Nuxt: undefined
-    // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
-    const isPageLoadNavigation =
-      (from.name == null && from.matched.length === 0) || (from.name === undefined && isFirstPageLoad);
-
-    if (isFirstPageLoad) {
-      isFirstPageLoad = false;
-    }
-
-    const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-    };
+    const attributes: SpanAttributes = {};
 
     for (const key of Object.keys(to.params)) {
-      attributes[`params.${key}`] = to.params[key];
+      attributes[`url.path.parameter.${key}`] = to.params[key];
+      attributes[`params.${key}`] = to.params[key]; // params.[key] is an alias
     }
     for (const key of Object.keys(to.query)) {
       const value = to.query[key];
@@ -102,30 +86,33 @@ export function instrumentVueRouter(
 
     getCurrentScope().setTransactionName(spanName);
 
-    if (options.instrumentPageLoad && isPageLoadNavigation) {
-      const activeRootSpan = getActiveRootSpan();
-      if (activeRootSpan) {
-        const existingAttributes = spanToJSON(activeRootSpan).data;
-        if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-          activeRootSpan.updateName(spanName);
-          activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
-        }
-        // Set router attributes on the existing pageload transaction
-        // This will override the origin, and add params & query attributes
-        activeRootSpan.setAttributes({
-          ...attributes,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
-        });
+    // Update the existing page load span with parametrized route information
+    if (options.instrumentPageLoad && activePageLoadSpan) {
+      const existingAttributes = spanToJSON(activePageLoadSpan).data;
+      if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
+        activePageLoadSpan.updateName(spanName);
+        activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
       }
+
+      // Set router attributes on the existing pageload transaction
+      // This will override the origin, and add params & query attributes
+      activePageLoadSpan.setAttributes({
+        ...attributes,
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+      });
+
+      hasHandledFirstPageLoad = true;
     }
 
-    if (options.instrumentNavigation && !isPageLoadNavigation) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.navigation.vue';
+    if (options.instrumentNavigation && !activePageLoadSpan) {
       startNavigationSpanFn({
         name: spanName,
         op: 'navigation',
-        attributes,
+        attributes: {
+          ...attributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+        },
       });
     }
 
@@ -138,7 +125,7 @@ export function instrumentVueRouter(
   });
 }
 
-function getActiveRootSpan(): Span | undefined {
+function getActivePageLoadSpan(): Span | undefined {
   const span = getActiveSpan();
   const rootSpan = span && getRootSpan(span);
 
@@ -148,6 +135,5 @@ function getActiveRootSpan(): Span | undefined {
 
   const op = spanToJSON(rootSpan).op;
 
-  // Only use this root span if it is a pageload or navigation span
-  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
+  return op === 'pageload' ? rootSpan : undefined;
 }

@@ -73,22 +73,88 @@ the tests in each location. Check out the `scripts` entry of the corresponding `
 
 Note: you must run `yarn build` before `yarn test` will work.
 
-## Debugging Tests
+## Running E2E Tests Locally
 
-If you run into trouble writing tests and need to debug one of them, you can do so using VSCode's debugger.
+E2E tests verify SDK behavior in real-world framework scenarios using a local npm registry (Verdaccio).
 
-0. If you don't already have it installed, install the Tasks Shell Input extension, which you'll find in the Extensions
-   tab in the sidebar as one of the recommended workspace extensions.
+### Prerequisites
 
-1. Place breakpoints or `debugger` statements in the test or the underlying code wherever you'd like `jest` to pause.
-2. Open the file containing the test in question, and make sure its tab is active (so you can see the file's contents).
-3. Switch to the debugger in the sidebar and choose `Debug unit tests - just open file` from the dropdown.
-4. Click the green "play" button to run the tests in the open file in watch mode.
+1. **Docker**: Required to run the Verdaccio registry container
+2. **Volta with pnpm support**: Enable pnpm in Volta by setting `VOLTA_FEATURE_PNPM=1` in your environment. See [Volta pnpm docs](https://docs.volta.sh/advanced/pnpm).
 
-Pro tip: If any of your breakpoints are in code run by multiple tests, and you run the whole test file, you'll land on
-those breakpoints over and over again, in the middle of tests you don't care about. To avoid this, replace the test's
-initial `it` or `test` with `it.only` or `test.only`. That way, when you hit a breakpoint, you'll know you got there are
-part of the buggy test.
+### Step-by-Step Instructions
+
+1. **Build the SDK packages and create tarballs:**
+
+   ```bash
+   yarn build
+   yarn build:tarball
+   ```
+
+   Note: You must re-run `yarn build:tarball` after any changes to packages.
+
+2. **Set up environment (optional):**
+
+   ```bash
+   cd dev-packages/e2e-tests
+   cp .env.example .env
+   # Fill in Sentry project auth info if running tests that send data to Sentry
+   ```
+
+3. **Run all E2E tests:**
+
+   ```bash
+   yarn test:e2e
+   ```
+
+4. **Or run a specific test application:**
+
+   ```bash
+   yarn test:run <app-name>
+   # Example: yarn test:run nextjs-app-dir
+   ```
+
+5. **Run with a specific variant:**
+   ```bash
+   yarn test:run <app-name> --variant <variant-name>
+   # Example: yarn test:run nextjs-pages-dir --variant 15
+   ```
+
+### Common Issues and Troubleshooting
+
+#### Packages install from public npm instead of Verdaccio
+
+Every E2E test application **must** have an `.npmrc` file with:
+
+```
+@sentry:registry=http://127.0.0.1:4873
+@sentry-internal:registry=http://127.0.0.1:4873
+```
+
+Without this, pnpm will fetch packages from the public npm registry instead of the local Verdaccio instance, causing tests to use outdated/published versions instead of your local changes.
+
+#### Tests fail after making SDK changes
+
+Make sure to rebuild tarballs:
+
+```bash
+yarn build
+yarn build:tarball
+```
+
+#### Docker-related issues
+
+- Ensure Docker daemon is running
+- Check that port 4873 is not in use by another process
+- Try stopping and removing existing Verdaccio containers
+
+#### Debugging test failures
+
+1. Check browser console logs for SDK initialization errors
+2. Enable debug mode in the test app's Sentry config: `debug: true`
+3. Verify packages are installed from Verdaccio by checking the version in `node_modules/@sentry/*/package.json`
+
+For more details, see [dev-packages/e2e-tests/README.md](dev-packages/e2e-tests/README.md).
 
 ## Debug Build Flags
 

@@ -1,12 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
-
+import '../../utils/mock-internal-setTimeout';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { SKIPPED, throttle, THROTTLED } from '../../../src/util/throttle';
 import { BASE_TIMESTAMP } from '../..';
-import { SKIPPED, THROTTLED, throttle } from '../../../src/util/throttle';
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
 
 describe('Unit | util | throttle', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   it('executes when not hitting the limit', () => {
     const now = BASE_TIMESTAMP;
     vi.setSystemTime(now);

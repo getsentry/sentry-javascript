@@ -1,20 +1,20 @@
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
-
+import { INSTRUMENTED } from '@sentry/node-core';
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import {
   _defaultDbStatementSerializer,
   instrumentMongo,
   mongoIntegration,
 } from '../../../src/integrations/tracing/mongo';
-import { INSTRUMENTED } from '../../../src/otel/instrument';
 
-jest.mock('@opentelemetry/instrumentation-mongodb');
+vi.mock('@opentelemetry/instrumentation-mongodb');
 
 describe('Mongo', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     delete INSTRUMENTED.Mongo;
 
-    (MongoDBInstrumentation as unknown as jest.SpyInstance).mockImplementation(() => {
+    (MongoDBInstrumentation as unknown as MockInstance).mockImplementation(() => {
       return {
         setTracerProvider: () => undefined,
         setMeterProvider: () => undefined,

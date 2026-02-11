@@ -1,5 +1,5 @@
-import { defineIntegration, getClient, withMonitor } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/core';
+import { defineIntegration, getClient, withMonitor } from '@sentry/core';
 import { parseScheduleToString } from './deno-cron-format';
 
 type CronOptions = { backoffSchedule?: number[]; signal?: AbortSignal };
@@ -15,13 +15,11 @@ const _denoCronIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // eslint-disable-next-line deprecation/deprecation
       if (!Deno.cron) {
         // The cron API is not available in this Deno version use --unstable flag!
         return;
       }
 
-      // eslint-disable-next-line deprecation/deprecation
       Deno.cron = new Proxy(Deno.cron, {
         apply(target, thisArg, argArray: CronParams) {
           const [monitorSlug, schedule, opt1, opt2] = argArray;

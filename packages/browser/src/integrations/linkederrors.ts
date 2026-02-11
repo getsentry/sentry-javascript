@@ -25,7 +25,6 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
         // This differs from the LinkedErrors integration in core by using a different exceptionFromError function
         exceptionFromError,
         options.stackParser,
-        options.maxValueLength,
         key,
         limit,
         event,

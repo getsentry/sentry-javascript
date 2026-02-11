@@ -1,7 +1,7 @@
+/* eslint-disable complexity */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { DefaultArtifactClient } from '@actions/artifact';
 import * as core from '@actions/core';
 import { exec } from '@actions/exec';
@@ -9,9 +9,8 @@ import { context, getOctokit } from '@actions/github';
 import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
-
-import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
+import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
@@ -60,7 +59,7 @@ async function run() {
 
     const comparisonBranch = getInput('comparison_branch');
     const githubToken = getInput('github_token');
-    const threshold = getInput('threshold');
+    const threshold = getInput('threshold') || 0.05;
 
     if (comparisonBranch && !pr) {
       throw new Error('No PR found. Only pull_request workflows are supported.');
@@ -182,6 +181,24 @@ async function run() {
     }
 
     if (status > 0) {
+      try {
+        const results = limit.parseResults(output);
+        const failedResults = results
+          .filter(result => result.passed || false)
+          .map(result => ({
+            name: result.name,
+            size: +result.size,
+            sizeLimit: +result.sizeLimit,
+          }));
+
+        if (failedResults.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('Exceeded size-limits:', failedResults);
+        }
+      } catch {
+        // noop
+      }
+
       setFailed('Size limit has been exceeded.');
     }
   } catch (error) {

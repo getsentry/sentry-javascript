@@ -1,48 +1,54 @@
-import { context } from '@opentelemetry/api';
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
+/* eslint-disable import/export */
 import {
-  ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
   ATTR_URL_QUERY,
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  applySdkMetadata,
-  getCapturedScopesOnSpan,
-  getClient,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  getRootSpan,
-  setCapturedScopesOnSpan,
-  spanToJSON,
-} from '@sentry/core';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
 import type { EventProcessor } from '@sentry/core';
+import {
+  applySdkMetadata,
+  debug,
+  extractTraceparentData,
+  getClient,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import {
   TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL,
   TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
+import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
+import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { handleOnSpanStart } from './handleOnSpanStart';
+import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 
 export * from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
+// Override core span methods with Next.js-specific implementations that support Cache Components
+export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
+
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRewritesTunnelPath?: string;
+  _sentryRelease?: string;
 };
 
 /**
@@ -87,10 +93,30 @@ export function showReportDialog(): void {
   return;
 }
 
+/**
+ * Returns the runtime configuration for the SDK based on the environment.
+ * When running on OpenNext/Cloudflare, returns cloudflare runtime config.
+ */
+function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined {
+  if (isCloudflareWaitUntilAvailable()) {
+    // todo: add version information?
+    return { runtime: { name: 'cloudflare' } };
+  }
+  return undefined;
+}
+
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): NodeClient | undefined {
+  prepareSafeIdGeneratorContext();
   if (isBuild()) {
     return;
+  }
+
+  if (!DEBUG_BUILD && options.debug) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+    );
   }
 
   const customDefaultIntegrations = getDefaultIntegrations(options)
@@ -102,9 +128,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
       }),
     );
 
-  // Turn off Next.js' own fetch instrumentation
+  // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
-  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+  // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
+  if (!options.skipOpenTelemetrySetup) {
+    process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+  }
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
@@ -113,26 +142,34 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  // Detect if running on OpenNext/Cloudflare and get runtime config
+  const cloudflareConfig = getCloudflareRuntimeConfig();
+
   const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
+    // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
+    ...cloudflareConfig,
   };
 
   if (DEBUG_BUILD && opts.debug) {
-    logger.enable();
+    debug.enable();
   }
 
-  DEBUG_BUILD && logger.log('Initializing SDK...');
+  DEBUG_BUILD && debug.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    DEBUG_BUILD && logger.log('SDK already initialized');
+    DEBUG_BUILD && debug.log('SDK already initialized');
     return;
   }
 
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
+  // Use appropriate SDK metadata based on the runtime environment
+  applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
+
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
@@ -153,48 +190,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', span => {
-    const spanAttributes = spanToJSON(span).data;
-
-    // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
-    // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
-    if (typeof spanAttributes?.['next.route'] === 'string') {
-      const rootSpan = getRootSpan(span);
-      const rootSpanAttributes = spanToJSON(rootSpan).data;
-
-      // Only hoist the http.route attribute if the transaction doesn't already have it
-      if (
-        // eslint-disable-next-line deprecation/deprecation
-        (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
-        !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
-      ) {
-        const route = spanAttributes['next.route'].replace(/\/route$/, '');
-        rootSpan.updateName(route);
-        rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
-      }
-    }
-
-    // We want to skip span data inference for any spans generated by Next.js. Reason being that Next.js emits spans
-    // with patterns (e.g. http.server spans) that will produce confusing data.
-    if (spanAttributes?.['next.span_type'] !== undefined) {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
-    }
-
-    // We want to fork the isolation scope for incoming requests
-    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && span === getRootSpan(span)) {
-      const scopes = getCapturedScopesOnSpan(span);
-
-      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-      const scope = scopes.scope || getCurrentScope();
-
-      const currentScopesPointer = getScopesFromContext(context.active());
-      if (currentScopesPointer) {
-        currentScopesPointer.isolationScope = isolationScope;
-      }
-
-      setCapturedScopesOnSpan(span, scope, isolationScope);
-    }
-  });
+  client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanEnd', maybeCompleteCronCheckIn);
 
   getGlobalScope().addEventProcessor(
     Object.assign(
@@ -304,7 +301,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // Enhance route handler transactions
     if (
       event.type === 'transaction' &&
-      event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
+      event.contexts?.trace?.data?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest'
     ) {
       event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
       event.contexts.trace.op = 'http.server';
@@ -317,16 +314,29 @@ export function init(options: NodeOptions): NodeClient | undefined {
       const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
       // eslint-disable-next-line deprecation/deprecation
       const target = event.contexts?.trace?.data?.[SEMATTRS_HTTP_TARGET];
-      const route = event.contexts.trace.data[ATTR_HTTP_ROUTE];
+      const route = event.contexts.trace.data[ATTR_HTTP_ROUTE] || event.contexts.trace.data[ATTR_NEXT_ROUTE];
+      const spanName = event.contexts.trace.data[ATTR_NEXT_SPAN_NAME];
 
-      if (typeof method === 'string' && typeof route === 'string') {
-        event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
+      if (typeof method === 'string' && typeof route === 'string' && !route.startsWith('middleware')) {
+        const cleanRoute = route.replace(/\/route$/, '');
+        event.transaction = `${method} ${cleanRoute}`;
         event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        // Preserve next.route in case it did not get hoisted
+        event.contexts.trace.data[ATTR_NEXT_ROUTE] = cleanRoute;
       }
 
       // backfill transaction name for pages that would otherwise contain unparameterized routes
       if (event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL] && event.transaction !== 'GET /_app') {
         event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
+      }
+
+      const middlewareMatch =
+        typeof spanName === 'string' && spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
+
+      if (middlewareMatch) {
+        const normalizedName = `middleware ${middlewareMatch[1]}`;
+        event.transaction = normalizedName;
+        event.contexts.trace.op = 'http.server.middleware';
       }
 
       // Next.js overrides transaction names for page loads that throw an error
@@ -351,13 +361,25 @@ export function init(options: NodeOptions): NodeClient | undefined {
         event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
       }
     }
+
+    setUrlProcessingMetadata(event);
   });
 
   if (process.env.NODE_ENV === 'development') {
     getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
-  DEBUG_BUILD && logger.log('SDK successfully initialized');
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
+  }
+
+  DEBUG_BUILD && debug.log('SDK successfully initialized');
 
   return client;
 }

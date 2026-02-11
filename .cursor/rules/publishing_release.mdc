@@ -1,0 +1,38 @@
+---
+description: Use this rule if you are looking to publish a release for the Sentry JavaScript SDKs
+globs:
+alwaysApply: false
+---
+
+# Publishing a Release
+
+Use these guidelines when publishing a new Sentry JavaScript SDK release.
+
+## Standard Release Process (from develop to master)
+
+The release process is outlined in [publishing-a-release.md](mdc:docs/publishing-a-release.md).
+
+1. Ensure you're on the `develop` branch with the latest changes:
+   - If you have unsaved changes, stash them with `git stash -u`.
+   - If you're on a different branch than `develop`, check out the develop branch using `git checkout develop`.
+   - Pull the latest updates from the remote repository by running `git pull origin develop`.
+
+2. Run `yarn changelog` on the `develop` branch and copy the output. You can use `yarn changelog | pbcopy` to copy the output of `yarn changelog` into your clipboard.
+3. Decide on a version for the release based on [semver](mdc:https://semver.org). The version should be decided based on what is in included in the release. For example, if the release includes a new feature, we should increment the minor version. If it includes only bug fixes, we should increment the patch version. You can find the latest version in [CHANGELOG.md](mdc:CHANGELOG.md) at the very top.
+4. Create a branch `prepare-release/VERSION`, eg. `prepare-release/8.1.0`, off `develop`.
+5. Update [CHANGELOG.md](mdc:CHANGELOG.md) to add an entry for the next release number and a list of changes since the last release from the output of `yarn changelog`. See the `Updating the Changelog` section in [publishing-a-release.md](mdc:docs/publishing-a-release.md) for more details. Do not remove any changelog entries.
+6. Commit the changes to [CHANGELOG.md](mdc:CHANGELOG.md) with `meta(changelog): Update changelog for VERSION` where `VERSION` is the version of the release, e.g. `meta(changelog): Update changelog for 8.1.0`
+7. Push the `prepare-release/VERSION` branch to origin and remind the user that the release PR needs to be opened from the `master` branch.
+8. In case you were working on a different branch, you can checkout back to the branch you were working on and continue your work by unstashing the changes you stashed earlier with the command `git stash pop` (only if you stashed changes).
+
+## Key Commands
+
+- `yarn changelog` - Generate changelog entries
+- `yarn lint` - Ensure code quality
+- `yarn test` - Run test suite
+- `yarn build:dev` - Verify build
+
+## Important Notes
+
+- This repository uses **Git Flow** - target `develop` for feature PRs, not `master`. See [gitflow.md](mdc:docs/gitflow.md) for more details.
+- For first-time SDK releases, follow the New SDK Release Checklist [new-sdk-release-checklist.md](mdc:docs/new-sdk-release-checklist.md). If you notice there is something not following the new SDK release checklist, please remind the user.

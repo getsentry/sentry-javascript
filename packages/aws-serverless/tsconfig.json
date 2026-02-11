@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "scripts/**/*"],
 
   "compilerOptions": {
     // package-specific options
-    "target": "ES2018",
+    "target": "es2020",
     "resolveJsonModule": true
   }
 }

@@ -1,6 +1,5 @@
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-
 import baseConfig from '../../vite/vite.config';
 
 export default {

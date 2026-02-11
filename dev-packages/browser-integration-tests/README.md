@@ -74,8 +74,9 @@ To filter tests by their title:
 
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
 
-You can set env variable `PW_BUNDLE` to set specific build or bundle to test against. Available options: `esm`, `cjs`,
-`bundle`, `bundle_min`
+You can set env variable `PW_BUNDLE` to set specific build or bundle to test against. Available options include: `esm`, `cjs`,
+`bundle`, `bundle_min`, `bundle_tracing`, `bundle_tracing_logs_metrics`, `bundle_replay`, `bundle_tracing_replay_feedback`, and more.
+See `package.json` scripts for the full list of `test:bundle:*` commands.
 
 ### Troubleshooting
 
@@ -95,7 +96,6 @@ occur while writing tests for Sentry Browser SDK.
 
   Before running, a page for each test case is built under the case folder inside `dist`. If a page build is failed,
   it's recommended to check:
-
   - If both default `template.hbs` and `init.js` are defined for the test group.
   - If a `subject.js` is defined for the test case.
   - If either of `init.js` or `subject.js` contain non-browser code.

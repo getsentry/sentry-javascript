@@ -10,27 +10,21 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type {
-  Span,
-  SpanAttributes,
-  SpanJSON,
-  SpanOrigin,
-  SpanStatus,
-  SpanTimeInput,
-  TraceContext,
-} from '../types-hoist';
-import { consoleSandbox } from '../utils-hoist/logger';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
-import { generateSpanId } from '../utils-hoist/propagationContext';
-import { timestampInSeconds } from '../utils-hoist/time';
-import { generateSentryTraceHeader } from '../utils-hoist/tracing';
+import type { TraceContext } from '../types-hoist/context';
+import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
+import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import { addNonEnumerableProperty } from '../utils/object';
+import { generateSpanId } from '../utils/propagationContext';
+import { timestampInSeconds } from '../utils/time';
+import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
+import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
-// todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
 let hasShownSpanDropWarning = false;
 
 /**
@@ -40,9 +34,9 @@ let hasShownSpanDropWarning = false;
  */
 export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin, links } = spanToJSON(span);
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
@@ -50,7 +44,8 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
     op,
     status,
     origin,
-  });
+    links,
+  };
 }
 
 /**
@@ -66,11 +61,11 @@ export function spanToTraceContext(span: Span): TraceContext {
 
   const span_id = isRemote ? scope?.getPropagationContext().propagationSpanId || generateSpanId() : spanId;
 
-  return dropUndefinedKeys({
+  return {
     parent_span_id,
     span_id,
     trace_id,
-  });
+  };
 }
 
 /**
@@ -80,6 +75,34 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ * Convert a Span to a W3C traceparent header.
+ */
+export function spanToTraceparentHeader(span: Span): string {
+  const { traceId, spanId } = span.spanContext();
+  const sampled = spanIsSampled(span);
+  return generateTraceparentHeader(traceId, spanId, sampled);
+}
+
+/**
+ *  Converts the span links array to a flattened version to be sent within an envelope.
+ *
+ *  If the links array is empty, it returns `undefined` so the empty value can be dropped before it's sent.
+ */
+export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] | undefined {
+  if (links && links.length > 0) {
+    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+      span_id: spanId,
+      trace_id: traceId,
+      sampled: traceFlags === TRACE_FLAG_SAMPLED,
+      attributes,
+      ...restContext,
+    }));
+  } else {
+    return undefined;
+  }
 }
 
 /**
@@ -125,9 +148,20 @@ export function spanToJSON(span: Span): SpanJSON {
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+    const { attributes, startTime, name, endTime, status, links } = span;
 
-    return dropUndefinedKeys({
+    // In preparation for the next major of OpenTelemetry, we want to support
+    // looking up the parent span id according to the new API
+    // In OTel v1, the parent span id is accessed as `parentSpanId`
+    // In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
+    const parentSpanId =
+      'parentSpanId' in span
+        ? span.parentSpanId
+        : 'parentSpanContext' in span
+          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+          : undefined;
+
+    return {
       span_id,
       trace_id,
       data: attributes,
@@ -139,7 +173,8 @@ export function spanToJSON(span: Span): SpanJSON {
       status: getStatusMessage(status),
       op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-    });
+      links: convertSpanLinksForEnvelope(links),
+    };
   }
 
   // Finally, at least we have `spanContext()`....
@@ -165,6 +200,7 @@ export interface OpenTelemetrySdkTraceBaseSpan extends Span {
   status: SpanStatus;
   endTime: SpanTimeInput;
   parentSpanId?: string;
+  links?: SpanLink[];
 }
 
 /**
@@ -198,7 +234,7 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
     return 'ok';
   }
 
-  return status.message || 'unknown_error';
+  return status.message || 'internal_error';
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
@@ -281,15 +317,13 @@ export function getActiveSpan(): Span | undefined {
 
 /**
  * Logs a warning once if `beforeSendSpan` is used to drop spans.
- *
- * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
  */
 export function showSpanDropWarning(): void {
   if (!hasShownSpanDropWarning) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
     });
     hasShownSpanDropWarning = true;

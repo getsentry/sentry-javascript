@@ -8,13 +8,11 @@ differ slightly for other SDKs depending on how they are structured and how they
 ## Release Preparation:
 
 - [ ] Make sure, the project is set up completely
-
   - [ ] The package exports the necessary modules
   - [ ] The package has a working unit testing environment
   - [ ] The package builds correctly (inspect `<package>/build` directory)
 
 - [ ] Make sure that the `README.md` content is up to date and contains at least:
-
   - [ ] The correct name + a brief description of the SDK
   - [ ] Badges pointing to the correct (yet not existing) NPM package _(this isn’t deadly necessary but nice to have)_
   - [ ] If the SDK is not yet stable, a clear message indicating that it is in alpha/beta state and that breaking
@@ -24,14 +22,12 @@ differ slightly for other SDKs depending on how they are structured and how they
   - [ ] Extra information (e.g. how to upload sourcemaps)
 
 - [ ] Make sure that the `LICENSE` file exists and has the correct license (We default to the `MIT` license)
-
   - [ ] Also check, that the same license is mentioned in `package.json`
 
 - [ ] Make sure that the tarball (`yarn build:tarball`) has all the necessary contents
 
   For basic SDKs, this means that the tarball has at least these files - you can configure what is included in the
   tarball via the `files` field in `package.json`:
-
   - [ ] `build/cjs/<entrypoint>.js` (or `build/npm/cjs/<entrypoint>.js`)
   - [ ] `build/esm/<entrypoint>.js` (or `build/npm/esm/<entrypoint>.js`)
   - [ ] `build/types/<entrypoint.d.ts>` (or `build/npm/types/<entrypoint>.js`)
@@ -44,14 +40,12 @@ differ slightly for other SDKs depending on how they are structured and how they
         to ensure that it has all the correct files.
 
 - [ ] Make sure `build.yml` CI script is correctly set up to cover tests for the new package
-
   - [ ] Ensure unit tests run correctly
   - [ ] If it is a browser SDK, add it to `BROWSER_TEST_PACKAGES` in `scripts/ci-unit-tests.ts`
 
 - [ ] Make sure the file paths in the
       ["Upload Artifacts" job](https://github.com/getsentry/sentry-javascript/blob/e5c1486eed236b878f2c49d6a04be86093816ac9/.github/workflows/build.yml#L314-L349)
       in `build.yml` include your new artifacts.
-
   - **This is especially important, if you're adding new CDN bundles!**
   - Tarballs (\*.tgz archives) should work OOTB
 
@@ -61,6 +55,12 @@ differ slightly for other SDKs depending on how they are structured and how they
 
 - [ ] If the package you're adding is a dependency of fullstack framework (e.g. Remix or NextJS) SDKs, make sure that
       your package is added to the integration test apps' `"resolutions"` field in their `package.json`s.
+
+- [ ] Add the new package to the "root" README inside the repository.
+
+- [ ] Add the new package to the GitHub Issue bug template.
+
+- [ ] Create label inside the GitHub repo named "Package: foobar".
 
 ## Cutting the Release
 

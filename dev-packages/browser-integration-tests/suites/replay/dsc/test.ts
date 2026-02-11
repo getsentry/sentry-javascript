@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
 import type * as Sentry from '@sentry/browser';
 import type { EventEnvelopeHeaders } from '@sentry/core';
-
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -49,7 +48,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -58,10 +57,11 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -96,7 +96,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -105,9 +105,10 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -147,7 +148,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -157,10 +158,11 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -189,7 +191,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
 
     const replay = await getReplaySnapshot(page);
 
@@ -199,9 +201,10 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       public_key: 'public',
       sampled: 'true',
+      sample_rand: expect.any(String),
     });
   },
 );
@@ -232,7 +235,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
 
   await page.evaluate('window._triggerError(1)');
 
-  const error1Header = envelopeRequestParser(await error1Req, 0) as EventEnvelopeHeaders;
+  const error1Header = envelopeRequestParser<EventEnvelopeHeaders>(await error1Req, 0);
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session?.id).toBeDefined();
@@ -240,13 +243,14 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   expect(error1Header.trace).toBeDefined();
   expect(error1Header.trace).toEqual({
     environment: 'production',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.stringMatching(/[a-f\d]{32}/),
     public_key: 'public',
     replay_id: replay.session?.id,
     ...(hasTracing
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });
@@ -256,17 +260,18 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   await page.waitForFunction('!window.Replay.getReplayId();');
   await page.evaluate('window._triggerError(2)');
 
-  const error2Header = envelopeRequestParser(await error2Req, 0) as EventEnvelopeHeaders;
+  const error2Header = envelopeRequestParser<EventEnvelopeHeaders>(await error2Req, 0);
 
   expect(error2Header.trace).toBeDefined();
   expect(error2Header.trace).toEqual({
     environment: 'production',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.stringMatching(/[a-f\d]{32}/),
     public_key: 'public',
     ...(hasTracing
       ? {
           sample_rate: '1',
           sampled: 'true',
+          sample_rand: expect.any(String),
         }
       : {}),
   });

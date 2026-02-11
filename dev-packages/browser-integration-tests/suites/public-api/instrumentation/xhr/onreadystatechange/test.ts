@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
@@ -7,7 +6,7 @@ sentryTest(
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/', route => {
+    await page.route('http://sentry-test-site.example/', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

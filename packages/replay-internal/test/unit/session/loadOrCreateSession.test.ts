@@ -4,18 +4,17 @@
 
 import type { MockedFunction } from 'vitest';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-
 import { MAX_REPLAY_DURATION, SESSION_IDLE_EXPIRE_DURATION, WINDOW } from '../../../src/constants';
-import { makeSession } from '../../../src/session/Session';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { loadOrCreateSession } from '../../../src/session/loadOrCreateSession';
 import { saveSession } from '../../../src/session/saveSession';
+import { makeSession } from '../../../src/session/Session';
 import type { SessionOptions } from '../../../src/types';
 
 vi.mock('@sentry/core', async () => {
   return {
-    ...((await vi.importActual('@sentry/core')) as { string: unknown }),
+    ...(await vi.importActual('@sentry/core')),
     uuid4: vi.fn(() => 'test_session_uuid'),
   };
 });
@@ -78,6 +77,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       });
 
       // Should not have anything in storage
@@ -105,6 +105,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       });
 
       // Should not have anything in storage
@@ -130,10 +131,10 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'previous_session_id',
+        dirty: false,
       });
     });
   });
-
   describe('stickySession: true', () => {
     it('creates new session if none exists', function () {
       const session = loadOrCreateSession(
@@ -152,6 +153,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
 
@@ -182,6 +184,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'test_old_session_uuid',
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
       expect(session.lastActivity).toBeGreaterThanOrEqual(now);
@@ -210,6 +213,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: date,
         sampled: 'session',
         started: date,
+        dirty: false,
       });
     });
 
@@ -251,6 +255,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'previous_session_id',
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
 
@@ -348,6 +353,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         segmentId: 0,
         lastActivity: expect.any(Number),
         sampled: false,
+        dirty: false,
         started: expect.any(Number),
       };
       expect(session).toEqual(expectedSession);

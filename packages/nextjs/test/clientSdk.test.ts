@@ -1,14 +1,13 @@
-import { getGlobalScope, getIsolationScope } from '@sentry/core';
-import { logger } from '@sentry/core';
 import type { Integration } from '@sentry/core';
+import { debug, getGlobalScope, getIsolationScope } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
+import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
-
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
 
-const reactInit = jest.spyOn(SentryReact, 'init');
-const loggerLogSpy = jest.spyOn(logger, 'log');
+const reactInit = vi.spyOn(SentryReact, 'init');
+const debugLogSpy = vi.spyOn(debug, 'log');
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -38,7 +37,7 @@ const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 describe('Client init()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     getGlobalScope().clear();
     getIsolationScope().clear();
@@ -66,6 +65,9 @@ describe('Client init()', () => {
                 version: expect.any(String),
               },
             ],
+            settings: {
+              infer_ip: 'never',
+            },
           },
         },
         environment: 'test',
@@ -83,7 +85,7 @@ describe('Client init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
-    const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
+    const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
     SentryReact.withActiveSpan(null, () => {
@@ -91,7 +93,7 @@ describe('Client init()', () => {
     });
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
+    expect(debugLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
   describe('integrations', () => {

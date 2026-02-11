@@ -50,7 +50,10 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
+      'NODE_VERSION',
       'childProcessIntegration',
+      'systemErrorIntegration',
+      'pinoIntegration',
     ],
   },
   {

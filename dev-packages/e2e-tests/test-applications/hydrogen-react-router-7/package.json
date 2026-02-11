@@ -1,0 +1,56 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm typecheck && shopify hydrogen build --codegen",
+    "dev": "shopify hydrogen dev --codegen",
+    "preview": "shopify hydrogen preview",
+    "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
+    "typecheck": "tsc",
+    "codegen": "shopify hydrogen codegen",
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm playwright test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "latest || *",
+    "@sentry/react-router": "latest || *",
+    "@sentry/vite-plugin": "^4.8.0",
+    "@shopify/hydrogen": "2025.5.0",
+    "@shopify/remix-oxygen": "^3.0.0",
+    "graphql": "^16.10.0",
+    "graphql-tag": "^2.12.6",
+    "isbot": "^5.1.22",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router": "7.13.0",
+    "react-router-dom": "7.13.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "5.0.2",
+    "@playwright/test": "~1.56.0",
+    "@react-router/dev": "7.13.0",
+    "@react-router/fs-routes": "7.13.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@shopify/cli": "3.80.4",
+    "@shopify/hydrogen-codegen": "^0.3.3",
+    "@shopify/mini-oxygen": "3.2.1",
+    "@shopify/oxygen-workers-types": "^4.1.6",
+    "@tailwindcss/vite": "4.0.0-alpha.17",
+    "@total-typescript/ts-reset": "^0.4.2",
+    "@types/eslint": "^8.4.10",
+    "@types/react": "^18.2.22",
+    "@types/node": "^18.19.1",
+    "@types/react-dom": "^18.2.7",
+    "esbuild": "0.25.0",
+    "eslint": "^9.18.0",
+    "eslint-plugin-hydrogen": "0.12.2",
+    "typescript": "^5.2.2",
+    "vite": "^6.2.4",
+    "vite-tsconfig-paths": "^4.3.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

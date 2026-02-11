@@ -1,8 +1,9 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import type { IntegrationFn, WrappedFunction } from '../types-hoist';
-import { getOriginalFunction } from '../utils-hoist/object';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { WrappedFunction } from '../types-hoist/wrappedfunction';
+import { getOriginalFunction } from '../utils/object';
 
 let originalFunctionToString: () => void;
 

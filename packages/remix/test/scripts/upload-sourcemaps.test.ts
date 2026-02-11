@@ -1,21 +1,42 @@
-const newMock = jest.fn();
-const uploadSourceMapsMock = jest.fn();
-const finalizeMock = jest.fn();
-const proposeVersionMock = jest.fn(() => '0.1.2.3.4');
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-jest.mock('@sentry/cli', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      execute: jest.fn(),
-      releases: {
-        new: newMock,
-        uploadSourceMaps: uploadSourceMapsMock,
-        finalize: finalizeMock,
-        proposeVersion: proposeVersionMock,
-      },
-    };
-  });
-});
+const newMock = vi.fn();
+const uploadSourceMapsMock = vi.fn();
+const finalizeMock = vi.fn();
+const proposeVersionMock = vi.fn(() => '0.1.2.3.4');
+
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+// The createRelease script requires the Sentry CLI, which we need to mock so we
+// hook require to do this
+async function mock(mockedUri: string, stub: any) {
+  const { Module } = await import('module');
+  // @ts-expect-error test
+  Module._load_original = Module._load;
+  // @ts-expect-error test
+  Module._load = (uri, parent) => {
+    if (uri === mockedUri) return stub;
+    // @ts-expect-error test
+    return Module._load_original(uri, parent);
+  };
+}
+
+await vi.hoisted(async () =>
+  mock(
+    '@sentry/cli',
+    vi.fn().mockImplementation(() => {
+      return {
+        execute: vi.fn(),
+        releases: {
+          new: newMock,
+          uploadSourceMaps: uploadSourceMapsMock,
+          finalize: finalizeMock,
+          proposeVersion: proposeVersionMock,
+        },
+      };
+    }),
+  ),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');
@@ -37,6 +58,7 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3');
   });
@@ -50,6 +72,7 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
@@ -70,8 +93,34 @@ describe('createRelease', () => {
       urlPrefix: '~/build/',
       include: ['public/build'],
       useArtifactBundle: true,
+      live: 'rejectOnError',
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+  });
+
+  it('logs an error when uploadSourceMaps fails', async () => {
+    uploadSourceMapsMock.mockRejectedValue(new Error('Failed to upload sourcemaps'));
+
+    await createRelease({}, '~/build/', 'public/build');
+
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
+      urlPrefix: '~/build/',
+      include: ['public/build'],
+      useArtifactBundle: true,
+      live: 'rejectOnError',
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to upload sourcemaps.');
+
+    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+  });
+
+  it('logs an error when finalize fails', async () => {
+    finalizeMock.mockRejectedValue(new Error('Failed to finalize release'));
+
+    await createRelease({}, '~/build/', 'public/build');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to finalize release.');
   });
 });
 

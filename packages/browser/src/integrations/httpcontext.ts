@@ -1,5 +1,5 @@
-import { defineIntegration, getLocationHref } from '@sentry/core';
-import { WINDOW } from '../helpers';
+import { defineIntegration } from '@sentry/core';
+import { getHttpRequestData, WINDOW } from '../helpers';
 
 /**
  * Collects information about HTTP request headers and
@@ -14,23 +14,17 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      // grab as much info as exists and add it to the event
-      const url = event.request?.url || getLocationHref();
-      const { referrer } = WINDOW.document || {};
-      const { userAgent } = WINDOW.navigator || {};
-
+      const reqData = getHttpRequestData();
       const headers = {
+        ...reqData.headers,
         ...event.request?.headers,
-        ...(referrer && { Referer: referrer }),
-        ...(userAgent && { 'User-Agent': userAgent }),
       };
-      const request = {
+
+      event.request = {
+        ...reqData,
         ...event.request,
-        ...(url && { url }),
         headers,
       };
-
-      event.request = request;
     },
   };
 });

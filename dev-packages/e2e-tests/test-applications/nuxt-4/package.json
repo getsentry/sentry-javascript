@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -11,20 +11,31 @@
     "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "nuxt": "^3.13.2"
+    "nuxt": "^4.1.2"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.2",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "overrides": {
-    "@vercel/nft": "0.27.4"
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.20.0"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nuxt-4 (canary)"
+      }
+    ]
   }
 }

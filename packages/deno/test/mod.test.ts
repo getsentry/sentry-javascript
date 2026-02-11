@@ -1,10 +1,8 @@
-import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
-import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-
 import type { Event } from '@sentry/core';
 import { createStackParser, nodeStackLineParser } from '@sentry/core';
-import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
-
+import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
+import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
+import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/esm/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 

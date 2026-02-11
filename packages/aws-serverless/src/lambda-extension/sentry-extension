@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+OWN_FILENAME="$(basename $0)"
+LAMBDA_EXTENSION_NAME="$OWN_FILENAME" # (external) extension name has to match the filename
+
+unset NODE_OPTIONS
+exec "/opt/${LAMBDA_EXTENSION_NAME}/index.mjs"

@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it, test, vi } from 'vitest';
-
 import { setCurrentClient } from '@sentry/browser';
-
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { attachErrorHandler } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
 
@@ -28,7 +26,9 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorToHaveBeenCaptured().withoutProps();
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
       });
     });
 
@@ -49,7 +49,9 @@ describe('attachErrorHandler', () => {
 
             // assert
             t.expect.errorToHaveBeenCaptured().withoutProps();
-            t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+            t.expect
+              .errorToHaveBeenCaptured()
+              .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
           });
         });
 
@@ -110,6 +112,25 @@ describe('attachErrorHandler', () => {
               // assert
               t.expect.errorToHaveBeenCaptured().withProps(props);
             });
+
+            test('`propsData` is added, if no options are provided to `attachErrorHandler`', () => {
+              // arrange
+              const props = { stubProp: 'stubData' };
+              const t = testHarness({
+                vm: {
+                  $props: props,
+                },
+                optionsUndefined: true,
+              });
+
+              // act
+              vi.useFakeTimers();
+              expect(() => t.run()).toThrow(DummyError);
+              vi.runAllTimers();
+
+              // assert
+              t.expect.errorToHaveBeenCaptured().withProps(props);
+            });
           });
 
           describe('and `vm.$props` is defined', () => {
@@ -148,7 +169,9 @@ describe('attachErrorHandler', () => {
         vi.runAllTimers();
 
         // assert
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
       });
 
       it('should mark error as handled and properly delegate to error handler', () => {
@@ -169,7 +192,9 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: true, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: true, type: 'auto.function.vue.error_handler' });
       });
     });
   });
@@ -214,6 +239,7 @@ type TestHarnessOpts = {
   enableConsole?: boolean;
   silent?: boolean;
   attachProps?: boolean;
+  optionsUndefined?: boolean;
 };
 
 class DummyError extends Error {
@@ -230,6 +256,7 @@ const testHarness = ({
   enableErrorHandler,
   enableConsole,
   vm,
+  optionsUndefined = false,
 }: TestHarnessOpts) => {
   vi.useFakeTimers();
   const providedErrorHandlerSpy = vi.fn();
@@ -268,13 +295,15 @@ const testHarness = ({
   }
   /* eslint-enable no-global-assign */
 
-  const options: Options = {
-    attachProps: !!attachProps,
-    tracingOptions: {},
-    trackComponents: [],
-    timeout: 0,
-    hooks: [] as Operation[],
-  };
+  const options: Options | undefined = optionsUndefined
+    ? undefined
+    : {
+        attachProps: !!attachProps,
+        tracingOptions: {},
+        trackComponents: [],
+        timeout: 0,
+        hooks: [] as Operation[],
+      };
 
   return {
     run: () => {
@@ -307,7 +336,7 @@ const testHarness = ({
           withoutProps: () => {
             expect(contexts).not.toHaveProperty('vue.propsData');
           },
-          withMechanismMetadata: (mechanism: { handled: boolean; type: 'vue' }) => {
+          withMechanismMetadata: (mechanism: { handled: boolean; type: 'auto.function.vue.error_handler' }) => {
             expect(mechanismMetadata).toEqual(mechanism);
           },
         };

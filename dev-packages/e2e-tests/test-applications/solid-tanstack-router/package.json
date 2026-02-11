@@ -1,0 +1,34 @@
+{
+  "name": "solid-tanstack-router",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "dev": "vite",
+    "start": "vite preview",
+    "preview": "vite preview",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/solid": "latest || *",
+    "@tailwindcss/vite": "^4.0.6",
+    "@tanstack/solid-router": "^1.141.8",
+    "@tanstack/solid-router-devtools": "^1.132.25",
+    "@tanstack/solid-start": "^1.132.25",
+    "solid-js": "^1.9.5",
+    "tailwindcss": "^4.0.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.7",
+    "vite-plugin-solid": "^2.11.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -1,15 +1,4 @@
-import type {
-  Breadcrumb,
-  ErrorEvent,
-  FetchBreadcrumbHint,
-  HandlerDataFetch,
-  ReplayRecordingData,
-  ReplayRecordingMode,
-  SentryWrappedXMLHttpRequest,
-  Span,
-  XhrBreadcrumbHint,
-} from '@sentry/core';
-
+import type { Breadcrumb, ErrorEvent, ReplayRecordingData, ReplayRecordingMode, Span } from '@sentry/core';
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
@@ -101,6 +90,8 @@ export interface ReplayNetworkOptions {
   networkResponseHeaders: string[];
 }
 
+export type ReplayWorkerURL = string | URL;
+
 export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The sample rate for session-long replays. 1.0 will record all sessions and
@@ -141,7 +132,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * If defined, use this worker URL instead of the default included one for compression.
    * This will only be used if `useCompression` is not false.
    */
-  workerUrl?: string;
+  workerUrl?: ReplayWorkerURL;
 
   /**
    * Block all media (e.g. images, svg, video) in recordings.
@@ -189,7 +180,10 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The min. duration (in ms) a replay has to have before it is sent to Sentry.
    * Whenever attempting to flush a session that is shorter than this, it will not actually send it to Sentry.
-   * Note that this is capped at max. 15s.
+   * Note that this is capped at max. 50s, so we don't unintentionally drop buffered replays that are longer than 60s
+   *
+   * Warning: Setting this to a higher value can result in unintended drops of onError-sampled replays.
+   *
    */
   minReplayDuration: number;
 
@@ -229,6 +223,19 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   onError?: (err: unknown) => void;
 
   /**
+   * Patch the global Request() interface to store original request bodies.
+   * This allows Replay to capture the original body from Request objects passed to fetch().
+   *
+   * When enabled, creates a copy of the original body before it's converted to a ReadableStream.
+   * This is useful for capturing request bodies in network breadcrumbs.
+   *
+   * Note: This modifies the global Request constructor.
+   *
+   * @default false
+   */
+  attachRawBodyFromRequest?: boolean;
+
+  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
@@ -239,6 +246,18 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     captureExceptions: boolean;
     traceInternals: boolean;
     continuousCheckout: number;
+    /**
+     * Before enabling, please read the security considerations:
+     * https://github.com/rrweb-io/rrweb/blob/master/docs/recipes/cross-origin-iframes.md#considerations
+     */
+    recordCrossOriginIframes: boolean;
+    /**
+     * Completely ignore mutations matching the given selectors.
+     * This can be used if a specific type of mutation is causing (e.g. performance) problems.
+     * NOTE: This can be dangerous to use, as mutations are applied as incremental patches.
+     * Make sure to verify that the captured replays still work when using this option.
+     */
+    ignoreMutations: string[];
   }>;
 }
 
@@ -302,7 +321,8 @@ export interface ReplayIntegrationPrivacyOptions {
 }
 
 export interface ReplayConfiguration
-  extends ReplayIntegrationPrivacyOptions,
+  extends
+    ReplayIntegrationPrivacyOptions,
     OptionalReplayPluginOptions,
     Pick<RecordingOptions, 'maskAllText' | 'maskAllInputs'> {}
 
@@ -380,6 +400,13 @@ export interface Session {
    * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * Session is dirty when its id has been linked to an event (e.g. error event).
+   * This is helpful when a session is mistakenly stuck in "buffer" mode (e.g. network issues preventing it from being converted to "session" mode).
+   * The dirty flag is used to prevent updating the session start time to the earliest event in the buffer so that it can be refreshed if it's been expired.
+   */
+  dirty?: boolean;
 }
 
 export type EventBufferType = 'sync' | 'worker';
@@ -500,17 +527,6 @@ export interface ReplayContainer {
   getCurrentRoute(): string | undefined;
   handleException(err: unknown): void;
 }
-
-type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
-
-export type XhrHint = XhrBreadcrumbHint & {
-  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
-  input?: RequestBody;
-};
-export type FetchHint = FetchBreadcrumbHint & {
-  input: HandlerDataFetch['args'];
-  response: Response;
-};
 
 export type ReplayNetworkRequestData = {
   startTimestamp: number;

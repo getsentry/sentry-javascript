@@ -83,7 +83,7 @@ After the binaries are built, you should see them inside the profiling-node/lib 
 
 ### Prebuilt binaries
 
-We currently ship prebuilt binaries for a few of the most common platforms and node versions (v18-22).
+We currently ship prebuilt binaries for a few of the most common platforms and node versions (v18-24).
 
 - macOS x64
 - Linux ARM64 (musl)

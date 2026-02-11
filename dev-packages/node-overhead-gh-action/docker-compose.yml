@@ -1,0 +1,12 @@
+services:
+  db:
+    image: mysql:8
+    restart: always
+    container_name: node-overhead-gh-action-mysql
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      # - ./db/data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d/:ro

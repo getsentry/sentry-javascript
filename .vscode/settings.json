@@ -25,8 +25,8 @@
     }
   ],
   "deno.enablePaths": ["packages/deno/test"],
-  "editor.defaultFormatter": "biomejs.biome",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[typescript]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

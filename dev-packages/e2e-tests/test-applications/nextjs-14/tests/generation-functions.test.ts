@@ -42,15 +42,16 @@ test('Should send a transaction and an error event for a faulty generateMetadata
   });
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error';
+    return (
+      errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error' &&
+      errorEvent.transaction === 'Page.generateMetadata (/generation-functions)'
+    );
   });
 
   await page.goto(`/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`);
 
   const errorEvent = await errorEventPromise;
   const transactionEvent = await transactionPromise;
-
-  expect(errorEvent.transaction).toBe('Page.generateMetadata (/generation-functions)');
 
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
@@ -107,38 +108,4 @@ test('Should send a transaction and an error event for a faulty generateViewport
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent.transaction).toBe('Page.generateViewport (/generation-functions)');
-});
-
-test('Should send a transaction event with correct status for a generateMetadata() function invocation with redirect()', async ({
-  page,
-}) => {
-  const testTitle = 'redirect-foobar';
-
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions/with-redirect?metadataTitle=${testTitle}`
-    );
-  });
-
-  await page.goto(`/generation-functions/with-redirect?metadataTitle=${testTitle}`);
-
-  expect((await transactionPromise).contexts?.trace?.status).toBe('ok');
-});
-
-test('Should send a transaction event with correct status for a generateMetadata() function invocation with notfound()', async ({
-  page,
-}) => {
-  const testTitle = 'notfound-foobar';
-
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions/with-notfound?metadataTitle=${testTitle}`
-    );
-  });
-
-  await page.goto(`/generation-functions/with-notfound?metadataTitle=${testTitle}`);
-
-  expect((await transactionPromise).contexts?.trace?.status).toBe('not_found');
 });

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../src/vite/svelteConfig';
 
@@ -66,6 +65,11 @@ describe('getAdapterOutputDir', () => {
   it('returns the output directory of the Node adapter', async () => {
     const outputDir = await getAdapterOutputDir({ kit: { adapter: mockedAdapter } }, 'node');
     expect(outputDir).toEqual('customBuildDir');
+  });
+
+  it('returns the output directory of the Cloudflare adapter', async () => {
+    const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, 'cloudflare');
+    expect(outputDir).toEqual('customOutDir/cloudflare');
   });
 
   it.each(['vercel', 'auto', 'other'] as SupportedSvelteKitAdapters[])(

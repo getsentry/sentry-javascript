@@ -1,10 +1,14 @@
+import type { Integration, IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
-import { defineIntegration } from '@sentry/core';
-import type { Integration, IntegrationFn } from '@sentry/core';
+
+interface SnapshotOptions {
+  skipRequestAnimationFrame?: boolean;
+}
 
 interface ReplayCanvasIntegration extends Integration {
-  snapshot: (canvasElement?: HTMLCanvasElement) => Promise<void>;
+  snapshot: (canvasElement?: HTMLCanvasElement, options?: SnapshotOptions) => Promise<void>;
 }
 
 interface ReplayCanvasOptions {
@@ -73,6 +77,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
     ] as [number, number],
   };
 
+  let currentCanvasManager: CanvasManager | undefined;
   let canvasManagerResolve: (value: CanvasManager) => void;
   const _canvasManager: Promise<CanvasManager> = new Promise(resolve => (canvasManagerResolve = resolve));
 
@@ -94,21 +99,27 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
                 if (typeof err === 'object') {
                   (err as Error & { __rrweb__?: boolean }).__rrweb__ = true;
                 }
-              } catch (error) {
+              } catch {
                 // ignore errors here
                 // this can happen if the error is frozen or does not allow mutation for other reasons
               }
             },
           });
+
+          currentCanvasManager = manager;
+
+          // Resolve promise on first call for backward compatibility
           canvasManagerResolve(manager);
+
           return manager;
         },
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
-    async snapshot(canvasElement?: HTMLCanvasElement) {
-      const canvasManager = await _canvasManager;
-      canvasManager.snapshot(canvasElement);
+    async snapshot(canvasElement?: HTMLCanvasElement, options?: SnapshotOptions) {
+      const canvasManager = currentCanvasManager || (await _canvasManager);
+
+      canvasManager.snapshot(canvasElement, options);
     },
   };
 }) satisfies IntegrationFn<ReplayCanvasIntegration>;

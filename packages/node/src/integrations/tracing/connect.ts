@@ -1,15 +1,14 @@
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
   getClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 
 type ConnectApp = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +48,12 @@ export const connectIntegration = defineIntegration(_connectIntegration);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
-  captureException(err);
+  captureException(err, {
+    mechanism: {
+      handled: false,
+      type: 'auto.middleware.connect',
+    },
+  });
   next(err);
 }
 
@@ -104,7 +108,7 @@ function addConnectSpanAttributes(span: Span): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.connect`,
   });
 
-  // Also update the name, we don't need to "middleware - " prefix
+  // Also update the name, we don't need the "middleware - " prefix
   const name = attributes['connect.name'];
   if (typeof name === 'string') {
     span.updateName(name);

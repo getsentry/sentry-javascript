@@ -2,7 +2,7 @@ import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Session } from '../types';
 import { hasSessionStorage } from '../util/hasSessionStorage';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { makeSession } from './Session';
 
 /**
@@ -23,7 +23,7 @@ export function fetchSession(): Session | null {
 
     const sessionObj = JSON.parse(sessionStringFromStorage) as Session;
 
-    DEBUG_BUILD && logger.infoTick('Loading existing session');
+    DEBUG_BUILD && debug.infoTick('Loading existing session');
 
     return makeSession(sessionObj);
   } catch {

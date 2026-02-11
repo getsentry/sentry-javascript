@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["suites/**/*.ts", "*.ts"],
+
+  "compilerOptions": {
+    // Although this seems wrong to include `DOM` here, it's necessary to make
+    // global fetch available in tests in lower Node versions.
+    "lib": ["ES2020"],
+    "esModuleInterop": true,
+    "types": ["@cloudflare/workers-types"]
+  }
+}

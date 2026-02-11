@@ -1,0 +1,39 @@
+{
+  "name": "tanstackstart-react",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && cp instrument.server.mjs .output/server",
+    "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/tanstackstart-react": "latest || *",
+    "@tanstack/react-start": "^1.136.0",
+    "@tanstack/react-router": "^1.136.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "typescript": "^5.9.0",
+    "vite": "7.2.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "nitro": "^3.0.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

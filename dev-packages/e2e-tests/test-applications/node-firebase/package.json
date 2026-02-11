@@ -1,0 +1,30 @@
+{
+  "name": "node-firebase-e2e-test-app",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "pnpm run -r build",
+    "dev": "pnpm run -r dev",
+    "proxy": "node start-event-proxy.mjs",
+    "emulate": "firebase emulators:start --project demo-functions",
+    "start": "pnpm run -r start",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules **/node_modules pnpm-lock.yaml **/dist *-debug.log test-results",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm firebase emulators:exec --project demo-functions 'pnpm test'"
+  },
+  "dependencies": {
+    "@types/node": "^22.13.14",
+    "dotenv": "^16.4.5",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "firebase-tools": "^14.20.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

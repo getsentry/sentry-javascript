@@ -1,11 +1,10 @@
-import { logger } from '@sentry/core';
 import type { Integration } from '@sentry/core';
-
+import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { getClient } from '../../src/';
+import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
+import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
-import { init, validateOpenTelemetrySetup } from '../../src/sdk';
-import { NodeClient } from '../../src/sdk/client';
+import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -15,25 +14,46 @@ const PUBLIC_DSN = 'https://username@domain/123';
 
 class MockIntegration implements Integration {
   public name: string;
-  public setupOnce: jest.Mock = jest.fn();
+  public setupOnce: Mock = vi.fn();
   public constructor(name: string) {
     this.name = name;
   }
 }
 
 describe('init()', () => {
-  let mockAutoPerformanceIntegrations: jest.SpyInstance = jest.fn(() => []);
+  let mockAutoPerformanceIntegrations: MockInstance = vi.fn(() => []);
 
   beforeEach(() => {
     global.__SENTRY__ = {};
 
-    mockAutoPerformanceIntegrations = jest.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
+    // prevent the debug from being enabled, resulting in console.log calls
+    vi.spyOn(debug, 'enable').mockImplementation(() => {});
+
+    mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
   });
 
   afterEach(() => {
     cleanupOtel();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+  });
+
+  describe('metadata', () => {
+    it('has the correct metadata', () => {
+      init({ dsn: PUBLIC_DSN });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.getSdkMetadata()).toEqual(
+        expect.objectContaining({
+          sdk: {
+            name: 'sentry.javascript.node',
+            version: SDK_VERSION,
+            packages: [{ name: 'npm:@sentry/node', version: SDK_VERSION }],
+          },
+        }),
+      );
+    });
   });
 
   describe('integrations', () => {
@@ -64,10 +84,10 @@ describe('init()', () => {
 
       init({ dsn: PUBLIC_DSN, integrations: mockIntegrations, defaultIntegrations: mockDefaultIntegrations });
 
-      expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-      expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
+      expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
@@ -89,9 +109,9 @@ describe('init()', () => {
         },
       });
 
-      expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-      expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
+      expect(newIntegration.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
@@ -108,12 +128,12 @@ describe('init()', () => {
       init({
         dsn: PUBLIC_DSN,
         integrations: mockIntegrations,
-        enableTracing: true,
+        tracesSampleRate: 1,
       });
 
-      expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-      expect(autoPerformanceIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(autoPerformanceIntegration.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
 
       const client = getClient();
@@ -148,20 +168,127 @@ describe('init()', () => {
 
     expect(client).toBeInstanceOf(NodeClient);
   });
+
+  describe('environment variable options', () => {
+    const originalProcessEnv = { ...process.env };
+
+    afterEach(() => {
+      process.env = originalProcessEnv;
+      global.__SENTRY__ = {};
+      cleanupOtel();
+      vi.clearAllMocks();
+    });
+
+    it('sets debug from `SENTRY_DEBUG` env variable', () => {
+      process.env.SENTRY_DEBUG = '1';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          debug: true,
+        }),
+      );
+    });
+
+    it('prefers `debug` option over `SENTRY_DEBUG` env variable', () => {
+      process.env.SENTRY_DEBUG = '1';
+
+      const client = init({ dsn: PUBLIC_DSN, debug: false });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          debug: false,
+        }),
+      );
+    });
+
+    it('sets tracesSampleRate from `SENTRY_TRACES_SAMPLE_RATE` env variable', () => {
+      process.env.SENTRY_TRACES_SAMPLE_RATE = '0.5';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          tracesSampleRate: 0.5,
+        }),
+      );
+    });
+
+    it('prefers `tracesSampleRate` option over `SENTRY_TRACES_SAMPLE_RATE` env variable', () => {
+      process.env.SENTRY_TRACES_SAMPLE_RATE = '0.5';
+
+      const client = init({ dsn: PUBLIC_DSN, tracesSampleRate: 0.1 });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          tracesSampleRate: 0.1,
+        }),
+      );
+    });
+
+    it('sets release from `SENTRY_RELEASE` env variable', () => {
+      process.env.SENTRY_RELEASE = '1.0.0';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          release: '1.0.0',
+        }),
+      );
+    });
+
+    it('prefers `release` option over `SENTRY_RELEASE` env variable', () => {
+      process.env.SENTRY_RELEASE = '1.0.0';
+
+      const client = init({ dsn: PUBLIC_DSN, release: '2.0.0' });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          release: '2.0.0',
+        }),
+      );
+    });
+
+    it('sets environment from `SENTRY_ENVIRONMENT` env variable', () => {
+      process.env.SENTRY_ENVIRONMENT = 'production';
+
+      const client = init({ dsn: PUBLIC_DSN });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          environment: 'production',
+        }),
+      );
+    });
+
+    it('prefers `environment` option over `SENTRY_ENVIRONMENT` env variable', () => {
+      process.env.SENTRY_ENVIRONMENT = 'production';
+
+      const client = init({ dsn: PUBLIC_DSN, environment: 'staging' });
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          environment: 'staging',
+        }),
+      );
+    });
+  });
 });
 
 describe('validateOpenTelemetrySetup', () => {
   afterEach(() => {
     global.__SENTRY__ = {};
     cleanupOtel();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works with correct setup', () => {
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
-    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return ['SentryContextManager', 'SentryPropagator', 'SentrySampler'];
     });
 
@@ -172,10 +299,10 @@ describe('validateOpenTelemetrySetup', () => {
   });
 
   it('works with missing setup, without tracing', () => {
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
-    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return [];
     });
 
@@ -191,10 +318,10 @@ describe('validateOpenTelemetrySetup', () => {
   });
 
   it('works with missing setup, with tracing', () => {
-    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
-    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+    vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return [];
     });
 
@@ -209,5 +336,10 @@ describe('validateOpenTelemetrySetup', () => {
     expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
     expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
     expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
+  });
+
+  // Regression test for https://github.com/getsentry/sentry-javascript/issues/15558
+  it('accepts an undefined transport', () => {
+    init({ dsn: PUBLIC_DSN, transport: undefined });
   });
 });

@@ -1,8 +1,6 @@
-import { vi } from 'vitest';
-import type { Mock, MockedFunction } from 'vitest';
-
 import { record } from '@sentry-internal/rrweb';
-
+import type { Mock, MockedFunction } from 'vitest';
+import { vi } from 'vitest';
 import type { RecordingEvent, ReplayEventWithTime } from '../../src/types';
 import { ReplayEventTypeFullSnapshot, ReplayEventTypeIncrementalSnapshot } from '../../src/types';
 

@@ -1,6 +1,7 @@
-import type { AttributeValue, Attributes } from '@opentelemetry/api';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
   ATTR_URL_FULL,
@@ -15,12 +16,12 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes, TransactionSource } from '@sentry/core';
 import {
+  getSanitizedUrlString,
+  parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getSanitizedUrlString,
-  parseUrl,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
@@ -47,7 +48,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
+  const dbSystem = attributes[ATTR_DB_SYSTEM_NAME] || attributes[SEMATTRS_DB_SYSTEM];
   const opIsCache =
     typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');

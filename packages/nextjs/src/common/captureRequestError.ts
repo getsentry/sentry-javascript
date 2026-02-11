@@ -1,5 +1,6 @@
 import type { RequestEventData } from '@sentry/core';
 import { captureException, headersToDict, withScope } from '@sentry/core';
+import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 
 type RequestInfo = {
   path: string;
@@ -37,7 +38,10 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
     captureException(error, {
       mechanism: {
         handled: false,
+        type: 'auto.function.nextjs.on_request_error',
       },
     });
+
+    waitUntil(flushSafelyWithTimeout());
   });
 }

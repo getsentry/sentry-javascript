@@ -2,6 +2,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_ROUTE,
   SEMATTRS_DB_STATEMENT,
   SEMATTRS_DB_SYSTEM,
@@ -14,8 +15,8 @@ import {
   SEMATTRS_MESSAGING_SYSTEM,
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
-
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { describe, expect, it } from 'vitest';
 import {
   descriptionForHttpMethod,
   getSanitizedUrl,
@@ -143,6 +144,48 @@ describe('parseSpanDescription', () => {
       SpanKind.CLIENT,
       {
         description: 'test name',
+        op: 'db',
+        source: 'task',
+      },
+    ],
+    [
+      'works with db.system.name (stable attribute)',
+      {
+        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'SELECT * from users',
+        op: 'db',
+        source: 'task',
+      },
+    ],
+    [
+      'works with db.system.name without statement',
+      {
+        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'test name',
+        op: 'db',
+        source: 'task',
+      },
+    ],
+    [
+      'prefers db.system.name over deprecated db.system',
+      {
+        [ATTR_DB_SYSTEM_NAME]: 'postgresql',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'SELECT * from users',
         op: 'db',
         source: 'task',
       },

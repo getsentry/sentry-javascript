@@ -4,15 +4,17 @@ preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
-  ## 1.1 Types
-  # TODO(v9): Remove
-  - name: npm
-    id: '@sentry/types'
-    includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Core SDK
+  ## 1.1 Core SDKs
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
+    ## 1.2 Types
+  - name: npm
+    id: '@sentry/types'
+    includeNames: /^sentry-types-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/node-core'
+    includeNames: /^sentry-node-core-\d.*\.tgz$/
   ## 1.3 Browser Utils package
   - name: npm
     id: '@sentry-internal/browser-utils'
@@ -44,6 +46,9 @@ targets:
   - name: npm
     id: '@sentry/profiling-node'
     includeNames: /^sentry-profiling-node-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/node-native'
+    includeNames: /^sentry-node-native-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
   - name: npm
@@ -78,14 +83,6 @@ targets:
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
-  - name: commit-on-git-repository
-    # This will publish on the Deno registry
-    id: getsentry/deno
-    archive: /^sentry-deno-\d.*\.tgz$/
-    repositoryUrl: https://github.com/getsentry/sentry-deno.git
-    stripComponents: 1
-    branch: main
-    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
@@ -118,11 +115,20 @@ targets:
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/tanstackstart'
+    includeNames: /^sentry-tanstackstart-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/tanstackstart-react'
+    includeNames: /^sentry-tanstackstart-react-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
   - name: npm
     id: '@sentry/astro'
     includeNames: /^sentry-astro-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/react-router'
+    includeNames: /^sentry-react-router-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1
@@ -138,20 +144,17 @@ targets:
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
-  # TODO(v9): Once stable, re-add this target to publish the AWS Lambda layer
-  # - name: aws-lambda-layer
-  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDKv9
-  #   compatibleRuntimes:
-  #     - name: node
-  #       versions:
-  #         - nodejs10.x
-  #         - nodejs12.x
-  #         - nodejs14.x
-  #         - nodejs16.x
-  #         - nodejs18.x
-  #         - nodejs20.x
-  #   license: MIT
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv{{{major}}}
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs18.x
+          - nodejs20.x
+          - nodejs22.x
+          - nodejs24.x
+    license: MIT
 
   # CDN Bundle Target
   - name: gcs
@@ -194,12 +197,20 @@ targets:
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
       'npm:@sentry/google-cloud-serverless':
         onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/nestjs':
+        onlyIfPresent: /^sentry-nestjs-\d.*\.tgz$/
       'npm:@sentry/nextjs':
         onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
+      'npm:@sentry/nuxt':
+        onlyIfPresent: /^sentry-nuxt-\d.*\.tgz$/
       'npm:@sentry/node':
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
+      'npm:@sentry/node-core':
+        onlyIfPresent: /^sentry-node-core-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
+      'npm:@sentry/react-router':
+        onlyIfPresent: /^sentry-react-router-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':
@@ -210,6 +221,8 @@ targets:
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
+      'npm:@sentry/tanstackstart-react':
+        onlyIfPresent: /^sentry-tanstackstart-react-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
       'npm:@sentry/vue':

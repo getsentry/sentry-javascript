@@ -28,9 +28,8 @@ describe('sentrySolidStartVite()', () => {
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
       'sentry-telemetry-plugin',
-      'sentry-vite-release-injection-plugin',
-      'sentry-debug-id-upload-plugin',
-      'sentry-vite-debug-id-injection-plugin',
+      'sentry-vite-injection-plugin',
+      'sentry-release-management-plugin',
       'sentry-vite-debug-id-upload-plugin',
       'sentry-file-deletion-plugin',
       'sentry-solidstart-update-source-map-setting',

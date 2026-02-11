@@ -1,11 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import type { ErrorHandler as AngularErrorHandler, OnDestroy } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
-import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
-import { consoleSandbox, isString } from '@sentry/core';
+import * as Sentry from '@sentry/browser';
 import type { Event } from '@sentry/core';
-
+import { consoleSandbox, isString } from '@sentry/core';
 import { runOutsideAngular } from './zone';
 
 /**
@@ -112,7 +111,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
     // Capture handled exception and send it to Sentry.
     const eventId = runOutsideAngular(() =>
       Sentry.captureException(extractedError, {
-        mechanism: { type: 'angular', handled: false },
+        mechanism: { type: 'auto.function.angular.error_handler', handled: false },
       }),
     );
 

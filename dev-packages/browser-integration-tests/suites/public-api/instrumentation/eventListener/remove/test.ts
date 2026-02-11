@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -14,7 +13,7 @@ sentryTest('should transparently remove event listeners from wrapped functions',
     type: 'Error',
     value: 'foo',
     mechanism: {
-      type: 'instrument',
+      type: 'auto.browser.browserapierrors.addEventListener',
       handled: false,
     },
     stacktrace: {

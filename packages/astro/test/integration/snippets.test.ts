@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from '../../src/integration/snippets';
+import type { SentryOptions } from '../../src/integration/types';
 
-const allSdkOptions = {
+const allSdkOptions: SentryOptions = {
   dsn: 'my-dsn',
   release: '1.0.0',
   environment: 'staging',

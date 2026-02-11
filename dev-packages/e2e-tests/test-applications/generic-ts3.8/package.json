@@ -19,5 +19,8 @@
     "@sentry/node": "latest || *",
     "@sentry-internal/replay": "latest || *",
     "@sentry/wasm": "latest || *"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

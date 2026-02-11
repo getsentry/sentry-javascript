@@ -1,11 +1,10 @@
 import { EventType } from '@sentry-internal/rrweb';
-
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';
 import type { RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
 import { addEventSync } from './addEvent';
-import { logger } from './logger';
+import { debug } from './logger';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
 
@@ -20,7 +19,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
   return (event: RecordingEvent, _isCheckout?: boolean) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!replay.checkAndHandleExpiredSession()) {
-      DEBUG_BUILD && logger.warn('Received replay event after session expired.');
+      DEBUG_BUILD && debug.warn('Received replay event after session expired.');
 
       return;
     }
@@ -73,11 +72,11 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // When in buffer mode, make sure we adjust the session started date to the current earliest event of the buffer
       // this should usually be the timestamp of the checkout event, but to be safe...
-      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer) {
+      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer && !session.dirty) {
         const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
         if (earliestEvent) {
           DEBUG_BUILD &&
-            logger.info(`Updating session start time to earliest event in buffer to ${new Date(earliestEvent)}`);
+            debug.log(`Updating session start time to earliest event in buffer to ${new Date(earliestEvent)}`);
 
           session.started = earliestEvent;
 

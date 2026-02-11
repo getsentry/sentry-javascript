@@ -1,4 +1,4 @@
-import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan, logger, spanToJSON } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -22,7 +22,7 @@ export function registerBackgroundTabDetection(): void {
         const { op, status } = spanToJSON(rootSpan);
 
         if (DEBUG_BUILD) {
-          logger.log(`[Tracing] Transaction: ${cancelledStatus} -> since tab moved to the background, op: ${op}`);
+          debug.log(`[Tracing] Transaction: ${cancelledStatus} -> since tab moved to the background, op: ${op}`);
         }
 
         // We should not set status if it is already set, this prevent important statuses like
@@ -36,6 +36,6 @@ export function registerBackgroundTabDetection(): void {
       }
     });
   } else {
-    DEBUG_BUILD && logger.warn('[Tracing] Could not set up background tab detection due to lack of global document');
+    DEBUG_BUILD && debug.warn('[Tracing] Could not set up background tab detection due to lack of global document');
   }
 }

@@ -129,7 +129,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
       try {
         const serialized = await serializeEnvelope(env);
         await push(getStore(), serialized, options.maxQueueSize || 30);
-      } catch (_) {
+      } catch {
         //
       }
     },
@@ -137,7 +137,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
       try {
         const serialized = await serializeEnvelope(env);
         await unshift(getStore(), serialized, options.maxQueueSize || 30);
-      } catch (_) {
+      } catch {
         //
       }
     },
@@ -147,7 +147,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
         if (deserialized) {
           return parseEnvelope(deserialized);
         }
-      } catch (_) {
+      } catch {
         //
       }
 

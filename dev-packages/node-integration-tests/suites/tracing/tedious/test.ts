@@ -1,15 +1,13 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(75000);
-
-// Tedious version we are testing against only supports Node 18+
-// https://github.com/tediousjs/tedious/blob/8310c455a2cc1cba83c1ca3c16677da4f83e12a9/package.json#L38
-describe('tedious auto instrumentation', () => {
+// eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `tedious` package', done => {
+  test('should auto-instrument `tedious` package', async () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -44,9 +42,10 @@ describe('tedious auto instrumentation', () => {
       ]),
     };
 
-    createRunner(__dirname, 'scenario.js')
+    await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1433'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done);
+      .start()
+      .completed();
   });
 });

@@ -1,13 +1,16 @@
-import { SDK_VERSION } from '@sentry/core';
 import type {
   ClientReport,
   Envelope,
   Event,
   SerializedCheckIn,
+  SerializedLogContainer,
+  SerializedMetricContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
+import { expect } from 'vitest';
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties
@@ -60,6 +63,24 @@ export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial
 }
 
 export function assertSentryClientReport(actual: ClientReport, expected: Partial<ClientReport>): void {
+  expect(actual).toMatchObject({
+    ...expected,
+  });
+}
+
+export function assertSentryLogContainer(
+  actual: SerializedLogContainer,
+  expected: Partial<SerializedLogContainer>,
+): void {
+  expect(actual).toMatchObject({
+    ...expected,
+  });
+}
+
+export function assertSentryMetricContainer(
+  actual: SerializedMetricContainer,
+  expected: Partial<SerializedMetricContainer>,
+): void {
   expect(actual).toMatchObject({
     ...expected,
   });

@@ -1,12 +1,10 @@
 import { defineConfig } from 'vitest/config';
-
 import baseConfig from '../../vite/vite.config';
 
 export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    setupFiles: ['./test.setup.ts'],
-    reporters: ['default'],
+    setupFiles: ['./test/test.setup.ts'],
   },
 });

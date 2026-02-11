@@ -1,17 +1,16 @@
-import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
 import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   captureEvent,
+  debug,
   defineIntegration,
   getClient,
+  GLOBAL_OBJ,
   isSentryRequestUrl,
-  logger,
   supportsNativeFetch,
 } from '@sentry/core';
-
+import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;
@@ -94,6 +93,7 @@ function _fetchResponseHandler(
       requestCookies,
       responseCookies,
       error,
+      type: 'fetch',
     });
 
     captureEvent(event);
@@ -166,6 +166,7 @@ function _xhrResponseHandler(
       responseHeaders,
       responseCookies,
       error,
+      type: 'xhr',
     });
 
     captureEvent(event);
@@ -334,7 +335,7 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     try {
       _xhrResponseHandler(options, xhr, method, headers, error || virtualError);
     } catch (e) {
-      DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
+      DEBUG_BUILD && debug.warn('Error while extracting response event form XHR response', e);
     }
   });
 }
@@ -363,6 +364,7 @@ function _createEvent(data: {
   url: string;
   method: string;
   status: number;
+  type: 'fetch' | 'xhr';
   responseHeaders?: Record<string, string>;
   responseCookies?: Record<string, string>;
   requestHeaders?: Record<string, string>;
@@ -403,7 +405,7 @@ function _createEvent(data: {
   };
 
   addExceptionMechanism(event, {
-    type: 'http.client',
+    type: `auto.http.client.${data.type}`,
     handled: false,
   });
 

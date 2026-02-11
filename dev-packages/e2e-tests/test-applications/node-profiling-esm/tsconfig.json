@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "esModuleInterop": true,
+    "lib": ["es2018"],
+    "strict": true,
+    "outDir": "dist",
+    "target": "ESNext",
+    "moduleResolution": "node",
+    "skipLibCheck": true
+  },
+  "include": ["index.ts"]
+}

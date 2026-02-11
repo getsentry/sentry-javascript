@@ -1,0 +1,62 @@
+{
+  "name": "react-router-7-framework-spa-node-20-18",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "vite preview",
+    "preview": "vite preview",
+    "typecheck": "react-router typegen && tsc",
+    "clean": "pnpx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:ts": "pnpm typecheck",
+    "test:prod": "playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:assert": "pnpm test:ts &&pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/react-router": "latest || *",
+    "@react-router/node": "7.13.0",
+    "@react-router/serve": "7.13.0",
+    "isbot": "^5.1.27",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "7.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@react-router/dev": "7.13.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@tailwindcss/vite": "^4.1.4",
+    "@types/node": "^20",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "20.18.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "p-map": "^4.0.0"
+    }
+  }
+}

@@ -4,49 +4,46 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-5', txnEvent => {
-      return txnEvent?.transaction === '/server-island';
+      return txnEvent.transaction === '/server-island';
     });
 
     const serverIslandEndpointTxnPromise = waitForTransaction('astro-5', evt => {
-      return !!evt.transaction?.startsWith('GET /_server-islands');
+      return evt.transaction === 'GET /_server-islands/[name]';
     });
 
     await page.goto('/server-island');
 
     const clientPageloadTxn = await clientPageloadTxnPromise;
-
     const clientPageloadTraceId = clientPageloadTxn.contexts?.trace?.trace_id;
     const clientPageloadParentSpanId = clientPageloadTxn.contexts?.trace?.parent_span_id;
 
-    const sentryTraceMetaTagContent = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
-    const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
+    const sentryTraceMetaTags = await page.locator('meta[name="sentry-trace"]').count();
+    expect(sentryTraceMetaTags).toBe(0);
 
-    const [metaTraceId, metaParentSpanId, metaSampled] = sentryTraceMetaTagContent?.split('-') || [];
+    const baggageMetaTags = await page.locator('meta[name="baggage"]').count();
+    expect(baggageMetaTags).toBe(0);
 
     expect(clientPageloadTraceId).toMatch(/[a-f0-9]{32}/);
-    expect(clientPageloadParentSpanId).toMatch(/[a-f0-9]{16}/);
-    expect(metaSampled).toBe('1');
+    expect(clientPageloadParentSpanId).toBeUndefined();
 
     expect(clientPageloadTxn).toMatchObject({
       contexts: {
         trace: {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.sample_rate': 1,
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           }),
           op: 'pageload',
-          origin: 'auto.pageload.browser',
-          parent_span_id: metaParentSpanId,
+          origin: 'auto.pageload.astro',
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: metaTraceId,
+          trace_id: clientPageloadTraceId,
         },
       },
       platform: 'javascript',
       transaction: '/server-island',
       transaction_info: {
-        source: 'url',
+        source: 'route',
       },
       type: 'transaction',
     });
@@ -64,9 +61,6 @@ test.describe('tracing in static routes with server islands', () => {
       ]),
     );
 
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Fserver-island%2F'); // URL-encoded for 'GET /test-static/'
-    expect(baggageMetaTagContent).toContain('sentry-sampled=true');
-
     const serverIslandEndpointTxn = await serverIslandEndpointTxnPromise;
 
     expect(serverIslandEndpointTxn).toMatchObject({
@@ -75,8 +69,12 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
-            'sentry.sample_rate': 1,
             'sentry.source': 'route',
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'cors',
+            'http.request.header.user_agent': expect.any(String),
           }),
           op: 'http.server',
           origin: 'auto.http.astro',

@@ -1,19 +1,25 @@
-import { fileURLToPath } from 'node:url';
-import type { ConfigOptions } from '@nuxt/test-utils/playwright';
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
-const nuxtConfigOptions: ConfigOptions = {
-  nuxt: {
-    rootDir: fileURLToPath(new URL('.', import.meta.url)),
-  },
+const testEnv = process.env.TEST_ENV;
+
+if (!testEnv) {
+  throw new Error('No test env defined');
+}
+
+const getStartCommand = () => {
+  if (testEnv === 'development') {
+    return "NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev -p 3030";
+  }
+
+  if (testEnv === 'production') {
+    return 'pnpm start:import';
+  }
+
+  throw new Error(`Unknown test env: ${testEnv}`);
 };
 
-/*  Make sure to import from '@nuxt/test-utils/playwright' in the tests
- *  Like this: import { expect, test } from '@nuxt/test-utils/playwright' */
-
 const config = getPlaywrightConfig({
-  startCommand: `pnpm start:import`,
-  use: { ...nuxtConfigOptions },
+  startCommand: getStartCommand(),
 });
 
 export default config;

@@ -1,0 +1,56 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm typecheck && shopify hydrogen build --codegen",
+    "dev": "shopify hydrogen dev --codegen",
+    "preview": "shopify hydrogen preview",
+    "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
+    "typecheck": "tsc",
+    "codegen": "shopify hydrogen codegen",
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm playwright test"
+  },
+  "dependencies": {
+    "@remix-run/react": "^2.17.4",
+    "@remix-run/server-runtime": "^2.17.4",
+    "@remix-run/cloudflare-pages": "^2.17.4",
+    "@sentry/cloudflare": "latest || *",
+    "@sentry/remix": "latest || *",
+    "@sentry/vite-plugin": "^4.8.0",
+    "@shopify/hydrogen": "2025.4.0",
+    "@shopify/remix-oxygen": "2.0.10",
+    "graphql": "^16.6.0",
+    "graphql-tag": "^2.12.6",
+    "isbot": "^3.8.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "5.0.2",
+    "@playwright/test": "~1.56.0",
+    "@remix-run/dev": "^2.17.4",
+    "@remix-run/eslint-config": "^2.17.4",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@shopify/cli": "3.74.1",
+    "@shopify/hydrogen-codegen": "^0.3.1",
+    "@shopify/mini-oxygen": "3.2.0",
+    "@shopify/oxygen-workers-types": "^4.1.2",
+    "@tailwindcss/vite": "4.0.0-alpha.17",
+    "@total-typescript/ts-reset": "^0.4.2",
+    "@types/eslint": "^8.4.10",
+    "@types/react": "^18.2.22",
+    "@types/react-dom": "^18.2.7",
+    "esbuild": "0.25.0",
+    "eslint": "^8.20.0",
+    "eslint-plugin-hydrogen": "0.12.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0",
+    "vite-tsconfig-paths": "^4.3.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

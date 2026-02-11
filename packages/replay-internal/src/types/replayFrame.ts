@@ -1,5 +1,4 @@
 import type { Breadcrumb } from '@sentry/core';
-
 import type {
   HistoryData,
   MemoryData,
@@ -173,7 +172,7 @@ interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
 
 interface ReplayWebVitalFrame extends ReplayBaseSpanFrame {
   data: WebVitalData;
-  op: 'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint';
+  op: 'largest-contentful-paint' | 'cumulative-layout-shift' | 'interaction-to-next-paint';
 }
 
 interface ReplayMemoryFrame extends ReplayBaseSpanFrame {

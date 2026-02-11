@@ -1,0 +1,33 @@
+{
+  "name": "vue-tanstack-router",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "dev": "vite",
+    "start": "vite preview",
+    "preview": "vite preview",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/vue": "latest || *",
+    "@tanstack/vue-router": "^1.141.8",
+    "vue": "^3.4.15"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@tsconfig/node20": "^20.1.2",
+    "@types/node": "^18.19.1",
+    "@vitejs/plugin-vue": "^5.0.3",
+    "@vue/tsconfig": "^0.5.1",
+    "typescript": "~5.3.0",
+    "vite": "^5.4.11"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

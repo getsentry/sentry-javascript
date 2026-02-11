@@ -1,13 +1,13 @@
 <template>
   <div>
-    <button @click="fetchData">Fetch Server Data</button>
+    <button @click="fetchError">Fetch Server API Error</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useFetch} from '#imports'
+import { useFetch } from '#imports';
 
-const fetchData = async () => {
+const fetchError = async () => {
   await useFetch('/api/server-error');
-}
+};
 </script>

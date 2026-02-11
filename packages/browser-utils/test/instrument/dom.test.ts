@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { instrumentDOM } from '../../src/instrument/dom';
 import { WINDOW } from '../../src/types';
 

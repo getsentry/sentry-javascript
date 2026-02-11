@@ -1,4 +1,4 @@
 module.exports = {
   root: true,
-  extends: ['./base.js', './import.js', './prettier.js'],
+  extends: ['./base.js', './import.js'],
 };

@@ -20,7 +20,7 @@ import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';
 import { getNavigationEntry } from './getNavigationEntry';
 
-export const initMetric = <MetricName extends MetricType['name']>(name: MetricName, value?: number) => {
+export const initMetric = <MetricName extends MetricType['name']>(name: MetricName, value: number = -1) => {
   const navEntry = getNavigationEntry();
   let navigationType: MetricType['navigationType'] = 'navigate';
 
@@ -39,7 +39,7 @@ export const initMetric = <MetricName extends MetricType['name']>(name: MetricNa
 
   return {
     name,
-    value: typeof value === 'undefined' ? -1 : value,
+    value,
     rating: 'good' as const, // If needed, will be updated when reported. `const` to keep the type from widening to `string`.
     delta: 0,
     entries,

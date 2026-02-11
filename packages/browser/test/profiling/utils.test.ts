@@ -2,17 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
-
+import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
+import { convertJSSelfProfileToSampledFormat } from '../../src/profiling/utils';
+
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
-
-import { JSDOM } from 'jsdom';
-
-import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
-import { convertJSSelfProfileToSampledFormat } from '../../src/profiling/utils';
 
 const makeJSProfile = (partial: Partial<JSSelfProfile> = {}): JSSelfProfile => {
   return {

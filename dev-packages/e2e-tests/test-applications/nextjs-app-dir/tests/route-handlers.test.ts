@@ -28,7 +28,7 @@ test('Should create a transaction for route handlers and correctly set span stat
 
   const routehandlerTransaction = await routehandlerTransactionPromise;
 
-  expect(routehandlerTransaction.contexts?.trace?.status).toBe('not_found');
+  expect(routehandlerTransaction.contexts?.trace?.status).toBe('invalid_argument');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 });
 
@@ -112,7 +112,7 @@ test.describe('Edge runtime', () => {
     expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
     expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-    expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
+    expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');

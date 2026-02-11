@@ -1,8 +1,9 @@
-import type { NodeClient } from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
+import type { EventProcessor } from '@sentry/core';
+import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/server';
+import { lowQualityTransactionsFilter } from '../../src/server/utils';
 
 const browserInit = vi.spyOn(SentryNode, 'init');
 
@@ -34,37 +35,52 @@ describe('Initialize Solid Start SDK', () => {
     expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
 
-  it('filters out low quality transactions', async () => {
-    const beforeSendEvent = vi.fn(event => event);
-    const client = solidStartInit({
+  describe('lowQualityTransactionsFilter', () => {
+    const options = { debug: false };
+    const filter = lowQualityTransactionsFilter(options);
+
+    describe('filters out low quality transactions', () => {
+      it.each(['GET /_build/some_asset.js', 'GET /_build/app.js', 'GET /_build/assets/logo.png'])(
+        'filters out low quality transaction: (%s)',
+        transaction => {
+          const event = { type: 'transaction' as const, transaction };
+          expect(filter(event, {})).toBeNull();
+        },
+      );
+    });
+
+    describe('keeps high quality transactions', () => {
+      it.each(['GET /', 'POST /_server'])('does not filter out route transactions (%s)', transaction => {
+        const event = { type: 'transaction' as const, transaction };
+        expect(filter(event, {})).toEqual(event);
+      });
+    });
+
+    it('does not filter non-transaction events', () => {
+      const event = { type: 'error' as const, transaction: 'GET /_build/app.js' } as any;
+      expect(filter(event, {})).toEqual(event);
+    });
+
+    it('handles events without transaction property', () => {
+      const event = { type: 'transaction' as const };
+      expect(filter(event, {})).toEqual(event);
+    });
+  });
+
+  it('registers an event processor', () => {
+    let passedEventProcessors: EventProcessor[] = [];
+    const addEventProcessor = vi
+      .spyOn(getGlobalScope(), 'addEventProcessor')
+      .mockImplementation((eventProcessor: EventProcessor) => {
+        passedEventProcessors = [...passedEventProcessors, eventProcessor];
+        return new Scope();
+      });
+
+    solidStartInit({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-    }) as NodeClient;
-    client.on('beforeSendEvent', beforeSendEvent);
+    });
 
-    client.captureEvent({ type: 'transaction', transaction: 'GET /' });
-    client.captureEvent({ type: 'transaction', transaction: 'GET /_build/some_asset.js' });
-    client.captureEvent({ type: 'transaction', transaction: 'POST /_server' });
-
-    await client!.flush();
-
-    expect(beforeSendEvent).toHaveBeenCalledTimes(2);
-    expect(beforeSendEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        transaction: 'GET /',
-      }),
-      expect.any(Object),
-    );
-    expect(beforeSendEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        transaction: 'GET /_build/some_asset.js',
-      }),
-      expect.any(Object),
-    );
-    expect(beforeSendEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        transaction: 'POST /_server',
-      }),
-      expect.any(Object),
-    );
+    expect(addEventProcessor).toHaveBeenCalledTimes(1);
+    expect(passedEventProcessors[0]?.id).toEqual('SolidStartLowQualityTransactionsFilter');
   });
 });

@@ -83,6 +83,7 @@ test('sends an INP span', async ({ page }) => {
       'sentry.exclusive_time': expect.any(Number),
       replay_id: expect.any(String),
       'user_agent.original': expect.stringContaining('Chrome'),
+      'client.address': '{{auto}}',
     },
     description: 'body > div#root > input#exception-button[type="button"]',
     op: 'ui.interaction.click',

@@ -1,24 +1,23 @@
-import * as domain from 'domain';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-
 import type { Event } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
 
-const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
-const mockFlush = jest.fn((...args) => Promise.resolve(args));
-const mockCaptureException = jest.fn();
+const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = vi.fn((...args) => Promise.resolve(args));
+const mockCaptureException = vi.fn();
 
 const mockScope = {
-  setContext: jest.fn(),
+  setContext: vi.fn(),
 };
 
 const mockSpan = {
-  end: jest.fn(),
+  end: vi.fn(),
 };
 
-jest.mock('@sentry/node', () => {
-  const original = jest.requireActual('@sentry/node');
+vi.mock('@sentry/node', async () => {
+  const original = await vi.importActual('@sentry/node');
   return {
     ...original,
     startSpanManual: (...args: unknown[]) => {
@@ -40,27 +39,23 @@ jest.mock('@sentry/node', () => {
 
 describe('wrapEventFunction', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function handleEvent(fn: EventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
-      // eslint-disable-next-line deprecation/deprecation
-      const d = domain.create();
       const context = {
         eventType: 'event.type',
         resource: 'some.resource',
       };
-      d.on('error', reject);
-      d.run(() =>
-        process.nextTick(fn, {}, context, (err: any, result: any) => {
-          if (err != null || err != undefined) {
-            reject(err);
-          } else {
-            resolve(result);
-          }
-        }),
-      );
+
+      fn({}, context, (err: any, result: any) => {
+        if (err != null || err != undefined) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
     });
   }
 
@@ -243,13 +238,13 @@ describe('wrapEventFunction', () => {
     const scopeFunction = mockCaptureException.mock.calls[0][1];
     const event: Event = { exception: { values: [{}] } };
     let evtProcessor: ((e: Event) => Event) | undefined = undefined;
-    scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
+    scopeFunction({ addEventProcessor: vi.fn().mockImplementation(proc => (evtProcessor = proc)) });
 
     expect(evtProcessor).toBeInstanceOf(Function);
     // @ts-expect-error just mocking around...
     expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
       handled: false,
-      type: 'generic',
+      type: 'auto.function.serverless.gcp_event',
     });
   });
 

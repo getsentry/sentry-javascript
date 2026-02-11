@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solidstart",
-  "version": "8.45.0",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for Solid Start",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidstart",
@@ -57,7 +57,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
     "@solidjs/start": "^1.0.0"
   },
   "peerDependenciesMeta": {
@@ -66,19 +66,21 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
-    "@sentry/opentelemetry": "8.45.0",
-    "@sentry/solid": "8.45.0",
-    "@sentry/vite-plugin": "2.22.6"
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0",
+    "@sentry/solid": "10.38.0",
+    "@sentry/vite-plugin": "^4.8.0"
   },
   "devDependencies": {
-    "@solidjs/router": "^0.13.4",
-    "@solidjs/start": "^1.0.0",
+    "@solidjs/router": "^0.15.0",
+    "@solidjs/start": "^1.2.1",
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
-    "vite-plugin-solid": "^2.8.2"
+    "solid-js": "^1.9.11",
+    "vinxi": "^0.5.11",
+    "vite": "^5.4.11",
+    "vite-plugin-solid": "^2.11.6"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -96,6 +98,7 @@
     "clean": "rimraf build coverage sentry-solidstart-*.tgz ./*.d.ts ./*.d.ts.map ./client ./server",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

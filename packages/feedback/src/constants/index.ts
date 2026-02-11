@@ -22,6 +22,9 @@ export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
 export const IS_REQUIRED_LABEL = '(required)';
 export const ADD_SCREENSHOT_LABEL = 'Add a screenshot';
 export const REMOVE_SCREENSHOT_LABEL = 'Remove screenshot';
+export const HIGHLIGHT_TOOL_TEXT = 'Highlight';
+export const HIDE_TOOL_TEXT = 'Hide';
+export const REMOVE_HIGHLIGHT_TEXT = 'Remove';
 
 export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';

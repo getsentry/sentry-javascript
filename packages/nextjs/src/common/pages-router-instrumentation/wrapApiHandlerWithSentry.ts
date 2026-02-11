@@ -1,21 +1,20 @@
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  debug,
   getActiveSpan,
   httpRequestToRequestData,
   isString,
-  logger,
   objectify,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpanManual,
-  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
-import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
@@ -42,12 +41,12 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         const [req, res] = args;
 
         if (!req) {
-          logger.debug(
+          debug.log(
             `Wrapped API handler on route "${parameterizedRoute}" was not passed a request object. Will not instrument.`,
           );
           return wrappingTarget.apply(thisArg, args);
         } else if (!res) {
-          logger.debug(
+          debug.log(
             `Wrapped API handler on route "${parameterizedRoute}" was not passed a response object. Will not instrument.`,
           );
           return wrappingTarget.apply(thisArg, args);
@@ -95,7 +94,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     apply(target, thisArg, argArray) {
                       setHttpStatus(span, res.statusCode);
                       span.end();
-                      vercelWaitUntil(flushSafelyWithTimeout());
+                      waitUntil(flushSafelyWithTimeout());
                       return target.apply(thisArg, argArray);
                     },
                   });
@@ -110,7 +109,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
                     captureException(objectifiedErr, {
                       mechanism: {
-                        type: 'instrument',
+                        type: 'auto.http.nextjs.api_handler',
                         handled: false,
                         data: {
                           wrapped_handler: wrappingTarget.name,

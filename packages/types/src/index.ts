@@ -73,14 +73,13 @@ import type {
   HandlerDataUnhandledRejection as HandlerDataUnhandledRejection_imported,
   HandlerDataXhr as HandlerDataXhr_imported,
   HttpHeaderValue as HttpHeaderValue_imported,
-  Hub as Hub_imported,
-  InProgressCheckIn as InProgressCheckIn_imported,
   InformationUnit as InformationUnit_imported,
+  InProgressCheckIn as InProgressCheckIn_imported,
   Integration as Integration_imported,
   IntegrationFn as IntegrationFn_imported,
   InternalBaseTransportOptions as InternalBaseTransportOptions_imported,
-  MeasurementUnit as MeasurementUnit_imported,
   Measurements as Measurements_imported,
+  MeasurementUnit as MeasurementUnit_imported,
   Mechanism as Mechanism_imported,
   MissingInstrumentationContext as MissingInstrumentationContext_imported,
   MonitorConfig as MonitorConfig_imported,
@@ -131,8 +130,8 @@ import type {
   SessionStatus as SessionStatus_imported,
   SeverityLevel as SeverityLevel_imported,
   Span as Span_imported,
-  SpanAttributeValue as SpanAttributeValue_imported,
   SpanAttributes as SpanAttributes_imported,
+  SpanAttributeValue as SpanAttributeValue_imported,
   SpanContextData as SpanContextData_imported,
   SpanEnvelope as SpanEnvelope_imported,
   SpanItem as SpanItem_imported,
@@ -156,8 +155,8 @@ import type {
   TimedEvent as TimedEvent_imported,
   TraceContext as TraceContext_imported,
   TraceFlag as TraceFlag_imported,
-  TracePropagationTargets as TracePropagationTargets_imported,
   TraceparentData as TraceparentData_imported,
+  TracePropagationTargets as TracePropagationTargets_imported,
   TransactionEvent as TransactionEvent_imported,
   TransactionSource as TransactionSource_imported,
   Transport as Transport_imported,
@@ -298,9 +297,6 @@ export type Exception = Exception_imported;
 export type Extra = Extra_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Extras = Extras_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type Hub = Hub_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Integration = Integration_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../../utils/helpers';
 
@@ -27,9 +26,9 @@ sentryTest('should catch syntax errors', async ({ getLocalTestUrl, page, browser
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'SyntaxError',
-    value: "Unexpected token '{'",
+    value: "Failed to execute 'appendChild' on 'Node': Unexpected token '{'",
     mechanism: {
-      type: 'onerror',
+      type: 'auto.browser.global_handlers.onerror',
       handled: false,
     },
     stacktrace: {

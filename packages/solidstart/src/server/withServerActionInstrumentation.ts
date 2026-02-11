@@ -1,6 +1,11 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, handleCallbackErrors } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
-import { flushIfServerless, isRedirect } from './utils';
+import {
+  flushIfServerless,
+  handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+} from '@sentry/core';
+import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
+import { isRedirect } from './utils';
 
 /**
  * Wraps a server action (functions that use the 'use server' directive)
@@ -43,7 +48,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
             captureException(error, {
               mechanism: {
                 handled: false,
-                type: 'solidstart',
+                type: 'auto.function.solidstart',
               },
             });
           }

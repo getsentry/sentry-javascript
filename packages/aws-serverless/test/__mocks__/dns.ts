@@ -1,2 +1,4 @@
-export const lookup = jest.fn();
-export const resolveTxt = jest.fn();
+import { vi } from 'vitest';
+
+export const lookup = vi.fn();
+export const resolveTxt = vi.fn();

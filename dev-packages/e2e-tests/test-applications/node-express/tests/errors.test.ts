@@ -11,9 +11,14 @@ test('Sends correct error event', async ({ baseURL }) => {
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception with id 123');
+  const exception = errorEvent.exception?.values?.[0];
+  expect(exception?.value).toBe('This is an exception with id 123');
+  expect(exception?.mechanism).toEqual({
+    type: 'auto.middleware.express',
+    handled: false,
+  });
 
-  expect(errorEvent.request).toEqual({
+  expect(errorEvent.request).toMatchObject({
     method: 'GET',
     cookies: {},
     headers: expect.any(Object),
@@ -37,6 +42,17 @@ test('Should record caught exceptions with local variable', async ({ baseURL }) 
 
   const errorEvent = await errorEventPromise;
 
-  const frames = errorEvent.exception?.values?.[0].stacktrace?.frames;
-  expect(frames?.[frames.length - 1].vars?.randomVariableToRecord).toBeDefined();
+  const frames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
+  expect(frames?.[frames.length - 1]?.vars?.randomVariableToRecord).toBeDefined();
+});
+
+test('To not crash app from withMonitor', async ({ baseURL }) => {
+  const doRequest = async (id: number) => {
+    const response = await fetch(`${baseURL}/crash-in-with-monitor/${id}`);
+    return response.json();
+  };
+  const [response1, response2] = await Promise.all([doRequest(1), doRequest(2)]);
+  expect(response1.message).toBe('This is an exception withMonitor: 1');
+  expect(response2.message).toBe('This is an exception withMonitor: 2');
+  expect(response1.pid).toBe(response2.pid); //Just to double-check, TBS
 });

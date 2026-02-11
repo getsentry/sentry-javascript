@@ -1,19 +1,19 @@
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
 /**
@@ -31,11 +31,14 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         const req: unknown = args[0];
         const currentScope = getCurrentScope();
 
+        let headerAttributes: Record<string, string> = {};
+
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: winterCGRequestToRequestData(req),
           });
           currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
+          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           currentScope.setTransactionName(`handler (${parameterizedRoute})`);
         }
@@ -58,6 +61,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             rootSpan.setAttributes({
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              ...headerAttributes,
             });
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
           }
@@ -73,7 +77,8 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             op: op,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
+              ...headerAttributes,
             },
           },
           () => {
@@ -82,13 +87,13 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'instrument',
+                    type: 'auto.function.nextjs.wrap_api_handler',
                     handled: false,
                   },
                 });
               },
               () => {
-                vercelWaitUntil(flushSafelyWithTimeout());
+                waitUntil(flushSafelyWithTimeout());
               },
             );
           },

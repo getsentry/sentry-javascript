@@ -8,6 +8,7 @@ import type {
   StackParser,
 } from '@sentry/core';
 import {
+  _INTERNAL_enhanceErrorWithSentryInfo,
   addExceptionMechanism,
   addExceptionTypeValue,
   extractExceptionKeysForMessage,
@@ -120,7 +121,7 @@ function parseStackFrames(
 
   try {
     return stackParser(stacktrace, skipLines, framesToPop);
-  } catch (e) {
+  } catch {
     // no-empty
   }
 
@@ -199,20 +200,23 @@ export function extractType(ex: Error & { message: { error?: Error } }): string 
 export function extractMessage(ex: Error & { message: { error?: Error } }): string {
   const message = ex?.message;
 
+  if (isWebAssemblyException(ex)) {
+    // For Node 18, Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    if (Array.isArray(ex.message) && ex.message.length == 2) {
+      return ex.message[1];
+    }
+    return 'wasm exception';
+  }
+
   if (!message) {
     return 'No error message';
   }
 
   if (message.error && typeof message.error.message === 'string') {
-    return message.error.message;
+    return _INTERNAL_enhanceErrorWithSentryInfo(message.error);
   }
 
-  // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
-  if (isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2) {
-    return ex.message[1];
-  }
-
-  return message;
+  return _INTERNAL_enhanceErrorWithSentryInfo(ex);
 }
 
 /**
@@ -306,7 +310,7 @@ export function eventFromUnknownInput(
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
     // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
     // group on any key/value change.
-    const objectException = exception as Record<string, unknown>;
+    const objectException = exception;
     event = eventFromPlainObject(stackParser, objectException, syntheticException, isUnhandledRejection);
     addExceptionMechanism(event, {
       synthetic: true,
@@ -389,7 +393,7 @@ function getObjectClassName(obj: unknown): string | undefined | void {
   try {
     const prototype: Prototype | null = Object.getPrototypeOf(obj);
     return prototype ? prototype.constructor.name : undefined;
-  } catch (e) {
+  } catch {
     // ignore errors here
   }
 }

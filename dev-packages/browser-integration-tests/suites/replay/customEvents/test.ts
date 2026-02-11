@@ -1,11 +1,9 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../utils/fixtures';
 import {
-  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
+  expectedCLSPerformanceSpan,
   expectedFCPPerformanceSpan,
-  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -57,7 +55,6 @@ sentryTest(
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -105,7 +102,7 @@ sentryTest(
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                'aria-label': 'An Error in aria-label',
+                'aria-label': '** ***** ** **********',
                 class: 'btn btn-error',
                 id: 'error',
                 role: 'button',

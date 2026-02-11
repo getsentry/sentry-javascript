@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -24,7 +23,7 @@ sentryTest('captures Breadcrumb for basic GET request that uses request object',
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',

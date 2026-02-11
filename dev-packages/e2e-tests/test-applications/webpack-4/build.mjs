@@ -17,6 +17,11 @@ webpack(
       minimize: true,
       minimizer: [new TerserPlugin()],
     },
+    performance: {
+      hints: false,
+      maxEntrypointSize: 512000,
+      maxAssetSize: 512000,
+    },
     plugins: [new HtmlWebpackPlugin(), new webpack.EnvironmentPlugin(['E2E_TEST_DSN'])],
     mode: 'production',
     // webpack 4 does not support ES2020 features out of the box, so we need to transpile them

@@ -1,28 +1,18 @@
 import type { Client, StartSpanOptions } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  debug,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   isNodeEnv,
-  logger,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type {
-  BrowserClient,
-  ErrorBoundaryProps,
-  browserTracingIntegration as originalBrowserTracingIntegration,
-} from '@sentry/react';
-import {
-  WINDOW,
-  getClient,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-  withErrorBoundary,
-} from '@sentry/react';
+import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
+import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
+import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -66,8 +56,33 @@ function getInitPathName(): string | undefined {
   return undefined;
 }
 
-function isRemixV2(remixVersion: number | undefined): boolean {
-  return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
+/**
+ * Determines the transaction name and source for a route.
+ * Handles three cases:
+ * 1. Dynamic routes with manifest (Vite apps): Use parameterized path with source 'route'
+ * 2. Static routes with manifest (Vite apps): Use pathname with source 'url'
+ * 3. Legacy apps without manifest: Use route ID with source 'route'
+ */
+function getTransactionNameAndSource(
+  pathname: string | undefined,
+  routeId: string,
+): { name: string; source: 'route' | 'url' } {
+  const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
+
+  if (parameterizedRoute) {
+    // We have a parameterized route from the manifest (dynamic route)
+    return { name: parameterizedRoute, source: 'route' };
+  }
+
+  if (hasManifest()) {
+    // We have a manifest but no parameterization (static route)
+    // Use the pathname with source 'url'
+    return { name: pathname || routeId, source: 'url' };
+  }
+
+  // No manifest available (legacy app without Vite plugin)
+  // Fall back to route ID for backward compatibility
+  return { name: routeId, source: 'route' };
 }
 
 export function startPageloadSpan(client: Client): void {
@@ -77,19 +92,24 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
+  // Try to parameterize the route using the route manifest
+  const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
+  const spanName = parameterizedRoute || initPathName;
+  const source = parameterizedRoute ? 'route' : 'url';
+
   const spanContext: StartSpanOptions = {
-    name: initPathName,
+    name: spanName,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
   startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
-function startNavigationSpan(matches: RouteMatch<string>[]): void {
+function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {
   const lastMatch = matches[matches.length - 1];
 
   const client = getClient<BrowserClient>();
@@ -98,12 +118,14 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     return;
   }
 
+  const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
+
   const spanContext: StartSpanOptions = {
-    name: lastMatch.id,
+    name,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
@@ -111,30 +133,30 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
 }
 
 /**
- * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
+ * Wraps a remix `root` (see: https://remix.run/docs/en/main/start/quickstart#the-root-route)
  * To enable pageload/navigation tracing on every route.
- * Also wraps the application with `ErrorBoundary`.
  *
  * @param OrigApp The Remix root to wrap
- * @param options The options for ErrorBoundary wrapper.
+ * @param useEffect The `useEffect` hook from `react`
+ * @param useLocation The `useLocation` hook from `@remix-run/react`
+ * @param useMatches The `useMatches` hook from `@remix-run/react`
+ * @param instrumentNavigation Whether to instrument navigation spans. Defaults to `true`.
  */
 export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(
   OrigApp: R,
-  options: {
-    wrapWithErrorBoundary?: boolean;
-    errorBoundaryOptions?: ErrorBoundaryProps;
-  } = {
-    // We don't want to wrap application with Sentry's ErrorBoundary by default for Remix v2
-    wrapWithErrorBoundary: true,
-    errorBoundaryOptions: {},
-  },
+  useEffect?: UseEffect,
+  useLocation?: UseLocation,
+  useMatches?: UseMatches,
+  instrumentNavigation?: boolean,
 ): R {
   const SentryRoot: React.FC<P> = (props: P) => {
+    setGlobals({ useEffect, useLocation, useMatches, instrumentNavigation: instrumentNavigation || true });
+
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
         !isNodeEnv() &&
-        logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
+        debug.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 
       // @ts-expect-error Setting more specific React Component typing for `R` generic above
       // will break advanced type inference done by react router params
@@ -149,16 +171,17 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     _useEffect(() => {
       const lastMatch = matches && matches[matches.length - 1];
       if (lastMatch) {
-        const routeName = lastMatch.id;
-        getCurrentScope().setTransactionName(routeName);
+        const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
+
+        getCurrentScope().setTransactionName(name);
 
         const activeRootSpan = getActiveSpan();
         if (activeRootSpan) {
           const transaction = getRootSpan(activeRootSpan);
 
           if (transaction) {
-            transaction.updateName(routeName);
-            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+            transaction.updateName(name);
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
           }
         }
       }
@@ -182,17 +205,12 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeRootSpan.end();
         }
 
-        startNavigationSpan(matches);
+        startNavigationSpan(matches, location);
       }
     }, [location]);
 
     isBaseLocation = false;
 
-    if (!isRemixV2(readRemixVersionFromLoader()) && options.wrapWithErrorBoundary) {
-      // @ts-expect-error Setting more specific React Component typing for `R` generic above
-      // will break advanced type inference done by react router params
-      return withErrorBoundary(OrigApp, options.errorBoundaryOptions)(props);
-    }
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
@@ -214,8 +232,8 @@ export function setGlobals({
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
 }): void {
-  _useEffect = useEffect;
-  _useLocation = useLocation;
-  _useMatches = useMatches;
-  _instrumentNavigation = instrumentNavigation;
+  _useEffect = useEffect || _useEffect;
+  _useLocation = useLocation || _useLocation;
+  _useMatches = useMatches || _useMatches;
+  _instrumentNavigation = instrumentNavigation ?? _instrumentNavigation;
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { Metric } from './base';
+import type { Metric } from './base.js';
 
 /**
  * An LCP-specific version of the Metric object.
@@ -31,9 +31,13 @@ export interface LCPMetric extends Metric {
  */
 export interface LCPAttribution {
   /**
-   * The element corresponding to the largest contentful paint for the page.
+   * By default, a selector identifying the element corresponding to the
+   * largest contentful paint for the page. If the `generateTarget`
+   * configuration option was passed, then this will instead be the return
+   * value of that function, falling back to the default if that returns null
+   * or undefined.
    */
-  element?: string;
+  target?: string;
   /**
    * The URL (if applicable) of the LCP image resource. If the LCP element
    * is a text node, this value will not be set.

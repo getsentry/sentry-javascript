@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-
 import { CONSOLE_ARG_MAX_SIZE } from '../../../src/constants';
 import { normalizeBreadcrumb, normalizeConsoleBreadcrumb } from '../../../src/coreHandlers/handleBreadcrumbs';
 
 describe('Unit | coreHandlers | handleBreadcrumbs', () => {
   describe('normalizeBreadcrumb', () => {
     it.each([undefined, 'ui.click', 'ui.scroll', 'fetch', 'xhr', 'sentry.event', 'sentry.transaction'])(
-      'returns null if breadcrumb has category=%p',
+      'returns null if breadcrumb has category=%j',
       category => {
         const actual = normalizeBreadcrumb({ category });
         expect(actual).toBeNull();

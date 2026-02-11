@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 
 const fetchSSE = async ({ timeout, abort = false }: { timeout: boolean; abort?: boolean }) => {

@@ -1,0 +1,42 @@
+{
+  "name": "aws-lambda-sam",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
+    "test:assert": "pnpm test"
+  },
+  "//": "We just need the @sentry/aws-serverless layer zip file, not the NPM package",
+  "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.863.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
+    "@types/tmp": "^0.2.6",
+    "aws-cdk-lib": "^2.210.0",
+    "constructs": "^10.4.2",
+    "glob": "^11.0.3",
+    "rimraf": "^5.0.10",
+    "tmp": "^0.2.5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "NODE_VERSION=20 ./pull-sam-image.sh && pnpm test:build",
+        "assert-command": "NODE_VERSION=20 pnpm test:assert",
+        "label": "aws-serverless (Node 20)"
+      },
+      {
+        "build-command": "NODE_VERSION=18 ./pull-sam-image.sh && pnpm test:build",
+        "assert-command": "NODE_VERSION=18 pnpm test:assert",
+        "label": "aws-serverless (Node 18)"
+      }
+    ]
+  }
+}

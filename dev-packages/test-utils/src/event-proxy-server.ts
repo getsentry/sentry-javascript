@@ -1,4 +1,13 @@
 /* eslint-disable max-lines */
+import type {
+  Envelope,
+  EnvelopeItem,
+  Event,
+  SerializedMetric,
+  SerializedMetricContainer,
+  SerializedSession,
+} from '@sentry/core';
+import { parseEnvelope } from '@sentry/core';
 import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
@@ -6,8 +15,6 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import { parseEnvelope } from '@sentry/core';
-import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -24,6 +31,7 @@ interface EventProxyServerOptions {
 interface SentryRequestCallbackData {
   envelope: Envelope;
   rawProxyRequestBody: string;
+  rawProxyRequestHeaders: Record<string, string | string[] | undefined>;
   rawSentryResponseBody: string;
   sentryResponseStatusCode?: number;
 }
@@ -182,6 +190,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     const data: SentryRequestCallbackData = {
       envelope: parseEnvelope(proxyRequestBody),
       rawProxyRequestBody: proxyRequestBody,
+      rawProxyRequestHeaders: proxyRequest.headers,
       rawSentryResponseBody: '',
       sentryResponseStatusCode: 200,
     };
@@ -381,6 +390,35 @@ export function waitForTransaction(
         if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
           resolve(envelopeItemBody as Event);
           return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
+  });
+}
+
+/**
+ * Wait for metric items to be sent.
+ */
+export function waitForMetric(
+  proxyServerName: string,
+  callback: (metricEvent: SerializedMetric) => Promise<boolean> | boolean,
+): Promise<SerializedMetric> {
+  const timestamp = getNanosecondTimestamp();
+  return new Promise((resolve, reject) => {
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        const metricContainer = envelopeItemBody as SerializedMetricContainer;
+        if (envelopeItemHeader.type === 'trace_metric') {
+          for (const metric of metricContainer.items) {
+            if (await callback(metric)) {
+              resolve(metric);
+              return true;
+            }
+          }
         }
         return false;
       },

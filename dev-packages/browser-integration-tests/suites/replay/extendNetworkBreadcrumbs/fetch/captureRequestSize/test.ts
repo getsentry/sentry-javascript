@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
@@ -46,7 +45,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',
@@ -125,7 +124,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',

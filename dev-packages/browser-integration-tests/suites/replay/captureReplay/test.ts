@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-
-import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestUrl, page }) => {
@@ -33,6 +32,13 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
+    contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
+    },
     sdk: {
       integrations: expect.arrayContaining([
         'InboundFilters',
@@ -48,6 +54,9 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,
@@ -71,6 +80,13 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
+    contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
+    },
     sdk: {
       integrations: expect.arrayContaining([
         'InboundFilters',
@@ -86,6 +102,9 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,

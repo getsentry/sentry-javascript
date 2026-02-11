@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { StackFrame } from '@sentry/core';
-
+import { describe, expect, it } from 'vitest';
 import { applySourceContextToFrame } from '../../src/integrations/contextlines';
 
 const lines = ['line1', 'line2', 'line3', 'line4', 'line5', 'line6', 'line7', 'line8', 'line9'];

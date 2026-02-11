@@ -1,7 +1,7 @@
 <template>
   <Layout>
     <div>
-      <div style="margin: 1rem 0;">
+      <div style="margin: 1rem 0">
         <PiniaLogo />
       </div>
 
@@ -15,64 +15,53 @@
         <ul data-testid="items">
           <li v-for="item in cart.items" :key="item.name">
             {{ item.name }} ({{ item.amount }})
-            <button
-              @click="cart.removeItem(item.name)"
-              type="button"
-            >X</button>
+            <button @click="cart.removeItem(item.name)" type="button">X</button>
           </li>
         </ul>
 
-        <button
-          :disabled="!cart.items.length"
-          @click="clearCart"
-          type="button"
-          data-testid="clear"
-        >Clear the cart</button>
+        <button :disabled="!cart.items.length" @click="clearCart" type="button" data-testid="clear">
+          Clear the cart
+        </button>
       </form>
+
+      <br />
+
+      <div>
+        <h3>Counter: {{ $counter.count }}</h3>
+        <button @click="$counter.increment">+</button>
+      </div>
     </div>
   </Layout>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from 'vue'
-import { useCartStore } from '../stores/cart'
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useCartStore } from '../stores/cart';
+import { useCounterStore } from '@/stores/counter';
 
+const cart = useCartStore();
+const $counter = useCounterStore();
 
-export default defineComponent({
-  setup() {
-    const cart = useCartStore()
+const itemName = ref('');
 
-    const itemName = ref('')
+function addItemToCart() {
+  if (!itemName.value) return;
+  cart.addItem(itemName.value);
+  itemName.value = '';
+}
 
-    function addItemToCart() {
-      if (!itemName.value) return
-      cart.addItem(itemName.value)
-      itemName.value = ''
-    }
+function throwError() {
+  throw new Error('This is an error');
+}
 
-    function throwError() {
-      throw new Error('This is an error')
-    }
+function clearCart() {
+  if (window.confirm('Are you sure you want to clear the cart?')) {
+    cart.rawItems = [];
+  }
+}
 
-    function clearCart() {
-      if (window.confirm('Are you sure you want to clear the cart?')) {
-        cart.rawItems = []
-      }
-    }
-
-    // @ts-ignore
-    window.stores = { cart }
-
-    return {
-      itemName,
-      addItemToCart,
-      cart,
-
-      throwError,
-      clearCart,
-    }
-  },
-})
+// @ts-ignore
+window.stores = { cart };
 </script>
 
 <style scoped>

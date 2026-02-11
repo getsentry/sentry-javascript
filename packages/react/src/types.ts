@@ -13,6 +13,7 @@ export type Location = {
 export interface NonIndexRouteObject {
   caseSensitive?: boolean;
   children?: RouteObject[];
+  handle?: Record<string, any>;
   element?: React.ReactNode | null;
   errorElement?: React.ReactNode | null;
   index?: any;
@@ -22,6 +23,7 @@ export interface NonIndexRouteObject {
 export interface IndexRouteObject {
   caseSensitive?: boolean;
   children?: undefined;
+  handle?: Record<string, any>;
   element?: React.ReactNode | null;
   errorElement?: React.ReactNode | null;
   index: any;
@@ -182,10 +184,14 @@ export interface RouterInit {
   hydrationData?: HydrationState;
 }
 
+export type NavigationState = {
+  state: 'idle' | 'loading' | 'submitting';
+};
+
 export type NavigationStates = {
-  Idle: any;
-  Loading: any;
-  Submitting: any;
+  Idle: NavigationState;
+  Loading: NavigationState;
+  Submitting: NavigationState;
 };
 
 export type Navigation = NavigationStates[keyof NavigationStates];
@@ -193,15 +199,12 @@ export type Navigation = NavigationStates[keyof NavigationStates];
 export type RouteData = any;
 export type Fetcher = any;
 
-export declare enum HistoryAction {
-  Pop = 'POP',
-  Push = 'PUSH',
-  Replace = 'REPLACE',
-}
+type HistoryAction = 'POP' | 'PUSH' | 'REPLACE';
 
 export interface RouterState {
   historyAction: Action | HistoryAction | any;
   location: Location;
+  navigation: Navigation;
 }
 export interface Router<TState extends RouterState = RouterState> {
   state: TState;

@@ -1,28 +1,11 @@
-import { existsSync } from 'fs';
-import { hostname } from 'os';
-import { basename, resolve } from 'path';
-import { types } from 'util';
-import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
-import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  SDK_VERSION,
-  captureException,
-  captureMessage,
-  continueTrace,
-  flush,
-  getCurrentScope,
-  getDefaultIntegrationsWithoutPerformance,
-  initWithoutDefaultIntegrations,
-  startSpanManual,
-  withScope,
-} from '@sentry/node';
-import type { Context, Handler } from 'aws-lambda';
+import type { Scope } from '@sentry/core';
+import { consoleSandbox, debug } from '@sentry/core';
+import { captureException, captureMessage, flush, getCurrentScope, withScope } from '@sentry/node';
+import type { Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
+import { types } from 'util';
 import { DEBUG_BUILD } from './debug-build';
-import { awsIntegration } from './integration/aws';
-import { awsLambdaIntegration } from './integration/awslambda';
-import { getAwsTraceData, markEventUnhandled } from './utils';
+import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 
@@ -49,59 +32,12 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  // TODO(v11): Remove this option since its no longer used.
   /**
-   * Automatically trace all handler invocations.
-   * You may want to disable this if you use express within Lambda.
-   * @default true
+   * @deprecated This option has no effect and will be removed in a future major version.
+   * If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`, otherwise OpenTelemetry will automatically trace the handler.
    */
   startTrace: boolean;
-}
-
-/**
- * Get the default integrations for the AWSLambda SDK.
- */
-// NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
-// If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
-export function getDefaultIntegrations(_options: Options): Integration[] {
-  return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
-}
-
-/**
- * Initializes the Sentry AWS Lambda SDK.
- *
- * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
- */
-export function init(options: NodeOptions = {}): NodeClient | undefined {
-  const opts = {
-    _metadata: {} as SdkMetadata,
-    defaultIntegrations: getDefaultIntegrations(options),
-    ...options,
-  };
-
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.aws-serverless',
-    integrations: ['AWSLambda'],
-    packages: [
-      {
-        name: 'npm:@sentry/aws-serverless',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
-
-  return initWithoutDefaultIntegrations(opts);
-}
-
-/** */
-function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
-  const lambdaStylePath = resolve(taskRoot, subdir, mod);
-  if (existsSync(lambdaStylePath) || existsSync(`${lambdaStylePath}.js`)) {
-    // Lambda-style path
-    return require(lambdaStylePath);
-  }
-  // Node-style path
-  return require(require.resolve(mod, { paths: [taskRoot, subdir] }));
 }
 
 /** */
@@ -123,56 +59,15 @@ function getRejectedReasons<T>(results: PromiseSettledResult<T>[]): T[] {
   }, []);
 }
 
-/** */
-export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
-  type HandlerBag = HandlerModule | Handler | null | undefined;
-
-  interface HandlerModule {
-    [key: string]: HandlerBag;
-  }
-
-  const handlerDesc = basename(handlerPath);
-  const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
-  if (!match) {
-    DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
-    return;
-  }
-
-  const [, handlerMod = '', handlerName = ''] = match;
-
-  let obj: HandlerBag;
-  try {
-    const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
-    obj = tryRequire(taskRoot, handlerDir, handlerMod);
-  } catch (e) {
-    DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
-    return;
-  }
-
-  let mod: HandlerBag;
-  let functionName: string | undefined;
-  handlerName.split('.').forEach(name => {
-    mod = obj;
-    obj = obj && (obj as HandlerModule)[name];
-    functionName = name;
+/**
+ * TODO(v11): Remove this function
+ * @deprecated This function is no longer used and will be removed in a future major version.
+ */
+export function tryPatchHandler(_taskRoot: string, _handlerPath: string): void {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('The `tryPatchHandler` function is deprecated and will be removed in a future major version.');
   });
-  if (!obj) {
-    DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
-    return;
-  }
-  if (typeof obj !== 'function') {
-    DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
-    return;
-  }
-
-  // Check for prototype pollution
-  if (functionName === '__proto__' || functionName === 'constructor' || functionName === 'prototype') {
-    DEBUG_BUILD && logger.error(`Invalid handler name: ${functionName}`);
-    return;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  (mod as HandlerModule)[functionName!] = wrapHandler(obj);
 }
 
 /**
@@ -213,20 +108,50 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
   });
 }
 
-/**
- * Adds additional transaction-related information from the environment and AWS Context to the Sentry Scope.
- *
- * @param scope Scope that should be enhanced
- * @param context AWS Lambda context that will be used to extract some part of the data
- */
-function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.addEventProcessor(event => {
-    event.transaction = context.functionName;
-    return event;
-  });
-  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
-  scope.setTag('url', `awslambda:///${context.functionName}`);
+function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.Timeout | undefined {
+  // In seconds. You cannot go any more granular than this in AWS Lambda.
+  const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
+  const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
+  const configuredTimeoutSeconds = configuredTimeout % 60;
+
+  const humanReadableTimeout =
+    configuredTimeoutMinutes > 0
+      ? `${configuredTimeoutMinutes}m${configuredTimeoutSeconds}s`
+      : `${configuredTimeoutSeconds}s`;
+
+  if (options.captureTimeoutWarning) {
+    const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
+
+    return setTimeout(() => {
+      withScope(scope => {
+        scope.setTag('timeout', humanReadableTimeout);
+        captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
+      });
+    }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
+  }
+
+  return undefined;
 }
+
+export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
+export const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
+export const AWS_HANDLER_STREAMING_RESPONSE = 'response';
+
+function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
+  return (
+    (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
+  );
+}
+
+export function wrapHandler<TEvent, TResult>(
+  handler: Handler<TEvent, TResult>,
+  wrapOptions?: Partial<WrapperOptions>,
+): Handler<TEvent, TResult>;
+
+export function wrapHandler<TEvent, TResult>(
+  handler: StreamifyHandler<TEvent, TResult>,
+  wrapOptions?: Partial<WrapperOptions>,
+): StreamifyHandler<TEvent, TResult>;
 
 /**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
@@ -236,31 +161,47 @@ function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
  * @returns Handler
  */
 export function wrapHandler<TEvent, TResult>(
-  handler: Handler<TEvent, TResult>,
+  handler: Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult> {
+): Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult> {
   const START_TIME = performance.now();
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (typeof wrapOptions.startTrace !== 'undefined') {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'The `startTrace` option is deprecated and will be removed in a future major version. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.',
+      );
+    });
+  }
+
   const options: WrapperOptions = {
     flushTimeout: 2000,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    startTrace: true,
+    startTrace: true, // TODO(v11): Remove this option. Set to true here to satisfy the type, but has no effect.
     ...wrapOptions,
   };
-  let timeoutWarningTimer: NodeJS.Timeout;
+
+  if (isStreamingHandler(handler)) {
+    return wrapStreamingHandler(handler, options, START_TIME);
+  }
+
+  let timeoutWarningTimer: NodeJS.Timeout | undefined;
 
   // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
   // async (event) => async handler
   // async (event, context) => async handler
   // (event, context, callback) => sync handler
   // Nevertheless whatever option is chosen by user, we convert it to async handler.
-  const asyncHandler: AsyncHandler<typeof handler> =
+  const asyncHandler: AsyncHandler<Handler<TEvent, TResult>> =
     handler.length > 2
       ? (event, context) =>
           new Promise((resolve, reject) => {
-            const rv = (handler as SyncHandler<typeof handler>)(event, context, (error, result) => {
+            const rv = (handler as SyncHandler<Handler<TEvent, TResult>>)(event, context, (error, result) => {
               if (error === null || error === undefined) {
                 resolve(result!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
               } else {
@@ -274,35 +215,14 @@ export function wrapHandler<TEvent, TResult>(
               void (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
             }
           })
-      : (handler as AsyncHandler<typeof handler>);
+      : (handler as AsyncHandler<Handler<TEvent, TResult>>);
 
-  return async (event, context) => {
+  return async (event: TEvent, context: Context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    // In seconds. You cannot go any more granular than this in AWS Lambda.
-    const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
-    const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
-    const configuredTimeoutSeconds = configuredTimeout % 60;
+    timeoutWarningTimer = setupTimeoutWarning(context, options);
 
-    const humanReadableTimeout =
-      configuredTimeoutMinutes > 0
-        ? `${configuredTimeoutMinutes}m${configuredTimeoutSeconds}s`
-        : `${configuredTimeoutSeconds}s`;
-
-    // When `callbackWaitsForEmptyEventLoop` is set to false, which it should when using `captureTimeoutWarning`,
-    // we don't have a guarantee that this message will be delivered. Because of that, we don't flush it.
-    if (options.captureTimeoutWarning) {
-      const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
-
-      timeoutWarningTimer = setTimeout(() => {
-        withScope(scope => {
-          scope.setTag('timeout', humanReadableTimeout);
-          captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
-        });
-      }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
-    }
-
-    async function processResult(span?: Span): Promise<TResult> {
+    async function processResult(): Promise<TResult> {
       const scope = getCurrentScope();
 
       let rv: TResult;
@@ -315,68 +235,79 @@ export function wrapHandler<TEvent, TResult>(
         if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
           const reasons = getRejectedReasons(rv);
           reasons.forEach(exception => {
-            captureException(exception, scope => markEventUnhandled(scope));
+            captureException(exception, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.promise'));
           });
         }
       } catch (e) {
-        captureException(e, scope => markEventUnhandled(scope));
+        // Errors should already captured in the instrumentation's `responseHook`,
+        // we capture them here just to be safe. Double captures are deduplicated by the SDK.
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        if (span?.isRecording()) {
-          span.end();
-        }
         await flush(options.flushTimeout).catch(e => {
-          DEBUG_BUILD && logger.error(e);
+          DEBUG_BUILD && debug.error(e);
         });
       }
       return rv;
     }
 
-    // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
-    // Otherwise, we create two root spans (one from otel, one from our wrapper).
-    // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
-    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this
-    if (options.startTrace && !isWrappedByOtel(handler)) {
-      const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
-
-      return continueTrace({ sentryTrace: traceData['sentry-trace'], baggage: traceData.baggage }, () => {
-        return startSpanManual(
-          {
-            name: context.functionName,
-            op: 'function.aws.lambda',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-            },
-          },
-          span => {
-            enhanceScopeWithTransactionData(getCurrentScope(), context);
-
-            return processResult(span);
-          },
-        );
-      });
-    }
-
     return withScope(async () => {
-      return processResult(undefined);
+      return processResult();
     });
   };
 }
 
-/**
- * Checks if Otel's AWSLambda instrumentation successfully wrapped the handler.
- * Check taken from @opentelemetry/core
- */
-function isWrappedByOtel(
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  handler: Function & { __original?: unknown; __unwrap?: unknown; __wrapped?: boolean },
-): boolean {
-  return (
-    typeof handler === 'function' &&
-    typeof handler.__original === 'function' &&
-    typeof handler.__unwrap === 'function' &&
-    handler.__wrapped === true
-  );
+function wrapStreamingHandler<TEvent, TResult>(
+  handler: StreamifyHandler<TEvent, TResult>,
+  options: WrapperOptions,
+  startTime: number,
+): StreamifyHandler<TEvent, TResult> {
+  let timeoutWarningTimer: NodeJS.Timeout | undefined;
+
+  const wrappedHandler = async (
+    event: TEvent,
+    responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
+    context: Context,
+  ): Promise<TResult> => {
+    context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
+
+    timeoutWarningTimer = setupTimeoutWarning(context, options);
+
+    async function processStreamingResult(): Promise<TResult> {
+      const scope = getCurrentScope();
+
+      try {
+        enhanceScopeWithEnvironmentData(scope, context, startTime);
+
+        responseStream.on('error', error => {
+          captureException(error, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.stream'));
+        });
+
+        return await handler(event, responseStream, context);
+      } catch (e) {
+        // Errors should already captured in the instrumentation's `responseHook`,
+        // we capture them here just to be safe. Double captures are deduplicated by the SDK.
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
+        throw e;
+      } finally {
+        if (timeoutWarningTimer) {
+          clearTimeout(timeoutWarningTimer);
+        }
+        await flush(options.flushTimeout).catch(e => {
+          DEBUG_BUILD && debug.error(e);
+        });
+      }
+    }
+
+    return withScope(() => processStreamingResult());
+  };
+
+  const handlerWithSymbols = handler as unknown as Record<symbol, unknown>;
+  (wrappedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] =
+    handlerWithSymbols[AWS_HANDLER_STREAMING_SYMBOL];
+  (wrappedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_HIGHWATERMARK_SYMBOL] =
+    handlerWithSymbols[AWS_HANDLER_HIGHWATERMARK_SYMBOL];
+
+  return wrappedHandler;
 }

@@ -1,0 +1,29 @@
+{
+  "name": "node-fastify-3",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "ts-node src/app.ts",
+    "start:override": "ts-node src/app-handle-error-override.ts",
+    "test": "playwright test",
+    "test:override": "playwright test --config playwright.override.config.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "typecheck": "tsc",
+    "test:build": "pnpm install && pnpm run typecheck",
+    "test:assert": "pnpm test && pnpm test:override"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *",
+    "@types/node": "^18.19.1",
+    "fastify": "3.29.5",
+    "typescript": "~5.0.0",
+    "ts-node": "10.9.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -22,7 +22,7 @@ export interface Event {
   message?: string;
   logentry?: {
     message?: string;
-    params?: string[];
+    params?: unknown[];
   };
   timestamp?: number;
   start_timestamp?: number;
@@ -83,6 +83,7 @@ export interface EventHint {
   syntheticException?: Error | null;
   originalException?: unknown;
   attachments?: Attachment[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
   integrations?: string[];
 }

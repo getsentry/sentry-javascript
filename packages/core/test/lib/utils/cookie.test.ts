@@ -28,6 +28,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { describe, expect, it } from 'vitest';
 import { parseCookie } from '../../../src/utils/cookie';
 
 describe('parseCookie(str)', function () {

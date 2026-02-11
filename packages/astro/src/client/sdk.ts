@@ -1,11 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
-import {
-  browserTracingIntegration,
-  getDefaultIntegrations as getBrowserDefaultIntegrations,
-  init as initBrowserSdk,
-} from '@sentry/browser';
-import { applySdkMetadata } from '@sentry/core';
+import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowserSdk } from '@sentry/browser';
 import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { browserTracingIntegration } from './browserTracingIntegration';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;

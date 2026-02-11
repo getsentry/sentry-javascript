@@ -1,8 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 
 // Regression test against https://github.com/getsentry/sentry-javascript/pull/1896

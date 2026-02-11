@@ -17,7 +17,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.route('http://example.com/**', route => {
+    await page.route('http://sentry-test-site.example/**', route => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -37,8 +37,8 @@ sentryTest(
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -48,6 +48,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: pageloadTraceContext?.trace_id,
+      sample_rand: expect.any(String),
     });
 
     const transactionPromises = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
@@ -70,8 +71,8 @@ sentryTest(
     const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
     expect(newTraceTransactionTraceContext).toMatchObject({
       op: 'ui.interaction.click',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(newTraceTransactionTraceHeaders).toEqual({
@@ -81,13 +82,14 @@ sentryTest(
       sampled: 'true',
       trace_id: newTraceTransactionTraceContext?.trace_id,
       transaction: 'new-trace',
+      sample_rand: expect.any(String),
     });
 
     const oldTraceTransactionEventTraceContext = oldTraceTransactionEvent.contexts?.trace;
     expect(oldTraceTransactionEventTraceContext).toMatchObject({
       op: 'ui.interaction.click',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(oldTraceTransactionTraceHeaders).toEqual({
@@ -96,6 +98,7 @@ sentryTest(
       sample_rate: '1',
       sampled: 'true',
       trace_id: oldTraceTransactionTraceHeaders?.trace_id,
+      sample_rand: expect.any(String),
       // transaction: 'old-trace', <-- this is not in the DSC because the DSC is continued from the pageload transaction
       // which does not have a `transaction` field because its source is URL.
     });

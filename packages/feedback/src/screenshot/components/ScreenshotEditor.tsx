@@ -1,24 +1,33 @@
-/* eslint-disable max-lines */
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
-import type { ComponentType, VNode, h as hType } from 'preact';
-// biome-ignore lint/nursery/noUnusedImports: reason
+import type { ComponentType, h as hType, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
-import CropCornerFactory from './CropCorner';
+import IconCloseFactory from './IconClose';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import ToolbarFactory from './Toolbar';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
-
-const CROP_BUTTON_SIZE = 30;
-const CROP_BUTTON_BORDER = 3;
-const CROP_BUTTON_OFFSET = CROP_BUTTON_SIZE + CROP_BUTTON_BORDER;
-const DPI = WINDOW.devicePixelRatio;
 
 interface FactoryParams {
   h: typeof hType;
   hooks: typeof Hooks;
-  imageBuffer: HTMLCanvasElement;
+
+  /**
+   * A ref to a Canvas Element that serves as our "value" or image output.
+   */
+  outputBuffer: HTMLCanvasElement;
+
+  /**
+   * A reference to the whole dialog (the parent of this component) so that we
+   * can show/hide it and take a clean screenshot of the webpage.
+   */
   dialog: ReturnType<FeedbackModalIntegration['createDialog']>;
+
+  /**
+   * The whole options object.
+   *
+   * Needed to set nonce and id values for editor specific styles
+   */
   options: FeedbackInternalOptions;
 }
 
@@ -26,364 +35,334 @@ interface Props {
   onError: (error: Error) => void;
 }
 
-interface Box {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-}
+type MaybeCanvas = HTMLCanvasElement | null;
+type Screenshot = { canvas: HTMLCanvasElement; dpi: number };
 
-interface Rect {
+type DrawType = 'highlight' | 'hide' | '';
+interface DrawCommand {
+  type: DrawType;
   x: number;
   y: number;
-  height: number;
-  width: number;
+  h: number;
+  w: number;
 }
 
-const constructRect = (box: Box): Rect => {
-  return {
-    x: Math.min(box.startX, box.endX),
-    y: Math.min(box.startY, box.endY),
-    width: Math.abs(box.startX - box.endX),
-    height: Math.abs(box.startY - box.endY),
-  };
-};
+function drawRect(command: DrawCommand, ctx: CanvasRenderingContext2D, color: string): void {
+  switch (command.type) {
+    case 'highlight': {
+      // creates a shadow around
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 50;
 
-const getContainedSize = (img: HTMLCanvasElement): Box => {
-  const imgClientHeight = img.clientHeight;
-  const imgClientWidth = img.clientWidth;
-  const ratio = img.width / img.height;
-  let width = imgClientHeight * ratio;
-  let height = imgClientHeight;
-  if (width > imgClientWidth) {
-    width = imgClientWidth;
-    height = imgClientWidth / ratio;
+      // draws a rectangle first with a shadow
+      ctx.fillStyle = color;
+      ctx.fillRect(command.x - 1, command.y - 1, command.w + 2, command.h + 2);
+
+      // cut out the inside of the rectangle
+      ctx.clearRect(command.x, command.y, command.w, command.h);
+
+      break;
+    }
+    case 'hide':
+      ctx.fillStyle = 'rgb(0, 0, 0)';
+      ctx.fillRect(command.x, command.y, command.w, command.h);
+
+      break;
+    default:
+      break;
   }
-  const x = (imgClientWidth - width) / 2;
-  const y = (imgClientHeight - height) / 2;
-  return { startX: x, startY: y, endX: width + x, endY: height + y };
-};
+}
+
+function with2dContext(
+  canvas: MaybeCanvas,
+  options: CanvasRenderingContext2DSettings,
+  callback: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => void,
+): void {
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext('2d', options);
+  if (!ctx) {
+    return;
+  }
+  callback(canvas, ctx);
+}
+
+function paintImage(maybeDest: MaybeCanvas, source: HTMLCanvasElement): void {
+  with2dContext(maybeDest, { alpha: true }, (destCanvas, destCtx) => {
+    destCtx.drawImage(source, 0, 0, source.width, source.height, 0, 0, destCanvas.width, destCanvas.height);
+  });
+}
+
+// Paint the array of drawCommands into a canvas.
+// Assuming this is the canvas foreground, and the background is cleaned.
+function paintForeground(maybeCanvas: MaybeCanvas, strokeColor: string, drawCommands: DrawCommand[]): void {
+  with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
+    // If there's anything to draw, then we'll first clear the canvas with
+    // a transparent grey background
+    if (drawCommands.length) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    drawCommands.forEach(command => {
+      drawRect(command, ctx, strokeColor);
+    });
+  });
+}
 
 export function ScreenshotEditorFactory({
   h,
   hooks,
-  imageBuffer,
+  outputBuffer,
   dialog,
   options,
 }: FactoryParams): ComponentType<Props> {
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
+  const Toolbar = ToolbarFactory({ h });
+  const IconClose = IconCloseFactory({ h });
+  const editorStyleInnerText = { __html: createScreenshotInputStyles(options.styleNonce).innerText };
 
-  return function ScreenshotEditor({ onError }: Props): VNode {
-    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
-    const CropCorner = CropCornerFactory({ h });
+  const dialogStyle = (dialog.el as HTMLElement).style;
 
-    const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
-    const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
-    const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
-    const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
-    const [confirmCrop, setConfirmCrop] = hooks.useState(false);
-    const [isResizing, setIsResizing] = hooks.useState(false);
+  const ScreenshotEditor = ({ screenshot }: { screenshot: Screenshot }): VNode => {
+    // Data for rendering:
+    const [action, setAction] = hooks.useState<DrawType>('highlight');
+    const [drawCommands, setDrawCommands] = hooks.useState<DrawCommand[]>([]);
 
-    hooks.useEffect(() => {
-      WINDOW.addEventListener('resize', resizeCropper, false);
-    }, []);
+    // Refs to our html components:
+    const measurementRef = hooks.useRef<HTMLDivElement | null>(null);
+    const backgroundRef = hooks.useRef<MaybeCanvas>(null);
+    const foregroundRef = hooks.useRef<MaybeCanvas>(null);
+    const mouseRef = hooks.useRef<HTMLDivElement | null>(null);
 
-    function resizeCropper(): void {
-      const cropper = croppingRef.current;
-      const imageDimensions = constructRect(getContainedSize(imageBuffer));
-      if (cropper) {
-        cropper.width = imageDimensions.width * DPI;
-        cropper.height = imageDimensions.height * DPI;
-        cropper.style.width = `${imageDimensions.width}px`;
-        cropper.style.height = `${imageDimensions.height}px`;
-        const ctx = cropper.getContext('2d');
-        if (ctx) {
-          ctx.scale(DPI, DPI);
-        }
+    // The size of our window, relative to the imageSource
+    const [scaleFactor, setScaleFactor] = hooks.useState<number>(1);
+
+    const strokeColor = hooks.useMemo((): string => {
+      const sentryFeedback = DOCUMENT.getElementById(options.id);
+      if (!sentryFeedback) {
+        return 'white';
       }
+      const computedStyle = getComputedStyle(sentryFeedback);
+      return (
+        computedStyle.getPropertyValue('--button-primary-background') ||
+        computedStyle.getPropertyValue('--accent-background')
+      );
+    }, [options.id]);
 
-      const cropButton = cropContainerRef.current;
-      if (cropButton) {
-        cropButton.style.width = `${imageDimensions.width}px`;
-        cropButton.style.height = `${imageDimensions.height}px`;
-      }
-
-      setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
-    }
-
-    hooks.useEffect(() => {
-      const cropper = croppingRef.current;
-      if (!cropper) {
-        return;
-      }
-
-      const ctx = cropper.getContext('2d');
-      if (!ctx) {
-        return;
-      }
-
-      const imageDimensions = constructRect(getContainedSize(imageBuffer));
-      const croppingBox = constructRect(croppingRect);
-      ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
-
-      // draw gray overlay around the selection
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(0, 0, imageDimensions.width, imageDimensions.height);
-      ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
-
-      // draw selection border
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(croppingBox.x + 1, croppingBox.y + 1, croppingBox.width - 2, croppingBox.height - 2);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(croppingBox.x + 3, croppingBox.y + 3, croppingBox.width - 6, croppingBox.height - 6);
-    }, [croppingRect]);
-
-    function onGrabButton(e: Event, corner: string): void {
-      setConfirmCrop(false);
-      setIsResizing(true);
-      const handleMouseMove = makeHandleMouseMove(corner);
-      const handleMouseUp = (): void => {
-        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
-        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
-        setConfirmCrop(true);
-        setIsResizing(false);
-      };
-
-      DOCUMENT.addEventListener('mouseup', handleMouseUp);
-      DOCUMENT.addEventListener('mousemove', handleMouseMove);
-    }
-
-    const makeHandleMouseMove = hooks.useCallback((corner: string) => {
-      return function (e: MouseEvent) {
-        if (!croppingRef.current) {
+    // The initial resize, to measure the area and set the children to the correct size
+    hooks.useLayoutEffect(() => {
+      const handleResize = (): void => {
+        const measurementDiv = measurementRef.current;
+        if (!measurementDiv) {
           return;
         }
-        const cropCanvas = croppingRef.current;
-        const cropBoundingRect = cropCanvas.getBoundingClientRect();
-        const mouseX = e.clientX - cropBoundingRect.x;
-        const mouseY = e.clientY - cropBoundingRect.y;
-        switch (corner) {
-          case 'top-left':
-            setCroppingRect(prev => ({
-              ...prev,
-              startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
-              startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
-            }));
-            break;
-          case 'top-right':
-            setCroppingRect(prev => ({
-              ...prev,
-              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
-              startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
-            }));
-            break;
-          case 'bottom-left':
-            setCroppingRect(prev => ({
-              ...prev,
-              startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
-              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
-            }));
-            break;
-          case 'bottom-right':
-            setCroppingRect(prev => ({
-              ...prev,
-              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
-              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
-            }));
-            break;
+
+        with2dContext(screenshot.canvas, { alpha: false }, canvas => {
+          const scale = Math.min(
+            measurementDiv.clientWidth / canvas.width,
+            measurementDiv.clientHeight / canvas.height,
+          );
+          setScaleFactor(scale);
+        });
+
+        // For Firefox, the canvas is not yet measured, so we need to wait for it to get the correct size
+        if (measurementDiv.clientHeight === 0 || measurementDiv.clientWidth === 0) {
+          setTimeout(handleResize, 0);
         }
       };
-    }, []);
 
-    // DRAGGING FUNCTIONALITY.
-    const initialPositionRef = hooks.useRef({ initialX: 0, initialY: 0 });
+      handleResize();
+      WINDOW.addEventListener('resize', handleResize);
+      return () => {
+        WINDOW.removeEventListener('resize', handleResize);
+      };
+    }, [screenshot]);
 
-    function onDragStart(e: MouseEvent): void {
-      if (isResizing) return;
-
-      initialPositionRef.current = { initialX: e.clientX, initialY: e.clientY };
-
-      const handleMouseMove = (moveEvent: MouseEvent): void => {
-        const cropCanvas = croppingRef.current;
-        if (!cropCanvas) return;
-
-        const deltaX = moveEvent.clientX - initialPositionRef.current.initialX;
-        const deltaY = moveEvent.clientY - initialPositionRef.current.initialY;
-
-        setCroppingRect(prev => {
-          // Math.max stops it from going outside of the borders
-          const newStartX = Math.max(
-            0,
-            Math.min(prev.startX + deltaX, cropCanvas.width / DPI - (prev.endX - prev.startX)),
-          );
-          const newStartY = Math.max(
-            0,
-            Math.min(prev.startY + deltaY, cropCanvas.height / DPI - (prev.endY - prev.startY)),
-          );
-          // Don't want to change size, just position
-          const newEndX = newStartX + (prev.endX - prev.startX);
-          const newEndY = newStartY + (prev.endY - prev.startY);
-
-          initialPositionRef.current.initialX = moveEvent.clientX;
-          initialPositionRef.current.initialY = moveEvent.clientY;
-
-          return {
-            startX: newStartX,
-            startY: newStartY,
-            endX: newEndX,
-            endY: newEndY,
-          };
+    // Set the size of the canvas element to match our screenshot
+    const setCanvasSize = hooks.useCallback(
+      (maybeCanvas: MaybeCanvas, scale: number): void => {
+        with2dContext(maybeCanvas, { alpha: true }, (canvas, ctx) => {
+          // Must call `scale()` before setting `width` & `height`
+          ctx.scale(scale, scale);
+          canvas.width = screenshot.canvas.width;
+          canvas.height = screenshot.canvas.height;
         });
+      },
+      [screenshot],
+    );
+
+    // Draw the screenshot into the background
+    hooks.useEffect(() => {
+      setCanvasSize(backgroundRef.current, screenshot.dpi);
+      paintImage(backgroundRef.current, screenshot.canvas);
+    }, [screenshot]);
+
+    // Draw the commands into the foreground
+    hooks.useEffect(() => {
+      setCanvasSize(foregroundRef.current, screenshot.dpi);
+      with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      });
+      paintForeground(foregroundRef.current, strokeColor, drawCommands);
+    }, [drawCommands, strokeColor]);
+
+    // Draw into the output outputBuffer
+    hooks.useEffect(() => {
+      setCanvasSize(outputBuffer, screenshot.dpi);
+      paintImage(outputBuffer, screenshot.canvas);
+      with2dContext(DOCUMENT.createElement('canvas'), { alpha: true }, (foreground, ctx) => {
+        ctx.scale(screenshot.dpi, screenshot.dpi); // The scale needs to be set before we set the width/height and paint
+        foreground.width = screenshot.canvas.width;
+        foreground.height = screenshot.canvas.height;
+        paintForeground(foreground, strokeColor, drawCommands);
+        paintImage(outputBuffer, foreground);
+      });
+    }, [drawCommands, screenshot, strokeColor]);
+
+    const handleMouseDown = (e: MouseEvent): void => {
+      if (!action || !mouseRef.current) {
+        return;
+      }
+
+      const boundingRect = mouseRef.current.getBoundingClientRect();
+      const startingPoint: DrawCommand = {
+        type: action,
+        x: e.offsetX / scaleFactor,
+        y: e.offsetY / scaleFactor,
+        w: 0,
+        h: 0,
       };
 
-      const handleMouseUp = (): void => {
+      const getDrawCommand = (startingPoint: DrawCommand, e: MouseEvent): DrawCommand => {
+        const x = (e.clientX - boundingRect.x) / scaleFactor;
+        const y = (e.clientY - boundingRect.y) / scaleFactor;
+        return {
+          type: startingPoint.type,
+          x: Math.min(startingPoint.x, x),
+          y: Math.min(startingPoint.y, y),
+          w: Math.abs(x - startingPoint.x),
+          h: Math.abs(y - startingPoint.y),
+        } as DrawCommand;
+      };
+
+      const handleMouseMove = (e: MouseEvent): void => {
+        with2dContext(foregroundRef.current, { alpha: true }, (canvas, ctx) => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        paintForeground(foregroundRef.current, strokeColor, [...drawCommands, getDrawCommand(startingPoint, e)]);
+      };
+
+      const handleMouseUp = (e: MouseEvent): void => {
+        const drawCommand = getDrawCommand(startingPoint, e);
+
+        // Prevent just clicking onto the canvas, mouse has to move at least 1 pixel
+        if (drawCommand.w * scaleFactor >= 1 && drawCommand.h * scaleFactor >= 1) {
+          setDrawCommands(prev => [...prev, drawCommand]);
+        }
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
       };
 
       DOCUMENT.addEventListener('mousemove', handleMouseMove);
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
-    }
+    };
 
-    function submit(): void {
-      const cutoutCanvas = DOCUMENT.createElement('canvas');
-      const imageBox = constructRect(getContainedSize(imageBuffer));
-      const croppingBox = constructRect(croppingRect);
-      cutoutCanvas.width = croppingBox.width * DPI;
-      cutoutCanvas.height = croppingBox.height * DPI;
+    const deleteRect = hooks.useCallback((index: number): hType.JSX.MouseEventHandler<HTMLButtonElement> => {
+      return (e: MouseEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDrawCommands(prev => {
+          const updatedRects = [...prev];
+          updatedRects.splice(index, 1);
+          return updatedRects;
+        });
+      };
+    }, []);
 
-      const cutoutCtx = cutoutCanvas.getContext('2d');
-      if (cutoutCtx && imageBuffer) {
-        cutoutCtx.drawImage(
-          imageBuffer,
-          (croppingBox.x / imageBox.width) * imageBuffer.width,
-          (croppingBox.y / imageBox.height) * imageBuffer.height,
-          (croppingBox.width / imageBox.width) * imageBuffer.width,
-          (croppingBox.height / imageBox.height) * imageBuffer.height,
-          0,
-          0,
-          cutoutCanvas.width,
-          cutoutCanvas.height,
-        );
-      }
+    const dimensions = {
+      width: `${screenshot.canvas.width * scaleFactor}px`,
+      height: `${screenshot.canvas.height * scaleFactor}px`,
+    };
 
-      const ctx = imageBuffer.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, imageBuffer.width, imageBuffer.height);
-        imageBuffer.width = cutoutCanvas.width;
-        imageBuffer.height = cutoutCanvas.height;
-        imageBuffer.style.width = `${croppingBox.width}px`;
-        imageBuffer.style.height = `${croppingBox.height}px`;
-        ctx.drawImage(cutoutCanvas, 0, 0);
-        resizeCropper();
-      }
-    }
+    const handleStopPropagation = (e: MouseEvent): void => {
+      e.stopPropagation();
+    };
+
+    return (
+      <div class="editor">
+        <style nonce={options.styleNonce} dangerouslySetInnerHTML={editorStyleInnerText} />
+        <div class="editor__image-container">
+          <div class="editor__canvas-container" ref={measurementRef}>
+            <canvas ref={backgroundRef} id="background" style={dimensions} />
+            <canvas ref={foregroundRef} id="foreground" style={dimensions} />
+            <div ref={mouseRef} onMouseDown={handleMouseDown} style={dimensions}>
+              {drawCommands.map((rect, index) => (
+                <div
+                  key={index}
+                  class="editor__rect"
+                  style={{
+                    top: `${rect.y * scaleFactor}px`,
+                    left: `${rect.x * scaleFactor}px`,
+                    width: `${rect.w * scaleFactor}px`,
+                    height: `${rect.h * scaleFactor}px`,
+                  }}
+                >
+                  <button
+                    aria-label={options.removeHighlightText}
+                    onClick={deleteRect(index)}
+                    onMouseDown={handleStopPropagation}
+                    onMouseUp={handleStopPropagation}
+                    type="button"
+                  >
+                    <IconClose />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Toolbar options={options} action={action} setAction={setAction} />
+      </div>
+    );
+  };
+
+  return function Wrapper({ onError }: Props): VNode {
+    const [screenshot, setScreenshot] = hooks.useState<undefined | Screenshot>();
 
     useTakeScreenshot({
       onBeforeScreenshot: hooks.useCallback(() => {
-        (dialog.el as HTMLElement).style.display = 'none';
+        dialogStyle.display = 'none';
       }, []),
-      onScreenshot: hooks.useCallback(
-        (imageSource: HTMLVideoElement) => {
-          const context = imageBuffer.getContext('2d');
-          if (!context) {
-            throw new Error('Could not get canvas context');
-          }
-          imageBuffer.width = imageSource.videoWidth;
-          imageBuffer.height = imageSource.videoHeight;
-          imageBuffer.style.width = '100%';
-          imageBuffer.style.height = '100%';
-          context.drawImage(imageSource, 0, 0);
-        },
-        [imageBuffer],
-      ),
+      onScreenshot: hooks.useCallback((screenshotVideo: HTMLVideoElement, dpi: number) => {
+        // Stash the original screenshot image so we can (re)draw it multiple times
+        with2dContext(DOCUMENT.createElement('canvas'), { alpha: false }, (canvas, ctx) => {
+          ctx.scale(dpi, dpi); // The scale needs to be set before we set the width/height and paint
+          canvas.width = screenshotVideo.videoWidth;
+          canvas.height = screenshotVideo.videoHeight;
+          ctx.drawImage(screenshotVideo, 0, 0, canvas.width, canvas.height);
+
+          setScreenshot({ canvas, dpi });
+        });
+
+        // The output buffer, we only need to set the width/height on this once, it stays the same forever
+        outputBuffer.width = screenshotVideo.videoWidth;
+        outputBuffer.height = screenshotVideo.videoHeight;
+      }, []),
       onAfterScreenshot: hooks.useCallback(() => {
-        (dialog.el as HTMLElement).style.display = 'block';
-        const container = canvasContainerRef.current;
-        container?.appendChild(imageBuffer);
-        resizeCropper();
+        dialogStyle.display = 'block';
       }, []),
       onError: hooks.useCallback(error => {
-        (dialog.el as HTMLElement).style.display = 'block';
+        dialogStyle.display = 'block';
         onError(error);
       }, []),
     });
 
-    return (
-      <div class="editor">
-        <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
-        <div class="editor__canvas-container" ref={canvasContainerRef}>
-          <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
-            <canvas
-              onMouseDown={onDragStart}
-              style={{ position: 'absolute', cursor: confirmCrop ? 'move' : 'auto' }}
-              ref={croppingRef}
-            ></canvas>
-            <CropCorner
-              left={croppingRect.startX - CROP_BUTTON_BORDER}
-              top={croppingRect.startY - CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="top-left"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              top={croppingRect.startY - CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="top-right"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.startX - CROP_BUTTON_BORDER}
-              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="bottom-left"
-            ></CropCorner>
-            <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
-              onGrabButton={onGrabButton}
-              corner="bottom-right"
-            ></CropCorner>
-            <div
-              style={{
-                left: Math.max(0, croppingRect.endX - 191),
-                top: Math.max(0, croppingRect.endY + 8),
-                display: confirmCrop ? 'flex' : 'none',
-              }}
-              class="editor__crop-btn-group"
-            >
-              <button
-                onClick={e => {
-                  e.preventDefault();
-                  if (croppingRef.current) {
-                    setCroppingRect({
-                      startX: 0,
-                      startY: 0,
-                      endX: croppingRef.current.width / DPI,
-                      endY: croppingRef.current.height / DPI,
-                    });
-                  }
-                  setConfirmCrop(false);
-                }}
-                class="btn btn--default"
-              >
-                {options.cancelButtonLabel}
-              </button>
-              <button
-                onClick={e => {
-                  e.preventDefault();
-                  submit();
-                  setConfirmCrop(false);
-                }}
-                class="btn btn--primary"
-              >
-                {options.confirmButtonLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    if (screenshot) {
+      return <ScreenshotEditor screenshot={screenshot} />;
+    }
+
+    return <div />;
   };
 }

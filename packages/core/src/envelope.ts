@@ -1,47 +1,62 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import type { LegacyCSPReport } from './types-hoist/csp';
+import type { DsnComponents } from './types-hoist/dsn';
 import type {
-  DsnComponents,
   DynamicSamplingContext,
-  Event,
   EventEnvelope,
   EventItem,
-  LegacyCSPReport,
   RawSecurityEnvelope,
   RawSecurityItem,
-  SdkInfo,
-  SdkMetadata,
-  Session,
-  SessionAggregates,
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
   SpanItem,
-} from './types-hoist';
-import { dsnToString } from './utils-hoist/dsn';
+} from './types-hoist/envelope';
+import type { Event } from './types-hoist/event';
+import type { SdkInfo } from './types-hoist/sdkinfo';
+import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import type { Session, SessionAggregates } from './types-hoist/session';
+import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from './utils-hoist/envelope';
-import { uuid4 } from './utils-hoist/misc';
+} from './utils/envelope';
+import { uuid4 } from './utils/misc';
+import { shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
+ *
+ * @internal, exported only for testing
  **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
-  if (!sdkInfo) {
+export function _enhanceEventWithSdkInfo(event: Event, newSdkInfo?: SdkInfo): Event {
+  if (!newSdkInfo) {
     return event;
   }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  event.sdk.version = event.sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+
+  const eventSdkInfo = event.sdk || {};
+
+  event.sdk = {
+    ...eventSdkInfo,
+    name: eventSdkInfo.name || newSdkInfo.name,
+    version: eventSdkInfo.version || newSdkInfo.version,
+    integrations: [...(event.sdk?.integrations || []), ...(newSdkInfo.integrations || [])],
+    packages: [...(event.sdk?.packages || []), ...(newSdkInfo.packages || [])],
+    settings:
+      event.sdk?.settings || newSdkInfo.settings
+        ? {
+            ...event.sdk?.settings,
+            ...newSdkInfo.settings,
+          }
+        : undefined,
+  };
+
   return event;
 }
 
@@ -85,7 +100,7 @@ export function createEventEnvelope(
   */
   const eventType = event.type && event.type !== 'replay_event' ? event.type : 'event';
 
-  enhanceEventWithSdkInfo(event, metadata?.sdk);
+  _enhanceEventWithSdkInfo(event, metadata?.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 
@@ -123,7 +138,17 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const beforeSendSpan = client?.getOptions().beforeSendSpan;
+  const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
+
+  const filteredSpans = ignoreSpans?.length
+    ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
+    : spans;
+  const droppedSpans = spans.length - filteredSpans.length;
+
+  if (droppedSpans) {
+    client?.recordDroppedEvent('before_send', 'span', droppedSpans);
+  }
+
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
@@ -139,7 +164,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     : spanToJSON;
 
   const items: SpanItem[] = [];
-  for (const span of spans) {
+  for (const span of filteredSpans) {
     const spanJson = convertToSpanJSON(span);
     if (spanJson) {
       items.push(createSpanEnvelopeItem(spanJson));

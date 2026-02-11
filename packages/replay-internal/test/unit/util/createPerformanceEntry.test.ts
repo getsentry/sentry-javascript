@@ -1,26 +1,25 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { useFakeTimers } from '../../utils/use-fake-timers';
-
-useFakeTimers();
-vi.setSystemTime(new Date('2023-01-01'));
-
-vi.mock('@sentry/core', async () => ({
-  ...(await vi.importActual('@sentry/core')),
-  browserPerformanceTimeOrigin: new Date('2023-01-01').getTime(),
-}));
-
+import '../../utils/mock-internal-setTimeout';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../../src/constants';
 import {
   createPerformanceEntries,
   getCumulativeLayoutShift,
-  getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
 } from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
+vi.mock('@sentry/core', async () => ({
+  ...(await vi.importActual('@sentry/core')),
+  browserPerformanceTimeOrigin: () => new Date('2023-01-01').getTime(),
+}));
+
 describe('Unit | util | createPerformanceEntries', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2023-01-01'));
+  });
+
   beforeEach(function () {
     if (!WINDOW.performance.getEntriesByType) {
       WINDOW.performance.getEntriesByType = vi.fn((type: string) => {
@@ -104,26 +103,6 @@ describe('Unit | util | createPerformanceEntries', () => {
         start: 1672531205.108299,
         end: 1672531205.108299,
         data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: [], attributions: [] },
-      });
-    });
-  });
-
-  describe('getFirstInputDelay', () => {
-    it('works with an FID metric', async () => {
-      const metric = {
-        value: 5108.299,
-        rating: 'good' as const,
-        entries: [],
-      };
-
-      const event = getFirstInputDelay(metric);
-
-      expect(event).toEqual({
-        type: 'web-vital',
-        name: 'first-input-delay',
-        start: 1672531205.108299,
-        end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
     });
   });

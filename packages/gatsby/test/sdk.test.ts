@@ -1,23 +1,24 @@
-import { SDK_VERSION, init } from '@sentry/react';
-
+import { init, SDK_VERSION } from '@sentry/react';
+import type { Mock } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { init as gatsbyInit } from '../src/sdk';
 
-jest.mock('@sentry/react', () => {
-  const actual = jest.requireActual('@sentry/react');
+vi.mock('@sentry/react', async requiredActual => {
+  const actual = (await requiredActual()) as any;
   return {
     ...actual,
-    init: jest.fn().mockImplementation(actual.init),
+    init: vi.fn().mockImplementation(actual.init),
   };
 });
 
-const reactInit = init as jest.Mock;
+const reactInit = init as Mock;
 
 describe('Initialize React SDK', () => {
   afterEach(() => reactInit.mockReset());
 
   test('Has correct SDK metadata', () => {
     gatsbyInit({});
-    const calledWith = reactInit.mock.calls[0][0];
+    const calledWith = reactInit.mock.calls[0]?.[0];
     const sdkMetadata = calledWith._metadata.sdk;
     expect(sdkMetadata.name).toStrictEqual('sentry.javascript.gatsby');
     expect(sdkMetadata.version).toBe(SDK_VERSION);
@@ -31,7 +32,7 @@ describe('Initialize React SDK', () => {
     test('not defined by default', () => {
       gatsbyInit({});
       expect(reactInit).toHaveBeenCalledTimes(1);
-      const callingObject = reactInit.mock.calls[0][0];
+      const callingObject = reactInit.mock.calls[0]?.[0];
       expect(callingObject.environment).not.toBeDefined();
     });
 
@@ -40,7 +41,7 @@ describe('Initialize React SDK', () => {
         environment: 'custom env!',
       });
       expect(reactInit).toHaveBeenCalledTimes(1);
-      const callingObject = reactInit.mock.calls[0][0];
+      const callingObject = reactInit.mock.calls[0]?.[0];
       expect(callingObject.environment).toStrictEqual('custom env!');
     });
   });

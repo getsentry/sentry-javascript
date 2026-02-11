@@ -1,0 +1,67 @@
+{
+  "name": "react-router-7-framework",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "^7.13.0",
+    "@react-router/node": "^7.13.0",
+    "@react-router/serve": "^7.13.0",
+    "@sentry/react-router": "latest || *",
+    "isbot": "^5.1.17"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "@types/node": "^20",
+    "@react-router/dev": "^7.13.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "scripts": {
+    "build": "react-router build",
+    "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm build",
+    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
+    "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "proxy": "node start-event-proxy.mjs",
+    "typecheck": "react-router typegen && tsc",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:ts": "pnpm typecheck",
+    "test:playwright": "playwright test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "react-router-7-framework (latest)"
+      }
+    ]
+  }
+}

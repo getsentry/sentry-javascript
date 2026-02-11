@@ -1,13 +1,13 @@
-name: "Install yarn dependencies"
-description: "Installs yarn dependencies and caches them."
+name: 'Install yarn dependencies'
+description: 'Installs yarn dependencies and caches them.'
 
 outputs:
   cache_key:
-    description: "The dependency cache key"
+    description: 'The dependency cache key'
     value: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Compute dependency cache key
       id: compute_lockfile_hash

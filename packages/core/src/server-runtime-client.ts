@@ -1,33 +1,21 @@
-import type {
-  BaseTransportOptions,
-  CheckIn,
-  ClientOptions,
-  DynamicSamplingContext,
-  Event,
-  EventHint,
-  MonitorConfig,
-  ParameterizedString,
-  SerializedCheckIn,
-  SeverityLevel,
-  TraceContext,
-} from './types-hoist';
-
 import { createCheckInEnvelope } from './checkin';
 import { Client } from './client';
-import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-  registerSpanErrorInstrumentation,
-} from './tracing';
-import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { resolvedSyncPromise } from './utils-hoist/syncpromise';
-import { _getSpanForScope } from './utils/spanOnScope';
-import { spanToTraceContext } from './utils/spanUtils';
+import { registerSpanErrorInstrumentation } from './tracing';
+import { addUserAgentToTransportHeaders } from './transports/userAgent';
+import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
+import type { Event, EventHint } from './types-hoist/event';
+import type { ClientOptions } from './types-hoist/options';
+import type { ParameterizedString } from './types-hoist/parameterize';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { BaseTransportOptions } from './types-hoist/transport';
+import { debug } from './utils/debug-logger';
+import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
+import { uuid4 } from './utils/misc';
+import { resolvedSyncPromise } from './utils/syncpromise';
+import { _getTraceInfoFromScope } from './utils/trace-info';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -49,7 +37,11 @@ export class ServerRuntimeClient<
     // Server clients always support tracing
     registerSpanErrorInstrumentation();
 
+    addUserAgentToTransportHeaders(options);
+
     super(options);
+
+    this._setUpMetricsProcessing();
   }
 
   /**
@@ -106,7 +98,7 @@ export class ServerRuntimeClient<
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = 'checkInId' in checkIn && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture check-in.');
+      DEBUG_BUILD && debug.warn('SDK not enabled, will not capture check-in.');
       return id;
     }
 
@@ -136,7 +128,7 @@ export class ServerRuntimeClient<
       };
     }
 
-    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
+    const [dynamicSamplingContext, traceContext] = _getTraceInfoFromScope(this, scope);
     if (traceContext) {
       serializedCheckIn.contexts = {
         trace: traceContext,
@@ -151,7 +143,7 @@ export class ServerRuntimeClient<
       this.getDsn(),
     );
 
-    DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
+    DEBUG_BUILD && debug.log('Sending checkin:', checkIn.monitorSlug, checkIn.status);
 
     // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -187,21 +179,18 @@ export class ServerRuntimeClient<
     return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
 
-  /** Extract trace information from scope */
-  protected _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    const span = _getSpanForScope(scope);
-
-    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-    const dynamicSamplingContext = span
-      ? getDynamicSamplingContextFromSpan(span)
-      : getDynamicSamplingContextFromScope(this, scope);
-    return [dynamicSamplingContext, traceContext];
+  /**
+   * Process a server-side metric before it is captured.
+   */
+  private _setUpMetricsProcessing(): void {
+    this.on('processMetric', metric => {
+      if (this._options.serverName) {
+        metric.attributes = {
+          'server.address': this._options.serverName,
+          ...metric.attributes,
+        };
+      }
+    });
   }
 }
 

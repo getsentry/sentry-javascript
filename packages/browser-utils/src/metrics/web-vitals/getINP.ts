@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
+import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
-import { DEFAULT_DURATION_THRESHOLD, estimateP98LongestInteraction, processInteractionEntry } from './lib/interactions';
+import { initUnique } from './lib/initUnique';
+import { InteractionManager } from './lib/InteractionManager';
 import { observe } from './lib/observe';
-import { onHidden } from './lib/onHidden';
 import { initInteractionCountPolyfill } from './lib/polyfills/interactionCountPolyfill';
 import { whenActivated } from './lib/whenActivated';
-import { whenIdle } from './lib/whenIdle';
-
-import type { INPMetric, MetricRatingThresholds, ReportOpts } from './types';
+import { whenIdleOrHidden } from './lib/whenIdleOrHidden';
+import type { INPMetric, INPReportOpts, MetricRatingThresholds } from './types';
 
 /** Thresholds for INP. See https://web.dev/articles/inp#what_is_a_good_inp_score */
 export const INPThresholds: MetricRatingThresholds = [200, 500];
+
+// The default `durationThreshold` used across this library for observing
+// `event` entries via PerformanceObserver.
+const DEFAULT_DURATION_THRESHOLD = 40;
 
 /**
  * Calculates the [INP](https://web.dev/articles/inp) value for the current
@@ -35,11 +38,13 @@ export const INPThresholds: MetricRatingThresholds = [200, 500];
  * the `event` performance entries reported for that interaction. The reported
  * value is a `DOMHighResTimeStamp`.
  *
- * A custom `durationThreshold` configuration option can optionally be passed to
- * control what `event-timing` entries are considered for INP reporting. The
- * default threshold is `40`, which means INP scores of less than 40 are
- * reported as 0. Note that this will not affect your 75th percentile INP value
- * unless that value is also less than 40 (well below the recommended
+ * A custom `durationThreshold` configuration option can optionally be passed
+ * to control what `event-timing` entries are considered for INP reporting. The
+ * default threshold is `40`, which means INP scores of less than 40 will not
+ * be reported. To avoid reporting no interactions in these cases, the library
+ * will fall back to the input delay of the first interaction. Note that this
+ * will not affect your 75th percentile INP value unless that value is also
+ * less than 40 (well below the recommended
  * [good](https://web.dev/articles/inp#what_is_a_good_inp_score) threshold).
  *
  * If the `reportAllChanges` configuration option is set to `true`, the
@@ -56,11 +61,13 @@ export const INPThresholds: MetricRatingThresholds = [200, 500];
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
  */
-export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = {}) => {
+export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts = {}) => {
   // Return if the browser doesn't support all APIs needed to measure INP.
-  if (!('PerformanceEventTiming' in WINDOW && 'interactionId' in PerformanceEventTiming.prototype)) {
+  if (!(globalThis.PerformanceEventTiming && 'interactionId' in PerformanceEventTiming.prototype)) {
     return;
   }
+
+  const visibilityWatcher = getVisibilityWatcher();
 
   whenActivated(() => {
     // TODO(philipwalton): remove once the polyfill is no longer needed.
@@ -70,6 +77,8 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = 
     // eslint-disable-next-line prefer-const
     let report: ReturnType<typeof bindReporter>;
 
+    const interactionManager = initUnique(opts, InteractionManager);
+
     const handleEntries = (entries: INPMetric['entries']) => {
       // Queue the `handleEntries()` callback in the next idle task.
       // This is needed to increase the chances that all event entries that
@@ -77,13 +86,15 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = 
       // have been dispatched. Note: there is currently an experiment
       // running in Chrome (EventTimingKeypressAndCompositionInteractionId)
       // 123+ that if rolled out fully may make this no longer necessary.
-      whenIdle(() => {
-        entries.forEach(processInteractionEntry);
+      whenIdleOrHidden(() => {
+        for (const entry of entries) {
+          interactionManager._processEntry(entry);
+        }
 
-        const inp = estimateP98LongestInteraction();
+        const inp = interactionManager._estimateP98LongestInteraction();
 
-        if (inp && inp.latency !== metric.value) {
-          metric.value = inp.latency;
+        if (inp && inp._latency !== metric.value) {
+          metric.value = inp._latency;
           metric.entries = inp.entries;
           report();
         }
@@ -97,7 +108,7 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = 
       // and performance. Running this callback for any interaction that spans
       // just one or two frames is likely not worth the insight that could be
       // gained.
-      durationThreshold: opts.durationThreshold != null ? opts.durationThreshold : DEFAULT_DURATION_THRESHOLD,
+      durationThreshold: opts.durationThreshold ?? DEFAULT_DURATION_THRESHOLD,
     });
 
     report = bindReporter(onReport, metric, INPThresholds, opts.reportAllChanges);
@@ -107,7 +118,7 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = 
       // where the first interaction is less than the `durationThreshold`.
       po.observe({ type: 'first-input', buffered: true });
 
-      onHidden(() => {
+      visibilityWatcher.onHidden(() => {
         handleEntries(po.takeRecords() as INPMetric['entries']);
         report(true);
       });

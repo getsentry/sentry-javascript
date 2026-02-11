@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { WrappedFunction } from '@sentry/core';
-
+import { describe, expect, it, vi } from 'vitest';
 import { wrap } from '../src/helpers';
 
 describe('internal wrap()', () => {

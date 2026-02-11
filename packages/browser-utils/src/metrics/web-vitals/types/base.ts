@@ -16,7 +16,6 @@
 
 import type { CLSMetric, CLSMetricWithAttribution } from './cls';
 import type { FCPMetric, FCPMetricWithAttribution } from './fcp';
-import type { FIDMetric, FIDMetricWithAttribution } from './fid';
 import type { INPMetric, INPMetricWithAttribution } from './inp';
 import type { LCPMetric, LCPMetricWithAttribution } from './lcp';
 import type { TTFBMetric, TTFBMetricWithAttribution } from './ttfb';
@@ -25,7 +24,7 @@ export interface Metric {
   /**
    * The name of the metric (in acronym form).
    */
-  name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
+  name: 'CLS' | 'FCP' | 'INP' | 'LCP' | 'TTFB';
 
   /**
    * The current value of the metric.
@@ -78,13 +77,12 @@ export interface Metric {
 }
 
 /** The union of supported metric types. */
-export type MetricType = CLSMetric | FCPMetric | FIDMetric | INPMetric | LCPMetric | TTFBMetric;
+export type MetricType = CLSMetric | FCPMetric | INPMetric | LCPMetric | TTFBMetric;
 
 /** The union of supported metric attribution types. */
 export type MetricWithAttribution =
   | CLSMetricWithAttribution
   | FCPMetricWithAttribution
-  | FIDMetricWithAttribution
   | INPMetricWithAttribution
   | LCPMetricWithAttribution
   | TTFBMetricWithAttribution;
@@ -115,7 +113,10 @@ export interface ReportCallback {
 
 export interface ReportOpts {
   reportAllChanges?: boolean;
-  durationThreshold?: number;
+}
+
+export interface AttributionReportOpts extends ReportOpts {
+  generateTarget?: (el: Node | null) => string | undefined;
 }
 
 /**

@@ -10,4 +10,5 @@ Sentry.init({
     // We are doing a lot of events at once in this test
     bufferSize: 1000,
   },
+  integrations: [Sentry.vercelAIIntegration()],
 });

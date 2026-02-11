@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
@@ -40,5 +39,8 @@ sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page
         version: SDK_VERSION,
       },
     ],
+    settings: {
+      infer_ip: 'never',
+    },
   });
 });

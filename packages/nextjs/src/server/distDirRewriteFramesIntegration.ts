@@ -1,5 +1,5 @@
-import * as path from 'path';
 import { defineIntegration, escapeStringForRegex, rewriteFramesIntegration } from '@sentry/core';
+import * as path from 'path';
 
 export const distDirRewriteFramesIntegration = defineIntegration(({ distDirName }: { distDirName: string }) => {
   // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so

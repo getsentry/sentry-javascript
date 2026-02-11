@@ -1,12 +1,13 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('updates the span name and source when calling `updateSpanName`', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('updates the span name and source when calling `updateSpanName`', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'new name',
@@ -20,5 +21,6 @@ test('updates the span name and source when calling `updateSpanName`', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

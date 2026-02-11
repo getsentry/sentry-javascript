@@ -6,12 +6,12 @@ inputs:
     description: 'a github access token'
   comparison_branch:
     required: false
-    default: ""
-    description: "If set, compare the current branch with this branch"
+    default: ''
+    description: 'If set, compare the current branch with this branch'
   threshold:
     required: false
-    default: "0.0125"
-    description: "The percentage threshold for size changes before posting a comment"
+    default: '0.0125'
+    description: 'The percentage threshold for size changes before posting a comment'
 runs:
   using: 'node20'
   main: 'index.mjs'

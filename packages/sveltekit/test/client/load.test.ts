@@ -1,10 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
@@ -141,6 +139,35 @@ describe('wrapLoadWithSentry', () => {
         expect.any(Function),
       );
     });
+
+    it('uses untrack when present (SvelteKit 2+) to get route id without triggering invalidation', async () => {
+      const routeIdFromUntrack = '/users/[id]';
+      const untrack = vi.fn(<T>(fn: () => T) => fn());
+      const eventWithUntrack = {
+        params: MOCK_LOAD_ARGS.params,
+        route: { id: routeIdFromUntrack },
+        url: MOCK_LOAD_ARGS.url,
+        untrack,
+      };
+
+      async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+        return { post: params.id };
+      }
+
+      const wrappedLoad = wrapLoadWithSentry(load);
+      await wrappedLoad(eventWithUntrack);
+
+      expect(untrack).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: routeIdFromUntrack,
+          attributes: expect.objectContaining({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
   });
 
   it('adds an exception mechanism', async () => {
@@ -156,7 +183,7 @@ describe('wrapLoadWithSentry', () => {
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
     expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-      mechanism: { handled: false, type: 'sveltekit', data: { function: 'load' } },
+      mechanism: { handled: false, type: 'auto.function.sveltekit.load' },
     });
   });
 

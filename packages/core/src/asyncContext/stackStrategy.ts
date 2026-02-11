@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
-import { isThenable } from '../utils-hoist/is';
+import { isThenable } from '../utils/is';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import type { AsyncContextStrategy } from './types';
 
@@ -135,7 +135,7 @@ function withScope<T>(callback: (scope: Scope) => T): T {
 }
 
 function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-  const stack = getAsyncContextStack() as AsyncContextStack;
+  const stack = getAsyncContextStack();
   return stack.withScope(() => {
     stack.getStackTop().scope = scope;
     return callback(scope);

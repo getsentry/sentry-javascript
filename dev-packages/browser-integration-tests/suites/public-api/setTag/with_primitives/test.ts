@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
@@ -10,7 +9,7 @@ sentryTest('should set primitive tags', async ({ getLocalTestUrl, page }) => {
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.message).toBe('primitive_tags');
-  expect(eventData.tags).toMatchObject({
+  expect(eventData.tags).toEqual({
     tag_1: 'foo',
     tag_2: 3.141592653589793,
     tag_3: false,

@@ -1,10 +1,9 @@
-import { EventType } from '@sentry-internal/rrweb';
 import { getClient } from '@sentry/core';
-
+import { EventType } from '@sentry-internal/rrweb';
 import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
-import { logger } from './logger';
+import { debug } from './logger';
 import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -84,6 +83,14 @@ async function _addEvent(
   } catch (error) {
     const isExceeded = error && error instanceof EventBufferSizeExceededError;
     const reason = isExceeded ? 'addEventSizeExceeded' : 'addEvent';
+    const client = getClient();
+
+    if (client) {
+      // We are limited in the drop reasons:
+      // https://github.com/getsentry/snuba/blob/6c73be60716c2fb1c30ca627883207887c733cbd/rust_snuba/src/processors/outcomes.rs#L39
+      const dropReason = isExceeded ? 'buffer_overflow' : 'internal_sdk_error';
+      client.recordDroppedEvent(dropReason, 'replay');
+    }
 
     if (isExceeded && isBufferMode) {
       // Clear buffer and wait for next checkout
@@ -96,12 +103,6 @@ async function _addEvent(
     replay.handleException(error);
 
     await replay.stop({ reason });
-
-    const client = getClient();
-
-    if (client) {
-      client.recordDroppedEvent('internal_sdk_error', 'replay');
-    }
   }
 }
 
@@ -124,7 +125,7 @@ export function shouldAddEvent(replay: ReplayContainer, event: RecordingEvent): 
   // Throw out events that are +60min from the initial timestamp
   if (timestampInMs > replay.getContext().initialTimestamp + replay.getOptions().maxReplayDuration) {
     DEBUG_BUILD &&
-      logger.infoTick(`Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`);
+      debug.infoTick(`Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`);
     return false;
   }
 
@@ -141,7 +142,7 @@ function maybeApplyCallback(
     }
   } catch (error) {
     DEBUG_BUILD &&
-      logger.exception(error, 'An error occurred in the `beforeAddRecordingEvent` callback, skipping the event...');
+      debug.exception(error, 'An error occurred in the `beforeAddRecordingEvent` callback, skipping the event...');
     return null;
   }
 

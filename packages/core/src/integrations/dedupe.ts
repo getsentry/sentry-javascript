@@ -1,9 +1,11 @@
-import { defineIntegration } from '../integration';
-import type { Event, Exception, IntegrationFn, StackFrame } from '../types-hoist';
-
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from '../utils-hoist/logger';
-import { getFramesFromEvent } from '../utils-hoist/stacktrace';
+import { defineIntegration } from '../integration';
+import type { Event } from '../types-hoist/event';
+import type { Exception } from '../types-hoist/exception';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { StackFrame } from '../types-hoist/stackframe';
+import { debug } from '../utils/debug-logger';
+import { getFramesFromEvent } from '../utils/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
 
@@ -22,10 +24,10 @@ const _dedupeIntegration = (() => {
       // Juuust in case something goes wrong
       try {
         if (_shouldDropEvent(currentEvent, previousEvent)) {
-          DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+          DEBUG_BUILD && debug.warn('Event dropped due to being a duplicate of previously captured event.');
           return null;
         }
-      } catch (_oO) {} // eslint-disable-line no-empty
+      } catch {} // eslint-disable-line no-empty
 
       return (previousEvent = currentEvent);
     },
@@ -168,11 +170,11 @@ function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean 
   // Otherwise, compare the two
   try {
     return !!(currentFingerprint.join('') === previousFingerprint.join(''));
-  } catch (_oO) {
+  } catch {
     return false;
   }
 }
 
 function _getExceptionFromEvent(event: Event): Exception | undefined {
-  return event.exception?.values && event.exception.values[0];
+  return event.exception?.values?.[0];
 }

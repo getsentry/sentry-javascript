@@ -1,0 +1,68 @@
+{
+  "name": "@sentry-internal/node-core-integration-tests",
+  "version": "10.38.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/src/index.d.ts",
+  "scripts": {
+    "build": "run-s build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rimraf -g **/node_modules && run-p clean:script",
+    "clean:script": "node scripts/clean.js",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
+    "type-check": "tsc",
+    "test": "vitest run",
+    "test:watch": "yarn test --watch"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^2.5.0",
+    "@opentelemetry/core": "^2.5.0",
+    "@opentelemetry/instrumentation": "^0.211.0",
+    "@opentelemetry/instrumentation-http": "0.211.0",
+    "@opentelemetry/resources": "^2.5.0",
+    "@opentelemetry/sdk-trace-base": "^2.5.0",
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@sentry/core": "10.38.0",
+    "@sentry/node-core": "10.38.0",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "cron": "^3.1.6",
+    "express": "^4.21.2",
+    "http-terminator": "^3.2.0",
+    "nock": "^13.5.5",
+    "node-cron": "^3.0.3",
+    "node-schedule": "^2.1.1",
+    "proxy": "^2.1.1",
+    "reflect-metadata": "0.2.1",
+    "rxjs": "^7.8.1",
+    "winston": "^3.17.0",
+    "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "@types/node-schedule": "^2.1.7",
+    "eslint-plugin-regexp": "^1.15.0",
+    "globby": "11"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "preferGlobalPath": true,
+      "runtimeDownload": false
+    }
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

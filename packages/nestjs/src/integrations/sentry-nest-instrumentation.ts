@@ -1,16 +1,15 @@
-import { isWrapped } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
+  isWrapped,
 } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
 import {
-  SDK_VERSION,
-  addNonEnumerableProperty,
   getActiveSpan,
   isThenable,
+  SDK_VERSION,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -19,7 +18,7 @@ import {
 import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
 import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
-const supportedVersions = ['>=8.0.0 <11'];
+const supportedVersions = ['>=8.0.0 <12'];
 const COMPONENT = '@nestjs/common';
 
 /**
@@ -90,7 +89,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   /**
    * Creates a wrapper function for the @Injectable decorator.
    */
-  private _createWrapInjectable() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _createWrapInjectable(): (original: any) => (options?: unknown) => (target: InjectableTarget) => any {
+    const SeenNestjsContextSet = new WeakSet<MinimalNestJsExecutionContext>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
@@ -182,8 +183,12 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const parentSpan = getActiveSpan();
                 let afterSpan: Span | undefined;
 
-                // Check that we can reasonably assume that the target is an interceptor.
-                if (!context || !next || typeof next.handle !== 'function') {
+                if (
+                  !context ||
+                  !next ||
+                  typeof next.handle !== 'function' || // Check that we can reasonably assume that the target is an interceptor.
+                  target.name === 'SentryTracingInterceptor' // We don't want to trace this internal interceptor
+                ) {
                   return originalIntercept.apply(thisArgIntercept, argsIntercept);
                 }
 
@@ -197,8 +202,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         return withActiveSpan(parentSpan, () => {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
-                          if (!context._sentryInterceptorInstrumented) {
-                            addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
+                          if (!SeenNestjsContextSet.has(context)) {
+                            SeenNestjsContextSet.add(context);
                             afterSpan = startInactiveSpan(
                               getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
                             );
@@ -209,8 +214,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       } else {
                         const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
-                        if (!context._sentryInterceptorInstrumented) {
-                          addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
+                        if (!SeenNestjsContextSet.has(context)) {
+                          SeenNestjsContextSet.add(context);
                           afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
                         }
 

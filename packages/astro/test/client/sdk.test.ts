@@ -1,16 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration,
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  SDK_VERSION,
 } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { SDK_VERSION, getClient } from '@sentry/browser';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
@@ -42,6 +41,9 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/astro', version: SDK_VERSION },
                 { name: 'npm:@sentry/browser', version: SDK_VERSION },
               ],
+              settings: {
+                infer_ip: 'never',
+              },
             },
           },
         }),
@@ -52,7 +54,6 @@ describe('Sentry client SDK', () => {
       it.each([
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
-        ['enableTracing', { enableTracing: true }],
         ['no tracing option set', {}],
       ])('adds browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
@@ -72,7 +73,7 @@ describe('Sentry client SDK', () => {
 
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          enableTracing: true,
+          tracesSampleRate: 1,
         });
 
         const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations || [];
@@ -90,7 +91,7 @@ describe('Sentry client SDK', () => {
           integrations: [
             browserTracingIntegration({ finalTimeout: 10, instrumentNavigation: false, instrumentPageLoad: false }),
           ],
-          enableTracing: true,
+          tracesSampleRate: 1,
         });
 
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');

@@ -2,23 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import type { EventProcessor } from '@sentry/core';
-
-import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
-
-let passedEventProcessor: EventProcessor | undefined;
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { init as svelteInit } from '../src/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
-const addEventProcessor = vi
-  .spyOn(SentryBrowser, 'addEventProcessor')
-  .mockImplementation((eventProcessor: EventProcessor) => {
-    passedEventProcessor = eventProcessor;
-    return () => {};
-  });
 
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
@@ -36,6 +25,9 @@ describe('Initialize Svelte SDk', () => {
           name: 'sentry.javascript.svelte',
           packages: [{ name: 'npm:@sentry/svelte', version: SDK_VERSION }],
           version: SDK_VERSION,
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     };
@@ -55,6 +47,9 @@ describe('Initialize Svelte SDk', () => {
             { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
             { name: 'npm:@sentry/svelte', version: SDK_VERSION },
           ],
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     });
@@ -70,6 +65,9 @@ describe('Initialize Svelte SDk', () => {
               { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
               { name: 'npm:@sentry/svelte', version: SDK_VERSION },
             ],
+            settings: {
+              infer_ip: 'never',
+            },
           },
         },
       }),
@@ -82,56 +80,5 @@ describe('Initialize Svelte SDk', () => {
     });
 
     expect(client).not.toBeUndefined();
-  });
-});
-
-describe('detectAndReportSvelteKit()', () => {
-  const originalHtmlBody = document.body.innerHTML;
-  beforeEach(() => {
-    vi.clearAllMocks();
-    document.body.innerHTML = originalHtmlBody;
-    passedEventProcessor = undefined;
-  });
-
-  it('registers an event processor', async () => {
-    detectAndReportSvelteKit();
-
-    expect(addEventProcessor).toHaveBeenCalledTimes(1);
-    expect(passedEventProcessor?.id).toEqual('svelteKitProcessor');
-  });
-
-  it('adds "SvelteKit" as a module to the event, if SvelteKit was detected', () => {
-    document.body.innerHTML += '<div id="svelte-announcer">Home</div>';
-    detectAndReportSvelteKit();
-
-    const processedEvent = passedEventProcessor?.({} as unknown as any, {});
-
-    expect(processedEvent).toBeDefined();
-    expect(processedEvent).toEqual({ modules: { svelteKit: 'latest' } });
-  });
-
-  it("doesn't add anything to the event, if SvelteKit was not detected", () => {
-    document.body.innerHTML = '';
-    detectAndReportSvelteKit();
-
-    const processedEvent = passedEventProcessor?.({} as unknown as any, {});
-
-    expect(processedEvent).toBeDefined();
-    expect(processedEvent).toEqual({});
-  });
-
-  describe('isSvelteKitApp()', () => {
-    it('returns true if the svelte-announcer div is present', () => {
-      document.body.innerHTML += '<div id="svelte-announcer">Home</div>';
-      expect(isSvelteKitApp()).toBe(true);
-    });
-    it('returns false if the svelte-announcer div is not present (but similar elements)', () => {
-      document.body.innerHTML += '<div id="svelte-something">Home</div>';
-      expect(isSvelteKitApp()).toBe(false);
-    });
-    it('returns false if no div is present', () => {
-      document.body.innerHTML = '';
-      expect(isSvelteKitApp()).toBe(false);
-    });
   });
 });

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../../utils/helpers';
 
@@ -31,7 +30,7 @@ sentryTest('should catch thrown objects', async ({ getLocalTestUrl, page, browse
     type: 'Error',
     value: 'Object captured as exception with keys: error, somekey',
     mechanism: {
-      type: 'onerror',
+      type: 'auto.browser.global_handlers.onerror',
       handled: false,
     },
     stacktrace: {

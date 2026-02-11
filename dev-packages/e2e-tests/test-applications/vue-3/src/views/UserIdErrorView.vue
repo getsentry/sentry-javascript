@@ -1,7 +1,7 @@
 <script setup lang="ts">
-  function throwError() {
-    throw new Error('This is a Vue test error');
-  }
+function throwError() {
+  throw new Error('This is a Vue test error');
+}
 </script>
 
 <template>

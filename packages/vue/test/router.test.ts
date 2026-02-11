@@ -1,10 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentryBrowser from '@sentry/browser';
+import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/core';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
 
@@ -123,8 +121,8 @@ describe('instrumentVueRouter()', () => {
       beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
       beforeEachCallback(to, from, mockNext);
 
-      expect(mockStartSpan).toHaveBeenCalledTimes(1);
-      expect(mockStartSpan).toHaveBeenCalledWith({
+      expect(mockStartSpan).toHaveBeenCalledTimes(2);
+      expect(mockStartSpan).toHaveBeenLastCalledWith({
         name: transactionName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
@@ -330,7 +328,7 @@ describe('instrumentVueRouter()', () => {
     [false, 0],
     [true, 1],
   ])(
-    'should return instrumentation that considers the instrumentPageLoad = %p',
+    'should return instrumentation that considers the instrumentPageLoad = %j',
     (instrumentPageLoad, expectedCallsAmount) => {
       const mockRootSpan = {
         ...MOCK_SPAN,
@@ -370,7 +368,7 @@ describe('instrumentVueRouter()', () => {
     [false, 0],
     [true, 1],
   ])(
-    'should return instrumentation that considers the instrumentNavigation = %p',
+    'should return instrumentation that considers the instrumentNavigation = %j',
     (instrumentNavigation, expectedCallsAmount) => {
       const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
       instrumentVueRouter(
@@ -425,6 +423,7 @@ function getAttributesForRoute(route: Route): SpanAttributes {
   const attributes: SpanAttributes = {};
 
   for (const key of Object.keys(params)) {
+    attributes[`url.path.parameter.${key}`] = params[key];
     attributes[`params.${key}`] = params[key];
   }
   for (const key of Object.keys(query)) {

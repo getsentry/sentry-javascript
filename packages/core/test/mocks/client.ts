@@ -1,18 +1,14 @@
-import type {
-  ClientOptions,
-  Event,
-  EventHint,
-  Integration,
-  Outcome,
-  ParameterizedString,
-  Session,
-  SeverityLevel,
-} from '../../src/types-hoist';
-
 import { Client } from '../../src/client';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
-import { resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
+import type { Outcome } from '../../src/types-hoist/clientreport';
+import type { Event, EventHint } from '../../src/types-hoist/event';
+import type { Integration } from '../../src/types-hoist/integration';
+import type { ClientOptions } from '../../src/types-hoist/options';
+import type { ParameterizedString } from '../../src/types-hoist/parameterize';
+import type { Session } from '../../src/types-hoist/session';
+import type { SeverityLevel } from '../../src/types-hoist/severity';
+import { resolvedSyncPromise } from '../../src/utils/syncpromise';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
@@ -56,7 +52,6 @@ export class TestClient extends Client<TestClientOptions> {
           {
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },

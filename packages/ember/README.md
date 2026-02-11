@@ -9,7 +9,6 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## General
 
@@ -71,9 +70,6 @@ following Ember specific configuration:
 
 ```javascript
 ENV['@sentry/ember'] = {
-  // Will silence Ember.onError warning without the need of using Ember debugging tools.
-  ignoreEmberOnErrorWarning: false,
-
   // Will disable automatic instrumentation of performance.
   // Manual instrumentation will still be sent.
   disablePerformance: true,

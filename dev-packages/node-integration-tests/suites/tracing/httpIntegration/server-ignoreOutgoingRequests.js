@@ -1,6 +1,7 @@
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
-const http = require('http');
+
+const url = process.env.SERVER_URL;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -11,11 +12,11 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreOutgoingRequests: (url, request) => {
-        if (url === 'http://example.com/blockUrl') {
+        if (url.endsWith('/blockUrl')) {
           return true;
         }
 
-        if (request.hostname === 'example.com' && request.path === '/blockRequest') {
+        if (request.path === '/blockRequest') {
           return true;
         }
         return false;
@@ -23,6 +24,8 @@ Sentry.init({
     }),
   ],
 });
+
+const http = require('http');
 
 // express must be required after Sentry is initialized
 const express = require('express');
@@ -34,16 +37,16 @@ const app = express();
 app.use(cors());
 
 app.get('/testUrl', (_req, response) => {
-  makeHttpRequest('http://example.com/blockUrl').then(() => {
-    makeHttpRequest('http://example.com/pass').then(() => {
+  makeHttpRequest(`${url}/blockUrl`).then(() => {
+    makeHttpRequest(`${url}/pass`).then(() => {
       response.send({ response: 'done' });
     });
   });
 });
 
 app.get('/testRequest', (_req, response) => {
-  makeHttpRequest('http://example.com/blockRequest').then(() => {
-    makeHttpRequest('http://example.com/pass').then(() => {
+  makeHttpRequest(`${url}/blockRequest`).then(() => {
+    makeHttpRequest(`${url}/pass`).then(() => {
       response.send({ response: 'done' });
     });
   });

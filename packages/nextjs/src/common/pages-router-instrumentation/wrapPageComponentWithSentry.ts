@@ -5,9 +5,7 @@ interface FunctionComponent {
 }
 
 interface ClassComponent {
-  new (
-    ...args: unknown[]
-  ): {
+  new (...args: unknown[]): {
     props?: unknown;
     render(...args: unknown[]): unknown;
   };
@@ -50,6 +48,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
             captureException(e, {
               mechanism: {
                 handled: false,
+                type: 'auto.function.nextjs.page_class',
               },
             });
             throw e;
@@ -79,6 +78,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
             captureException(e, {
               mechanism: {
                 handled: false,
+                type: 'auto.function.nextjs.page_function',
               },
             });
             throw e;

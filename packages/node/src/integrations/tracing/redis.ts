@@ -1,22 +1,22 @@
 import type { Span } from '@opentelemetry/api';
 import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
-import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import type { IntegrationFn } from '@sentry/core';
 import {
+  defineIntegration,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  defineIntegration,
   spanToJSON,
   truncate,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce } from '@sentry/node-core';
 import {
-  GET_COMMANDS,
   calculateCacheItemSize,
+  GET_COMMANDS,
   getCacheKeySafely,
   getCacheOperation,
   isInCommands,
@@ -24,14 +24,34 @@ import {
 } from '../../utils/redisCache';
 
 interface RedisOptions {
+  /**
+   * Define cache prefixes for cache keys that should be captured as a cache span.
+   *
+   * Setting this to, for example, `['user:']` will capture cache keys that start with `user:`.
+   */
   cachePrefixes?: string[];
+  /**
+   * Maximum length of the cache key added to the span description. If the key exceeds this length, it will be truncated.
+   *
+   * Passing `0` will use the full cache key without truncation.
+   *
+   * By default, the full cache key is used.
+   */
+  maxCacheKeyLength?: number;
 }
 
 const INTEGRATION_NAME = 'Redis';
 
-let _redisOptions: RedisOptions = {};
+/* Only exported for testing purposes */
+export let _redisOptions: RedisOptions = {};
 
-const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, redisCommand, cmdArgs, response) => {
+/* Only exported for testing purposes */
+export const cacheResponseHook: RedisResponseCustomAttributeFunction = (
+  span: Span,
+  redisCommand,
+  cmdArgs,
+  response,
+) => {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
   const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
@@ -70,18 +90,21 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
   });
 
+  // todo: change to string[] once EAP supports it
   const spanDescription = safeKey.join(', ');
 
-  span.updateName(truncate(spanDescription, 1024));
+  span.updateName(
+    _redisOptions.maxCacheKeyLength ? truncate(spanDescription, _redisOptions.maxCacheKeyLength) : spanDescription,
+  );
 };
 
-const instrumentIORedis = generateInstrumentOnce('IORedis', () => {
+const instrumentIORedis = generateInstrumentOnce(`${INTEGRATION_NAME}.IORedis`, () => {
   return new IORedisInstrumentation({
     responseHook: cacheResponseHook,
   });
 });
 
-const instrumentRedis4 = generateInstrumentOnce('Redis-4', () => {
+const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`, () => {
   return new RedisInstrumentation({
     responseHook: cacheResponseHook,
   });
@@ -91,7 +114,7 @@ const instrumentRedis4 = generateInstrumentOnce('Redis-4', () => {
 export const instrumentRedis = Object.assign(
   (): void => {
     instrumentIORedis();
-    instrumentRedis4();
+    instrumentRedisModule();
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),

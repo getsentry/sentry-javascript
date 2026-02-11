@@ -1,14 +1,19 @@
+import { feedbackAsyncIntegration } from './feedbackAsync';
+import { feedbackSyncIntegration } from './feedbackSync';
+
 export * from './exports';
 
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
-  captureFeedback,
+  consoleLoggingIntegration,
+  createConsolaReporter,
 } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
@@ -25,9 +30,6 @@ export type {
 } from '@sentry-internal/replay';
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
-
-import { feedbackAsyncIntegration } from './feedbackAsync';
-import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
@@ -37,10 +39,11 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
+
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addTracingExtensions,
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
@@ -54,19 +57,29 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
+  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
   moduleMetadataIntegration,
+  supabaseIntegration,
+  instrumentSupabaseClient,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
+  featureFlagsIntegration,
+  instrumentAnthropicAiClient,
+  instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  createLangChainCallbackHandler,
+  logger,
 } from '@sentry/core';
-export type { Span } from '@sentry/core';
+export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
-export { browserSessionIntegration } from './integrations/browsersession';
-export {
-  featureFlagsIntegration,
-  type FeatureFlagsIntegration,
-} from './integrations/featureFlags';
+export { cultureContextIntegration } from './integrations/culturecontext';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
-export { viewHierarchyIntegration } from './integrations/view-hierarchy';
+export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { growthbookIntegration } from './integrations/featureFlags/growthbook';
+export { statsigIntegration } from './integrations/featureFlags/statsig';
+export { diagnoseSdkConnectivity } from './diagnose-sdk';
+export { webWorkerIntegration, registerWebWorker } from './integrations/webWorker';

@@ -1,10 +1,20 @@
-import * as path from 'path';
-import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import {
+  addPlugin,
+  addPluginTemplate,
+  addServerPlugin,
+  addTemplate,
+  createResolver,
+  defineNuxtModule,
+} from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
+import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDatabaseInstrumentation } from './vite/databaseConfig';
+import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile } from './vite/utils';
+import { addStorageInstrumentation } from './vite/storageConfig';
+import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -18,6 +28,10 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(moduleOptionsParam, nuxt) {
+    if (moduleOptionsParam?.enabled === false) {
+      return;
+    }
+
     const moduleOptions = {
       ...moduleOptionsParam,
       autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,
@@ -31,13 +45,14 @@ export default defineNuxtModule<ModuleOptions>({
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
-    const clientConfigFile = findDefaultSdkInitFile('client');
+    const clientConfigFile = findDefaultSdkInitFile('client', nuxt);
 
     if (clientConfigFile) {
       // Inject the client-side Sentry config file with a side effect import
       addPluginTemplate({
         mode: 'client',
         filename: 'sentry-client-config.mjs',
+        order: 0,
 
         // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
         // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
@@ -52,42 +67,89 @@ export default defineNuxtModule<ModuleOptions>({
           });`,
       });
 
-      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
+      // Add the plugin which loads client integrations etc. -
+      // this must run after the sentry-client-config plugin has run, and the client is initialized!
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'),
+        mode: 'client',
+        order: 1,
+      });
     }
 
-    const serverConfigFile = findDefaultSdkInitFile('server');
+    const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
 
     if (serverConfigFile) {
-      if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-        addPluginTemplate({
-          mode: 'server',
-          filename: 'sentry-server-config.mjs',
-          getContents: () =>
-            // This won't actually import the server config in the build output (so no double init call). The import here is only needed for correctly resolving the Sentry release injection.
-            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}";
-            import { defineNuxtPlugin } from "#imports";
-            export default defineNuxtPlugin(() => {});`,
-        });
-      }
-
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+
+      addPlugin({
+        src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
+        mode: 'server',
+      });
     }
 
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
 
-    nuxt.hooks.hook('nitro:init', nitro => {
-      if (serverConfigFile?.includes('.server.config')) {
-        if (nitro.options.dev) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.log(
-              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt does not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
-            );
-          });
-        }
+    addOTelCommonJSImportAlias(nuxt);
 
+    const pagesDataTemplate = addTemplate({
+      filename: 'sentry--nuxt-pages-data.mjs',
+      // Initial empty array (later filled in pages:extend hook)
+      // Template needs to be created in the root-level of the module to work
+      getContents: () => 'export default [];',
+    });
+
+    nuxt.hooks.hook('pages:extend', pages => {
+      pagesDataTemplate.getContents = () => {
+        const pagesSubset = pages
+          .map(page => ({ file: page.file, path: page.path }))
+          .filter(page => {
+            // Check for dynamic parameter (e.g., :userId or [userId])
+            return page.path.includes(':') || page?.file?.includes('[');
+          });
+
+        return `export default ${JSON.stringify(pagesSubset, null, 2)};`;
+      };
+    });
+
+    // Preps the the middleware instrumentation module.
+    if (serverConfigFile) {
+      addMiddlewareImports();
+      addStorageInstrumentation(nuxt);
+      addDatabaseInstrumentation(nuxt.options.nitro, moduleOptions);
+    }
+
+    // Add the sentry config file to the include array
+    nuxt.hook('prepare:types', options => {
+      const tsConfig = options.tsConfig as { include?: string[] };
+
+      if (!tsConfig.include) {
+        tsConfig.include = [];
+      }
+
+      // Add type references for useRuntimeConfig in root files for nuxt v4
+      // Should be relative to `root/.nuxt`
+      if (clientConfigFile) {
+        const relativePath = path.relative(nuxt.options.buildDir, clientConfigFile);
+        tsConfig.include.push(relativePath);
+      }
+      if (serverConfigFile) {
+        const relativePath = path.relative(nuxt.options.buildDir, serverConfigFile);
+        tsConfig.include.push(relativePath);
+      }
+    });
+
+    nuxt.hooks.hook('nitro:init', nitro => {
+      if (nuxt.options?._prepare) {
+        return;
+      }
+
+      if (serverConfigFile) {
+        addMiddlewareInstrumentation(nitro);
+      }
+
+      if (serverConfigFile?.includes('.server.config')) {
         consoleSandbox(() => {
           const serverDir = nitro.options.output.serverDir;
 
@@ -109,7 +171,7 @@ export default defineNuxtModule<ModuleOptions>({
         });
 
         if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-          addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
+          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
@@ -121,8 +183,20 @@ export default defineNuxtModule<ModuleOptions>({
             consoleSandbox(() => {
               // eslint-disable-next-line no-console
               console.log(
-                `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. Make sure to add the Node option \`import\` to the Node command where you deploy and/or run your application. This preloads the Sentry configuration at server startup. You can do this via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+                `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
               );
+
+              if (nitro.options.dev) {
+                // eslint-disable-next-line no-console
+                console.log(
+                  `[Sentry] During development, preload Sentry with the NODE_OPTIONS environment variable: \`NODE_OPTIONS='--import ${serverConfigRelativePath}' nuxt dev\`. The file is generated in the build directory (usually '.nuxt'). If you delete the build directory, run \`nuxt dev\` to regenerate it.`,
+                );
+              } else {
+                // eslint-disable-next-line no-console
+                console.log(
+                  `[Sentry] When running your built application, preload Sentry via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+                );
+              }
             });
           }
         }

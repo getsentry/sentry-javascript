@@ -1,6 +1,5 @@
-import { captureCheckIn } from '@sentry/core';
+import { _INTERNAL_safeDateNow, captureCheckIn } from '@sentry/core';
 import type { NextApiRequest } from 'next';
-
 import type { VercelCronsConfig } from '../types';
 
 type EdgeRequest = {
@@ -58,14 +57,14 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
         },
       );
 
-      const startTime = Date.now() / 1000;
+      const startTime = _INTERNAL_safeDateNow() / 1000;
 
       const handleErrorCase = (): void => {
         captureCheckIn({
           checkInId,
           monitorSlug,
           status: 'error',
-          duration: Date.now() / 1000 - startTime,
+          duration: _INTERNAL_safeDateNow() / 1000 - startTime,
         });
       };
 
@@ -83,7 +82,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
               checkInId,
               monitorSlug,
               status: 'ok',
-              duration: Date.now() / 1000 - startTime,
+              duration: _INTERNAL_safeDateNow() / 1000 - startTime,
             });
           },
           () => {
@@ -99,7 +98,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
           checkInId,
           monitorSlug,
           status: 'ok',
-          duration: Date.now() / 1000 - startTime,
+          duration: _INTERNAL_safeDateNow() / 1000 - startTime,
         });
         return maybePromiseResult;
       }

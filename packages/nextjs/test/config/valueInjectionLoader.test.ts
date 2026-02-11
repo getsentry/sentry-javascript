@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import type { LoaderThis } from '../../src/config/loaders/types';
 import type { ValueInjectionLoaderOptions } from '../../src/config/loaders/valueInjectionLoader';
 import valueInjectionLoader from '../../src/config/loaders/valueInjectionLoader';
@@ -7,11 +8,6 @@ const defaultLoaderThis = {
   async: () => undefined,
   cacheable: () => undefined,
   callback: () => undefined,
-};
-
-const loaderThis = {
-  ...defaultLoaderThis,
-  resourcePath: './client.config.ts',
   getOptions() {
     return {
       values: {
@@ -19,9 +15,19 @@ const loaderThis = {
       },
     };
   },
+};
+
+const clientConfigLoaderThis = {
+  ...defaultLoaderThis,
+  resourcePath: './sentry.client.config.ts',
 } satisfies LoaderThis<ValueInjectionLoaderOptions>;
 
-describe('valueInjectionLoader', () => {
+const instrumentationLoaderThis = {
+  ...defaultLoaderThis,
+  resourcePath: './instrumentation-client.js',
+} satisfies LoaderThis<ValueInjectionLoaderOptions>;
+
+describe.each([[clientConfigLoaderThis], [instrumentationLoaderThis]])('valueInjectionLoader', loaderThis => {
   it('should correctly insert values for basic config', () => {
     const userCode = `
       import * as Sentry from '@sentry/nextjs';

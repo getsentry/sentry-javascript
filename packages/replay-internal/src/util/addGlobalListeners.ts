@@ -1,10 +1,9 @@
+import type { DynamicSamplingContext } from '@sentry/core';
+import { addEventProcessor, getClient } from '@sentry/core';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { addEventProcessor, getClient } from '@sentry/core';
-import type { DynamicSamplingContext } from '@sentry/core';
-
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
 import { handleBreadcrumbs } from '../coreHandlers/handleBreadcrumbs';
@@ -57,15 +56,20 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       replay.lastActiveSpan = span;
     });
 
-    // We want to flush replay
-    client.on('beforeSendFeedback', (feedbackEvent, options) => {
+    // We want to attach the replay id to the feedback event
+    client.on('beforeSendFeedback', async (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
-      if (options?.includeReplay && replay.isEnabled() && replayId) {
-        // This should never reject
-        if (feedbackEvent.contexts?.feedback) {
-          feedbackEvent.contexts.feedback.replay_id = replayId;
+      if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
+        // In case the feedback is sent via API and not through our widget, we want to flush replay
+        if (feedbackEvent.contexts.feedback.source === 'api') {
+          await replay.sendBufferedReplayOrFlush();
         }
+        feedbackEvent.contexts.feedback.replay_id = replayId;
       }
+    });
+
+    client.on('openFeedbackWidget', async () => {
+      await replay.sendBufferedReplayOrFlush();
     });
   }
 }

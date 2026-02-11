@@ -1,0 +1,51 @@
+{
+  "name": "nextjs-16-cacheComponents",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "dev:webpack": "next dev --webpack",
+    "build-webpack": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-webpack": "pnpm install && pnpm build-webpack",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
+    "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
+    "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
+    "import-in-the-middle": "^1",
+    "next": "16.1.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "require-in-the-middle": "^7",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "canary",
+    "typescript": "^5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "//": "TODO: Add variants for webpack once supported"
+  }
+}

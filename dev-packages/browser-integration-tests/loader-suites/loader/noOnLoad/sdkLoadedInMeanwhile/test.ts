@@ -1,8 +1,7 @@
+import { expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { expect } from '@playwright/test';
-
-import { TEST_HOST, sentryTest } from '../../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../../utils/fixtures';
 import { LOADER_CONFIGS } from '../../../../utils/generatePlugin';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
@@ -18,7 +17,7 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   let cdnLoadedCount = 0;
   let sentryEventCount = 0;
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     sentryEventCount++;
 
     return route.fulfill({

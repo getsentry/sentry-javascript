@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { SpanJSON } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 

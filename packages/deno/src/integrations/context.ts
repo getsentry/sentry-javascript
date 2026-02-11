@@ -1,5 +1,5 @@
-import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoContext';
 

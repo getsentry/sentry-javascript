@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
@@ -38,13 +37,16 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
     environment: 'local',
     release: '0.0.1',
     sdk: {
-      integrations: ['Breadcrumbs', 'FunctionToString', 'Dedupe', 'HttpContext', 'InboundFilters', 'LinkedErrors'],
+      integrations: ['Breadcrumbs', 'FunctionToString', 'Dedupe', 'HttpContext', 'EventFilters', 'LinkedErrors'],
       name: 'sentry.javascript.browser',
       version: expect.any(String),
       packages: [{ name: expect.any(String), version: expect.any(String) }],
+      settings: {
+        infer_ip: 'never',
+      },
     },
     contexts: {
-      trace: { trace_id: expect.stringMatching(/[a-f0-9]{32}/), span_id: expect.stringMatching(/[a-f0-9]{16}/) },
+      trace: { trace_id: expect.stringMatching(/[a-f\d]{32}/), span_id: expect.stringMatching(/[a-f\d]{16}/) },
     },
   });
 });

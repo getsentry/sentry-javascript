@@ -6,7 +6,7 @@
     "@sentry/react": "latest || *",
     "@types/react": "18.0.0",
     "@types/react-dom": "18.0.0",
-    "express": "4.20.0",
+    "express": "^4.21.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.28.0",
@@ -44,7 +44,7 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1",
     "npm-run-all2": "^6.2.0"

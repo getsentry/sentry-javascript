@@ -1,8 +1,13 @@
 import { registerSpanErrorInstrumentation } from '@sentry/core';
+import { consoleLoggingIntegrationShim, loggerShim } from '@sentry-internal/integration-shims';
+import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
+
+// TODO(v11): Export metricsShim here once we remove metrics from the base bundle.
+export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger };
 
 export {
   getActiveSpan,
@@ -14,7 +19,6 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
-  captureFeedback,
 } from '@sentry/core';
 
 export {
@@ -22,9 +26,12 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-import { feedbackAsyncIntegration } from './feedbackAsync';
-export { getFeedback } from '@sentry-internal/feedback';
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+
+export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
+
 export { feedbackAsyncIntegration as feedbackAsyncIntegration, feedbackAsyncIntegration as feedbackIntegration };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

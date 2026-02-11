@@ -18,7 +18,10 @@ export function addHistoryInstrumentationHandler(handler: (data: HandlerDataHist
   maybeInstrument(type, instrumentHistory);
 }
 
-function instrumentHistory(): void {
+/**
+ * Exported just for testing
+ */
+export function instrumentHistory(): void {
   // The `popstate` event may also be triggered on `pushState`, but it may not always reliably be emitted by the browser
   // Which is why we also monkey-patch methods below, in addition to this
   WINDOW.addEventListener('popstate', () => {
@@ -44,14 +47,20 @@ function instrumentHistory(): void {
     return function (this: History, ...args: unknown[]): void {
       const url = args.length > 2 ? args[2] : undefined;
       if (url) {
-        // coerce to string (this is what pushState does)
         const from = lastHref;
-        const to = String(url);
+
+        // Ensure the URL is absolute
+        // this can be either a path, then it is relative to the current origin
+        // or a full URL of the current origin - other origins are not allowed
+        // See: https://developer.mozilla.org/en-US/docs/Web/API/History/pushState#url
+        // coerce to string (this is what pushState does)
+        const to = getAbsoluteUrl(String(url));
+
         // keep track of the current URL state, as we always receive only the updated state
         lastHref = to;
 
         if (from === to) {
-          return;
+          return originalHistoryFunction.apply(this, args);
         }
 
         const handlerData = { from, to } satisfies HandlerDataHistory;
@@ -63,4 +72,14 @@ function instrumentHistory(): void {
 
   fill(WINDOW.history, 'pushState', historyReplacementFunction);
   fill(WINDOW.history, 'replaceState', historyReplacementFunction);
+}
+
+function getAbsoluteUrl(urlOrPath: string): string {
+  try {
+    const url = new URL(urlOrPath, WINDOW.location.origin);
+    return url.toString();
+  } catch {
+    // fallback, just do nothing
+    return urlOrPath;
+  }
 }

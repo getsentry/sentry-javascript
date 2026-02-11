@@ -1,20 +1,19 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
+  debug,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  logger,
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { generateInstrumentOnce } from '../../../otel/instrument';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Request, RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';
@@ -55,11 +54,8 @@ function isErrorEvent(event: unknown): event is RequestEvent {
 function sendErrorToSentry(errorData: object): void {
   captureException(errorData, {
     mechanism: {
-      type: 'hapi',
+      type: 'auto.function.hapi',
       handled: false,
-      data: {
-        function: 'hapiErrorPlugin',
-      },
     },
   });
 }
@@ -79,7 +75,7 @@ export const hapiErrorPlugin = {
         }
       } else {
         DEBUG_BUILD &&
-          logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
+          debug.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
       if (isErrorEvent(event)) {
@@ -123,7 +119,6 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   ensureIsWrapped(server.register, 'hapi');
 }
 

@@ -1,11 +1,9 @@
 import { expect } from '@playwright/test';
-
-import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import {
-  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
+  expectedCLSPerformanceSpan,
   expectedFCPPerformanceSpan,
-  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -78,7 +76,6 @@ sentryTest(
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -118,7 +115,6 @@ sentryTest(
         expectedReloadPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -189,7 +185,6 @@ sentryTest(
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -211,7 +206,7 @@ sentryTest(
     expect(replayEvent6).toEqual(
       getExpectedReplayEvent({
         segment_id: 6,
-        urls: ['/spa'],
+        urls: [`${TEST_HOST}/spa`],
         request: {
           url: `${TEST_HOST}/spa`,
           headers: {
@@ -327,7 +322,6 @@ sentryTest(
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
-        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,

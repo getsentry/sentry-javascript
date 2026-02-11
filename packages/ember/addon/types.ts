@@ -5,6 +5,9 @@ type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
 export type EmberSentryConfig = {
   sentry: BrowserOptions & { browserTracingOptions?: BrowserTracingOptions };
   transitionTimeout: number;
+  /**
+   * @deprecated This option is no longer used and will be removed in the next major version.
+   */
   ignoreEmberOnErrorWarning: boolean;
   disableInstrumentComponents: boolean;
   disablePerformance: boolean;
@@ -26,7 +29,7 @@ export interface EmberRouterMain {
   location: {
     getURL?: () => string;
     formatURL?: (url: string) => string;
-    implementation: string;
+    implementation?: string;
     rootURL: string;
   };
 }

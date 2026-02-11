@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import * as path from 'path';
-
 import { PUBLISH_PACKAGES_DOCKER_IMAGE_NAME, TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
 
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
@@ -86,8 +85,15 @@ export function registrySetup(): void {
       },
     );
 
-    if (publishImageContainerRunProcess.status !== 0) {
-      throw new Error('Publish Image Container failed.');
+    const statusCode = publishImageContainerRunProcess.status;
+
+    if (statusCode !== 0) {
+      if (statusCode === 137) {
+        throw new Error(
+          `Publish Image Container failed with exit code ${statusCode}, possibly due to memory issues. Consider increasing the memory limit for the container.`,
+        );
+      }
+      throw new Error(`Publish Image Container failed with exit code ${statusCode}`);
     }
   });
 

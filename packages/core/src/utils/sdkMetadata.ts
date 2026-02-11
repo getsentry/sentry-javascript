@@ -1,5 +1,5 @@
-import type { Options } from '../types-hoist';
-import { SDK_VERSION } from '../utils-hoist/version';
+import type { CoreOptions } from '../types-hoist/options';
+import { SDK_VERSION } from '../utils/version';
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.
@@ -14,19 +14,15 @@ import { SDK_VERSION } from '../utils-hoist/version';
  * @param options SDK options object that gets mutated
  * @param names list of package names
  */
-export function applySdkMetadata(options: Options, name: string, names = [name], source = 'npm'): void {
-  const metadata = options._metadata || {};
+export function applySdkMetadata(options: CoreOptions, name: string, names = [name], source = 'npm'): void {
+  const sdk = ((options._metadata = options._metadata || {}).sdk = options._metadata.sdk || {});
 
-  if (!metadata.sdk) {
-    metadata.sdk = {
-      name: `sentry.javascript.${name}`,
-      packages: names.map(name => ({
-        name: `${source}:@sentry/${name}`,
-        version: SDK_VERSION,
-      })),
+  if (!sdk.name) {
+    sdk.name = `sentry.javascript.${name}`;
+    sdk.packages = names.map(name => ({
+      name: `${source}:@sentry/${name}`,
       version: SDK_VERSION,
-    };
+    }));
+    sdk.version = SDK_VERSION;
   }
-
-  options._metadata = metadata;
 }

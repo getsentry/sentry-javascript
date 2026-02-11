@@ -1,7 +1,5 @@
-const useV2 = process.env.REMIX_VERSION === '2';
-
 import { expect, test } from '@playwright/test';
-import { Event } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { getFirstSentryEnvelopeRequest } from './utils/helpers';
 
 test('should add `pageload` transaction on load.', async ({ page }) => {
@@ -10,5 +8,7 @@ test('should add `pageload` transaction on load.', async ({ page }) => {
   expect(envelope.contexts?.trace.op).toBe('pageload');
   expect(envelope.type).toBe('transaction');
 
-  expect(envelope.transaction).toBe(useV2 ? 'root' : 'routes/index');
+  // Static root route should use '/' (URL) since it doesn't need parameterization
+  expect(envelope.transaction).toBe('/');
+  expect(envelope.contexts?.trace?.data?.['sentry.source']).toBe('url');
 });

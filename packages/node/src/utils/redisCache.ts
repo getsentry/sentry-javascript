@@ -53,7 +53,7 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
     }
 
     return flatten(cmdArgs.map(arg => processArg(arg)));
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }
@@ -82,7 +82,7 @@ export function calculateCacheItemSize(response: unknown): number | undefined {
       else if (typeof value === 'number') return value.toString().length;
       else if (value === null || value === undefined) return 0;
       return JSON.stringify(value).length;
-    } catch (e) {
+    } catch {
       return undefined;
     }
   };
@@ -103,9 +103,9 @@ function flatten<T>(input: NestedArray<T>): T[] {
   const flattenHelper = (input: NestedArray<T>): void => {
     input.forEach((el: T | NestedArray<T>) => {
       if (Array.isArray(el)) {
-        flattenHelper(el as NestedArray<T>);
+        flattenHelper(el);
       } else {
-        result.push(el as T);
+        result.push(el);
       }
     });
   };

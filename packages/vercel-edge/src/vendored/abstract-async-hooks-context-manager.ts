@@ -31,10 +31,22 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-this-alias */
 
-import type { EventEmitter } from 'events';
 import type { Context, ContextManager } from '@opentelemetry/api';
 
 type Func<T> = (...args: unknown[]) => T;
+
+// Inline EventEmitter interface to avoid Node.js module dependency
+// This prevents Node.js type leaks in edge runtime environments
+interface EventEmitter {
+  addListener?(event: string, listener: Func<void>): this;
+  on?(event: string, listener: Func<void>): this;
+  once?(event: string, listener: Func<void>): this;
+  prependListener?(event: string, listener: Func<void>): this;
+  prependOnceListener?(event: string, listener: Func<void>): this;
+  removeListener?(event: string, listener: Func<void>): this;
+  off?(event: string, listener: Func<void>): this;
+  removeAllListeners?(event?: string): this;
+}
 
 /**
  * Store a map for each event of all original listeners and their "patched"

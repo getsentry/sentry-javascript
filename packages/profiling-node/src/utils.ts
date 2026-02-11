@@ -1,7 +1,5 @@
-import * as os from 'os';
 import type {
   Client,
-  Context,
   ContinuousThreadCpuProfile,
   DebugImage,
   DsnComponents,
@@ -14,21 +12,21 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
+  TransactionEvent,
 } from '@sentry/core';
 import {
   createEnvelope,
+  debug,
   dsnToString,
   forEachEnvelopeItem,
   getDebugImagesForResources,
-  logger,
   uuid4,
 } from '@sentry/core';
-
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import * as os from 'os';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
-
 import { DEBUG_BUILD } from './debug-build';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -99,7 +97,7 @@ export function createProfilingEvent(client: Client, profile: RawThreadCpuProfil
     event_id: event.event_id ?? '',
     transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
+    trace_id: event.contexts?.trace?.trace_id ?? '',
     profile_id: profile.profile_id,
   });
 }
@@ -135,7 +133,7 @@ function createProfilePayload(
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (trace_id?.length !== 32) {
-    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+    DEBUG_BUILD && debug.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
   const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
@@ -208,7 +206,7 @@ function createProfileChunkPayload(
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (trace_id?.length !== 32) {
-    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+    DEBUG_BUILD && debug.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
   }
 
   const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
@@ -267,7 +265,7 @@ export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           rate,
         )} of type ${JSON.stringify(typeof rate)}.`,
@@ -282,7 +280,7 @@ export function isValidSampleRate(rate: unknown): boolean {
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    DEBUG_BUILD && logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    DEBUG_BUILD && debug.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
   return true;
@@ -299,7 +297,7 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+      debug.log('[Profiling] Discarding profile because it contains less than 2 samples');
     return false;
   }
 
@@ -321,7 +319,7 @@ export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is Raw
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
+      debug.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
     return false;
   }
 
@@ -352,7 +350,7 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
  * @returns {Event[]}
  */
 export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
-  const events: Event[] = [];
+  const events: TransactionEvent[] = [];
 
   forEachEnvelopeItem(envelope, (item, type) => {
     if (type !== 'transaction') {
@@ -361,18 +359,17 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 
     // First item is the type, so we can skip it, everything else is an event
     for (let j = 1; j < item.length; j++) {
-      const event = item[j];
+      const event = item[j] as TransactionEvent;
 
       if (!event) {
         // Shouldn't happen, but lets be safe
         continue;
       }
 
-      // @ts-expect-error profile_id is not part of the metadata type
-      const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
+      const profile_id = event.contexts?.profile?.profile_id;
 
       if (event && profile_id) {
-        events.push(item[j] as Event);
+        events.push(event);
       }
     }
   });
@@ -401,6 +398,7 @@ export function createEventEnvelopeHeaders(
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
+  platform: 'node',
   chunk: ProfileChunk,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,
@@ -408,6 +406,7 @@ export function makeProfileChunkEnvelope(
 ): ProfileChunkEnvelope {
   const profileChunkHeader: ProfileChunkItem[0] = {
     type: 'profile_chunk',
+    platform,
   };
 
   return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [

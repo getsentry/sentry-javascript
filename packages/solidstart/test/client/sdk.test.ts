@@ -1,7 +1,6 @@
 import { SDK_VERSION } from '@sentry/solid';
 import * as SentrySolid from '@sentry/solid';
-
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
 import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
@@ -26,6 +25,9 @@ describe('Initialize Solid Start SDK', () => {
             { name: 'npm:@sentry/solid', version: SDK_VERSION },
           ],
           version: SDK_VERSION,
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     };

@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 
 sentryTest('should inject dialog script into <head> with correct attributes', async ({ getLocalTestUrl, page }) => {

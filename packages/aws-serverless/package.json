@@ -1,9 +1,9 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "8.45.0",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
@@ -15,6 +15,7 @@
     "/build/loader-hook.mjs"
   ],
   "main": "build/npm/cjs/index.js",
+  "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
@@ -65,20 +66,21 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/instrumentation": "^0.56.0",
-    "@opentelemetry/instrumentation-aws-lambda": "0.50.0",
-    "@opentelemetry/instrumentation-aws-sdk": "0.48.0",
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
+    "@opentelemetry/instrumentation": "^0.211.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.66.0",
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0",
+    "@sentry/node-core": "10.38.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1"
+    "@types/node": "^18.19.1",
+    "@vercel/nft": "^1.3.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn build:layer",
-    "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
+    "build": "run-p build:transpile build:types",
+    "build:layer": "rimraf build/aws && rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",
@@ -93,8 +95,9 @@
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
@@ -103,12 +106,17 @@
   "sideEffects": false,
   "nx": {
     "targets": {
-      "build:bundle": {
+      "build:transpile": {
+        "inputs": [
+          "production",
+          "^production"
+        ],
         "dependsOn": [
-          "build:transpile",
-          "build:types"
+          "^build:transpile"
         ],
         "outputs": [
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
           "{projectRoot}/build/aws"
         ]
       }

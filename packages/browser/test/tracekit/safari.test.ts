@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { exceptionFromError } from '../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../src/stack-parsers';
 

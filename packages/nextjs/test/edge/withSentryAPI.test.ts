@@ -1,3 +1,4 @@
+import { afterAll, afterEach, describe, it, vi } from 'vitest';
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
 const origRequest = global.Request;
@@ -29,12 +30,12 @@ afterAll(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe('wrapApiHandlerWithSentry', () => {
   it('should return a function that does not throw when no request is passed', async () => {
-    const origFunction = jest.fn(() => new Response());
+    const origFunction = vi.fn(() => new Response());
 
     const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
 

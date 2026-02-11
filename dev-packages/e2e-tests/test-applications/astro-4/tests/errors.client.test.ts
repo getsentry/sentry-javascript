@@ -31,7 +31,7 @@ test.describe('client-side errors', () => {
           {
             mechanism: {
               handled: false,
-              type: 'onerror',
+              type: 'auto.browser.global_handlers.onerror',
             },
             type: 'Error',
             value: 'client error',
@@ -70,7 +70,6 @@ test.describe('client-side errors', () => {
       contexts: {
         trace: {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
         },
       },

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { canWrapLoad, makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
 
 const DEFAULT_CONTENT = `
@@ -42,7 +41,12 @@ describe('makeAutoInstrumentationPlugin()', () => {
   });
 
   it('returns the auto instrumentation plugin', async () => {
-    const plugin = makeAutoInstrumentationPlugin({ debug: true, load: true, serverLoad: true });
+    const plugin = makeAutoInstrumentationPlugin({
+      debug: true,
+      load: true,
+      serverLoad: true,
+      onlyInstrumentClient: false,
+    });
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(plugin.enforce).toEqual('pre');
     expect(plugin.load).toEqual(expect.any(Function));
@@ -59,7 +63,12 @@ describe('makeAutoInstrumentationPlugin()', () => {
     'path/to/+layout.mjs',
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
-      const plugin = makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: true });
+      const plugin = makeAutoInstrumentationPlugin({
+        debug: false,
+        load: true,
+        serverLoad: true,
+        onlyInstrumentClient: false,
+      });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
@@ -75,6 +84,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: false,
         serverLoad: false,
+        onlyInstrumentClient: false,
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
@@ -93,7 +103,12 @@ describe('makeAutoInstrumentationPlugin()', () => {
     'path/to/+layout.server.mjs',
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
-      const plugin = makeAutoInstrumentationPlugin({ debug: false, load: false, serverLoad: true });
+      const plugin = makeAutoInstrumentationPlugin({
+        debug: false,
+        load: false,
+        serverLoad: true,
+        onlyInstrumentClient: false,
+      });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
@@ -109,11 +124,100 @@ describe('makeAutoInstrumentationPlugin()', () => {
         debug: false,
         load: false,
         serverLoad: false,
+        onlyInstrumentClient: false,
       });
       // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(null);
     });
+  });
+
+  describe('when `onlyInstrumentClient` is `true`', () => {
+    it.each([
+      // server-only files
+      'path/to/+page.server.ts',
+      'path/to/+layout.server.js',
+      // universal files
+      'path/to/+page.mts',
+      'path/to/+layout.mjs',
+    ])("doesn't wrap code in SSR build in %s", async (path: string) => {
+      const plugin = makeAutoInstrumentationPlugin({
+        debug: false,
+        load: true,
+        serverLoad: true,
+        onlyInstrumentClient: true,
+      });
+
+      // @ts-expect-error this exists and is callable
+      plugin.configResolved({
+        build: {
+          ssr: true,
+        },
+      });
+
+      // @ts-expect-error this exists
+      const loadResult = await plugin.load(path);
+
+      expect(loadResult).toEqual(null);
+    });
+
+    it.each(['path/to/+page.ts', 'path/to/+layout.js'])(
+      'wraps client-side code in universal files in %s',
+      async (path: string) => {
+        const plugin = makeAutoInstrumentationPlugin({
+          debug: false,
+          load: true,
+          serverLoad: true,
+          onlyInstrumentClient: true,
+        });
+
+        // @ts-expect-error this exists and is callable
+        plugin.configResolved({
+          build: {
+            ssr: false,
+          },
+        });
+
+        // @ts-expect-error this exists and is callable
+        const loadResult = await plugin.load(path);
+
+        expect(loadResult).toBe(
+          'import { wrapLoadWithSentry } from "@sentry/sveltekit";' +
+            `import * as userModule from "${path}?sentry-auto-wrap";` +
+            'export const load = userModule.load ? wrapLoadWithSentry(userModule.load) : undefined;' +
+            `export * from "${path}?sentry-auto-wrap";`,
+        );
+      },
+    );
+
+    /**
+     * This is a bit of a constructed case because in a client build, server-only files
+     * shouldn't even be passed into the load hook. But just to be extra careful, let's
+     * make sure we don't wrap server-only files in a client build.
+     */
+    it.each(['path/to/+page.server.ts', 'path/to/+layout.server.js'])(
+      "doesn't wrap client-side code in server-only files in %s",
+      async (path: string) => {
+        const plugin = makeAutoInstrumentationPlugin({
+          debug: false,
+          load: true,
+          serverLoad: true,
+          onlyInstrumentClient: true,
+        });
+
+        // @ts-expect-error this exists and is callable
+        plugin.configResolved({
+          build: {
+            ssr: false,
+          },
+        });
+
+        // @ts-expect-error this exists and is callable
+        const loadResult = await plugin.load(path);
+
+        expect(loadResult).toBe(null);
+      },
+    );
   });
 });
 
@@ -140,7 +244,15 @@ describe('canWrapLoad', () => {
         return { props: { msg: res.toString() } }
       }`,
     ],
-
+    [
+      'export function declaration - with angle bracket type assertion',
+      `export async function load() {
+        let x: unknown = 'foo';
+        return {
+          msg: <string>x,
+        };
+      }`,
+    ],
     [
       'variable declaration (let)',
       `import {something} from 'somewhere';

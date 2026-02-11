@@ -1,23 +1,25 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
+import { addConsoleInstrumentationHandler } from '../../../src/instrument/console';
+import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
-import type { ConsoleLevel, Event } from '../../../src/types-hoist';
-import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
-import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
-import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';
-import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';
+import type { Event } from '../../../src/types-hoist/event';
+import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
+import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/debug-logger';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
-const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
-  debug: jest.fn(),
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  assert: jest.fn(),
-  info: jest.fn(),
-  trace: jest.fn(),
+const mockConsole: { [key in ConsoleLevel]: Mock<any> } = {
+  debug: vi.fn(),
+  log: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  assert: vi.fn(),
+  info: vi.fn(),
+  trace: vi.fn(),
 };
 
 describe('CaptureConsole setup', () => {
@@ -27,24 +29,24 @@ describe('CaptureConsole setup', () => {
 
   let mockClient: Client;
 
+  const captureException = vi.fn();
+
   const mockScope = {
-    setExtra: jest.fn(),
-    addEventProcessor: jest.fn(),
+    setExtra: vi.fn(),
+    addEventProcessor: vi.fn(),
+    captureMessage: vi.fn(),
   };
 
-  const captureMessage = jest.fn();
-  const captureException = jest.fn();
-  const withScope = jest.fn(callback => {
+  const withScope = vi.fn(callback => {
     return callback(mockScope);
   });
 
   beforeEach(() => {
     mockClient = {} as Client;
 
-    jest.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
-    jest.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
-    jest.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
-    jest.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
+    vi.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
+    vi.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
+    vi.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = mockConsole[key];
@@ -52,7 +54,7 @@ describe('CaptureConsole setup', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = _originalConsoleMethods[key];
@@ -70,7 +72,7 @@ describe('CaptureConsole setup', () => {
       GLOBAL_OBJ.console.log('msg 2');
       GLOBAL_OBJ.console.warn('msg 3');
 
-      expect(captureMessage).toHaveBeenCalledTimes(2);
+      expect(mockScope.captureMessage).toHaveBeenCalledTimes(2);
     });
 
     it('should fall back to default console levels if none are provided', () => {
@@ -84,7 +86,7 @@ describe('CaptureConsole setup', () => {
 
       GLOBAL_OBJ.console.assert(false);
 
-      expect(captureMessage).toHaveBeenCalledTimes(7);
+      expect(mockScope.captureMessage).toHaveBeenCalledTimes(7);
     });
 
     it('should not wrap any functions with an empty levels option', () => {
@@ -95,7 +97,7 @@ describe('CaptureConsole setup', () => {
         GLOBAL_OBJ.console[key]('msg');
       });
 
-      expect(captureMessage).toHaveBeenCalledTimes(0);
+      expect(mockScope.captureMessage).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -119,11 +121,17 @@ describe('CaptureConsole setup', () => {
 
     GLOBAL_OBJ.console.log();
 
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('', { extra: { arguments: [] }, level: 'log' });
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('', 'log', {
+      captureContext: {
+        level: 'log',
+        extra: { arguments: [] },
+      },
+      syntheticException: expect.any(Error),
+    });
   });
 
-  it('should add an event processor that sets the `logger` field of events', () => {
+  it('should add an event processor that sets the `debug` field of events', () => {
     const captureConsole = captureConsoleIntegration({ levels: ['log'] });
     captureConsole.setup?.(mockClient);
 
@@ -132,7 +140,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+    const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
     const someEvent: Event = {};
     addedEventProcessor(someEvent);
 
@@ -146,10 +154,13 @@ describe('CaptureConsole setup', () => {
     GLOBAL_OBJ.console.assert(1 + 1 === 3);
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', []);
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('Assertion failed: console.assert', {
-      extra: { arguments: [false] },
-      level: 'log',
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('Assertion failed: console.assert', 'log', {
+      captureContext: {
+        level: 'log',
+        extra: { arguments: [false] },
+      },
+      syntheticException: expect.any(Error),
     });
   });
 
@@ -160,10 +171,13 @@ describe('CaptureConsole setup', () => {
     GLOBAL_OBJ.console.assert(1 + 1 === 3, 'expression is false');
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', ['expression is false']);
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('Assertion failed: expression is false', {
-      extra: { arguments: [false, 'expression is false'] },
-      level: 'log',
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('Assertion failed: expression is false', 'log', {
+      captureContext: {
+        level: 'log',
+        extra: { arguments: [false, 'expression is false'] },
+      },
+      syntheticException: expect.any(Error),
     });
   });
 
@@ -173,7 +187,7 @@ describe('CaptureConsole setup', () => {
 
     GLOBAL_OBJ.console.assert(1 + 1 === 2);
 
-    expect(captureMessage).toHaveBeenCalledTimes(0);
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(0);
   });
 
   it('should capture exception when console logs an error object with level set to "error"', () => {
@@ -224,10 +238,13 @@ describe('CaptureConsole setup', () => {
 
     GLOBAL_OBJ.console.error('some message');
 
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('some message', {
-      extra: { arguments: ['some message'] },
-      level: 'error',
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('some message', 'error', {
+      captureContext: {
+        level: 'error',
+        extra: { arguments: ['some message'] },
+      },
+      syntheticException: expect.any(Error),
     });
   });
 
@@ -237,10 +254,13 @@ describe('CaptureConsole setup', () => {
 
     GLOBAL_OBJ.console.error('some non-error message');
 
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('some non-error message', {
-      extra: { arguments: ['some non-error message'] },
-      level: 'error',
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('some non-error message', 'error', {
+      captureContext: {
+        level: 'error',
+        extra: { arguments: ['some non-error message'] },
+      },
+      syntheticException: expect.any(Error),
     });
     expect(captureException).not.toHaveBeenCalled();
   });
@@ -251,17 +271,20 @@ describe('CaptureConsole setup', () => {
 
     GLOBAL_OBJ.console.info('some message');
 
-    expect(captureMessage).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledWith('some message', {
-      extra: { arguments: ['some message'] },
-      level: 'info',
+    expect(mockScope.captureMessage).toHaveBeenCalledTimes(1);
+    expect(mockScope.captureMessage).toHaveBeenCalledWith('some message', 'info', {
+      captureContext: {
+        level: 'info',
+        extra: { arguments: ['some message'] },
+      },
+      syntheticException: expect.any(Error),
     });
   });
 
   it('should call the original console function when console members are called', () => {
     // Mock console log to test if it was called
     const originalConsoleLog = GLOBAL_OBJ.console.log;
-    const mockConsoleLog = jest.fn();
+    const mockConsoleLog = vi.fn();
     GLOBAL_OBJ.console.log = mockConsoleLog;
 
     const captureConsole = captureConsoleIntegration({ levels: ['log'] });
@@ -291,7 +314,7 @@ describe('CaptureConsole setup', () => {
 
     // Should not capture messages
     GLOBAL_OBJ.console.log('some message');
-    expect(captureMessage).not.toHaveBeenCalledWith();
+    expect(mockScope.captureMessage).not.toHaveBeenCalledWith();
   });
 
   it("should not crash when the original console methods don't exist at time of invocation", () => {
@@ -313,7 +336,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],
@@ -326,7 +349,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
 
@@ -337,7 +360,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],
@@ -350,7 +373,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
 
@@ -361,7 +384,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],
@@ -374,7 +397,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: false,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
   });

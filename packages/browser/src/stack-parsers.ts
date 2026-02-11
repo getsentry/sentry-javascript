@@ -23,8 +23,8 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/core';
 import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/core';
+import { createStackParser, UNKNOWN_FUNCTION } from '@sentry/core';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;
@@ -61,10 +61,22 @@ const chromeRegex =
 
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
+// Matches stack frames with data URIs instead of filename so we can still get the function name
+// Example: "at dynamicFn (data:application/javascript,export function dynamicFn() {..."
+const chromeDataUriRegex = /at (.+?) ?\(data:(.+?),/;
+
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 // We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
 // See: https://github.com/getsentry/sentry-javascript/issues/6880
 const chromeStackParserFn: StackLineParserFn = line => {
+  const dataUriMatch = line.match(chromeDataUriRegex);
+  if (dataUriMatch) {
+    return {
+      filename: `<data:${dataUriMatch[2]}>`,
+      function: dataUriMatch[1],
+    };
+  }
+
   // If the stack line has no function name, we need to parse it differently
   const noFnParts = chromeRegexNoFnName.exec(line) as null | [string, string, string, string];
 

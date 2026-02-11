@@ -1,8 +1,7 @@
 import type { MemoryHistory } from '@solidjs/router';
-import { MemoryRouter, Route, createMemoryHistory } from '@solidjs/router';
+import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router';
 import { render } from '@solidjs/testing-library';
-import { vi } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
 import { withSentryRouterRouting as withSentryClientRouterRouting } from '../../src/client/solidrouter';
 import { withSentryRouterRouting as withSentryServerRouterRouting } from '../../src/server/solidrouter';
 

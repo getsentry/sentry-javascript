@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
@@ -22,7 +21,7 @@ sentryTest('should output logger messages', async ({ getLocalTestUrl, page }) =>
   await Promise.all([page.goto(url), reqPromise0]);
 
   expect(messages).toContain('Sentry Logger [log]: Integration installed: Replay');
-  expect(messages).toContain('Sentry Logger [info]: [Replay]  Creating new session');
-  expect(messages).toContain('Sentry Logger [info]: [Replay]  Starting replay in session mode');
-  expect(messages).toContain('Sentry Logger [info]: [Replay]  Using compression worker');
+  expect(messages).toContain('Sentry Logger [log]: [Replay]  Creating new session');
+  expect(messages).toContain('Sentry Logger [log]: [Replay]  Starting replay in session mode');
+  expect(messages).toContain('Sentry Logger [log]: [Replay]  Using compression worker');
 });

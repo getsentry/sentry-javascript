@@ -1,9 +1,8 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../utils/fixtures';
 import {
-  REPLAY_DEFAULT_FLUSH_MAX_DELAY,
   getReplaySnapshot,
+  REPLAY_DEFAULT_FLUSH_MAX_DELAY,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
@@ -14,7 +13,7 @@ sentryTest('should stop recording after receiving an error response', async ({ g
   }
   let called = 0;
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     called++;
 
     return route.fulfill({

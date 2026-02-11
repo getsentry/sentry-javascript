@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -17,15 +17,21 @@
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
-    "nuxt": "3.7.0"
+    "nuxt": "3.7.0",
+    "vue": "3.3.4",
+    "vue-router": "4.2.4"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "overrides": {
-    "nitropack": "2.10.0",
-    "ofetch": "1.4.0"
+  "pnpm": {
+    "overrides": {
+      "ofetch": "1.4.0",
+      "@vercel/nft": "0.29.4"
+    }
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

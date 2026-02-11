@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -14,7 +13,7 @@ sentryTest('should capture unhandledrejection with a complex object', async ({ g
     type: 'UnhandledRejection',
     value: 'Object captured as promise rejection with keys: a, b, c, d, e',
     mechanism: {
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
       handled: false,
     },
   });

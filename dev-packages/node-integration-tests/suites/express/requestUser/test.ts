@@ -1,3 +1,4 @@
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('express user handling', () => {
@@ -5,22 +6,23 @@ describe('express user handling', () => {
     cleanupChildProcesses();
   });
 
-  test('ignores user from request', done => {
+  test('ignores user from request', async () => {
     expect.assertions(2);
 
-    createRunner(__dirname, 'server.js')
+    const runner = createRunner(__dirname, 'server.js')
       .expect({
         event: event => {
           expect(event.user).toBeUndefined();
           expect(event.exception?.values?.[0]?.value).toBe('error_1');
         },
       })
-      .start(done)
-      .makeRequest('get', '/test1', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/test1', { expectError: true });
+    await runner.completed();
   });
 
-  test('using setUser in middleware works', done => {
-    createRunner(__dirname, 'server.js')
+  test('using setUser in middleware works', async () => {
+    const runner = createRunner(__dirname, 'server.js')
       .expect({
         event: {
           user: {
@@ -36,7 +38,8 @@ describe('express user handling', () => {
           },
         },
       })
-      .start(done)
-      .makeRequest('get', '/test2', { expectError: true });
+      .start();
+    runner.makeRequest('get', '/test2', { expectError: true });
+    await runner.completed();
   });
 });

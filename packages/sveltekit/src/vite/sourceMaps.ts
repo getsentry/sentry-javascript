@@ -1,17 +1,14 @@
-import * as child_process from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
 import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { Plugin } from 'vite';
-
-import MagicString from 'magic-string';
-import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
-import type { GlobalSentryValues } from './injectGlobalValues';
-import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
-import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
+import * as child_process from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { Plugin, UserConfig } from 'vite';
+import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -26,6 +23,8 @@ type Sorcery = {
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
 // and we only want to generate a uuid once in case we have to fall back to it.
 const releaseName = detectSentryRelease();
+
+type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
  * Creates a new Vite plugin that uses the unplugin-based Sentry Vite plugin to create
@@ -43,11 +42,12 @@ const releaseName = detectSentryRelease();
  *
  * @returns the custom Sentry Vite plugin
  */
-export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePluginOptions): Promise<Plugin[]> {
-  const svelteConfig = await loadSvelteConfig();
-
+export async function makeCustomSentryVitePlugins(
+  options: CustomSentryVitePluginOptions,
+  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+): Promise<Plugin[]> {
   const usedAdapter = options?.adapter || 'other';
-  const outputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
+  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -60,6 +60,13 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
+  let _resolveFilesToDeleteAfterUpload:
+    | undefined
+    | ((value: FilesToDeleteAfterUpload | Promise<FilesToDeleteAfterUpload>) => void);
+  const filesToDeleteAfterUploadPromise = new Promise<FilesToDeleteAfterUpload>(resolve => {
+    _resolveFilesToDeleteAfterUpload = resolve;
+  });
+
   const mergedOptions = {
     ...defaultPluginOptions,
     ...options,
@@ -67,7 +74,12 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       ...defaultPluginOptions.release,
       ...options?.release,
     },
+    sourcemaps: {
+      ...options?.sourcemaps,
+      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+    },
   };
+
   const { debug } = mergedOptions;
 
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
@@ -90,6 +102,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
+
     return sentryPlugins;
   }
 
@@ -99,6 +115,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
+
     return sentryPlugins;
   }
 
@@ -108,6 +128,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
+
     return sentryPlugins;
   }
 
@@ -123,60 +147,53 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
   let isSSRBuild = true;
 
-  const serverHooksFile = getHooksFileName(svelteConfig, 'server');
+  const sourceMapSettingsPlugin: Plugin = {
+    name: 'sentry-sveltekit-update-source-map-setting-plugin',
+    apply: 'build', // only apply this plugin at build time
+    config: async (config: UserConfig) => {
+      return {
+        ...config,
+        build: {
+          ...config.build,
+          sourcemap: _getUpdatedSourceMapSettings(config, options),
+        },
+      };
+    },
+  };
 
-  const globalSentryValues: GlobalSentryValues = {
-    __sentry_sveltekit_output_dir: outputDir,
+  const filesToDeleteAfterUploadConfigPlugin: Plugin = {
+    name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+    apply: 'build', // only apply this plugin at build time
+    config: (config: UserConfig) => {
+      const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
+
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+        // Including all hidden (`.*`) directories by default so that folders like .vercel,
+        // .netlify, etc are also cleaned up. Additionally, we include the adapter output
+        // dir which could be a non-hidden directory, like `build` for the Node adapter.
+        const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
+
+        debug &&
+          // eslint-disable-next-line no-console
+          console.info(
+            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+              .map(file => `"${file}"`)
+              .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+          );
+
+        _resolveFilesToDeleteAfterUpload?.(defaultFileDeletionGlob);
+      } else {
+        _resolveFilesToDeleteAfterUpload?.(originalFilesToDeleteAfterUpload);
+      }
+
+      return config;
+    },
   };
 
   const customDebugIdUploadPlugin: Plugin = {
     name: 'sentry-sveltekit-debug-id-upload-plugin',
     apply: 'build', // only apply this plugin at build time
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
-
-    // Modify the config to generate source maps
-    config: config => {
-      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
-      if (debug && sourceMapsPreviouslyNotEnabled) {
-        // eslint-disable-next-line no-console
-        console.log('[Source Maps Plugin] Enabling source map generation');
-        if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Source Maps Plugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Source Maps Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
-          );
-        }
-      }
-      return {
-        ...config,
-        build: {
-          ...config.build,
-          sourcemap: true,
-        },
-      };
-    },
-
-    resolveId: (id, _importer, _ref) => {
-      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
-        return {
-          id: VIRTUAL_GLOBAL_VALUES_FILE,
-          external: false,
-          moduleSideEffects: true,
-        };
-      }
-      return null;
-    },
-
-    load: id => {
-      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
-        return {
-          code: getGlobalValueInjectionCode(globalSentryValues),
-        };
-      }
-      return null;
-    },
-
     configResolved: config => {
       // The SvelteKit plugins trigger additional builds within the main (SSR) build.
       // We just need a mechanism to upload source maps only once.
@@ -187,22 +204,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       }
     },
 
-    transform: async (code, id) => {
-      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
-      const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
-
-      if (isServerHooksFile) {
-        const ms = new MagicString(code);
-        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
-        return {
-          code: ms.toString(),
-          map: ms.generateMap({ hires: true }),
-        };
-      }
-
-      return null;
-    },
-
     // We need to start uploading source maps later than in the original plugin
     // because SvelteKit is invoking the adapter at closeBundle.
     // This means that we need to wait until the adapter is done before we start uploading.
@@ -211,7 +212,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         return;
       }
 
-      const outDir = path.resolve(process.cwd(), outputDir);
+      const outDir = path.resolve(process.cwd(), adapterOutputDir);
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
@@ -267,7 +268,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         // Not pretty but my testing shows that it works.
         // @ts-expect-error - this hook exists on the plugin!
         await sentryViteDebugIdUploadPlugin.writeBundle({ dir: outDir });
-      } catch (_) {
+      } catch {
         // eslint-disable-next-line no-console
         console.warn('[Source Maps Plugin] Failed to upload source maps!');
         // eslint-disable-next-line no-console
@@ -297,7 +298,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       const writeBundleFn = sentryViteFileDeletionPlugin?.writeBundle;
       if (typeof writeBundleFn === 'function') {
         // This is fine though, because the original method doesn't consume any arguments in its `writeBundle` callback.
-        const outDir = path.resolve(process.cwd(), outputDir);
+        const outDir = path.resolve(process.cwd(), adapterOutputDir);
         try {
           // @ts-expect-error - the writeBundle hook expects two args we can't pass in here (they're only available in `writeBundle`)
           await writeBundleFn({ dir: outDir });
@@ -326,10 +327,73 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
   return [
     ...unchangedSentryVitePlugins,
+    sourceMapSettingsPlugin,
+    filesToDeleteAfterUploadConfigPlugin,
     customReleaseManagementPlugin,
     customDebugIdUploadPlugin,
     customFileDeletionPlugin,
   ];
+}
+
+/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-j avascript/issues/13993)
+ *
+ *     1. User explicitly disabled source maps
+ *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
+ *       - We won't upload anything
+ *
+ *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *       - keep this setting (don't do anything - like deletion - besides uploading)
+ *
+ *     3. Users didn't set source maps generation
+ *       - we enable 'hidden' source maps generation
+ *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *
+ * --> only exported for testing
+ */
+export function _getUpdatedSourceMapSettings(
+  viteConfig: UserConfig,
+  sentryPluginOptions?: CustomSentryVitePluginOptions,
+): boolean | 'inline' | 'hidden' {
+  viteConfig.build = viteConfig.build || {};
+
+  const viteSourceMap = viteConfig?.build?.sourcemap;
+  let updatedSourceMapSetting = viteSourceMap;
+
+  const settingKey = 'build.sourcemap';
+  const debug = sentryPluginOptions?.debug;
+
+  if (viteSourceMap === false) {
+    updatedSourceMapSetting = viteSourceMap;
+
+    if (debug) {
+      // Longer debug message with more details
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Source map generation is currently disabled in your Vite configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[Sentry] Source map generation is disabled in your Vite configuration.');
+    }
+  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
+    updatedSourceMapSetting = viteSourceMap;
+
+    debug &&
+      // eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+      );
+  } else {
+    updatedSourceMapSetting = 'hidden';
+
+    debug &&
+      //  eslint-disable-next-line no-console
+      console.log(
+        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps  will be deleted after they were uploaded to Sentry.`,
+      );
+  }
+
+  return updatedSourceMapSetting;
 }
 
 function getFiles(dir: string): string[] {
@@ -354,7 +418,7 @@ function detectSentryRelease(): string {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (_) {
+  } catch {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed
     // - there is no git repo or no commit yet

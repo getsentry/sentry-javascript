@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
-import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+import * as vite from 'vite';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ViteUserConfig } from 'vitest/config';
+import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -23,11 +25,16 @@ vi.mock('@sentry/vite-plugin', async () => {
 
   return {
     ...original,
-    sentryVitePlugin: () => [
-      mockedViteReleaseManagementPlugin,
-      mockedViteDebugIdUploadPlugin,
-      mockedFileDeletionPlugin,
-    ],
+    sentryVitePlugin: vi.fn(),
+  };
+});
+
+vi.mock('vite', async () => {
+  const original = (await vi.importActual('vite')) as any;
+
+  return {
+    ...original,
+    loadConfigFromFile: vi.fn(),
   };
 });
 
@@ -45,17 +52,29 @@ beforeEach(() => {
 });
 
 async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined> {
-  const plugins = await makeCustomSentryVitePlugins({
-    authToken: 'token',
-    org: 'org',
-    project: 'project',
-    adapter: 'other',
-  });
+  const plugins = await makeCustomSentryVitePlugins(
+    {
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'other',
+    },
+    { kit: {} },
+  );
 
   return plugins.find(plugin => plugin.name === name);
 }
 
-describe('makeCustomSentryVitePlugin()', () => {
+describe('makeCustomSentryVitePlugins()', () => {
+  beforeEach(() => {
+    // @ts-expect-error - this function exists!
+    sentryVitePlugin.mockReturnValue([
+      mockedViteReleaseManagementPlugin,
+      mockedViteDebugIdUploadPlugin,
+      mockedFileDeletionPlugin,
+    ]);
+  });
+
   it('returns the custom sentry source maps plugin', async () => {
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
@@ -63,10 +82,9 @@ describe('makeCustomSentryVitePlugin()', () => {
     expect(plugin?.apply).toEqual('build');
     expect(plugin?.enforce).toEqual('post');
 
-    expect(plugin?.resolveId).toBeInstanceOf(Function);
-    expect(plugin?.transform).toBeInstanceOf(Function);
+    expect(plugin?.resolveId).toBeUndefined();
+    expect(plugin?.transform).toBeUndefined();
 
-    expect(plugin?.config).toBeInstanceOf(Function);
     expect(plugin?.configResolved).toBeInstanceOf(Function);
 
     // instead of writeBundle, this plugin uses closeBundle
@@ -74,31 +92,99 @@ describe('makeCustomSentryVitePlugin()', () => {
     expect(plugin?.writeBundle).toBeUndefined();
   });
 
-  describe('Custom debug id source maps plugin plugin', () => {
-    it('enables source map generation', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
-      // @ts-expect-error this function exists!
-      const sentrifiedConfig = plugin.config({ build: { foo: {} }, test: {} });
-      expect(sentrifiedConfig).toEqual({
-        build: {
-          foo: {},
-          sourcemap: true,
-        },
-        test: {},
+  describe('Custom source map settings update plugin', () => {
+    beforeEach(() => {
+      // @ts-expect-error - this global variable is set/accessed in src/vite/sourceMaps.ts
+      globalThis._sentry_sourceMapSetting = undefined;
+    });
+
+    it('returns the custom sentry source maps plugin', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
+
+      expect(plugin).toEqual({
+        name: 'sentry-sveltekit-update-source-map-setting-plugin',
+        apply: 'build',
+        config: expect.any(Function),
       });
     });
 
-    it('injects the output dir into the server hooks file', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+    it('keeps source map generation settings when previously enabled', async () => {
+      const originalConfig = {
+        build: { sourcemap: true, assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
+
       // @ts-expect-error this function exists!
-      const transformOutput = await plugin.transform('foo', '/src/hooks.server.ts');
-      const transformedCode = transformOutput.code;
-      const transformedSourcemap = transformOutput.map;
-      const expectedTransformedCode = 'foo\n; import "\0sentry-inject-global-values-file";\n';
-      expect(transformedCode).toEqual(expectedTransformedCode);
-      expect(transformedSourcemap).toBeDefined();
+      const sentryConfig = await plugin.config(originalConfig);
+
+      expect(sentryConfig).toEqual(originalConfig);
     });
 
+    it('keeps source map generation settings when previously disabled', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
+
+      const originalConfig = {
+        build: { sourcemap: false, assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
+
+      // @ts-expect-error this function exists!
+      const sentryConfig = await plugin.config(originalConfig);
+
+      expect(sentryConfig).toEqual({
+        build: {
+          ...originalConfig.build,
+          sourcemap: false,
+        },
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Sentry] Source map generation is disabled in your Vite configuration.',
+      );
+    });
+
+    it('enables source map generation with "hidden" when unset', async () => {
+      const originalConfig = {
+        build: { assetsDir: 'assets' },
+      };
+
+      vi.spyOn(vite, 'loadConfigFromFile').mockResolvedValueOnce({
+        path: '',
+        config: originalConfig,
+        dependencies: [],
+      });
+
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
+      // @ts-expect-error this function exists!
+      const sentryConfig = await plugin.config(originalConfig);
+      expect(sentryConfig).toEqual({
+        ...originalConfig,
+        build: {
+          ...originalConfig.build,
+          sourcemap: 'hidden',
+        },
+      });
+    });
+  });
+
+  // Note: The global values injection plugin tests are now in a separate test file
+  // since the plugin was moved to injectGlobalValues.ts
+
+  describe('Custom debug id source maps plugin plugin', () => {
     it('uploads source maps during the SSR build', async () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
       // @ts-expect-error this function exists!
@@ -124,8 +210,8 @@ describe('makeCustomSentryVitePlugin()', () => {
       throw new Error('test error');
     });
 
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
@@ -236,4 +322,233 @@ describe('makeCustomSentryVitePlugin()', () => {
       );
     });
   });
+});
+
+describe('_getUpdatedSourceMapSettings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  describe('when sourcemap is false', () => {
+    it('should keep sourcemap as false and show short warning when debug is disabled', () => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: false } });
+
+      expect(result).toBe(false);
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        '[Sentry] Source map generation is disabled in your Vite configuration.',
+      );
+    });
+
+    it('should keep sourcemap as false and show long warning when debug is enabled', () => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: false } }, { debug: true });
+
+      expect(result).toBe(false);
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[Sentry] Source map generation is currently disabled in your Vite configuration'),
+      );
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'This setting is either a default setting or was explicitly set in your configuration.',
+        ),
+      );
+    });
+  });
+
+  describe('when sourcemap is explicitly set to valid values', () => {
+    it.each([
+      ['hidden', 'hidden'],
+      ['inline', 'inline'],
+      [true, true],
+    ] as ('inline' | 'hidden' | boolean)[][])('should keep sourcemap as %s when set to %s', (input, expected) => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input } }, { debug: true });
+
+      expect(result).toBe(expected);
+      // eslint-disable-next-line no-console
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(`[Sentry] We discovered \`build.sourcemap\` is set to \`${input.toString()}\``),
+      );
+    });
+  });
+
+  describe('when sourcemap is undefined or invalid', () => {
+    it.each([[undefined], ['invalid'], ['something'], [null]])(
+      'should set sourcemap to hidden when value is %s',
+      input => {
+        const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input as any } }, { debug: true });
+
+        expect(result).toBe('hidden');
+        // eslint-disable-next-line no-console
+        expect(console.log).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "[Sentry] Enabled source map generation in the build options with `build.sourcemap: 'hidden'`",
+          ),
+        );
+      },
+    );
+
+    it('should set sourcemap to hidden when build config is empty', () => {
+      const result = _getUpdatedSourceMapSettings({}, { debug: true });
+
+      expect(result).toBe('hidden');
+      // eslint-disable-next-line no-console
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "[Sentry] Enabled source map generation in the build options with `build.sourcemap: 'hidden'`",
+        ),
+      );
+    });
+  });
+});
+
+describe('deleteFilesAfterUpload', () => {
+  it('works with defauts', async () => {
+    const viteConfig: ViteUserConfig = {};
+
+    vi.mock('@sentry/vite-plugin', async () => {
+      const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+
+      return {
+        ...original,
+        sentryVitePlugin: vi.fn(original.sentryVitePlugin),
+      };
+    });
+
+    const plugins = await makeCustomSentryVitePlugins(
+      {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        adapter: 'other',
+      },
+      { kit: {} },
+    );
+
+    // @ts-expect-error this function exists!
+    const mergedOptions = sentryVitePlugin.mock.calls[0][0];
+
+    expect(mergedOptions).toEqual({
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'sveltekit',
+        },
+      },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'other',
+      release: {
+        name: expect.any(String),
+      },
+      sourcemaps: {
+        filesToDeleteAfterUpload: expect.any(Promise),
+      },
+    });
+
+    const sourceMapSettingPlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-update-source-map-setting-plugin',
+    )!;
+
+    // @ts-expect-error this function exists!
+    const sourceMapSettingConfig = await sourceMapSettingPlugin.config(viteConfig);
+    expect(sourceMapSettingConfig).toEqual({ build: { sourcemap: 'hidden' } });
+
+    const filesToDeleteAfterUploadSettingPlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+    )!;
+
+    // call this to ensure the filesToDeleteAfterUpload setting is resolved
+    // @ts-expect-error this function exists!
+    await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+
+    await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
+      './.*/**/*.map',
+      './.svelte-kit/output/**/*.map',
+    ]);
+  });
+
+  it.each([
+    [['blub/'], undefined, 'hidden', ['blub/']],
+    [['blub/'], false, false, ['blub/']],
+    [undefined, 'hidden' as const, 'hidden', undefined],
+    [undefined, false, false, undefined],
+    [undefined, true, true, undefined],
+    [['/blub/'], true, true, ['/blub/']],
+  ])(
+    'works with filesToDeleteAfterUpload: %j & sourcemap: %s',
+    async (filesToDeleteAfterUpload, sourcemap, sourcemapExpected, filesToDeleteAfterUploadExpected) => {
+      const viteConfig: ViteUserConfig = {
+        build: {
+          sourcemap,
+        },
+      };
+
+      vi.mock('@sentry/vite-plugin', async () => {
+        const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+
+        return {
+          ...original,
+          sentryVitePlugin: vi.fn(original.sentryVitePlugin),
+        };
+      });
+
+      const plugins = await makeCustomSentryVitePlugins(
+        {
+          authToken: 'token',
+          org: 'org',
+          project: 'project',
+          adapter: 'other',
+          sourcemaps: {
+            filesToDeleteAfterUpload,
+          },
+        },
+        { kit: {} },
+      );
+
+      // @ts-expect-error this function exists!
+      const mergedOptions = sentryVitePlugin.mock.calls[0][0];
+
+      expect(mergedOptions).toEqual({
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'sveltekit',
+          },
+        },
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        adapter: 'other',
+        release: {
+          name: expect.any(String),
+        },
+        sourcemaps: {
+          filesToDeleteAfterUpload: expect.any(Promise),
+        },
+      });
+
+      const sourceMapSettingPlugin = plugins.find(
+        plugin => plugin.name === 'sentry-sveltekit-update-source-map-setting-plugin',
+      )!;
+
+      // @ts-expect-error this function exists!
+      const sourceMapSettingConfig = await sourceMapSettingPlugin.config(viteConfig);
+      expect(sourceMapSettingConfig).toEqual({ build: { sourcemap: sourcemapExpected } });
+
+      const filesToDeleteAfterUploadSettingPlugin = plugins.find(
+        plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+      )!;
+
+      // call this to ensure the filesToDeleteAfterUpload setting is resolved
+      // @ts-expect-error this function exists!
+      await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+
+      await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
+        filesToDeleteAfterUploadExpected,
+      );
+    },
+  );
 });

@@ -1,5 +1,4 @@
 import { uuid4 } from '@sentry/core';
-
 import type { Sampled, Session } from '../types';
 
 /**
@@ -14,6 +13,7 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
   const segmentId = session.segmentId || 0;
   const sampled = session.sampled;
   const previousSessionId = session.previousSessionId;
+  const dirty = session.dirty || false;
 
   return {
     id,
@@ -22,5 +22,6 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
     segmentId,
     sampled,
     previousSessionId,
+    dirty,
   };
 }

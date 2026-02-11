@@ -1,15 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-
 import * as SentryCore from '@sentry/core';
-import { logger as coreLogger } from '@sentry/core';
-import { logger } from '../../../src/util/logger';
+import { debug as coreDebugLogger } from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { debug } from '../../../src/util/logger';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException');
 const mockAddBreadcrumb = vi.spyOn(SentryCore, 'addBreadcrumb');
-const mockLogError = vi.spyOn(coreLogger, 'error');
-vi.spyOn(coreLogger, 'info');
-vi.spyOn(coreLogger, 'log');
-vi.spyOn(coreLogger, 'warn');
+const mockLogError = vi.spyOn(coreDebugLogger, 'error');
+vi.spyOn(coreDebugLogger, 'log');
+vi.spyOn(coreDebugLogger, 'warn');
 
 describe('logger', () => {
   beforeEach(() => {
@@ -23,20 +21,19 @@ describe('logger', () => {
     [true, true],
   ])('with options: captureExceptions:%s, traceInternals:%s', (captureExceptions, traceInternals) => {
     beforeEach(() => {
-      logger.setConfig({
+      debug.setConfig({
         captureExceptions,
         traceInternals,
       });
     });
 
     it.each([
-      ['info', 'info', 'info message'],
       ['log', 'log', 'log message'],
       ['warn', 'warning', 'warn message'],
       ['error', 'error', 'error message'],
-    ])('%s', (fn, level, message) => {
-      logger[fn](message);
-      expect(coreLogger[fn]).toHaveBeenCalledWith('[Replay] ', message);
+    ] as const)('%s', (fn, level, message) => {
+      debug[fn](message);
+      expect(coreDebugLogger[fn]).toHaveBeenCalledWith('[Replay] ', message);
 
       if (traceInternals) {
         expect(mockAddBreadcrumb).toHaveBeenLastCalledWith(
@@ -53,9 +50,14 @@ describe('logger', () => {
 
     it('logs exceptions with a message', () => {
       const err = new Error('An error');
-      logger.exception(err, 'a message');
+      debug.exception(err, 'a message');
       if (captureExceptions) {
-        expect(mockCaptureException).toHaveBeenCalledWith(err);
+        expect(mockCaptureException).toHaveBeenCalledWith(err, {
+          mechanism: {
+            handled: true,
+            type: 'auto.function.replay.debug',
+          },
+        });
       }
       expect(mockLogError).toHaveBeenCalledWith('[Replay] ', 'a message');
       expect(mockLogError).toHaveBeenLastCalledWith('[Replay] ', err);
@@ -76,9 +78,14 @@ describe('logger', () => {
 
     it('logs exceptions without a message', () => {
       const err = new Error('An error');
-      logger.exception(err);
+      debug.exception(err);
       if (captureExceptions) {
-        expect(mockCaptureException).toHaveBeenCalledWith(err);
+        expect(mockCaptureException).toHaveBeenCalledWith(err, {
+          mechanism: {
+            handled: true,
+            type: 'auto.function.replay.debug',
+          },
+        });
         expect(mockAddBreadcrumb).not.toHaveBeenCalled();
       }
       expect(mockLogError).toHaveBeenCalledTimes(1);

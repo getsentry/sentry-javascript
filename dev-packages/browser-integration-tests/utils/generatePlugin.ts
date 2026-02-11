@@ -1,9 +1,8 @@
+import { type Package } from '@sentry/core';
 import fs from 'fs';
-import path from 'path';
-import type { Package } from '@sentry/core';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
+import path from 'path';
 import type { Compiler } from 'webpack';
-
 import { addStaticAsset, symlinkAsset } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
@@ -36,22 +35,47 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   reportingObserverIntegration: 'reportingobserver',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
+  graphqlClientIntegration: 'graphqlclient',
+  browserProfilingIntegration: 'browserprofiling',
+  instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
+  instrumentOpenAiClient: 'instrumentopenaiclient',
+  instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
+  instrumentLangGraph: 'instrumentlanggraph',
+  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
+  // technically, this is not an integration, but let's add it anyway for simplicity
+  makeMultiplexedTransport: 'multiplexedtransport',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/bundle.js',
     bundle_min: 'build/bundles/bundle.min.js',
+    bundle_logs_metrics: 'build/bundles/bundle.logs.metrics.js',
+    bundle_logs_metrics_min: 'build/bundles/bundle.logs.metrics.min.js',
+    bundle_logs_metrics_debug_min: 'build/bundles/bundle.logs.metrics.debug.min.js',
     bundle_replay: 'build/bundles/bundle.replay.js',
     bundle_replay_min: 'build/bundles/bundle.replay.min.js',
+    bundle_replay_logs_metrics: 'build/bundles/bundle.replay.logs.metrics.js',
+    bundle_replay_logs_metrics_min: 'build/bundles/bundle.replay.logs.metrics.min.js',
+    bundle_replay_logs_metrics_debug_min: 'build/bundles/bundle.replay.logs.metrics.debug.min.js',
     bundle_tracing: 'build/bundles/bundle.tracing.js',
     bundle_tracing_min: 'build/bundles/bundle.tracing.min.js',
+    bundle_tracing_logs_metrics: 'build/bundles/bundle.tracing.logs.metrics.js',
+    bundle_tracing_logs_metrics_min: 'build/bundles/bundle.tracing.logs.metrics.min.js',
+    bundle_tracing_logs_metrics_debug_min: 'build/bundles/bundle.tracing.logs.metrics.debug.min.js',
     bundle_tracing_replay: 'build/bundles/bundle.tracing.replay.js',
     bundle_tracing_replay_min: 'build/bundles/bundle.tracing.replay.min.js',
+    bundle_tracing_replay_logs_metrics: 'build/bundles/bundle.tracing.replay.logs.metrics.js',
+    bundle_tracing_replay_logs_metrics_min: 'build/bundles/bundle.tracing.replay.logs.metrics.min.js',
+    bundle_tracing_replay_logs_metrics_debug_min: 'build/bundles/bundle.tracing.replay.logs.metrics.debug.min.js',
     bundle_tracing_replay_feedback: 'build/bundles/bundle.tracing.replay.feedback.js',
     bundle_tracing_replay_feedback_min: 'build/bundles/bundle.tracing.replay.feedback.min.js',
+    bundle_tracing_replay_feedback_logs_metrics: 'build/bundles/bundle.tracing.replay.feedback.logs.metrics.js',
+    bundle_tracing_replay_feedback_logs_metrics_min: 'build/bundles/bundle.tracing.replay.feedback.logs.metrics.min.js',
+    bundle_tracing_replay_feedback_logs_metrics_debug_min:
+      'build/bundles/bundle.tracing.replay.feedback.logs.metrics.debug.min.js',
     loader_base: 'build/bundles/bundle.min.js',
     loader_eager: 'build/bundles/bundle.min.js',
     loader_debug: 'build/bundles/bundle.debug.min.js',
@@ -61,8 +85,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
@@ -71,8 +95,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
   wasm: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/wasm.js',
     bundle_min: 'build/bundles/wasm.min.js',
   },
@@ -176,7 +200,6 @@ class SentryScenarioGenerationPlugin {
 
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         parser.hooks.import.tap(
           this._name,
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
@@ -237,7 +260,9 @@ class SentryScenarioGenerationPlugin {
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
             .replace('_tracing', '')
-            .replace('_feedback', '');
+            .replace('_feedback', '')
+            .replace('_logs', '')
+            .replace('_metrics', '');
 
           // For feedback bundle, make sure to add modal & screenshot integrations
           if (bundleKey.includes('_feedback')) {

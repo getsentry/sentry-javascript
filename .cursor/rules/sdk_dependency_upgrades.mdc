@@ -1,0 +1,167 @@
+---
+description: Use this rule if you are looking to upgrade a dependency in the Sentry JavaScript SDKs
+globs:
+alwaysApply: false
+---
+
+# Yarn v1 Dependency Upgrades
+
+## Upgrade Process
+
+### Dependency Analysis
+
+```bash
+# Check dependency tree
+yarn list --depth=0
+
+# Find why package is installed
+yarn why [package-name]
+```
+
+### Root Workspace vs. Package Dependencies
+
+**CRITICAL**: Understand the difference between dependency types:
+
+- **Root Workspace dependencies**: Shared dev tools, build tools, testing frameworks
+- **Package dependencies**: Package-specific runtime and dev dependencies
+- Always check if dependency should be in root workspace or package level
+
+### Upgrade Dependencies
+
+**MANDATORY**: Only ever upgrade a single package at a time.
+
+**CRITICAL RULE**: If a dependency is not defined in `package.json` anywhere, the upgrade must be run in the root workspace as the `yarn.lock` file is contained there.
+
+```bash
+# Upgrade specific package to latest compatible version
+npx yarn-update-dependency@latest [package-name]
+```
+
+Avoid upgrading top-level dependencies (defined in `package.json`), especially if they are used for tests. If you are going to upgrade them, ask the user before proceeding.
+
+**REQUIREMENT**: If a `package.json` file is updated, make sure it has a new line at the end.
+
+#### CRITICAL: OpenTelemetry Dependency Constraint
+
+**STOP UPGRADE IMMEDIATELY** if upgrading any dependency with `opentelemetry` in the name and the new version or any of its dependencies uses forbidden OpenTelemetry versions.
+
+**FORBIDDEN VERSION PATTERNS:**
+
+- `2.x.x` versions (e.g., `2.0.0`, `2.1.0`)
+- `0.2xx.x` versions (e.g., `0.200.0`, `0.201.0`)
+
+When upgrading OpenTelemetry dependencies:
+
+1. Check the dependency's `package.json` after upgrade
+2. Verify the package itself doesn't use forbidden version patterns
+3. Verify none of its dependencies use `@opentelemetry/*` packages with forbidden version patterns
+4. **Example**: `@opentelemetry/instrumentation-pg@0.52.0` is forbidden because it bumped to core `2.0.0` and instrumentation `0.200.0`
+5. If forbidden OpenTelemetry versions are detected, **ABORT the upgrade** and notify the user that this upgrade cannot proceed due to OpenTelemetry v2+ compatibility constraints
+
+#### CRITICAL: E2E Test Dependencies
+
+**DO NOT UPGRADE** the major version of dependencies in test applications where the test name explicitly mentions a dependency version.
+
+**RULE**: For `dev-packages/e2e-tests/test-applications/*`, if the test directory name mentions a specific version (e.g., `nestjs-8`), do not upgrade that dependency beyond the mentioned major version.
+
+**Example**: Do not upgrade the nestjs version of `dev-packages/e2e-tests/test-applications/nestjs-8` to nestjs 9 or above because the test name mentions nestjs 8.
+
+## Safety Protocols
+
+### Pre-Upgrade Checklist
+
+**COMPLETE ALL STEPS** before proceeding with any upgrade:
+
+1. **Backup**: Ensure clean git state or create backup branch
+2. **CI Status**: Verify all tests are passing
+3. **Lockfile works**: Confirm `yarn.lock` is in a good state (no merge conflicts)
+4. **OpenTelemetry Check**: For OpenTelemetry dependencies, verify no forbidden version patterns (`2.x.x` or `0.2xx.x`) will be introduced
+
+### Post-Upgrade Verification
+
+```bash
+# rebuild everything
+yarn install
+
+# Build the project
+yarn build:dev
+
+# Make sure dependencies are deduplicated
+yarn dedupe-deps:fix
+
+# Fix any linting issues
+yarn fix
+
+# Check circular dependencies
+yarn circularDepCheck
+```
+
+## Version Management
+
+### Pinning Strategies
+
+- **Exact versions** (`1.2.3`): Use for critical dependencies
+- **Caret versions** (`^1.2.3`): Allow minor updates only
+- **Latest tag**: Avoid as much as possible other than in certain testing and development scenarios
+
+## Troubleshooting
+
+- **Yarn Version**: Run `yarn --version` - must be yarn v1 (not v2/v3/v4)
+- **Lockfile Issues**: Verify yarn.lock exists and is properly maintained. Fix merge conflicts by running `yarn install`
+
+## Best Practices
+
+### Security Audits
+
+```bash
+# Check for security vulnerabilities
+yarn audit
+
+# Fix automatically fixable vulnerabilities
+yarn audit fix
+
+# Install security patches only
+yarn upgrade --security-only
+```
+
+### Check for Outdated Dependencies
+
+```bash
+# Check all outdated dependencies
+yarn outdated
+
+# Check specific package
+yarn outdated [package-name]
+
+# Check dependencies in specific workspace
+yarn workspace [workspace-name] outdated
+```
+
+### Using yarn info for Dependency Inspection
+
+Use `yarn info` to inspect package dependencies before and after upgrades:
+
+```bash
+# Check current version and dependencies
+yarn info <package-name>
+
+# Check specific version dependencies
+yarn info <package-name>@<version>
+
+# Check dependencies field specifically
+yarn info <package-name>@<version> dependencies
+
+# Check all available versions
+yarn info <package-name> versions
+```
+
+The `yarn info` command provides detailed dependency information without requiring installation, making it particularly useful for:
+
+- Verifying OpenTelemetry packages don't introduce forbidden version patterns (`2.x.x` or `0.2xx.x`)
+- Checking what dependencies a package will bring in before upgrading
+- Understanding package version history and compatibility
+
+### Documentation
+
+- Update README or code comments if dependency change affects usage of the SDK or its integrations
+- Notify team of significant changes

@@ -1,13 +1,13 @@
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributeValue,
   SpanAttributes,
+  SpanAttributeValue,
   SpanContextData,
-  SpanStatus,
   SpanTimeInput,
-} from '../types-hoist';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
+} from '../types-hoist/span';
+import type { SpanStatus } from '../types-hoist/spanStatus';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
@@ -32,7 +32,6 @@ export class SentryNonRecordingSpan implements Span {
   }
 
   /** @inheritdoc */
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   public end(_timestamp?: SpanTimeInput): void {}
 
   /** @inheritdoc */
@@ -69,24 +68,12 @@ export class SentryNonRecordingSpan implements Span {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLink(_link: unknown): this {
     return this;
   }
 
-  /**
-   * This should generally not be used,
-   * but we need it for being compliant with the OTEL Span interface.
-   *
-   * @hidden
-   * @internal
-   */
+  /** @inheritDoc */
   public addLinks(_links: unknown[]): this {
     return this;
   }

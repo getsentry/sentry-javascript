@@ -1,16 +1,9 @@
-import type {
-  BaseTransportOptions,
-  Envelope,
-  EnvelopeItemType,
-  Event,
-  EventItem,
-  Transport,
-  TransportMakeRequestResponse,
-} from '../types-hoist';
-
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
-import { dsnFromString } from '../utils-hoist/dsn';
-import { createEnvelope, forEachEnvelopeItem } from '../utils-hoist/envelope';
+import type { Envelope, EnvelopeItemType, EventItem } from '../types-hoist/envelope';
+import type { Event } from '../types-hoist/event';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist/transport';
+import { dsnFromString } from '../utils/dsn';
+import { createEnvelope, forEachEnvelopeItem } from '../utils/envelope';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -27,6 +20,12 @@ interface MatchParam {
 
 type RouteTo = { dsn: string; release: string };
 type Matcher = (param: MatchParam) => (string | RouteTo)[];
+
+/**
+ * Key used in event.extra to provide routing information for the multiplexed transport.
+ * Should contain an array of `{ dsn: string, release?: string }` objects.
+ */
+export const MULTIPLEXED_TRANSPORT_EXTRA_KEY = 'MULTIPLEXED_TRANSPORT_EXTRA_KEY';
 
 /**
  * Gets an event from an envelope.
@@ -86,14 +85,32 @@ function overrideDsn(envelope: Envelope, dsn: string): Envelope {
 
 /**
  * Creates a transport that can send events to different DSNs depending on the envelope contents.
+ *
+ * If no matcher is provided, the transport will look for routing information in
+ * `event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]`, which should contain
+ * an array of `{ dsn: string, release?: string }` objects.
  */
 export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
   createTransport: (options: TO) => Transport,
-  matcher: Matcher,
+  matcher?: Matcher,
 ): (options: TO) => Transport {
   return options => {
     const fallbackTransport = createTransport(options);
     const otherTransports: Map<string, Transport> = new Map();
+
+    // Use provided matcher or default to simple multiplexed transport behavior
+    const actualMatcher: Matcher =
+      matcher ||
+      (args => {
+        const event = args.getEvent();
+        if (
+          event?.extra?.[MULTIPLEXED_TRANSPORT_EXTRA_KEY] &&
+          Array.isArray(event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY])
+        ) {
+          return event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY];
+        }
+        return [];
+      });
 
     function getTransport(dsn: string, release: string | undefined): [string, Transport] | undefined {
       // We create a transport for every unique dsn/release combination as there may be code from multiple releases in
@@ -125,7 +142,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         return eventFromEnvelope(envelope, eventTypes);
       }
 
-      const transports = matcher({ envelope, getEvent })
+      const transports = actualMatcher({ envelope, getEvent })
         .map(result => {
           if (typeof result === 'string') {
             return getTransport(result, undefined);

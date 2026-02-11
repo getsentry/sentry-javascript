@@ -1,17 +1,17 @@
 import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
 import {
-  UNKNOWN_FUNCTION,
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   captureEvent,
+  debug,
   defineIntegration,
   getClient,
   getLocationHref,
   isPrimitive,
   isString,
-  logger,
+  stripDataUrlContent,
+  UNKNOWN_FUNCTION,
 } from '@sentry/core';
-
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
@@ -73,7 +73,7 @@ function _installGlobalOnErrorHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onerror',
+        type: 'auto.browser.global_handlers.onerror',
       },
     });
   });
@@ -87,7 +87,7 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       return;
     }
 
-    const error = _getUnhandledRejectionError(e as unknown);
+    const error = _getUnhandledRejectionError(e);
 
     const event = isPrimitive(error)
       ? _eventFromRejectionWithPrimitive(error)
@@ -99,13 +99,16 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
       },
     });
   });
 }
 
-function _getUnhandledRejectionError(error: unknown): unknown {
+/**
+ *
+ */
+export function _getUnhandledRejectionError(error: unknown): unknown {
   if (isPrimitive(error)) {
     return error;
   }
@@ -139,7 +142,7 @@ function _getUnhandledRejectionError(error: unknown): unknown {
  * @param reason: The `reason` property of the promise rejection
  * @returns An Event object with an appropriate `exception` value
  */
-function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
+export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
   return {
     exception: {
       values: [
@@ -172,7 +175,7 @@ function _enhanceEventWithInitialFrame(
 
   const colno = column;
   const lineno = line;
-  const filename = isString(url) && url.length > 0 ? url : getLocationHref();
+  const filename = getFilenameFromUrl(url) ?? getLocationHref();
 
   // event.exception.values[0].stacktrace.frames
   if (ev0sf.length === 0) {
@@ -189,7 +192,7 @@ function _enhanceEventWithInitialFrame(
 }
 
 function globalHandlerLog(type: string): void {
-  DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
+  DEBUG_BUILD && debug.log(`Global Handler attached: ${type}`);
 }
 
 function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } {
@@ -199,4 +202,20 @@ function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } 
     attachStacktrace: false,
   };
   return options;
+}
+
+function getFilenameFromUrl(url: string | undefined): string | undefined {
+  if (!isString(url) || url.length === 0) {
+    return undefined;
+  }
+
+  // Strip data URL content to avoid long base64 strings in stack frames
+  // (e.g. when initializing a Worker with a base64 encoded script)
+  // Don't include data prefix for filenames as it's not useful for stack traces
+  // Wrap with < > to indicate it's a placeholder
+  if (url.startsWith('data:')) {
+    return `<${stripDataUrlContent(url, false)}>`;
+  }
+
+  return url;
 }

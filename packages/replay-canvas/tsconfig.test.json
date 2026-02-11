@@ -4,7 +4,7 @@
   "include": ["test/**/*.ts", "vite.config.ts"],
 
   "compilerOptions": {
-    "lib": ["DOM", "ES2018"],
+    "lib": ["DOM", "es2020"],
     "types": ["node"],
     "esModuleInterop": true,
     "allowJs": true,

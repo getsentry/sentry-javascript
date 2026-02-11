@@ -1,4 +1,3 @@
-import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveSpan,
@@ -7,7 +6,9 @@ import {
   getRootSpan,
   getTraceData,
   httpRequestToRequestData,
+  isThenable,
 } from '@sentry/core';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**
@@ -24,7 +25,11 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
       return await origFunction.apply(this, origFunctionArguments);
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
-      captureException(e, { mechanism: { handled: false } });
+      captureException(e, {
+        // TODO: check if origFunction.name actually returns the correct name or minified garbage
+        // in this case, we can add another argument to this wrapper with the respective function name
+        mechanism: { handled: false, type: 'auto.function.nextjs.wrapped', data: { function: origFunction.name } },
+      });
       throw e;
     }
   };
@@ -98,7 +103,35 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   try {
     return await origFunction(...origFunctionArgs);
   } catch (e) {
-    captureException(e, { mechanism: { handled: false } });
+    captureException(e, { mechanism: { handled: false, type: 'auto.function.nextjs.data_fetcher' } });
     throw e;
   }
+}
+
+/**
+ * Extracts the params and searchParams from the props object.
+ *
+ * Depending on the next version, params and searchParams may be a promise which we do not want to resolve in this function.
+ */
+export function maybeExtractSynchronousParamsAndSearchParams(props: unknown): {
+  params: Record<string, string> | undefined;
+  searchParams: Record<string, string> | undefined;
+} {
+  let params =
+    props && typeof props === 'object' && 'params' in props
+      ? (props.params as Record<string, string> | Promise<Record<string, string>> | undefined)
+      : undefined;
+  if (isThenable(params)) {
+    params = undefined;
+  }
+
+  let searchParams =
+    props && typeof props === 'object' && 'searchParams' in props
+      ? (props.searchParams as Record<string, string> | Promise<Record<string, string>> | undefined)
+      : undefined;
+  if (isThenable(searchParams)) {
+    searchParams = undefined;
+  }
+
+  return { params, searchParams };
 }

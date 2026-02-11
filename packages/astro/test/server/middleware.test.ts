@@ -1,31 +1,52 @@
+import type { Client, Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import type { Client, Span } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
-vi.mock('../../src/server/meta', () => ({
-  getTracingMetaTagValues: () => ({
-    sentryTrace: '<meta name="sentry-trace" content="123">',
-    baggage: '<meta name="baggage" content="abc">',
-  }),
-}));
+const DYNAMIC_REQUEST_CONTEXT = {
+  clientAddress: '192.168.0.1',
+  request: {
+    method: 'GET',
+    url: '/users',
+    headers: new Headers(),
+  },
+  params: {},
+  url: new URL('https://myDomain.io/users/'),
+};
+
+const STATIC_REQUEST_CONTEXT = {
+  request: {
+    method: 'GET',
+    url: '/users',
+    headers: new Headers({
+      'some-header': 'some-value',
+    }),
+  },
+  get clientAddress() {
+    throw new Error('clientAddress.get() should not be called in static page requests');
+  },
+  params: {},
+  url: new URL('https://myDomain.io/users/'),
+};
 
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
   const getSpanMock = vi.fn(() => {
-    return {} as Span | undefined;
+    return {
+      spanContext: () => ({
+        spanId: '123',
+        traceId: '123',
+      }),
+    } as Span | undefined;
   });
-  const setUserMock = vi.fn();
   const setSDKProcessingMetadataMock = vi.fn();
 
   beforeEach(() => {
     vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
       return {
-        setUser: setUserMock,
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
         setSDKProcessingMetadata: setSDKProcessingMetadataMock,
@@ -33,7 +54,7 @@ describe('sentryMiddleware', () => {
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({ getOptions: () => ({}) }) as Client);
     vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">
@@ -43,6 +64,9 @@ describe('sentryMiddleware', () => {
     vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockImplementation(() => ({
       transaction: 'test',
     }));
+
+    // Ensure this is wiped
+    SentryCore.setUser(null);
   });
 
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
@@ -54,6 +78,7 @@ describe('sentryMiddleware', () => {
   it('creates a span for an incoming request', async () => {
     const middleware = handleRequest();
     const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
       request: {
         method: 'GET',
         url: '/users/123/details',
@@ -76,6 +101,8 @@ describe('sentryMiddleware', () => {
           method: 'GET',
           url: 'https://mydomain.io/users/123/details',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
+          'http.route': '/users/[id]/details',
         },
         name: 'GET /users/[id]/details',
         op: 'http.server',
@@ -90,6 +117,7 @@ describe('sentryMiddleware', () => {
   it("sets source route if the url couldn't be decoded correctly", async () => {
     const middleware = handleRequest();
     const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
       request: {
         method: 'GET',
         url: '/a%xx',
@@ -110,6 +138,7 @@ describe('sentryMiddleware', () => {
           method: 'GET',
           url: 'http://localhost:1234/a%xx',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
         },
         name: 'GET a%xx',
         op: 'http.server',
@@ -126,13 +155,7 @@ describe('sentryMiddleware', () => {
 
     const middleware = handleRequest();
     const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers(),
-      },
-      url: new URL('https://myDomain.io/users/'),
-      params: {},
+      ...DYNAMIC_REQUEST_CONTEXT,
     };
 
     const error = new Error('Something went wrong');
@@ -145,7 +168,44 @@ describe('sentryMiddleware', () => {
     await expect(async () => middleware(ctx, next)).rejects.toThrowError();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+      mechanism: { handled: false, type: 'auto.middleware.astro' },
+    });
+  });
+
+  it('throws and sends an error to sentry if response streaming throws', async () => {
+    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
+
+    const middleware = handleRequest();
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+
+    const error = new Error('Something went wrong');
+
+    const faultyStream = new ReadableStream({
+      pull: controller => {
+        controller.error(error);
+        controller.close();
+      },
+    });
+
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response(faultyStream, {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext).toBeDefined();
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+    await expect(() => resultFromNext?.text()).rejects.toThrowError();
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.middleware.astro' },
     });
   });
 
@@ -153,50 +213,31 @@ describe('sentryMiddleware', () => {
     it('attaches client IP if `trackClientIp=true` when handling dynamic page requests', async () => {
       const middleware = handleRequest({ trackClientIp: true });
       const ctx = {
-        request: {
-          method: 'GET',
-          url: '/users',
-          headers: new Headers({
-            'some-header': 'some-value',
-          }),
-        },
-        clientAddress: '192.168.0.1',
-        params: {},
-        url: new URL('https://myDomain.io/users/'),
+        ...DYNAMIC_REQUEST_CONTEXT,
       };
-      const next = vi.fn(() => nextResult);
 
       // @ts-expect-error, a partial ctx object is fine here
-      await middleware(ctx, next);
-
-      expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user).toEqual({ ip_address: '192.168.0.1' });
+        return nextResult;
+      });
     });
 
     it("doesn't attach a client IP if `trackClientIp=true` when handling static page requests", async () => {
       const middleware = handleRequest({ trackClientIp: true });
 
-      const ctx = {
-        request: {
-          method: 'GET',
-          url: '/users',
-          headers: new Headers({
-            'some-header': 'some-value',
-          }),
-        },
-        get clientAddress() {
-          throw new Error('clientAddress.get() should not be called in static page requests');
-        },
-        params: {},
-        url: new URL('https://myDomain.io/users/'),
-      };
-
-      const next = vi.fn(() => nextResult);
+      const ctx = STATIC_REQUEST_CONTEXT;
 
       // @ts-expect-error, a partial ctx object is fine here
-      await middleware(ctx, next);
-
-      expect(setUserMock).not.toHaveBeenCalled();
-      expect(next).toHaveBeenCalledTimes(1);
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user).toEqual({
+          email: undefined,
+          id: undefined,
+          ip_address: undefined,
+          username: undefined,
+        });
+        return nextResult;
+      });
     });
   });
 
@@ -204,6 +245,7 @@ describe('sentryMiddleware', () => {
     it('attaches request as SDK processing metadata in dynamic page requests', async () => {
       const middleware = handleRequest({});
       const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
         request: {
           method: 'GET',
           url: '/users',
@@ -211,9 +253,6 @@ describe('sentryMiddleware', () => {
             'some-header': 'some-value',
           }),
         },
-        clientAddress: '192.168.0.1',
-        params: {},
-        url: new URL('https://myDomain.io/users/'),
       };
       const next = vi.fn(() => nextResult);
 
@@ -234,46 +273,52 @@ describe('sentryMiddleware', () => {
 
     it("doesn't attach request headers as processing metadata for static page requests", async () => {
       const middleware = handleRequest({});
-      const ctx = {
-        request: {
-          method: 'GET',
-          url: '/users',
-          headers: new Headers({
-            'some-header': 'some-value',
-          }),
-        },
-        get clientAddress() {
-          throw new Error('clientAddress.get() should not be called in static page requests');
-        },
-        params: {},
-        url: new URL('https://myDomain.io/users/'),
-      };
+      const ctx = STATIC_REQUEST_CONTEXT;
       const next = vi.fn(() => nextResult);
 
       // @ts-expect-error, a partial ctx object is fine here
       await middleware(ctx, next);
 
-      expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-        normalizedRequest: {
-          method: 'GET',
-          url: '/users',
-        },
-      });
+      expect(setSDKProcessingMetadataMock).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('injects tracing <meta> tags into the HTML of a pageload response', async () => {
+  it('does not inject tracing <meta> tags if route is static', async () => {
+    const middleware = handleRequest();
+
+    const ctx = STATIC_REQUEST_CONTEXT;
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="something" content=""/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<head>');
+    expect(html).toContain('<meta name="something" content=""/></head>');
+    // parametrized route is injected
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    // trace data is not injected
+    expect(html).not.toContain('<meta name="sentry-trace" content="');
+    expect(html).not.toContain('<meta name="baggage" content="');
+  });
+
+  it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => undefined);
+
     const middleware = handleRequest();
 
     const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers(),
-      },
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
+      ...DYNAMIC_REQUEST_CONTEXT,
     };
     const next = vi.fn(() =>
       Promise.resolve(
@@ -290,6 +335,37 @@ describe('sentryMiddleware', () => {
 
     const html = await resultFromNext?.text();
 
+    expect(html).toContain('<head>');
+    expect(html).toContain('<meta name="something" content=""/></head>');
+    expect(html).not.toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).not.toContain('<meta name="sentry-trace" content="');
+    expect(html).not.toContain('<meta name="baggage" content="');
+  });
+
+  it('injects tracing <meta> tags into the HTML of a pageload response when Sentry is initialized', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      ...DYNAMIC_REQUEST_CONTEXT,
+    };
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="something" content=""/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<head>');
+    expect(html).toContain('<meta name="something" content=""/></head>');
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');
   });
@@ -298,13 +374,7 @@ describe('sentryMiddleware', () => {
     const middleware = handleRequest();
 
     const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers(),
-      },
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
+      ...DYNAMIC_REQUEST_CONTEXT,
     };
 
     const originalResponse = new Response('{"foo": "bar"}', {
@@ -322,13 +392,7 @@ describe('sentryMiddleware', () => {
     const middleware = handleRequest();
 
     const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers(),
-      },
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
+      ...DYNAMIC_REQUEST_CONTEXT,
     };
 
     const originalHtml = '<p>no head</p>';
@@ -357,7 +421,9 @@ describe('sentryMiddleware', () => {
     it('starts a new async context if no span is active', async () => {
       getSpanMock.mockReturnValueOnce(undefined);
       const handler = handleRequest();
-      const ctx = {};
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
       const next = vi.fn();
 
       try {
@@ -371,11 +437,24 @@ describe('sentryMiddleware', () => {
     });
 
     it("doesn't start a new async context if a span is active", async () => {
-      // @ts-expect-error, a empty span is fine here
-      getSpanMock.mockReturnValueOnce({});
+      getSpanMock.mockReturnValueOnce({
+        spanContext: () => ({
+          spanId: '123',
+          traceId: '123',
+          traceFlags: 1,
+        }),
+        // @ts-expect-error, this is fine
+        getSpanJSON: () => ({
+          span_id: '123',
+          trace_id: '123',
+          op: 'http.server',
+        }),
+      });
 
       const handler = handleRequest();
-      const ctx = {};
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
       const next = vi.fn();
 
       try {
@@ -438,6 +517,13 @@ describe('interpolateRouteFromUrlAndParams', () => {
     const rawUrl = '/usernames/user';
     const params = { name: undefined, name2: '' };
     const expectedRoute = '/usernames/user';
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it('removes trailing slashes from the route', () => {
+    const rawUrl = '/users/123/';
+    const params = { id: '123' };
+    const expectedRoute = '/users/[id]';
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 });

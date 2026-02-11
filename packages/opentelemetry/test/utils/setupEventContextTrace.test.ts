@@ -1,16 +1,16 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { captureException, setCurrentClient } from '@sentry/core';
-
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
-import type { TestClientInterface } from '../helpers/TestClient';
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
+import type { TestClientInterface } from '../helpers/TestClient';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('setupEventContextTrace', () => {
-  const beforeSend = jest.fn(() => null);
+  const beforeSend = vi.fn(() => null);
   let client: TestClientInterface;
   let provider: BasicTracerProvider | undefined;
 
@@ -29,7 +29,7 @@ describe('setupEventContextTrace', () => {
     client.init();
 
     setupEventContextTrace(client);
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
   });
 
   afterEach(() => {
@@ -38,7 +38,7 @@ describe('setupEventContextTrace', () => {
   });
 
   afterAll(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works with no active span', async () => {

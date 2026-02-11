@@ -4,7 +4,7 @@ import type RouterService from '@ember/routing/router-service';
 import { inject as service } from '@ember/service';
 
 export default class SlowLoadingRouteController extends Controller {
-  @service public declare router: RouterService;
+  @service declare public router: RouterService;
 
   @action
   public back(): void {

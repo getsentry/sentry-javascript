@@ -52,7 +52,7 @@ export function ErrorBoundary() {
 }
 
 function App() {
-  const { ENV } = useLoaderData();
+  const { ENV } = useLoaderData() as { ENV: { SENTRY_DSN: string } };
 
   return (
     <html lang="en">

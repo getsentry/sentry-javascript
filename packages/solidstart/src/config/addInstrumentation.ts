@@ -1,7 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { consoleSandbox } from '@sentry/core';
+import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
+import * as path from 'path';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import type { RollupConfig } from './types';
 import { wrapServerEntryWithDynamicImport } from './wrapServerEntryWithDynamicImport';
@@ -45,7 +45,9 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
       try {
         const ssrAssetsPath = path.resolve(buildDir, 'build', 'ssr', 'assets');
         const assetsBuildDir = await fs.promises.readdir(ssrAssetsPath);
-        const releaseInjectionFile = assetsBuildDir.find(file => file.startsWith('_sentry-release-injection-file-'));
+        const releaseInjectionFile = assetsBuildDir.find(file =>
+          /^_sentry-release-injection-file-.*\.(js|mjs)$/.test(file),
+        );
 
         if (releaseInjectionFile) {
           const releaseSource = path.resolve(ssrAssetsPath, releaseInjectionFile);

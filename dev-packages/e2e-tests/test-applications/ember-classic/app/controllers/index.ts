@@ -22,7 +22,7 @@ export default class IndexController extends Controller {
   public createCaughtEmberError(): void {
     try {
       throw new Error('Looks like you have a caught EmberError');
-    } catch (e) {
+    } catch {
       // do nothing
     }
   }

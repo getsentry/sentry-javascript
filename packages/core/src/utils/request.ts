@@ -1,6 +1,6 @@
-import type { PolymorphicRequest, RequestEventData } from '../types-hoist';
+import type { PolymorphicRequest } from '../types-hoist/polymorphics';
+import type { RequestEventData } from '../types-hoist/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
-import { dropUndefinedKeys } from '../utils-hoist/object';
 
 /**
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
@@ -74,8 +74,15 @@ export function httpRequestToRequestData(request: {
   };
 }): RequestEventData {
   const headers = request.headers || {};
-  const host = typeof headers.host === 'string' ? headers.host : undefined;
-  const protocol = request.protocol || (request.socket?.encrypted ? 'https' : 'http');
+
+  // Check for x-forwarded-host first, then fall back to host header
+  const forwardedHost = typeof headers['x-forwarded-host'] === 'string' ? headers['x-forwarded-host'] : undefined;
+  const host = forwardedHost || (typeof headers.host === 'string' ? headers.host : undefined);
+
+  // Check for x-forwarded-proto first, then fall back to existing protocol detection
+  const forwardedProto = typeof headers['x-forwarded-proto'] === 'string' ? headers['x-forwarded-proto'] : undefined;
+  const protocol = forwardedProto || request.protocol || (request.socket?.encrypted ? 'https' : 'http');
+
   const url = request.url || '';
 
   const absoluteUrl = getAbsoluteUrl({
@@ -91,27 +98,146 @@ export function httpRequestToRequestData(request: {
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;
 
-  return dropUndefinedKeys({
+  return {
     url: absoluteUrl,
     method: request.method,
     query_string: extractQueryParamsFromUrl(url),
     headers: headersToDict(headers),
     cookies,
     data,
-  });
+  };
 }
 
 function getAbsoluteUrl({
   url,
   protocol,
   host,
-}: { url?: string; protocol: string; host?: string }): string | undefined {
+}: {
+  url?: string;
+  protocol: string;
+  host?: string;
+}): string | undefined {
   if (url?.startsWith('http')) {
     return url;
   }
 
   if (url && host) {
     return `${protocol}://${host}${url}`;
+  }
+
+  return undefined;
+}
+
+const SENSITIVE_HEADER_SNIPPETS = [
+  'auth',
+  'token',
+  'secret',
+  'session', // for the user_session cookie
+  'password',
+  'passwd',
+  'pwd',
+  'key',
+  'jwt',
+  'bearer',
+  'sso',
+  'saml',
+  'csrf',
+  'xsrf',
+  'credentials',
+  // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
+  'set-cookie',
+  'cookie',
+];
+
+const PII_HEADER_SNIPPETS = ['x-forwarded-', '-user'];
+
+/**
+ * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
+ * Header names are converted to the format: http.request.header.<key>
+ * where <key> is the header name in lowercase with dashes converted to underscores.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-request-header
+ */
+export function httpHeadersToSpanAttributes(
+  headers: Record<string, string | string[] | undefined>,
+  sendDefaultPii: boolean = false,
+): Record<string, string> {
+  const spanAttributes: Record<string, string> = {};
+
+  try {
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value == null) {
+        return;
+      }
+
+      const lowerCasedHeaderKey = key.toLowerCase();
+      const isCookieHeader = lowerCasedHeaderKey === 'cookie' || lowerCasedHeaderKey === 'set-cookie';
+
+      if (isCookieHeader && typeof value === 'string' && value !== '') {
+        // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
+        // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+        const isSetCookie = lowerCasedHeaderKey === 'set-cookie';
+        const semicolonIndex = value.indexOf(';');
+        const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
+        const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
+
+        for (const cookie of cookies) {
+          // Split only at the first '=' to preserve '=' characters in cookie values
+          const equalSignIndex = cookie.indexOf('=');
+          const cookieKey = equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie;
+          const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
+
+          const lowerCasedCookieKey = cookieKey.toLowerCase();
+
+          addSpanAttribute(spanAttributes, lowerCasedHeaderKey, lowerCasedCookieKey, cookieValue, sendDefaultPii);
+        }
+      } else {
+        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii);
+      }
+    });
+  } catch {
+    // Return empty object if there's an error
+  }
+
+  return spanAttributes;
+}
+
+function normalizeAttributeKey(key: string): string {
+  return key.replace(/-/g, '_');
+}
+
+function addSpanAttribute(
+  spanAttributes: Record<string, string>,
+  headerKey: string,
+  cookieKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): void {
+  const normalizedKey = cookieKey
+    ? `http.request.header.${normalizeAttributeKey(headerKey)}.${normalizeAttributeKey(cookieKey)}`
+    : `http.request.header.${normalizeAttributeKey(headerKey)}`;
+
+  const headerValue = handleHttpHeader(cookieKey || headerKey, value, sendPii);
+  if (headerValue !== undefined) {
+    spanAttributes[normalizedKey] = headerValue;
+  }
+}
+
+function handleHttpHeader(
+  lowerCasedKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): string | undefined {
+  const isSensitive = sendPii
+    ? SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))
+    : [...PII_HEADER_SNIPPETS, ...SENSITIVE_HEADER_SNIPPETS].some(snippet => lowerCasedKey.includes(snippet));
+
+  if (isSensitive) {
+    return '[Filtered]';
+  } else if (Array.isArray(value)) {
+    return value.map(v => (v != null ? String(v) : v)).join(';');
+  } else if (typeof value === 'string') {
+    return value;
   }
 
   return undefined;

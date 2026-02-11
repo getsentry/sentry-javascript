@@ -1,4 +1,4 @@
-name: "CI: Mention external contributors"
+name: 'CI: Mention external contributors'
 on:
   pull_request_target:
     types:
@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: |
       github.event.pull_request.merged == true
       && github.event.pull_request.author_association != 'COLLABORATOR'
@@ -20,9 +20,9 @@ jobs:
       && github.event.pull_request.author_association != 'OWNER'
       && endsWith(github.event.pull_request.user.login, '[bot]') == false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
 
@@ -35,16 +35,22 @@ jobs:
           name: ${{ github.event.pull_request.user.login }}
           author_association: ${{ github.event.pull_request.author_association }}
 
-      - name: Create PR with changes
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
         with:
-          # This token is scoped to Daniel Griesser
-          # If we used the default GITHUB_TOKEN, the resulting PR would not trigger CI :(
-          token: ${{ secrets.REPO_SCOPED_TOKEN }}
-          commit-message: "chore: Add external contributor to CHANGELOG.md"
-          title: "chore: Add external contributor to CHANGELOG.md"
+          app-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: 'chore: Add external contributor to CHANGELOG.md'
+          title: 'chore: Add external contributor to CHANGELOG.md'
           branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
           base: 'develop'
           delete-branch: true
-          body: "This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution. See #${{ github.event.pull_request.number }}"
-
+          body:
+            'This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their
+            contribution. See #${{ github.event.pull_request.number }}'

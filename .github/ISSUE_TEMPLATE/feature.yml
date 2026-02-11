@@ -1,6 +1,6 @@
 name: 💡 Feature Request
 description: Create a feature request for a sentry-javascript SDK.
-type: 'enhancement'
+labels: ['Feature']
 body:
   - type: markdown
     attributes:
@@ -23,8 +23,18 @@ body:
         Add a blender to Sentry.
     validations:
       required: true
-  - type: markdown
+  - type: textarea
+    id: additional
     attributes:
-      value: |-
-        ## Thanks 🙏
-        Check our [triage docs](https://open.sentry.io/triage/) for what to expect next.
+      label: Additional Context
+      description: Add any other context here.
+    validations:
+      required: false
+  - type: dropdown
+    attributes:
+      label: 'Priority'
+      description: Please keep the pre-filled option, which helps us manage issue prioritization.
+      default: 0
+      options:
+        - <sub>React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1`
+          or `me too`, to help us triage it.</sub>

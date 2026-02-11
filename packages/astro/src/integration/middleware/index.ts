@@ -1,5 +1,4 @@
 import type { MiddlewareResponseHandler } from 'astro';
-
 import { handleRequest } from '../../server/middleware';
 
 /**

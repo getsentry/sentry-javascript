@@ -1,6 +1,5 @@
 import type { IntegrationFn, WrappedFunction } from '@sentry/core';
 import { defineIntegration, fill, getFunctionName, getOriginalFunction } from '@sentry/core';
-
 import { WINDOW, wrap } from '../helpers';
 
 const DEFAULT_EVENT_TARGET = [
@@ -47,6 +46,15 @@ interface BrowserApiErrorsOptions {
   requestAnimationFrame: boolean;
   XMLHttpRequest: boolean;
   eventTarget: boolean | string[];
+
+  /**
+   * If you experience issues with this integration causing double-invocations of event listeners,
+   * try setting this option to `true`. It will unregister the original callbacks from the event targets
+   * before adding the instrumented callback.
+   *
+   * @default false
+   */
+  unregisterOriginalCallbacks: boolean;
 }
 
 const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions> = {}) => {
@@ -56,6 +64,7 @@ const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions>
     requestAnimationFrame: true,
     setInterval: true,
     setTimeout: true,
+    unregisterOriginalCallbacks: false,
     ...options,
   };
 
@@ -83,7 +92,7 @@ const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions>
       const eventTargetOption = _options.eventTarget;
       if (eventTargetOption) {
         const eventTarget = Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET;
-        eventTarget.forEach(_wrapEventTarget);
+        eventTarget.forEach(target => _wrapEventTarget(target, _options));
       }
     },
   };
@@ -99,9 +108,8 @@ function _wrapTimeFunction(original: () => void): () => number {
     const originalCallback = args[0];
     args[0] = wrap(originalCallback, {
       mechanism: {
-        data: { function: getFunctionName(original) },
         handled: false,
-        type: 'instrument',
+        type: `auto.browser.browserapierrors.${getFunctionName(original)}`,
       },
     });
     return original.apply(this, args);
@@ -114,11 +122,10 @@ function _wrapRAF(original: () => void): (callback: () => void) => unknown {
       wrap(callback, {
         mechanism: {
           data: {
-            function: 'requestAnimationFrame',
             handler: getFunctionName(original),
           },
           handled: false,
-          type: 'instrument',
+          type: 'auto.browser.browserapierrors.requestAnimationFrame',
         },
       }),
     ]);
@@ -137,11 +144,10 @@ function _wrapXHR(originalSend: () => void): () => void {
           const wrapOptions = {
             mechanism: {
               data: {
-                function: prop,
                 handler: getFunctionName(original),
               },
               handled: false,
-              type: 'instrument',
+              type: `auto.browser.browserapierrors.xhr.${prop}`,
             },
           };
 
@@ -161,7 +167,7 @@ function _wrapXHR(originalSend: () => void): () => void {
   };
 }
 
-function _wrapEventTarget(target: string): void {
+function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOptions): void {
   const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
   const proto = globalObject[target]?.prototype;
 
@@ -185,12 +191,11 @@ function _wrapEventTarget(target: string): void {
           fn.handleEvent = wrap(fn.handleEvent, {
             mechanism: {
               data: {
-                function: 'handleEvent',
                 handler: getFunctionName(fn),
                 target,
               },
               handled: false,
-              type: 'instrument',
+              type: 'auto.browser.browserapierrors.handleEvent',
             },
           });
         }
@@ -198,17 +203,20 @@ function _wrapEventTarget(target: string): void {
         // can sometimes get 'Permission denied to access property "handle Event'
       }
 
+      if (integrationOptions.unregisterOriginalCallbacks) {
+        unregisterOriginalCallback(this, eventName, fn);
+      }
+
       return original.apply(this, [
         eventName,
         wrap(fn, {
           mechanism: {
             data: {
-              function: 'addEventListener',
               handler: getFunctionName(fn),
               target,
             },
             handled: false,
-            type: 'instrument',
+            type: 'auto.browser.browserapierrors.addEventListener',
           },
         }),
         options,
@@ -243,7 +251,7 @@ function _wrapEventTarget(target: string): void {
         if (originalEventHandler) {
           originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
         }
-      } catch (e) {
+      } catch {
         // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
       }
       return originalRemoveEventListener.call(this, eventName, fn, options);
@@ -253,4 +261,15 @@ function _wrapEventTarget(target: string): void {
 
 function isEventListenerObject(obj: unknown): obj is EventListenerObject {
   return typeof (obj as EventListenerObject).handleEvent === 'function';
+}
+
+function unregisterOriginalCallback(target: unknown, eventName: string, fn: EventListenerOrEventListenerObject): void {
+  if (
+    target &&
+    typeof target === 'object' &&
+    'removeEventListener' in target &&
+    typeof target.removeEventListener === 'function'
+  ) {
+    target.removeEventListener(eventName, fn);
+  }
 }

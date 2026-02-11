@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, it, vi } from 'vitest';
-import { sentryBeforeResponseMiddleware } from '../../src/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResponseMiddlewareResponse } from '../../src/server';
+import { sentryBeforeResponseMiddleware } from '../../src/server';
 
 describe('middleware', () => {
   describe('sentryBeforeResponseMiddleware', () => {

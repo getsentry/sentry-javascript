@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SpanJSON } from '@sentry/core';
 
 test('Waits for sse streaming when creating spans', async ({ page }) => {
   await page.goto('/sse');
@@ -13,8 +12,8 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   await fetchButton.click();
 
   const rootSpan = await transactionPromise;
-  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
-  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0] as SpanJSON;
+  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
+  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();
@@ -45,8 +44,8 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
   await fetchButton.click();
 
   const rootSpan = await transactionPromise;
-  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
-  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0] as SpanJSON;
+  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
+  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();
@@ -85,10 +84,8 @@ test('Aborts when stream takes longer than 5s, by not updating the span duration
   await fetchButton.click();
 
   const rootSpan = await transactionPromise;
-  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
-  const httpGet = rootSpan.spans?.filter(
-    span => span.description === 'GET http://localhost:8080/sse-timeout',
-  )[0] as SpanJSON;
+  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
+  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse-timeout')[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();

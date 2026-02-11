@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { Event } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should report a manually captured message.', async ({ page }) => {
@@ -13,5 +13,5 @@ test('should report a manually captured message.', async ({ page }) => {
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
-  expect(pageloadEnvelope.transaction).toBe('routes/capture-message');
+  expect(pageloadEnvelope.transaction).toBe('/capture-message');
 });

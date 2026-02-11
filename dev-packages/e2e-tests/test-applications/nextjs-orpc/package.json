@@ -1,0 +1,48 @@
+{
+  "name": "next-orpc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3030",
+    "start": "next start -p 3030",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@rc && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@orpc/server": "latest",
+    "@orpc/client": "latest",
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/eslint": "^8.56.10",
+    "@types/node": "^18.19.1",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.1.0",
+    "@typescript-eslint/parser": "^8.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.4",
+    "postcss": "^8.4.39",
+    "typescript": "^5.5.3",
+    "zod": "^3.24.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}

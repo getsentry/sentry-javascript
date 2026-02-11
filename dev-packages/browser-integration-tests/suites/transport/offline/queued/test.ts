@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
@@ -38,7 +37,7 @@ sentryTest('should queue and retry events when they fail to send', async ({ getL
   const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url, timeout: 10_000 });
 
   // Filter out any client reports
-  const events = eventData.filter(e => !('discarded_events' in e)) as Event[];
+  const events = eventData.filter(e => !('discarded_events' in e));
 
   expect(events).toHaveLength(2);
 

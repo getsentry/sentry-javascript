@@ -2,10 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
 import { captureException, getClient } from '@sentry/core';
-
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BUFFER_CHECKOUT_TIME,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -24,9 +24,6 @@ import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 async function advanceTimers(time: number) {
   vi.advanceTimersByTime(time);
@@ -38,6 +35,10 @@ async function waitForFlush() {
 }
 
 describe('Integration | errorSampleRate', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   describe('basic', () => {
     let replay: ReplayContainer;
     let mockRecord: RecordMock;
@@ -79,7 +80,20 @@ describe('Integration | errorSampleRate', () => {
 
       captureException(new Error('testing'));
 
+      // session gets immediately marked as dirty since error will
+      // be linked to current session (replay) id. there's a possibility
+      // that replay never gets flushed so we must mark as dirty so we
+      // know to refresh session in the future.
+      expect(replay.recordingMode).toBe('buffer');
+      expect(replay.session?.dirty).toBe(true);
+
       await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
+
+      // dirty gets reset after replay is flushed
+      expect(replay.recordingMode).toBe('session');
+      expect(replay.session?.dirty).toBe(false);
 
       expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
@@ -157,26 +171,29 @@ describe('Integration | errorSampleRate', () => {
           segmentId: 0,
           sampled: 'buffer',
           previousSessionId: 'previoussessionid',
+          dirty: false,
         }),
       }));
 
       const ADVANCED_TIME = 86400000;
       const optionsEvent = createOptionsEvent(replay);
 
-      expect(replay.session.started).toBe(BASE_TIMESTAMP);
+      expect(replay.session?.started).toBe(BASE_TIMESTAMP);
 
       // advance time to make sure replay duration is invalid
       vi.advanceTimersByTime(ADVANCED_TIME);
 
       // full snapshot should update session start time
       mockRecord.takeFullSnapshot(true);
-      expect(replay.session.started).toBe(BASE_TIMESTAMP + ADVANCED_TIME);
+      expect(replay.session?.started).toBe(BASE_TIMESTAMP + ADVANCED_TIME);
       expect(replay.recordingMode).toBe('buffer');
 
       // advance so we can flush
       vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
       captureException(new Error('testing'));
+      await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
       await vi.advanceTimersToNextTimerAsync();
 
       // Converts to session mode
@@ -253,7 +270,7 @@ describe('Integration | errorSampleRate', () => {
 
       await vi.advanceTimersToNextTimerAsync();
 
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
         replayEventPayload: expect.objectContaining({
           replay_type: 'buffer',
@@ -339,7 +356,7 @@ describe('Integration | errorSampleRate', () => {
 
       await vi.advanceTimersToNextTimerAsync();
 
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
         replayEventPayload: expect.objectContaining({
           replay_type: 'buffer',
@@ -363,24 +380,6 @@ describe('Integration | errorSampleRate', () => {
             },
           },
         ]),
-      });
-
-      vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-      // Check that click will not get captured
-      domHandler({
-        name: 'click',
-        event: new Event('click'),
-      });
-
-      await waitForFlush();
-
-      // This is still the last replay sent since we passed `continueRecording:
-      // false`.
-      expect(replay).toHaveLastSentReplay({
-        recordingPayloadHeader: { segment_id: 1 },
-        replayEventPayload: expect.objectContaining({
-          replay_type: 'buffer',
-        }),
       });
     });
 
@@ -526,6 +525,8 @@ describe('Integration | errorSampleRate', () => {
       captureException(new Error('testing'));
 
       await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
 
       expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
@@ -622,6 +623,8 @@ describe('Integration | errorSampleRate', () => {
       captureException(new Error('testing'));
 
       await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
 
       expect(replay.session?.id).toBe(oldSessionId);
 
@@ -672,7 +675,7 @@ describe('Integration | errorSampleRate', () => {
       expect(replay.session?.id).toBe(oldSessionId);
 
       // buffered events
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
         replayEventPayload: expect.objectContaining({
           replay_type: 'buffer',
@@ -709,7 +712,7 @@ describe('Integration | errorSampleRate', () => {
       vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
       await vi.advanceTimersToNextTimerAsync();
 
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingData: JSON.stringify([
           { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
           optionsEvent,
@@ -756,13 +759,14 @@ describe('Integration | errorSampleRate', () => {
       captureException(new Error('testing'));
 
       await vi.advanceTimersToNextTimerAsync();
-      // await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
 
       // This is still the timestamp from the full snapshot we took earlier
       expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED);
 
       // Does not capture mouse click
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
         replayEventPayload: expect.objectContaining({
           // Make sure the old performance event is thrown out
@@ -846,7 +850,7 @@ describe('Integration | errorSampleRate', () => {
       await waitForFlush();
 
       expect(replay.session?.id).toBe(sessionId);
-      expect(replay).toHaveSentReplay({
+      expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
       });
 
@@ -1047,7 +1051,7 @@ describe('Integration | errorSampleRate', () => {
     await vi.advanceTimersToNextTimerAsync();
 
     // Buffered events before error
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },

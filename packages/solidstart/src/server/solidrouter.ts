@@ -1,6 +1,6 @@
-import type { HashRouter, MemoryRouter, RouteSectionProps, Router as BaseRouter, StaticRouter } from '@solidjs/router';
-import { mergeProps, splitProps } from 'solid-js';
+import type { HashRouter, MemoryRouter, Router as BaseRouter, RouteSectionProps, StaticRouter } from '@solidjs/router';
 import type { Component, JSX, ParentProps } from 'solid-js';
+import { mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
 // We use @sentry/solid/solidrouter on the client.

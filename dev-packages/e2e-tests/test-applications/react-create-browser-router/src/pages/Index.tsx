@@ -1,4 +1,3 @@
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -15,6 +14,9 @@ const Index = () => {
       />
       <Link to="/user/5" id="navigation">
         navigate
+      </Link>
+      <Link to="/lazy-loaded-user/5/foo" id="lazy-navigation">
+        lazy navigate
       </Link>
     </>
   );

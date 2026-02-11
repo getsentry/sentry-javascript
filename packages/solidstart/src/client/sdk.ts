@@ -1,5 +1,5 @@
-import { applySdkMetadata } from '@sentry/core';
 import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
 import {
   browserTracingIntegration,

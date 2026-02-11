@@ -23,7 +23,7 @@ export async function addMemoryEntry(replay: ReplayContainer): Promise<Array<Add
         createMemoryEntry(WINDOW.performance.memory),
       ]),
     );
-  } catch (error) {
+  } catch {
     // Do nothing
     return [];
   }

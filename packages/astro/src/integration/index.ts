@@ -1,9 +1,7 @@
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
 import * as path from 'path';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { AstroConfig, AstroIntegration } from 'astro';
-
-import { consoleSandbox, dropUndefinedKeys } from '@sentry/core';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -24,36 +22,82 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // Will revisit this later.
         const env = process.env;
 
+        const {
+          enabled,
+          clientInitPath,
+          serverInitPath,
+          autoInstrumentation,
+          // eslint-disable-next-line deprecation/deprecation
+          sourceMapsUploadOptions,
+          sourcemaps,
+          // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
+          // release,
+          bundleSizeOptimizations,
+          unstable_sentryVitePluginOptions,
+          debug,
+          org,
+          project,
+          authToken,
+          sentryUrl,
+          headers,
+          telemetry,
+          silent,
+          errorHandler,
+          ...deprecatedOptions
+        } = options;
+
+        const deprecatedOptionsKeys = Object.keys(deprecatedOptions);
+        if (deprecatedOptionsKeys.length > 0) {
+          logger.warn(
+            `You passed in additional options (${deprecatedOptionsKeys.join(
+              ', ',
+            )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
+          );
+        }
+
         const sdkEnabled = {
-          client: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.client ?? true,
-          server: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.server ?? true,
+          client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
+          server: typeof enabled === 'boolean' ? enabled : (enabled?.server ?? true),
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        const uploadOptions = options.sourceMapsUploadOptions || {};
-        const shouldUploadSourcemaps = (sourceMapsNeeded && uploadOptions?.enabled) ?? true;
+        // eslint-disable-next-line deprecation/deprecation
+        const { unstable_sentryVitePluginOptions: deprecatedVitePluginOptions, ...uploadOptions } =
+          sourceMapsUploadOptions || {};
+
+        const unstableMerged_sentryVitePluginOptions = {
+          ...deprecatedVitePluginOptions,
+          ...unstable_sentryVitePluginOptions,
+        };
+
+        const shouldUploadSourcemaps =
+          (sourceMapsNeeded &&
+            sourcemaps?.disable !== true &&
+            // eslint-disable-next-line deprecation/deprecation
+            uploadOptions?.enabled) ??
+          true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
-          const computedSourceMapSettings = getUpdatedSourceMapSettings(config, options);
+          const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
 
           let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
           if (
+            // eslint-disable-next-line deprecation/deprecation
             typeof uploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
+            typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
           ) {
             // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
             updatedFilesToDeleteAfterUpload = ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'];
 
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+            debug &&
+              logger.info(
+                `Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
                   updatedFilesToDeleteAfterUpload,
                 )}\` to delete generated source maps after they were uploaded to Sentry.`,
               );
-            });
           }
 
           updateConfig({
@@ -62,59 +106,67 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sourcemap: computedSourceMapSettings.updatedSourceMapSetting,
               },
               plugins: [
-                sentryVitePlugin(
-                  dropUndefinedKeys({
-                    org: uploadOptions.org ?? env.SENTRY_ORG,
-                    project: uploadOptions.project ?? env.SENTRY_PROJECT,
-                    authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
-                    telemetry: uploadOptions.telemetry ?? true,
-                    sourcemaps: {
-                      assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                      filesToDeleteAfterUpload:
-                        uploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                sentryVitePlugin({
+                  // Priority: top-level options > deprecated options > env vars
+                  // eslint-disable-next-line deprecation/deprecation
+                  org: org ?? uploadOptions.org ?? env.SENTRY_ORG,
+                  // eslint-disable-next-line deprecation/deprecation
+                  project: project ?? uploadOptions.project ?? env.SENTRY_PROJECT,
+                  // eslint-disable-next-line deprecation/deprecation
+                  authToken: authToken ?? uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                  url: sentryUrl ?? env.SENTRY_URL,
+                  headers,
+                  // eslint-disable-next-line deprecation/deprecation
+                  telemetry: telemetry ?? uploadOptions.telemetry ?? true,
+                  silent: silent ?? false,
+                  errorHandler,
+                  _metaOptions: {
+                    telemetry: {
+                      metaFramework: 'astro',
                     },
-                    bundleSizeOptimizations: {
-                      ...options.bundleSizeOptimizations,
-                      // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
-                      // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
-                      excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
-                    },
-                    _metaOptions: {
-                      telemetry: {
-                        metaFramework: 'astro',
-                      },
-                    },
-                    debug: options.debug ?? false,
-                  }),
-                ),
+                  },
+                  ...unstableMerged_sentryVitePluginOptions,
+                  debug: debug ?? false,
+                  sourcemaps: {
+                    ...sourcemaps,
+                    // eslint-disable-next-line deprecation/deprecation
+                    assets: sourcemaps?.assets ?? uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
+                    filesToDeleteAfterUpload:
+                      sourcemaps?.filesToDeleteAfterUpload ??
+                      // eslint-disable-next-line deprecation/deprecation
+                      uploadOptions?.filesToDeleteAfterUpload ??
+                      updatedFilesToDeleteAfterUpload,
+                    ...unstableMerged_sentryVitePluginOptions?.sourcemaps,
+                  },
+                  bundleSizeOptimizations: {
+                    ...bundleSizeOptimizations,
+                    ...unstableMerged_sentryVitePluginOptions?.bundleSizeOptimizations,
+                  },
+                }),
               ],
             },
           });
         }
 
         if (sdkEnabled.client) {
-          const pathToClientInit = options.clientInitPath
-            ? path.resolve(options.clientInitPath)
-            : findDefaultSdkInitFile('client');
+          const pathToClientInit = clientInitPath ? path.resolve(clientInitPath) : findDefaultSdkInitFile('client');
 
           if (pathToClientInit) {
-            options.debug && logger.info(`Using ${pathToClientInit} for client init.`);
+            debug && logger.info(`Using ${pathToClientInit} for client init.`);
             injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
-            options.debug && logger.info('Using default client init.');
+            debug && logger.info('Using default client init.');
             injectScript('page', buildClientSnippet(options || {}));
           }
         }
 
         if (sdkEnabled.server) {
-          const pathToServerInit = options.serverInitPath
-            ? path.resolve(options.serverInitPath)
-            : findDefaultSdkInitFile('server');
+          const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
           if (pathToServerInit) {
-            options.debug && logger.info(`Using ${pathToServerInit} for server init.`);
+            debug && logger.info(`Using ${pathToServerInit} for server init.`);
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
           } else {
-            options.debug && logger.info('Using default server init.');
+            debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
@@ -136,7 +188,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
-        const shouldAddMiddleware = sdkEnabled.server && options.autoInstrumentation?.requestHandler !== false;
+        const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
         // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
         // Users on older versions of astro will need to add the middleware manually.
@@ -206,9 +258,10 @@ export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
  *
  * --> only exported for testing
  */
-export function getUpdatedSourceMapSettings(
+export function _getUpdatedSourceMapSettings(
   astroConfig: AstroConfig,
-  sentryOptions?: SentryOptions,
+  sentryOptions: SentryOptions | undefined,
+  logger: AstroIntegrationLogger,
 ): { previousUserSourceMapSetting: UserSourceMapSetting; updatedSourceMapSetting: boolean | 'inline' | 'hidden' } {
   let previousUserSourceMapSetting: UserSourceMapSetting = undefined;
 
@@ -218,39 +271,36 @@ export function getUpdatedSourceMapSettings(
   let updatedSourceMapSetting = viteSourceMap;
 
   const settingKey = 'vite.build.sourcemap';
+  const debug = sentryOptions?.debug;
 
   if (viteSourceMap === false) {
     previousUserSourceMapSetting = 'disabled';
     updatedSourceMapSetting = viteSourceMap;
 
-    consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
-      console.warn(
-        `[Sentry] Source map generation is currently disabled in your Astro configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+    if (debug) {
+      // Longer debug message with more details
+      logger.warn(
+        `Source map generation is currently disabled in your Astro configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
       );
-    });
+    } else {
+      logger.warn('Source map generation is disabled in your Astro configuration.');
+    }
   } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
     previousUserSourceMapSetting = 'enabled';
     updatedSourceMapSetting = viteSourceMap;
 
-    if (sentryOptions?.debug) {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
-        );
-      });
-    }
+    debug &&
+      logger.info(
+        `We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
+      );
   } else {
     previousUserSourceMapSetting = 'unset';
     updatedSourceMapSetting = 'hidden';
 
-    consoleSandbox(() => {
-      //  eslint-disable-next-line no-console
-      console.log(
-        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
+    debug &&
+      logger.info(
+        `Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
       );
-    });
   }
 
   return { previousUserSourceMapSetting, updatedSourceMapSetting };

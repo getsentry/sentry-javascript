@@ -1,8 +1,10 @@
 import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
-import { logger } from './utils-hoist/logger';
+import type { Event, EventHint } from './types-hoist/event';
+import type { Integration, IntegrationFn } from './types-hoist/integration';
+import type { CoreOptions } from './types-hoist/options';
+import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
 
@@ -40,7 +42,9 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
+export function getIntegrationsToSetup(
+  options: Pick<CoreOptions, 'defaultIntegrations' | 'integrations'>,
+): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 
@@ -60,19 +64,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
     integrations = defaultIntegrations;
   }
 
-  const finalIntegrations = filterDuplicates(integrations);
-
-  // The `Debug` integration prints copies of the `event` and `hint` which will be passed to `beforeSend` or
-  // `beforeSendTransaction`. It therefore has to run after all other integrations, so that the changes of all event
-  // processors will be reflected in the printed values. For lack of a more elegant way to guarantee that, we therefore
-  // locate it and, assuming it exists, pop it out of its current spot and shove it onto the end of the array.
-  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
-  if (debugIndex > -1) {
-    const [debugInstance] = finalIntegrations.splice(debugIndex, 1) as [Integration];
-    finalIntegrations.push(debugInstance);
-  }
-
-  return finalIntegrations;
+  return filterDuplicates(integrations);
 }
 
 /**
@@ -109,13 +101,13 @@ export function afterSetupIntegrations(client: Client, integrations: Integration
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   if (integrationIndex[integration.name]) {
-    DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+    DEBUG_BUILD && debug.log(`Integration skipped because it was already installed: ${integration.name}`);
     return;
   }
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
-  if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
+  if (!installedIntegrations.includes(integration.name) && typeof integration.setupOnce === 'function') {
     integration.setupOnce();
     installedIntegrations.push(integration.name);
   }
@@ -140,7 +132,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
     client.addEventProcessor(processor);
   }
 
-  DEBUG_BUILD && logger.log(`Integration installed: ${integration.name}`);
+  DEBUG_BUILD && debug.log(`Integration installed: ${integration.name}`);
 }
 
 /** Add an integration to the current scope's client. */
@@ -148,7 +140,7 @@ export function addIntegration(integration: Integration): void {
   const client = getClient();
 
   if (!client) {
-    DEBUG_BUILD && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
+    DEBUG_BUILD && debug.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
     return;
   }
 

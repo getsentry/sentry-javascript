@@ -31,13 +31,14 @@ declare const $CombinedState: unique symbol;
 
 type CombinedState<S> = { readonly [$CombinedState]?: undefined } & S;
 
-type PreloadedState<S> = Required<S> extends {
-  [$CombinedState]: undefined;
-}
-  ? S extends CombinedState<infer S1>
-    ? { [K in keyof S1]?: S1[K] extends Record<string, unknown> ? PreloadedState<S1[K]> : S1[K] }
-    : never
-  : { [K in keyof S]: S[K] extends string | number | boolean | symbol ? S[K] : PreloadedState<S[K]> };
+type PreloadedState<S> =
+  Required<S> extends {
+    [$CombinedState]: undefined;
+  }
+    ? S extends CombinedState<infer S1>
+      ? { [K in keyof S1]?: S1[K] extends Record<string, unknown> ? PreloadedState<S1[K]> : S1[K] }
+      : never
+    : { [K in keyof S]: S[K] extends string | number | boolean | symbol ? S[K] : PreloadedState<S[K]> };
 
 type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> = <
   S = any,
@@ -106,58 +107,69 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
                 { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
               ];
             }
-          } catch (_) {
+          } catch {
             // empty
           }
           return event;
         });
 
-      const sentryReducer: Reducer<S, A> = (state, action): S => {
-        const newState = reducer(state, action);
+      function sentryWrapReducer(reducer: Reducer<S, A>): Reducer<S, A> {
+        return (state, action): S => {
+          const newState = reducer(state, action);
 
-        const scope = getCurrentScope();
+          const scope = getCurrentScope();
 
-        /* Action breadcrumbs */
-        const transformedAction = options.actionTransformer(action);
-        if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-          addBreadcrumb({
-            category: ACTION_BREADCRUMB_CATEGORY,
-            data: transformedAction,
-            type: ACTION_BREADCRUMB_TYPE,
-          });
-        }
+          /* Action breadcrumbs */
+          const transformedAction = options.actionTransformer(action);
+          if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
+            addBreadcrumb({
+              category: ACTION_BREADCRUMB_CATEGORY,
+              data: transformedAction,
+              type: ACTION_BREADCRUMB_TYPE,
+            });
+          }
 
-        /* Set latest state to scope */
-        const transformedState = options.stateTransformer(newState);
-        if (typeof transformedState !== 'undefined' && transformedState !== null) {
-          const client = getClient();
-          const options = client?.getOptions();
-          const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
+          /* Set latest state to scope */
+          const transformedState = options.stateTransformer(newState);
+          if (typeof transformedState !== 'undefined' && transformedState !== null) {
+            const client = getClient();
+            const options = client?.getOptions();
+            const normalizationDepth = options?.normalizeDepth || 3; // default state normalization depth to 3
 
-          // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
-          const newStateContext = { state: { type: 'redux', value: transformedState } };
-          addNonEnumerableProperty(
-            newStateContext,
-            '__sentry_override_normalization_depth__',
-            3 + // 3 layers for `state.value.transformedState`
-              normalizationDepth, // rest for the actual state
-          );
+            // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
+            const newStateContext = { state: { type: 'redux', value: transformedState } };
+            addNonEnumerableProperty(
+              newStateContext,
+              '__sentry_override_normalization_depth__',
+              3 + // 3 layers for `state.value.transformedState`
+                normalizationDepth, // rest for the actual state
+            );
 
-          scope.setContext('state', newStateContext);
-        } else {
-          scope.setContext('state', null);
-        }
+            scope.setContext('state', newStateContext);
+          } else {
+            scope.setContext('state', null);
+          }
 
-        /* Allow user to configure scope with latest state */
-        const { configureScopeWithState } = options;
-        if (typeof configureScopeWithState === 'function') {
-          configureScopeWithState(scope, newState);
-        }
+          /* Allow user to configure scope with latest state */
+          const { configureScopeWithState } = options;
+          if (typeof configureScopeWithState === 'function') {
+            configureScopeWithState(scope, newState);
+          }
 
-        return newState;
-      };
+          return newState;
+        };
+      }
 
-      return next(sentryReducer, initialState);
+      const store = next(sentryWrapReducer(reducer), initialState);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      store.replaceReducer = new Proxy(store.replaceReducer, {
+        apply: function (target, thisArg, args) {
+          target.apply(thisArg, [sentryWrapReducer(args[0])]);
+        },
+      });
+
+      return store;
     };
 }
 

@@ -8,8 +8,7 @@ _Bad software is everywhere, and we're tired of it. Sentry is on a mission to he
 faster, so we can get back to enjoying technology. If you want to join us
 [<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
 
-![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/CI:%20Build%20&%20Test/badge.svg)
-[![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/develop/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
+[![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/CI:%20Build%20&%20Test/badge.svg)](https://github.com/getsentry/sentry-javascript/actions)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 
@@ -28,7 +27,7 @@ convenient interface and improved consistency between various JavaScript environ
 - [![Forum](https://img.shields.io/badge/forum-sentry-green.svg)](https://forum.sentry.io/c/sdks)
 - [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 - [![Stack Overflow](https://img.shields.io/badge/stack%20overflow-sentry-green.svg)](http://stackoverflow.com/questions/tagged/sentry)
-- [![Twitter Follow](https://img.shields.io/twitter/follow/getsentry?label=getsentry&style=social)](https://twitter.com/intent/follow?screen_name=getsentry)
+- [![X Follow](https://img.shields.io/twitter/follow/sentry?label=sentry&style=social)](https://x.com/intent/follow?screen_name=sentry)
 
 ## Contents
 
@@ -60,6 +59,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/nestjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs): SDK for NestJS
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
+- [`@sentry/tanstackstart-react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react): SDK for TanStack Start React
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
   for AWS Lambda Functions
 - [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless):
@@ -76,10 +76,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
 
 ## Version Support Policy
 
-The current version of the SDK is 8.x. Version 7.x of the SDK will continue to receive critical bugfixes until end
-of 2024.
-
-All SDKs require Node v18+ to run. ESM-only SDKs require Node v18.19.1+ to run.
+We recognize the importance of continued support for our SDK across different versions.
+Our commitment is to provide bug fixes and feature updates for older versions based on community demand and usage.
 
 ## Installation and Usage
 

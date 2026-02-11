@@ -1,5 +1,5 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/core';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
@@ -22,10 +22,9 @@ function getUser(): User | undefined {
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
     name: 'FeedbackModal',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
-      const shadowRoot = shadow as unknown as ShadowRoot;
+      const shadowRoot = shadow as ShadowRoot;
       const userKey = options.useSentryUser;
       const user = getUser();
 
@@ -44,13 +43,14 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           }
         },
         removeFromDom(): void {
-          shadowRoot.removeChild(el);
-          shadowRoot.removeChild(style);
+          el.remove();
+          style.remove();
           DOCUMENT.body.style.overflow = originalOverflow;
         },
         open() {
           renderContent(true);
           options.onFormOpen?.();
+          getClient()?.emit('openFeedbackWidget');
           originalOverflow = DOCUMENT.body.style.overflow;
           DOCUMENT.body.style.overflow = 'hidden';
         },
@@ -69,16 +69,16 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
-            defaultName={(userKey && user && user[userKey.name]) || ''}
-            defaultEmail={(userKey && user && user[userKey.email]) || ''}
+            defaultName={String((userKey && user?.[userKey.name]) || '')}
+            defaultEmail={String((userKey && user?.[userKey.email]) || '')}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose?.();
             }}
             onSubmit={sendFeedback}
-            onSubmitSuccess={(data: FeedbackFormData) => {
+            onSubmitSuccess={(data: FeedbackFormData, eventId: string) => {
               renderContent(false);
-              options.onSubmitSuccess?.(data);
+              options.onSubmitSuccess?.(data, eventId);
             }}
             onSubmitError={(error: Error) => {
               options.onSubmitError?.(error);

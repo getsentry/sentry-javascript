@@ -9,9 +9,9 @@ module.exports = {
     es2017: true,
   },
   parserOptions: {
-    ecmaVersion: 2018,
+    ecmaVersion: 2020,
   },
-  extends: ['@sentry-internal/sdk/src/base'],
+  extends: ['@sentry-internal/sdk'],
   ignorePatterns: [
     'coverage/**',
     'build/**',
@@ -23,6 +23,9 @@ module.exports = {
     'types/**',
     'scripts/*.js',
   ],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'error',
+  },
   reportUnusedDisableDirectives: true,
   overrides: [
     {
@@ -36,9 +39,12 @@ module.exports = {
       parserOptions: {
         project: ['tsconfig.test.json'],
       },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
     },
     {
-      files: ['jest/**/*.ts', 'scripts/**/*.ts'],
+      files: ['scripts/**/*.ts'],
       parserOptions: {
         project: ['tsconfig.dev.json'],
       },

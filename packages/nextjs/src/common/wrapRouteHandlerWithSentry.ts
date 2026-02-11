@@ -1,8 +1,5 @@
 import type { RequestEventData } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  Scope,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
@@ -10,6 +7,9 @@ import {
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
   winterCGHeadersToDict,
@@ -18,6 +18,7 @@ import {
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
+import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
@@ -88,9 +89,13 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   captureException(error, {
                     mechanism: {
                       handled: false,
+                      type: 'auto.function.nextjs.route_handler',
                     },
                   });
                 }
+              },
+              () => {
+                waitUntil(flushSafelyWithTimeout());
               },
             );
 

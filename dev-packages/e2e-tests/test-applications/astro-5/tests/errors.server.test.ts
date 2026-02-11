@@ -11,7 +11,10 @@ test.describe('server-side errors', () => {
       return transactionEvent.transaction === 'GET /ssr-error';
     });
 
-    await page.goto('/ssr-error');
+    // This page returns an error status code, so we need to catch the navigation error
+    await page.goto('/ssr-error').catch(() => {
+      // Expected to fail with net::ERR_HTTP_RESPONSE_CODE_FAILURE in newer Chromium versions
+    });
 
     const errorEvent = await errorEventPromise;
     const transactionEvent = await transactionEventPromise;
@@ -47,11 +50,8 @@ test.describe('server-side errors', () => {
         values: [
           {
             mechanism: {
-              data: {
-                function: 'astroMiddleware',
-              },
               handled: false,
-              type: 'astro',
+              type: 'auto.middleware.astro',
             },
             stacktrace: expect.any(Object),
             type: 'TypeError',
@@ -136,11 +136,8 @@ test.describe('server-side errors', () => {
         values: [
           {
             mechanism: {
-              data: {
-                function: 'astroMiddleware',
-              },
               handled: false,
-              type: 'astro',
+              type: 'auto.middleware.astro',
             },
             stacktrace: expect.any(Object),
             type: 'Error',

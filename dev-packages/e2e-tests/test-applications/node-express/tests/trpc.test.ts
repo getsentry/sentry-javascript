@@ -87,25 +87,34 @@ test('Should record transaction and error for a crashing trpc handler', async ({
     ],
   });
 
-  await expect(trpcClient.crashSomething.mutate()).rejects.toBeDefined();
+  await expect(trpcClient.crashSomething.mutate({ nested: { nested: { nested: 'foobar' } } })).rejects.toBeDefined();
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();
 
   expect((await errorEventPromise).contexts?.trpc?.['procedure_type']).toBe('mutation');
   expect((await errorEventPromise).contexts?.trpc?.['procedure_path']).toBe('crashSomething');
+
+  // Should record nested context
+  expect((await errorEventPromise).contexts?.trpc?.['input']).toEqual({
+    nested: {
+      nested: {
+        nested: 'foobar',
+      },
+    },
+  });
 });
 
 test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
-      !!transactionEvent.spans?.find(span => span.description === 'trpc/dontFindSomething')
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/badRequest')
     );
   });
 
   const errorEventPromise = waitForError('node-express', errorEvent => {
-    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Page not found'));
+    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Bad Request'));
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -116,7 +125,7 @@ test('Should record transaction and error for a trpc handler that returns a stat
     ],
   });
 
-  await expect(trpcClient.dontFindSomething.mutate()).rejects.toBeDefined();
+  await expect(trpcClient.badRequest.mutate()).rejects.toBeDefined();
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();

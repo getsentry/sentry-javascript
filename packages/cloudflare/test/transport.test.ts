@@ -1,7 +1,6 @@
-import { createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/core';
+import { createEnvelope, SENTRY_BUFFER_FULL_ERROR, serializeEnvelope } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-
 import type { CloudflareTransportOptions } from '../src/transport';
 import { IsolatedPromiseBuffer, makeCloudflareTransport } from '../src/transport';
 
@@ -107,6 +106,78 @@ describe('Edge Transport', () => {
       ...REQUEST_OPTIONS,
     });
   });
+
+  describe('Response body consumption (issue #18534)', () => {
+    it('consumes the response body to prevent Cloudflare stalled connection warnings', async () => {
+      const textMock = vi.fn(() => Promise.resolve('OK'));
+      const headers = {
+        get: vi.fn(),
+      };
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+          text: textMock,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await transport.send(ERROR_ENVELOPE);
+      await transport.flush();
+
+      expect(textMock).toHaveBeenCalledTimes(1);
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+
+    it('handles response body consumption errors gracefully', async () => {
+      const textMock = vi.fn(() => Promise.reject(new Error('Body read error')));
+      const headers = {
+        get: vi.fn(),
+      };
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+          text: textMock,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await expect(transport.send(ERROR_ENVELOPE)).resolves.toBeDefined();
+      await expect(transport.flush()).resolves.toBeDefined();
+
+      expect(textMock).toHaveBeenCalledTimes(1);
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+
+    it('handles a potential never existing use case of a non existing text method', async () => {
+      const headers = {
+        get: vi.fn(),
+      };
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await expect(transport.send(ERROR_ENVELOPE)).resolves.toBeDefined();
+      await expect(transport.flush()).resolves.toBeDefined();
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+  });
 });
 
 describe('IsolatedPromiseBuffer', () => {
@@ -140,7 +211,12 @@ describe('IsolatedPromiseBuffer', () => {
     await ipb.add(task2);
     await ipb.add(task3);
 
-    await expect(ipb.add(task4)).rejects.toThrowError('Not adding Promise because buffer limit was reached.');
+    try {
+      await ipb.add(task4);
+      throw new Error('Should not be called');
+    } catch (error) {
+      expect(error).toBe(SENTRY_BUFFER_FULL_ERROR);
+    }
   });
 
   it('should not throw when one of the tasks throws when drained', async () => {
@@ -156,5 +232,21 @@ describe('IsolatedPromiseBuffer', () => {
 
     expect(task1).toHaveBeenCalled();
     expect(task2).toHaveBeenCalled();
+  });
+
+  it('should allow for a custom fetch function to be passed in', async () => {
+    const customFetch = vi.fn(async () => {
+      return {
+        headers: new Headers(),
+        status: 200,
+        text: () => Promise.resolve({}),
+      } as unknown as Response;
+    });
+
+    const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+    await transport.send(ERROR_ENVELOPE);
+    await transport.flush();
+    expect(customFetch).toHaveBeenCalledTimes(1);
   });
 });

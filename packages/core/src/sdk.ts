@@ -1,8 +1,8 @@
 import type { Client } from './client';
 import { getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { ClientOptions } from './types-hoist';
-import { consoleSandbox, logger } from './utils-hoist/logger';
+import type { ClientOptions } from './types-hoist/options';
+import { consoleSandbox, debug } from './utils/debug-logger';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -20,9 +20,9 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 ): Client {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
-      logger.enable();
+      debug.enable();
     } else {
-      // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
+      // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');

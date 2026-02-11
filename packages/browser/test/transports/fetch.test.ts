@@ -1,9 +1,7 @@
-import type { Mock } from 'vitest';
-import { describe, expect, it, vi } from 'vitest';
-
-import { createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/core';
-
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { Mock } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeFetchTransport } from '../../src/transports/fetch';
 import type { BrowserTransportOptions } from '../../src/transports/types';
 
@@ -31,7 +29,11 @@ class Headers {
   }
 }
 
-describe('NewFetchTransport', () => {
+describe('fetchTransport', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
   it('calls fetch with the given URL', async () => {
     const mockFetch = vi.fn(() =>
       Promise.resolve({
@@ -50,7 +52,7 @@ describe('NewFetchTransport', () => {
       body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       keepalive: true,
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
     });
   });
 
@@ -104,13 +106,26 @@ describe('NewFetchTransport', () => {
     });
   });
 
-  it('handles when `getNativetypeof window.fetchementation` is undefined', async () => {
+  it('handles when native fetch implementation returns undefined', async () => {
     const mockFetch = vi.fn(() => undefined) as unknown as typeof window.fetch;
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
-    await expect(() => transport.send(ERROR_ENVELOPE)).not.toThrow();
+    await expect(() => transport.send(ERROR_ENVELOPE)).rejects.toThrow(
+      "Cannot read properties of undefined (reading 'status')",
+    );
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles when native fetch implementation is undefined', async () => {
+    vi.mock('@sentry-internal/browser-utils', async importOriginal => ({
+      ...(await importOriginal()),
+      getNativeImplementation: () => undefined,
+    }));
+
+    const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS);
+
+    await expect(() => transport.send(ERROR_ENVELOPE)).rejects.toThrow('nativeFetch is not a function');
   });
 
   it('correctly sets keepalive flag', async () => {

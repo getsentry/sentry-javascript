@@ -17,7 +17,23 @@ console.warn = new Proxy(console.warn, {
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [],
+  integrations: [
+    Sentry.fastifyIntegration({
+      shouldHandleError: (error, _request, _reply) => {
+        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
+          // Errors from this path will not be captured by Sentry
+          return false;
+        }
+
+        // @ts-ignore // Fastify V5 is not typed correctly
+        if (_request.routeOptions?.url?.includes('/test-error-ignored') && _reply.statusCode === 500) {
+          return false;
+        }
+
+        return true;
+      },
+    }),
+  ],
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
@@ -33,8 +49,6 @@ const http = require('http') as typeof H;
 const app = fastify();
 const port = 3030;
 const port2 = 3040;
-
-Sentry.setupFastifyErrorHandler(app);
 
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
@@ -81,6 +95,26 @@ app.get('/test-error', async function (req, res) {
   res.send({ exceptionId });
 });
 
+// Regression test for https://github.com/fastify/fastify/issues/6409
+// The error diagnostic channel was always sending 200 unless explicitly changed.
+// This was fixed in Fastify 5.7.0
+app.register((childApp: F.FastifyInstance, _options: F.FastifyPluginOptions, next: (err?: Error) => void) => {
+  childApp.setErrorHandler((error: Error, _request: F.FastifyRequest, reply: F.FastifyReply) => {
+    reply.send({ ok: false });
+  });
+
+  childApp.get('/test-error-ignored', async function () {
+    throw new Error('This is an error that will not be captured');
+  });
+
+  next();
+});
+
+app.get('/test-error-not-captured', async function () {
+  // This error will not be captured by Sentry
+  throw new Error('This is an error that will not be captured');
+});
+
 app.get<{ Params: { id: string } }>('/test-exception/:id', async function (req, res) {
   throw new Error(`This is an exception with id ${req.params.id}`);
 });
@@ -107,6 +141,15 @@ app.get('/test-outgoing-http-external-allowed', async function (req, res) {
 app.get('/test-outgoing-http-external-disallowed', async function (req, res) {
   const data = await makeHttpRequest(`http://localhost:${port2}/external-disallowed`);
   res.send(data);
+});
+
+app.post('/test-post', function (req, res) {
+  res.send({ status: 'ok', body: req.body });
+});
+
+app.get('/flush', async function (_req, res) {
+  await Sentry.flush();
+  res.send({ ok: true });
 });
 
 app.listen({ port: port });

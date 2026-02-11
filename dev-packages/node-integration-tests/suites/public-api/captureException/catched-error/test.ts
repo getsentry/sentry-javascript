@@ -1,11 +1,12 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should work inside catch block', done => {
-  createRunner(__dirname, 'scenario.ts')
+test('should work inside catch block', async () => {
+  await createRunner(__dirname, 'scenario.ts')
     .expect({
       event: {
         exception: {
@@ -39,5 +40,6 @@ test('should work inside catch block', done => {
         },
       },
     })
-    .start(done);
+    .start()
+    .completed();
 });

@@ -1,27 +1,34 @@
-import { Scope, getClient, setCurrentClient } from '@sentry/browser';
+/**
+ * @vitest-environment jsdom
+ */
+import { getClient, Scope, setCurrentClient } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ErrorBoundaryProps, FallbackRender } from '../src/errorboundary';
 import { ErrorBoundary, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
-const mockCaptureException = jest.fn();
-const mockShowReportDialog = jest.fn();
-const mockClientOn = jest.fn();
+const mockScope = new Scope();
+const scopeSetContextSpy = vi.spyOn(mockScope, 'setContext');
+const mockCaptureException = vi.fn();
+const mockShowReportDialog = vi.fn();
+const mockClientOn = vi.fn();
 const EVENT_ID = 'test-id-123';
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
+vi.mock('@sentry/browser', async requireActual => {
   return {
-    ...actual,
+    ...(await requireActual()),
     captureException: (...args: unknown[]) => {
       mockCaptureException(...args);
       return EVENT_ID;
     },
     showReportDialog: (options: any) => {
       mockShowReportDialog(options);
+    },
+    withScope: (callback: (scope: any) => any) => {
+      return callback(mockScope);
     },
   };
 });
@@ -89,15 +96,132 @@ describe('withErrorBoundary', () => {
     const Component = withErrorBoundary(() => <h1>Hello World</h1>, { fallback: <h1>fallback</h1> });
     expect(Component.displayName).toBe(`errorBoundary(${UNKNOWN_COMPONENT})`);
   });
+
+  it('does not rerender when props are identical', () => {
+    let renderCount = 0;
+    const TestComponent = ({ title }: { title: string }) => {
+      renderCount++;
+      return <h1>{title}</h1>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    const { rerender } = render(<WrappedComponent title="test" />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with identical props - should not cause TestComponent to rerender
+    rerender(<WrappedComponent title="test" />);
+    expect(renderCount).toBe(1);
+
+    // Rerender with different props - should cause TestComponent to rerender
+    rerender(<WrappedComponent title="different" />);
+    expect(renderCount).toBe(2);
+  });
+
+  it('does not rerender when complex props are identical', () => {
+    let renderCount = 0;
+    const TestComponent = ({ data }: { data: { id: number; name: string } }) => {
+      renderCount++;
+      return <h1>{data.name}</h1>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    const props = { data: { id: 1, name: 'test' } };
+    const { rerender } = render(<WrappedComponent {...props} />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with same object reference - should not cause TestComponent to rerender
+    rerender(<WrappedComponent {...props} />);
+    expect(renderCount).toBe(1);
+
+    // Rerender with different object but same values - should cause rerender
+    rerender(<WrappedComponent data={{ id: 1, name: 'test' }} />);
+    expect(renderCount).toBe(2);
+
+    // Rerender with different values - should cause rerender
+    rerender(<WrappedComponent data={{ id: 2, name: 'different' }} />);
+    expect(renderCount).toBe(3);
+  });
+
+  it('does not rerender when errorBoundaryOptions are the same', () => {
+    let renderCount = 0;
+    const TestComponent = ({ title }: { title: string }) => {
+      renderCount++;
+      return <h1>{title}</h1>;
+    };
+
+    const errorBoundaryOptions = { fallback: <h1>fallback</h1> };
+    const WrappedComponent = withErrorBoundary(TestComponent, errorBoundaryOptions);
+    const { rerender } = render(<WrappedComponent title="test" />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with identical props - should not cause TestComponent to rerender
+    rerender(<WrappedComponent title="test" />);
+    expect(renderCount).toBe(1);
+  });
+
+  it('preserves function component behavior with React.memo', () => {
+    const TestComponent = ({ title }: { title: string }) => <h1>{title}</h1>;
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+
+    expect(WrappedComponent).toBeDefined();
+    expect(typeof WrappedComponent).toBe('object');
+    expect(WrappedComponent.displayName).toBe('errorBoundary(TestComponent)');
+
+    const { container } = render(<WrappedComponent title="test" />);
+    expect(container.innerHTML).toContain('test');
+  });
+
+  it('does not rerender parent component unnecessarily', () => {
+    let parentRenderCount = 0;
+    let childRenderCount = 0;
+
+    const ChildComponent = ({ value }: { value: number }) => {
+      childRenderCount++;
+      return <div>Child: {value}</div>;
+    };
+
+    const WrappedChild = withErrorBoundary(ChildComponent, { fallback: <div>Error</div> });
+
+    const ParentComponent = ({ childValue, otherProp }: { childValue: number; otherProp: string }) => {
+      parentRenderCount++;
+      return (
+        <div>
+          <div>Parent: {otherProp}</div>
+          <WrappedChild value={childValue} />
+        </div>
+      );
+    };
+
+    const { rerender } = render(<ParentComponent childValue={1} otherProp="test" />);
+
+    expect(parentRenderCount).toBe(1);
+    expect(childRenderCount).toBe(1);
+
+    // Change otherProp but keep childValue the same
+    rerender(<ParentComponent childValue={1} otherProp="changed" />);
+
+    expect(parentRenderCount).toBe(2); // Parent should rerender
+    expect(childRenderCount).toBe(1); // Child should NOT rerender due to memo
+
+    // Change childValue
+    rerender(<ParentComponent childValue={2} otherProp="changed" />);
+
+    expect(parentRenderCount).toBe(3); // Parent should rerender
+    expect(childRenderCount).toBe(2); // Child should rerender due to changed props
+  });
 });
 
 describe('ErrorBoundary', () => {
-  jest.spyOn(console, 'error').mockImplementation();
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 
   afterEach(() => {
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
     mockClientOn.mockClear();
+    (mockScope.setContext as any).mockClear();
   });
 
   it('renders null if not given a valid `fallback` prop', () => {
@@ -141,7 +265,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls `onMount` when mounted', () => {
-    const mockOnMount = jest.fn();
+    const mockOnMount = vi.fn();
     render(
       <ErrorBoundary fallback={<h1>Error Component</h1>} onMount={mockOnMount}>
         <h1>children</h1>
@@ -152,7 +276,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls `onUnmount` when unmounted', () => {
-    const mockOnUnmount = jest.fn();
+    const mockOnUnmount = vi.fn();
     const { unmount } = render(
       <ErrorBoundary fallback={<h1>Error Component</h1>} onUnmount={mockOnUnmount}>
         <h1>children</h1>
@@ -243,7 +367,7 @@ describe('ErrorBoundary', () => {
 
   describe('error', () => {
     it('calls `componentDidCatch() when an error occurs`', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
       render(
         <TestApp fallback={<p>You have hit an error</p>} onError={mockOnError}>
           <h1>children</h1>
@@ -261,18 +385,19 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
+      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
+
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
 
       // Check if error.cause -> react component stack
-      const error = mockCaptureException.mock.calls[0][0];
+      const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
+
+      expect(cause.stack).toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -319,19 +444,19 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith('bam', {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
+      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
+      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
+
       // Check if error.cause -> react component stack
-      const error = mockCaptureException.mock.calls[0][0];
+      const error = mockCaptureException.mock.calls[0]?.[0];
       expect(error.cause).not.toBeDefined();
     });
 
     it('handles when `error.cause` is nested', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
 
       function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
@@ -358,25 +483,25 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
+      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
 
-      const thirdError = mockCaptureException.mock.calls[0][0];
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
+
+      const thirdError = mockCaptureException.mock.calls[0]?.[0];
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
 
     it('handles when `error.cause` is recursive', () => {
-      const mockOnError = jest.fn();
+      const mockOnError = vi.fn();
 
       function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
@@ -402,25 +527,23 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        captureContext: {
-          contexts: { react: { componentStack: expect.any(String) } },
-        },
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
-      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+      expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
+      expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
 
-      const error = mockCaptureException.mock.calls[0][0];
+      expect(mockOnError.mock.calls[0]?.[0]).toEqual(mockCaptureException.mock.calls[0]?.[0]);
+
+      const error = mockCaptureException.mock.calls[0]?.[0];
       const cause = error.cause;
       // We need to make sure that recursive error.cause does not cause infinite loop
-      expect(cause.stack).not.toEqual(
-        mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack,
-      );
+      expect(cause.stack).not.toEqual(scopeSetContextSpy.mock.calls[0]?.[1]?.componentStack);
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 
     it('calls `beforeCapture()` when an error occurs', () => {
-      const mockBeforeCapture = jest.fn();
+      const mockBeforeCapture = vi.fn();
 
       const testBeforeCapture = (...args: any[]) => {
         expect(mockCaptureException).toHaveBeenCalledTimes(0);
@@ -516,7 +639,7 @@ describe('ErrorBoundary', () => {
     });
 
     it('calls `onReset()` when reset', () => {
-      const mockOnReset = jest.fn();
+      const mockOnReset = vi.fn();
       render(
         <TestApp
           onReset={mockOnReset}
@@ -572,11 +695,11 @@ describe('ErrorBoundary', () => {
 
         expect(mockCaptureException).toHaveBeenCalledTimes(1);
         expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
-          captureContext: {
-            contexts: { react: { componentStack: expect.any(String) } },
-          },
-          mechanism: { handled: expected },
+          mechanism: { handled: expected, type: 'auto.function.react.error_boundary' },
         });
+
+        expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
+        expect(scopeSetContextSpy).toHaveBeenCalledWith('react', { componentStack: expect.any(String) });
       },
     );
   });

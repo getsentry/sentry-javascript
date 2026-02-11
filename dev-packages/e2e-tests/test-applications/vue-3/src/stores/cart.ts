@@ -1,7 +1,6 @@
 import { acceptHMRUpdate, defineStore } from 'pinia';
 
-export const useCartStore = defineStore({
-  id: 'cart',
+export const useCartStore = defineStore('cart', {
   state: () => ({
     rawItems: [] as string[],
   }),

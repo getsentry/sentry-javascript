@@ -1,14 +1,14 @@
 import { getClient, withScope } from '../currentScopes';
-import { captureException, captureMessage } from '../exports';
+import { captureException } from '../exports';
+import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
-import type { IntegrationFn } from '../types-hoist';
-import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
-import { CONSOLE_LEVELS } from '../utils-hoist/logger';
-import { addExceptionMechanism } from '../utils-hoist/misc';
-import { severityLevelFromString } from '../utils-hoist/severity';
-import { safeJoin } from '../utils-hoist/string';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import type { IntegrationFn } from '../types-hoist/integration';
+import { CONSOLE_LEVELS } from '../utils/debug-logger';
+import { addExceptionMechanism } from '../utils/misc';
+import { severityLevelFromString } from '../utils/severity';
+import { safeJoin } from '../utils/string';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 
 interface CaptureConsoleOptions {
   levels?: string[];
@@ -52,6 +52,17 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
 export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
 
 function consoleHandler(args: unknown[], level: string, handled: boolean): void {
+  const severityLevel = severityLevelFromString(level);
+
+  /*
+    We create this error here already to attach a stack trace to captured messages,
+    if users set `attachStackTrace` to `true` in Sentry.init.
+    We do this here already because we want to minimize the number of Sentry SDK stack frames
+    within the error. Technically, Client.captureMessage will also do it but this happens several
+    stack frames deeper.
+  */
+  const syntheticException = new Error();
+
   const captureContext: CaptureContext = {
     level: severityLevelFromString(level),
     extra: {
@@ -65,7 +76,7 @@ function consoleHandler(args: unknown[], level: string, handled: boolean): void 
 
       addExceptionMechanism(event, {
         handled,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
 
       return event;
@@ -75,7 +86,7 @@ function consoleHandler(args: unknown[], level: string, handled: boolean): void 
       if (!args[0]) {
         const message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
         scope.setExtra('arguments', args.slice(1));
-        captureMessage(message, captureContext);
+        scope.captureMessage(message, severityLevel, { captureContext, syntheticException });
       }
       return;
     }
@@ -87,6 +98,6 @@ function consoleHandler(args: unknown[], level: string, handled: boolean): void 
     }
 
     const message = safeJoin(args, ' ');
-    captureMessage(message, captureContext);
+    scope.captureMessage(message, severityLevel, { captureContext, syntheticException });
   });
 }

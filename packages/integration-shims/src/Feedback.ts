@@ -1,5 +1,5 @@
-import { consoleSandbox } from '@sentry/core';
 import type { Integration } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
 import { FAKE_FUNCTION } from './common';
 
 const FEEDBACK_INTEGRATION_METHODS = ['attachTo', 'createForm', 'createWidget', 'remove'] as const;
@@ -22,10 +22,10 @@ export const feedbackIntegrationShim = Object.assign(
 
     return {
       name: 'Feedback',
-      ...(FEEDBACK_INTEGRATION_METHODS.reduce((acc, method) => {
+      ...FEEDBACK_INTEGRATION_METHODS.reduce((acc, method) => {
         acc[method] = FAKE_FUNCTION;
         return acc;
-      }, {} as FeedbackSpecificMethods) as FeedbackSpecificMethods),
+      }, {} as FeedbackSpecificMethods),
     };
   },
   {

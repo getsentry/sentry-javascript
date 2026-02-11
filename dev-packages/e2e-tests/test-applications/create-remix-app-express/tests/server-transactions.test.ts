@@ -1,6 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { uuid4 } from '@sentry/core';
-
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe.configure({ mode: 'serial' });
@@ -20,7 +18,7 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
 
 test('Sends form data with action span', async ({ page }) => {
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action') || false;
   });
 
   await page.goto('/action-formdata');
@@ -34,13 +32,13 @@ test('Sends form data with action span', async ({ page }) => {
 
   await page.locator('button[type=submit]').click();
 
-  const actionSpan = (await formdataActionTransaction).spans.find(
+  const actionSpan = (await formdataActionTransaction)?.spans?.find(
     span => span.data && span.data['code.function'] === 'action',
   );
 
   expect(actionSpan).toBeDefined();
-  expect(actionSpan.op).toBe('action.remix');
-  expect(actionSpan.data).toMatchObject({
+  expect(actionSpan?.op).toBe('action.remix');
+  expect(actionSpan?.data).toMatchObject({
     'formData.text': 'test',
     'formData.file': 'file.txt',
   });
@@ -48,22 +46,22 @@ test('Sends form data with action span', async ({ page }) => {
 
 test('Sends a loader span to Sentry', async ({ page }) => {
   const loaderTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'loader');
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'loader') || false;
   });
 
   await page.goto('/');
 
-  const loaderSpan = (await loaderTransactionPromise).spans.find(
+  const loaderSpan = (await loaderTransactionPromise)?.spans?.find(
     span => span.data && span.data['code.function'] === 'loader',
   );
 
   expect(loaderSpan).toBeDefined();
-  expect(loaderSpan.op).toBe('loader.remix');
+  expect(loaderSpan?.op).toBe('loader.remix');
 });
 
 test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
   // We use this to identify the transactions
-  const testTag = uuid4();
+  const testTag = crypto.randomUUID();
 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
@@ -83,7 +81,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction.spans.find(
+  const loaderSpanId = httpServerTransaction?.spans?.find(
     span => span.data && span.data['code.function'] === 'loader',
   )?.span_id;
 
@@ -92,7 +90,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET client-error');
-  expect(pageloadTransaction.transaction).toBe('routes/client-error');
+  expect(pageloadTransaction.transaction).toBe('/client-error');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();
@@ -104,7 +102,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
   // We use this to identify the transactions
-  const testTag = uuid4();
+  const testTag = crypto.randomUUID();
 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
@@ -134,7 +132,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
-  expect(pageloadTransaction.transaction).toBe('routes/_index');
+  expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();

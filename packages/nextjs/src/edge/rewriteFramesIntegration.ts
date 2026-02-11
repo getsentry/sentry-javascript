@@ -1,8 +1,8 @@
 import type { IntegrationFn, StackFrame } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   defineIntegration,
   escapeStringForRegex,
+  GLOBAL_OBJ,
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/core';
 

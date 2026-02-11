@@ -1,6 +1,8 @@
 import type { Client } from '../../src';
 import { getClient, getCurrentScope } from '../../src';
-import type { Event, EventProcessor, Integration } from '../../src/types-hoist';
+import type { Event } from '../../src/types-hoist/event';
+import type { EventProcessor } from '../../src/types-hoist/eventprocessor';
+import type { Integration } from '../../src/types-hoist/integration';
 
 export class TestIntegration implements Integration {
   public static id: string = 'TestIntegration';
@@ -19,6 +21,16 @@ export class TestIntegration implements Integration {
     eventProcessor.id = this.name;
 
     getCurrentScope().addEventProcessor(eventProcessor);
+  }
+}
+
+export class AsyncTestIntegration implements Integration {
+  public static id: string = 'AsyncTestIntegration';
+
+  public name: string = 'AsyncTestIntegration';
+
+  processEvent(event: Event): Event | null | PromiseLike<Event | null> {
+    return new Promise(resolve => setTimeout(() => resolve(event), 1));
   }
 }
 

@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
 import type { replayIntegration as actualReplayIntegration } from '@sentry-internal/replay';
 import type { ReplayContainer } from '@sentry-internal/replay/build/npm/types/types';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 import { expectedClickBreadcrumb, getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
@@ -27,7 +26,7 @@ sentryTest(
     const reqPromise1 = waitForReplayRequest(page, 1);
     const reqErrorPromise = waitForErrorRequest(page);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
       // error events have no type field
       if (event && !event.type && event.event_id) {
@@ -172,7 +171,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqErrorPromise = waitForErrorRequest(page);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
       // error events have no type field
       if (event && !event.type && event.event_id) {
@@ -406,7 +405,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqErrorPromise0 = waitForErrorRequest(page);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
       // error events have no type field
       if (event && !event.type && event.event_id) {

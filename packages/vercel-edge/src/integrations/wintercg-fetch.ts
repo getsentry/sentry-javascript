@@ -7,7 +7,6 @@ import type {
   Span,
 } from '@sentry/core';
 import {
-  LRUMap,
   addBreadcrumb,
   addFetchInstrumentationHandler,
   defineIntegration,
@@ -15,6 +14,7 @@ import {
   getClient,
   instrumentFetchRequest,
   isSentryRequestUrl,
+  LRUMap,
   stringMatchesSomePattern,
 } from '@sentry/core';
 
@@ -98,13 +98,9 @@ const _winterCGFetch = ((options: Partial<Options> = {}) => {
           return;
         }
 
-        instrumentFetchRequest(
-          handlerData,
-          _shouldCreateSpan,
-          _shouldAttachTraceData,
-          spans,
-          'auto.http.wintercg_fetch',
-        );
+        instrumentFetchRequest(handlerData, _shouldCreateSpan, _shouldAttachTraceData, spans, {
+          spanOrigin: 'auto.http.wintercg_fetch',
+        });
 
         if (breadcrumbs) {
           createBreadcrumb(handlerData);

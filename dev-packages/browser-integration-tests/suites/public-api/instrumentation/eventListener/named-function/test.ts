@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -14,10 +13,9 @@ sentryTest('should capture built-in handlers fn name in mechanism data', async (
     type: 'Error',
     value: 'event_listener_error',
     mechanism: {
-      type: 'instrument',
+      type: 'auto.browser.browserapierrors.addEventListener',
       handled: false,
       data: {
-        function: 'addEventListener',
         handler: 'clickHandler',
         target: 'EventTarget',
       },

@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as SentrySvelte from '@sentry/svelte';
 import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleErrorWithSentry } from '../../src/client/handleError';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
@@ -23,13 +21,9 @@ const navigationEvent: NavigationEvent = {
   url: new URL('http://example.org/users/123'),
 };
 
-const captureExceptionEventHint = {
-  mechanism: { handled: false, type: 'sveltekit' },
-};
-
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(_ => {});
 
-describe('handleError', () => {
+describe('handleError (client)', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
     consoleErrorSpy.mockClear();
@@ -44,7 +38,9 @@ describe('handleError', () => {
 
       expect(returnVal).not.toBeDefined();
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: false, type: 'auto.function.sveltekit.handle_error' },
+      });
       // The default handler logs the error to the console
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
@@ -57,19 +53,22 @@ describe('handleError', () => {
 
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: true, type: 'auto.function.sveltekit.handle_error' },
+      });
+
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
   });
 
-  it("doesn't capture 404 errors", async () => {
+  it.each([400, 401, 402, 403, 404, 429, 499])("doesn't capture %s errors", async statusCode => {
     const wrappedHandleError = handleErrorWithSentry(handleError);
     const returnVal = (await wrappedHandleError({
-      error: new Error('404 Not Found'),
+      error: new Error(`Error with status ${statusCode}`),
       event: navigationEvent,
-      status: 404,
-      message: 'Not Found',
+      status: statusCode,
+      message: `Error with status ${statusCode}`,
     })) as any;
 
     expect(returnVal.message).toEqual('Whoops!');

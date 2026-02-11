@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
@@ -8,7 +7,7 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     // This should never be called!
     expect(true).toBe(false);
 

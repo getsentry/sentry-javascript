@@ -17,7 +17,7 @@ test('sends an error', async ({ page }) => {
           type: 'Error',
           value: 'Error thrown from Solid E2E test app',
           mechanism: {
-            type: 'onerror',
+            type: 'auto.browser.global_handlers.onerror',
             handled: false,
           },
         },

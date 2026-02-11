@@ -1,5 +1,5 @@
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-import { LRUMap, addContextToFrame, defineIntegration } from '@sentry/core';
+import { addContextToFrame, defineIntegration, LRUMap } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ContextLines';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
@@ -28,7 +28,7 @@ async function readSourceFile(filename: string): Promise<string | null> {
   let content: string | null = null;
   try {
     content = await Deno.readTextFile(filename);
-  } catch (_) {
+  } catch {
     //
   }
 
@@ -102,7 +102,7 @@ async function addSourceContextToFrames(frames: StackFrame[], contextLines: numb
           try {
             const lines = sourceFile.split('\n');
             addContextToFrame(lines, frame, contextLines);
-          } catch (_) {
+          } catch {
             // anomaly, being defensive in case
             // unlikely to ever happen in practice but can definitely happen in theory
           }

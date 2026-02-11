@@ -1,12 +1,11 @@
 import type { ReplayRecordingData } from '@sentry/core';
-
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { timestampToMs } from '../util/timestamp';
-import { WorkerHandler } from './WorkerHandler';
 import { EventBufferSizeExceededError } from './error';
+import { WorkerHandler } from './WorkerHandler';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -92,7 +91,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
     // We do not wait on this, as we assume the order of messages is consistent for the worker
     this._worker.postMessage('clear').then(null, e => {
-      DEBUG_BUILD && logger.exception(e, 'Sending "clear" message to worker failed', e);
+      DEBUG_BUILD && debug.exception(e, 'Sending "clear" message to worker failed', e);
     });
   }
 

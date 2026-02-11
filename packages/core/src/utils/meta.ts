@@ -1,3 +1,4 @@
+import type { SerializedTraceData } from '../types-hoist/tracing';
 import { getTraceData } from './traceData';
 
 /**
@@ -21,8 +22,8 @@ import { getTraceData } from './traceData';
  * ```
  *
  */
-export function getTraceMetaTags(): string {
-  return Object.entries(getTraceData())
+export function getTraceMetaTags(traceData?: SerializedTraceData): string {
+  return Object.entries(traceData || getTraceData())
     .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
     .join('\n');
 }

@@ -2,17 +2,13 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
-
+import '../utils/mock-internal-setTimeout';
 import { EventType } from '@sentry-internal/rrweb';
-
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { saveSession } from '../../src/session/saveSession';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 vi.mock('../../src/session/saveSession', () => {
   return {
@@ -21,6 +17,9 @@ vi.mock('../../src/session/saveSession', () => {
 });
 
 describe('Integration | autoSaveSession', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });

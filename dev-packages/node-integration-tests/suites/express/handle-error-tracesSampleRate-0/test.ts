@@ -1,19 +1,19 @@
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture and send Express controller error with txn name if tracesSampleRate is 0', done => {
-  createRunner(__dirname, 'server.ts')
-    .ignore('transaction')
+test('should capture and send Express controller error with txn name if tracesSampleRate is 0', async () => {
+  const runner = createRunner(__dirname, 'server.ts')
     .expect({
       event: {
         exception: {
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',
@@ -33,6 +33,7 @@ test('should capture and send Express controller error with txn name if tracesSa
         transaction: 'GET /test/express/:id',
       },
     })
-    .start(done)
-    .makeRequest('get', '/test/express/123', { expectError: true });
+    .start();
+  runner.makeRequest('get', '/test/express/123', { expectError: true });
+  await runner.completed();
 });

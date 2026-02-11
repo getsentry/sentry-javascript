@@ -1,31 +1,34 @@
+/**
+ * @vitest-environment jsdom
+ */
 import {
+  createTransport,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  createTransport,
-  getCurrentScope,
   setCurrentClient,
 } from '@sentry/core';
 import { render } from '@testing-library/react';
 import * as React from 'react';
+import type { RouteObject } from 'react-router-6';
 import {
+  createMemoryRouter,
+  createRoutesFromChildren,
+  matchRoutes,
   MemoryRouter,
   Navigate,
   Outlet,
   Route,
   RouterProvider,
   Routes,
-  createMemoryRouter,
-  createRoutesFromChildren,
-  matchRoutes,
   useLocation,
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
-
-import type { RouteObject } from 'react-router-6';
-
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
+import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
@@ -33,19 +36,19 @@ import {
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
-const mockStartBrowserTracingPageLoadSpan = jest.fn();
-const mockStartBrowserTracingNavigationSpan = jest.fn();
+const mockStartBrowserTracingPageLoadSpan = vi.fn();
+const mockStartBrowserTracingNavigationSpan = vi.fn();
 
 const mockRootSpan = {
-  updateName: jest.fn(),
-  setAttribute: jest.fn(),
+  updateName: vi.fn(),
+  setAttribute: vi.fn(),
   getSpanJSON() {
     return { op: 'pageload' };
   },
 };
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
+vi.mock('@sentry/browser', async requireActual => {
+  const actual = (await requireActual()) as any;
   return {
     ...actual,
     startBrowserTracingNavigationSpan: (...args: unknown[]) => {
@@ -59,10 +62,9 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
-jest.mock('@sentry/core', () => {
-  const actual = jest.requireActual('@sentry/core');
+vi.mock('@sentry/core', async requireActual => {
   return {
-    ...actual,
+    ...(await requireActual()),
     getRootSpan: () => {
       return mockRootSpan;
     },
@@ -80,8 +82,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
+    allRoutes.clear();
   });
 
   it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - single initialEntry', () => {

@@ -1,8 +1,9 @@
-import type { Event, EventHint } from '../../src/types-hoist';
-
-import { Scope, createTransport } from '../../src';
+import { describe, expect, it, test, vi } from 'vitest';
+import { applySdkMetadata, createTransport, Scope } from '../../src';
+import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
+import type { Event, EventHint } from '../../src/types-hoist/event';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -80,7 +81,7 @@ describe('ServerRuntimeClient', () => {
       });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -150,7 +151,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
@@ -163,7 +164,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureException(new Error('foo'));
 
@@ -187,7 +188,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureMessage('foo');
 
@@ -203,6 +204,101 @@ describe('ServerRuntimeClient', () => {
           ],
         ],
       ]);
+    });
+  });
+
+  describe('user-agent header', () => {
+    it('sends user-agent header with SDK name and version', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+
+      // this is done in all `init` functions of the respective SDKs:
+      applySdkMetadata(options, 'core');
+
+      client = new ServerRuntimeClient(options);
+
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'sentry.javascript.core/0.0.0-unknown.0',
+      });
+    });
+
+    it('prefers user-passed headers (including user-agent)', () => {
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        transportOptions: { headers: { 'x-custom-header': 'custom-value', 'user-agent': 'custom-user-agent' } },
+      });
+
+      applySdkMetadata(options, 'core');
+
+      client = new ServerRuntimeClient(options);
+
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'custom-user-agent',
+        'x-custom-header': 'custom-value',
+      });
+    });
+  });
+
+  describe('metrics processing', () => {
+    it('adds server.address attribute to metrics when serverName is set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'my-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
+    });
+
+    it('does not add server.address attribute when serverName is not set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).not.toEqual(
+        expect.objectContaining({
+          'server.address': expect.anything(),
+        }),
+      );
+    });
+
+    it('does not overwrite existing server.address attribute', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric(
+        {
+          type: 'counter',
+          name: 'test.metric',
+          value: 1,
+          attributes: { 'server.address': 'existing-server.example.com' },
+        },
+        { scope },
+      );
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'existing-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
     });
   });
 });

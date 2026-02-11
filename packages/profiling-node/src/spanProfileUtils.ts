@@ -1,9 +1,9 @@
+/* eslint-disable deprecation/deprecation */
 import type { CustomSamplingContext, Span } from '@sentry/core';
-import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
+import { debug, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import { CpuProfilerBindings } from './cpu_profiler';
+import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
@@ -26,13 +26,13 @@ export function maybeProfileSpan(
 
   // Client and options are required for profiling
   if (!client) {
-    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no client found.');
+    DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no client found.');
     return;
   }
 
   const options = client.getOptions();
   if (!options) {
-    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
+    DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no options found.');
     return;
   }
 
@@ -56,14 +56,14 @@ export function maybeProfileSpan(
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(profilesSampleRate)) {
-    DEBUG_BUILD && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    DEBUG_BUILD && debug.warn('[Profiling] Discarding profile because of invalid sample rate.');
     return;
   }
 
   // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
   if (!profilesSampleRate) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Profiling] Discarding profile because ${
           typeof profilesSampler === 'function'
             ? 'profileSampler returned 0 or false'
@@ -79,7 +79,7 @@ export function maybeProfileSpan(
   // Check if we should sample this profile
   if (!sampled) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
           profilesSampleRate,
         )})`,
@@ -89,7 +89,7 @@ export function maybeProfileSpan(
 
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
-  DEBUG_BUILD && logger.log(`[Profiling] started profiling transaction: ${spanToJSON(span).description}`);
+  DEBUG_BUILD && debug.log(`[Profiling] started profiling transaction: ${spanToJSON(span).description}`);
 
   // set transaction context - do this regardless if profiling fails down the line
   // so that we can still see the profile_id in the transaction context
@@ -109,12 +109,12 @@ export function stopSpanProfile(span: Span, profile_id: string | undefined): Raw
   }
 
   const profile = CpuProfilerBindings.stopProfiling(profile_id, 0);
-  DEBUG_BUILD && logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(span).description}`);
+  DEBUG_BUILD && debug.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(span).description}`);
 
   // In case of an overlapping span, stopProfiling may return null and silently ignore the overlapping profile.
   if (!profile) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Profiling] profiler returned null profile for: ${spanToJSON(span).description}`,
         'this may indicate an overlapping span or a call to stopProfiling with a profile title that was never started',
       );

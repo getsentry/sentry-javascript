@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
-
-import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
+import { sentryTest, TEST_HOST } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
 
 sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
@@ -18,7 +17,7 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
 
     try {
       return getEnvelopeType(req) === 'feedback';
-    } catch (err) {
+    } catch {
       return false;
     }
   });
@@ -38,6 +37,11 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
     type: 'feedback',
     breadcrumbs: expect.any(Array),
     contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
       feedback: {
         contact_email: 'janedoe@example.org',
         message: 'my example feedback',
@@ -62,6 +66,9 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
       version: expect.any(String),
       name: 'sentry.javascript.browser',
       packages: expect.anything(),
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,

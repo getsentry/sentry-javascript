@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
 
@@ -12,7 +11,7 @@ sentryTest(
 
     let callsToSentry = 0;
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       callsToSentry++;
 
       return route.fulfill({

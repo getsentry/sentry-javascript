@@ -46,8 +46,8 @@ export function Actor({ triggerLabel, triggerAriaLabel, shadow, styleNonce }: Ac
       shadow.appendChild(el);
     },
     removeFromDom(): void {
-      shadow.removeChild(el);
-      shadow.removeChild(style);
+      el.remove();
+      style.remove();
     },
     show(): void {
       el.ariaHidden = 'false';

@@ -1,7 +1,6 @@
-import type { Transport } from '../../src/types-hoist';
-
 import { createTransport } from '../../src/transports/base';
-import { SyncPromise } from '../../src/utils-hoist/syncpromise';
+import type { Transport } from '../../src/types-hoist/transport';
+import { SyncPromise } from '../../src/utils/syncpromise';
 
 async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));

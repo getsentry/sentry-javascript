@@ -22,7 +22,12 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   });
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an error');
+  const exception = errorEvent.exception?.values?.[0];
+  expect(exception?.value).toBe('This is an error');
+  expect(exception?.mechanism).toEqual({
+    type: 'auto.function.hapi',
+    handled: false,
+  });
 
   expect(errorEvent.request).toEqual({
     method: 'GET',
@@ -77,7 +82,7 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   const response4xx = await fetch(`${baseURL}/test-failure-boom-4xx`);
   const response5xx = await fetch(`${baseURL}/test-failure-boom-5xx`);
 
-  expect(response4xx.status).toBe(404);
+  expect(response4xx.status).toBe(400);
   expect(response5xx.status).toBe(504);
 
   const transactionEvent4xx = await transactionEventPromise4xx;

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vercel-edge",
-  "version": "8.45.0",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for the Vercel Edge Runtime",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vercel-edge",
@@ -40,15 +40,15 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/core": "8.45.0"
+    "@opentelemetry/resources": "^2.5.0",
+    "@sentry/core": "10.38.0"
   },
   "devDependencies": {
-    "@edge-runtime/types": "3.0.1",
-    "@opentelemetry/core": "^1.29.0",
-    "@opentelemetry/resources": "^1.29.0",
-    "@opentelemetry/sdk-trace-base": "^1.29.0",
-    "@opentelemetry/semantic-conventions": "^1.28.0",
-    "@sentry/opentelemetry": "8.45.0"
+    "@edge-runtime/types": "4.0.0",
+    "@opentelemetry/core": "^2.5.0",
+    "@opentelemetry/sdk-trace-base": "^2.5.0",
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@sentry/opentelemetry": "10.38.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -66,6 +66,7 @@
     "clean": "rimraf build coverage sentry-vercel-edge-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"

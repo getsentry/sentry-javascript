@@ -32,3 +32,33 @@ test('server pageload request span has nested request span for sub request', asy
     ]),
   );
 });
+
+test('extracts HTTP request headers as span attributes', async ({ page, baseURL }) => {
+  const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    return txnEvent?.transaction === 'GET /api/users';
+  });
+
+  await fetch(`${baseURL}/api/users`, {
+    headers: {
+      'User-Agent': 'Custom-SvelteKit-Agent/1.0',
+      'Content-Type': 'application/json',
+      'X-Test-Header': 'sveltekit-test-value',
+      Accept: 'application/json',
+      'X-Framework': 'SvelteKit',
+      'X-Request-ID': 'sveltekit-123',
+    },
+  });
+
+  const serverTxnEvent = await serverTxnEventPromise;
+
+  expect(serverTxnEvent.contexts?.trace?.data).toEqual(
+    expect.objectContaining({
+      'http.request.header.user_agent': 'Custom-SvelteKit-Agent/1.0',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.x_test_header': 'sveltekit-test-value',
+      'http.request.header.accept': 'application/json',
+      'http.request.header.x_framework': 'SvelteKit',
+      'http.request.header.x_request_id': 'sveltekit-123',
+    }),
+  );
+});

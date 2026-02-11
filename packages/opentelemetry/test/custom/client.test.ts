@@ -1,6 +1,6 @@
 import { ProxyTracer } from '@opentelemetry/api';
-
-import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
+import { describe, expect, it } from 'vitest';
+import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('OpenTelemetryClient', () => {
   it('exposes a tracer', () => {

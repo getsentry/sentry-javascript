@@ -1,11 +1,12 @@
 import type { Mechanism, WrappedFunction } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
+  getLocationHref,
   getOriginalFunction,
+  GLOBAL_OBJ,
   markFunctionWrapped,
   withScope,
 } from '@sentry/core';
@@ -95,7 +96,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
     if (getOriginalFunction(fn)) {
       return fn;
     }
-  } catch (e) {
+  } catch {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
     // Bail on wrapping and return the function as-is (defers to window.onerror).
@@ -132,6 +133,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
           return event;
         });
 
+        // no need to add a mechanism here, we already add it via an event processor above
         captureException(ex);
       });
 
@@ -174,4 +176,25 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   }
 
   return sentryWrapped;
+}
+
+/**
+ * Get HTTP request data from the current page.
+ */
+export function getHttpRequestData(): { url: string; headers: Record<string, string> } {
+  // grab as much info as exists and add it to the event
+  const url = getLocationHref();
+  const { referrer } = WINDOW.document || {};
+  const { userAgent } = WINDOW.navigator || {};
+
+  const headers = {
+    ...(referrer && { Referer: referrer }),
+    ...(userAgent && { 'User-Agent': userAgent }),
+  };
+  const request = {
+    url,
+    headers,
+  };
+
+  return request;
 }

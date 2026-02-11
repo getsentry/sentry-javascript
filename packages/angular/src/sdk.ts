@@ -3,6 +3,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
   browserSessionIntegration,
+  cultureContextIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
   init as browserInit,
@@ -12,12 +13,12 @@ import {
 import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
+  conversationIdIntegration,
+  debug,
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
-  logger,
 } from '@sentry/core';
-
 import { IS_DEBUG_BUILD } from './flags';
 
 /**
@@ -33,13 +34,17 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
   return [
+    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     breadcrumbsIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    cultureContextIntegration(),
     browserSessionIntegration(),
   ];
 }
@@ -67,7 +72,7 @@ function checkAndSetAngularVersion(): void {
   if (angularVersion) {
     if (angularVersion < ANGULAR_MINIMUM_VERSION) {
       IS_DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `This Sentry SDK does not officially support Angular ${angularVersion}.`,
           `This SDK only supports Angular ${ANGULAR_MINIMUM_VERSION} and above.`,
           "If you're using lower Angular versions, check the Angular Version Compatibility table in our docs: https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility.",

@@ -1,3 +1,4 @@
+import { afterAll, describe, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 describe('express tracing experimental', () => {
@@ -6,8 +7,8 @@ describe('express tracing experimental', () => {
   });
 
   describe('CJS', () => {
-    test('should apply the scope transactionName to error events', done => {
-      createRunner(__dirname, 'server.js')
+    test('should apply the scope transactionName to error events', async () => {
+      const runner = createRunner(__dirname, 'server.js')
         .ignore('transaction')
         .expect({
           event: {
@@ -21,8 +22,9 @@ describe('express tracing experimental', () => {
             transaction: 'GET /test/:id1/:id2',
           },
         })
-        .start(done)
-        .makeRequest('get', '/test/123/abc?q=1');
+        .start();
+      runner.makeRequest('get', '/test/123/abc?q=1');
+      await runner.completed();
     });
   });
 });

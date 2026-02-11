@@ -1,14 +1,9 @@
-import type {
-  CheckInEnvelope,
-  CheckInItem,
-  DsnComponents,
-  DynamicSamplingContext,
-  SdkMetadata,
-  SerializedCheckIn,
-} from './types-hoist';
-import { dsnToString } from './utils-hoist/dsn';
-import { createEnvelope } from './utils-hoist/envelope';
-import { dropUndefinedKeys } from './utils-hoist/object';
+import type { SerializedCheckIn } from './types-hoist/checkin';
+import type { DsnComponents } from './types-hoist/dsn';
+import type { CheckInEnvelope, CheckInItem, DynamicSamplingContext } from './types-hoist/envelope';
+import type { SdkMetadata } from './types-hoist/sdkmetadata';
+import { dsnToString } from './utils/dsn';
+import { createEnvelope } from './utils/envelope';
 
 /**
  * Create envelope from check in item.
@@ -36,7 +31,7 @@ export function createCheckInEnvelope(
   }
 
   if (dynamicSamplingContext) {
-    headers.trace = dropUndefinedKeys(dynamicSamplingContext) as DynamicSamplingContext;
+    headers.trace = dynamicSamplingContext as DynamicSamplingContext;
   }
 
   const item = createCheckInEnvelopeItem(checkIn);

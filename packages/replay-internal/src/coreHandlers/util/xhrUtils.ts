@@ -1,22 +1,15 @@
-import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
-
+import type { NetworkMetaWarning, XhrHint } from '@sentry-internal/browser-utils';
+import { getBodyString, parseXhrResponseHeaders, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
-import type {
-  NetworkMetaWarning,
-  ReplayContainer,
-  ReplayNetworkOptions,
-  ReplayNetworkRequestData,
-  XhrHint,
-} from '../../types';
-import { logger } from '../../util/logger';
+import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData } from '../../types';
+import { debug } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
   buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
-  getBodyString,
   makeNetworkReplayBreadcrumb,
   mergeWarning,
   parseContentLengthHeader,
@@ -39,7 +32,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to capture xhr breadcrumb');
+    DEBUG_BUILD && debug.exception(error, 'Failed to capture xhr breadcrumb');
   }
 }
 
@@ -105,13 +98,15 @@ function _prepareXhrData(
     };
   }
 
+  // ---- This additional network data below is only captured for URLs defined in `networkDetailAllowUrls` ----
+
   const xhrInfo = xhr[SENTRY_XHR_DATA_KEY];
   const networkRequestHeaders = xhrInfo
     ? getAllowedHeaders(xhrInfo.request_headers, options.networkRequestHeaders)
     : {};
-  const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
+  const networkResponseHeaders = getAllowedHeaders(parseXhrResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input) : [undefined];
+  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input, debug) : [undefined];
   const [responseBody, responseWarning] = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : [undefined];
 
   const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
@@ -126,22 +121,6 @@ function _prepareXhrData(
     request: requestWarning ? mergeWarning(request, requestWarning) : request,
     response: responseWarning ? mergeWarning(response, responseWarning) : response,
   };
-}
-
-function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
-  const headers = xhr.getAllResponseHeaders();
-
-  if (!headers) {
-    return {};
-  }
-
-  return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
-    const [key, value] = line.split(': ') as [string, string | undefined];
-    if (value) {
-      acc[key.toLowerCase()] = value;
-    }
-    return acc;
-  }, {});
 }
 
 function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkMetaWarning?] {
@@ -161,7 +140,7 @@ function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkM
     errors.push(e);
   }
 
-  DEBUG_BUILD && logger.warn('Failed to get xhr response body', ...errors);
+  DEBUG_BUILD && debug.warn('Failed to get xhr response body', ...errors);
 
   return [undefined];
 }
@@ -198,11 +177,11 @@ export function _parseXhrResponse(
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
+    DEBUG_BUILD && debug.exception(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
+  DEBUG_BUILD && debug.log('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }

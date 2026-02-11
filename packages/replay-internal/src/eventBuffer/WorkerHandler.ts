@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -33,7 +33,8 @@ export class WorkerHandler {
           if ((data as WorkerResponse).success) {
             resolve();
           } else {
-            reject();
+            DEBUG_BUILD && debug.warn('Received worker message with unsuccessful status', data);
+            reject(new Error('Received worker message with unsuccessful status'));
           }
         },
         { once: true },
@@ -42,7 +43,12 @@ export class WorkerHandler {
       this._worker.addEventListener(
         'error',
         error => {
-          reject(error);
+          DEBUG_BUILD && debug.warn('Failed to load Replay compression worker', error);
+          reject(
+            new Error(
+              `Failed to load Replay compression worker: ${error instanceof ErrorEvent && error.message ? error.message : 'Unknown error. This can happen due to CSP policy restrictions, network issues, or the worker script failing to load.'}`,
+            ),
+          );
         },
         { once: true },
       );
@@ -55,7 +61,7 @@ export class WorkerHandler {
    * Destroy the worker.
    */
   public destroy(): void {
-    DEBUG_BUILD && logger.info('Destroying compression worker');
+    DEBUG_BUILD && debug.log('Destroying compression worker');
     this._worker.terminate();
   }
 
@@ -83,7 +89,7 @@ export class WorkerHandler {
 
         if (!response.success) {
           // TODO: Do some error handling, not sure what
-          DEBUG_BUILD && logger.error('Error in compression worker: ', response.response);
+          DEBUG_BUILD && debug.error('Error in compression worker: ', response.response);
 
           reject(new Error('Error in compression worker'));
           return;

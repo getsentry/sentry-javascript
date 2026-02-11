@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { SpanEnvelope } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
@@ -33,6 +32,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
       sampled: 'true',
       trace_id: traceId,
       transaction: 'standalone_segment_span',
+      sample_rand: expect.any(String),
     },
   });
 
@@ -48,10 +48,10 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestUrl, page }) =>
     },
     description: 'standalone_segment_span',
     origin: 'manual',
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
     is_segment: true,
     segment_id: spanJson.span_id,
   });

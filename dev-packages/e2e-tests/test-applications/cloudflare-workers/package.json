@@ -4,28 +4,35 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev --var E2E_TEST_DSN=$E2E_TEST_DSN",
-    "build": "wrangler deploy --dry-run --var E2E_TEST_DSN=$E2E_TEST_DSN",
-    "test": "vitest",
+    "dev": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "build": "wrangler deploy --dry-run",
+    "test": "vitest --run",
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm typecheck"
+    "test:assert": "pnpm typecheck && pnpm test:dev && pnpm test:prod",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.4.5",
+    "@playwright/test": "~1.56.0",
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
     "@cloudflare/workers-types": "^4.20240725.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
-    "vitest": "1.5.0",
-    "wrangler": "^3.60.3"
+    "vitest": "~3.2.0",
+    "wrangler": "^4.61.0",
+    "ws": "^8.18.3"
   },
   "volta": {
     "extends": "../../package.json"
   },
-  "sentryTest": {
-    "optional": true
+  "pnpm": {
+    "overrides": {
+      "strip-literal": "~2.0.0"
+    }
   }
 }

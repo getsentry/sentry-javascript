@@ -15,6 +15,10 @@ export type {
   Stacktrace,
   Thread,
   User,
+  FeatureFlagsIntegration,
+  Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
@@ -31,10 +35,9 @@ export {
   endSession,
   withMonitor,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
+  isEnabled,
   generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
@@ -45,6 +48,7 @@ export {
   Scope,
   SDK_VERSION,
   setContext,
+  setConversationId,
   setExtra,
   setExtras,
   setTag,
@@ -62,13 +66,23 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -76,7 +90,9 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
@@ -102,6 +118,7 @@ export {
   setupExpressErrorHandler,
   fastifyIntegration,
   setupFastifyErrorHandler,
+  firebaseIntegration,
   koaIntegration,
   setupKoaErrorHandler,
   connectIntegration,
@@ -118,9 +135,13 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
+  honoIntegration,
+  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
@@ -128,9 +149,33 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   updateSpanName,
+  supabaseIntegration,
+  instrumentSupabaseClient,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  anthropicAIIntegration,
+  googleGenAIIntegration,
+  vercelAIIntegration,
+  logger,
+  consoleLoggingIntegration,
+  createConsolaReporter,
+  createSentryWinstonTransport,
+  wrapMcpServerWithSentry,
+  featureFlagsIntegration,
+  launchDarklyIntegration,
+  growthbookIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {
@@ -142,6 +187,7 @@ export {
 
 export type { BunOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';

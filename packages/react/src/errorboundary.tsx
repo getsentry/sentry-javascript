@@ -1,12 +1,11 @@
 import type { ReportDialogOptions } from '@sentry/browser';
 import { getClient, showReportDialog, withScope } from '@sentry/browser';
-import { logger } from '@sentry/core';
 import type { Scope } from '@sentry/core';
-import hoistNonReactStatics from 'hoist-non-react-statics';
+import { debug } from '@sentry/core';
 import * as React from 'react';
-
 import { DEBUG_BUILD } from './debug-build';
 import { captureReactException } from './error';
+import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -16,6 +15,11 @@ export type FallbackRender = (errorData: {
   eventId: string;
   resetError(): void;
 }) => React.ReactElement;
+
+type OnUnmountType = {
+  (error: null, componentStack: null, eventId: null): void;
+  (error: unknown, componentStack: string, eventId: string): void;
+};
 
 export type ErrorBoundaryProps = {
   children?: React.ReactNode | (() => React.ReactNode);
@@ -42,15 +46,23 @@ export type ErrorBoundaryProps = {
    */
   handled?: boolean | undefined;
   /** Called when the error boundary encounters an error */
-  onError?: ((error: unknown, componentStack: string | undefined, eventId: string) => void) | undefined;
+  onError?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
   onMount?: (() => void) | undefined;
-  /** Called if resetError() is called from the fallback render props function  */
-  onReset?: ((error: unknown, componentStack: string | null | undefined, eventId: string | null) => void) | undefined;
-  /** Called on componentWillUnmount() */
-  onUnmount?: ((error: unknown, componentStack: string | null | undefined, eventId: string | null) => void) | undefined;
+  /**
+   * Called when the error boundary resets due to a reset call from the
+   * fallback render props function.
+   */
+  onReset?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
+  /**
+   * Called on componentWillUnmount() with the error, componentStack, and eventId.
+   *
+   * If the error boundary never encountered an error, the error
+   * componentStack, and eventId will be null.
+   */
+  onUnmount?: OnUnmountType | undefined;
   /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
-  beforeCapture?: ((scope: Scope, error: unknown, componentStack: string | undefined) => void) | undefined;
+  beforeCapture?: ((scope: Scope, error: unknown, componentStack: string) => void) | undefined;
 };
 
 type ErrorBoundaryState =
@@ -65,7 +77,7 @@ type ErrorBoundaryState =
       eventId: string;
     };
 
-const INITIAL_STATE = {
+const INITIAL_STATE: ErrorBoundaryState = {
   componentStack: null,
   error: null,
   eventId: null,
@@ -104,20 +116,19 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   public componentDidCatch(error: unknown, errorInfo: React.ErrorInfo): void {
     const { componentStack } = errorInfo;
-    // TODO(v9): Remove this check and type `componentStack` to be React.ErrorInfo['componentStack'].
-    const passedInComponentStack: string | undefined = componentStack == null ? undefined : componentStack;
-
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
     withScope(scope => {
       if (beforeCapture) {
-        beforeCapture(scope, error, passedInComponentStack);
+        beforeCapture(scope, error, componentStack);
       }
 
       const handled = this.props.handled != null ? this.props.handled : !!this.props.fallback;
-      const eventId = captureReactException(error, errorInfo, { mechanism: { handled } });
+      const eventId = captureReactException(error, errorInfo, {
+        mechanism: { handled, type: 'auto.function.react.error_boundary' },
+      });
 
       if (onError) {
-        onError(error, passedInComponentStack, eventId);
+        onError(error, componentStack, eventId);
       }
       if (showDialog) {
         this._lastEventId = eventId;
@@ -143,7 +154,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { error, componentStack, eventId } = this.state;
     const { onUnmount } = this.props;
     if (onUnmount) {
-      onUnmount(error, componentStack, eventId);
+      if (this.state === INITIAL_STATE) {
+        // If the error boundary never encountered an error, call onUnmount with null values
+        onUnmount(null, null, null);
+      } else {
+        // `componentStack` and `eventId` are guaranteed to be non-null here because `onUnmount` is only called
+        // when the error boundary has already encountered an error.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        onUnmount(error, componentStack!, eventId!);
+      }
     }
 
     if (this._cleanupHook) {
@@ -156,7 +175,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { onReset } = this.props;
     const { error, componentStack, eventId } = this.state;
     if (onReset) {
-      onReset(error, componentStack, eventId);
+      // `componentStack` and `eventId` are guaranteed to be non-null here because `onReset` is only called
+      // when the error boundary has already encountered an error.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      onReset(error, componentStack!, eventId!);
     }
     this.setState(INITIAL_STATE);
   }
@@ -165,35 +187,33 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { fallback, children } = this.props;
     const state = this.state;
 
-    if (state.error) {
-      let element: React.ReactElement | undefined = undefined;
-      if (typeof fallback === 'function') {
-        element = React.createElement(fallback, {
-          error: state.error,
-          componentStack: state.componentStack as string,
-          resetError: this.resetErrorBoundary.bind(this),
-          eventId: state.eventId as string,
-        });
-      } else {
-        element = fallback;
-      }
-
-      if (React.isValidElement(element)) {
-        return element;
-      }
-
-      if (fallback) {
-        DEBUG_BUILD && logger.warn('fallback did not produce a valid ReactElement');
-      }
-
-      // Fail gracefully if no fallback provided or is not valid
-      return null;
+    // `componentStack` is only null in the initial state, when no error has been captured.
+    // If an error has been captured, `componentStack` will be a string.
+    // We cannot check `state.error` because null can be thrown as an error.
+    if (state.componentStack === null) {
+      return typeof children === 'function' ? children() : children;
     }
 
-    if (typeof children === 'function') {
-      return (children as () => React.ReactNode)();
+    const element =
+      typeof fallback === 'function'
+        ? React.createElement(fallback, {
+            error: state.error,
+            componentStack: state.componentStack,
+            resetError: () => this.resetErrorBoundary(),
+            eventId: state.eventId,
+          })
+        : fallback;
+
+    if (React.isValidElement(element)) {
+      return element;
     }
-    return children;
+
+    if (fallback) {
+      DEBUG_BUILD && debug.warn('fallback did not produce a valid ReactElement');
+    }
+
+    // Fail gracefully if no fallback provided or is not valid
+    return null;
   }
 }
 
@@ -204,11 +224,11 @@ function withErrorBoundary<P extends Record<string, any>>(
 ): React.FC<P> {
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
-  const Wrapped: React.FC<P> = (props: P) => (
+  const Wrapped = React.memo((props: P) => (
     <ErrorBoundary {...errorBoundaryOptions}>
       <WrappedComponent {...props} />
     </ErrorBoundary>
-  );
+  )) as unknown as React.FC<P>;
 
   Wrapped.displayName = `errorBoundary(${componentDisplayName})`;
 

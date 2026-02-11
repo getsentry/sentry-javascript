@@ -1,7 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { createStackParser } from '@sentry/core';
-
+import { describe, expect, it } from 'vitest';
 import { exceptionFromError } from '../../src/eventbuilder';
 import { defaultStackParser, opera10StackLineParser, opera11StackLineParser } from '../../src/stack-parsers';
 

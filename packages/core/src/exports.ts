@@ -2,28 +2,22 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
-import type {
-  CheckIn,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extra,
-  Extras,
-  FinishedCheckIn,
-  MonitorConfig,
-  Primitive,
-  Session,
-  SessionContext,
-  SeverityLevel,
-  User,
-} from './types-hoist';
-import { isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { uuid4 } from './utils-hoist/misc';
-import { timestampInSeconds } from './utils-hoist/time';
-import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import { startNewTrace } from './tracing/trace';
+import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types-hoist/checkin';
+import type { Event, EventHint } from './types-hoist/event';
+import type { EventProcessor } from './types-hoist/eventprocessor';
+import type { Extra, Extras } from './types-hoist/extra';
+import type { Primitive } from './types-hoist/misc';
+import type { Session, SessionContext } from './types-hoist/session';
+import type { SeverityLevel } from './types-hoist/severity';
+import type { User } from './types-hoist/user';
+import { debug } from './utils/debug-logger';
+import { isThenable } from './utils/is';
+import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
+import { timestampInSeconds } from './utils/time';
+import { GLOBAL_OBJ } from './utils/worldwide';
 
 /**
  * Captures an exception event and sends it to Sentry.
@@ -47,8 +41,8 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-  return getCurrentScope().captureMessage(message, level, context);
+  const hint = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  return getCurrentScope().captureMessage(message, level, hint);
 }
 
 /**
@@ -118,6 +112,15 @@ export function setUser(user: User | null): void {
 }
 
 /**
+ * Sets the conversation ID for the current isolation scope.
+ *
+ * @param conversationId The conversation ID to set. Pass `null` or `undefined` to unset the conversation ID.
+ */
+export function setConversationId(conversationId: string | null | undefined): void {
+  getIsolationScope().setConversationId(conversationId);
+}
+
+/**
  * The last error event id of the isolation scope.
  *
  * Warning: This function really returns the last recorded error event id on the current
@@ -143,9 +146,9 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   const scope = getCurrentScope();
   const client = getClient();
   if (!client) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
-    DEBUG_BUILD && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
+    DEBUG_BUILD && debug.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
     return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
@@ -157,6 +160,7 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
  *
  * @param monitorSlug The distinct slug of the monitor.
+ * @param callback Callback to be monitored
  * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
  * to create a monitor automatically when sending a check in.
  */
@@ -165,14 +169,14 @@ export function withMonitor<T>(
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,
 ): T {
-  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
-  const now = timestampInSeconds();
+  function runCallback(): T {
+    const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+    const now = timestampInSeconds();
 
-  function finishCheckIn(status: FinishedCheckIn['status']): void {
-    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
-  }
-
-  return withIsolationScope(() => {
+    function finishCheckIn(status: FinishedCheckIn['status']): void {
+      captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
+    }
+    // Default behavior without isolateTrace
     let maybePromiseResult: T;
     try {
       maybePromiseResult = callback();
@@ -182,21 +186,23 @@ export function withMonitor<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
+      return maybePromiseResult.then(
+        r => {
           finishCheckIn('ok');
+          return r;
         },
         e => {
           finishCheckIn('error');
           throw e;
         },
-      );
-    } else {
-      finishCheckIn('ok');
+      ) as T;
     }
+    finishCheckIn('ok');
 
     return maybePromiseResult;
-  });
+  }
+
+  return withIsolationScope(() => (upsertMonitorConfig?.isolateTrace ? startNewTrace(runCallback) : runCallback()));
 }
 
 /**
@@ -212,7 +218,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -229,7 +235,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  DEBUG_BUILD && debug.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

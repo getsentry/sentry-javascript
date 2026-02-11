@@ -1,3 +1,4 @@
+import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
@@ -19,18 +20,24 @@ type SourceMapsUploadOptions = {
    *
    * To create an auth token, follow this guide:
    * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   *
+   * @deprecated Use option `authToken` instead of `sourceMapsUploadOptions.authToken`
    */
   authToken?: string;
 
   /**
    * The organization slug of your Sentry organization.
    * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   *
+   * @deprecated Use option `org` instead of `sourceMapsUploadOptions.org`
    */
   org?: string;
 
   /**
    * The project slug of your Sentry project.
    * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   *
+   * @deprecated Use option `project` instead of `sourceMapsUploadOptions.project`
    */
   project?: string;
 
@@ -39,11 +46,13 @@ type SourceMapsUploadOptions = {
    * It will not collect any sensitive or user-specific data.
    *
    * @default true
+   * @deprecated Use option `telemetry` instead of `sourceMapsUploadOptions.telemetry`
    */
   telemetry?: boolean;
 
   /**
    * Options related to sourcemaps
+   * @deprecated Use `sourcemaps` instead of `sourceMapsUploadOptions.sourcemaps`
    */
   sourcemaps?: {
     /**
@@ -55,6 +64,7 @@ type SourceMapsUploadOptions = {
      *
      * The globbing patterns must follow the implementation of the `glob` package.
      * @see https://www.npmjs.com/package/glob#glob-primer
+     * @deprecated Use `sourcemaps.assets` instead of `sourceMapsUploadOptions.sourcemaps.assets`
      */
     assets?: string | Array<string>;
 
@@ -65,6 +75,8 @@ type SourceMapsUploadOptions = {
      * or the default value for `assets` are uploaded.
      *
      * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+     *
+     * @deprecated Use `sourcemaps.ignore` instead of `sourceMapsUploadOptions.sourcemaps.ignore`
      */
     ignore?: string | Array<string>;
 
@@ -75,6 +87,8 @@ type SourceMapsUploadOptions = {
      * @default [] - By default no files are deleted.
      *
      * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+     *
+     * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` instead of `sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload`
      */
     filesToDeleteAfterUpload?: string | Array<string>;
   };
@@ -83,6 +97,8 @@ type SourceMapsUploadOptions = {
    * Options related to managing the Sentry releases for a build.
    *
    * Note: Managing releases is optional and not required for uploading source maps.
+   *
+   * @deprecated Use `release` instead of `sourceMapsUploadOptions.release`
    */
   release?: {
     /**
@@ -94,6 +110,8 @@ type SourceMapsUploadOptions = {
      * access to git CLI and for the root directory to be a valid repository).
      *
      * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     *
+     * @deprecated Use `release.name` instead of `sourceMapsUploadOptions.release.name`
      */
     name?: string;
 
@@ -102,12 +120,16 @@ type SourceMapsUploadOptions = {
      * sending events.
      *
      * Defaults to `true`.
+     *
+     * @deprecated Use `release.inject` instead of `sourceMapsUploadOptions.release.inject`
      */
     inject?: boolean;
   };
 
   /**
    * The URL of the Sentry instance to upload the source maps to.
+   *
+   * @deprecated Use `sentryUrl` instead of `sourceMapsUploadOptions.url`
    */
   url?: string;
 
@@ -123,104 +145,54 @@ type SourceMapsUploadOptions = {
    * changes can occur at any time within a major SDK version.
    *
    * Furthermore, some options are untested with SvelteKit specifically. Use with caution.
+   *
+   * @deprecated Use `unstable_sentryVitePluginOptions` instead of `sourceMapsUploadOptions.unstable_sentryVitePluginOptions`
    */
   unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
-type BundleSizeOptimizationOptions = {
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) any debugging code within the Sentry SDK.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * Setting this option to `true` will disable features like the SDK's `debug` option.
-   */
-  excludeDebugStatements?: boolean;
-
-  /**
-   * If set to true, the plugin will try to tree-shake tracing statements out.
-   * Note that the success of this depends on tree shaking generally being enabled in your build.
-   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
-   */
-  excludeTracing?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Shadow DOM recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
-   */
-  excludeReplayShadowDom?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay `iframe` recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
-   */
-  excludeReplayIframe?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay's Compression Web Worker.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * **Notice:** You should only do use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
-   */
-  excludeReplayWorker?: boolean;
-};
-
 /** Options for the Sentry SvelteKit plugin */
-export type SentrySvelteKitPluginOptions = {
-  /**
-   * If this flag is `true`, the Sentry plugins will log some useful debug information.
-   * @default false.
-   */
-  debug?: boolean;
+export type SentrySvelteKitPluginOptions = BuildTimeOptionsBase &
+  UnstableVitePluginOptions<Partial<SentryVitePluginOptions>> & {
+    /**
+     * The Sentry plugin will automatically instrument certain parts of your SvelteKit application at build time.
+     * Set this option to `false` to disable this behavior or what is intrumented by passing an object.
+     *
+     * Auto instrumentation includes:
+     * - Universal `load` functions in `+page.(js|ts)` files
+     * - Server-only `load` functions in `+page.server.(js|ts)` files
+     *
+     * @default true (meaning, the plugin will instrument all of the above)
+     */
+    autoInstrument?: boolean | AutoInstrumentSelection;
 
-  /**
-   * The Sentry plugin will automatically instrument certain parts of your SvelteKit application at build time.
-   * Set this option to `false` to disable this behavior or what is intrumented by passing an object.
-   *
-   * Auto instrumentation includes:
-   * - Universal `load` functions in `+page.(js|ts)` files
-   * - Server-only `load` functions in `+page.server.(js|ts)` files
-   *
-   * @default true (meaning, the plugin will instrument all of the above)
-   */
-  autoInstrument?: boolean | AutoInstrumentSelection;
+    /**
+     * Specify which SvelteKit adapter you're using.
+     * By default, the SDK will attempt auto-detect the used adapter at build time and apply the
+     * correct config for source maps upload or auto-instrumentation.
+     *
+     * Currently, the SDK supports the following adapters:
+     * - node (@sveltejs/adapter-node)
+     * - auto (@sveltejs/adapter-auto) only Vercel
+     * - vercel (@sveltejs/adapter-auto) only Serverless functions, no edge runtime
+     *
+     * Set this option, if the SDK detects the wrong adapter or you want to use an adapter
+     * that is not in this list. If you specify 'other', you'll most likely need to configure
+     * source maps upload yourself.
+     *
+     * @default {} the SDK attempts to auto-detect the used adapter at build time
+     */
+    adapter?: SupportedSvelteKitAdapters;
 
-  /**
-   * Specify which SvelteKit adapter you're using.
-   * By default, the SDK will attempt auto-detect the used adapter at build time and apply the
-   * correct config for source maps upload or auto-instrumentation.
-   *
-   * Currently, the SDK supports the following adapters:
-   * - node (@sveltejs/adapter-node)
-   * - auto (@sveltejs/adapter-auto) only Vercel
-   * - vercel (@sveltejs/adapter-auto) only Serverless functions, no edge runtime
-   *
-   * Set this option, if the SDK detects the wrong adapter or you want to use an adapter
-   * that is not in this list. If you specify 'other', you'll most likely need to configure
-   * source maps upload yourself.
-   *
-   * @default {} the SDK attempts to auto-detect the used adapter at build time
-   */
-  adapter?: SupportedSvelteKitAdapters;
+    /**
+     * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
+     * @default true`.
+     */
+    autoUploadSourceMaps?: boolean;
 
-  /**
-   * Options for the Sentry Vite plugin to customize bundle size optimizations.
-   *
-   * These options are always read from the `sentryAstro` integration.
-   * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
-   */
-  bundleSizeOptimizations?: BundleSizeOptimizationOptions;
-
-  /**
-   * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
-   * @default true`.
-   */
-  autoUploadSourceMaps?: boolean;
-  /**
-   * Options related to source maps upload to Sentry
-   */
-  sourceMapsUploadOptions?: SourceMapsUploadOptions;
-};
+    /** * Options related to source maps upload to Sentry
+     *
+     * @deprecated This option was deprecated as it adds unnecessary nesting. Put the options one level higher to the root-level of the Sentry Svelte plugin options.
+     */
+    sourceMapsUploadOptions?: SourceMapsUploadOptions;
+  };

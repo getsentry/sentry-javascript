@@ -2,7 +2,7 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
@@ -46,7 +46,7 @@ async function makeRequest(
   } catch (e) {
     // We sometimes expect the request to fail, but not the test.
     // So, we do nothing.
-    logger.warn(e);
+    debug.warn(e);
   }
 }
 
@@ -74,13 +74,13 @@ class TestEnv {
   public static async init(testDir: string, serverPath?: string, scenarioPath?: string): Promise<TestEnv> {
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-    const [server, url] = await new Promise<[http.Server, string]>(resolve => {
+    const [server, url] = await new Promise<[http.Server, string]>(async resolve => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-      const app = require(serverPath || defaultServerPath).default as Express;
+      const { default: app } = (await import(serverPath || defaultServerPath)) as { default: Express };
 
-      app.get('/test', (_req, res) => {
+      app.get('/test', async (_req, res) => {
         try {
-          require(scenarioPath || `${testDir}/scenario`);
+          await import(scenarioPath || `${testDir}/scenario`);
         } finally {
           res.status(200).end();
         }
@@ -195,7 +195,7 @@ class TestEnv {
 
               this._closeServer()
                 .catch(e => {
-                  logger.warn(e);
+                  debug.warn(e);
                 })
                 .finally(() => {
                   resolve(envelopes);
@@ -267,10 +267,11 @@ export class RemixTestEnv extends TestEnv {
 
   public static async init(): Promise<RemixTestEnv> {
     let serverPort;
-    const server = await new Promise<http.Server>(resolve => {
+    const server = await new Promise<http.Server>(async resolve => {
       const app = express();
 
-      app.all('*', createRequestHandler({ build: require('../../../build') }));
+      // Vite builds to build/server/index.js instead of build/index.js
+      app.all('*', createRequestHandler({ build: await import('../../../build/server/index.js') }));
 
       const server = app.listen(0, () => {
         serverPort = (server.address() as AddressInfo).port;

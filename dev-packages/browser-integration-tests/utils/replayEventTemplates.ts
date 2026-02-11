@@ -15,6 +15,13 @@ const DEFAULT_REPLAY_EVENT = {
   replay_type: 'session',
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
+  contexts: {
+    culture: {
+      locale: expect.any(String),
+      timezone: expect.any(String),
+      calendar: expect.any(String),
+    },
+  },
   sdk: {
     integrations: expect.arrayContaining([
       'InboundFilters',
@@ -25,11 +32,15 @@ const DEFAULT_REPLAY_EVENT = {
       'LinkedErrors',
       'Dedupe',
       'HttpContext',
+      'CultureContext',
       'BrowserSession',
       'Replay',
     ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
+    settings: {
+      infer_ip: 'never',
+    },
   },
   request: {
     url: expect.stringContaining('/index.html'),
@@ -148,19 +159,6 @@ export const expectedCLSPerformanceSpan = {
   },
 };
 
-export const expectedFIDPerformanceSpan = {
-  op: 'web-vital',
-  description: 'first-input-delay',
-  startTimestamp: expect.any(Number),
-  endTimestamp: expect.any(Number),
-  data: {
-    value: expect.any(Number),
-    rating: expect.any(String),
-    size: expect.any(Number),
-    nodeIds: expect.any(Array),
-  },
-};
-
 export const expectedINPPerformanceSpan = {
   op: 'web-vital',
   description: 'interaction-to-next-paint',
@@ -190,7 +188,7 @@ export const expectedFPPerformanceSpan = {
 
 export const expectedFetchPerformanceSpan = {
   op: 'resource.fetch',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.example',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -215,7 +213,7 @@ export const expectedFetchPerformanceSpan = {
 
 export const expectedXHRPerformanceSpan = {
   op: 'resource.xhr',
-  description: 'https://example.com',
+  description: 'https://sentry-test-site.example',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {

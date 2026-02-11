@@ -2,13 +2,12 @@
  * @vitest-environment jsdom
  */
 
-import type { MockInstance, MockedFunction } from 'vitest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryCore from '@sentry/core';
+import '../utils/mock-internal-setTimeout';
 import type { Transport } from '@sentry/core';
-
+import * as SentryCore from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import type { MockedFunction, MockInstance } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
@@ -17,9 +16,6 @@ import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockTransportSend = MockedFunction<Transport['send']>;
 
@@ -32,6 +28,7 @@ describe('Integration | sendReplayEvent', () => {
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
@@ -400,7 +397,14 @@ describe('Integration | sendReplayEvent', () => {
     // Retries = 3 (total tries = 4 including initial attempt)
     // + last exception is max retries exceeded
     expect(spyHandleException).toHaveBeenCalledTimes(5);
-    expect(spyHandleException).toHaveBeenLastCalledWith(new Error('Unable to send Replay - max retries exceeded'));
+    const expectedError = new Error('Unable to send Replay - max retries exceeded');
+    (expectedError as any).cause = new Error('Something bad happened');
+    expect(spyHandleException).toHaveBeenLastCalledWith(expectedError, {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.replay.debug',
+      },
+    });
 
     const spyHandleExceptionCall = spyHandleException.mock.calls;
     expect(spyHandleExceptionCall[spyHandleExceptionCall.length - 1][0]?.cause.message).toEqual(

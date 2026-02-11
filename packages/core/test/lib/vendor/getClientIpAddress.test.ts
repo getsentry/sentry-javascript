@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { getClientIPAddress } from '../../../src/vendor/getIpAddress';
 
 describe('getClientIPAddress', () => {
@@ -27,5 +28,14 @@ describe('getClientIPAddress', () => {
     const ip = getClientIPAddress(headers);
 
     expect(ip).toEqual(expectedIP);
+  });
+
+  it('should find headers regardless of case', () => {
+    const headers = {
+      'Cf-Connecting-Ip': '1.1.1.1',
+    };
+
+    const ip = getClientIPAddress(headers);
+    expect(ip).toEqual('1.1.1.1');
   });
 });

@@ -1,6 +1,6 @@
-import { getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { Client, Envelope, Event, IntegrationFn } from '@sentry/core';
-import { defineIntegration, logger, serializeEnvelope } from '@sentry/core';
+import { debug, defineIntegration, serializeEnvelope } from '@sentry/core';
+import { getNativeImplementation } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { WINDOW } from '../helpers';
 
@@ -20,7 +20,7 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
   return {
     name: INTEGRATION_NAME,
     setup: () => {
-      DEBUG_BUILD && logger.log('Using Sidecar URL', sidecarUrl);
+      DEBUG_BUILD && debug.log('Using Sidecar URL', sidecarUrl);
     },
     // We don't want to send interaction transactions/root spans created from
     // clicks within Spotlight to Sentry. Neither do we want them to be sent to
@@ -38,7 +38,7 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
 
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failCount > 3) {
-      logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests:', failCount);
+      debug.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests:', failCount);
       return;
     }
 
@@ -58,7 +58,7 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
       },
       err => {
         failCount++;
-        logger.error(
+        debug.error(
           "Sentry SDK can't connect to Sidecar is it running? See: https://spotlightjs.com/sidecar/npx/",
           err,
         );
@@ -80,10 +80,9 @@ export const spotlightBrowserIntegration = defineIntegration(_spotlightIntegrati
 export function isSpotlightInteraction(event: Event): boolean {
   return Boolean(
     event.type === 'transaction' &&
-      event.spans &&
-      event.contexts &&
-      event.contexts.trace &&
-      event.contexts.trace.op === 'ui.action.click' &&
-      event.spans.some(({ description }) => description?.includes('#sentry-spotlight')),
+    event.spans &&
+    event.contexts?.trace &&
+    event.contexts.trace.op === 'ui.action.click' &&
+    event.spans.some(({ description }) => description?.includes('#sentry-spotlight')),
   );
 }

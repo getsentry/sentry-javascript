@@ -1,17 +1,18 @@
-import type { ParsedUrlQuery } from 'querystring';
 import type { Client, TransactionSource } from '@sentry/core';
 import {
+  browserPerformanceTimeOrigin,
+  debug,
+  parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  browserPerformanceTimeOrigin,
-  logger,
-  parseBaggageHeader,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
+import type { ParsedUrlQuery } from 'querystring';
+import { DEBUG_BUILD } from '../../common/debug-build';
 
 // next/router v10 is CJS
 //
@@ -19,8 +20,6 @@ import RouterImport from 'next/router';
 const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
-
-import { DEBUG_BUILD } from '../../common/debug-build';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
@@ -70,8 +69,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   if (nextDataTag?.innerHTML) {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
-    } catch (e) {
-      DEBUG_BUILD && logger.warn('Could not extract __NEXT_DATA__');
+    } catch {
+      DEBUG_BUILD && debug.warn('Could not extract __NEXT_DATA__');
     }
   }
 
@@ -119,12 +118,13 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
+  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      startTime: origin ? origin / 1000 : undefined,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',

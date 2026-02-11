@@ -1,11 +1,9 @@
-import { getCurrentScope, spanToJSON } from '@sentry/core';
-import { logger, timestampInSeconds, uuid4 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-
+import { debug, getCurrentScope, spanToJSON, timestampInSeconds, uuid4 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
-import { MAX_PROFILE_DURATION_MS, addProfileToGlobalCache, isAutomatedPageLoadSpan, startJSSelfProfile } from './utils';
+import { addProfileToGlobalCache, isAutomatedPageLoadSpan, MAX_PROFILE_DURATION_MS, startJSSelfProfile } from './utils';
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.
@@ -28,7 +26,7 @@ export function startProfileForSpan(span: Span): void {
   }
 
   if (DEBUG_BUILD) {
-    logger.log(`[Profiling] started profiling span: ${spanToJSON(span).description}`);
+    debug.log(`[Profiling] started profiling span: ${spanToJSON(span).description}`);
   }
 
   // We create "unique" span names to avoid concurrent spans with same names
@@ -43,7 +41,7 @@ export function startProfileForSpan(span: Span): void {
   // event of an error or user mistake (calling span.finish multiple times), it is important that the behavior of onProfileHandler
   // is idempotent as we do not want any timings or profiles to be overridden by the last call to onProfileHandler.
   // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-  const processedProfile: JSSelfProfile | null = null;
+  let processedProfile: JSSelfProfile | null = null;
 
   getCurrentScope().setContext('profile', {
     profile_id: profileId,
@@ -64,7 +62,7 @@ export function startProfileForSpan(span: Span): void {
     }
     if (processedProfile) {
       if (DEBUG_BUILD) {
-        logger.log('[Profiling] profile for:', spanToJSON(span).description, 'already exists, returning early');
+        debug.log('[Profiling] profile for:', spanToJSON(span).description, 'already exists, returning early');
       }
       return;
     }
@@ -78,13 +76,13 @@ export function startProfileForSpan(span: Span): void {
         }
 
         if (DEBUG_BUILD) {
-          logger.log(`[Profiling] stopped profiling of span: ${spanToJSON(span).description}`);
+          debug.log(`[Profiling] stopped profiling of span: ${spanToJSON(span).description}`);
         }
 
         // In case of an overlapping span, stopProfiling may return null and silently ignore the overlapping profile.
         if (!profile) {
           if (DEBUG_BUILD) {
-            logger.log(
+            debug.log(
               `[Profiling] profiler returned null profile for: ${spanToJSON(span).description}`,
               'this may indicate an overlapping span or a call to stopProfiling with a profile title that was never started',
             );
@@ -92,11 +90,12 @@ export function startProfileForSpan(span: Span): void {
           return;
         }
 
+        processedProfile = profile;
         addProfileToGlobalCache(profileId, profile);
       })
       .catch(error => {
         if (DEBUG_BUILD) {
-          logger.log('[Profiling] error while stopping profiler:', error);
+          debug.log('[Profiling] error while stopping profiler:', error);
         }
       });
   }
@@ -104,7 +103,7 @@ export function startProfileForSpan(span: Span): void {
   // Enqueue a timeout to prevent profiles from running over max duration.
   let maxDurationTimeoutID: number | undefined = WINDOW.setTimeout(() => {
     if (DEBUG_BUILD) {
-      logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', spanToJSON(span).description);
+      debug.log('[Profiling] max profile duration elapsed, stopping profiling for:', spanToJSON(span).description);
     }
     // If the timeout exceeds, we want to stop profiling, but not finish the span
     // eslint-disable-next-line @typescript-eslint/no-floating-promises

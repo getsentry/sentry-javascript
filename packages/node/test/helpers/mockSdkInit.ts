@@ -1,8 +1,8 @@
-import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
+import { BasicTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { NodeClient } from '../../src';
-
 import { init } from '../../src/sdk';
 import type { NodeClientOptions } from '../../src/types';
 
@@ -41,6 +41,29 @@ export function cleanupOtel(_provider?: BasicTracerProvider): void {
   trace.disable();
   context.disable();
   propagation.disable();
+}
+
+export function getSpanProcessor(): SentrySpanProcessor | undefined {
+  const client = getClient<NodeClient>();
+  if (!client?.traceProvider) {
+    return undefined;
+  }
+
+  const provider = getProvider(client.traceProvider);
+  if (!provider) {
+    return undefined;
+  }
+
+  // Access the span processors from the provider via _activeSpanProcessor
+  const multiSpanProcessor = provider?.['_activeSpanProcessor'] as
+    | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
+    | undefined;
+
+  const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
+    (spanProcessor: SpanProcessor) => spanProcessor instanceof SentrySpanProcessor,
+  );
+
+  return spanProcessor;
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {

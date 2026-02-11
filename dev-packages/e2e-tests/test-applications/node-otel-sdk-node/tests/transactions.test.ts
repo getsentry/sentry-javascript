@@ -50,6 +50,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-transaction',
+      'http.request.header.accept': '*/*',
+      'http.request.header.accept_encoding': 'gzip, deflate',
+      'http.request.header.accept_language': '*',
+      'http.request.header.connection': 'keep-alive',
+      'http.request.header.host': expect.any(String),
+      'http.request.header.sec_fetch_mode': 'cors',
+      'http.request.header.user_agent': 'node',
     },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -74,7 +81,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'query',
       'express.type': 'middleware',
     },
@@ -93,7 +99,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
@@ -152,7 +157,6 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'query',
       'express.type': 'middleware',
     },
@@ -171,7 +175,6 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     data: {
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
-      'http.route': '/',
       'express.name': 'expressInit',
       'express.type': 'middleware',
     },
@@ -200,8 +203,9 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
-    status: 'ok',
+    status: 'internal_error',
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    measurements: {},
   });
 });

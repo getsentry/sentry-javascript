@@ -1,7 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
-import { logger } from '@sentry/core';
+import {
+  debug,
+  handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
@@ -49,14 +52,14 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
 
         const newCallback = domainify((...args: unknown[]) => {
           if (args[0] !== null && args[0] !== undefined) {
-            captureException(args[0], scope => markEventUnhandled(scope));
+            captureException(args[0], scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_event'));
           }
           span.end();
 
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)
             .then(null, e => {
-              DEBUG_BUILD && logger.error(e);
+              DEBUG_BUILD && debug.error(e);
             })
             .then(() => {
               if (typeof callback === 'function') {
@@ -69,7 +72,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
           return handleCallbackErrors(
             () => (fn as EventFunctionWithCallback)(data, context, newCallback),
             err => {
-              captureException(err, scope => markEventUnhandled(scope));
+              captureException(err, scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_event'));
             },
           );
         }

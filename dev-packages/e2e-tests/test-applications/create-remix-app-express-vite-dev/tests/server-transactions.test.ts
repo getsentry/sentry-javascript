@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { uuid4 } from '@sentry/core';
 
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -20,7 +19,7 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
   // We use this to identify the transactions
-  const testTag = uuid4();
+  const testTag = crypto.randomUUID();
 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
@@ -49,7 +48,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
-  expect(pageloadTransaction.transaction).toBe('routes/_index');
+  expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();

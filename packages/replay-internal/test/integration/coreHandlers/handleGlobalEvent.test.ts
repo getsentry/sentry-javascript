@@ -2,11 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { getClient } from '@sentry/core';
+import '../../utils/mock-internal-setTimeout';
 import type { Event } from '@sentry/core';
-
+import { getClient } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
@@ -15,12 +14,14 @@ import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
-import { useFakeTimers } from '../../utils/use-fake-timers';
 
-useFakeTimers();
 let replay: ReplayContainer;
 
 describe('Integration | coreHandlers | handleGlobalEvent', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
   beforeEach(async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {

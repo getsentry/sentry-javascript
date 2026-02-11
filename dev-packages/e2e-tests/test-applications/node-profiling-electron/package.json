@@ -1,0 +1,24 @@
+{
+  "name": "node-profiling-electron",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "clean": "npx rimraf node_modules dist",
+    "test:build": "pnpm install",
+    "test:assert": "$(pnpm bin)/electron-rebuild && pnpm playwright test"
+  },
+  "dependencies": {
+    "@electron/rebuild": "^3.7.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry/electron": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/profiling-node": "latest || *",
+    "electron": "^33.2.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "skip": true
+  }
+}

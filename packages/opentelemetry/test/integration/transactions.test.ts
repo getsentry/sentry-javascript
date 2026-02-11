@@ -1,37 +1,34 @@
 import type { SpanContext } from '@opentelemetry/api';
-import { ROOT_CONTEXT } from '@opentelemetry/api';
-import { TraceFlags, context, trace } from '@opentelemetry/api';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import { TraceState } from '@opentelemetry/core';
+import type { Event, TransactionEvent } from '@sentry/core';
 import {
+  addBreadcrumb,
+  debug,
+  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addBreadcrumb,
-  getClient,
   setTag,
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Event, TransactionEvent } from '@sentry/core';
-
-import { TraceState } from '@opentelemetry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
-import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
+import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-    jest.useRealTimers();
-    cleanupOtel();
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    await cleanupOtel();
   });
 
   it('correctly creates transaction & spans', async () => {
     const transactions: TransactionEvent[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
       return null;
     });
@@ -124,6 +121,7 @@ describe('Integration | Transactions', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
       release: '8.0.0',
+      sample_rand: expect.any(String),
     });
 
     expect(transaction.environment).toEqual('production');
@@ -176,7 +174,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates concurrent transaction & spans', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
@@ -321,7 +319,7 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates transaction & spans with a trace header data', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
@@ -373,7 +371,6 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
-              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -434,24 +431,18 @@ describe('Integration | Transactions', () => {
   });
 
   it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const beforeSendTransaction = vi.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -478,12 +469,12 @@ describe('Integration | Transactions', () => {
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 
     // Now wait for 5 mins
-    jest.advanceTimersByTime(5 * 60 * 1_000 + 1);
+    vi.advanceTimersByTime(5 * 60 * 1_000 + 1);
 
     // Adding another span will trigger the cleanup
     startSpan({ name: 'other span' }, () => {});
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     // Old spans have been cleared away
     const finishedSpans2 = [];
@@ -507,11 +498,11 @@ describe('Integration | Transactions', () => {
 
   it('includes child spans that are finished in the same tick but after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -523,13 +514,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -547,7 +532,7 @@ describe('Integration | Transactions', () => {
       subSpan2.end();
     });
 
-    jest.advanceTimersByTime(1);
+    vi.advanceTimersByTime(1);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(2);
@@ -562,13 +547,14 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans.length).toBe(0);
   });
 
-  it('discards child spans that are finished after their parent span', async () => {
+  it('collects child spans that are finished within 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
     const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -580,13 +566,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -604,10 +584,75 @@ describe('Integration | Transactions', () => {
 
       setTimeout(() => {
         subSpan2.end();
-      }, 1);
+      }, timeout - 2);
     });
 
-    jest.advanceTimersByTime(2);
+    vi.advanceTimersByTime(timeout - 1);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[0]?.spans).toHaveLength(1);
+
+    expect(transactions[0]?.transaction).toBe('test name');
+    expect(transactions[0]?.contexts?.trace?.data).toEqual({
+      'sentry.origin': 'manual',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'custom',
+    });
+
+    expect(transactions[1]?.transaction).toBe('inner span 2');
+    expect(transactions[1]?.contexts?.trace?.data).toEqual({
+      'sentry.parent_span_already_sent': true,
+      'sentry.origin': 'manual',
+      'sentry.source': 'custom',
+    });
+
+    const finishedSpans: any = exporter['_finishedSpanBuckets'].flatMap(bucket =>
+      bucket ? Array.from(bucket.spans) : [],
+    );
+    expect(finishedSpans.length).toBe(0);
+  });
+
+  it('discards child spans that are finished after 5 minutes their parent span has been sent', async () => {
+    const timeout = 5 * 60 * 1000;
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
+
+    const transactions: Event[] = [];
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactions.push(event);
+        return null;
+      },
+    });
+
+    const spanProcessor = getSpanProcessor();
+
+    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
+
+    if (!exporter) {
+      throw new Error('No exporter found, aborting test...');
+    }
+
+    startSpanManual({ name: 'test name' }, async span => {
+      const subSpan = startInactiveSpan({ name: 'inner span 1' });
+      subSpan.end();
+
+      const subSpan2 = startInactiveSpan({ name: 'inner span 2' });
+
+      span.end();
+
+      setTimeout(() => {
+        subSpan2.end();
+      }, timeout + 1);
+    });
+
+    vi.advanceTimersByTime(timeout + 2);
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(1);
@@ -623,9 +668,77 @@ describe('Integration | Transactions', () => {
     expect(finishedSpans[0]?.name).toBe('inner span 2');
   });
 
+  it('only considers sent spans, not finished spans, for flushing orphaned spans of sent spans', async () => {
+    const timeout = 5 * 60 * 1000;
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
+
+    const transactions: Event[] = [];
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactions.push(event);
+        return null;
+      },
+    });
+
+    const spanProcessor = getSpanProcessor();
+
+    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
+
+    if (!exporter) {
+      throw new Error('No exporter found, aborting test...');
+    }
+
+    /**
+     * This is our span structure:
+     * span 1 --------
+     *    span 2 ---
+     *      span 3 -
+     *
+     * Where span 2 is finished before span 3 & span 1
+     */
+
+    const [span1, span3] = startSpanManual({ name: 'span 1' }, span1 => {
+      const [span2, span3] = startSpanManual({ name: 'span 2' }, span2 => {
+        const span3 = startInactiveSpan({ name: 'span 3' });
+        return [span2, span3];
+      });
+
+      // End span 2 before span 3
+      span2.end();
+
+      return [span1, span3];
+    });
+
+    vi.advanceTimersByTime(1);
+
+    // nothing should be sent yet, as span1 is not yet done
+    expect(transactions).toHaveLength(0);
+
+    // Now finish span1, should be sent with only span2 but without span3, as that is not yet finished
+    span1.end();
+    vi.advanceTimersByTime(1);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]?.spans).toHaveLength(1);
+
+    // now finish span3, which should be sent as transaction too
+    span3.end();
+    vi.advanceTimersByTime(timeout);
+
+    expect(transactions).toHaveLength(2);
+    expect(transactions[1]?.spans).toHaveLength(0);
+  });
+
   it('uses & inherits DSC on span trace state', async () => {
     const transactionEvents: Event[] = [];
-    const beforeSendTransaction = jest.fn(event => {
+    const beforeSendTransaction = vi.fn(event => {
       transactionEvents.push(event);
       return null;
     });

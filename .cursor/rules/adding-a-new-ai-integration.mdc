@@ -1,0 +1,351 @@
+---
+description: Guidelines for contributing a new Sentry JavaScript SDK AI integration.
+alwaysApply: true
+---
+
+# Adding a New AI Integration
+
+Use these guidelines when contributing a new Sentry JavaScript SDK AI integration.
+
+## Quick Decision Tree
+
+**CRITICAL**
+
+```
+Does the AI SDK have native OpenTelemetry support?
+├─ YES → Does it emit OTel spans automatically?
+│   ├─ YES (like Vercel AI) → Pattern 1: OTEL Span Processors
+│   └─ NO → Pattern 2: OTEL Instrumentation (wrap client)
+└─ NO → Does the SDK provide hooks/callbacks?
+    ├─ YES (like LangChain) → Pattern 3: Callback/Hook Based
+    └─ NO → Pattern 4: Client Wrapping
+
+Multi-runtime considerations:
+- Node.js: Use OpenTelemetry instrumentation
+- Edge (Cloudflare/Vercel): No OTel, processors only or manual wrapping
+```
+
+---
+
+## Span Hierarchy
+
+**Two span types:**
+
+- `gen_ai.invoke_agent` - Parent/pipeline spans (chains, agents, orchestration)
+- `gen_ai.chat`, `gen_ai.generate_text`, etc. - Child spans (actual LLM calls)
+
+**Hierarchy example:**
+
+```
+gen_ai.invoke_agent (ai.generateText)
+  └── gen_ai.generate_text (ai.generateText.doGenerate)
+```
+
+**References:**
+
+- Vercel AI: `packages/core/src/tracing/vercel-ai/constants.ts`
+- LangChain: `onChainStart` callback in `packages/core/src/tracing/langchain/index.ts`
+
+---
+
+## Streaming vs Non-Streaming
+
+**Non-streaming:** Use `startSpan()`, set attributes immediately from response
+
+**Streaming:** Use `startSpanManual()` and prefer event listeners/hooks when available (like Anthropic's `stream.on()`). If not available, use async generator pattern:
+
+```typescript
+interface StreamingState {
+  responseTexts: string[];  // Accumulate fragments
+  promptTokens: number | undefined;
+  completionTokens: number | undefined;
+  // ...
+}
+
+async function* instrumentStream(stream, span, recordOutputs) {
+  const state: StreamingState = { responseTexts: [], ... };
+  try {
+    for await (const event of stream) {
+      processEvent(event, state, recordOutputs);  // Accumulate data
+      yield event;  // Pass through
+    }
+  } finally {
+    setTokenUsageAttributes(span, state.promptTokens, state.completionTokens);
+    span.setAttributes({ [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true });
+    span.end();  // MUST call manually
+  }
+}
+```
+
+**Key rules:**
+
+- Accumulate with arrays/strings, don't overwrite
+- Set `GEN_AI_RESPONSE_STREAMING_ATTRIBUTE: true`
+- Call `span.end()` in finally block
+
+**Detection:** Check request parameters for `stream: true` to determine if response will be streamed.
+
+**References:**
+
+- OpenAI async generator: `instrumentStream` in `packages/core/src/tracing/openai/streaming.ts`
+- Anthropic event listeners: `instrumentMessageStream` in `packages/core/src/tracing/anthropic-ai/streaming.ts`
+- Detection logic: Check `params.stream === true` in `packages/core/src/tracing/openai/index.ts`
+
+---
+
+## Token Accumulation
+
+**Child spans (LLM calls):** Set tokens directly from API response
+
+```typescript
+setTokenUsageAttributes(span, inputTokens, outputTokens, totalTokens);
+```
+
+**Parent spans (invoke_agent):** Accumulate from children using event processor
+
+```typescript
+// First pass: accumulate from children
+for (const span of event.spans) {
+  if (span.parent_span_id && isGenAiOperationSpan(span)) {
+    accumulateTokensForParent(span, tokenAccumulator);
+  }
+}
+
+// Second pass: apply to invoke_agent parents
+for (const span of event.spans) {
+  if (span.op === 'gen_ai.invoke_agent') {
+    applyAccumulatedTokens(span, tokenAccumulator);
+  }
+}
+```
+
+**Reference:** `vercelAiEventProcessor` and `accumulateTokensForParent` in `packages/core/src/tracing/vercel-ai/`
+
+---
+
+## Shared Utilities
+
+Location: `packages/core/src/tracing/ai/`
+
+### `gen-ai-attributes.ts`
+
+OpenTelemetry Semantic Convention attribute names. **Always use these constants!**
+
+- `GEN_AI_SYSTEM_ATTRIBUTE` - 'openai', 'anthropic', etc.
+- `GEN_AI_REQUEST_MODEL_ATTRIBUTE` - Model from request
+- `GEN_AI_RESPONSE_MODEL_ATTRIBUTE` - Model from response
+- `GEN_AI_INPUT_MESSAGES_ATTRIBUTE` - Input (requires recordInputs)
+- `GEN_AI_RESPONSE_TEXT_ATTRIBUTE` - Output (requires recordOutputs)
+- `GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE` - Token counts
+- `GEN_AI_OPERATION_NAME_ATTRIBUTE` - 'chat', 'embeddings', etc.
+
+### `utils.ts`
+
+- `setTokenUsageAttributes()` - Set token usage on span
+- `getTruncatedJsonString()` - Truncate for attributes
+- `truncateGenAiMessages()` - Truncate message arrays
+- `buildMethodPath()` - Build method path from traversal
+
+---
+
+## Pattern 1: OTEL Span Processors
+
+**Use when:** SDK emits OTel spans automatically (Vercel AI)
+
+### Key Steps
+
+1. **Core:** Create `add{Provider}Processors()` in `packages/core/src/tracing/{provider}/index.ts`
+   - Registers `spanStart` listener + event processor
+   - Post-processes spans to match semantic conventions
+
+2. **Node.js:** Add performance optimization in `packages/node/src/integrations/tracing/{provider}/index.ts`
+   - Use `callWhenPatched()` to defer processor registration
+   - Only register when package is actually imported (see `vercelAIIntegration` function)
+
+3. **Edge:** Direct registration in `packages/cloudflare/src/integrations/tracing/{provider}.ts`
+   - No OTel patching available
+   - Just call `add{Provider}Processors()` immediately
+
+**Reference:** `packages/node/src/integrations/tracing/vercelai/`
+
+---
+
+## Pattern 2: OTEL Instrumentation (Client Wrapping)
+
+**Use when:** SDK has NO native OTel support (OpenAI, Anthropic, Google GenAI)
+
+### Key Steps
+
+1. **Core:** Create `instrument{Provider}Client()` in `packages/core/src/tracing/{provider}/index.ts`
+   - Use Proxy to wrap client methods recursively
+   - Create spans manually with `startSpan()` or `startSpanManual()`
+
+2. **Node.js Instrumentation:** Patch module exports in `instrumentation.ts`
+   - Wrap client constructor
+   - Check `_INTERNAL_shouldSkipAiProviderWrapping()` (for LangChain)
+   - See `instrumentOpenAi` in `packages/node/src/integrations/tracing/openai/instrumentation.ts`
+
+3. **Node.js Integration:** Export instrumentation function
+   - Use `generateInstrumentOnce()` helper
+   - See `openAIIntegration` in `packages/node/src/integrations/tracing/openai/index.ts`
+
+**Reference:** `packages/node/src/integrations/tracing/openai/`
+
+---
+
+## Pattern 3: Callback/Hook Based
+
+**Use when:** SDK provides lifecycle hooks (LangChain, LangGraph)
+
+### Key Steps
+
+1. **Core:** Create `create{Provider}CallbackHandler()` in `packages/core/src/tracing/{provider}/index.ts`
+   - Implement SDK's callback interface
+   - Create spans in callback methods
+
+2. **Node.js Instrumentation:** Auto-inject callbacks
+   - Patch runnable methods to add handler automatically
+   - **Important:** Disable underlying AI provider wrapping (see `instrumentLangchain` in `packages/node/src/integrations/tracing/langchain/instrumentation.ts`)
+
+**Reference:** `packages/node/src/integrations/tracing/langchain/`
+
+---
+
+## Auto-Instrumentation (Out-of-the-Box Support)
+
+**RULE:** AI SDKs should be auto-enabled in Node.js runtime if possible.
+
+✅ **Auto-enable if:**
+
+- SDK works in Node.js runtime
+- OTel only patches when package imported (zero cost if unused)
+
+❌ **Don't auto-enable if:**
+
+- SDK is niche/experimental
+- Integration has significant limitations
+
+### Steps to Auto-Enable
+
+**1. Add to auto performance integrations**
+
+Location: `packages/node/src/integrations/tracing/index.ts`
+
+```typescript
+export function getAutoPerformanceIntegrations(): Integration[] {
+  return [
+    // AI providers - IMPORTANT: LangChain MUST come first!
+    langChainIntegration(),      // Disables underlying providers
+    langGraphIntegration(),
+    vercelAIIntegration(),
+    openAIIntegration(),
+    anthropicAIIntegration(),
+    googleGenAIIntegration(),
+    {provider}Integration(),     // <-- Add here
+  ];
+}
+```
+
+**2. Add to preload instrumentation**
+
+```typescript
+export function getOpenTelemetryInstrumentationToPreload() {
+  return [
+    instrumentOpenAi,
+    instrumentAnthropicAi,
+    instrument{Provider},  // <-- Add here
+  ];
+}
+```
+
+**3. Export from package index**
+
+```typescript
+// packages/node/src/index.ts
+export { {provider}Integration } from './integrations/tracing/{provider}';
+export type { {Provider}Options } from './integrations/tracing/{provider}';
+
+// If browser-compatible: packages/browser/src/index.ts
+export { {provider}Integration } from './integrations/tracing/{provider}';
+```
+
+**4. Add E2E test** in `packages/node-integration-tests/suites/{provider}/`
+
+- Verify spans created automatically (no manual setup)
+- Test `recordInputs` and `recordOutputs` options
+- Test integration can be disabled
+
+---
+
+## Directory Structure
+
+```
+packages/
+├── core/src/tracing/
+│   ├── ai/                          # Shared utilities
+│   │   ├── gen-ai-attributes.ts
+│   │   ├── utils.ts
+│   │   └── messageTruncation.ts
+│   └── {provider}/                  # Provider-specific
+│       ├── index.ts                 # Main logic
+│       ├── types.ts
+│       ├── constants.ts
+│       └── streaming.ts
+│
+├── node/src/integrations/tracing/{provider}/
+│   ├── index.ts                     # Integration definition
+│   └── instrumentation.ts           # OTel instrumentation
+│
+├── cloudflare/src/integrations/tracing/
+│   └── {provider}.ts                # Single file
+│
+└── vercel-edge/src/integrations/tracing/
+    └── {provider}.ts                # Single file
+```
+
+---
+
+## Key Best Practices
+
+1. **Respect `sendDefaultPii`** for recordInputs/recordOutputs
+2. **Use semantic attributes** from `gen-ai-attributes.ts` (never hardcode)
+3. **Set Sentry origin**: `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.openai'` (use provider name: `openai`, `anthropic`, `vercelai`, etc. - only alphanumerics, `_`, and `.` allowed)
+4. **Truncate large data**: Use helper functions from `utils.ts`
+5. **Correct span operations**: `gen_ai.invoke_agent` for parent, `gen_ai.chat` for children
+6. **Streaming**: Use `startSpanManual()`, accumulate state, call `span.end()`
+7. **Token accumulation**: Direct on child spans, accumulate on parent from children
+8. **Performance**: Use `callWhenPatched()` for Pattern 1
+9. **LangChain**: Check `_INTERNAL_shouldSkipAiProviderWrapping()` in Pattern 2
+
+---
+
+## Reference Implementations
+
+- **Pattern 1 (Span Processors):** `packages/node/src/integrations/tracing/vercelai/`
+- **Pattern 2 (Client Wrapping):** `packages/node/src/integrations/tracing/openai/`
+- **Pattern 3 (Callback/Hooks):** `packages/node/src/integrations/tracing/langchain/`
+
+---
+
+## Auto-Instrumentation Checklist
+
+- [ ] Added to `getAutoPerformanceIntegrations()` in correct order
+- [ ] Added to `getOpenTelemetryInstrumentationToPreload()`
+- [ ] Exported from `packages/node/src/index.ts`
+- [ ] **If browser-compatible:** Exported from `packages/browser/src/index.ts`
+- [ ] Added E2E test in `packages/node-integration-tests/suites/{provider}/`
+- [ ] E2E test verifies auto-instrumentation
+- [ ] JSDoc says "enabled by default" or "not enabled by default"
+- [ ] Documented how to disable (if auto-enabled)
+- [ ] Documented limitations clearly
+- [ ] Verified OTel only patches when package imported
+
+---
+
+## Questions?
+
+1. Look at reference implementations above
+2. Check shared utilities in `packages/core/src/tracing/ai/`
+3. Review OpenTelemetry Semantic Conventions: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+
+**When in doubt, follow the pattern of the most similar existing integration!**

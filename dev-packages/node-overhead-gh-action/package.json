@@ -1,0 +1,45 @@
+{
+  "name": "@sentry-internal/node-overhead-gh-action",
+  "version": "10.38.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "dev": "node ./run-local.mjs",
+    "start": "node ./src/app.mjs",
+    "start:sentry": "node --import ./src/instrument.mjs ./src/app.mjs",
+    "start:sentry-error-only": "node --import ./src/instrument-error-only.mjs ./src/app.mjs",
+    "test:get": "autocannon --json -c 100 -p 10 -d 10  -W [ -c 100 -d 5] http://localhost:3030/test-get",
+    "test:mysql": "autocannon --json -c 100 -p 10 -d 10  -W [ -c 100 -d 5] http://localhost:3030/test-mysql",
+    "test:post": "autocannon --json -m POST -b \"{\\\"data\\\":\\\"test\\\"}\" --headers \"Content-type: application/json\" -c 100 -p 10 -d 10  -W [ -c 100 -d 5] http://localhost:3030/test-post",
+    "clean": "rimraf -g **/node_modules",
+    "db:up": "docker compose up",
+    "db:down": "docker compose down --volumes",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix"
+  },
+  "dependencies": {
+    "@sentry/node": "10.38.0",
+    "express": "^4.21.2",
+    "mysql2": "^3.14.4"
+  },
+  "devDependencies": {
+    "@actions/artifact": "5.0.3",
+    "@actions/core": "1.10.1",
+    "@actions/exec": "1.1.1",
+    "@actions/github": "^5.0.0",
+    "@actions/glob": "0.4.0",
+    "@actions/io": "1.1.3",
+    "autocannon": "^8.0.0",
+    "eslint-plugin-regexp": "^1.15.0",
+    "markdown-table": "3.0.3",
+    "tree-kill": "1.2.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

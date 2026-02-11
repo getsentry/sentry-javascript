@@ -1,5 +1,4 @@
 import { describe, expect, test, vi } from 'vitest';
-
 import { isSampled } from '../../../src/util/isSampled';
 
 // Note Math.random generates a value from 0 (inclusive) to <1 (1 exclusive).
@@ -19,7 +18,7 @@ describe('Unit | util | isSampled', () => {
   const mockRandom = vi.spyOn(Math, 'random');
 
   test.each(cases)(
-    'given sample rate of %p and RNG returns %p, result should be %p',
+    'given sample rate of %j and RNG returns %j, result should be %j',
     (sampleRate: number, mockRandomValue: number, expectedResult: boolean) => {
       mockRandom.mockImplementationOnce(() => mockRandomValue);
       const result = isSampled(sampleRate);

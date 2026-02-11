@@ -1,10 +1,10 @@
 import type { Event, EventHint } from '@sentry/core';
-
 import { DEBUG_BUILD } from '../debug-build';
+import { saveSession } from '../session/saveSession';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
@@ -53,7 +53,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
-        DEBUG_BUILD && logger.log('Ignoring error from rrweb internals', event);
+        DEBUG_BUILD && debug.log('Ignoring error from rrweb internals', event);
         return null;
       }
 
@@ -68,6 +68,20 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
       if (shouldTagReplayId) {
         event.tags = { ...event.tags, replayId: replay.getSessionId() };
+      }
+
+      // If we sampled this error in buffer mode, immediately mark the session as "sampled"
+      // by changing the sampled state from 'buffer' to 'session'. Otherwise, if the application is interrupte
+      // before `afterSendEvent` occurs, then the session would remain as "buffer" but we have an error event
+      // that is tagged with a replay id. This could end up creating replays w/ excessive durations because
+      // of the linked error.
+      if (isErrorEventSampled && replay.recordingMode === 'buffer' && replay.session?.sampled === 'buffer') {
+        const session = replay.session;
+        session.dirty = true;
+        // Save the session if sticky sessions are enabled to persist the state change
+        if (replay.getOptions().stickySession) {
+          saveSession(session);
+        }
       }
 
       return event;

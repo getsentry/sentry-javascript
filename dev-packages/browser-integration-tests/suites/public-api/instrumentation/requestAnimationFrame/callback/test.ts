@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
@@ -14,7 +13,7 @@ sentryTest(
         const outsideCtx = window as any;
         requestAnimationFrame(function () {
           // @ts-expect-error re-assigning this
-          resolve({ outsideCtx, requestAnimationFrameCtx: this as any });
+          resolve({ outsideCtx, requestAnimationFrameCtx: this });
         });
       });
     })) as any;

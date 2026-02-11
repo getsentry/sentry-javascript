@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -21,7 +20,7 @@ sentryTest(
       type: 'Error',
       value: 'promiseError',
       mechanism: {
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
         handled: false,
       },
       stacktrace: {

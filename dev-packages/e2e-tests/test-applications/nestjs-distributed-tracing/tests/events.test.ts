@@ -21,7 +21,10 @@ test('Event emitter', async () => {
         type: 'Error',
         value: 'Test error from event handler',
         stacktrace: expect.any(Object),
-        mechanism: expect.any(Object),
+        mechanism: {
+          handled: false,
+          type: 'auto.event.nestjs',
+        },
       },
     ],
   });
@@ -32,7 +35,6 @@ test('Event emitter', async () => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.source': 'custom',
-      'sentry.sample_rate': 1,
       'sentry.op': 'event.nestjs',
       'sentry.origin': 'auto.event.nestjs',
     },
@@ -40,4 +42,28 @@ test('Event emitter', async () => {
     op: 'event.nestjs',
     status: 'ok',
   });
+});
+
+test('Multiple OnEvent decorators', async () => {
+  const firstTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'event multiple.first|multiple.second';
+  });
+  const secondTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'event multiple.first|multiple.second';
+  });
+  const rootPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'GET /events/emit-multiple';
+  });
+
+  const eventsUrl = `http://localhost:3050/events/emit-multiple`;
+  await fetch(eventsUrl);
+
+  const firstTx = await firstTxPromise;
+  const secondTx = await secondTxPromise;
+  const rootTx = await rootPromise;
+
+  expect(firstTx).toBeDefined();
+  expect(secondTx).toBeDefined();
+  // assert that the correct payloads were added
+  expect(rootTx.tags).toMatchObject({ 'test-first': true, 'test-second': true });
 });

@@ -1,4 +1,5 @@
-import type { FeatureFlag } from '../featureFlags';
+import type { FeatureFlag } from '../utils/featureFlags';
+import type { SpanLinkJSON } from './link';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
 
@@ -98,6 +99,7 @@ export interface ResponseContext extends Record<string, unknown> {
 }
 
 export interface TraceContext extends Record<string, unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: { [key: string]: any };
   op?: string;
   parent_span_id?: string;
@@ -106,6 +108,7 @@ export interface TraceContext extends Record<string, unknown> {
   tags?: { [key: string]: Primitive };
   trace_id: string;
   origin?: SpanOrigin;
+  links?: SpanLinkJSON[];
 }
 
 export interface CloudResourceContext extends Record<string, unknown> {

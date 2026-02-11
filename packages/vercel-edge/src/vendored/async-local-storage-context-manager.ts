@@ -24,35 +24,41 @@
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable jsdoc/require-jsdoc */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
-
-import { GLOBAL_OBJ, logger } from '@sentry/core';
-import type { AsyncLocalStorage } from 'async_hooks';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { AbstractAsyncHooksContextManager } from './abstract-async-hooks-context-manager';
+
+// Inline AsyncLocalStorage interface to avoid Node.js module dependency
+// This prevents Node.js type leaks in edge runtime environments
+interface AsyncLocalStorage<T> {
+  getStore(): T | undefined;
+  run<R>(store: T, callback: (...args: any[]) => R, ...args: any[]): R;
+  disable(): void;
+}
 
 export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextManager {
   private _asyncLocalStorage: AsyncLocalStorage<Context>;
 
   constructor() {
     super();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const MaybeGlobalAsyncLocalStorageConstructor = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
     if (!MaybeGlobalAsyncLocalStorageConstructor) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
         );
 
-      // @ts-expect-error Vendored type shenanigans
       this._asyncLocalStorage = {
         getStore() {
           return undefined;
         },
-        run(_store: unknown, callback: () => Context, ...args: unknown[]) {
+        run<R>(_store: Context, callback: (...args: any[]) => R, ...args: any[]): R {
           return callback.apply(this, args);
         },
         disable() {

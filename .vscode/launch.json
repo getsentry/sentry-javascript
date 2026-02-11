@@ -56,35 +56,6 @@
     // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go
     // install the recommended extension Tasks Shell Input.
     {
-      "name": "Debug unit tests - just open file",
-      "type": "node",
-      "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/jest",
-      "args": [
-        "--watch",
-        // this runs one test at a time, rather than running them in parallel (necessary for debugging so that you know
-        // you're hitting a single test's breakpoints, in order)
-        "--runInBand",
-        // coverage messes up the source maps
-        "--coverage",
-        "false",
-        // remove this to run all package tests
-        "${relativeFile}"
-      ],
-      "sourceMaps": true,
-      "smartStep": true,
-      // otherwise it goes to the VSCode debug terminal, which prints the test output or console logs (depending on
-      // "outputCapture" option here; default is to show console logs), but not both
-      "console": "integratedTerminal",
-      // since we're not using it, don't automatically switch to it
-      "internalConsoleOptions": "neverOpen"
-    },
-
-    // Run a specific test file in watch mode (must have file in currently active tab when hitting the play button).
-    // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go
-    // install the recommended extension Tasks Shell Input.
-    {
       "name": "Debug playwright tests (just open file)",
       "type": "pwa-node",
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",

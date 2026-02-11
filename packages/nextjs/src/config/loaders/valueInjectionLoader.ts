@@ -12,7 +12,6 @@ export type ValueInjectionLoaderOptions = {
 // This regex is shamelessly stolen from: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/7f984482c73e4284e8b12a08dfedf23b5a82f0af/packages/bundler-plugin-core/src/index.ts#L535-L539
 const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
   // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  // biome-ignore lint/complexity/useRegexLiterals: No user input
   new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";?|\'[^\']*\';?)?');
 
 /**

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
@@ -37,7 +36,7 @@ sentryTest(
             type: 'Error',
             value: 'HTTP Client Error with status code: 500',
             mechanism: {
-              type: 'http.client',
+              type: 'auto.http.client.xhr',
               handled: false,
             },
             stacktrace: {

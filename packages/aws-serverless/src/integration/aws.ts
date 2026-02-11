@@ -1,6 +1,6 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { AwsInstrumentation } from '@opentelemetry/instrumentation-aws-sdk';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 /**
  * Instrumentation for aws-sdk package

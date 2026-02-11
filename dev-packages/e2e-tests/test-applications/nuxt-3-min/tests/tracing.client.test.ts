@@ -1,10 +1,11 @@
-import { expect, test } from '@nuxt/test-utils/playwright';
+import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import type { Span } from '@sentry/nuxt';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-3-min', async transactionEvent => {
-    return transactionEvent.transaction === '/test-param/:param()';
+    return (
+      transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/test-param/:param()'
+    );
   });
 
   await page.goto(`/test-param/1234`);
@@ -39,7 +40,7 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   await page.goto(`/client-error`);
 
   const rootSpan = await transactionPromise;
-  const errorButtonSpan = rootSpan.spans.find((span: Span) => span.description === 'Vue <ErrorButton>');
+  const errorButtonSpan = rootSpan.spans.find(span => span.description === 'Vue <ErrorButton>');
 
   const expected = {
     data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.vue.mount' },

@@ -11,15 +11,14 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",
-    "express": "4.19.2",
+    "express": "^4.21.2",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1"
+    "@playwright/test": "~1.56.0"
   },
   "volta": {
     "extends": "../../package.json"

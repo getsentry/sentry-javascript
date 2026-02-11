@@ -1,9 +1,5 @@
 import { register } from 'node:module';
 
-const hookScript = Buffer.from(`
-
-  `);
-
 register(
   new URL(`data:application/javascript,
 export async function resolve(specifier, context, nextResolve) {
@@ -16,6 +12,8 @@ export async function resolve(specifier, context, nextResolve) {
   import.meta.url,
 );
 
-const Sentry = await import('@sentry/node');
+(async () => {
+  const Sentry = await import('@sentry/node');
 
-Sentry.init({});
+  Sentry.init({});
+})();

@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
@@ -14,11 +13,8 @@ sentryTest('Instrumentation should capture errors in setTimeout', async ({ getLo
     type: 'Error',
     value: 'setTimeout_error',
     mechanism: {
-      type: 'instrument',
+      type: 'auto.browser.browserapierrors.setTimeout',
       handled: false,
-      data: {
-        function: 'setTimeout',
-      },
     },
     stacktrace: {
       frames: expect.any(Array),

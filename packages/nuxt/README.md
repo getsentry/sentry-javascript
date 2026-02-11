@@ -4,15 +4,13 @@
   </a>
 </p>
 
-# Official Sentry SDK for Nuxt (BETA)
+# Official Sentry SDK for Nuxt
 
 [![npm version](https://img.shields.io/npm/v/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 
-This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
-[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
-SDK is for [Nuxt](https://nuxt.com/). If you're using [Vue](https://vuejs.org/) see our
+This SDK is for [Nuxt](https://nuxt.com/). If you're using [Vue](https://vuejs.org/) see our
 [Vue SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/vue).
 
 ## Links
@@ -21,16 +19,12 @@ SDK is for [Nuxt](https://nuxt.com/). If you're using [Vue](https://vuejs.org/) 
 
 ## Compatibility
 
-The minimum supported version of Nuxt is `3.0.0`.
+The minimum supported version of Nuxt is `3.7.0` (`3.14.0+` recommended).
 
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/vue` for the client side, with added
 functionality related to Nuxt.
-
-**Limitations:**
-
-- Server monitoring is not available during development mode (`nuxt dev`)
 
 ## Manual Setup
 
@@ -112,20 +106,18 @@ Sentry.init({
 ## Uploading Source Maps
 
 To upload source maps, you have to enable client source maps in your `nuxt.config.ts`. Then, you add your project
-settings to the `sentry.sourceMapsUploadOptions` of your `nuxt.config.ts`:
+settings to `sentry` in your `nuxt.config.ts`:
 
 ```javascript
 // nuxt.config.ts
 export default defineNuxtConfig({
-  sourcemap: { client: true },
+  sourcemap: { client: 'hidden' },
 
   modules: ['@sentry/nuxt/module'],
   sentry: {
-    sourceMapsUploadOptions: {
-      org: 'your-org-slug',
-      project: 'your-project-slug',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    },
+    org: 'your-org-slug',
+    project: 'your-project-slug',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
   },
 });
 ```

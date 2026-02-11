@@ -65,7 +65,6 @@ test('Should record a transaction for route with parameters', async ({ request }
     data: {
       'express.name': 'query',
       'express.type': 'middleware',
-      'http.route': '/',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
@@ -84,7 +83,6 @@ test('Should record a transaction for route with parameters', async ({ request }
     data: {
       'express.name': 'expressInit',
       'express.type': 'middleware',
-      'http.route': '/',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
@@ -119,9 +117,7 @@ test('Should record a transaction for route with parameters', async ({ request }
   });
 });
 
-// This fails https://github.com/getsentry/sentry-javascript/pull/12587#issuecomment-2181019422
-// Skipping this for now so we don't block releases
-test.skip('Should record spans from http instrumentation', async ({ request }) => {
+test('Should record spans from http instrumentation', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('node-express-esm-preload', transactionEvent => {
     return transactionEvent.contexts?.trace?.data?.['http.target'] === '/http-req';
   });
@@ -135,12 +131,11 @@ test.skip('Should record spans from http instrumentation', async ({ request }) =
   expect(httpClientSpan).toEqual({
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    data: {
+    data: expect.objectContaining({
       'http.flavor': '1.1',
       'http.host': 'example.com:80',
       'http.method': 'GET',
       'http.response.status_code': 200,
-      'http.response_content_length_uncompressed': expect.any(Number),
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.target': '/',
@@ -153,7 +148,7 @@ test.skip('Should record spans from http instrumentation', async ({ request }) =
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.otel.http',
       url: 'http://example.com/',
-    },
+    }),
     description: 'GET http://example.com/',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),

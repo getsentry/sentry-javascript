@@ -1,5 +1,5 @@
-import { SDK_VERSION, getClient } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { getClient, SDK_VERSION } from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
@@ -15,11 +15,17 @@ const LazyLoadableIntegrations = {
   linkedErrorsIntegration: 'linkederrors',
   dedupeIntegration: 'dedupe',
   extraErrorDataIntegration: 'extraerrordata',
+  graphqlClientIntegration: 'graphqlclient',
   httpClientIntegration: 'httpclient',
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',
   browserProfilingIntegration: 'browserprofiling',
   moduleMetadataIntegration: 'modulemetadata',
+  instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
+  instrumentOpenAiClient: 'instrumentopenaiclient',
+  instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
+  instrumentLangGraph: 'instrumentlanggraph',
+  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
 } as const;
 
 const WindowWithMaybeIntegration = WINDOW as {
@@ -56,7 +62,7 @@ export async function lazyLoadIntegration(
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
-  script.referrerPolicy = 'origin';
+  script.referrerPolicy = 'strict-origin';
 
   if (scriptNonce) {
     script.setAttribute('nonce', scriptNonce);

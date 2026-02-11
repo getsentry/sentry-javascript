@@ -31,9 +31,11 @@ export interface CLSMetric extends Metric {
  */
 export interface CLSAttribution {
   /**
-   * A selector identifying the first element (in document order) that
-   * shifted when the single largest layout shift contributing to the page's
-   * CLS score occurred.
+   * By default, a selector identifying the first element (in document order)
+   * that shifted when the single largest layout shift that contributed to the
+   * page's CLS score occurred. If the `generateTarget` configuration option
+   * was passed, then this will instead be the return value of that function,
+   * falling back to the default if that returns null or undefined.
    */
   largestShiftTarget?: string;
   /**

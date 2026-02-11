@@ -13,7 +13,7 @@ setInterval(() => {}, 1000);
 
 const { Client } = require('pg');
 
-const client = new Client({ port: 5444, user: 'test', password: 'test', database: 'tests' });
+const client = new Client({ port: 5494, user: 'test', password: 'test', database: 'tests' });
 
 async function run() {
   await Sentry.startSpan(
@@ -42,5 +42,4 @@ async function run() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

@@ -1,11 +1,9 @@
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { SentryError, createTransport, suppressTracing } from '@sentry/core';
+import { createTransport, SENTRY_BUFFER_FULL_ERROR, suppressTracing } from '@sentry/core';
 
 export interface VercelEdgeTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */
   fetchOptions?: RequestInit;
-  /** Custom headers for the transport. */
-  headers?: { [key: string]: string };
 }
 
 const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
@@ -38,7 +36,7 @@ export class IsolatedPromiseBuffer {
    */
   public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<TransportMakeRequestResponse> {
     if (this._taskProducers.length >= this._bufferSize) {
-      return Promise.reject(new SentryError('Not adding Promise because buffer limit was reached.'));
+      return Promise.reject(SENTRY_BUFFER_FULL_ERROR);
     }
 
     this._taskProducers.push(taskProducer);

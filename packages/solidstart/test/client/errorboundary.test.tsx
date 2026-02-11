@@ -3,9 +3,8 @@ import type * as SentryBrowser from '@sentry/browser';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
-
 import { ErrorBoundary } from 'solid-js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, withSentryErrorBoundary } from '../../src/client';
 
 const mockCaptureException = vi.fn();
@@ -50,7 +49,12 @@ describe('withSentryErrorBoundary', () => {
     ));
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-    expect(mockCaptureException).toHaveBeenLastCalledWith(new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenLastCalledWith(new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
   });
 
   it('renders the fallback component', async () => {
@@ -90,13 +94,23 @@ describe('withSentryErrorBoundary', () => {
     ));
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-    expect(mockCaptureException).toHaveBeenNthCalledWith(1, new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenNthCalledWith(1, new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
 
     const button = await findByRole('button');
     await user.click(button);
 
     expect(mockCaptureException).toHaveBeenCalledTimes(2);
-    expect(mockCaptureException).toHaveBeenNthCalledWith(2, new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenNthCalledWith(2, new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
   });
 
   it('renders children when there is no error', async () => {

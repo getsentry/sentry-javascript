@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/index.ts", "src/worker.ts"],
+  "include": ["src/index.ts", "src/worker.ts", "src/worker-bundler.ts"],
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,

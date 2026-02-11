@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { exceptionFromError } from '../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../src/stack-parsers';
 
@@ -618,7 +617,7 @@ describe('Tracekit - Chrome Tests', () => {
     });
   });
 
-  it('should drop frames that are over 1kb', () => {
+  it('should truncate frames that are over 1kb', () => {
     const LONG_STR = 'A'.repeat(1040);
 
     const LONG_FRAME = {
@@ -638,9 +637,157 @@ describe('Tracekit - Chrome Tests', () => {
       stacktrace: {
         frames: [
           { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19, in_app: true },
+          {
+            filename:
+              'http://localhost:5000/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            function: 'Foo.testMethod',
+            in_app: true,
+          },
           { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5, in_app: true },
         ],
       },
+    });
+  });
+
+  it('should correctly parse a wasm stack trace', () => {
+    const WASM_ERROR = {
+      message: 'memory access out of bounds',
+      name: 'RuntimeError',
+      stack: `RuntimeError: memory access out of bounds
+      at MyClass::bar(int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb)
+      at MyClass::foo(int) const (http://localhost:8001/main.wasm:wasm-function[186]:0x5637)
+      at MyClass::getAt(int) const (http://localhost:8001/main.wasm:wasm-function[182]:0x540b)
+      at emscripten::internal::MethodInvoker<int (MyClass::*)(int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df)
+      at ClassHandle.MyClass$getAt [as getAt] (eval at newFunc (http://localhost:8001/main.js:2201:27), <anonymous>:9:10)
+      at myFunctionVectorOutOfBounds (http://localhost:8001/main.html:18:22)
+      at captureError (http://localhost:8001/main.html:27:11)
+      at Object.onRuntimeInitialized (http://localhost:8001/main.html:39:9)
+      at doRun (http://localhost:8001/main.js:7084:71)
+      at run (http://localhost:8001/main.js:7101:5)`,
+    };
+
+    const ex = exceptionFromError(parser, WASM_ERROR);
+
+    // This is really ugly but the wasm integration should clean up these stack frames
+    expect(ex).toStrictEqual({
+      stacktrace: {
+        frames: [
+          {
+            colno: 5,
+            filename: 'http://localhost:8001/main.js',
+            function: 'run',
+            in_app: true,
+            lineno: 7101,
+          },
+          {
+            colno: 71,
+            filename: 'http://localhost:8001/main.js',
+            function: 'doRun',
+            in_app: true,
+            lineno: 7084,
+          },
+          {
+            colno: 9,
+            filename: 'http://localhost:8001/main.html',
+            function: 'Object.onRuntimeInitialized',
+            in_app: true,
+            lineno: 39,
+          },
+          {
+            colno: 11,
+            filename: 'http://localhost:8001/main.html',
+            function: 'captureError',
+            in_app: true,
+            lineno: 27,
+          },
+          {
+            colno: 22,
+            filename: 'http://localhost:8001/main.html',
+            function: 'myFunctionVectorOutOfBounds',
+            in_app: true,
+            lineno: 18,
+          },
+          {
+            colno: 27,
+            filename: 'http://localhost:8001/main.js',
+            function: 'ClassHandle.MyClass$getAt [as getAt]',
+            in_app: true,
+            lineno: 2201,
+          },
+          {
+            filename:
+              'int) const, int, MyClass const*, int>::invoke(int (MyClass::* const&)(int) const, MyClass const*, int) (http://localhost:8001/main.wasm:wasm-function[152]:0x47df',
+            function: 'emscripten::internal::MethodInvoker<int (MyClass::*)',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[182]:0x540b',
+            function: 'MyClass::getAt',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[186]:0x5637',
+            function: 'MyClass::foo',
+            in_app: true,
+          },
+          {
+            filename: 'int) const (http://localhost:8001/main.wasm:wasm-function[190]:0x5aeb',
+            function: 'MyClass::bar',
+            in_app: true,
+          },
+        ],
+      },
+      type: 'RuntimeError',
+      value: 'memory access out of bounds',
+    });
+  });
+
+  it('should correctly parse with data uris', () => {
+    const DATA_URI_ERROR = {
+      message: 'Error from data-uri module',
+      name: 'Error',
+      stack: `Error: Error from data-uri module
+                at dynamicFn (data:application/javascript,export function dynamicFn() {  throw new Error('Error from data-uri module');};:1:38)
+                at loadDodgyModule (file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:8:5)
+                at async callSomeFunction (file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:12:5)
+                at async file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:16:5`,
+    };
+
+    const ex = exceptionFromError(parser, DATA_URI_ERROR);
+
+    // This is really ugly but the wasm integration should clean up these stack frames
+    expect(ex).toStrictEqual({
+      stacktrace: {
+        frames: [
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: '?',
+            in_app: true,
+            lineno: 16,
+          },
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: 'async callSomeFunction',
+            in_app: true,
+            lineno: 12,
+          },
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: 'loadDodgyModule',
+            in_app: true,
+            lineno: 8,
+          },
+          {
+            filename: '<data:application/javascript>',
+            function: 'dynamicFn',
+          },
+        ],
+      },
+      type: 'Error',
+      value: 'Error from data-uri module',
     });
   });
 });

@@ -2,10 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, test } from 'vitest';
-
 import type { HandlerDataDom } from '@sentry/core';
-
+import { describe, expect, test } from 'vitest';
 import { handleDom } from '../../../src/coreHandlers/handleDom';
 
 describe('Unit | coreHandlers | handleDom', () => {

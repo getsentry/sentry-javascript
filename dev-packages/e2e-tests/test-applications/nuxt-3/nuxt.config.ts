@@ -12,9 +12,27 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
-    rollupConfig: {
-      // @sentry/... is set external to prevent bundling all of Sentry into the `runtime.mjs` file in the build output
-      external: [/@sentry\/.*/],
+    experimental: {
+      database: true,
+    },
+    database: {
+      default: {
+        connector: 'sqlite',
+        options: { name: 'db' },
+      },
+      users: {
+        connector: 'sqlite',
+        options: { name: 'users_db' },
+      },
+      analytics: {
+        connector: 'sqlite',
+        options: { name: 'analytics_db' },
+      },
+    },
+    storage: {
+      'test-storage': {
+        driver: 'memory',
+      },
     },
   },
 });

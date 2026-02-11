@@ -1,10 +1,8 @@
-import type { TextMapGetter } from '@opentelemetry/api';
-import type { Context as OtelContext } from '@opentelemetry/api';
+import type { Context as OtelContext, TextMapGetter } from '@opentelemetry/api';
 import { context as otelContext, propagation } from '@opentelemetry/api';
-import { addExceptionMechanism, isString } from '@sentry/core';
 import type { Scope } from '@sentry/core';
-import type { Handler } from 'aws-lambda';
-import type { APIGatewayProxyEventHeaders } from 'aws-lambda';
+import { addExceptionMechanism, isString } from '@sentry/core';
+import type { APIGatewayProxyEventHeaders, Handler } from 'aws-lambda';
 
 type HandlerEvent = Parameters<Handler<{ headers?: Record<string, string> }>>[0];
 type HandlerContext = Parameters<Handler>[1];
@@ -28,9 +26,9 @@ const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
 /**
  * Marks an event as unhandled by adding a span processor to the passed scope.
  */
-export function markEventUnhandled(scope: Scope): Scope {
+export function markEventUnhandled(scope: Scope, type: string): Scope {
   scope.addEventProcessor(event => {
-    addExceptionMechanism(event, { handled: false });
+    addExceptionMechanism(event, { handled: false, type });
     return event;
   });
 

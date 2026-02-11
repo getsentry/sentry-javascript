@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
 import { withSentryConfig } from '../src/config';
-import { FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID, componentTrackingPreprocessor } from '../src/preprocessors';
+import { componentTrackingPreprocessor, FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID } from '../src/preprocessors';
 import type { SentryPreprocessorGroup, SentrySvelteConfigOptions, SvelteConfig } from '../src/types';
 
 describe('withSentryConfig', () => {
@@ -60,7 +59,7 @@ describe('withSentryConfig', () => {
 
     const wrappedConfig = withSentryConfig(originalConfig);
 
-    expect(wrappedConfig).toEqual({ ...originalConfig, preprocess: [sentryPreproc] });
+    expect(wrappedConfig).toEqual({ ...originalConfig });
   });
 
   it('handles multiple wraps correctly by only adding our preprocessors once', () => {

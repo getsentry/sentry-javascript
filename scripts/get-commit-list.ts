@@ -1,9 +1,11 @@
 import { execSync } from 'child_process';
 
-function run(): void {
+const ISSUE_URL = 'https://github.com/getsentry/sentry-javascript/pull/';
+
+export function getNewGitCommits(): string[] {
   const commits = execSync('git log --format="- %s"').toString().split('\n');
 
-  const lastReleasePos = commits.findIndex(commit => /- meta(.*)changelog/i.test(commit));
+  const lastReleasePos = commits.findIndex(commit => /- meta\(changelog\)/i.test(commit));
 
   const newCommits = commits.splice(0, lastReleasePos).filter(commit => {
     // Filter out merge commits
@@ -24,11 +26,15 @@ function run(): void {
 
   newCommits.sort((a, b) => a.localeCompare(b));
 
-  const issueUrl = 'https://github.com/getsentry/sentry-javascript/pull/';
-  const newCommitsWithLink = newCommits.map(commit => commit.replace(/#(\d+)/, `[#$1](${issueUrl}$1)`));
-
-  // eslint-disable-next-line no-console
-  console.log(newCommitsWithLink.join('\n'));
+  return newCommits.map(commit => commit.replace(/#(\d+)/, `[#$1](${ISSUE_URL}$1)`));
 }
 
-run();
+function run(): void {
+  // eslint-disable-next-line no-console
+  console.log(getNewGitCommits().join('\n'));
+}
+
+// Only run when executed directly, not when imported
+if (require.main === module) {
+  run();
+}

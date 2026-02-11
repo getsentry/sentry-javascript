@@ -1,13 +1,9 @@
-import type { EventProcessor } from '@sentry/core';
+import type { Event, EventProcessor } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { NodeClient } from '@sentry/node';
-import { Scope } from '@sentry/node';
-import { getGlobalScope } from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SentryNuxtServerOptions } from '../../src/common/types';
+import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
-import { clientSourceMapErrorFilter, mergeRegisterEsmLoaderHooks } from '../../src/server/sdk';
+import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -45,40 +41,142 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    describe('low quality transactions filter (%s)', () => {
-      const beforeSendEvent = vi.fn(event => event);
-      const client = init({
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      }) as NodeClient;
-      client.on('beforeSendEvent', beforeSendEvent);
+    it('uses default integrations when not provided in options', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      it.each([
-        [
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBeDefined();
+      expect(Array.isArray(callArgs?.defaultIntegrations)).toBe(true);
+    });
+
+    it('allows options.defaultIntegrations to override default integrations', () => {
+      const customIntegrations = [{ name: 'CustomIntegration' }];
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        defaultIntegrations: customIntegrations as any,
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBe(customIntegrations);
+    });
+
+    it('allows options.defaultIntegrations to be set to false', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        defaultIntegrations: false,
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBe(false);
+    });
+
+    describe('environment option', () => {
+      const originalEnv = process.env.SENTRY_ENVIRONMENT;
+
+      beforeEach(() => {
+        delete process.env.SENTRY_ENVIRONMENT;
+      });
+
+      afterEach(() => {
+        if (originalEnv !== undefined) {
+          process.env.SENTRY_ENVIRONMENT = originalEnv;
+        } else {
+          delete process.env.SENTRY_ENVIRONMENT;
+        }
+      });
+
+      it('uses environment from options when provided', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          environment: 'custom-env',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('custom-env');
+      });
+
+      it('uses SENTRY_ENVIRONMENT env var when options.environment is not provided', () => {
+        process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('env-from-variable');
+      });
+
+      it('uses fallback environment when neither options.environment nor SENTRY_ENVIRONMENT is provided', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        // Should fallback to either 'development' or 'production' depending on the environment
+        expect(callArgs?.environment).toBeDefined();
+      });
+
+      it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {
+        process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          environment: 'options-env',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('options-env');
+      });
+    });
+
+    describe('lowQualityTransactionsFilter', () => {
+      const options = { debug: false };
+      const filter = lowQualityTransactionsFilter(options);
+
+      describe('filters out low quality transactions', () => {
+        it.each([
           'GET /_nuxt/some_asset.js',
           'GET _nuxt/some_asset.js',
           'GET /icons/favicon.ico',
           'GET /assets/logo.png',
           'GET /icons/zones/forest.svg',
-        ],
-      ])('filters out low quality transactions', async transaction => {
-        client.captureEvent({ type: 'transaction', transaction });
-        await client!.flush();
-        expect(beforeSendEvent).not.toHaveBeenCalled();
+        ])('filters out low quality transaction: (%s)', transaction => {
+          const event = { type: 'transaction' as const, transaction };
+          expect(filter(event, {})).toBeNull();
+        });
       });
 
-      it.each(['GET /', 'POST /_server'])(
-        'does not filter out high quality or route transactions (%s)',
-        async transaction => {
-          client.captureEvent({ type: 'transaction', transaction });
-          await client!.flush();
-          expect(beforeSendEvent).toHaveBeenCalledWith(
-            expect.objectContaining({
-              transaction,
-            }),
-            expect.any(Object),
-          );
-        },
-      );
+      describe('keeps high quality transactions', () => {
+        // Nuxt parametrizes routes sometimes in a special way - especially catchAll o.O
+        it.each(['GET /', 'POST /_server', 'GET /catchAll/:id(.*)*', 'GET /article/:slug()', 'GET /user/:id'])(
+          'does not filter out route transactions (%s)',
+          transaction => {
+            const event = { type: 'transaction' as const, transaction };
+            expect(filter(event, {})).toEqual(event);
+          },
+        );
+      });
+
+      it('does not filter non-transaction events', () => {
+        const event = { type: 'error' as const, transaction: 'GET /assets/image.png' } as unknown as Event;
+        expect(filter(event, {})).toEqual(event);
+      });
+
+      it('handles events without transaction property', () => {
+        const event = { type: 'transaction' as const };
+        expect(filter(event, {})).toEqual(event);
+      });
     });
 
     it('registers an event processor', async () => {
@@ -161,44 +259,6 @@ describe('Nuxt Server SDK', () => {
         // @ts-expect-error Event type is not correct in tests
         expect(filter(event)).toEqual(event);
       });
-    });
-  });
-
-  describe('mergeRegisterEsmLoaderHooks', () => {
-    it('merges exclude array when registerEsmLoaderHooks is an object with an exclude array', () => {
-      const options: SentryNuxtServerOptions = {
-        registerEsmLoaderHooks: { exclude: [/test/] },
-      };
-      const result = mergeRegisterEsmLoaderHooks(options);
-      expect(result).toEqual({ exclude: [/test/, /vue/] });
-    });
-
-    it('sets exclude array when registerEsmLoaderHooks is an object without an exclude array', () => {
-      const options: SentryNuxtServerOptions = {
-        registerEsmLoaderHooks: {},
-      };
-      const result = mergeRegisterEsmLoaderHooks(options);
-      expect(result).toEqual({ exclude: [/vue/] });
-    });
-
-    it('returns boolean when registerEsmLoaderHooks is a boolean', () => {
-      const options1: SentryNuxtServerOptions = {
-        registerEsmLoaderHooks: true,
-      };
-      const result1 = mergeRegisterEsmLoaderHooks(options1);
-      expect(result1).toBe(true);
-
-      const options2: SentryNuxtServerOptions = {
-        registerEsmLoaderHooks: false,
-      };
-      const result2 = mergeRegisterEsmLoaderHooks(options2);
-      expect(result2).toBe(false);
-    });
-
-    it('sets exclude array when registerEsmLoaderHooks is undefined', () => {
-      const options: SentryNuxtServerOptions = {};
-      const result = mergeRegisterEsmLoaderHooks(options);
-      expect(result).toEqual({ exclude: [/vue/] });
     });
   });
 });

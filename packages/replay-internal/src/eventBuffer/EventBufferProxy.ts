@@ -1,8 +1,7 @@
 import type { ReplayRecordingData } from '@sentry/core';
-
 import { DEBUG_BUILD } from '../debug-build';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
 
@@ -100,7 +99,7 @@ export class EventBufferProxy implements EventBuffer {
     } catch (error) {
       // If the worker fails to load, we fall back to the simple buffer.
       // Nothing more to do from our side here
-      DEBUG_BUILD && logger.exception(error, 'Failed to load the compression worker, falling back to simple buffer');
+      DEBUG_BUILD && debug.exception(error, 'Failed to load the compression worker, falling back to simple buffer');
       return;
     }
 
@@ -131,7 +130,7 @@ export class EventBufferProxy implements EventBuffer {
       // Can now clear fallback buffer as it's no longer necessary
       this._fallback.clear();
     } catch (error) {
-      DEBUG_BUILD && logger.exception(error, 'Failed to add events when switching buffers.');
+      DEBUG_BUILD && debug.exception(error, 'Failed to add events when switching buffers.');
     }
   }
 }

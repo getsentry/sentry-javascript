@@ -1,4 +1,4 @@
-import type { Event } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
 
 /**
  * Get a list of possible event messages from a Sentry event.
@@ -19,7 +19,7 @@ export function getPossibleEventMessages(event: Event): string[] {
         possibleMessages.push(`${lastException.type}: ${lastException.value}`);
       }
     }
-  } catch (e) {
+  } catch {
     // ignore errors here
   }
 

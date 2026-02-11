@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
@@ -26,7 +25,7 @@ sentryTest(
       type: 'Error',
       value: 'setTimeout_error',
       mechanism: {
-        type: 'instrument',
+        type: 'auto.browser.browserapierrors.setTimeout',
         handled: false,
       },
       stacktrace: {

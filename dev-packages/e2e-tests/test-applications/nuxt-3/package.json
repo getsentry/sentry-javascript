@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && bash ./copyIITM.bash",
+    "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -12,15 +12,28 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@3x && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
+    "@sentry/core": "latest || *",
     "nuxt": "^3.14.0"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nuxt-3 (canary)"
+      }
+    ]
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.20.0"
   }
 }

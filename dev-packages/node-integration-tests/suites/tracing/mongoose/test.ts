@@ -1,5 +1,5 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('Mongoose experimental Test', () => {
@@ -45,7 +45,7 @@ describe('Mongoose experimental Test', () => {
     ]),
   };
 
-  test('CJS - should auto-instrument `mongoose` package.', done => {
-    createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
+  test('CJS - should auto-instrument `mongoose` package.', async () => {
+    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
   });
 });

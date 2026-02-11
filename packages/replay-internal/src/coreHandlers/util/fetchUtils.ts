@@ -1,23 +1,20 @@
-import { setTimeout } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
-
+import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
+import { getBodyString, getFetchRequestArgBody, setTimeout } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
-  FetchHint,
-  NetworkMetaWarning,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
 } from '../../types';
-import { logger } from '../../util/logger';
+import { debug } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
   buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
-  getBodyString,
   makeNetworkReplayBreadcrumb,
   mergeWarning,
   parseContentLengthHeader,
@@ -42,7 +39,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to capture fetch breadcrumb');
+    DEBUG_BUILD && debug.exception(error, 'Failed to capture fetch breadcrumb');
   }
 }
 
@@ -57,7 +54,7 @@ export function enrichFetchBreadcrumb(
 ): void {
   const { input, response } = hint;
 
-  const body = input ? _getFetchRequestArgBody(input) : undefined;
+  const body = input ? getFetchRequestArgBody(input) : undefined;
   const reqSize = getBodySize(body);
 
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
@@ -117,8 +114,8 @@ function _getRequestInfo(
   }
 
   // We only want to transmit string or string-like bodies
-  const requestBody = _getFetchRequestArgBody(input);
-  const [bodyStr, warning] = getBodyString(requestBody);
+  const requestBody = getFetchRequestArgBody(input);
+  const [bodyStr, warning] = getBodyString(requestBody, debug);
   const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
 
   if (warning) {
@@ -191,7 +188,7 @@ function getResponseData(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to serialize response body');
+    DEBUG_BUILD && debug.exception(error, 'Failed to serialize response body');
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
@@ -209,22 +206,13 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     return [text];
   } catch (error) {
     if (error instanceof Error && error.message.indexOf('Timeout') > -1) {
-      DEBUG_BUILD && logger.warn('Parsing text body from response timed out');
+      DEBUG_BUILD && debug.warn('Parsing text body from response timed out');
       return [undefined, 'BODY_PARSE_TIMEOUT'];
     }
 
-    DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
+    DEBUG_BUILD && debug.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
-}
-
-function _getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
-  // We only support getting the body from the fetch options
-  if (fetchArgs.length !== 2 || typeof fetchArgs[1] !== 'object') {
-    return undefined;
-  }
-
-  return (fetchArgs[1] as RequestInit).body;
 }
 
 function getAllHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {
@@ -283,7 +271,7 @@ function _tryCloneResponse(response: Response): Response | void {
     return response.clone();
   } catch (error) {
     // this can throw if the response was already consumed before
-    DEBUG_BUILD && logger.exception(error, 'Failed to clone response body');
+    DEBUG_BUILD && debug.exception(error, 'Failed to clone response body');
   }
 }
 

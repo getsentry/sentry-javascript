@@ -1,15 +1,19 @@
-import { assert, warn } from '@ember/debug';
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
+/* eslint-disable import/export */
+import { assert } from '@ember/debug';
 import type Route from '@ember/routing/route';
-import { next } from '@ember/runloop';
-import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
-import { startSpan } from '@sentry/browser';
+import { getOwnConfig } from '@embroider/macros';
 import type { BrowserOptions } from '@sentry/browser';
+import { startSpan } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
-import Ember from 'ember';
-
 import type { Client, TransactionSource } from '@sentry/core';
+import {
+  applySdkMetadata,
+  GLOBAL_OBJ,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -42,24 +46,7 @@ export function init(_runtimeConfig?: BrowserOptions): Client | undefined {
   const sentryInitConfig = _getSentryInitConfig();
   Object.assign(sentryInitConfig, initConfig);
 
-  const client = Sentry.init(initConfig);
-
-  if (macroCondition(isDevelopingApp())) {
-    if (environmentConfig.ignoreEmberOnErrorWarning) {
-      return client;
-    }
-    next(null, function () {
-      warn(
-        'Ember.onerror found. Using Ember.onerror can hide some errors (such as flushed runloop errors) from Sentry. Use Sentry.captureException to capture errors within Ember.onError or remove it to have errors caught by Sentry directly. This error can be silenced via addon configuration.',
-        !Ember.onerror,
-        {
-          id: '@sentry/ember.ember-onerror-detected',
-        },
-      );
-    });
-  }
-
-  return client;
+  return Sentry.init(initConfig);
 }
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;

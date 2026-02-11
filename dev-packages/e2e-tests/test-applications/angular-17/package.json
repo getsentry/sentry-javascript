@@ -5,7 +5,7 @@
     "ng": "ng",
     "dev": "ng serve",
     "proxy": "node start-event-proxy.mjs",
-    "preview": "http-server dist/angular-17/browser --port 8080",
+    "preview": "http-server dist/angular-17/browser --port 8080 --silent",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
@@ -29,8 +29,9 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
     "@angular-devkit/build-angular": "^17.1.1",
     "@angular/cli": "^17.1.1",
     "@angular/compiler-cli": "^17.1.0",

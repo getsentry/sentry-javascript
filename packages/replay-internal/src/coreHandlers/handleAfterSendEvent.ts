@@ -1,6 +1,5 @@
-import { setTimeout } from '@sentry-internal/browser-utils';
 import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/core';
-
+import { setTimeout } from '@sentry-internal/browser-utils';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
 
@@ -15,11 +14,10 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
       return;
     }
 
-    const statusCode = sendResponse?.statusCode;
+    const statusCode = sendResponse.statusCode;
 
     // We only want to do stuff on successful error sending, otherwise you get error replays without errors attached
-    // If not using the base transport, we allow `undefined` response (as a custom transport may not implement this correctly yet)
-    // If we do use the base transport, we skip if we encountered an non-OK status code
+    // We skip if we encountered an non-OK status code
     if (!statusCode || statusCode < 200 || statusCode >= 300) {
       return;
     }

@@ -1,11 +1,5 @@
 /* eslint-disable max-lines */
 
-import {
-  SENTRY_XHR_DATA_KEY,
-  addClickKeypressInstrumentationHandler,
-  addHistoryInstrumentationHandler,
-  addXhrInstrumentationHandler,
-} from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   Client,
@@ -25,17 +19,24 @@ import {
   addBreadcrumb,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  debug,
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,
-  logger,
   parseUrl,
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core';
+import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
+import {
+  addClickKeypressInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  addXhrInstrumentationHandler,
+  SENTRY_XHR_DATA_KEY,
+} from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -72,6 +73,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      // TODO(v11): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
       }
@@ -140,7 +142,7 @@ function _getDomBreadcrumbHandler(
       typeof dom === 'object' && typeof dom.maxStringLength === 'number' ? dom.maxStringLength : undefined;
     if (maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`,
         );
       maxStringLength = MAX_ALLOWED_STRING_LENGTH;
@@ -157,7 +159,7 @@ function _getDomBreadcrumbHandler(
 
       target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
       componentName = getComponentName(element);
-    } catch (e) {
+    } catch {
       target = '<unknown>';
     }
 
@@ -251,17 +253,16 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
-    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+    const breadcrumb = {
+      category: 'xhr',
+      data,
+      type: 'http',
+      level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
+    };
 
-    addBreadcrumb(
-      {
-        category: 'xhr',
-        data,
-        type: 'http',
-        level,
-      },
-      hint,
-    );
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
+
+    addBreadcrumb(breadcrumb, hint);
   };
 }
 
@@ -292,6 +293,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
     };
 
     if (handlerData.error) {
+      const data: FetchBreadcrumbData = handlerData.fetchData;
       const hint: FetchBreadcrumbHint = {
         data: handlerData.error,
         input: handlerData.args,
@@ -299,17 +301,22 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         endTimestamp,
       };
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          level: 'error',
-          type: 'http',
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        level: 'error',
+        type: 'http',
+      } satisfies Breadcrumb;
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     } else {
       const response = handlerData.response as Response | undefined;
+      const data: FetchBreadcrumbData = {
+        ...handlerData.fetchData,
+        status_code: response?.status,
+      };
 
       breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
       breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
@@ -321,17 +328,17 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevelFromHttpStatusCode(breadcrumbData.status_code);
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          type: 'http',
-          level,
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        type: 'http',
+        level: getBreadcrumbLogLevelFromHttpStatusCode(data.status_code),
+      };
+
+      client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as FetchHint);
+
+      addBreadcrumb(breadcrumb, hint);
     }
   };
 }

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
-  const errorPromise = waitForError('angular-18', async errorEvent => {
+  const errorPromise = waitForError('angular-19', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -19,7 +19,7 @@ test('sends an error', async ({ page }) => {
           type: 'Error',
           value: 'Error thrown from Angular 18 E2E test app',
           mechanism: {
-            type: 'angular',
+            type: 'auto.function.angular.error_handler',
             handled: false,
           },
         },
@@ -30,11 +30,11 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorPromise = waitForError('angular-18', async errorEvent => {
+  const errorPromise = waitForError('angular-19', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -54,7 +54,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
           type: 'Error',
           value: 'Error thrown from user page',
           mechanism: {
-            type: 'angular',
+            type: 'auto.function.angular.error_handler',
             handled: false,
           },
         },

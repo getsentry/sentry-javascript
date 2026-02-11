@@ -11,7 +11,6 @@ import {
   makeCleanupPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
-  makeJsonPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
@@ -20,6 +19,7 @@ import {
   makeTerserPlugin,
 } from './plugins/index.mjs';
 import { mergePlugins } from './utils.mjs';
+import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
@@ -35,13 +35,12 @@ export function makeBaseBundleConfig(options) {
     excludeIframe: false,
     excludeShadowDom: false,
   });
+  const productionReplacePlugin = makeProductionReplacePlugin();
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
   // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
   const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
-
-  const jsonPlugin = makeJsonPlugin();
 
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
@@ -53,7 +52,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
   };
 
   // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
@@ -87,40 +86,23 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
-  };
-
-  // used by `@sentry/aws-serverless`, when creating the lambda layer
-  const awsLambdaBundleConfig = {
-    output: {
-      format: 'cjs',
-    },
-    plugins: [
-      jsonPlugin,
-      commonJSPlugin,
-      // Temporary fix for the lambda layer SDK bundle.
-      // This is necessary to apply to our lambda layer bundle because calling `new ImportInTheMiddle()` will throw an
-      // that `ImportInTheMiddle` is not a constructor. Instead we modify the code to call `new ImportInTheMiddle.default()`
-      // TODO: Remove this plugin once the weird import-in-the-middle exports are fixed, released and we use the respective
-      // version in our SDKs. See: https://github.com/getsentry/sentry-javascript/issues/12009#issuecomment-2126211967
-      {
-        name: 'aws-serverless-lambda-layer-fix',
-        transform: code => {
-          if (code.includes('ImportInTheMiddle')) {
-            return code.replaceAll(/new\s+(ImportInTheMiddle.*)\(/gm, 'new $1.default(');
-          }
-        },
-      },
-    ],
-    // Don't bundle any of Node's core modules
-    external: builtinModules,
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
   };
 
   const workerBundleConfig = {
     output: {
       format: 'esm',
     },
-    plugins: [commonJSPlugin, makeTerserPlugin()],
+    plugins: [commonJSPlugin, makeTerserPlugin(), licensePlugin],
+    // Don't bundle any of Node's core modules
+    external: builtinModules,
+  };
+
+  const awsLambdaExtensionBundleConfig = {
+    output: {
+      format: 'esm',
+    },
+    plugins: [commonJSPlugin, makeIsDebugBuildPlugin(true), makeTerserPlugin()],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -136,15 +118,15 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    plugins: [productionReplacePlugin, sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
     treeshake: 'smallest',
   };
 
   const bundleTypeConfigMap = {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
-    'aws-lambda': awsLambdaBundleConfig,
     'node-worker': workerBundleConfig,
+    'lambda-extension': awsLambdaExtensionBundleConfig,
   };
 
   return deepMerge.all([sharedBundleConfig, bundleTypeConfigMap[bundleType], packageSpecificConfig || {}], {

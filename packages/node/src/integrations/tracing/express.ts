@@ -1,57 +1,61 @@
 import type * as http from 'node:http';
+import type { Span } from '@opentelemetry/api';
+import type { ExpressRequestInfo } from '@opentelemetry/instrumentation-express';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   captureException,
+  debug,
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
-  logger,
+  httpRequestToRequestData,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
+import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 const INTEGRATION_NAME = 'Express';
+
+function requestHook(span: Span): void {
+  addOriginToSpan(span, 'auto.http.otel.express');
+
+  const attributes = spanToJSON(span).data;
+  // this is one of: middleware, request_handler, router
+  const type = attributes['express.type'];
+
+  if (type) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+  }
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['express.name'];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+}
+
+function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    return defaultName;
+  }
+  if (info.layerType === 'request_handler') {
+    // type cast b/c Otel unfortunately types info.request as any :(
+    const req = info.request as { method?: string };
+    const method = req.method ? req.method.toUpperCase() : 'GET';
+    getIsolationScope().setTransactionName(`${method} ${info.route}`);
+  }
+  return defaultName;
+}
 
 export const instrumentExpress = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
     new ExpressInstrumentation({
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.http.otel.express');
-
-        const attributes = spanToJSON(span).data;
-        // this is one of: middleware, request_handler, router
-        const type = attributes['express.type'];
-
-        if (type) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
-        }
-
-        // Also update the name, we don't need to "middleware - " prefix
-        const name = attributes['express.name'];
-        if (typeof name === 'string') {
-          span.updateName(name);
-        }
-      },
-      spanNameHook(info, defaultName) {
-        if (getIsolationScope() === getDefaultIsolationScope()) {
-          DEBUG_BUILD &&
-            logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
-          return defaultName;
-        }
-        if (info.layerType === 'request_handler') {
-          // type cast b/c Otel unfortunately types info.request as any :(
-          const req = info.request as { method?: string };
-          const method = req.method ? req.method.toUpperCase() : 'GET';
-          getIsolationScope().setTransactionName(`${method} ${info.route}`);
-        }
-        return defaultName;
-      },
+      requestHook: span => requestHook(span),
+      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
     }),
 );
 
@@ -118,14 +122,15 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
     // Ensure we use the express-enhanced request here, instead of the plain HTTP one
     // When an error happens, the `expressRequestHandler` middleware does not run, so we set it here too
-    getIsolationScope().setSDKProcessingMetadata({ request });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
+      const eventId = captureException(error, { mechanism: { type: 'auto.middleware.express', handled: false } });
       (res as { sentry?: string }).sentry = eventId;
     }
 
@@ -139,8 +144,9 @@ function expressRequestHandler(): ExpressMiddleware {
     _res: http.ServerResponse,
     next: () => void,
   ): void {
+    const normalizedRequest = httpRequestToRequestData(request);
     // Ensure we use the express-enhanced request here, instead of the plain HTTP one
-    getIsolationScope().setSDKProcessingMetadata({ request });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     next();
   };

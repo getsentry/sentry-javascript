@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
@@ -16,11 +15,8 @@ sentryTest(
       type: 'Error',
       value: 'xhr_error',
       mechanism: {
-        type: 'instrument',
+        type: 'auto.browser.browserapierrors.xhr.onreadystatechange',
         handled: false,
-        data: {
-          function: 'onreadystatechange',
-        },
       },
       stacktrace: {
         frames: expect.any(Array),

@@ -12,14 +12,14 @@ import type {
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startInactiveSpan,
 } from '@sentry/browser';
-import { GLOBAL_OBJ, addIntegration, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import { addIntegration, browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
@@ -84,13 +84,15 @@ function getTransitionInformation(
   };
 }
 
-function getLocationURL(location: EmberRouterMain['location']): string {
+// Only exported for testing
+export function _getLocationURL(location: EmberRouterMain['location']): string {
   if (!location?.getURL || !location?.formatURL) {
     return '';
   }
   const url = location.formatURL(location.getURL());
 
-  if (location.implementation === 'hash') {
+  // `implementation` is optional in Ember's predefined location types, so we also check if the URL starts with '#'.
+  if (location.implementation === 'hash' || url.startsWith('#')) {
     return `${location.rootURL}${url}`;
   }
   return url;
@@ -110,7 +112,7 @@ export function _instrumentEmberRouter(
 
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
-  const url = getLocationURL(location);
+  const url = _getLocationURL(location);
 
   const client = getClient<BrowserClient>();
 
@@ -366,8 +368,9 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
     return;
   }
 
+  const origin = browserPerformanceTimeOrigin();
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  if (!HAS_PERFORMANCE_TIMING || browserPerformanceTimeOrigin === undefined) {
+  if (!HAS_PERFORMANCE_TIMING || origin === undefined) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
@@ -383,7 +386,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTime = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
+  const startTime = (measure.startTime + origin) / 1000;
   const endTime = startTime + measure.duration / 1000;
 
   startInactiveSpan({

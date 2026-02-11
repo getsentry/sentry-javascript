@@ -15,8 +15,8 @@ import { defineConfig } from 'rollup';
 import {
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
-  makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
+  makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
@@ -27,10 +27,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
+const ignoreSideEffects = /[\\\/]debug-build\.ts$/;
+
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
-    esModuleInterop = false,
     hasBundles = false,
     packageSpecificConfig = {},
     sucrase = {},
@@ -40,7 +41,6 @@ export function makeBaseNPMConfig(options = {}) {
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin({}, sucrase);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
@@ -56,9 +56,8 @@ export function makeBaseNPMConfig(options = {}) {
 
       sourcemap: true,
 
-      // Include __esModule property when generating exports
-      // Before the upgrade to Rollup 4 this was included by default and when it was gone it broke tests
-      esModule: true,
+      // Include __esModule property when there is a default prop
+      esModule: 'if-default-prop',
 
       // output individual files rather than one big bundle
       preserveModules: true,
@@ -84,26 +83,21 @@ export function makeBaseNPMConfig(options = {}) {
       // (We don't need it, so why waste the bytes?)
       freeze: false,
 
-      // Equivalent to `esModuleInterop` in tsconfig.
-      // Controls whether rollup emits helpers to handle special cases where turning
-      //     `import * as dogs from 'dogs'`
-      // into
-      //     `const dogs = require('dogs')`
-      // doesn't work.
-      //
-      // `auto` -> emit helpers
-      // `esModule` -> don't emit helpers
-      interop: esModuleInterop ? 'auto' : 'esModule',
+      interop: 'esModule',
     },
 
-    plugins: [
-      nodeResolvePlugin,
-      sucrasePlugin,
-      debugBuildStatementReplacePlugin,
-      importMetaUrlReplacePlugin,
-      rrwebBuildPlugin,
-      cleanupPlugin,
-    ],
+    treeshake: {
+      moduleSideEffects: (id, external) => {
+        if (external === false && ignoreSideEffects.test(id)) {
+          // Tell Rollup this module has no side effects, so it can be tree-shaken
+          return false;
+        }
+
+        return true;
+      },
+    },
+
+    plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
@@ -121,18 +115,47 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitEsm = true } = options;
+  const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
 
-  const variantSpecificConfigs = [{ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } }];
+  const variantSpecificConfigs = [];
+
+  if (emitCjs) {
+    if (splitDevProd) {
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
+        plugins: [makeProductionReplacePlugin()],
+      });
+    } else {
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+    }
+  }
 
   if (emitEsm) {
-    variantSpecificConfigs.push({
-      output: {
-        format: 'esm',
-        dir: path.join(baseConfig.output.dir, 'esm'),
-        plugins: [makePackageNodeEsm()],
-      },
-    });
+    if (splitDevProd) {
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm/dev'),
+          plugins: [makePackageNodeEsm()],
+        },
+      });
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm/prod'),
+          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+        },
+      });
+    } else {
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm'),
+          plugins: [makePackageNodeEsm()],
+        },
+      });
+    }
   }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
@@ -168,9 +191,14 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   }
 
   const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
-  const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
-    return key === requiredDep;
-  });
+  const foundImportInTheMiddleDep =
+    Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
+      return key === requiredDep;
+    }) ||
+    Object.keys(packageDotJSON.devDependencies ?? {}).some(key => {
+      return key === requiredDep;
+    });
+
   if (!foundImportInTheMiddleDep) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(

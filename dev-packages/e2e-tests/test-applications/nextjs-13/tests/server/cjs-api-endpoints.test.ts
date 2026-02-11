@@ -11,7 +11,8 @@ test('should create a transaction for a CJS pages router API endpoint', async ({
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/cjs-api-endpoint' &&
-      transactionEvent.contexts?.trace?.op === 'http.server'
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.transaction_info?.source === 'route'
     );
   });
 
@@ -73,7 +74,8 @@ test('should not mess up require statements in CJS API endpoints', async ({ requ
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/cjs-api-endpoint-with-require' &&
-      transactionEvent.contexts?.trace?.op === 'http.server'
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.transaction_info?.source === 'route'
     );
   });
 

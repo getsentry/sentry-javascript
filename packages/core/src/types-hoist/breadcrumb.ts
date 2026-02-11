@@ -52,6 +52,7 @@ export interface Breadcrumb {
    *
    * @summary Arbitrary data associated with this breadcrumb.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: { [key: string]: any };
 
   /**
@@ -70,6 +71,7 @@ export interface Breadcrumb {
 
 /** JSDoc */
 export interface BreadcrumbHint {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -90,11 +92,12 @@ export interface XhrBreadcrumbData {
 }
 
 export interface FetchBreadcrumbHint {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: any[];
   data?: unknown;
   response?: unknown;
   startTimestamp: number;
-  endTimestamp: number;
+  endTimestamp?: number;
 }
 
 export interface XhrBreadcrumbHint {

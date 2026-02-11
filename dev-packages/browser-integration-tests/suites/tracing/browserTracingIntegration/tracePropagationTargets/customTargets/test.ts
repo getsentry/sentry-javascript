@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
@@ -15,7 +14,7 @@ sentryTest(
     const requests = (
       await Promise.all([
         page.goto(url),
-        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+        Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://sentry-test-site.example/${idx}`))),
       ])
     )[1];
 

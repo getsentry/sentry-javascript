@@ -1,7 +1,7 @@
 {
   "name": "@sentry/nuxt",
-  "version": "8.45.0",
-  "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
+  "version": "10.38.0",
+  "description": "Official Sentry SDK for Nuxt",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
   "author": "Sentry",
@@ -27,12 +27,18 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
-      }
+      },
+      "import": "./build/esm/index.server.js",
+      "require": "./build/cjs/index.server.js"
     },
     "./module": {
       "types": "./build/module/types.d.ts",
       "import": "./build/module/module.mjs",
       "require": "./build/module/module.cjs"
+    },
+    "./module/plugins": {
+      "types": "./build/module/runtime/plugins/index.d.ts",
+      "import": "./build/module/runtime/plugins/index.js"
     }
   },
   "publishConfig": {
@@ -43,17 +49,21 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
-    "@sentry/browser": "8.45.0",
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
-    "@sentry/opentelemetry": "8.45.0",
-    "@sentry/rollup-plugin": "2.22.7",
-    "@sentry/vite-plugin": "2.22.6",
-    "@sentry/vue": "8.45.0"
+    "@sentry/browser": "10.38.0",
+    "@sentry/cloudflare": "10.38.0",
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0",
+    "@sentry/node-core": "10.38.0",
+    "@sentry/rollup-plugin": "^4.8.0",
+    "@sentry/vite-plugin": "^4.8.0",
+    "@sentry/vue": "10.38.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
-    "nuxt": "^3.13.2"
+    "@nuxt/nitro-server": "^3.21.1",
+    "nuxi": "^3.25.1",
+    "nuxt": "3.17.7",
+    "vite": "^5.4.11"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",
@@ -70,6 +80,7 @@
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.cjs && es-check es2020 ./build/module/*.mjs --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

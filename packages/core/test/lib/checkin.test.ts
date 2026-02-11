@@ -1,6 +1,6 @@
-import type { SerializedCheckIn } from '../../src/types-hoist';
-
+import { describe, expect, test } from 'vitest';
 import { createCheckInEnvelope } from '../../src/checkin';
+import type { SerializedCheckIn } from '../../src/types-hoist/checkin';
 
 describe('createCheckInEnvelope', () => {
   test('creates a check in envelope header', () => {

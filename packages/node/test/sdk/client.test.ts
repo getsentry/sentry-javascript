@@ -1,9 +1,10 @@
-import * as os from 'os';
 import { ProxyTracer } from '@opentelemetry/api';
 import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
-import type { Event, EventHint } from '@sentry/core';
-import { SDK_VERSION, Scope, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import type { Event, EventHint, Log } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import * as os from 'os';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -18,7 +19,7 @@ describe('NodeClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     cleanupOtel();
   });
 
@@ -30,6 +31,11 @@ describe('NodeClient', () => {
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      transportOptions: {
+        headers: {
+          'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
+        },
+      },
       stackParser: options.stackParser,
       _metadata: {
         sdk: {
@@ -128,6 +134,18 @@ describe('NodeClient', () => {
       expect(event.server_name).toEqual(os.hostname());
     });
 
+    test('does not add hostname when includeServerName = false', () => {
+      const options = getDefaultNodeClientOptions({});
+      options.includeServerName = false;
+      const client = new NodeClient(options);
+
+      const event: Event = {};
+      const hint: EventHint = {};
+      client['_prepareEvent'](event, hint, currentScope, isolationScope);
+
+      expect(event.server_name).toBeUndefined();
+    });
+
     test("doesn't clobber existing runtime data", () => {
       const options = getDefaultNodeClientOptions({ serverName: 'bar' });
       const client = new NodeClient(options);
@@ -162,7 +180,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -232,7 +250,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn({ monitorSlug: 'heartbeat-monitor', status: 'ok' });
 
@@ -258,7 +276,7 @@ describe('NodeClient', () => {
       const options = getDefaultNodeClientOptions({ serverName: 'bar', enabled: false });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
@@ -267,7 +285,7 @@ describe('NodeClient', () => {
   });
 
   it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = jest
+    const registerInstrumentationsSpy = vi
       .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
       .mockImplementationOnce(() => () => undefined);
     const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
@@ -279,5 +297,33 @@ describe('NodeClient', () => {
         instrumentations: instrumentationsArray,
       }),
     );
+  });
+
+  describe('log capture', () => {
+    it('adds server name to log attributes', () => {
+      const options = getDefaultNodeClientOptions({ enableLogs: true });
+      const client = new NodeClient(options);
+
+      const log: Log = { level: 'info', message: 'test message', attributes: {} };
+      client.emit('beforeCaptureLog', log);
+
+      expect(log.attributes).toEqual({
+        'server.address': expect.any(String),
+      });
+    });
+
+    it('preserves existing log attributes', () => {
+      const serverName = 'test-server';
+      const options = getDefaultNodeClientOptions({ serverName, enableLogs: true });
+      const client = new NodeClient(options);
+
+      const log: Log = { level: 'info', message: 'test message', attributes: { 'existing.attr': 'value' } };
+      client.emit('beforeCaptureLog', log);
+
+      expect(log.attributes).toEqual({
+        'existing.attr': 'value',
+        'server.address': serverName,
+      });
+    });
   });
 });

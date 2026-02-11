@@ -1,5 +1,6 @@
-import type { BrowserOptions } from '@sentry/browser';
-import type { Options } from '@sentry/core';
+import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
   /**
@@ -23,12 +24,16 @@ type SdkInitPaths = {
   serverInitPath?: string;
 };
 
+/**
+ * @deprecated Move these options to the top-level of your Sentry configuration.
+ */
 type SourceMapsOptions = {
   /**
    * If this flag is `true`, and an auth token is detected, the Sentry integration will
    * automatically generate and upload source maps to Sentry during a production build.
    *
    * @default true
+   * @deprecated Use `sourcemaps.disable` instead (with inverted logic)
    */
   enabled?: boolean;
 
@@ -39,18 +44,24 @@ type SourceMapsOptions = {
    *
    * To create an auth token, follow this guide:
    * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   *
+   * @deprecated Use top-level `authToken` option instead
    */
   authToken?: string;
 
   /**
    * The organization slug of your Sentry organization.
    * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   *
+   * @deprecated Use top-level `org` option instead
    */
   org?: string;
 
   /**
    * The project slug of your Sentry project.
    * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   *
+   * @deprecated Use top-level `project` option instead
    */
   project?: string;
 
@@ -59,6 +70,7 @@ type SourceMapsOptions = {
    * It will not collect any sensitive or user-specific data.
    *
    * @default true
+   * @deprecated Use top-level `telemetry` option instead
    */
   telemetry?: boolean;
 
@@ -71,6 +83,8 @@ type SourceMapsOptions = {
    *
    * The globbing patterns must follow the implementation of the `glob` package.
    * @see https://www.npmjs.com/package/glob#glob-primer
+   *
+   * @deprecated Use `sourcemaps.assets` instead
    */
   assets?: string | Array<string>;
 
@@ -81,49 +95,26 @@ type SourceMapsOptions = {
    * @default [] - By default no files are deleted.
    *
    * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+   *
+   * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` instead
    */
   filesToDeleteAfterUpload?: string | Array<string>;
-};
 
-type BundleSizeOptimizationOptions = {
   /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) any debugging code within the Sentry SDK.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options specified in this object take precedence over all other options.
    *
-   * Setting this option to `true` will disable features like the SDK's `debug` option.
-   */
-  excludeDebugStatements?: boolean;
-
-  /**
-   * If set to true, the plugin will try to tree-shake performance monitoring statements out.
-   * Note that the success of this depends on tree shaking generally being enabled in your build.
-   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
-   */
-  excludeTracing?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Shadow DOM recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
    *
-   * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
-   */
-  excludeReplayShadowDom?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay `iframe` recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   * Warning: Options within this object are subject to change at any time.
+   * We DO NOT guarantee semantic versioning for these options, meaning breaking
+   * changes can occur at any time within a major SDK version.
    *
-   * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
-   */
-  excludeReplayIframe?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay's Compression Web Worker.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   * Furthermore, some options are untested with Astro specifically. Use with caution.
    *
-   * **Notice:** You should only do use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
+   * @deprecated Use top-level `unstable_sentryVitePluginOptions` instead
    */
-  excludeReplayWorker?: boolean;
+  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 };
 
 type InstrumentationOptions = {
@@ -170,40 +161,14 @@ type SdkEnabledOptions = {
       };
 };
 
-type DeprecatedRuntimeOptions = Pick<
-  Options,
-  'environment' | 'release' | 'dsn' | 'debug' | 'sampleRate' | 'tracesSampleRate'
-> &
-  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> & {
-    /**
-     * @deprecated Use the `environment` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    environment?: string;
-    /**
-     * @deprecated Use the `release` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    release?: string;
-    /**
-     * @deprecated Use the `dsn` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    dsn?: string;
-    /**
-     * @deprecated Use the `sampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    sampleRate?: number;
-    /**
-     * @deprecated Use the `tracesSampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
-     */
-    tracesSampleRate?: number;
-    /**
-     * @deprecated Use the `replaysSessionSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
-     */
-    replaysSessionSampleRate?: number;
-    /**
-     * @deprecated Use the `replaysOnErrorSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
-     */
-    replaysOnErrorSampleRate?: number;
-  };
+/**
+ * We accept aribtrary options that are passed through to the Sentry SDK.
+ * This is not recommended and will stop working in a future version.
+ * Note: Not all options are actually passed through, only a select subset:
+ * release, environment, dsn, debug, sampleRate, tracesSampleRate, replaysSessionSampleRate, replaysOnErrorSampleRate
+ * @deprecated This will be removed in a future major.
+ **/
+type DeprecatedRuntimeOptions = Record<string, unknown>;
 
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
@@ -214,8 +179,10 @@ type DeprecatedRuntimeOptions = Pick<
  *
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
  */
-export type SentryOptions = SdkInitPaths &
-  DeprecatedRuntimeOptions &
+export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
+  // todo(v11): `release` and `debug` need to be removed from BuildTimeOptionsBase as it is currently conflicting with `DeprecatedRuntimeOptions`
+  UnstableVitePluginOptions<SentryVitePluginOptions> &
+  SdkInitPaths &
   InstrumentationOptions &
   SdkEnabledOptions & {
     /**
@@ -223,17 +190,35 @@ export type SentryOptions = SdkInitPaths &
      *
      * These options are always read from the `sentryAstro` integration.
      * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
-     */
-    sourceMapsUploadOptions?: SourceMapsOptions;
-    /**
-     * Options for the Sentry Vite plugin to customize bundle size optimizations.
      *
-     * These options are always read from the `sentryAstro` integration.
-     * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+     * @deprecated This option was deprecated. Please move the options to the top-level configuration.
+     * See the migration guide in the SourceMapsOptions type documentation.
      */
-    bundleSizeOptimizations?: BundleSizeOptimizationOptions;
-    /**
-     * If enabled, prints debug logs during the build process.
-     */
-    debug?: boolean;
-  };
+    // eslint-disable-next-line deprecation/deprecation
+    sourceMapsUploadOptions?: SourceMapsOptions;
+    // eslint-disable-next-line deprecation/deprecation
+  } & DeprecatedRuntimeOptions;
+
+/**
+ * Routes inside 'astro:routes:resolved' hook (Astro v5+)
+ *
+ * Inline type for official `IntegrationResolvedRoute`.
+ * The type includes more properties, but we only need some of them.
+ *
+ * @see https://github.com/withastro/astro/blob/04e60119afee668264a2ff6665c19a32150f4c91/packages/astro/src/types/public/integrations.ts#L287
+ */
+export type IntegrationResolvedRoute = {
+  isPrerendered: RouteData['prerender'];
+  pattern: RouteData['route'];
+  patternRegex: RouteData['pattern'];
+  segments: RouteData['segments'];
+};
+
+/**
+ * Internal type for Astro routes, as we store an additional `patternCaseSensitive` property alongside the
+ * lowercased parametrized `pattern` of each Astro route.
+ */
+export type ResolvedRouteWithCasedPattern = IntegrationResolvedRoute & {
+  patternRegex: string; // RegEx gets stringified
+  patternCaseSensitive: string;
+};

@@ -1,6 +1,5 @@
-import { record } from '@sentry-internal/rrweb';
 import { browserPerformanceTimeOrigin } from '@sentry/core';
-
+import { record } from '@sentry-internal/rrweb';
 import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
@@ -89,7 +88,7 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
 function getAbsoluteTime(time: number): number {
   // browserPerformanceTimeOrigin can be undefined if `performance` or
   // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
+  return ((browserPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
@@ -220,15 +219,6 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
   }
 
   return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
-}
-
-/**
- * Add a FID event to the replay based on a FID metric.
- */
-export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry?.target ? [lastEntry.target] : undefined;
-  return getWebVital(metric, 'first-input-delay', node);
 }
 
 /**

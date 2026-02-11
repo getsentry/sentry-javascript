@@ -1,0 +1,68 @@
+{
+  "name": "@sentry/tanstackstart",
+  "version": "10.38.0",
+  "description": "Utilities for the Sentry TanStack Start SDKs",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "build/cjs/index.server.js",
+  "module": "build/esm/index.server.js",
+  "types": "build/types/index.types.d.ts",
+  "files": [
+    "/build"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./build/types/index.types.d.ts",
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
+      }
+    }
+  },
+  "typesVersions": {
+    "<5.0": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:tarball": "npm pack",
+    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
+    "clean": "rimraf build coverage sentry-tanstackstart-*.tgz",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "test": "yarn test:unit",
+    "test:unit": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false
+}

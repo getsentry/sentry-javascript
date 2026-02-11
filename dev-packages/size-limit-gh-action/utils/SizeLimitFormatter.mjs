@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import bytes from 'bytes';
+import bytes from 'bytes-iec';
 
 const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
 
@@ -91,7 +91,6 @@ export class SizeLimitFormatter {
 
     return results.reduce((current, result) => {
       return {
-        // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
         ...current,
         [result.name]: {
           name: result.name,

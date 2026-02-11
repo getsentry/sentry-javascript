@@ -1,5 +1,5 @@
 import { captureException, getClient } from '@sentry/core';
-import { type Mock, afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { extractErrorContext, reportNuxtError } from '../../src/runtime/utils';
 
@@ -119,7 +119,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.app-error' },
     });
   });
 
@@ -129,7 +129,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined, propsData: { foo: 'bar' } } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.vue-error' },
     });
   });
 
@@ -141,7 +141,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.vue-error' },
     });
   });
 
@@ -151,7 +151,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: 'Some info' } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.app-error' },
     });
   });
 });

@@ -36,7 +36,7 @@ const whenReady = (callback: () => void) => {
     addEventListener('load', () => whenReady(callback), true);
   } else {
     // Queue a task so the callback runs after `loadEventEnd`.
-    setTimeout(callback, 0);
+    setTimeout(callback);
   }
 };
 

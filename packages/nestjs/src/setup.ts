@@ -8,7 +8,7 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, getDefaultIsolationScope, getIsolationScope, logger } from '@sentry/core';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 
@@ -16,9 +16,9 @@ import { isExpectedError } from './helpers';
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
 interface FastifyRequest {
   routeOptions?: {
-    method?: string;
     url?: string;
   };
+  method?: string;
 }
 
 // Partial extract of ExpressRequest interface
@@ -49,17 +49,15 @@ class SentryTracingInterceptor implements NestInterceptor {
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (getIsolationScope() === getDefaultIsolationScope()) {
-      logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
+      debug.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
     }
 
     if (context.getType() === 'http') {
-      const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
+      const req = context.switchToHttp().getRequest<FastifyRequest | ExpressRequest>();
       if ('routeOptions' in req && req.routeOptions?.url) {
         // fastify case
-        getIsolationScope().setTransactionName(
-          `${(req.routeOptions.method || 'GET').toUpperCase()} ${req.routeOptions.url}`,
-        );
+        getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.routeOptions.url}`);
       } else if ('route' in req && req.route?.path) {
         // express case
         getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.route.path}`);
@@ -88,10 +86,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
+    const contextType = host.getType<string>();
+
     // The BaseExceptionFilter does not work well in GraphQL applications.
     // By default, Nest GraphQL applications use the ExternalExceptionFilter, which just rethrows the error:
     // https://github.com/nestjs/nest/blob/master/packages/core/exceptions/external-exception-filter.ts
-    if (host.getType<'graphql'>() === 'graphql') {
+    if (contextType === 'graphql') {
       // neither report nor log HttpExceptions
       if (exception instanceof HttpException) {
         throw exception;
@@ -101,12 +101,65 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         this._logger.error(exception.message, exception.stack);
       }
 
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'auto.graphql.nestjs.global_filter',
+        },
+      });
       throw exception;
     }
 
+    // Handle microservice context (rpc)
+    // We cannot add proper handing here since RpcException depend on the @nestjs/microservices package
+    // For these cases we log a warning that the user should be providing a dedicated exception filter
+    if (contextType === 'rpc') {
+      // Unlikely case
+      if (exception instanceof HttpException) {
+        throw exception;
+      }
+
+      // Handle any other kind of error
+      if (!(exception instanceof Error)) {
+        if (!isExpectedError(exception)) {
+          captureException(exception, {
+            mechanism: {
+              handled: false,
+              type: 'auto.rpc.nestjs.global_filter',
+            },
+          });
+        }
+        throw exception;
+      }
+
+      // In this case we're likely running into an RpcException, which the user should handle with a dedicated filter
+      // https://github.com/nestjs/nest/blob/master/sample/03-microservices/src/common/filters/rpc-exception.filter.ts
+      if (!isExpectedError(exception)) {
+        captureException(exception, {
+          mechanism: {
+            handled: false,
+            type: 'auto.rpc.nestjs.global_filter',
+          },
+        });
+      }
+
+      this._logger.warn(
+        'IMPORTANT: RpcException should be handled with a dedicated Rpc exception filter, not the generic SentryGlobalFilter',
+      );
+
+      // Log the error and return, otherwise we may crash the user's app by handling rpc errors in a http context
+      this._logger.error(exception.message, exception.stack);
+      return;
+    }
+
+    // HTTP exceptions
     if (!isExpectedError(exception)) {
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'auto.http.nestjs.global_filter',
+        },
+      });
     }
 
     return super.catch(exception, host);

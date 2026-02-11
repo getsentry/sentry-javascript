@@ -1,5 +1,5 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   // No dsn, means  client is disabled
@@ -15,7 +15,6 @@ initialClient?.addIntegration(Sentry.httpIntegration());
 // Store this so we can update the client later
 const initialCurrentScope = Sentry.getCurrentScope();
 
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
 const app = express();
@@ -37,7 +36,7 @@ app.get('/test/init', (_req, res) => {
     transport: loggingTransport,
   });
   // Set this on initial scope, to ensure it can be inherited
-  initialCurrentScope.setClient(Sentry.getClient()!);
+  initialCurrentScope.setClient(Sentry.getClient());
 
   Sentry.addBreadcrumb({ message: 'init breadcrumb' });
   Sentry.setTag('init', 'tag');

@@ -1,9 +1,7 @@
-import { applySdkMetadata } from '@sentry/core';
 import type { Client, Integration } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
-import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
-
+import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -66,7 +64,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
  * @returns the function that was previously on `window.fetch`.
  */
 function switchToFetchProxy(): typeof fetch | undefined {
-  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
+  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const actualFetch = globalWithSentryFetchProxy.fetch;
@@ -83,7 +81,7 @@ function switchToFetchProxy(): typeof fetch | undefined {
  * and puts our fetch proxy back onto `window._sentryFetchProxy`.
  */
 function restoreFetch(actualFetch: typeof fetch): void {
-  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
+  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   globalWithSentryFetchProxy._sentryFetchProxy = globalWithSentryFetchProxy.fetch;

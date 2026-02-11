@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "8.45.0",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -39,12 +39,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.45.0",
-    "@sentry/node": "8.45.0",
-    "@sentry/opentelemetry": "8.45.0"
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "^1.2.9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -62,6 +61,7 @@
     "clean": "rimraf build coverage sentry-bun-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
+    "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "install:bun": "node ./scripts/install-bun.js",
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",

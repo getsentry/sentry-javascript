@@ -29,10 +29,10 @@ export interface CloudFunctionsContext {
 
 export interface CloudEventsContext {
   [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  type?: string;
-  specversion?: string;
-  source?: string;
-  id?: string;
+  id: string;
+  specversion: string;
+  type: string;
+  source: string;
   time?: string;
   schemaurl?: string;
   contenttype?: string;

@@ -1,17 +1,13 @@
-import { describe, expect, it } from 'vitest';
-
 import 'fake-indexeddb/auto';
-
-import { TextDecoder, TextEncoder } from 'util';
-import { createTransport } from '@sentry/core';
-import { createEnvelope } from '@sentry/core';
 import type {
   EventEnvelope,
   EventItem,
   InternalBaseTransportOptions,
   TransportMakeRequestResponse,
 } from '@sentry/core';
-
+import { createEnvelope, createTransport } from '@sentry/core';
+import { TextDecoder, TextEncoder } from 'util';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../src/transports/offline';
 
 const MIN_DELAY = 100;

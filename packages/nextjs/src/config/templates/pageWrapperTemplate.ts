@@ -6,9 +6,9 @@
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
-import * as Sentry from '@sentry/nextjs';
 // @ts-expect-error See above
 import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
+import * as Sentry from '@sentry/nextjs';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
 
 type NextPageModule = {
@@ -25,12 +25,17 @@ const origGetInitialProps = pageComponent ? pageComponent.getInitialProps : unde
 const origGetStaticProps = userPageModule ? userPageModule.getStaticProps : undefined;
 const origGetServerSideProps = userPageModule ? userPageModule.getServerSideProps : undefined;
 
+// Rollup will aggressively tree-shake what it perceives to be unused properties
+// on objects. Because the key that's used to index into this object (__ROUTE__)
+// is replaced during bundling, Rollup can't see that these properties are in fact
+// used. Using `Object.freeze` signals to Rollup that it should not tree-shake
+// this object.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getInitialPropsWrappers: Record<string, any> = {
+const getInitialPropsWrappers: Record<string, any> = Object.freeze({
   '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
   '/_document': Sentry.wrapDocumentGetInitialPropsWithSentry,
   '/_error': Sentry.wrapErrorGetInitialPropsWithSentry,
-};
+});
 
 const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.wrapGetInitialPropsWithSentry;
 

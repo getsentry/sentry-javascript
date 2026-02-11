@@ -1,5 +1,5 @@
-import { getIsolationScope, prepareEvent } from '@sentry/core';
 import type { Client, EventHint, ReplayEvent, Scope } from '@sentry/core';
+import { getIsolationScope, prepareEvent } from '@sentry/core';
 
 /**
  * Prepare a replay event & enrich it with the SDK metadata.
@@ -40,6 +40,8 @@ export async function prepareReplayEvent({
     return null;
   }
 
+  client.emit('postprocessEvent', preparedEvent, eventHint);
+
   // This normally happens in browser client "_prepareEvent"
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.
@@ -47,12 +49,13 @@ export async function prepareReplayEvent({
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
   const metadata = client.getSdkMetadata();
-  const { name, version } = metadata?.sdk || {};
+  const { name, version, settings } = metadata?.sdk || {};
 
   preparedEvent.sdk = {
     ...preparedEvent.sdk,
     name: name || 'sentry.javascript.unknown',
     version: version || '0.0.0',
+    settings,
   };
 
   return preparedEvent;

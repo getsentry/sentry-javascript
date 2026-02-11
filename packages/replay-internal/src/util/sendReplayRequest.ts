@@ -1,10 +1,10 @@
 import type { RateLimits, ReplayEvent, TransportMakeRequestResponse } from '@sentry/core';
-import { getClient, getCurrentScope, isRateLimited, resolvedSyncPromise, updateRateLimits } from '@sentry/core';
+import { getClient, getCurrentScope, isRateLimited, updateRateLimits } from '@sentry/core';
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
 import { createReplayEnvelope } from './createReplayEnvelope';
-import { logger } from './logger';
+import { debug } from './logger';
 import { prepareRecordingData } from './prepareRecordingData';
 import { prepareReplayEvent } from './prepareReplayEvent';
 
@@ -34,7 +34,7 @@ export async function sendReplayRequest({
   const dsn = client?.getDsn();
 
   if (!client || !transport || !dsn || !session.sampled) {
-    return resolvedSyncPromise({});
+    return Promise.resolve({});
   }
 
   const baseEvent: ReplayEvent = {
@@ -53,9 +53,9 @@ export async function sendReplayRequest({
 
   if (!replayEvent) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
-    client.recordDroppedEvent('event_processor', 'replay', baseEvent);
-    DEBUG_BUILD && logger.info('An event processor returned `null`, will not send event.');
-    return resolvedSyncPromise({});
+    client.recordDroppedEvent('event_processor', 'replay');
+    DEBUG_BUILD && debug.log('An event processor returned `null`, will not send event.');
+    return Promise.resolve({});
   }
 
   /*
@@ -117,14 +117,15 @@ export async function sendReplayRequest({
     throw error;
   }
 
-  // If the status code is invalid, we want to immediately stop & not retry
-  if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
-    throw new TransportStatusCodeError(response.statusCode);
-  }
-
+  // Check for rate limiting first (handles 429 and rate limit headers)
   const rateLimits = updateRateLimits({}, response);
   if (isRateLimited(rateLimits, 'replay')) {
     throw new RateLimitError(rateLimits);
+  }
+
+  // If the status code is invalid, we want to immediately stop & not retry
+  if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+    throw new TransportStatusCodeError(response.statusCode);
   }
 
   return response;
@@ -148,5 +149,15 @@ export class RateLimitError extends Error {
   public constructor(rateLimits: RateLimits) {
     super('Rate limit hit');
     this.rateLimits = rateLimits;
+  }
+}
+
+/**
+ * This error indicates that the replay duration limit was exceeded and the session is too long.
+ *
+ */
+export class ReplayDurationLimitError extends Error {
+  public constructor() {
+    super('Session is too long, not sending replay');
   }
 }

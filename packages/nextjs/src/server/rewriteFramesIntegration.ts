@@ -1,10 +1,10 @@
-import * as path from 'path';
 import type { IntegrationFn, StackFrame } from '@sentry/core';
 import {
   defineIntegration,
   escapeStringForRegex,
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/core';
+import * as path from 'path';
 
 const globalWithInjectedValues = global as typeof global & {
   _sentryRewriteFramesDistDir?: string;

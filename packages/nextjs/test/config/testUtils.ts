@@ -56,6 +56,10 @@ export async function materializeFinalWebpackConfig(options: {
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
   sentryBuildTimeOptions?: SentryBuildOptions;
+  releaseName?: string;
+  routeManifest?: any;
+  nextJsVersion?: string;
+  useRunAfterProductionCompileHook?: boolean;
 }): Promise<WebpackConfigObjectWithModuleRules> {
   const { exportedNextConfig, incomingWebpackConfig, incomingWebpackBuildContext } = options;
 
@@ -66,11 +70,16 @@ export async function materializeFinalWebpackConfig(options: {
       : exportedNextConfig;
 
   // get the webpack config function we'd normally pass back to next
-  const webpackConfigFunction = constructWebpackConfigFunction(
-    materializedUserNextConfig,
-    options.sentryBuildTimeOptions,
-    undefined,
-  );
+  const webpackConfigFunction = constructWebpackConfigFunction({
+    userNextConfig: materializedUserNextConfig,
+    userSentryOptions: options.sentryBuildTimeOptions || {},
+    releaseName: options.releaseName,
+    routeManifest: options.routeManifest,
+    nextJsVersion: options.nextJsVersion,
+    useRunAfterProductionCompileHook:
+      options.useRunAfterProductionCompileHook ?? options.sentryBuildTimeOptions?.useRunAfterProductionCompileHook,
+    vercelCronsConfigResult: { config: undefined, strategy: undefined },
+  });
 
   // call it to get concrete values for comparison
   const finalWebpackConfigValue = webpackConfigFunction(incomingWebpackConfig, incomingWebpackBuildContext);

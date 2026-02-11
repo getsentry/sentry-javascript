@@ -1,10 +1,9 @@
+/* eslint-disable no-empty-pattern */
+import { test as base } from '@playwright/test';
+import { SDK_VERSION } from '@sentry/browser';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-/* eslint-disable no-empty-pattern */
-import { test as base } from '@playwright/test';
-
-import { SDK_VERSION } from '@sentry/browser';
 import { generatePage } from './generatePage';
 
 export const TEST_HOST = 'http://sentry-test.io';
@@ -36,6 +35,7 @@ export type TestFixtures = {
     skipRouteHandler?: boolean;
     skipDsnRouteHandler?: boolean;
     handleLazyLoadedFeedback?: boolean;
+    responseHeaders?: Record<string, string>;
   }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   enableConsole: () => void;
@@ -60,7 +60,13 @@ const sentryTest = base.extend<TestFixtures>({
 
   getLocalTestUrl: ({ page }, use) => {
     return use(
-      async ({ testDir, skipRouteHandler = false, skipDsnRouteHandler = false, handleLazyLoadedFeedback = false }) => {
+      async ({
+        testDir,
+        skipRouteHandler = false,
+        skipDsnRouteHandler = false,
+        handleLazyLoadedFeedback = false,
+        responseHeaders = {},
+      }) => {
         const pagePath = `${TEST_HOST}/index.html`;
 
         const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
@@ -74,7 +80,7 @@ const sentryTest = base.extend<TestFixtures>({
         }
 
         if (!skipDsnRouteHandler) {
-          await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+          await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
             return route.fulfill({
               status: 200,
               contentType: 'application/json',
@@ -87,7 +93,9 @@ const sentryTest = base.extend<TestFixtures>({
           const file = route.request().url().split('/').pop();
           const filePath = path.resolve(tmpDir, `./${file}`);
 
-          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+          return fs.existsSync(filePath)
+            ? route.fulfill({ path: filePath, headers: responseHeaders })
+            : route.continue();
         });
 
         if (handleLazyLoadedFeedback) {

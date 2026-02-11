@@ -3,12 +3,10 @@
  */
 
 import 'jsdom-worker';
-
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { BASE_TIMESTAMP } from '../..';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { BASE_TIMESTAMP } from '../..';
 import { decompress } from '../../utils/compression';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { createEventBuffer } from './../../../src/eventBuffer';

@@ -1,14 +1,14 @@
 import {
-  BrowserClient,
-  Scope,
   breadcrumbsIntegration,
+  BrowserClient,
   dedupeIntegration,
   defaultStackParser,
+  eventFiltersIntegration,
   functionToStringIntegration,
   httpContextIntegration,
-  inboundFiltersIntegration,
   linkedErrorsIntegration,
   makeFetchTransport,
+  Scope,
 } from '@sentry/browser';
 
 const integrations = [
@@ -16,7 +16,7 @@ const integrations = [
   functionToStringIntegration(),
   dedupeIntegration(),
   httpContextIntegration(),
-  inboundFiltersIntegration(),
+  eventFiltersIntegration(),
   linkedErrorsIntegration(),
 ];
 

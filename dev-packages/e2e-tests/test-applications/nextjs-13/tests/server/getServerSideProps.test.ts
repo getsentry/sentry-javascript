@@ -13,7 +13,10 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     );
   });
 
-  await page.goto('/dogsaregreat/error-getServerSideProps');
+  // This page returns an error status code, so we need to catch the navigation error
+  await page.goto('/dogsaregreat/error-getServerSideProps').catch(() => {
+    // Expected to fail with net::ERR_HTTP_RESPONSE_CODE_FAILURE in newer Chromium versions
+  });
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
@@ -23,7 +26,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'generic' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.wrapped' },
           type: 'Error',
           value: 'getServerSideProps Error',
           stacktrace: {
@@ -100,7 +103,10 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     );
   });
 
-  await page.goto('/123/customPageExtension');
+  // This page returns an error status code, so we need to catch the navigation error
+  await page.goto('/123/customPageExtension').catch(() => {
+    // Expected to fail with net::ERR_HTTP_RESPONSE_CODE_FAILURE in newer Chromium versions
+  });
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
@@ -110,7 +116,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'generic' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.wrapped' },
           type: 'Error',
           value: 'custom page extension error',
           stacktrace: {

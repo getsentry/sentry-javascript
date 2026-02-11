@@ -11,4 +11,11 @@ export class EventsService {
 
     return { message: 'Events emitted' };
   }
+
+  async emitMultipleEvents() {
+    this.eventEmitter.emit('multiple.first', { data: 'test-first' });
+    this.eventEmitter.emit('multiple.second', { data: 'test-second' });
+
+    return { message: 'Events emitted' };
+  }
 }

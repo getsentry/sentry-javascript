@@ -1,4 +1,5 @@
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('connect auto-instrumentation', () => {
   afterAll(async () => {
@@ -35,26 +36,32 @@ describe('connect auto-instrumentation', () => {
     },
   };
 
-  test('CJS - should auto-instrument `connect` package.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start(done)
-      .makeRequest('get', '/');
-  });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument.mjs',
+    (createTestRunner, test) => {
+      test('should auto-instrument `connect` package.', async () => {
+        const runner = createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+        runner.makeRequest('get', '/');
+        await runner.completed();
+      });
 
-  test('CJS - should capture errors in `connect` middleware.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .ignore('transaction')
-      .expect({ event: EXPECTED_EVENT })
-      .start(done)
-      .makeRequest('get', '/error');
-  });
+      test('should capture errors in `connect` middleware.', async () => {
+        const runner = createTestRunner().ignore('transaction').expect({ event: EXPECTED_EVENT }).start();
+        runner.makeRequest('get', '/error');
+        await runner.completed();
+      });
 
-  test('CJS - should report errored transactions.', done => {
-    createRunner(__dirname, 'scenario.js')
-      .ignore('event')
-      .expect({ transaction: { transaction: 'GET /error' } })
-      .start(done)
-      .makeRequest('get', '/error');
-  });
+      test('should report errored transactions.', async () => {
+        const runner = createTestRunner()
+          .ignore('event')
+          .expect({ transaction: { transaction: 'GET /error' } })
+          .start();
+        runner.makeRequest('get', '/error');
+        await runner.completed();
+      });
+    },
+    { failsOnEsm: true },
+  );
 });

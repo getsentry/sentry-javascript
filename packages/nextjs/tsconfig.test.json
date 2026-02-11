@@ -1,11 +1,16 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*"],
+  "include": ["test/**/*", "vite.config.ts"],
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["node", "jest"],
+    "types": ["node"],
+
+    // require for top-level await
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "es2020",
 
     // other package-specific, test-specific options
     "lib": ["DOM", "ESNext"]

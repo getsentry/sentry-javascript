@@ -13,38 +13,52 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
+  enableLogs: true,
 });
 
 import { TRPCError, initTRPC } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import express from 'express';
 import { z } from 'zod';
+import { mcpRouter } from './mcp';
 
 const app = express();
 const port = 3030;
 
+app.use(express.json());
+
+app.use(mcpRouter);
+
+app.get('/crash-in-with-monitor/:id', async (req, res) => {
+  try {
+    await Sentry.withMonitor('express-crash', async () => {
+      throw new Error(`This is an exception withMonitor: ${req.params.id}`);
+    });
+    res.sendStatus(200);
+  } catch (error: any) {
+    res.status(500);
+    res.send({ message: error.message, pid: process.pid });
+  }
+});
+
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
+});
+
+app.get('/test-log', function (req, res) {
+  Sentry.logger.debug('Accessed /test-log route');
+  res.send({ message: 'Log sent' });
 });
 
 app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', function (req, res) {
-  Sentry.withActiveSpan(null, async () => {
-    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
-      Sentry.startSpan({ name: 'test-span' }, () => undefined);
-    });
+app.get('/test-transaction', function (_req, res) {
+  Sentry.startSpan({ name: 'test-span' }, () => undefined);
 
-    await Sentry.flush();
-
-    res.send({
-      transactionIds: global.transactionIds || [],
-    });
-  });
+  res.send({ status: 'ok' });
 });
-
 app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 
@@ -115,11 +129,13 @@ export const appRouter = t.router({
     await new Promise(resolve => setTimeout(resolve, 400));
     return { success: true };
   }),
-  crashSomething: procedure.mutation(() => {
-    throw new Error('I crashed in a trpc handler');
-  }),
-  dontFindSomething: procedure.mutation(() => {
-    throw new TRPCError({ code: 'NOT_FOUND', cause: new Error('Page not found') });
+  crashSomething: procedure
+    .input(z.object({ nested: z.object({ nested: z.object({ nested: z.string() }) }) }))
+    .mutation(() => {
+      throw new Error('I crashed in a trpc handler');
+    }),
+  badRequest: procedure.mutation(() => {
+    throw new TRPCError({ code: 'BAD_REQUEST', cause: new Error('Bad Request') });
   }),
 });
 

@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import { sentryAstro } from '../../src/integration';
 
 vi.mock('fs', async requireActual => {

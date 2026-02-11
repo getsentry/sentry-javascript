@@ -6,7 +6,10 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     return errorEvent.exception?.values?.[0].value === 'RSC error';
   });
 
-  await page.goto('/rsc-error');
+  // This page returns an error status code, so we need to catch the navigation error
+  await page.goto('/rsc-error').catch(() => {
+    // Expected to fail with net::ERR_HTTP_RESPONSE_CODE_FAILURE in newer Chromium versions
+  });
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
@@ -20,7 +23,7 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'generic' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.server_component' },
           type: 'Error',
           value: 'RSC error',
         },

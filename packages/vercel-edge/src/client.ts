@@ -1,8 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
-import { ServerRuntimeClient } from '@sentry/core';
-
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { VercelEdgeClientOptions } from './types';
 
 declare const process: {
@@ -29,8 +27,8 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'javascript',
-      // TODO: Grab version information
-      runtime: { name: 'vercel-edge' },
+      // Use provided runtime or default to 'vercel-edge'
+      runtime: options.runtime || { name: 'vercel-edge' },
       serverName: options.serverName || process.env.SENTRY_NAME,
     };
 
@@ -41,11 +39,8 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async flush(timeout?: number): Promise<boolean> {
     const provider = this.traceProvider;
-    const spanProcessor = provider?.activeSpanProcessor;
 
-    if (spanProcessor) {
-      await spanProcessor.forceFlush();
-    }
+    await provider?.forceFlush();
 
     if (this.getOptions().sendClientReports) {
       this._flushOutcomes();

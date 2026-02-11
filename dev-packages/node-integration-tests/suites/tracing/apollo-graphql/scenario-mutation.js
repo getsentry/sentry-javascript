@@ -12,7 +12,7 @@ Sentry.init({
 setInterval(() => {}, 1000);
 
 async function run() {
-  const { gql } = require('apollo-server');
+  const gql = require('graphql-tag');
   const server = require('./apollo-server')();
 
   await Sentry.startSpan(
@@ -23,9 +23,11 @@ async function run() {
     async span => {
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
-        query: gql`mutation Mutation($email: String){
-          login(email: $email)
-        }`,
+        query: gql`
+          mutation Mutation($email: String) {
+            login(email: $email)
+          }
+        `,
         variables: { email: 'test@email.com' },
       });
 
@@ -37,5 +39,4 @@ async function run() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

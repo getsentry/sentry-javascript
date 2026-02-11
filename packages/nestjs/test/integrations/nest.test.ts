@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import 'reflect-metadata';
 import * as core from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isPatched } from '../../src/integrations/helpers';
 import { SentryNestEventInstrumentation } from '../../src/integrations/sentry-nest-event-instrumentation';
 import type { InjectableTarget, OnEventTarget } from '../../src/integrations/types';
@@ -75,17 +75,72 @@ describe('Nest', () => {
 
         await descriptor.value();
 
-        expect(core.startSpan).toHaveBeenCalled();
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event test.event',
+          }),
+          expect.any(Function),
+        );
         expect(originalHandler).toHaveBeenCalled();
       });
 
-      it('should wrap array event handlers', async () => {
+      it('should wrap symbol event handlers', async () => {
+        const decorated = wrappedOnEvent(Symbol('test.event'));
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event)',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap string array event handlers', async () => {
         const decorated = wrappedOnEvent(['test.event1', 'test.event2']);
         decorated(mockTarget, 'testMethod', descriptor);
 
         await descriptor.value();
 
-        expect(core.startSpan).toHaveBeenCalled();
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event test.event1,test.event2',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap symbol array event handlers', async () => {
+        const decorated = wrappedOnEvent([Symbol('test.event1'), Symbol('test.event2')]);
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event1),Symbol(test.event2)',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap mixed type array event handlers', async () => {
+        const decorated = wrappedOnEvent([Symbol('test.event1'), 'test.event2', Symbol('test.event3')]);
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event1),test.event2,Symbol(test.event3)',
+          }),
+          expect.any(Function),
+        );
         expect(originalHandler).toHaveBeenCalled();
       });
 
@@ -97,7 +152,12 @@ describe('Nest', () => {
         decorated(mockTarget, 'testMethod', descriptor);
 
         await expect(descriptor.value()).rejects.toThrow(error);
-        expect(core.captureException).toHaveBeenCalledWith(error);
+        expect(core.captureException).toHaveBeenCalledWith(error, {
+          mechanism: {
+            handled: false,
+            type: 'auto.event.nestjs',
+          },
+        });
       });
 
       it('should skip wrapping for internal Sentry handlers', () => {

@@ -1,7 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { SessionContext } from '@sentry/core';
-
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
@@ -19,11 +18,12 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, 
 sentryTest('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
+  // Route must be set up before any navigation to avoid race conditions
   await page.route('**/foo', (route: Route) => route.continue({ url }));
 
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
-  await page.click('#navigate');
+  await page.locator('#navigate').click();
 
   const newSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 

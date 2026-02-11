@@ -27,19 +27,19 @@ permissions:
 jobs:
   job_e2e_prepare:
     name: Prepare E2E Canary tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -54,7 +54,7 @@ jobs:
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
     needs: [job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -69,18 +69,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - test-application: 'angular-20'
+            build-command: 'test:build-canary'
+            label: 'angular-20 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
           - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-canary'
-            label: 'nextjs-app-dir (canary)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-latest'
-            label: 'nextjs-app-dir (latest)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-canary'
-            label: 'nextjs-13 (canary)'
+            build-command: 'test:build-15'
+            label: 'nextjs-app-dir (next@15)'
           - test-application: 'nextjs-13'
             build-command: 'test:build-latest'
             label: 'nextjs-13 (latest)'
@@ -91,40 +88,49 @@ jobs:
             build-command: 'test:build-latest'
             label: 'nextjs-14 (latest)'
           - test-application: 'nextjs-15'
-            build-command: 'test:build-canary'
-            label: 'nextjs-15 (canary)'
-          - test-application: 'nextjs-15'
             build-command: 'test:build-latest'
             label: 'nextjs-15 (latest)'
-          - test-application: 'nextjs-turbo'
+          - test-application: 'nextjs-16'
             build-command: 'test:build-canary'
-            label: 'nextjs-turbo (canary)'
-          - test-application: 'nextjs-turbo'
-            build-command: 'test:build-latest'
-            label: 'nextjs-turbo (latest)'
+            label: 'nextjs-16 (canary)'
+          - test-application: 'nextjs-16'
+            build-command: 'test:build-canary-webpack'
+            label: 'nextjs-16 (canary-webpack)'
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
           - test-application: 'react-router-6'
             build-command: 'test:build-canary'
             label: 'react-router-6 (canary)'
+          - test-application: 'nuxt-3'
+            build-command: 'test:build-canary'
+            label: 'nuxt-3 (canary)'
+          - test-application: 'nuxt-4'
+            build-command: 'test:build-canary'
+            label: 'nuxt-4 (canary)'
+          - test-application: 'tanstackstart-react'
+            build-command: 'test:build-latest'
+            label: 'tanstackstart-react (latest)'
+          - test-application: 'nestjs-11'
+            build-command: 'test:build-latest'
+            label: 'nestjs-11 (latest)'
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
-
+          version: 9.15.9
       - name: Set up Node
-        uses: actions/setup-node@v4
+        if: matrix.test-application != 'angular-20'
+        uses: actions/setup-node@v6
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -144,8 +150,12 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
+      - name: Copy to temp
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
       - name: Build E2E app
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: yarn ${{ matrix.build-command }}
 
@@ -153,10 +163,10 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 15
         run: yarn test:assert
 

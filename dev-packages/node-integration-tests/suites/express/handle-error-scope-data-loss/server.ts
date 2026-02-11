@@ -1,5 +1,5 @@
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -7,7 +7,6 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
 const app = express();
@@ -24,6 +23,13 @@ app.get('/test/withScope', () => {
 app.get('/test/isolationScope', () => {
   Sentry.getIsolationScope().setTag('isolation-scope', 'tag');
   throw new Error('isolation_test_error');
+});
+
+app.get('/test/withIsolationScope', () => {
+  Sentry.withIsolationScope(iScope => {
+    iScope.setTag('with-isolation-scope', 'tag');
+    throw new Error('with_isolation_scope_test_error');
+  });
 });
 
 Sentry.setupExpressErrorHandler(app);

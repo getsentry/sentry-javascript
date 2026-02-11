@@ -1,10 +1,15 @@
+/* eslint-disable import/no-duplicates */
+
 import * as Sentry from '@sentry/browser';
+// These need to be separate imports so they can be handled by our test runner
+import { moduleMetadataIntegration } from '@sentry/browser';
+import { rewriteFramesIntegration } from '@sentry/browser';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
-    Sentry.moduleMetadataIntegration(),
-    Sentry.rewriteFramesIntegration({
+    moduleMetadataIntegration(),
+    rewriteFramesIntegration({
       iteratee: frame => {
         return {
           ...frame,
@@ -23,7 +28,7 @@ Sentry.init({
             moduleMetadataEntries.push(frame.module_metadata);
           });
         });
-      } catch (e) {
+      } catch {
         // noop
       }
     }

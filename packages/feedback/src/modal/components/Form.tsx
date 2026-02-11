@@ -1,13 +1,12 @@
-import { logger } from '@sentry/core';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/core';
-// biome-ignore lint/nursery/noUnusedImports: reason
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { debug } from '@sentry/core';
 import type { JSX, VNode } from 'preact';
+import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';
@@ -19,7 +18,7 @@ export interface Props extends Pick<FeedbackInternalOptions, 'showEmail' | 'show
   defaultName: string;
   onFormClose: () => void;
   onSubmit: SendFeedback;
-  onSubmitSuccess: (data: FeedbackFormData) => void;
+  onSubmitSuccess: (data: FeedbackFormData, eventId: string) => void;
   onSubmitError: (error: Error) => void;
   screenshotInput: ReturnType<FeedbackScreenshotIntegration['createInput']> | undefined;
 }
@@ -61,6 +60,7 @@ export function Form({
     submitButtonLabel,
     isRequiredLabel,
   } = options;
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
@@ -97,6 +97,7 @@ export function Form({
 
   const handleSubmit = useCallback(
     async (e: JSX.TargetedSubmitEvent<HTMLFormElement>) => {
+      setIsSubmitting(true);
       try {
         e.preventDefault();
         if (!(e.target instanceof HTMLFormElement)) {
@@ -117,7 +118,7 @@ export function Form({
         }
 
         try {
-          await onSubmit(
+          const eventId = await onSubmit(
             {
               name: data.name,
               email: data.email,
@@ -127,14 +128,14 @@ export function Form({
             },
             { attachments: data.attachments },
           );
-          onSubmitSuccess(data);
+          onSubmitSuccess(data, eventId);
         } catch (error) {
-          DEBUG_BUILD && logger.error(error);
+          DEBUG_BUILD && debug.error(error);
           setError(error as string);
           onSubmitError(error as Error);
         }
-      } catch {
-        // pass
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [screenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
@@ -146,7 +147,7 @@ export function Form({
         <ScreenshotInputComponent onError={onScreenshotError} />
       ) : null}
 
-      <div class="form__right" data-sentry-feedback={true}>
+      <fieldset class="form__right" data-sentry-feedback={true} disabled={isSubmitting}>
         <div class="form__top">
           {error ? <div class="form__error-container">{error}</div> : null}
 
@@ -201,6 +202,7 @@ export function Form({
             <label for="screenshot" class="form__label">
               <button
                 class="btn btn--default"
+                disabled={isSubmitting}
                 type="button"
                 onClick={() => {
                   setScreenshotError(null);
@@ -214,14 +216,14 @@ export function Form({
           ) : null}
         </div>
         <div class="btn-group">
-          <button class="btn btn--primary" type="submit">
+          <button class="btn btn--primary" disabled={isSubmitting} type="submit">
             {submitButtonLabel}
           </button>
-          <button class="btn btn--default" type="button" onClick={onFormClose}>
+          <button class="btn btn--default" disabled={isSubmitting} type="button" onClick={onFormClose}>
             {cancelButtonLabel}
           </button>
         </div>
-      </div>
+      </fieldset>
     </form>
   );
 }

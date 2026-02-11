@@ -2,10 +2,10 @@
 
 > A modular library for measuring the [Web Vitals](https://web.dev/vitals/) metrics on real users.
 
-This was vendored from: https://github.com/GoogleChrome/web-vitals: v3.5.2
+This was vendored from: https://github.com/GoogleChrome/web-vitals: v5.1.0
 
 The commit SHA used is:
-[3d2b3dc8576cc003618952fa39902fab764a53e2](https://github.com/GoogleChrome/web-vitals/tree/3d2b3dc8576cc003618952fa39902fab764a53e2)
+[e22d23b22c1440e69c5fc25a2f373b1a425cc940](https://github.com/GoogleChrome/web-vitals/tree/e22d23b22c1440e69c5fc25a2f373b1a425cc940)
 
 Current vendored web vitals are:
 
@@ -26,6 +26,22 @@ web-vitals only report once per pageload.
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
 
 ## CHANGELOG
+
+- Bumped from Web Vitals 5.0.2 to 5.1.0
+  - Remove `visibilitychange` event listeners when no longer required [#627](https://github.com/GoogleChrome/web-vitals/pull/627)
+  - Register visibility-change early [#637](https://github.com/GoogleChrome/web-vitals/pull/637)
+  - Only finalize LCP on user events (isTrusted=true) [#635](https://github.com/GoogleChrome/web-vitals/pull/635)
+  - Fallback to default getSelector if custom function is null or undefined [#634](https://github.com/GoogleChrome/web-vitals/pull/634)
+
+https://github.com/getsentry/sentry-javascript/pull/17076
+
+- Removed FID-related code with v10 of the SDK
+
+https://github.com/getsentry/sentry-javascript/pull/16492
+
+- Bumped from Web Vitals 4.2.5 to 5.0.2
+  - Mainly fixes some INP, LCP and FCP edge cases
+  - Original library removed FID; we still keep it around for now
 
 https://github.com/getsentry/sentry-javascript/pull/14439
 

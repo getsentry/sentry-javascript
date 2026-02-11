@@ -1,9 +1,9 @@
 import type { Client, IntegrationFn } from '@sentry/core';
 import {
-  GLOBAL_OBJ,
   captureMessage,
   defineIntegration,
   getClient,
+  GLOBAL_OBJ,
   supportsReportingObserver,
   withScope,
 } from '@sentry/core';

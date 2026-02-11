@@ -1,0 +1,36 @@
+{
+  "name": "sveltekit-2.5.0-twp",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "proxy": "node start-event-proxy.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/sveltekit": "latest || *"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sveltejs/adapter-auto": "^3.0.0",
+    "@sveltejs/kit": "2.8.3",
+    "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "svelte": "^5.0.0-next.115",
+    "svelte-check": "^3.6.0",
+    "tslib": "^2.4.1",
+    "typescript": "^5.0.0",
+    "vite": "^5.4.11"
+  },
+  "type": "module",
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

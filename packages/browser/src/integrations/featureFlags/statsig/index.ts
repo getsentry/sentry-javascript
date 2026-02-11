@@ -1,0 +1,1 @@
+export { statsigIntegration } from './integration';

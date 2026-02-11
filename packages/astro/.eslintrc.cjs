@@ -8,7 +8,7 @@ module.exports = {
     {
       files: ['vite.config.ts'],
       parserOptions: {
-        project: ['tsconfig.test.json'],
+        project: ['tsconfig.vite.json'],
       },
     },
   ],

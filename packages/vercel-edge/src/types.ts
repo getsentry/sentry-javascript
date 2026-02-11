@@ -1,5 +1,4 @@
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-
 import type { VercelEdgeClient } from './client';
 import type { VercelEdgeTransportOptions } from './transports';
 
@@ -24,6 +23,14 @@ export interface BaseVercelEdgeOptions {
 
   /** Sets an optional server name (device name) */
   serverName?: string;
+
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'vercel-edge' if not specified.
+   *
+   * @hidden This is primarily used internally to support platforms like OpenNext/Cloudflare.
+   */
+  runtime?: { name: string; version?: string };
 
   /**
    * Specify a custom VercelEdgeClient to be used. Must extend VercelEdgeClient!

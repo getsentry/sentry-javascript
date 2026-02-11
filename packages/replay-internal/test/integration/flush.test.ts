@@ -2,16 +2,11 @@
  * @vitest-environment jsdom
  */
 
+import '../utils/mock-internal-setTimeout';
+import * as SentryUtils from '@sentry/core';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import type { MockedFunction } from 'vitest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
-
-import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryUtils from '@sentry/core';
-
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -19,7 +14,7 @@ import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
-import { logger } from '../../src/util/logger';
+import { debug } from '../../src/util/logger';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
@@ -48,6 +43,7 @@ describe('Integration | flush', () => {
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
+    vi.useFakeTimers();
     vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });
@@ -93,7 +89,7 @@ describe('Integration | flush', () => {
     mockEventBufferFinish.mockClear();
 
     Object.defineProperty(SentryUtils, 'browserPerformanceTimeOrigin', {
-      value: BASE_TIMESTAMP,
+      value: () => BASE_TIMESTAMP,
       writable: true,
     });
   });
@@ -107,7 +103,7 @@ describe('Integration | flush', () => {
       writable: true,
     });
     Object.defineProperty(SentryUtils, 'browserPerformanceTimeOrigin', {
-      value: prevBrowserPerformanceTimeOrigin,
+      value: () => prevBrowserPerformanceTimeOrigin,
       writable: true,
     });
   });
@@ -336,7 +332,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    logger.setConfig({ traceInternals: true });
+    debug.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -402,20 +398,20 @@ describe('Integration | flush', () => {
             type: 'default',
             category: 'console',
             data: { logger: 'replay' },
-            level: 'info',
+            level: 'log',
             message: '[Replay] Flushing initial segment without checkout.',
           },
         },
       },
     ]);
 
-    logger.setConfig({ traceInternals: false });
+    debug.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    logger.setConfig({ traceInternals: true });
+    debug.setConfig({ traceInternals: true });
 
-    const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
+    const spyDebugLogger = vi.spyOn(SentryUtils.debug, 'log');
 
     sessionStorage.clear();
     clearSession(replay);
@@ -440,15 +436,15 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(0);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
-    expect(spyLogger).toHaveBeenLastCalledWith(
+    expect(spyDebugLogger).toHaveBeenLastCalledWith(
       '[Replay] ',
       `Skipping event with timestamp ${
         BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
       } because it is after maxReplayDuration`,
     );
 
-    logger.setConfig({ traceInternals: false });
-    spyLogger.mockRestore();
+    debug.setConfig({ traceInternals: false });
+    spyDebugLogger.mockRestore();
   });
 
   /**
@@ -490,6 +486,49 @@ describe('Integration | flush', () => {
     replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
 
     // Start again for following tests
+    await replay.start();
+  });
+
+  /**
+   * This tests that when a replay exceeds maxReplayDuration,
+   * the dropped event is recorded with the 'invalid' reason
+   * to distinguish it from actual send errors.
+   */
+  it('records dropped event with invalid reason when session exceeds maxReplayDuration', async () => {
+    const client = SentryUtils.getClient()!;
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    replay.getOptions().maxReplayDuration = 100_000;
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
+    await new Promise(process.nextTick);
+    vi.setSystemTime(BASE_TIMESTAMP);
+
+    replay.eventBuffer!.clear();
+
+    replay.eventBuffer!.hasCheckout = true;
+
+    replay['_addPerformanceEntries'] = () => {
+      return new Promise(resolve => setTimeout(resolve, 140_000));
+    };
+
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + 100 });
+    mockRecord._emitter(TEST_EVENT);
+
+    await vi.advanceTimersByTimeAsync(160_000);
+
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
+
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid', 'replay');
+
+    replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
+    recordDroppedEventSpy.mockRestore();
+
     await replay.start();
   });
 

@@ -1,15 +1,10 @@
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { consoleSandbox, createTransport, logger, rejectedSyncPromise, suppressTracing } from '@sentry/core';
-
-export interface DenoTransportOptions extends BaseTransportOptions {
-  /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
-  headers?: { [key: string]: string };
-}
+import { consoleSandbox, createTransport, debug, suppressTracing } from '@sentry/core';
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeFetchTransport(options: DenoTransportOptions): Transport {
+export function makeFetchTransport(options: BaseTransportOptions): Transport {
   const url = new URL(options.url);
 
   Deno.permissions
@@ -24,14 +19,14 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
       }
     })
     .catch(() => {
-      logger.warn('Failed to read the "net" permission.');
+      debug.warn('Failed to read the "net" permission.');
     });
 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
+      referrerPolicy: 'strict-origin',
       headers: options.headers,
     };
 
@@ -48,7 +43,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
         });
       });
     } catch (e) {
-      return rejectedSyncPromise(e);
+      return Promise.reject(e);
     }
   }
 

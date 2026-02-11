@@ -1,55 +1,56 @@
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-// When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(60_000);
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('kafkajs', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('traces producers and consumers', done => {
-    createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({
-        workingDirectory: [__dirname],
-        readyMatches: ['9092'],
-      })
-      .expect({
-        transaction: {
-          transaction: 'test-topic',
-          contexts: {
-            trace: expect.objectContaining({
-              op: 'message',
-              status: 'ok',
-              data: expect.objectContaining({
-                'messaging.system': 'kafka',
-                'messaging.destination': 'test-topic',
-                'otel.kind': 'PRODUCER',
-                'sentry.op': 'message',
-                'sentry.origin': 'auto.kafkajs.otel.producer',
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('traces producers and consumers', { timeout: 60_000 }, async () => {
+      await createRunner()
+        .withDockerCompose({
+          workingDirectory: [__dirname],
+          readyMatches: ['9092'],
+        })
+        .expect({
+          transaction: {
+            transaction: 'send test-topic',
+            contexts: {
+              trace: expect.objectContaining({
+                op: 'message',
+                status: 'ok',
+                data: expect.objectContaining({
+                  'messaging.system': 'kafka',
+                  'messaging.destination.name': 'test-topic',
+                  'otel.kind': 'PRODUCER',
+                  'sentry.op': 'message',
+                  'sentry.origin': 'auto.kafkajs.otel.producer',
+                }),
               }),
-            }),
+            },
           },
-        },
-      })
-      .expect({
-        transaction: {
-          transaction: 'test-topic',
-          contexts: {
-            trace: expect.objectContaining({
-              op: 'message',
-              status: 'ok',
-              data: expect.objectContaining({
-                'messaging.system': 'kafka',
-                'messaging.destination': 'test-topic',
-                'otel.kind': 'CONSUMER',
-                'sentry.op': 'message',
-                'sentry.origin': 'auto.kafkajs.otel.consumer',
+        })
+        .expect({
+          transaction: {
+            transaction: 'process test-topic',
+            contexts: {
+              trace: expect.objectContaining({
+                op: 'message',
+                status: 'ok',
+                data: expect.objectContaining({
+                  'messaging.system': 'kafka',
+                  'messaging.destination.name': 'test-topic',
+                  'otel.kind': 'CONSUMER',
+                  'sentry.op': 'message',
+                  'sentry.origin': 'auto.kafkajs.otel.consumer',
+                }),
               }),
-            }),
+            },
           },
-        },
-      })
-      .start(done);
+        })
+        .start()
+        .completed();
+    });
   });
 });

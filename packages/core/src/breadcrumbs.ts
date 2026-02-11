@@ -1,7 +1,7 @@
 import { getClient, getIsolationScope } from './currentScopes';
-import type { Breadcrumb, BreadcrumbHint } from './types-hoist';
-import { consoleSandbox } from './utils-hoist/logger';
-import { dateTimestampInSeconds } from './utils-hoist/time';
+import type { Breadcrumb, BreadcrumbHint } from './types-hoist/breadcrumb';
+import { consoleSandbox } from './utils/debug-logger';
+import { dateTimestampInSeconds } from './utils/time';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -28,7 +28,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
   const timestamp = dateTimestampInSeconds();
   const mergedBreadcrumb = { timestamp, ...breadcrumb };
   const finalBreadcrumb = beforeBreadcrumb
-    ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
+    ? consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint))
     : mergedBreadcrumb;
 
   if (finalBreadcrumb === null) return;

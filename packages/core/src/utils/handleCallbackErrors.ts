@@ -1,5 +1,30 @@
-import { isThenable } from '../utils-hoist/is';
+import { isThenable } from '../utils/is';
 
+/* eslint-disable */
+// Vendor "Awaited" in to be TS 3.8 compatible
+type AwaitedPromise<T> = T extends null | undefined
+  ? T // special case for `null | undefined` when not in `--strictNullChecks` mode
+  : T extends object & { then(onfulfilled: infer F, ...args: infer _): any } // `await` only unwraps object types with a callable `then`. Non-object types are not unwrapped
+    ? F extends (value: infer V, ...args: infer _) => any // if the argument to `then` is callable, extracts the first argument
+      ? V // normally this would recursively unwrap, but this is not possible in TS3.8
+      : never // the argument to `then` was not callable
+    : T; // non-object or non-thenable
+/* eslint-enable */
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function handleCallbackErrors<Fn extends () => Promise<any>, PromiseValue = AwaitedPromise<ReturnType<Fn>>>(
+  fn: Fn,
+  onError: (error: unknown) => void,
+  onFinally?: () => void,
+  onSuccess?: (result: PromiseValue) => void,
+): ReturnType<Fn>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function handleCallbackErrors<Fn extends () => any>(
+  fn: Fn,
+  onError: (error: unknown) => void,
+  onFinally?: () => void,
+  onSuccess?: (result: ReturnType<Fn>) => void,
+): ReturnType<Fn>;
 /**
  * Wrap a callback function with error handling.
  * If an error is thrown, it will be passed to the `onError` callback and re-thrown.
@@ -14,12 +39,13 @@ import { isThenable } from '../utils-hoist/is';
 export function handleCallbackErrors<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Fn extends () => any,
+  ValueType = ReturnType<Fn>,
 >(
   fn: Fn,
   onError: (error: unknown) => void,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onFinally: () => void = () => {},
-): ReturnType<Fn> {
+  onSuccess: (result: ValueType | AwaitedPromise<ValueType>) => void = () => {},
+): ValueType {
   let maybePromiseResult: ReturnType<Fn>;
   try {
     maybePromiseResult = fn();
@@ -29,7 +55,7 @@ export function handleCallbackErrors<
     throw e;
   }
 
-  return maybeHandlePromiseRejection(maybePromiseResult, onError, onFinally);
+  return maybeHandlePromiseRejection(maybePromiseResult, onError, onFinally, onSuccess);
 }
 
 /**
@@ -42,12 +68,14 @@ function maybeHandlePromiseRejection<MaybePromise>(
   value: MaybePromise,
   onError: (error: unknown) => void,
   onFinally: () => void,
+  onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
     // @ts-expect-error - the isThenable check returns the "wrong" type here
     return value.then(
       res => {
         onFinally();
+        onSuccess(res);
         return res;
       },
       e => {
@@ -59,5 +87,6 @@ function maybeHandlePromiseRejection<MaybePromise>(
   }
 
   onFinally();
+  onSuccess(value);
   return value;
 }

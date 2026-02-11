@@ -1,11 +1,9 @@
-import type { MockInstance } from 'vitest';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as browserUtils from '@sentry-internal/browser-utils';
-import * as utils from '@sentry/core';
 import type { Client } from '@sentry/core';
-
-import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
+import * as utils from '@sentry/core';
+import * as browserUtils from '@sentry-internal/browser-utils';
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the vi environment (even with an
@@ -18,6 +16,10 @@ class MockClient implements Partial<Client> {
   constructor() {
     // Mock addEventProcessor function
     this.addEventProcessor = vi.fn();
+  }
+  // @ts-expect-error not returning options for the test
+  public getOptions() {
+    return {};
   }
 }
 
@@ -61,57 +63,6 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests(client, { trackFetchStreamPerformance: true });
 
     expect(addFetchEndSpy).toHaveBeenCalledWith(expect.any(Function));
-  });
-});
-
-interface ProtocolInfo {
-  name: string;
-  version: string;
-}
-
-describe('HTTPTimings', () => {
-  test('Extracting version from ALPN protocol', () => {
-    const nextHopToNetworkVersion: Record<string, ProtocolInfo> = {
-      'http/0.9': { name: 'http', version: '0.9' },
-      'http/1.0': { name: 'http', version: '1.0' },
-      'http/1.1': { name: 'http', version: '1.1' },
-      'spdy/1': { name: 'spdy', version: '1' },
-      'spdy/2': { name: 'spdy', version: '2' },
-      'spdy/3': { name: 'spdy', version: '3' },
-      'stun.turn': { name: 'stun.turn', version: 'unknown' },
-      'stun.nat-discovery': { name: 'stun.nat-discovery', version: 'unknown' },
-      h2: { name: 'http', version: '2' },
-      h2c: { name: 'http', version: '2c' },
-      webrtc: { name: 'webrtc', version: 'unknown' },
-      'c-webrtc': { name: 'c-webrtc', version: 'unknown' },
-      ftp: { name: 'ftp', version: 'unknown' },
-      imap: { name: 'imap', version: 'unknown' },
-      pop3: { name: 'pop', version: '3' },
-      managesieve: { name: 'managesieve', version: 'unknown' },
-      coap: { name: 'coap', version: 'unknown' },
-      'xmpp-client': { name: 'xmpp-client', version: 'unknown' },
-      'xmpp-server': { name: 'xmpp-server', version: 'unknown' },
-      'acme-tls/1': { name: 'acme-tls', version: '1' },
-      mqtt: { name: 'mqtt', version: 'unknown' },
-      dot: { name: 'dot', version: 'unknown' },
-      'ntske/1': { name: 'ntske', version: '1' },
-      sunrpc: { name: 'sunrpc', version: 'unknown' },
-      h3: { name: 'http', version: '3' },
-      smb: { name: 'smb', version: 'unknown' },
-      irc: { name: 'irc', version: 'unknown' },
-      nntp: { name: 'nntp', version: 'unknown' },
-      nnsp: { name: 'nnsp', version: 'unknown' },
-      doq: { name: 'doq', version: 'unknown' },
-      'sip/2': { name: 'sip', version: '2' },
-      'tds/8.0': { name: 'tds', version: '8.0' },
-      dicom: { name: 'dicom', version: 'unknown' },
-    };
-
-    const protocols = Object.keys(nextHopToNetworkVersion);
-    for (const protocol of protocols) {
-      const expected = nextHopToNetworkVersion[protocol]!;
-      expect(extractNetworkProtocol(protocol)).toMatchObject(expected);
-    }
   });
 });
 
@@ -236,7 +187,7 @@ describe('shouldAttachHeaders', () => {
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
     ])(
-      'for url %p and tracePropagationTarget %p on page "https://my-origin.com/api/my-route" should return %p',
+      'for url %j and tracePropagationTarget %j on page "https://my-origin.com/api/my-route" should return %j',
       (url, matcher, result) => {
         expect(shouldAttachHeaders(url, [matcher])).toBe(result);
       },
@@ -287,7 +238,7 @@ describe('shouldAttachHeaders', () => {
     'https://not-my-origin.com/api',
     'https://my-origin.com?my-query',
     'https://not-my-origin.com?my-query',
-  ])('should return false for everything if tracePropagationTargets are empty (%p)', url => {
+  ])('should return false for everything if tracePropagationTargets are empty (%j)', url => {
     expect(shouldAttachHeaders(url, [])).toBe(false);
   });
 
@@ -319,7 +270,7 @@ describe('shouldAttachHeaders', () => {
         ['http://localhost:3000', false],
         ['https://somewhere.com/test/localhost/123', false],
         ['https://somewhere.com/test?url=https://my-origin.com', false],
-      ])('for URL %p should return %p', (url, expectedResult) => {
+      ])('for URL %j should return %j', (url, expectedResult) => {
         expect(shouldAttachHeaders(url, undefined)).toBe(expectedResult);
       });
     });
@@ -380,7 +331,7 @@ describe('shouldAttachHeaders', () => {
       ['https://not-my-origin.com/api', 'api', true],
       ['https://my-origin.com?my-query', 'my-query', true],
       ['https://not-my-origin.com?my-query', 'my-query', true],
-    ])('for url %p and tracePropagationTarget %p should return %p', (url, matcher, result) => {
+    ])('for url %j and tracePropagationTarget %j should return %j', (url, matcher, result) => {
       expect(shouldAttachHeaders(url, [matcher])).toBe(result);
     });
   });

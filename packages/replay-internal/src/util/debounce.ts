@@ -1,3 +1,4 @@
+import { debounce as debounceCore } from '@sentry/core';
 import { setTimeout } from '@sentry-internal/browser-utils';
 
 type DebouncedCallback = {
@@ -27,46 +28,9 @@ type DebounceOptions = { maxWait?: number };
  *          - `cancel`: Cancels the debouncing process and resets the debouncing timer
  */
 export function debounce(func: CallbackFunction, wait: number, options?: DebounceOptions): DebouncedCallback {
-  let callbackReturnValue: unknown;
-
-  let timerId: ReturnType<typeof setTimeout> | undefined;
-  let maxTimerId: ReturnType<typeof setTimeout> | undefined;
-
-  const maxWait = options?.maxWait ? Math.max(options.maxWait, wait) : 0;
-
-  function invokeFunc(): unknown {
-    cancelTimers();
-    callbackReturnValue = func();
-    return callbackReturnValue;
-  }
-
-  function cancelTimers(): void {
-    timerId !== undefined && clearTimeout(timerId);
-    maxTimerId !== undefined && clearTimeout(maxTimerId);
-    timerId = maxTimerId = undefined;
-  }
-
-  function flush(): unknown {
-    if (timerId !== undefined || maxTimerId !== undefined) {
-      return invokeFunc();
-    }
-    return callbackReturnValue;
-  }
-
-  function debounced(): unknown {
-    if (timerId) {
-      clearTimeout(timerId);
-    }
-    timerId = setTimeout(invokeFunc, wait);
-
-    if (maxWait && maxTimerId === undefined) {
-      maxTimerId = setTimeout(invokeFunc, maxWait);
-    }
-
-    return callbackReturnValue;
-  }
-
-  debounced.cancel = cancelTimers;
-  debounced.flush = flush;
-  return debounced;
+  return debounceCore(func, wait, {
+    ...options,
+    // @ts-expect-error - Not quite sure why these types do not match, but this is fine
+    setTimeoutImpl: setTimeout,
+  });
 }

@@ -1,15 +1,18 @@
-import type { Client } from '../../src';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DsnComponents } from '../../build/types/types-hoist/dsn';
+import type { DynamicSamplingContext } from '../../build/types/types-hoist/envelope';
+import type { Client, SdkInfo } from '../../src';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SentrySpan,
   getCurrentScope,
   getIsolationScope,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
   setAsyncContextStrategy,
   setCurrentClient,
 } from '../../src';
-import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
-import type { DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
-import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { _enhanceEventWithSdkInfo, createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
+import type { Event } from '../../src/types-hoist/event';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 
@@ -97,11 +100,11 @@ describe('createSpanEnvelope', () => {
     client.init();
 
     // We want to avoid console errors in the tests
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('creates a span envelope', () => {
@@ -192,7 +195,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses original span without any changes', () => {
-    const beforeSendSpan = jest.fn(span => span);
+    const beforeSendSpan = vi.fn(span => span);
     const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
     const client = new TestClient(options);
 
@@ -224,7 +227,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses the modified span', () => {
-    const beforeSendSpan = jest.fn(span => {
+    const beforeSendSpan = vi.fn(span => {
       span.description = `mutated description: ${span.description}`;
       return span;
     });
@@ -255,6 +258,142 @@ describe('createSpanEnvelope', () => {
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+  });
+});
+
+describe('_enhanceEventWithSdkInfo', () => {
+  it('does nothing if no new sdk info is provided', () => {
+    const event: Event = {
+      sdk: { name: 'original', version: '1.0.0' },
+    };
+    const enhancedEvent = _enhanceEventWithSdkInfo(event, undefined);
+    expect(enhancedEvent.sdk).toEqual({ name: 'original', version: '1.0.0' });
+  });
+
+  /**
+   * Note LS: I'm not sure if this is intended behaviour, but this is how it was before
+   * I made implementation changes for the `settings` object. Documenting behaviour for now,
+   * we can revisit it if it turns out this is not intended.
+   */
+  it('prefers original version and name over newSdkInfo', () => {
+    const event: Event = {
+      sdk: {
+        name: 'original',
+        version: '1.0.0',
+        integrations: ['integration1', 'integration2'],
+        packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+      },
+    };
+    const newSdkInfo: SdkInfo = { name: 'newName', version: '2.0.0' };
+
+    const enhancedEvent = _enhanceEventWithSdkInfo(event, newSdkInfo);
+
+    expect(enhancedEvent.sdk).toEqual({
+      name: 'original',
+      version: '1.0.0',
+      integrations: ['integration1', 'integration2'],
+      packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+    });
+  });
+
+  describe('integrations and packages', () => {
+    it('merges integrations and packages of original and newSdkInfo', () => {
+      const event: Event = {
+        sdk: {
+          name: 'original',
+          version: '1.0.0',
+          integrations: ['integration1', 'integration2'],
+          packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+        },
+      };
+
+      const newSdkInfo: SdkInfo = {
+        name: 'newName',
+        version: '2.0.0',
+        integrations: ['integration3', 'integration4'],
+        packages: [{ name: '@sentry/node', version: '11.0.0' }],
+      };
+
+      const enhancedEvent = _enhanceEventWithSdkInfo(event, newSdkInfo);
+
+      expect(enhancedEvent.sdk).toEqual({
+        name: 'original',
+        version: '1.0.0',
+        integrations: ['integration1', 'integration2', 'integration3', 'integration4'],
+        packages: [
+          { name: '@sentry/browser', version: '10.0.0' },
+          { name: '@sentry/node', version: '11.0.0' },
+        ],
+      });
+    });
+
+    it('creates empty integrations and packages arrays if no original or newSdkInfo are provided', () => {
+      const event: Event = {
+        sdk: {
+          name: 'original',
+          version: '1.0.0',
+        },
+      };
+
+      const newSdkInfo: SdkInfo = {};
+
+      const enhancedEvent = _enhanceEventWithSdkInfo(event, newSdkInfo);
+      expect(enhancedEvent.sdk).toEqual({
+        name: 'original',
+        version: '1.0.0',
+        integrations: [],
+        packages: [],
+      });
+    });
+  });
+
+  describe('settings', () => {
+    it('prefers newSdkInfo settings over original settings', () => {
+      const event: Event = {
+        sdk: {
+          name: 'original',
+          version: '1.0.0',
+          integrations: ['integration1', 'integration2'],
+          packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+          settings: { infer_ip: 'auto' },
+        },
+      };
+      const newSdkInfo: SdkInfo = {
+        settings: { infer_ip: 'never' },
+      };
+
+      const enhancedEvent = _enhanceEventWithSdkInfo(event, newSdkInfo);
+
+      expect(enhancedEvent.sdk).toEqual({
+        name: 'original',
+        version: '1.0.0',
+        integrations: ['integration1', 'integration2'],
+        packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+        settings: { infer_ip: 'never' },
+      });
+    });
+
+    it("doesn't create a `settings` object if no settings are provided", () => {
+      const event: Event = {
+        sdk: {
+          name: 'original',
+          version: '1.0.0',
+        },
+      };
+
+      const newSdkInfo: SdkInfo = {
+        packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+      };
+
+      const enhancedEvent = _enhanceEventWithSdkInfo(event, newSdkInfo);
+      expect(enhancedEvent.sdk).toEqual({
+        name: 'original',
+        version: '1.0.0',
+        packages: [{ name: '@sentry/browser', version: '10.0.0' }],
+        integrations: [],
+        settings: undefined, // undefined is fine because JSON.stringify omits undefined values anyways
+      });
     });
   });
 });

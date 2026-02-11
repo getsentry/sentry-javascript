@@ -1,0 +1,49 @@
+{
+  "name": "nextjs-pages-dir",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build:webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
+    "test:build-15": "pnpm install && pnpm add next@15 && pnpm add react@latest && pnpm add react-dom@latest && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.5.11 && pnpm build",
+    "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
+    "@types/node": "^18.19.1",
+    "@types/react": "18.0.26",
+    "@types/react-dom": "18.0.9",
+    "next": "14.2.35",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "ts-node": "10.9.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-13",
+        "label": "nextjs-pages-dir (next@13)"
+      },
+      {
+        "build-command": "pnpm test:build-15",
+        "label": "nextjs-pages-dir (next@15)"
+      }
+    ],
+    "optionalVariants": []
+  }
+}

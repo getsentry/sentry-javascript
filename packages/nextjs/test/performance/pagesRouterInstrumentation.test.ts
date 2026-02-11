@@ -3,7 +3,7 @@ import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   pagesRouterInstrumentNavigation,
   pagesRouterInstrumentPageLoad,
@@ -20,7 +20,7 @@ const originalBuildManifestRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
 let eventHandlers: { [eventName: string]: Set<(...args: any[]) => void> } = {};
 
-jest.mock('next/router', () => {
+vi.mock('next/router', () => {
   return {
     default: {
       events: {
@@ -31,7 +31,7 @@ jest.mock('next/router', () => {
 
           eventHandlers[type]!.add(handler);
         },
-        off: jest.fn((type: string, handler: (...args: any[]) => void) => {
+        off: vi.fn((type: string, handler: (...args: any[]) => void) => {
           if (eventHandlers[type]) {
             eventHandlers[type]!.delete(handler);
           }
@@ -107,7 +107,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
     eventHandlers = {};
 
     // Necessary to clear all Router.events.off() mock call numbers
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it.each([
@@ -186,7 +186,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
     (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
       setUpNextPage({ url, route, query, props, hasNextData });
 
-      const emit = jest.fn();
+      const emit = vi.fn();
       const client = {
         emit,
         getOptions: () => ({}),
@@ -269,7 +269,7 @@ describe('pagesRouterInstrumentNavigation', () => {
     eventHandlers = {};
 
     // Necessary to clear all Router.events.off() mock call numbers
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it.each([
@@ -311,7 +311,7 @@ describe('pagesRouterInstrumentNavigation', () => {
         ],
       });
 
-      const emit = jest.fn();
+      const emit = vi.fn();
       const client = {
         emit,
         getOptions: () => ({}),
@@ -321,18 +321,25 @@ describe('pagesRouterInstrumentNavigation', () => {
 
       Router.events.emit('routeChangeStart', targetLocation);
 
-      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emit).toHaveBeenCalledTimes(2);
+      const expectedStartSpanOptions = {
+        name: expectedTransactionName,
+        attributes: {
+          'sentry.op': 'navigation',
+          'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
+          'sentry.source': expectedTransactionSource,
+        },
+      };
       expect(emit).toHaveBeenCalledWith(
-        'startNavigationSpan',
-        expect.objectContaining({
-          name: expectedTransactionName,
-          attributes: {
-            'sentry.op': 'navigation',
-            'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
-            'sentry.source': expectedTransactionSource,
-          },
-        }),
+        'beforeStartNavigationSpan',
+        expect.objectContaining(expectedStartSpanOptions),
+        {
+          isRedirect: undefined,
+        },
       );
+      expect(emit).toHaveBeenCalledWith('startNavigationSpan', expect.objectContaining(expectedStartSpanOptions), {
+        isRedirect: undefined,
+      });
     },
   );
 });

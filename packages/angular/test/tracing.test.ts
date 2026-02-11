@@ -6,7 +6,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { describe, it } from 'vitest';
-import { TraceDirective, browserTracingIntegration, init } from '../src/index';
+import { browserTracingIntegration, init, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
 
 describe('browserTracingIntegration', () => {

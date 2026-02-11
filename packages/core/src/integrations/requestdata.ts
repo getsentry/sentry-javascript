@@ -1,5 +1,7 @@
 import { defineIntegration } from '../integration';
-import type { Event, IntegrationFn, RequestEventData } from '../types-hoist';
+import type { Event } from '../types-hoist/event';
+import type { IntegrationFn } from '../types-hoist/integration';
+import type { RequestEventData } from '../types-hoist/request';
 import { parseCookie } from '../utils/cookie';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 
@@ -19,11 +21,11 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
+// TODO(v11): Change defaults based on `sendDefaultPii`
 const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
   headers: true,
-  ip: false,
   query_string: true,
   url: true,
 };
@@ -38,12 +40,17 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(event) {
+    processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
+      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
+        ...include,
+        ip: include.ip ?? client.getOptions().sendDefaultPii,
+      };
+
       if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, includeWithDefaultPiiApplied);
       }
 
       return event;

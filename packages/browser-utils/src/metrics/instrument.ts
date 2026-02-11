@@ -1,8 +1,6 @@
-import { getFunctionName, logger } from '@sentry/core';
-
+import { debug, getFunctionName } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { onCLS } from './web-vitals/getCLS';
-import { onFID } from './web-vitals/getFID';
 import { onINP } from './web-vitals/getINP';
 import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
@@ -14,9 +12,11 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'navigation'
   | 'paint'
   | 'resource'
+  | 'element'
+  // fist-input is still needed for INP
   | 'first-input';
 
-type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp';
 
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
@@ -51,7 +51,7 @@ interface Metric {
   /**
    * The name of the metric (in acronym form).
    */
-  name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
+  name: 'CLS' | 'FCP' | 'INP' | 'LCP' | 'TTFB';
 
   /**
    * The current value of the metric.
@@ -111,7 +111,6 @@ const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] }
 const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 
 let _previousCls: Metric | undefined;
-let _previousFid: Metric | undefined;
 let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
@@ -145,27 +144,23 @@ export function addLcpInstrumentationHandler(
 }
 
 /**
- * Add a callback that will be triggered when a FID metric is available.
- * Returns a cleanup callback which can be called to remove the instrumentation handler.
- */
-export function addFidInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
-  return addMetricObserver('fid', callback, instrumentFid, _previousFid);
-}
-
-/**
- * Add a callback that will be triggered when a FID metric is available.
+ * Add a callback that will be triggered when a TTFD metric is available.
  */
 export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
   return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
 }
 
+export type InstrumentationHandlerCallback = (data: {
+  metric: Omit<Metric, 'entries'> & {
+    entries: PerformanceEventTiming[];
+  };
+}) => void;
+
 /**
  * Add a callback that will be triggered when a INP metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
  */
-export function addInpInstrumentationHandler(
-  callback: (data: { metric: Omit<Metric, 'entries'> & { entries: PerformanceEventTiming[] } }) => void,
-): CleanupHandlerCallback {
+export function addInpInstrumentationHandler(callback: InstrumentationHandlerCallback): CleanupHandlerCallback {
   return addMetricObserver('inp', callback, instrumentInp, _previousInp);
 }
 
@@ -210,7 +205,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
       handler(data);
     } catch (e) {
       DEBUG_BUILD &&
-        logger.error(
+        debug.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,
         );
@@ -230,15 +225,6 @@ function instrumentCls(): StopListening {
     // By default, the callback is only called when the tab goes to the background.
     { reportAllChanges: true },
   );
-}
-
-function instrumentFid(): void {
-  return onFID(metric => {
-    triggerHandlers('fid', {
-      metric,
-    });
-    _previousFid = metric;
-  });
 }
 
 function instrumentLcp(): StopListening {
@@ -315,7 +301,7 @@ function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObs
 
 function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {
   handlers[type] = handlers[type] || [];
-  (handlers[type] as InstrumentHandlerCallback[]).push(handler);
+  handlers[type].push(handler);
 }
 
 // Get a callback which can be called to remove the instrumentation handler

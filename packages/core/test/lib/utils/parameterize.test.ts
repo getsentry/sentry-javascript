@@ -1,5 +1,5 @@
-import type { ParameterizedString } from '../../../src/types-hoist';
-
+import { describe, expect, test } from 'vitest';
+import type { ParameterizedString } from '../../../src/types-hoist/parameterize';
 import { parameterize } from '../../../src/utils/parameterize';
 
 describe('parameterize()', () => {
