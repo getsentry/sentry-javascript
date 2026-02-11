@@ -31,7 +31,6 @@ export { getRequestUrl } from './utils/getRequestUrl';
 export { initializeEsmLoader } from './sdk/esmLoader';
 export { isCjs } from './utils/detection';
 export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
-export { envToBool } from './utils/envToBool';
 export { makeNodeTransport, type NodeTransportOptions } from './transports';
 export type { HTTPModuleRequestIncomingMessage } from './transports/http-module';
 export { cron } from './cron';
@@ -117,6 +116,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  envToBool,
 } from '@sentry/core';
 
 export type {

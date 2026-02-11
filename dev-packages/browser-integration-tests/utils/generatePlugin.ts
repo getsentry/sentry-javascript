@@ -200,7 +200,6 @@ class SentryScenarioGenerationPlugin {
 
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         parser.hooks.import.tap(
           this._name,
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
