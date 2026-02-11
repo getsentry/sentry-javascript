@@ -62,7 +62,12 @@ export function handleCallbackErrors<
  * Maybe handle a promise rejection.
  * This expects to be given a value that _may_ be a promise, or any other value.
  * If it is a promise, and it rejects, it will call the `onError` callback.
- * Other than this, it will generally return the given value as-is.
+ *
+ * For thenable objects with extra methods (like jQuery's jqXHR),
+ * this function preserves those methods by wrapping the original thenable in a Proxy
+ * that intercepts .then() calls to apply error handling while forwarding all other
+ * properties to the original object.
+ * This allows code like `startSpan(() => $.ajax(...)).abort()` to work correctly.
  */
 function maybeHandlePromiseRejection<MaybePromise>(
   value: MaybePromise,
@@ -71,22 +76,117 @@ function maybeHandlePromiseRejection<MaybePromise>(
   onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
-    // @ts-expect-error - the isThenable check returns the "wrong" type here
-    return value.then(
-      res => {
-        onFinally();
-        onSuccess(res);
-        return res;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const hasAbort = typeof value.abort === 'function';
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const hasStatus = 'status' in value;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const hasReadyState = 'readyState' in value;
+    console.log('[ORIGINAL] valuehasAbort:', hasAbort, 'hasStatus:', hasStatus, 'hasReadyState:', hasReadyState);
+
+    // Track whether we've already attached handlers to avoid calling callbacks multiple times
+    let handlersAttached = false;
+
+    // Wrap the original value directly to preserve all its methods
+    return new Proxy(value, {
+      get(target, prop, receiver) {
+        console.log(`[PROXY GET] Accessing property: "${String(prop)}"`);
+
+        // Special handling for .then() - intercept it to add error handling
+        if (prop === 'then' && typeof target.then === 'function') {
+          console.log('[PROXY] Intercepting .then() call');
+          return function (
+            onfulfilled?: ((value: unknown) => unknown) | null,
+            onrejected?: ((reason: unknown) => unknown) | null,
+          ) {
+            // Only attach handlers once to avoid calling callbacks multiple times
+            if (!handlersAttached) {
+              handlersAttached = true;
+
+              // Wrap the fulfillment handler to call our callbacks
+              const wrappedOnFulfilled = onfulfilled
+                ? (res: unknown) => {
+                    onFinally();
+                    onSuccess(res as MaybePromise);
+                    return onfulfilled(res);
+                  }
+                : (res: unknown) => {
+                    onFinally();
+                    onSuccess(res as MaybePromise);
+                    return res;
+                  };
+
+              // Wrap the rejection handler to call our callbacks
+              const wrappedOnRejected = onrejected
+                ? (err: unknown) => {
+                    onError(err);
+                    onFinally();
+                    return onrejected(err);
+                  }
+                : (err: unknown) => {
+                    onError(err);
+                    onFinally();
+                    throw err;
+                  };
+
+              // Call the original .then() with our wrapped handlers
+              const thenResult = target.then.call(target, wrappedOnFulfilled, wrappedOnRejected);
+
+              // CRITICAL: jQuery's .then() returns a new Deferred object without .abort()
+              // We need to wrap this result in a Proxy that falls back to the original object
+              return new Proxy(thenResult, {
+                get(thenTarget, thenProp) {
+                  console.log(`[THEN-PROXY GET] Accessing property: "${String(thenProp)}"`);
+                  // First try the result of .then()
+                  const thenValue = Reflect.get(thenTarget, thenProp, thenTarget);
+                  if (thenValue !== undefined) {
+                    console.log(`[THEN-PROXY] Getting "${String(thenProp)}" from then result:`, typeof thenValue);
+                    return typeof thenValue === 'function' ? thenValue.bind(thenTarget) : thenValue;
+                  }
+
+                  // Fall back to the ORIGINAL object for properties like .abort()
+                  const originalValue = Reflect.get(target, thenProp, target);
+                  if (originalValue !== undefined) {
+                    console.log(
+                      `[THEN-PROXY] Getting "${String(thenProp)}" from ORIGINAL object:`,
+                      typeof originalValue,
+                    );
+                    return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
+                  }
+
+                  return undefined;
+                },
+              });
+            } else {
+              // Subsequent .then() calls just pass through without wrapping
+              return target.then.call(target, onfulfilled, onrejected);
+            }
+          };
+        }
+
+        // For all other properties, forward to the original object
+        const originalValue = Reflect.get(target, prop, target);
+        console.log(`[PROXY] Getting property "${String(prop)}" from original:`, typeof originalValue);
+
+        if (originalValue !== undefined) {
+          // Bind methods to preserve 'this' context
+          return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
+        }
+
+        return undefined;
       },
-      e => {
-        onError(e);
-        onFinally();
-        throw e;
-      },
-    );
+    });
   }
 
   onFinally();
   onSuccess(value);
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const hasAbort = typeof value.abort === 'function';
+  console.log('[NON-THENABLE] valuehasAbort:', hasAbort);
   return value;
 }
