@@ -25,6 +25,7 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
     // We don't want to send interaction transactions/root spans created from
     // clicks within Spotlight to Sentry. Neither do we want them to be sent to
     // spotlight.
+    // TODO (span-streaming): port this to what exactly?
     processEvent: event => (isSpotlightInteraction(event) ? null : event),
     afterAllSetup: (client: Client) => {
       setupSidecarForwarding(client, sidecarUrl);
