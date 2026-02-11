@@ -20,6 +20,9 @@ const ADAPTER_NAME_MAP: Record<string, SupportedSvelteKitAdapters> = {
   '@sveltejs/adapter-vercel': 'vercel',
   '@sveltejs/adapter-node': 'node',
   '@sveltejs/adapter-cloudflare': 'cloudflare',
+  // adapter-auto is intentionally the last entry here because it's installed by default
+  // many users don't remove it when installing a new adapter, so we need to make sure
+  // it's detected last when doing the package.json based detection.
   '@sveltejs/adapter-auto': 'auto',
 };
 
@@ -48,14 +51,22 @@ export async function detectAdapter(
       }
       return mapped;
     }
-    // Known adapter name but not in our supported list -> still 'other'
+    // We found an adapter name but it's not in our supported list -> return 'other'
+    // svelte.config.js is the source of truth, so we don't need to fall back to package.json.
+    if (isDebug) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry SvelteKit Plugin] Detected unsupported adapter name ${adapterName} in \`svelte.config.js\`. Please set the 'adapter' option manually`,
+      );
+    }
+    return 'other';
   }
 
   const pkgJson = await loadPackageJson();
   const allDependencies = pkgJson ? { ...pkgJson.dependencies, ...pkgJson.devDependencies } : {};
 
-  const adapter =
-    (Object.keys(ADAPTER_NAME_MAP).find(key => allDependencies[key]) as SupportedSvelteKitAdapters) || 'other';
+  const adapterPackage = Object.keys(ADAPTER_NAME_MAP).find(key => allDependencies[key]);
+  const adapter = (adapterPackage && ADAPTER_NAME_MAP[adapterPackage]) || 'other';
 
   if (isDebug) {
     if (adapter === 'other') {
