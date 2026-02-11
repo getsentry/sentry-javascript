@@ -8,26 +8,56 @@ import * as path from 'path';
 export type SupportedSvelteKitAdapters = 'node' | 'auto' | 'vercel' | 'cloudflare' | 'other';
 
 /**
- * Tries to detect the used adapter for SvelteKit by looking at the dependencies.
- * returns the name of the adapter or 'other' if no supported adapter was found.
+ * Minimal svelte config shape needed for adapter detection.
+ * SvelteKit's Adapter interface has a required `name` property (e.g. 'adapter-vercel').
  */
-export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKitAdapters> {
-  const pkgJson = await loadPackageJson();
+export type SvelteConfigForAdapterDetection = {
+  kit?: { adapter?: { name?: string } };
+};
 
-  const allDependencies = pkgJson ? { ...pkgJson.dependencies, ...pkgJson.devDependencies } : {};
+/** Maps adapter.name from svelte.config.js to our SupportedSvelteKitAdapters */
+const ADAPTER_NAME_MAP: Record<string, SupportedSvelteKitAdapters> = {
+  '@sveltejs/adapter-vercel': 'vercel',
+  '@sveltejs/adapter-node': 'node',
+  '@sveltejs/adapter-cloudflare': 'cloudflare',
+  '@sveltejs/adapter-auto': 'auto',
+};
 
-  let adapter: SupportedSvelteKitAdapters = 'other';
-  if (allDependencies['@sveltejs/adapter-vercel']) {
-    adapter = 'vercel';
-  } else if (allDependencies['@sveltejs/adapter-node']) {
-    adapter = 'node';
-  } else if (allDependencies['@sveltejs/adapter-cloudflare']) {
-    adapter = 'cloudflare';
-  } else if (allDependencies['@sveltejs/adapter-auto']) {
-    adapter = 'auto';
+/**
+ * Tries to detect the used adapter for SvelteKit.
+ * 1. If svelteConfig is provided and has kit.adapter.name, uses that (source of truth from svelte.config.js).
+ * 2. Otherwise falls back to inferring from package.json dependencies.
+ * Returns the name of the adapter or 'other' if no supported adapter was found.
+ *
+ * @param svelteConfig - Loaded svelte config (e.g. from loadSvelteConfig()). Pass `undefined` to skip config-based detection.
+ * @param debug - Whether to log detection result. Pass `undefined` for false.
+ */
+export async function detectAdapter(
+  svelteConfig: SvelteConfigForAdapterDetection | undefined,
+  debug: boolean | undefined,
+): Promise<SupportedSvelteKitAdapters> {
+  const isDebug = debug ?? false;
+
+  const adapterName = svelteConfig?.kit?.adapter?.name;
+  if (adapterName && typeof adapterName === 'string') {
+    const mapped = ADAPTER_NAME_MAP[adapterName];
+    if (mapped) {
+      if (isDebug) {
+        // eslint-disable-next-line no-console
+        console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${mapped} adapter from \`svelte.config.js\``);
+      }
+      return mapped;
+    }
+    // Known adapter name but not in our supported list -> still 'other'
   }
 
-  if (debug) {
+  const pkgJson = await loadPackageJson();
+  const allDependencies = pkgJson ? { ...pkgJson.dependencies, ...pkgJson.devDependencies } : {};
+
+  const adapter =
+    (Object.keys(ADAPTER_NAME_MAP).find(key => allDependencies[key]) as SupportedSvelteKitAdapters) || 'other';
+
+  if (isDebug) {
     if (adapter === 'other') {
       // eslint-disable-next-line no-console
       console.warn(
@@ -35,7 +65,7 @@ export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKit
       );
     } else {
       // eslint-disable-next-line no-console
-      console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${adapter} adapter`);
+      console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${adapter} adapter from \`package.json\``);
     }
   }
 
