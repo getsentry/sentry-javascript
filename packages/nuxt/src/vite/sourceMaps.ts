@@ -81,6 +81,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
       const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
 
+      // @ts-expect-error - Allow writing the config (Readonly type) - https://github.com/nuxt/nuxt/commit/e060b9695f5c34eb1be4fab0c1557ade0bc13aba
       viteConfig.build = viteConfig.build || {};
       const viteSourceMap = viteConfig.build.sourcemap;
 
@@ -105,6 +106,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       // Add Sentry plugin
       // Vite plugin is added on the client and server side (hook runs twice)
       // Nuxt client source map is 'false' by default. Warning about this will be shown already in an earlier step, and it's also documented that `nuxt.sourcemap.client` needs to be enabled.
+      // @ts-expect-error - Allow writing the config (Readonly type) - https://github.com/nuxt/nuxt/commit/e060b9695f5c34eb1be4fab0c1557ade0bc13aba
       viteConfig.plugins = viteConfig.plugins || [];
       viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)));
     }
