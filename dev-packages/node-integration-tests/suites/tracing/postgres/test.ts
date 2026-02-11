@@ -57,7 +57,7 @@ describe('postgres auto instrumentation', () => {
       .completed();
   });
 
-  test.only("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
+  test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
     await createRunner(__dirname, 'scenario-ignoreConnect.js')
       .withDockerCompose({
         workingDirectory: [__dirname],

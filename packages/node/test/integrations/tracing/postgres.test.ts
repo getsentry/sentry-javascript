@@ -57,4 +57,37 @@ describe('postgres integration', () => {
       ignoreConnectSpans: true,
     });
   });
+
+  it('second call to instrumentPostgres passes full config to setConfig, not raw user options', () => {
+    const mockSetConfig = vi.fn();
+    (PgInstrumentation as unknown as MockInstance).mockImplementation((config: unknown) => ({
+      setTracerProvider: () => undefined,
+      setMeterProvider: () => undefined,
+      getConfig: () => ({}),
+      setConfig: mockSetConfig,
+      enable: () => undefined,
+    }));
+
+    instrumentPostgres({ ignoreConnectSpans: true });
+    expect(PgInstrumentation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requireParentSpan: true,
+        ignoreConnectSpans: true,
+        requestHook: expect.any(Function),
+      }),
+    );
+
+    mockSetConfig.mockClear();
+    instrumentPostgres({ ignoreConnectSpans: false });
+
+    expect(PgInstrumentation).toHaveBeenCalledTimes(1);
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    expect(mockSetConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requireParentSpan: true,
+        ignoreConnectSpans: false,
+        requestHook: expect.any(Function),
+      }),
+    );
+  });
 });
