@@ -20,7 +20,7 @@
     "@sentry/remix": "latest || *",
     "compression": "^1.7.4",
     "cross-env": "^7.0.3",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "isbot": "^4.1.0",
     "morgan": "^1.10.0",
     "react": "^18.2.0",

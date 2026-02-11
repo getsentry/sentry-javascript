@@ -39,6 +39,13 @@ export interface OpenTelemetryServerRuntimeOptions extends ServerRuntimeOptions 
  */
 export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
   /**
+   * Override the runtime name reported in events.
+   * Defaults to 'node' with the current process version if not specified.
+   *
+   * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
+   */
+  runtime?: { name: string; version?: string };
+  /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *
    * @deprecated

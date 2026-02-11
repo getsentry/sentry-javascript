@@ -55,7 +55,7 @@
     "@sentry/node": "10.38.0",
     "@sentry/react": "10.38.0",
     "@sentry/vite-plugin": "^4.8.0",
-    "glob": "11.1.0"
+    "glob": "^13.0.1"
   },
   "devDependencies": {
     "@react-router/dev": "^7.13.0",

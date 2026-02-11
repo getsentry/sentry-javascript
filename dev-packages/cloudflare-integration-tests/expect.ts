@@ -19,13 +19,13 @@ function dropUndefinedKeys<T extends Record<string, unknown>>(obj: T): T {
   return obj;
 }
 
-function getSdk(): SdkInfo {
+function getSdk(sdk: 'cloudflare' | 'hono'): SdkInfo {
   return {
     integrations: expect.any(Array),
-    name: 'sentry.javascript.cloudflare',
+    name: `sentry.javascript.${sdk}`,
     packages: [
       {
-        name: 'npm:@sentry/cloudflare',
+        name: `npm:@sentry/${sdk}`,
         version: SDK_VERSION,
       },
     ],
@@ -46,24 +46,27 @@ function defaultContexts(eventContexts: Contexts = {}): Contexts {
   });
 }
 
-export function expectedEvent(event: Event): Event {
+export function expectedEvent(event: Event, { sdk }: { sdk: 'cloudflare' | 'hono' }): Event {
   return dropUndefinedKeys({
     event_id: UUID_MATCHER,
     timestamp: expect.any(Number),
     environment: 'production',
     platform: 'javascript',
-    sdk: getSdk(),
+    sdk: getSdk(sdk),
     ...event,
     contexts: defaultContexts(event.contexts),
   });
 }
 
-export function eventEnvelope(event: Event, includeSampleRand = false): Envelope {
+export function eventEnvelope(
+  event: Event,
+  { includeSampleRand = false, sdk = 'cloudflare' }: { includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
+): Envelope {
   return [
     {
       event_id: UUID_MATCHER,
       sent_at: ISO_DATE_MATCHER,
-      sdk: { name: 'sentry.javascript.cloudflare', version: SDK_VERSION },
+      sdk: { name: `sentry.javascript.${sdk}`, version: SDK_VERSION },
       trace: {
         environment: event.environment || 'production',
         public_key: 'public',
@@ -74,6 +77,6 @@ export function eventEnvelope(event: Event, includeSampleRand = false): Envelope
         transaction: expect.any(String),
       },
     },
-    [[{ type: 'event' }, expectedEvent(event)]],
+    [[{ type: 'event' }, expectedEvent(event, { sdk })]],
   ];
 }

@@ -5,7 +5,6 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
@@ -90,7 +89,6 @@ describe('Vercel AI integration', () => {
       // Third span - explicit telemetry enabled, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -105,7 +103,7 @@ describe('Vercel AI integration', () => {
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '{"prompt":"Where is the second span?"}',
+          'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.settings.maxSteps': 1,
@@ -230,7 +228,6 @@ describe('Vercel AI integration', () => {
       // First span - no telemetry config, should enable telemetry AND record inputs/outputs when sendDefaultPii: true
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the first span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -245,7 +242,7 @@ describe('Vercel AI integration', () => {
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '{"prompt":"Where is the first span?"}',
+          'vercel.ai.prompt': '[{"role":"user","content":"Where is the first span?"}]',
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.settings.maxSteps': 1,
@@ -303,7 +300,6 @@ describe('Vercel AI integration', () => {
       // Third span - explicitly enabled telemetry, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -318,7 +314,7 @@ describe('Vercel AI integration', () => {
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '{"prompt":"Where is the second span?"}',
+          'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.settings.maxSteps': 1,
@@ -375,7 +371,6 @@ describe('Vercel AI integration', () => {
       // Fifth span - tool call generateText span (should include prompts when sendDefaultPii: true)
       expect.objectContaining({
         data: {
-          [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"What is the weather in San Francisco?"}',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -391,7 +386,7 @@ describe('Vercel AI integration', () => {
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '{"prompt":"What is the weather in San Francisco?"}',
+          'vercel.ai.prompt': '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           'vercel.ai.response.finishReason': 'tool-calls',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.settings.maxSteps': 1,
@@ -786,6 +781,45 @@ describe('Vercel AI integration', () => {
                     [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
                       { type: 'text', content: 'You are a helpful assistant' },
                     ]),
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                // First call: Last message truncated (only C's remain, D's are cropped)
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[.*"(?:text|content)":"C+".*\]$/),
+                    [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to truncated messages',
+                  }),
+                }),
+                // Second call: Last message is small and kept intact
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining(
+                      'This is a small message that fits within the limit',
+                    ),
+                    [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to small message',
                   }),
                 }),
               ]),

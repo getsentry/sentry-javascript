@@ -77,7 +77,7 @@
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
-    "solid-js": "^1.8.11",
+    "solid-js": "^1.9.11",
     "vite": "^5.4.11",
     "vite-plugin-solid": "^2.11.6"
   },

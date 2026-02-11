@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*", "vite.config.ts"],
+
+  "compilerOptions": {
+    // other package-specific, test-specific options
+  }
+}

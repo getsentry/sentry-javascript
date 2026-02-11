@@ -2,7 +2,7 @@ import type { Integration } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
@@ -114,5 +114,79 @@ describe('Server init()', () => {
 
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
+  });
+
+  describe('OpenNext/Cloudflare runtime detection', () => {
+    const cloudflareContextSymbol = Symbol.for('__cloudflare-context__');
+
+    beforeEach(() => {
+      // Reset the global scope to allow re-initialization
+      SentryNode.getGlobalScope().clear();
+      SentryNode.getIsolationScope().clear();
+      SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
+    });
+
+    afterEach(() => {
+      // Clean up the cloudflare context
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol];
+    });
+
+    it('sets cloudflare runtime when OpenNext context is available', () => {
+      // Mock the OpenNext Cloudflare context
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+        ctx: {
+          waitUntil: vi.fn(),
+        },
+      };
+
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          runtime: { name: 'cloudflare' },
+        }),
+      );
+    });
+
+    it('sets cloudflare in SDK metadata when OpenNext context is available', () => {
+      // Mock the OpenNext Cloudflare context
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+        ctx: {
+          waitUntil: vi.fn(),
+        },
+      };
+
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          _metadata: expect.objectContaining({
+            sdk: expect.objectContaining({
+              name: 'sentry.javascript.nextjs',
+              packages: expect.arrayContaining([
+                expect.objectContaining({
+                  name: 'npm:@sentry/nextjs',
+                }),
+                expect.objectContaining({
+                  name: 'npm:@sentry/cloudflare',
+                }),
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('does not set cloudflare runtime when OpenNext context is not available', () => {
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({
+          runtime: { name: 'cloudflare' },
+        }),
+      );
+    });
   });
 });
