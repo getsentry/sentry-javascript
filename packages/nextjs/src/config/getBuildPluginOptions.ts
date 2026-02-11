@@ -284,12 +284,15 @@ export function getBuildPluginOptions({
 
   const finalIgnorePatterns = mergeIgnorePatterns(sourcemapUploadIgnore, sentryBuildOptions.sourcemaps?.ignore);
 
-  const filesToDeleteAfterUpload = createFilesToDeleteAfterUploadPattern(
-    normalizedDistDirAbsPath,
-    buildTool,
-    deleteSourcemapsAfterUpload,
-    useRunAfterProductionCompileHook,
-  );
+  const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
+  const filesToDeleteAfterUpload = userFilesToDeleteAfterUpload !== undefined
+    ? (Array.isArray(userFilesToDeleteAfterUpload) ? userFilesToDeleteAfterUpload : [userFilesToDeleteAfterUpload])
+    : createFilesToDeleteAfterUploadPattern(
+        normalizedDistDirAbsPath,
+        buildTool,
+        deleteSourcemapsAfterUpload,
+        useRunAfterProductionCompileHook,
+      );
 
   const skipSourcemapsUpload = shouldSkipSourcemapUpload(buildTool, useRunAfterProductionCompileHook);
 
