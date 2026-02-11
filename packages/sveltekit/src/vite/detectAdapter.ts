@@ -32,13 +32,11 @@ export async function detectAdapter(
   svelteConfig: BackwardsForwardsCompatibleSvelteConfig | undefined,
   debug: boolean | undefined,
 ): Promise<SupportedSvelteKitAdapters> {
-  const isDebug = debug ?? false;
-
   const adapterName = svelteConfig?.kit?.adapter?.name;
   if (adapterName && typeof adapterName === 'string') {
     const mapped = ADAPTER_NAME_MAP[adapterName];
     if (mapped) {
-      if (isDebug) {
+      if (debug) {
         // eslint-disable-next-line no-console
         console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${mapped} adapter from \`svelte.config.js\``);
       }
@@ -46,7 +44,7 @@ export async function detectAdapter(
     }
     // We found an adapter name but it's not in our supported list -> return 'other'
     // svelte.config.js is the source of truth, so we don't need to fall back to package.json.
-    if (isDebug) {
+    if (debug) {
       // eslint-disable-next-line no-console
       console.warn(
         `[Sentry SvelteKit Plugin] Detected unsupported adapter name ${adapterName} in \`svelte.config.js\`. Please set the 'adapter' option manually`,
@@ -61,7 +59,7 @@ export async function detectAdapter(
   const adapterPackage = Object.keys(ADAPTER_NAME_MAP).find(key => allDependencies[key]);
   const adapter = (adapterPackage && ADAPTER_NAME_MAP[adapterPackage]) || 'other';
 
-  if (isDebug) {
+  if (debug) {
     if (adapter === 'other') {
       // eslint-disable-next-line no-console
       console.warn(
