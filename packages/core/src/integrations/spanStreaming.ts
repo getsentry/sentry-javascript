@@ -22,7 +22,7 @@ const _spanStreamingIntegration = ((options?: ServerSpanStreamingOptions) => {
       const clientOptions = client.getOptions();
       const beforeSendSpan = clientOptions.beforeSendSpan;
 
-      const initialMessage = 'serverSpanStreamingIntegration requires';
+      const initialMessage = 'spanStreamingIntegration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';
 
       if (clientOptions.traceLifecycle !== 'stream') {
