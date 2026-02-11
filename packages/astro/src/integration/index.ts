@@ -191,7 +191,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
-          if (isCloudflare && pathToServerInit && command !== 'dev') {
+          if (isCloudflare && command !== 'dev') {
             // For Cloudflare production builds, additionally use a Vite plugin to:
             // 1. Import the server config at the Worker entry level (so Sentry.init() runs
             //    for ALL requests, not just SSR pages — covers actions and API routes)
