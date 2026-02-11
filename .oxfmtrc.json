@@ -22,7 +22,19 @@
     {
       "files": ["*.md", "*.mdc"],
       "options": {
-        "proseWrap": "preserve"
+        "proseWrap": "preserve",
+      }
+    },
+    {
+      "files": ["*.html"],
+      "options": {
+        "printWidth": 300
+      }
+    },
+    {
+      "files": ["*.json"],
+      "options": {
+        "trailingComma": "none"
       }
     }
   ]
