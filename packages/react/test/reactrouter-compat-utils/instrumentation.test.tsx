@@ -1114,8 +1114,9 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
       const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
       const { spanToJSON } = await import('@sentry/core');
-      const { transactionNameHasWildcard, resolveRouteNameAndSource } =
-        await import('../../src/reactrouter-compat-utils/utils');
+      const { transactionNameHasWildcard, resolveRouteNameAndSource } = await import(
+        '../../src/reactrouter-compat-utils/utils'
+      );
 
       const location: Location = {
         pathname: '/users/123',

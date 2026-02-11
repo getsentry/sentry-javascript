@@ -14,20 +14,14 @@ Sentry.init({
 });
 
 // The segment span should be sent
-Sentry.startSpan({ name: 'parent' }, parent => {
-  console.log('xx parent span started', parent.spanContext().spanId);
+Sentry.startSpan({ name: 'parent' }, _parent => {
   // This child span should be ignored
-  Sentry.startSpan({ name: 'child-to-ignore' }, childToIgnore => {
-    console.log('xx child-to-ignore span started', childToIgnore.spanContext().spanId);
+  Sentry.startSpan({ name: 'child-to-ignore' }, _childToIgnore => {
     // but this one should be sent
-    Sentry.startSpan({ name: 'child-of-ignored-child' }, childOfIgnoredChild => {
-      console.log('xx child-of-ignored-child span started', childOfIgnoredChild.spanContext().spanId);
-    });
+    Sentry.startSpan({ name: 'child-of-ignored-child' }, _childOfIgnoredChild => {});
   });
   // This child span should be sent
-  Sentry.startSpan({ name: 'child-to-keep' }, childToKeep => {
-    console.log('xx child-to-keep span started', childToKeep.spanContext().spanId);
-  });
+  Sentry.startSpan({ name: 'child-to-keep' }, _childToKeep => {});
 });
 
-Sentry.flush(2000);
+Sentry.flush().catch(() => {});

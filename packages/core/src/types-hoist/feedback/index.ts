@@ -15,7 +15,10 @@ export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
  * The integration's internal `options` member where every value should be set
  */
 export interface FeedbackInternalOptions
-  extends FeedbackGeneralConfiguration, FeedbackThemeConfiguration, FeedbackTextConfiguration, FeedbackCallbacks {}
+  extends FeedbackGeneralConfiguration,
+    FeedbackThemeConfiguration,
+    FeedbackTextConfiguration,
+    FeedbackCallbacks {}
 
 type Hooks = unknown;
 type HTMLElement = unknown;

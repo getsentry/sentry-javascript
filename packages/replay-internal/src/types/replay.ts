@@ -321,8 +321,7 @@ export interface ReplayIntegrationPrivacyOptions {
 }
 
 export interface ReplayConfiguration
-  extends
-    ReplayIntegrationPrivacyOptions,
+  extends ReplayIntegrationPrivacyOptions,
     OptionalReplayPluginOptions,
     Pick<RecordingOptions, 'maskAllText' | 'maskAllInputs'> {}
 

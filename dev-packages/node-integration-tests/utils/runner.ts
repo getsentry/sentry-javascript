@@ -11,7 +11,6 @@ import type {
   SerializedSession,
   SerializedSpanContainer,
   SessionAggregates,
-  SpanV2JSON,
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';

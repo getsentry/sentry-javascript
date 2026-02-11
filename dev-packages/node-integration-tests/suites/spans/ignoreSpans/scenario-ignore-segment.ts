@@ -29,4 +29,4 @@ Sentry.startSpan({ name: 'segment-to-keep' }, () => {
   });
 });
 
-Sentry.flush();
+Sentry.flush().catch(() => {});

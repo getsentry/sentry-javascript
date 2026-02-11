@@ -22,4 +22,4 @@ Sentry.startSpan({ name: 'parent' }, parentSpan => {
   });
 });
 
-Sentry.flush();
+Sentry.flush().catch(() => {});

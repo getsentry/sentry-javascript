@@ -534,7 +534,7 @@ export function waitForSpanV2(
 
         for (const envelopeItem of envelopeItems) {
           if (!isSpanV2EnvelopeItem(envelopeItem)) {
-            return false
+            return false;
           }
 
           const spans = envelopeItem[1].items;

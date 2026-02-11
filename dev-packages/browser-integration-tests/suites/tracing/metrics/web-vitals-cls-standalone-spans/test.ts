@@ -1,13 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { type Event as SentryEvent, type EventEnvelope, type SpanEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
-  properFullEnvelopeRequestParser,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { observeV2Span, waitForSpanV2Envelope, waitForV2Span } from '../../../../utils/spanFirstUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
