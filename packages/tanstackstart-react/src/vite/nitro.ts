@@ -8,6 +8,7 @@ import type { Plugin, UserConfig } from 'vite';
 export function makeNitroSentryExternalPlugin(): Plugin {
   return {
     name: 'sentry-tanstack-start-nitro-external',
+    enforce: 'pre',
     config() {
       // The `nitro` property is not part of Vite's UserConfig type but is read by the Nitro Vite plugin
       return {
