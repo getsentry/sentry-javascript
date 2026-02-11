@@ -48,7 +48,10 @@ describe('getRouteId', () => {
       route: { id: '/blog/[slug]' },
       untrack,
     };
+
+    // @ts-expect-error - only passing a partial load event here
     expect(getRouteId(event)).toBe('/blog/[slug]');
+
     expect(untrack).toHaveBeenCalledTimes(1);
     expect(untrack).toHaveBeenCalledWith(expect.any(Function));
   });
@@ -59,26 +62,43 @@ describe('getRouteId', () => {
       route: { id: null },
       untrack,
     };
+
+    // @ts-expect-error - only passing a partial load event here
     expect(getRouteId(event)).toBeUndefined();
+
+    expect(untrack).toHaveBeenCalledTimes(1);
+    expect(untrack).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  it('uses getOwnPropertyDescriptor when untrack is not present (SvelteKit 1.x)', () => {
-    const event = {
-      route: { id: '/users/[id]' },
-    };
-    expect(getRouteId(event)).toBe('/users/[id]');
-  });
-
-  it('uses getOwnPropertyDescriptor and avoids proxy when route has descriptor', () => {
+  it('falls back to getOwnPropertyDescriptor and avoids triggering the proxy', () => {
     const routeId = '/users/[id]';
-    const route = {};
-    Object.defineProperty(route, 'id', { value: routeId, enumerable: true });
-    const event = { route };
+
+    let routeIdAccessed = false;
+    const route = { id: routeId };
+
+    // taken from https://github.com/sveltejs/kit/blob/159aece0654db020f95bc414f6a21f25fbc5f22f/packages/kit/src/runtime/client/client.js#L783-L790
+    const proxiedRoute = new Proxy(route, {
+      get: (target, key) => {
+        routeIdAccessed = true;
+        // @ts-expect-error - this is fine for the test
+        return target[key];
+      },
+    });
+
+    const event = { route: proxiedRoute };
+    // @ts-expect-error - only passing a partial load event here
     expect(getRouteId(event)).toBe(routeId);
+    expect(routeIdAccessed).toBe(false);
+
+    // sanity check that the proxying mechanism works
+    expect(event.route.id).toBe(routeId);
+    expect(routeIdAccessed).toBe(true);
   });
 
   it('returns undefined when event has no route', () => {
+    // @ts-expect-error - only passing a partial load event here
     expect(getRouteId({})).toBeUndefined();
+    // @ts-expect-error - only passing a partial load event here
     expect(getRouteId({ route: null })).toBeUndefined();
   });
 });

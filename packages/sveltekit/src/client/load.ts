@@ -72,9 +72,6 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
-      // Accessing any member of `event.route` causes SvelteKit to invalidate the
-      // client-side universal `load` function's prefetched data. We use `getRouteId` which uses
-      // SvelteKit 2's `untrack` when available, otherwise getOwnPropertyDescriptor for 1.x.
       const routeId = getRouteId(event);
 
       return startSpan(

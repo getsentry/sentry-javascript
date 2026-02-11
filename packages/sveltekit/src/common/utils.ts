@@ -1,4 +1,4 @@
-import type { HttpError, Redirect } from '@sveltejs/kit';
+import type { HttpError, LoadEvent, Redirect } from '@sveltejs/kit';
 
 export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';
 
@@ -11,30 +11,29 @@ export type SentryWrappedFlag = {
 };
 
 /**
- * Event-like shape that has route (and optionally untrack in SvelteKit 2+).
- */
-type LoadEventLike = {
-  route?: { id?: string | null } | null;
-  untrack?: <T>(fn: () => T) => T;
-};
-
-/**
  * Get route.id from a load event without triggering SvelteKit's route proxy
  * (which would cause unwanted invalidations). Uses `untrack` when available (SvelteKit 2+),
  * otherwise falls back to getOwnPropertyDescriptor for SvelteKit 1.x.
  */
-export function getRouteId(event: LoadEventLike): string | undefined {
+export function getRouteId(event: LoadEvent): string | void {
   if (typeof event.untrack === 'function') {
     const id = event.untrack(() => event.route?.id ?? undefined);
     return id === null ? undefined : id;
   }
+
   const route = event.route;
-  if (!route) return undefined;
+  if (!route) {
+    return;
+  }
+
   const descriptor = Object.getOwnPropertyDescriptor(route, 'id');
   const fromDescriptor = descriptor?.value as string | null | undefined;
-  if (fromDescriptor !== undefined && fromDescriptor !== null) return fromDescriptor;
-  const direct = route.id;
-  return direct === null ? undefined : direct;
+
+  if (fromDescriptor !== undefined && fromDescriptor !== null) {
+    return fromDescriptor;
+  }
+
+  return;
 }
 
 /**
