@@ -11,14 +11,14 @@ const INTEGRATION_NAME = 'Postgres';
 
 export const instrumentPostgres = generateInstrumentOnce(
   INTEGRATION_NAME,
-  (options?: PostgresIntegrationOptions) =>
-    new PgInstrumentation({
-      requireParentSpan: true,
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.db.otel.postgres');
-      },
-      ignoreConnectSpans: options?.ignoreConnectSpans ?? false,
-    }),
+  PgInstrumentation,
+  (options?: PostgresIntegrationOptions) => ({
+    requireParentSpan: true,
+    requestHook(span) {
+      addOriginToSpan(span, 'auto.db.otel.postgres');
+    },
+    ignoreConnectSpans: options?.ignoreConnectSpans ?? false,
+  }),
 );
 
 const _postgresIntegration = ((options?: PostgresIntegrationOptions) => {
