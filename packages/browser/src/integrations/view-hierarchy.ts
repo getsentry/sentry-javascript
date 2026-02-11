@@ -1,5 +1,5 @@
 import type { Attachment, Event, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core';
-import { defineIntegration, dropUndefinedKeys, getComponentName } from '@sentry/core';
+import { defineIntegration, getComponentName } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 interface OnElementArgs {
@@ -20,6 +20,8 @@ interface OnElementArgs {
 interface Options {
   /**
    * Whether to attach the view hierarchy to the event.
+   *
+   * Default: Always attach.
    */
   shouldAttach?: (event: Event) => boolean;
 
@@ -40,46 +42,53 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
   const skipHtmlTags = ['script'];
 
   /** Walk an element */
-  function walk(element: { children: HTMLCollection }, windows: ViewHierarchyWindow[]): void {
-    for (const child of element.children) {
+  function walk(element: HTMLElement, windows: ViewHierarchyWindow[]): void {
+    // With Web Components, we need walk into shadow DOMs
+    const children = 'shadowRoot' in element && element.shadowRoot ? element.shadowRoot.children : element.children;
+
+    for (const child of children) {
       if (!(child instanceof HTMLElement)) {
         continue;
       }
 
       const componentName = getComponentName(child) || undefined;
       const tagName = child.tagName.toLowerCase();
+
+      if (skipHtmlTags.includes(tagName)) {
+        continue;
+      }
+
       const result = options.onElement?.({ element: child, componentName, tagName }) || {};
 
-      // Skip this element and its children
-      if (skipHtmlTags.includes(tagName) || result === 'skip') {
+      if (result === 'skip') {
         continue;
       }
 
       // Skip this element but include its children
       if (result === 'children') {
-        walk('shadowRoot' in child && child.shadowRoot ? child.shadowRoot : child, windows);
+        walk(child, windows);
         continue;
       }
 
-      const childRect = child.getBoundingClientRect();
+      const { x, y, width, height } = child.getBoundingClientRect();
 
-      const window: ViewHierarchyWindow = dropUndefinedKeys({
+      const window: ViewHierarchyWindow = {
         identifier: (child.id || undefined) as string,
         type: componentName || tagName,
         visible: true,
         alpha: 1,
-        height: childRect.height,
-        width: childRect.width,
-        x: childRect.x,
-        y: childRect.y,
+        height,
+        width,
+        x,
+        y,
         ...result,
-      });
+      };
 
       const children: ViewHierarchyWindow[] = [];
       window.children = children;
 
       // Recursively walk the children
-      walk('shadowRoot' in child && child.shadowRoot ? child.shadowRoot : child, window.children);
+      walk(child, window.children);
 
       windows.push(window);
     }
@@ -94,6 +103,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
 
       const root: ViewHierarchyData = {
         rendering_system: 'DOM',
+        positioning: 'absolute',
         windows: [],
       };
 
