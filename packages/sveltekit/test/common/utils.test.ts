@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { isHttpError, isRedirect } from '../../src/common/utils';
+import { describe, expect, it, vi } from 'vitest';
+import { getRouteId, isHttpError, isRedirect } from '../../src/common/utils';
 
 describe('isRedirect', () => {
   it.each([
@@ -39,4 +39,46 @@ describe('isHttpError', () => {
       expect(isHttpError(httpErrorObject)).toBe(false);
     },
   );
+});
+
+describe('getRouteId', () => {
+  it('returns route.id when event has untrack (SvelteKit 2+)', () => {
+    const untrack = vi.fn(<T>(fn: () => T) => fn());
+    const event = {
+      route: { id: '/blog/[slug]' },
+      untrack,
+    };
+    expect(getRouteId(event)).toBe('/blog/[slug]');
+    expect(untrack).toHaveBeenCalledTimes(1);
+    expect(untrack).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it('returns undefined when event has untrack but route.id is null', () => {
+    const untrack = vi.fn(<T>(fn: () => T) => fn());
+    const event = {
+      route: { id: null },
+      untrack,
+    };
+    expect(getRouteId(event)).toBeUndefined();
+  });
+
+  it('uses getOwnPropertyDescriptor when untrack is not present (SvelteKit 1.x)', () => {
+    const event = {
+      route: { id: '/users/[id]' },
+    };
+    expect(getRouteId(event)).toBe('/users/[id]');
+  });
+
+  it('uses getOwnPropertyDescriptor and avoids proxy when route has descriptor', () => {
+    const routeId = '/users/[id]';
+    const route = {};
+    Object.defineProperty(route, 'id', { value: routeId, enumerable: true });
+    const event = { route };
+    expect(getRouteId(event)).toBe(routeId);
+  });
+
+  it('returns undefined when event has no route', () => {
+    expect(getRouteId({})).toBeUndefined();
+    expect(getRouteId({ route: null })).toBeUndefined();
+  });
 });
