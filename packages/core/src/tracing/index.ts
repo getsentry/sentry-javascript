@@ -23,3 +23,4 @@ export {
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
 export { logSpanEnd, logSpanStart } from './logSpans';
+export { getTruncatedJsonString as _INTERNAL_getTruncatedJsonString } from './ai/utils';

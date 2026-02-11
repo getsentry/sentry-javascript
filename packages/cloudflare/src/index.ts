@@ -118,6 +118,8 @@ export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { instrumentCloudflareAgent } from './integrations/tracing/cloudflare-agents/index';
+export type { InstrumentCloudflareAgentsOptions } from './integrations/tracing/cloudflare-agents/index';
 export { honoIntegration } from './integrations/hono';
 
 export { instrumentD1WithSentry } from './d1';

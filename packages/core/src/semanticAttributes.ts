@@ -83,8 +83,45 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * GEN AI ATTRIBUTES
  * Based on OpenTelemetry Semantic Conventions for Generative AI
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/
+ * @see https://getsentry.github.io/sentry-conventions/attributes/gen_ai/
  * =============================================================================
  */
+
+/**
+ * The Generative AI system being used.
+ * Examples: 'openai', 'anthropic', 'google_genai', 'cloudflare_agents'
+ */
+export const GEN_AI_SYSTEM_ATTRIBUTE = 'gen_ai.system';
+
+/**
+ * The name of the operation being performed.
+ * Well-known values: 'chat', 'create_agent', 'embeddings', 'execute_tool',
+ * 'generate_content', 'invoke_agent', 'text_completion'
+ */
+export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
+
+/**
+ * The type of AI operation.
+ * Must be one of: 'agent', 'ai_client', 'tool', 'handoff', 'guardrail'
+ */
+export const GEN_AI_OPERATION_TYPE_ATTRIBUTE = 'gen_ai.operation.type';
+
+/**
+ * The name of the agent being used.
+ */
+export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
+
+/**
+ * The messages passed to the model.
+ * Must be a stringified array of message objects with 'role' attribute.
+ */
+export const GEN_AI_INPUT_MESSAGES_ATTRIBUTE = 'gen_ai.input.messages';
+
+/**
+ * The model's response messages.
+ * Must be a stringified array of message objects.
+ */
+export const GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE = 'gen_ai.output.messages';
 
 /**
  * The conversation ID for linking messages across API calls.
