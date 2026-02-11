@@ -76,28 +76,14 @@ function maybeHandlePromiseRejection<MaybePromise>(
   onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const hasAbort = typeof value.abort === 'function';
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const hasStatus = 'status' in value;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const hasReadyState = 'readyState' in value;
-    console.log('[ORIGINAL] valuehasAbort:', hasAbort, 'hasStatus:', hasStatus, 'hasReadyState:', hasReadyState);
-
     // Track whether we've already attached handlers to avoid calling callbacks multiple times
     let handlersAttached = false;
 
-    // Wrap the original value directly to preserve all its methods
+    // 1. Wrap the original thenable in a Proxy to preserve all its methods
     return new Proxy(value, {
       get(target, prop, receiver) {
-        console.log(`[PROXY GET] Accessing property: "${String(prop)}"`);
-
         // Special handling for .then() - intercept it to add error handling
         if (prop === 'then' && typeof target.then === 'function') {
-          console.log('[PROXY] Intercepting .then() call');
           return function (
             onfulfilled?: ((value: unknown) => unknown) | null,
             onrejected?: ((reason: unknown) => unknown) | null,
@@ -135,33 +121,32 @@ function maybeHandlePromiseRejection<MaybePromise>(
               // Call the original .then() with our wrapped handlers
               const thenResult = target.then.call(target, wrappedOnFulfilled, wrappedOnRejected);
 
-              // CRITICAL: jQuery's .then() returns a new Deferred object without .abort()
-              // We need to wrap this result in a Proxy that falls back to the original object
+              // 2. Some thenable implementations (like jQuery) return a new object from .then()
+              // that doesn't include custom properties from the original (like .abort()).
+              // We wrap the result in another Proxy to preserve access to those properties.
               return new Proxy(thenResult, {
                 get(thenTarget, thenProp) {
-                  console.log(`[THEN-PROXY GET] Accessing property: "${String(thenProp)}"`);
-                  // First try the result of .then()
+                  // First try to get the property from the .then() result
                   const thenValue = Reflect.get(thenTarget, thenProp, thenTarget);
                   if (thenValue !== undefined) {
-                    console.log(`[THEN-PROXY] Getting "${String(thenProp)}" from then result:`, typeof thenValue);
                     return typeof thenValue === 'function' ? thenValue.bind(thenTarget) : thenValue;
                   }
 
-                  // Fall back to the ORIGINAL object for properties like .abort()
+                  // Fall back to the original object for properties like .abort()
                   const originalValue = Reflect.get(target, thenProp, target);
                   if (originalValue !== undefined) {
-                    console.log(
-                      `[THEN-PROXY] Getting "${String(thenProp)}" from ORIGINAL object:`,
-                      typeof originalValue,
-                    );
                     return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
                   }
 
                   return undefined;
                 },
+                has(thenTarget, thenProp) {
+                  // Check if property exists in either the .then() result or the original object
+                  return thenProp in thenTarget || thenProp in (target as object);
+                },
               });
             } else {
-              // Subsequent .then() calls just pass through without wrapping
+              // Subsequent .then() calls pass through without additional wrapping
               return target.then.call(target, onfulfilled, onrejected);
             }
           };
@@ -169,8 +154,6 @@ function maybeHandlePromiseRejection<MaybePromise>(
 
         // For all other properties, forward to the original object
         const originalValue = Reflect.get(target, prop, target);
-        console.log(`[PROXY] Getting property "${String(prop)}" from original:`, typeof originalValue);
-
         if (originalValue !== undefined) {
           // Bind methods to preserve 'this' context
           return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
@@ -178,15 +161,15 @@ function maybeHandlePromiseRejection<MaybePromise>(
 
         return undefined;
       },
+      has(target, prop) {
+        // Check if property exists in the original object
+        return prop in (target as object);
+      },
     });
   }
 
+  // Non-thenable value - call callbacks immediately and return as-is
   onFinally();
   onSuccess(value);
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const hasAbort = typeof value.abort === 'function';
-  console.log('[NON-THENABLE] valuehasAbort:', hasAbort);
   return value;
 }
