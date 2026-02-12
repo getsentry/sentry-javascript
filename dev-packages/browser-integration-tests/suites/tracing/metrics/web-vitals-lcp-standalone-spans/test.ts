@@ -168,7 +168,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
       name: 'sentry.javascript.browser',
       packages: [
         {
-          name: 'npm:@sentry/browser',
+          name: expect.stringMatching(/(npm|cdn):@sentry\/browser/),
           version: expect.any(String),
         },
       ],

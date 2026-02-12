@@ -141,7 +141,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
       name: 'sentry.javascript.browser',
       packages: [
         {
-          name: 'npm:@sentry/browser',
+          name: expect.stringMatching(/(npm|cdn):@sentry\/browser/),
           version: expect.any(String),
         },
       ],
