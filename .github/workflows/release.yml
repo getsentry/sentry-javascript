@@ -36,7 +36,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Prepare release
-        uses: getsentry/craft@c6e2f04939b6ee67030588afbb5af76b127d8203 # v2
+        uses: getsentry/craft@5d154a7facb096e38889be2c6caf2fd23649aa92# v2
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
