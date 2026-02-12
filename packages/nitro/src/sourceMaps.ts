@@ -96,7 +96,7 @@ export function getPluginOptions(options?: SentryNitroOptions): Options {
  */
 export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: SentryNitroOptions): void {
   const sourcemapUploadDisabled = moduleOptions?.sourcemaps?.disable === true || moduleOptions?.disable === true;
-  if (!sourcemapUploadDisabled) {
+  if (sourcemapUploadDisabled) {
     return;
   }
 
@@ -105,11 +105,13 @@ export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: 
       '[Sentry] You have explicitly disabled source maps (`sourcemap: false`). Sentry is overriding this to `true` so that errors can be un-minified in Sentry. To disable Sentry source map uploads entirely, use `sourcemaps: { disable: true }` in your Sentry options instead.',
     );
   }
+
   config.sourcemap = true;
 
   // Nitro v3 has a `sourcemapMinify` plugin that destructively deletes `sourcesContent`,
   // `x_google_ignoreList`, and clears `mappings` for any chunk containing `node_modules`.
   // This makes sourcemaps unusable for Sentry.
+  // FIXME: Not sure about this one, it works either way?
   config.experimental = config.experimental || {};
   config.experimental.sourcemapMinify = false;
 
