@@ -3,7 +3,7 @@
   "name": "astro-5-cf-workers",
   "main": "dist/_worker.js/index.js",
   "compatibility_date": "2025-12-01",
-  "compatibility_flags": ["nodejs_compat", "nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "SENTRY_DSN": "https://username@domain/123",
     "SENTRY_ENVIRONMENT": "qa",

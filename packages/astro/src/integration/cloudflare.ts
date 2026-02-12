@@ -61,21 +61,20 @@ export function sentryCloudflareVitePlugin(): Plugin {
       // In @astrojs/cloudflare v12, the virtual entry module structure is:
       // https://github.com/withastro/astro/blob/09bbdbb1e62c388eb405eeea03554c15e01f2957/packages/integrations/cloudflare/src/entrypoints/server.ts#L23
       // We need to wrap `default` with `withSentry` before it's exported.
-
       const defaultExportMatch = code.match(/export\s+default\s+([\w.]+)\s*;/);
 
-      if (defaultExportMatch) {
-        const originalExpr = defaultExportMatch[1];
-        const wrappedExport = `export default withSentry(() => undefined, ${originalExpr});`;
-        const transformedCode = [
-          "import { withSentry } from '@sentry/cloudflare';",
-          code.replace(defaultExportMatch[0], wrappedExport),
-        ].join('\n');
-
-        return { code: transformedCode, map: null };
+      if (!defaultExportMatch) {
+        return undefined;
       }
 
-      return undefined;
+      const originalExpr = defaultExportMatch[1];
+      const wrappedExport = `export default withSentry(() => undefined, ${originalExpr});`;
+      const transformedCode = [
+        "import { withSentry } from '@sentry/cloudflare';",
+        code.replace(defaultExportMatch[0], wrappedExport),
+      ].join('\n');
+
+      return { code: transformedCode, map: null };
     },
   };
 }
