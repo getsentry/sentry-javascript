@@ -309,13 +309,13 @@ For Node.js integrations, add tests in `dev-packages/node-integration-tests/suit
 - Test `recordInputs` and `recordOutputs` options
 - Test integration can be disabled
 
-For Cloudflare Workers integrations, add tests in `dev-packages/cloudflare-worker-tests/`:
+For Cloudflare Workers integrations, add tests in `dev-packages/cloudflare-integration-tests/suites/tracing/{provider}`:
 
 - Create a new worker test app with the AI SDK
 - Verify manual instrumentation creates spans correctly
 - Test in actual Cloudflare Workers runtime (use `wrangler dev` or `miniflare`)
 
-For Browser integrations, add tests in `dev-packages/browser-integration-tests/suites/{provider}/`:
+For Browser integrations, add tests in `dev-packages/browser-integration-tests/suites/tracing/ai-providers/{provider}/`:
 
 - Create a new test suite with Playwright
 - Verify manual instrumentation creates spans correctly in the browser
@@ -383,8 +383,8 @@ packages/
 - [ ] Exported from appropriate package index (`packages/node/src/index.ts`, `packages/cloudflare/src/index.ts`, etc.)
 - [ ] Added E2E tests:
   - [ ] Node.js: `dev-packages/node-integration-tests/suites/tracing/{provider}/`
-  - [ ] Cloudflare: `dev-packages/cloudflare-worker-tests/{provider}/`
-  - [ ] Browser: `dev-packages/browser-integration-tests/suites/{provider}/`
+  - [ ] Cloudflare: `dev-packages/cloudflare-integration-tests/suites/tracing/{provider}/`
+  - [ ] Browser: `dev-packages/browser-integration-tests/suites/tracing/ai-providers/{provider}/`
 - [ ] E2E test verifies auto-instrumentation (no manual setup required)
 - [ ] Only used attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/)
 - [ ] JSDoc says "enabled by default" or "not enabled by default"
