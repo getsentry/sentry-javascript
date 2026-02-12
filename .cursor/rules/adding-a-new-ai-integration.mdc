@@ -25,6 +25,32 @@ Multi-runtime considerations:
 - Edge (Cloudflare/Vercel): No OTel, processors only or manual wrapping
 ```
 
+**IMPORTANT - Runtime-Specific Placement:**
+
+If an AI SDK only works in a specific runtime, the integration code should live exclusively in that runtime's package. Do NOT add it to `packages/core/` or attempt to make it work in other runtimes where it cannot function.
+
+**Runtime-specific integration structures:**
+
+**Node.js-only SDKs** → `packages/node/`
+
+- Core logic: `packages/node/src/integrations/tracing/{provider}/index.ts`
+- OTel instrumentation: `packages/node/src/integrations/tracing/{provider}/instrumentation.ts`
+- Use when SDK only work with Node.js-specific APIs
+
+**Cloudflare Workers-only SDKs** → `packages/cloudflare/`
+
+- Single file: `packages/cloudflare/src/integrations/tracing/{provider}.ts`
+- Use when SDK only works with Cloudflare Workers APIs or Cloudflare AI
+
+**Browser-only SDKs** → `packages/browser/`
+
+- Core logic: `packages/browser/src/integrations/tracing/{provider}/index.ts`
+- Use when SDK requires browser-specific APIs (DOM, WebAPIs, etc.)
+
+**For all runtime-specific SDKs:** DO NOT create `packages/core/src/tracing/{provider}/` - keep everything in the runtime package.
+
+**Multi-runtime SDKs:** If the SDK works across multiple runtimes (Node.js, browser, edge), follow the standard pattern with shared core logic in `packages/core/` and runtime-specific wrappers/instrumentation in each package where needed.
+
 ---
 
 ## Span Hierarchy
@@ -139,6 +165,10 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 - `GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE` - Token counts
 - `GEN_AI_OPERATION_NAME_ATTRIBUTE` - 'chat', 'embeddings', etc.
 
+**CRITICAL - Attribute Usage:**
+
+Only use attributes explicitly listed in the [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/). Do NOT create custom attributes or use undocumented ones. If you need a new attribute, it MUST be documented in the conventions first before implementation.
+
 ### `utils.ts`
 
 - `setTokenUsageAttributes()` - Set token usage on span
@@ -213,6 +243,8 @@ OpenTelemetry Semantic Convention attribute names. **Always use these constants!
 
 ## Auto-Instrumentation (Out-of-the-Box Support)
 
+**MANDATORY**
+
 **RULE:** AI SDKs should be auto-enabled in Node.js runtime if possible.
 
 ✅ **Auto-enable if:**
@@ -269,11 +301,25 @@ export type { {Provider}Options } from './integrations/tracing/{provider}';
 export { {provider}Integration } from './integrations/tracing/{provider}';
 ```
 
-**4. Add E2E test** in `packages/node-integration-tests/suites/{provider}/`
+**4. Add E2E tests**
+
+For Node.js integrations, add tests in `dev-packages/node-integration-tests/suites/tracing/{provider}/`:
 
 - Verify spans created automatically (no manual setup)
 - Test `recordInputs` and `recordOutputs` options
 - Test integration can be disabled
+
+For Cloudflare Workers integrations, add tests in `dev-packages/cloudflare-worker-tests/`:
+
+- Create a new worker test app with the AI SDK
+- Verify manual instrumentation creates spans correctly
+- Test in actual Cloudflare Workers runtime (use `wrangler dev` or `miniflare`)
+
+For Browser integrations, add tests in `dev-packages/browser-integration-tests/suites/{provider}/`:
+
+- Create a new test suite with Playwright
+- Verify manual instrumentation creates spans correctly in the browser
+- Test with actual browser runtime
 
 ---
 
@@ -307,15 +353,17 @@ packages/
 
 ## Key Best Practices
 
-1. **Respect `sendDefaultPii`** for recordInputs/recordOutputs
-2. **Use semantic attributes** from `gen-ai-attributes.ts` (never hardcode)
-3. **Set Sentry origin**: `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.openai'` (use provider name: `openai`, `anthropic`, `vercelai`, etc. - only alphanumerics, `_`, and `.` allowed)
-4. **Truncate large data**: Use helper functions from `utils.ts`
-5. **Correct span operations**: `gen_ai.invoke_agent` for parent, `gen_ai.chat` for children
-6. **Streaming**: Use `startSpanManual()`, accumulate state, call `span.end()`
-7. **Token accumulation**: Direct on child spans, accumulate on parent from children
-8. **Performance**: Use `callWhenPatched()` for Pattern 1
-9. **LangChain**: Check `_INTERNAL_shouldSkipAiProviderWrapping()` in Pattern 2
+1. **Auto-instrumentation is mandatory** - All integrations MUST auto-detect and instrument automatically in Node.js runtime
+2. **Runtime-specific placement** - If SDK only works in one runtime, code lives only in that package
+3. **Respect `sendDefaultPii`** for recordInputs/recordOutputs
+4. **Use semantic attributes** from `gen-ai-attributes.ts` (never hardcode) - Only use attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/)
+5. **Set Sentry origin**: `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.openai'` (use provider name: `openai`, `anthropic`, `vercelai`, etc. - only alphanumerics, `_`, and `.` allowed)
+6. **Truncate large data**: Use helper functions from `utils.ts`
+7. **Correct span operations**: `gen_ai.invoke_agent` for parent, `gen_ai.chat` for children
+8. **Streaming**: Use `startSpanManual()`, accumulate state, call `span.end()`
+9. **Token accumulation**: Direct on child spans, accumulate on parent from children
+10. **Performance**: Use `callWhenPatched()` for Pattern 1
+11. **LangChain**: Check `_INTERNAL_shouldSkipAiProviderWrapping()` in Pattern 2
 
 ---
 
@@ -329,16 +377,20 @@ packages/
 
 ## Auto-Instrumentation Checklist
 
-- [ ] Added to `getAutoPerformanceIntegrations()` in correct order
-- [ ] Added to `getOpenTelemetryInstrumentationToPreload()`
-- [ ] Exported from `packages/node/src/index.ts`
-- [ ] **If browser-compatible:** Exported from `packages/browser/src/index.ts`
-- [ ] Added E2E test in `packages/node-integration-tests/suites/{provider}/`
-- [ ] E2E test verifies auto-instrumentation
+- [ ] If runtime-specific, placed code only in that runtime's package
+- [ ] Added to `getAutoPerformanceIntegrations()` in correct order (Node.js)
+- [ ] Added to `getOpenTelemetryInstrumentationToPreload()` (Node.js with OTel)
+- [ ] Exported from appropriate package index (`packages/node/src/index.ts`, `packages/cloudflare/src/index.ts`, etc.)
+- [ ] Added E2E tests:
+  - [ ] Node.js: `dev-packages/node-integration-tests/suites/tracing/{provider}/`
+  - [ ] Cloudflare: `dev-packages/cloudflare-worker-tests/{provider}/`
+  - [ ] Browser: `dev-packages/browser-integration-tests/suites/{provider}/`
+- [ ] E2E test verifies auto-instrumentation (no manual setup required)
+- [ ] Only used attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/)
 - [ ] JSDoc says "enabled by default" or "not enabled by default"
 - [ ] Documented how to disable (if auto-enabled)
 - [ ] Documented limitations clearly
-- [ ] Verified OTel only patches when package imported
+- [ ] Verified OTel only patches when package imported (Node.js)
 
 ---
 
