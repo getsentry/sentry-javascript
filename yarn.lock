@@ -16635,10 +16635,10 @@ ember-qunit@~8.1.0:
     ember-cli-test-loader "^3.1.0"
     qunit-theme-ember "^1.0.0"
 
-ember-resolver@13.0.2:
-  version "13.0.2"
-  resolved "https://registry.yarnpkg.com/ember-resolver/-/ember-resolver-13.0.2.tgz#c50269b35b0faef6b95d959e45768fab0536149c"
-  integrity sha512-9G8CVjjI4Q6vx2+FYg8YeLu+/fP4eBL/1+qp5bzwtXQ7G3xkg0YRpcufIdsBjf5K2SUStU83qhNH2O6aanf3nw==
+ember-resolver@13.1.1:
+  version "13.1.1"
+  resolved "https://registry.yarnpkg.com/ember-resolver/-/ember-resolver-13.1.1.tgz#9f26955c1c689dca2279fe69fccb82f5b2e9382e"
+  integrity sha512-rA4RDuTm/F9AzYX2+g7EY3QWU48kyF9+Ck8IE8VQipnlwv2Q42kdRWiw7hfeQbRxx6XoSZCak6nzAG9ePd/+Ug==
   dependencies:
     ember-cli-babel "^7.26.11"
 
@@ -30445,6 +30445,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
