@@ -84,6 +84,8 @@ test('sends an INP span', async ({ page }) => {
       replay_id: expect.any(String),
       'user_agent.original': expect.stringContaining('Chrome'),
       'client.address': '{{auto}}',
+      inp: expect.any(Number),
+      'browser.web_vital.inp.value': expect.any(Number),
     },
     description: 'body > div#root > input#exception-button[type="button"]',
     op: 'ui.interaction.click',
