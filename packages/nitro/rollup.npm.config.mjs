@@ -5,7 +5,7 @@ export default [
     makeBaseNPMConfig({
       entrypoints: ['src/index.ts', 'src/runtime/plugins/server.ts'],
       packageSpecificConfig: {
-        external: [/^nitro/, 'otel-tracing-channel', /^h3/, /^srvx/],
+        external: [/^nitro/, 'otel-tracing-channel', /^h3/, /^srvx/, '@sentry/bundler-plugin-core'],
       },
     }),
   ),
