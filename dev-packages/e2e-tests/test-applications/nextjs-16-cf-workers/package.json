@@ -1,0 +1,55 @@
+{
+  "name": "nextjs-16-cf-workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare preview",
+    "build": "next build",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "start": "pnpm cf:preview",
+    "lint": "eslint",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm cf:build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm cf:build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm cf:build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.14.9",
+    "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
+    "next": "16.1.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "canary",
+    "typescript": "^5",
+    "wrangler": "^4.61.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "nextjs-16-cf-workers (latest)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-16-cf-workers (canary)"
+      }
+    ]
+  }
+}

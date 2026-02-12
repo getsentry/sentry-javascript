@@ -1,6 +1,6 @@
 {
   "name": "@sentry/svelte",
-  "version": "10.32.1",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for Svelte",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte",
@@ -39,8 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.32.1",
-    "@sentry/core": "10.32.1",
+    "@sentry/browser": "10.38.0",
+    "@sentry/core": "10.38.0",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {
@@ -49,8 +49,8 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "1.4.0",
     "@testing-library/svelte": "^3.2.1",
-    "svelte": "3.49.0",
-    "vite": "^3.0.0"
+    "svelte": "3.59.2",
+    "vite": "^5.4.21"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

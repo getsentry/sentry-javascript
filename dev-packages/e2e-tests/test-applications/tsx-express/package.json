@@ -10,7 +10,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@trpc/server": "10.45.4",

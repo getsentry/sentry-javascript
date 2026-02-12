@@ -1,6 +1,6 @@
 {
   "name": "@sentry/google-cloud-serverless",
-  "version": "10.32.1",
+  "version": "10.38.0",
   "description": "Official Sentry SDK for Google Cloud Functions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless",
@@ -48,9 +48,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.32.1",
-    "@sentry/node": "10.32.1",
-    "@sentry/node-core": "10.32.1"
+    "@sentry/core": "10.38.0",
+    "@sentry/node": "10.38.0",
+    "@sentry/node-core": "10.38.0"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",

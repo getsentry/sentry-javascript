@@ -86,22 +86,24 @@ describe('anthropic-ai-utils', () => {
       setMessagesAttribute(span, [{ role: 'user', content }]);
       const result = [{ role: 'user', content: 'A'.repeat(19972) }];
       expect(mock.attributes).toStrictEqual({
-        'gen_ai.request.messages.original_length': 1,
-        'gen_ai.request.messages': JSON.stringify(result),
+        'sentry.sdk_meta.gen_ai.input.messages.original_length': 1,
+        'gen_ai.input.messages': JSON.stringify(result),
       });
     });
 
-    it('removes length when setting new value ', () => {
+    it('sets length to 1 for non-array input', () => {
       setMessagesAttribute(span, { content: 'hello, world' });
       expect(mock.attributes).toStrictEqual({
-        'gen_ai.request.messages': '{"content":"hello, world"}',
+        'sentry.sdk_meta.gen_ai.input.messages.original_length': 1,
+        'gen_ai.input.messages': '{"content":"hello, world"}',
       });
     });
 
     it('ignores empty array', () => {
       setMessagesAttribute(span, []);
       expect(mock.attributes).toStrictEqual({
-        'gen_ai.request.messages': '{"content":"hello, world"}',
+        'sentry.sdk_meta.gen_ai.input.messages.original_length': 1,
+        'gen_ai.input.messages': '{"content":"hello, world"}',
       });
     });
   });

@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
