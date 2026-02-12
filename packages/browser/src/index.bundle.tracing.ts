@@ -23,7 +23,10 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
+  withStreamSpan,
 } from '@sentry/core';
+
+export { spanStreamingIntegration } from './integrations/spanstreaming';
 
 export {
   browserTracingIntegration,
