@@ -2,9 +2,9 @@
  * Test that verifies thenable objects with extra methods (like jQuery's jqXHR)
  * preserve those methods when returned from Sentry.startSpan().
  *
- * This tests the Proxy fix for the GitHub issue where:
+ * Example case:
  *   const jqXHR = Sentry.startSpan({ name: "test" }, () => $.ajax(...));
- *   jqXHR.abort(); // Should work!
+ *   jqXHR.abort(); // Should work and not throw an error because of missing abort() method
  */
 
 // Load jQuery from CDN
@@ -34,41 +34,19 @@ async function runTest() {
       throw new Error('jQuery not loaded');
     }
 
-    // Real-world test: Wrap actual jQuery $.ajax() call in startSpan
     const result = Sentry.startSpan({ name: 'test-jqxhr', op: 'http.client' }, () => {
       // Make a real AJAX request with jQuery
-      const d = window.jQuery.ajax({
+      return window.jQuery.ajax({
         url: 'https://httpbin.org/status/200',
         method: 'GET',
         timeout: 5000,
       });
-      // Check if jqXHR methods are preserved
-      const hasAbort1 = typeof d.abort === 'function';
-      const hasStatus1 = 'status' in d;
-      const hasReadyState1 = 'readyState' in d;
-
-      console.log('[AJAX CALL] jqXHR object:', Object.keys(d));
-
-      console.log('jqXHR methods preserved:', d.readyState, { hasAbort1, hasStatus1, hasReadyState1 });
-
-      return d;
     });
 
-    // Check if jqXHR methods are preserved using 'in' operator (tests has trap)
     const hasAbort = typeof result.abort === 'function';
     const hasReadyState = 'readyState' in result;
 
-    console.log('Result object keys:', Object.keys(result));
-
-    console.log('jqXHR methods preserved:', {
-      hasAbort,
-      hasReadyState,
-      readyStateValue: result.readyState,
-      abortType: typeof result.abort,
-    });
-
-    if (true || (hasAbort && hasReadyState)) {
-      // Call abort() to test it works
+    if (hasAbort && hasReadyState) {
       try {
         result.abort();
         window.jqXHRAbortCalled = true;
