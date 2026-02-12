@@ -1,12 +1,14 @@
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports, import/no-duplicates
 import { ElementRef } from '@angular/core';
+// eslint-disable-next-line import/no-duplicates
 import { Directive, Injectable, Input, NgModule } from '@angular/core';
 import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
 // Duplicated import to work around a TypeScript bug where it'd complain that `Router` isn't imported as a type.
 // We need to import it as a value to satisfy Angular dependency injection. So:
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports, import/no-duplicates
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
+// eslint-disable-next-line import/no-duplicates
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
   browserTracingIntegration as originalBrowserTracingIntegration,

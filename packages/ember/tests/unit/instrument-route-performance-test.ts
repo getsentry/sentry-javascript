@@ -2,7 +2,7 @@ import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
 import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
-import sinon from 'sinon';
+import { spy } from 'sinon';
 import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
@@ -11,10 +11,10 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
   setupSentryTest(hooks);
 
   test('wrapped Route hooks maintain the current context', function (this: SentryTestContext, assert) {
-    const beforeModel = sinon.spy();
-    const model = sinon.spy();
-    const afterModel = sinon.spy();
-    const setupController = sinon.spy();
+    const beforeModel = spy();
+    const model = spy();
+    const afterModel = spy();
+    const setupController = spy();
 
     class DummyRoute extends Route {
       public beforeModel(...args: unknown[]): ReturnType<Route['beforeModel']> {

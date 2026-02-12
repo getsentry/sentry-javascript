@@ -1,11 +1,11 @@
 import type { TestContext } from '@ember/test-helpers';
 import { resetOnerror, setupOnerror } from '@ember/test-helpers';
-import sinon from 'sinon';
+import { type SinonStub, stub } from 'sinon';
 
 export type SentryTestContext = TestContext & {
   errorMessages: string[];
-  fetchStub: sinon.SinonStub;
-  qunitOnUnhandledRejection: sinon.SinonStub;
+  fetchStub: SinonStub;
+  qunitOnUnhandledRejection: SinonStub;
   _windowOnError: OnErrorEventHandler;
 };
 
@@ -19,13 +19,13 @@ export function setupSentryTest(hooks: NestedHooks): void {
     /**
      * Stub out fetch function to assert on Sentry calls.
      */
-    this.fetchStub = sinon.stub(window, 'fetch');
+    this.fetchStub = stub(window, 'fetch');
 
     /**
      * Stops global test suite failures from unhandled rejections and allows assertion on them.
      * onUncaughtException is used in QUnit 2.17 onwards.
      */
-    this.qunitOnUnhandledRejection = sinon.stub(
+    this.qunitOnUnhandledRejection = stub(
       QUnit,
       // @ts-expect-error this is OK
       QUnit.onUncaughtException ? 'onUncaughtException' : 'onUnhandledRejection',
