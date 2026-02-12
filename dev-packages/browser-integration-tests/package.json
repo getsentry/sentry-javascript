@@ -16,7 +16,7 @@
     "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
     "test": "yarn test:all --project='chromium'",
-    "test:all": "npx playwright test -c playwright.browser.config.ts  -g 'thenable'",
+    "test:all": "npx playwright test -c playwright.browser.config.ts",
     "test:bundle": "PW_BUNDLE=bundle yarn test",
     "test:bundle:min": "PW_BUNDLE=bundle_min yarn test",
     "test:bundle:logs_metrics": "PW_BUNDLE=bundle_logs_metrics yarn test",
