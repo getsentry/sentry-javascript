@@ -19,6 +19,7 @@ import {
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import { tracingChannel } from 'otel-tracing-channel';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
+import { setServerTimingHeaders } from './setServerTimingHeaders';
 
 /**
  * Global object with the trace channels
@@ -118,7 +119,9 @@ function setupH3TracingChannels(): void {
   });
 
   h3Channel.subscribe({
-    start: NOOP,
+    start: (data: H3TracingRequestEvent) => {
+      setServerTimingHeaders(data.event);
+    },
     asyncStart: NOOP,
     end: NOOP,
     asyncEnd: (data: H3TracingRequestEvent & { span?: Span; result?: unknown }) => {
