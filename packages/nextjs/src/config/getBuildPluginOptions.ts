@@ -285,6 +285,12 @@ export function getBuildPluginOptions({
   const finalIgnorePatterns = mergeIgnorePatterns(sourcemapUploadIgnore, sentryBuildOptions.sourcemaps?.ignore);
 
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
+
+  if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
+    // eslint-disable-next-line no-console
+    console.debug('[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:', userFilesToDeleteAfterUpload);
+  }
+
   const filesToDeleteAfterUpload =
     userFilesToDeleteAfterUpload !== undefined
       ? Array.isArray(userFilesToDeleteAfterUpload)
