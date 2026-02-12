@@ -59,7 +59,7 @@ describe('spanStreamingIntegration', () => {
     client.init();
 
     expect(debugSpy).toHaveBeenCalledWith(
-      'spanStreamingIntegration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
+      'SpanStreaming integration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
     );
     debugSpy.mockRestore();
 
@@ -80,11 +80,25 @@ describe('spanStreamingIntegration', () => {
     client.init();
 
     expect(debugSpy).toHaveBeenCalledWith(
-      'spanStreamingIntegration requires a beforeSendSpan callback using `withStreamSpan`! Falling back to static trace lifecycle.',
+      'SpanStreaming integration requires a beforeSendSpan callback using `withStreamedSpan`! Falling back to static trace lifecycle.',
     );
     debugSpy.mockRestore();
 
     expect(client.getOptions().traceLifecycle).toBe('static');
+  });
+
+  it('does nothing if traceLifecycle set to "stream"', () => {
+    const client = new BrowserClient({
+      ...getDefaultBrowserClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    expect(client.getOptions().traceLifecycle).toBe('stream');
   });
 
   it('enqueues a span into the buffer when the span ends', () => {
@@ -92,7 +106,6 @@ describe('spanStreamingIntegration', () => {
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'stream',
     });
 
     SentryCore.setCurrentClient(client);

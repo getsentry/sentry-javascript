@@ -621,13 +621,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a callback for after a span is ended and the `spanEnd` hook has run.
    * NOTE: The span cannot be mutated anymore in this callback.
    */
-  public on(hook: 'afterSpanEnd', callback: (span: Span) => void): () => void;
+  public on(hook: 'afterSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
 
   /**
    * Register a callback for after a segment span is ended and the `segmentSpanEnd` hook has run.
    * NOTE: The segment span cannot be mutated anymore in this callback.
    */
-  public on(hook: 'afterSegmentSpanEnd', callback: (segmentSpan: Span) => void): () => void;
+  public on(hook: 'afterSegmentSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
@@ -912,14 +912,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'spanEnd', span: Span): void;
 
   /**
-   * Fire a hook event when a span ends.
+   * Fire a hook event after a span ends and the `spanEnd` hook has run.
    */
-  public emit(hook: 'afterSpanEnd', span: Span): void;
+  public emit(hook: 'afterSpanEnd', immutableSpan: Readonly<Span>): void;
 
   /**
-   * Fire a hook event when a segment span ends.
+   * Fire a hook event after a segment span ends and the `spanEnd` hook has run.
    */
-  public emit(hook: 'afterSegmentSpanEnd', segmentSpan: Span): void;
+  public emit(hook: 'afterSegmentSpanEnd', immutableSegmentSpan: Readonly<Span>): void;
 
   /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
