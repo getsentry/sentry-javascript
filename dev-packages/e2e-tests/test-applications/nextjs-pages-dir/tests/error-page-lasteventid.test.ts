@@ -11,8 +11,6 @@ test('lastEventId() should return the event ID after captureUnderscoreErrorExcep
   await page.goto('/underscore-error/test-error-page');
   const errorEvent = await errorEventPromise;
 
-  console.log('errorEvent.exception?.values?.[0]?.mechanism', errorEvent.exception?.values?.[0]?.mechanism);
-
   // Since the error is already captured by withErrorInstrumentation in getServerSideProps,
   // the mechanism should be 'auto.function.nextjs.wrapped', not 'auto.function.nextjs.underscore_error'
   expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.function.nextjs.wrapped');

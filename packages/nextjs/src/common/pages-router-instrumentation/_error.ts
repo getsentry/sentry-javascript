@@ -1,8 +1,8 @@
 import {
   captureException,
   getIsolationScope,
-  checkOrSetAlreadyCaught,
   httpRequestToRequestData,
+  isAlreadyCaptured,
   withScope,
 } from '@sentry/core';
 import type { NextPageContext } from 'next';
@@ -46,7 +46,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
   // If the error was already captured (e.g., by wrapped functions in data fetchers),
   // return the existing event ID instead of capturing it again (needed for lastEventId() to work)
-  if (err && checkOrSetAlreadyCaught(err)) {
+  if (err && isAlreadyCaptured(err)) {
     waitUntil(flushSafelyWithTimeout());
     return getIsolationScope().lastEventId();
   }

@@ -219,6 +219,7 @@ export {
   addExceptionMechanism,
   addExceptionTypeValue,
   checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
   getEventDescription,
   parseSemver,
   uuid4,
