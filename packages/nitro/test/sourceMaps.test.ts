@@ -1,8 +1,9 @@
+import { debug } from '@sentry/core';
 import type { NitroConfig } from 'nitro/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNitroOptions } from '../src/config';
 import { setupSentryNitroModule } from '../src/config';
-import { getPluginOptions, setupSourceMaps } from '../src/sourceMaps';
+import { configureSourcemapSettings, getPluginOptions, setupSourceMaps } from '../src/sourceMaps';
 
 vi.mock('../src/instruments/instrumentServer', () => ({
   instrumentServer: vi.fn(),
@@ -131,43 +132,36 @@ describe('getPluginOptions', () => {
   });
 });
 
-describe('setupSentryNitroModule', () => {
+describe('configureSourcemapSettings', () => {
   it('enables sourcemap generation on the config', () => {
     const config: NitroConfig = {};
-    setupSentryNitroModule(config);
+    configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(true);
   });
 
   it('forces sourcemap to true even when user set it to false', () => {
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
     const config: NitroConfig = { sourcemap: false };
-    setupSentryNitroModule(config);
+    configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(true);
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('overriding this to `true`'));
-    consoleSpy.mockRestore();
+    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('overriding this to `true`'));
+    debugSpy.mockRestore();
   });
 
   it('keeps sourcemap true when user already set it', () => {
     const config: NitroConfig = { sourcemap: true };
-    setupSentryNitroModule(config);
+    configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(true);
   });
 
   it('disables experimental sourcemapMinify', () => {
     const config: NitroConfig = {};
-    setupSentryNitroModule(config);
+    configureSourcemapSettings(config);
 
     expect(config.experimental?.sourcemapMinify).toBe(false);
-  });
-
-  it('sets sourcemapExcludeSources to false in rollupConfig', () => {
-    const config: NitroConfig = {};
-    setupSentryNitroModule(config);
-
-    expect(config.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
   });
 
   it('preserves existing experimental config', () => {
@@ -176,51 +170,27 @@ describe('setupSentryNitroModule', () => {
         sourcemapMinify: undefined,
       },
     };
-    setupSentryNitroModule(config);
+    configureSourcemapSettings(config);
 
     expect(config.experimental?.sourcemapMinify).toBe(false);
   });
 
-  it('preserves existing rollupConfig', () => {
-    const config: NitroConfig = {
-      rollupConfig: {
-        output: {
-          format: 'esm' as const,
-        },
-      },
-    };
-    setupSentryNitroModule(config);
-
-    expect(config.rollupConfig?.output?.format).toBe('esm');
-    expect(config.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
-  });
-
   it('skips sourcemap config when sourcemaps.disable is true', () => {
     const config: NitroConfig = { sourcemap: false };
-    setupSentryNitroModule(config, { sourcemaps: { disable: true } });
+    configureSourcemapSettings(config, { sourcemaps: { disable: true } });
 
-    // Should NOT override the user's sourcemap: false
     expect(config.sourcemap).toBe(false);
-    expect(config.rollupConfig).toBeUndefined();
   });
 
   it('skips sourcemap config when disable is true', () => {
     const config: NitroConfig = { sourcemap: false };
-    setupSentryNitroModule(config, { disable: true });
+    configureSourcemapSettings(config, { disable: true });
 
-    // Should NOT override the user's sourcemap: false
     expect(config.sourcemap).toBe(false);
-    expect(config.rollupConfig).toBeUndefined();
   });
+});
 
-  it('still adds module when sourcemaps are disabled', () => {
-    const config: NitroConfig = {};
-    setupSentryNitroModule(config, { sourcemaps: { disable: true } });
-
-    expect(config.modules).toBeDefined();
-    expect(config.modules?.length).toBe(1);
-  });
-
+describe('setupSentryNitroModule', () => {
   it('enables tracing', () => {
     const config: NitroConfig = {};
     setupSentryNitroModule(config);
@@ -232,6 +202,14 @@ describe('setupSentryNitroModule', () => {
   it('adds the sentry module', () => {
     const config: NitroConfig = {};
     setupSentryNitroModule(config);
+
+    expect(config.modules).toBeDefined();
+    expect(config.modules?.length).toBe(1);
+  });
+
+  it('still adds module when sourcemaps are disabled', () => {
+    const config: NitroConfig = {};
+    setupSentryNitroModule(config, { sourcemaps: { disable: true } });
 
     expect(config.modules).toBeDefined();
     expect(config.modules?.length).toBe(1);
