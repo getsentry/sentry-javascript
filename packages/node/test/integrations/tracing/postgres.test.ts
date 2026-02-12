@@ -60,7 +60,7 @@ describe('postgres integration', () => {
 
   it('second call to instrumentPostgres passes full config to setConfig, not raw user options', () => {
     const mockSetConfig = vi.fn();
-    (PgInstrumentation as unknown as MockInstance).mockImplementation((config: unknown) => ({
+    (PgInstrumentation as unknown as MockInstance).mockImplementation(() => ({
       setTracerProvider: () => undefined,
       setMeterProvider: () => undefined,
       getConfig: () => ({}),
