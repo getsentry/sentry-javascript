@@ -288,7 +288,10 @@ export function getBuildPluginOptions({
 
   if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
     // eslint-disable-next-line no-console
-    console.debug('[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:', userFilesToDeleteAfterUpload);
+    console.debug(
+      '[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:',
+      userFilesToDeleteAfterUpload,
+    );
   }
 
   const filesToDeleteAfterUpload =
