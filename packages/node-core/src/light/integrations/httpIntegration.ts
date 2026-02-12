@@ -1,6 +1,6 @@
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
-import type { IncomingMessage, RequestOptions, Server } from 'node:http';
+import type { ClientRequest, IncomingMessage, RequestOptions, Server } from 'node:http';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import {
   continueTrace,
@@ -9,19 +9,25 @@ import {
   getCurrentScope,
   getIsolationScope,
   httpRequestToRequestData,
+  LRUMap,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { patchRequestToCaptureBody } from '../../utils/captureRequestBody';
+import {
+  addRequestBreadcrumb,
+  addTracePropagationHeadersToOutgoingRequest,
+  getRequestOptions,
+} from '../../utils/outgoingHttpRequest';
 import type { LightNodeClient } from '../client';
 
-const INTEGRATION_NAME = 'Http.Server';
+const INTEGRATION_NAME = 'Http';
 
 // We keep track of emit functions we wrapped, to avoid double wrapping
 const wrappedEmitFns = new WeakSet<typeof Server.prototype.emit>();
 
-export interface HttpServerIntegrationOptions {
+export interface HttpIntegrationOptions {
   /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
@@ -46,43 +52,74 @@ export interface HttpServerIntegrationOptions {
    * @default 'medium'
    */
   maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
+   * Whether breadcrumbs should be recorded for outgoing requests.
+   *
+   * @default `true`
+   */
+  breadcrumbs?: boolean;
+
+  /**
+   * Do not capture breadcrumbs or propagate trace headers for outgoing HTTP requests to URLs
+   * where the given callback returns `true`.
+   *
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
+   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   */
+  ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 }
 
-const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => {
+const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
   const _options = {
     maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
     ignoreRequestBody: options.ignoreRequestBody,
+    breadcrumbs: options.breadcrumbs ?? true,
+    ignoreOutgoingRequests: options.ignoreOutgoingRequests,
   };
+
+  const propagationDecisionMap = new LRUMap<string, boolean>(100);
+  const ignoreOutgoingRequestsMap = new WeakMap<ClientRequest, boolean>();
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       const onHttpServerRequestStart = ((_data: unknown) => {
         const data = _data as { server: Server };
-
         instrumentServer(data.server, _options);
       }) satisfies ChannelListener;
 
+      const onHttpClientRequestCreated = ((_data: unknown) => {
+        const data = _data as { request: ClientRequest };
+        onOutgoingRequestCreated(data.request, _options, propagationDecisionMap, ignoreOutgoingRequestsMap);
+      }) satisfies ChannelListener;
+
+      const onHttpClientResponseFinish = ((_data: unknown) => {
+        const data = _data as { request: ClientRequest; response: IncomingMessage };
+        onOutgoingRequestFinish(data.request, data.response, _options, ignoreOutgoingRequestsMap);
+      }) satisfies ChannelListener;
+
+      const onHttpClientRequestError = ((_data: unknown) => {
+        const data = _data as { request: ClientRequest };
+        onOutgoingRequestFinish(data.request, undefined, _options, ignoreOutgoingRequestsMap);
+      }) satisfies ChannelListener;
+
       subscribe('http.server.request.start', onHttpServerRequestStart);
+      subscribe('http.client.request.created', onHttpClientRequestCreated);
+      subscribe('http.client.response.finish', onHttpClientResponseFinish);
+      subscribe('http.client.request.error', onHttpClientRequestError);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * This integration handles request isolation and trace continuation for incoming http requests
- * in light mode (without OpenTelemetry).
+ * This integration handles incoming and outgoing HTTP requests in light mode (without OpenTelemetry).
  *
- * This is a lightweight alternative to the OpenTelemetry-based httpServerIntegration.
- * It uses Node's native AsyncLocalStorage for scope isolation and Sentry's continueTrace for trace propagation.
- *
- * Note: This integration requires Node.js 22+ (for http.server.request.start diagnostics channel).
- *
- * @see {@link ../../integrations/http/httpServerIntegration.ts} for the OpenTelemetry-based version
+ * It uses Node's native diagnostics channels (Node.js 22+) for request isolation,
+ * trace propagation, and breadcrumb creation.
  */
-export const httpServerIntegration = _httpServerIntegration as (
-  options?: HttpServerIntegrationOptions,
-) => Integration & {
-  name: 'Http.Server';
+export const httpIntegration = _httpIntegration as (options?: HttpIntegrationOptions) => Integration & {
+  name: 'Http';
   setupOnce: () => void;
 };
 
@@ -171,4 +208,64 @@ function instrumentServer(
 
   wrappedEmitFns.add(newEmit);
   server.emit = newEmit;
+}
+
+function onOutgoingRequestCreated(
+  request: ClientRequest,
+  options: { ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean },
+  propagationDecisionMap: LRUMap<string, boolean>,
+  ignoreOutgoingRequestsMap: WeakMap<ClientRequest, boolean>,
+): void {
+  const shouldIgnore = shouldIgnoreOutgoingRequest(request, options);
+  ignoreOutgoingRequestsMap.set(request, shouldIgnore);
+
+  if (shouldIgnore) {
+    return;
+  }
+
+  addTracePropagationHeadersToOutgoingRequest(request, propagationDecisionMap);
+}
+
+function onOutgoingRequestFinish(
+  request: ClientRequest,
+  response: IncomingMessage | undefined,
+  options: {
+    breadcrumbs: boolean;
+    ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
+  },
+  ignoreOutgoingRequestsMap: WeakMap<ClientRequest, boolean>,
+): void {
+  if (!options.breadcrumbs) {
+    return;
+  }
+
+  // Note: We cannot rely on the map being set by `onOutgoingRequestCreated`, because that channel
+  // only exists since Node 22
+  const shouldIgnore = ignoreOutgoingRequestsMap.get(request) ?? shouldIgnoreOutgoingRequest(request, options);
+
+  if (shouldIgnore) {
+    return;
+  }
+
+  addRequestBreadcrumb(request, response);
+}
+
+/** Check if the given outgoing request should be ignored. */
+function shouldIgnoreOutgoingRequest(
+  request: ClientRequest,
+  options: { ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean },
+): boolean {
+  // Check if tracing is suppressed (e.g. for Sentry's own transport requests)
+  if (getCurrentScope().getScopeData().sdkProcessingMetadata.__SENTRY_SUPPRESS_TRACING__) {
+    return true;
+  }
+
+  const { ignoreOutgoingRequests } = options;
+
+  if (!ignoreOutgoingRequests) {
+    return false;
+  }
+
+  const url = `${request.protocol}//${request.getHeader('host') || request.host}${request.path}`;
+  return ignoreOutgoingRequests(url, getRequestOptions(request));
 }
