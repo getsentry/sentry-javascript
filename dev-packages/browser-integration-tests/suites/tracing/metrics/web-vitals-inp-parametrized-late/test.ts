@@ -71,6 +71,8 @@ sentryTest(
         'sentry.source': 'custom',
         transaction: 'test-route',
         'user_agent.original': expect.stringContaining('Chrome'),
+        'browser.web_vital.inp.value': inpValue,
+        inp: inpValue,
       },
       measurements: {
         inp: {

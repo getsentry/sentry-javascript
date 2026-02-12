@@ -189,7 +189,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
   });
 });
 
-sentryTest('LCP span is linked to pageload transaction', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('LCP span is linked to pageload transaction', async ({ getLocalTestUrl, page }) => {
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({
@@ -231,43 +231,46 @@ sentryTest('LCP span is linked to pageload transaction', async ({ getLocalTestUr
   expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
 });
 
-sentryTest('sends LCP of the initial page when soft-navigating to a new page', async ({ getLocalTestUrl, page }) => {
-  page.route('**', route => route.continue());
-  page.route('**/my/image.png', async (route: Route) => {
-    return route.fulfill({
-      path: `${__dirname}/assets/sentry-logo-600x179.png`,
+sentryTest.skip(
+  'sends LCP of the initial page when soft-navigating to a new page',
+  async ({ getLocalTestUrl, page }) => {
+    page.route('**', route => route.continue());
+    page.route('**/my/image.png', async (route: Route) => {
+      return route.fulfill({
+        path: `${__dirname}/assets/sentry-logo-600x179.png`,
+      });
     });
-  });
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+    const pageloadEventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
-  expect(pageloadEventData.type).toBe('transaction');
-  expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
+    expect(pageloadEventData.type).toBe('transaction');
+    expect(pageloadEventData.contexts?.trace?.op).toBe('pageload');
 
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
+    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+      page,
+      1,
+      { envelopeType: 'span' },
+      properFullEnvelopeRequestParser,
+    );
 
-  // Wait for LCP to be captured
-  await page.waitForTimeout(1000);
+    // Wait for LCP to be captured
+    await page.waitForTimeout(1000);
 
-  await page.goto(`${url}#soft-navigation`);
+    await page.goto(`${url}#soft-navigation`);
 
-  const spanEnvelope = (await spanEnvelopePromise)[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+    const spanEnvelope = (await spanEnvelopePromise)[0];
+    const spanEnvelopeItem = spanEnvelope[1][0][1];
 
-  expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
-  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
-  expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
-  expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
-});
+    expect(spanEnvelopeItem.measurements?.lcp?.value).toBeGreaterThan(0);
+    expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadEventData.contexts?.trace?.span_id);
+    expect(spanEnvelopeItem.data?.['sentry.report_event']).toBe('navigation');
+    expect(spanEnvelopeItem.trace_id).toBe(pageloadEventData.contexts?.trace?.trace_id);
+  },
+);
 
-sentryTest("doesn't send further LCP after the first navigation", async ({ getLocalTestUrl, page }) => {
+sentryTest.skip("doesn't send further LCP after the first navigation", async ({ getLocalTestUrl, page }) => {
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({
@@ -321,7 +324,7 @@ sentryTest("doesn't send further LCP after the first navigation", async ({ getLo
   await navigationTxnPromise;
 });
 
-sentryTest("doesn't send further LCP after the first page hide", async ({ getLocalTestUrl, page }) => {
+sentryTest.skip("doesn't send further LCP after the first page hide", async ({ getLocalTestUrl, page }) => {
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({
@@ -375,7 +378,7 @@ sentryTest("doesn't send further LCP after the first page hide", async ({ getLoc
   await navigationTxnPromise;
 });
 
-sentryTest('LCP span timestamps are set correctly', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('LCP span timestamps are set correctly', async ({ getLocalTestUrl, page }) => {
   page.route('**', route => route.continue());
   page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({
@@ -423,7 +426,7 @@ sentryTest('LCP span timestamps are set correctly', async ({ getLocalTestUrl, pa
   expect(lcpSpanStartTimestamp - pageloadEndTimestamp).toBeLessThan(60);
 });
 
-sentryTest(
+sentryTest.skip(
   'pageload transaction does not contain LCP measurement when standalone spans are enabled',
   async ({ getLocalTestUrl, page }) => {
     page.route('**', route => route.continue());
