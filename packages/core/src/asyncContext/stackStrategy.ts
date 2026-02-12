@@ -58,9 +58,10 @@ export class AsyncContextStack {
           this._popScope();
           return res;
         },
-        e => {
+        _e => {
           this._popScope();
-          throw e;
+          // We don't re-throw the error here because the caller already receives the original rejection, and it's being handled by the caller of withScope.
+          // Re-throwing it here would cause unhandled promise rejections.
         },
       );
 
