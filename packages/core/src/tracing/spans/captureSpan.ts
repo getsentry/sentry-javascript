@@ -51,7 +51,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
-  if (span === segmentSpan) {
+  if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
     // Allow hook subscribers to mutate the segment span JSON
     client.emit('processSegmentSpan', spanJSON);
