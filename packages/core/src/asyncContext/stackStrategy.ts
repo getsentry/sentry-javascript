@@ -52,8 +52,8 @@ export class AsyncContextStack {
     }
 
     if (isThenable(maybePromiseResult)) {
-      // @ts-expect-error - isThenable returns the wrong type
-      return maybePromiseResult.then(
+      // Attach handlers but still return original promise
+      maybePromiseResult.then(
         res => {
           this._popScope();
           return res;
@@ -63,6 +63,8 @@ export class AsyncContextStack {
           throw e;
         },
       );
+
+      return maybePromiseResult;
     }
 
     this._popScope();
