@@ -210,6 +210,32 @@ describe('startSpan', () => {
     });
   });
 
+  describe('AsyncContext withScope promise integrity behavior', () => {
+    it('returns the original promise instance', async () => {
+      const original = Promise.resolve(42);
+      const result = startSpan({}, () => original);
+      expect(result).toBe(original); // New behavior
+    });
+
+    it('returns same instance on multiple calls', () => {
+      const p = Promise.resolve(1);
+      const result1 = startSpan({}, () => p);
+      const result2 = startSpan({}, () => p);
+      expect(result1).toBe(result2);
+    });
+
+    it('preserves custom thenable methods', async () => {
+      const jqXHR = {
+        then: Promise.resolve(1).then.bind(Promise.resolve(1)),
+        abort: vi.fn(),
+      };
+      const result = startSpan({}, () => jqXHR);
+      expect(typeof result.abort).toBe('function');
+      result.abort();
+      expect(jqXHR.abort).toHaveBeenCalled();
+    });
+  });
+
   it('returns a non recording span if tracing is disabled', () => {
     const options = getDefaultTestClientOptions({});
     client = new TestClient(options);
