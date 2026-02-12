@@ -632,8 +632,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 export type SpanV2CompatibleBeforeSendSpanCallback = ((span: SpanV2JSON) => SpanV2JSON) & { _v2: true };
 
 /** Base configuration options for every SDK. */
-export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions>
-  extends Omit<Partial<ClientOptions<TO>>, 'integrations' | 'transport' | 'stackParser'> {
+export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
+  Partial<ClientOptions<TO>>,
+  'integrations' | 'transport' | 'stackParser'
+> {
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.
