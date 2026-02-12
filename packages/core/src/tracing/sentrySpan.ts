@@ -342,7 +342,7 @@ export class SentrySpan implements Span {
       return;
     } else if (client && hasSpanStreamingEnabled(client)) {
       // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
-      client?.emit('afterSegmentSpanEnd', this);
+      client.emit('afterSegmentSpanEnd', this);
       return;
     }
 
