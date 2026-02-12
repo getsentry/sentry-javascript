@@ -106,6 +106,7 @@ function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined
 }
 
 /** Inits the Sentry NextJS SDK on node. */
+// eslint-disable-next-line complexity
 export function init(options: NodeOptions): NodeClient | undefined {
   prepareSafeIdGeneratorContext();
   if (isBuild()) {
