@@ -18,7 +18,10 @@ export {
   startSpan,
   startSpanManual,
   withActiveSpan,
+  withStreamSpan,
 } from '@sentry/core';
+
+export { spanStreamingIntegration } from './integrations/spanstreaming';
 
 export {
   browserTracingIntegration,
