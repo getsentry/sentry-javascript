@@ -1,7 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _sendStandaloneClsSpan } from '../../src/metrics/cls';
-import * as WebVitalUtils from '../../src/metrics/utils';
 
 // Mock all Sentry core dependencies
 vi.mock('@sentry/core', async () => {
