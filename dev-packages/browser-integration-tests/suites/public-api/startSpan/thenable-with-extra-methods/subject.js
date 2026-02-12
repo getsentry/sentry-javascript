@@ -47,6 +47,8 @@ async function runTest() {
       const hasStatus1 = 'status' in d;
       const hasReadyState1 = 'readyState' in d;
 
+      console.log('[AJAX CALL] jqXHR object:', Object.keys(d));
+
       console.log('jqXHR methods preserved:', d.readyState, { hasAbort1, hasStatus1, hasReadyState1 });
 
       return d;
@@ -56,7 +58,7 @@ async function runTest() {
     const hasAbort = typeof result.abort === 'function';
     const hasReadyState = 'readyState' in result;
 
-    console.log('Result from startSpan:', result.toString(), Object.keys(result));
+    console.log('Result object keys:', Object.keys(result));
 
     console.log('jqXHR methods preserved:', {
       hasAbort,
@@ -65,7 +67,7 @@ async function runTest() {
       abortType: typeof result.abort,
     });
 
-    if (hasAbort && hasReadyState) {
+    if (true || (hasAbort && hasReadyState)) {
       // Call abort() to test it works
       try {
         result.abort();
@@ -73,6 +75,7 @@ async function runTest() {
         window.jqXHRAbortResult = 'abort-successful';
         window.jqXHRMethodsPreserved = true;
       } catch (e) {
+        console.log('abort() threw an error:', e);
         window.jqXHRTestError = `abort() failed: ${e.message}`;
         window.jqXHRMethodsPreserved = false;
       }

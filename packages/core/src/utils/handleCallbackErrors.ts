@@ -76,96 +76,19 @@ function maybeHandlePromiseRejection<MaybePromise>(
   onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
-    // Track whether we've already attached handlers to avoid calling callbacks multiple times
-    let handlersAttached = false;
-
-    // 1. Wrap the original thenable in a Proxy to preserve all its methods
-    return new Proxy(value, {
-      get(target, prop, receiver) {
-        // Special handling for .then() - intercept it to add error handling
-        if (prop === 'then' && typeof target.then === 'function') {
-          return function (
-            onfulfilled?: ((value: unknown) => unknown) | null,
-            onrejected?: ((reason: unknown) => unknown) | null,
-          ) {
-            // Only attach handlers once to avoid calling callbacks multiple times
-            if (!handlersAttached) {
-              handlersAttached = true;
-
-              // Wrap the fulfillment handler to call our callbacks
-              const wrappedOnFulfilled = onfulfilled
-                ? (res: unknown) => {
-                    onFinally();
-                    onSuccess(res as MaybePromise);
-                    return onfulfilled(res);
-                  }
-                : (res: unknown) => {
-                    onFinally();
-                    onSuccess(res as MaybePromise);
-                    return res;
-                  };
-
-              // Wrap the rejection handler to call our callbacks
-              const wrappedOnRejected = onrejected
-                ? (err: unknown) => {
-                    onError(err);
-                    onFinally();
-                    return onrejected(err);
-                  }
-                : (err: unknown) => {
-                    onError(err);
-                    onFinally();
-                    throw err;
-                  };
-
-              // Call the original .then() with our wrapped handlers
-              const thenResult = target.then.call(target, wrappedOnFulfilled, wrappedOnRejected);
-
-              // 2. Some thenable implementations (like jQuery) return a new object from .then()
-              // that doesn't include custom properties from the original (like .abort()).
-              // We wrap the result in another Proxy to preserve access to those properties.
-              return new Proxy(thenResult, {
-                get(thenTarget, thenProp) {
-                  // First try to get the property from the .then() result
-                  const thenValue = Reflect.get(thenTarget, thenProp, thenTarget);
-                  if (thenValue !== undefined) {
-                    return typeof thenValue === 'function' ? thenValue.bind(thenTarget) : thenValue;
-                  }
-
-                  // Fall back to the original object for properties like .abort()
-                  const originalValue = Reflect.get(target, thenProp, target);
-                  if (originalValue !== undefined) {
-                    return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
-                  }
-
-                  return undefined;
-                },
-                has(thenTarget, thenProp) {
-                  // Check if property exists in either the .then() result or the original object
-                  return thenProp in thenTarget || thenProp in (target as object);
-                },
-              });
-            } else {
-              // Subsequent .then() calls pass through without additional wrapping
-              return target.then.call(target, onfulfilled, onrejected);
-            }
-          };
-        }
-
-        // For all other properties, forward to the original object
-        const originalValue = Reflect.get(target, prop, target);
-        if (originalValue !== undefined) {
-          // Bind methods to preserve 'this' context
-          return typeof originalValue === 'function' ? originalValue.bind(target) : originalValue;
-        }
-
-        return undefined;
+    // Attach handlers but still return original promise
+    value.then(
+      res => {
+        onFinally();
+        onSuccess(res);
       },
-      has(target, prop) {
-        // Check if property exists in the original object
-        return prop in (target as object);
+      err => {
+        onError(err);
+        onFinally();
       },
-    });
+    );
+
+    return value;
   }
 
   // Non-thenable value - call callbacks immediately and return as-is
