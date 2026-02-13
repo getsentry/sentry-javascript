@@ -987,7 +987,7 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
-        if: matrix.test-application == 'node-exports-test-app'
+        if: contains(fromJSON('["node-exports-test-app","nextjs-16-bun"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless'
