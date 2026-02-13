@@ -1,5 +1,6 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import { addBreadcrumb, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { storeSpanContext } from '../utils/traceLinks';
 
 const STORAGE_METHODS_TO_INSTRUMENT = [
   'get',
@@ -108,6 +109,9 @@ function createBreadcrumb(methodName: StorageMethod, args: unknown[]): void {
  * - deleteAll, sync, transaction
  * - getCurrentBookmark, getBookmarkForTime, onNextSessionRestoreBookmark
  *
+ * Additionally, when `setAlarm` is called, it stores the current span context
+ * so that the subsequent alarm execution can link back to the span that scheduled it.
+ *
  * @param storage - The DurableObjectStorage instance to instrument
  * @returns An instrumented DurableObjectStorage instance
  */
@@ -144,8 +148,13 @@ export function instrumentDurableObjectStorage(storage: DurableObjectStorage): D
             // Add breadcrumb after operation completes (for promises, after resolution)
             if (result instanceof Promise) {
               return result.then(
-                res => {
+                async res => {
                   createBreadcrumb(methodName as StorageMethod, args);
+                  // When setAlarm is called, store the current span context so the alarm
+                  // can link back to the span that scheduled it
+                  if (methodName === 'setAlarm') {
+                    await storeSpanContext(target, 'alarm');
+                  }
                   return res;
                 },
                 err => {
