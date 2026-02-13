@@ -292,7 +292,7 @@ jobs:
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
