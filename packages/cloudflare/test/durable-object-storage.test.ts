@@ -8,6 +8,7 @@ vi.mock('@sentry/core', async importOriginal => {
     ...actual,
     startSpan: vi.fn((opts, callback) => callback()),
     addBreadcrumb: vi.fn(),
+    getActiveSpan: vi.fn(),
   };
 });
 
@@ -214,6 +215,44 @@ describe('instrumentDurableObjectStorage', () => {
           }),
         },
         expect.any(Function),
+      );
+    });
+
+    it('stores span context on setAlarm for trace linking', async () => {
+      const mockSpanContext = {
+        traceId: 'abc123def456789012345678901234ab',
+        spanId: '1234567890abcdef',
+      };
+      const mockSpan = {
+        spanContext: vi.fn().mockReturnValue(mockSpanContext),
+      };
+      vi.mocked(sentryCore.getActiveSpan).mockReturnValue(mockSpan as any);
+
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.setAlarm(Date.now() + 1000);
+
+      // Verify that the span context was stored for future alarm trace linking
+      expect(mockStorage.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', {
+        traceId: 'abc123def456789012345678901234ab',
+        spanId: '1234567890abcdef',
+      });
+    });
+
+    it('does not store span context on setAlarm when no active span', async () => {
+      vi.mocked(sentryCore.getActiveSpan).mockReturnValue(undefined);
+
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.setAlarm(Date.now() + 1000);
+
+      // put should not have been called for trace link storage
+      // (only setAlarm itself calls the original method)
+      expect(mockStorage.put).not.toHaveBeenCalledWith(
+        expect.stringContaining('__SENTRY_TRACE_LINK__'),
+        expect.anything(),
       );
     });
 
