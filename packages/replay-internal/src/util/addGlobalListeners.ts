@@ -47,6 +47,10 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     });
 
     client.on('spanStart', span => {
+      const replayId = replay.getSessionId();
+      if (replay.isEnabled() && replayId) {
+        span.setAttribute('sentry.replay_id', replayId);
+      }
       replay.lastActiveSpan = span;
     });
 

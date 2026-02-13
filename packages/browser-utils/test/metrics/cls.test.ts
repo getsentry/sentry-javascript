@@ -1,7 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _sendStandaloneClsSpan } from '../../src/metrics/cls';
-import * as WebVitalUtils from '../../src/metrics/utils';
 
 // Mock all Sentry core dependencies
 vi.mock('@sentry/core', async () => {
@@ -36,7 +35,7 @@ describe('_sendStandaloneClsSpan', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(SentryCore.htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
-    vi.spyOn(WebVitalUtils, 'startStandaloneWebVitalSpan').mockReturnValue(mockSpan as any);
+    vi.spyOn(SentryCore, 'startInactiveSpan').mockReturnValue(mockSpan as any);
   });
 
   it('sends a standalone CLS span with entry data', () => {
@@ -61,23 +60,21 @@ describe('_sendStandaloneClsSpan', () => {
 
     _sendStandaloneClsSpan(clsValue, mockEntry, pageloadSpanId, reportEvent);
 
-    expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith({
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
       name: '<div>',
-      transaction: 'test-transaction',
       attributes: {
         'sentry.origin': 'auto.http.browser.cls',
         'sentry.op': 'ui.webvital.cls',
         'sentry.exclusive_time': 0,
         'sentry.pageload.span_id': '123',
         'sentry.report_event': 'navigation',
-        'cls.source.1': '<div>',
+        transaction: 'test-transaction',
+        [SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE]: 0.1,
+        cls: 0.1,
+        [`${SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES}.1`]: '<div>',
       },
+      parentSpan: null,
       startTime: 1.1, // (1000 + 100) / 1000
-    });
-
-    expect(mockSpan.addEvent).toHaveBeenCalledWith('cls', {
-      'sentry.measurement_unit': '',
-      'sentry.measurement_value': 0.1,
     });
 
     expect(mockSpan.end).toHaveBeenCalledWith(1.1);
@@ -93,24 +90,23 @@ describe('_sendStandaloneClsSpan', () => {
     expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
     expect(SentryCore.browserPerformanceTimeOrigin).not.toHaveBeenCalled();
 
-    expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith({
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
       name: 'Layout shift',
-      transaction: 'test-transaction',
       attributes: {
         'sentry.origin': 'auto.http.browser.cls',
         'sentry.op': 'ui.webvital.cls',
         'sentry.exclusive_time': 0,
         'sentry.pageload.span_id': pageloadSpanId,
         'sentry.report_event': 'pagehide',
+        [SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE]: 0,
+        cls: 0,
+        transaction: 'test-transaction',
       },
+      parentSpan: null,
       startTime: 1.5,
     });
 
     expect(mockSpan.end).toHaveBeenCalledWith(1.5);
-    expect(mockSpan.addEvent).toHaveBeenCalledWith('cls', {
-      'sentry.measurement_unit': '',
-      'sentry.measurement_value': 0,
-    });
   });
 
   it('handles entry with multiple sources', () => {
@@ -144,18 +140,21 @@ describe('_sendStandaloneClsSpan', () => {
     _sendStandaloneClsSpan(clsValue, mockEntry, pageloadSpanId, 'navigation');
 
     expect(SentryCore.htmlTreeAsString).toHaveBeenCalledTimes(3);
-    expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith({
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
       name: '<div>',
-      transaction: 'test-transaction',
       attributes: {
         'sentry.origin': 'auto.http.browser.cls',
         'sentry.op': 'ui.webvital.cls',
         'sentry.exclusive_time': 0,
         'sentry.pageload.span_id': '789',
         'sentry.report_event': 'navigation',
-        'cls.source.1': '<div>',
-        'cls.source.2': '<span>',
+        [SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE]: 0.15,
+        cls: 0.15,
+        transaction: 'test-transaction',
+        [`${SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES}.1`]: '<div>',
+        [`${SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_SOURCES}.2`]: '<span>',
       },
+      parentSpan: null,
       startTime: 1.2, // (1000 + 200) / 1000
     });
   });
@@ -176,32 +175,21 @@ describe('_sendStandaloneClsSpan', () => {
 
     _sendStandaloneClsSpan(clsValue, mockEntry, pageloadSpanId, 'navigation');
 
-    expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith({
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
       name: '<div>',
-      transaction: 'test-transaction',
       attributes: {
         'sentry.origin': 'auto.http.browser.cls',
         'sentry.op': 'ui.webvital.cls',
         'sentry.exclusive_time': 0,
         'sentry.pageload.span_id': '101',
         'sentry.report_event': 'navigation',
+        [SentryCore.SEMANTIC_ATTRIBUTE_WEB_VITAL_CLS_VALUE]: 0.05,
+        cls: 0.05,
+        transaction: 'test-transaction',
       },
+      parentSpan: null,
       startTime: 1.05, // (1000 + 50) / 1000
     });
-  });
-
-  it('handles when startStandaloneWebVitalSpan returns undefined', () => {
-    vi.spyOn(WebVitalUtils, 'startStandaloneWebVitalSpan').mockReturnValue(undefined);
-
-    const clsValue = 0.1;
-    const pageloadSpanId = '123';
-
-    expect(() => {
-      _sendStandaloneClsSpan(clsValue, undefined, pageloadSpanId, 'navigation');
-    }).not.toThrow();
-
-    expect(mockSpan.addEvent).not.toHaveBeenCalled();
-    expect(mockSpan.end).not.toHaveBeenCalled();
   });
 
   it('handles when browserPerformanceTimeOrigin returns null', () => {
@@ -222,7 +210,7 @@ describe('_sendStandaloneClsSpan', () => {
 
     _sendStandaloneClsSpan(clsValue, mockEntry, pageloadSpanId, 'navigation');
 
-    expect(WebVitalUtils.startStandaloneWebVitalSpan).toHaveBeenCalledWith(
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         startTime: 0.2,
       }),

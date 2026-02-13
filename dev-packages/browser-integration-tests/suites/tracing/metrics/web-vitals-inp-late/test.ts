@@ -68,6 +68,8 @@ sentryTest('should capture an INP click event span after pageload', async ({ bro
       'sentry.source': 'custom',
       transaction: 'test-url',
       'user_agent.original': expect.stringContaining('Chrome'),
+      'browser.web_vital.inp.value': inpValue,
+      inp: inpValue,
     },
     measurements: {
       inp: {

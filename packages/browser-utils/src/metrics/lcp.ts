@@ -5,15 +5,22 @@ import {
   getCurrentScope,
   htmlTreeAsString,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL,
+  SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE,
+  startInactiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { WINDOW } from '../types';
 import { addLcpInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
+import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Largest Contentful Paint on the current page and collects the value once
@@ -71,39 +78,30 @@ export function _sendStandaloneLcpSpan(
     'sentry.pageload.span_id': pageloadSpanId,
     // describes what triggered the web vital to be reported
     'sentry.report_event': reportEvent,
+
+    // TODO: Relay currently expects 'lcp', but we should remove this in favor of 'browser.web_vital.lcp.value'
+    lcp: lcpValue,
+
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_VALUE]: lcpValue,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ELEMENT]: entry?.element ? htmlTreeAsString(entry.element) : undefined,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_ID]: entry?.id,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_URL]: entry?.url,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_SIZE]: entry?.size,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_LOAD_TIME]: entry?.loadTime,
+    [SEMANTIC_ATTRIBUTE_WEB_VITAL_LCP_RENDER_TIME]: entry?.renderTime,
+
+    transaction: routeName,
+
+    // Web vital score calculation relies on the user agent to account for different
+    // browsers setting different thresholds for what is considered a good/meh/bad value.
+    // For example: Chrome vs. Chrome Mobile
+    'user_agent.original': WINDOW.navigator?.userAgent,
   };
 
-  if (entry) {
-    entry.element && (attributes['lcp.element'] = htmlTreeAsString(entry.element));
-    entry.id && (attributes['lcp.id'] = entry.id);
-
-    entry.url && (attributes['lcp.url'] = entry.url);
-
-    // loadTime is the time of LCP that's related to receiving the LCP element response..
-    entry.loadTime != null && (attributes['lcp.loadTime'] = entry.loadTime);
-
-    // renderTime is loadTime + rendering time
-    // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
-    // `Timing-Allow-Origin` header.
-    entry.renderTime != null && (attributes['lcp.renderTime'] = entry.renderTime);
-
-    entry.size != null && (attributes['lcp.size'] = entry.size);
-  }
-
-  const span = startStandaloneWebVitalSpan({
+  startInactiveSpan({
     name,
-    transaction: routeName,
     attributes,
     startTime,
-  });
-
-  if (span) {
-    span.addEvent('lcp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: lcpValue,
-    });
-
-    // LCP is a point-in-time metric, so we end the span immediately
-    span.end(startTime);
-  }
+    parentSpan: null, // start this span as a segment
+  })?.end(startTime);
 }

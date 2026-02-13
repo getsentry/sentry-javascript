@@ -171,6 +171,7 @@ export {
   unleashIntegration,
   growthbookIntegration,
   metrics,
+  withStreamSpan,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

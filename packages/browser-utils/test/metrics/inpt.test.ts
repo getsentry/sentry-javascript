@@ -1,4 +1,5 @@
 import { afterEach } from 'node:test';
+import { SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import { _onInp, _trackINP } from '../../src/metrics/inp';
 import * as instrument from '../../src/metrics/instrument';
@@ -78,6 +79,8 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
+        [SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE]: 10,
+        inp: 10,
         'sentry.exclusive_time': 10,
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
@@ -104,6 +107,8 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
+        [SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE]: 10,
+        inp: 10,
         'sentry.exclusive_time': 10,
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
@@ -135,6 +140,8 @@ describe('_onInp', () => {
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
     expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
       attributes: {
+        [SEMANTIC_ATTRIBUTE_WEB_VITAL_INP_VALUE]: 150,
+        inp: 150,
         'sentry.exclusive_time': 150,
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',

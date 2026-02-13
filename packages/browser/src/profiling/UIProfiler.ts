@@ -121,6 +121,16 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._endProfiling();
   }
 
+  /** Returns the current profiler session ID, or undefined if not initialized. */
+  public getProfilerId(): string | undefined {
+    return this._profilerId;
+  }
+
+  /** Returns whether the profiler is currently running (recording). */
+  public isRunning(): boolean {
+    return this._isRunning;
+  }
+
   /** Handle an already-active root span at integration setup time (used only in trace mode). */
   public notifyRootSpanActive(rootSpan: Span): void {
     if (this._lifecycleMode !== 'trace' || !this._sessionSampled) {

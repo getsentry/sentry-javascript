@@ -18,7 +18,10 @@ export {
   withActiveSpan,
   logger,
   consoleLoggingIntegration,
+  withStreamSpan,
 } from '@sentry/core';
+
+export { spanStreamingIntegration } from './integrations/spanstreaming';
 
 export {
   browserTracingIntegration,

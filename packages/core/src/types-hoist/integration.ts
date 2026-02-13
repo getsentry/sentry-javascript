@@ -15,6 +15,14 @@ export interface Integration {
   setupOnce?(): void;
 
   /**
+   * This hook is called for all integrations before the `setup` hook.
+   * This is useful for integrations that need to e.g. modify client values before other integrations are set up.
+   * Use this hook with caution and prefer `setup` whenever possible.
+   * @param client
+   */
+  beforeSetup?(client: Client): void;
+
+  /**
    * Set up an integration for the given client.
    * Receives the client as argument.
    *

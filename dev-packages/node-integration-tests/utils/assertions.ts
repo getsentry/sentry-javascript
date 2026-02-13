@@ -6,6 +6,7 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedSpanContainer,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
@@ -81,6 +82,12 @@ export function assertSentryMetricContainer(
   actual: SerializedMetricContainer,
   expected: Partial<SerializedMetricContainer>,
 ): void {
+  expect(actual).toMatchObject({
+    ...expected,
+  });
+}
+
+export function assertSentrySpans(actual: SerializedSpanContainer, expected: Partial<SerializedSpanContainer>): void {
   expect(actual).toMatchObject({
     ...expected,
   });

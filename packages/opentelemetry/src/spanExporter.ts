@@ -47,10 +47,16 @@ interface FinishedSpanBucket {
   spans: Set<ReadableSpan>;
 }
 
+export interface ISentrySpanExporter {
+  export(span: ReadableSpan): void;
+  flush(): void;
+  clear(): void;
+}
+
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
-export class SentrySpanExporter {
+export class SentrySpanExporter implements ISentrySpanExporter {
   /*
    * A quick explanation on the buckets: We do bucketing of finished spans for efficiency. This span exporter is
    * accumulating spans until a root span is encountered and then it flushes all the spans that are descendants of that
@@ -386,7 +392,10 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
   });
 }
 
-function getSpanData(span: ReadableSpan): {
+/**
+ * Get span data from the OTEL span
+ */
+export function getSpanData(span: ReadableSpan): {
   data: Record<string, unknown>;
   op?: string;
   description: string;

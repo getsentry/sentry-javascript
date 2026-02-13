@@ -5,10 +5,10 @@ import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
-import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import { afterSetupIntegrations, beforeSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
-import type { Scope } from './scope';
+import type { Scope, ScopeData } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
@@ -31,9 +31,17 @@ import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
+import type {
+  Span,
+  SpanAttributes,
+  SpanContextData,
+  SpanJSON,
+  SpanV2JSON,
+  SpanV2JSONWithSegmentRef,
+} from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -612,6 +620,30 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  // Hooks reserved for Span-First span processing:
+  /**
+   * Register a callback for after a span is ended.
+   */
+  public on(hook: 'afterSpanEnd', callback: (span: Span) => void): () => void;
+  /**
+   * Register a callback for after a segment span is ended.
+   */
+  public on(hook: 'afterSegmentSpanEnd', callback: (span: Span) => void): () => void;
+  /**
+   * Register a callback for when the span JSON is ready to be enqueued into the span buffer.
+   */
+  public on(hook: 'enqueueSpan', callback: (spanJSON: SpanV2JSONWithSegmentRef) => void): () => void;
+  /**
+   * Register a callback for when a span JSON is processed, to add some data to the span JSON.
+   */
+  public on(hook: 'processSpan', callback: (spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }) => void): () => void;
+  /**
+   * Register a callback for when a segment span JSON is processed, to add some data to the segment span JSON.
+   */
+  public on(
+    hook: 'processSegmentSpan',
+    callback: (spanJSON: SpanV2JSON, hint: { scopeData: ScopeData }) => void,
+  ): () => void;
   /**
    * Register a callback for when an idle span is allowed to auto-finish.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -884,6 +916,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
 
+  // Hooks reserved for Span-First span processing:
+  /** Fire a hook after the `spanEnd` hook  */
+  public emit(hook: 'afterSpanEnd', span: Span): void;
+  /** Fire a hook after a span is processed, to add some attributes to the span JSON. */
+  public emit(hook: 'processSpan', spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }): void;
+  /** Fire a hook after a span is processed, to add some attributes to the span JSON. */
+  public emit(hook: 'processSegmentSpan', spanJSON: SpanV2JSON, hint: { scopeData: ScopeData }): void;
+  /** Fire a hook after the `segmentSpanEnd` hook is fired. */
+  public emit(hook: 'afterSegmentSpanEnd', span: Span): void;
+  /** Fire a hook after a span ready to be enqueued into the span buffer. */
+  public emit(hook: 'enqueueSpan', spanJSON: SpanV2JSONWithSegmentRef): void;
+
   /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
    */
@@ -1102,6 +1146,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
     const { integrations } = this._options;
+
+    beforeSetupIntegrations(this, integrations);
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
   }
@@ -1496,13 +1542,17 @@ function _validateBeforeSendResult(
 /**
  * Process the matching `beforeSendXXX` callback.
  */
+
 function processBeforeSend(
   client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
+  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+
+  const beforeSendSpan = !isV2BeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
