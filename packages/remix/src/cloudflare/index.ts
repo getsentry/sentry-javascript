@@ -13,6 +13,12 @@ export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';
 export { ErrorBoundary, browserTracingIntegration } from '../client';
 export { makeWrappedCreateRequestHandler, sentryHandleError };
+export {
+  generateSentryServerTimingHeader,
+  mergeSentryServerTimingHeader,
+  addSentryServerTimingHeader,
+} from '../server/serverTimingTracePropagation';
+export type { ServerTimingTraceOptions } from '../server/serverTimingTracePropagation';
 
 /**
  * Instruments a Remix build to capture errors and performance data.

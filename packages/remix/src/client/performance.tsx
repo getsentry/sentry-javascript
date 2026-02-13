@@ -92,21 +92,18 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
-  // Try to parameterize the route using the route manifest
   const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
   const spanName = parameterizedRoute || initPathName;
   const source = parameterizedRoute ? 'route' : 'url';
 
-  const spanContext: StartSpanOptions = {
+  startBrowserTracingPageLoadSpan(client, {
     name: spanName,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
-  };
-
-  startBrowserTracingPageLoadSpan(client, spanContext);
+  });
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {

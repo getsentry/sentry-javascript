@@ -1,0 +1,67 @@
+import { cssBundleHref } from '@remix-run/css-bundle';
+import { LinksFunction, json } from '@remix-run/node';
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  useRouteError,
+} from '@remix-run/react';
+import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
+
+export const links: LinksFunction = () => [...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : [])];
+
+export const loader = () => {
+  return json({
+    ENV: {
+      SENTRY_DSN: process.env.E2E_TEST_DSN,
+    },
+  });
+};
+
+// NOTE: We intentionally do NOT use meta tags for trace propagation in this test app
+// to verify that Server-Timing header propagation works correctly.
+// The trace context is propagated via Server-Timing header instead.
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const eventId = captureRemixErrorBoundaryError(error);
+
+  return (
+    <div>
+      <span>ErrorBoundary Error</span>
+      <span id="event-id">{eventId}</span>
+    </div>
+  );
+}
+
+function App() {
+  const { ENV } = useLoaderData() as { ENV: { SENTRY_DSN: string } };
+
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.ENV = ${JSON.stringify(ENV)}`,
+          }}
+        />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <Outlet />
+        <ScrollRestoration />
+        <Scripts />
+        <LiveReload />
+      </body>
+    </html>
+  );
+}
+
+export default withSentry(App);
