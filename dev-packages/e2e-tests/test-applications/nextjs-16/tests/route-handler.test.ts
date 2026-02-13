@@ -79,3 +79,65 @@ test('Should report an error with a parameterized transaction name for a throwin
   expect(transactionEvent.transaction).toBe('GET /route-handler/[xoxo]/error');
   expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
 });
+
+test('Should set a parameterized transaction name on a captureMessage event in a route handler', async ({
+  request,
+}) => {
+  const messageEventPromise = waitForError('nextjs-16', event => {
+    return event?.message === 'route-handler-message';
+  });
+
+  const transactionEventPromise = waitForTransaction('nextjs-16', transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'GET /route-handler/[xoxo]/capture-message' &&
+      transactionEvent?.contexts?.trace?.op === 'http.server'
+    );
+  });
+
+  const response = await request.get('/route-handler/789/capture-message');
+  expect(await response.json()).toStrictEqual({ message: 'Message captured' });
+
+  const messageEvent = await messageEventPromise;
+  const transactionEvent = await transactionEventPromise;
+
+  // Message event should be part of the same trace as the transaction
+  expect(messageEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+
+  // Message should carry the parameterized transaction name
+  expect(messageEvent.transaction).toBe('GET /route-handler/[xoxo]/capture-message');
+
+  // Transaction should have parameterized name and ok status
+  expect(transactionEvent.transaction).toBe('GET /route-handler/[xoxo]/capture-message');
+  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+});
+
+test('Should set a parameterized transaction name on a captureException event in a route handler', async ({
+  request,
+}) => {
+  const errorEventPromise = waitForError('nextjs-16', errorEvent => {
+    return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-capture-exception') ?? false;
+  });
+
+  const transactionEventPromise = waitForTransaction('nextjs-16', transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'GET /route-handler/[xoxo]/capture-exception' &&
+      transactionEvent?.contexts?.trace?.op === 'http.server'
+    );
+  });
+
+  const response = await request.get('/route-handler/321/capture-exception');
+  expect(await response.json()).toStrictEqual({ message: 'Exception captured' });
+
+  const errorEvent = await errorEventPromise;
+  const transactionEvent = await transactionEventPromise;
+
+  // Error event should be part of the same trace as the transaction
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+
+  // Manually captured exception should carry the parameterized transaction name
+  expect(errorEvent.transaction).toBe('GET /route-handler/[xoxo]/capture-exception');
+
+  // Transaction should have parameterized name and ok status (error was caught, not thrown)
+  expect(transactionEvent.transaction).toBe('GET /route-handler/[xoxo]/capture-exception');
+  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+});
