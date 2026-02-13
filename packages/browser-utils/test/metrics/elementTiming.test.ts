@@ -1,17 +1,21 @@
-import * as sentryCore from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PerformanceElementTiming } from '../../src/metrics/elementTiming';
 import { _onElementTiming, startTrackingElementTiming } from '../../src/metrics/elementTiming';
 import * as browserMetricsInstrumentation from '../../src/metrics/instrument';
 import * as browserMetricsUtils from '../../src/metrics/utils';
 
 describe('_onElementTiming', () => {
   const spanEndSpy = vi.fn();
-  const startSpanSpy = vi.spyOn(sentryCore, 'startSpan').mockImplementation((opts, cb) => {
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan').mockImplementation((opts, cb) => {
     // @ts-expect-error - only passing a partial span. This is fine for the test.
     cb({
       end: spanEndSpy,
     });
   });
+
+  const timeOrigin = Date.now();
+  vi.spyOn(SentryCore, 'browserPerformanceTimeOrigin').mockReturnValue(timeOrigin);
 
   beforeEach(() => {
     startSpanSpy.mockClear();
@@ -33,17 +37,47 @@ describe('_onElementTiming', () => {
     expect(startSpanSpy).not.toHaveBeenCalled();
   });
 
+  it("does nothing if there's no time origin", () => {
+    vi.spyOn(SentryCore, 'browserPerformanceTimeOrigin').mockReturnValueOnce(undefined);
+
+    const entry = {
+      name: 'image-paint',
+      entryType: 'element',
+      startTime: 0,
+      duration: 0,
+    } as Partial<PerformanceEntry>;
+
+    // @ts-expect-error - only passing a partial entry. This is fine for the test.
+    _onElementTiming({ entries: [entry] });
+
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([0, undefined])('does nothing if startTime is %s (i.e. no loadTime, no renderTime)', startTime => {
+    const entry = {
+      name: 'image-paint',
+      entryType: 'element',
+      startTime,
+      duration: 0,
+    } as Partial<PerformanceEntry>;
+
+    // @ts-expect-error - only passing a partial entry. This is fine for the test.
+    _onElementTiming({ entries: [entry] });
+
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
   describe('span start time', () => {
-    it('uses the load time as span start time if available', () => {
+    it('uses loadTime as span start time if available', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 100,
         duration: 0,
         renderTime: 100,
         loadTime: 50,
         identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -51,31 +85,30 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'element[test-element]',
-          startTime: 0.05,
+          startTime: (timeOrigin + entry.loadTime!) / 1000,
           attributes: expect.objectContaining({
             'sentry.op': 'ui.elementtiming',
             'sentry.origin': 'auto.ui.browser.elementtiming',
             'sentry.source': 'component',
-            'sentry.span_start_time_source': 'load-time',
-            'element.render_time': 100,
-            'element.load_time': 50,
-            'element.identifier': 'test-element',
-            'element.paint_type': 'image-paint',
+            'ui.element.render_time': 100,
+            'ui.element.load_time': 50,
+            'ui.element.identifier': 'test-element',
+            'ui.element.paint_type': 'image-paint',
           }),
         }),
         expect.any(Function),
       );
     });
 
-    it('uses the render time as span start time if load time is not available', () => {
+    it('uses renderTime as span start time if loadTime is not available', () => {
       const entry = {
-        name: 'image-paint',
+        name: 'text-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 100,
         duration: 0,
         renderTime: 100,
         identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -83,47 +116,15 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'element[test-element]',
-          startTime: 0.1,
+          startTime: (timeOrigin + entry.renderTime!) / 1000,
           attributes: expect.objectContaining({
             'sentry.op': 'ui.elementtiming',
             'sentry.origin': 'auto.ui.browser.elementtiming',
             'sentry.source': 'component',
-            'sentry.span_start_time_source': 'render-time',
-            'element.render_time': 100,
-            'element.load_time': undefined,
-            'element.identifier': 'test-element',
-            'element.paint_type': 'image-paint',
-          }),
-        }),
-        expect.any(Function),
-      );
-    });
-
-    it('falls back to the time of handling the entry if load and render time are not available', () => {
-      const entry = {
-        name: 'image-paint',
-        entryType: 'element',
-        startTime: 0,
-        duration: 0,
-        identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
-
-      // @ts-expect-error - only passing a partial entry. This is fine for the test.
-      _onElementTiming({ entries: [entry] });
-
-      expect(startSpanSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'element[test-element]',
-          startTime: expect.any(Number),
-          attributes: expect.objectContaining({
-            'sentry.op': 'ui.elementtiming',
-            'sentry.origin': 'auto.ui.browser.elementtiming',
-            'sentry.source': 'component',
-            'sentry.span_start_time_source': 'entry-emission',
-            'element.render_time': undefined,
-            'element.load_time': undefined,
-            'element.identifier': 'test-element',
-            'element.paint_type': 'image-paint',
+            'ui.element.render_time': 100,
+            'ui.element.load_time': undefined,
+            'ui.element.identifier': 'test-element',
+            'ui.element.paint_type': 'text-paint',
           }),
         }),
         expect.any(Function),
@@ -136,12 +137,12 @@ describe('_onElementTiming', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 1500,
         duration: 0,
         renderTime: 1505,
         loadTime: 1500,
         identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -149,29 +150,29 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'element[test-element]',
-          startTime: 1.5,
+          startTime: (timeOrigin + entry.loadTime!) / 1000,
           attributes: expect.objectContaining({
-            'element.render_time': 1505,
-            'element.load_time': 1500,
-            'element.paint_type': 'image-paint',
+            'ui.element.render_time': 1505,
+            'ui.element.load_time': 1500,
+            'ui.element.paint_type': 'image-paint',
           }),
         }),
         expect.any(Function),
       );
 
-      expect(spanEndSpy).toHaveBeenCalledWith(1.505);
+      expect(spanEndSpy).toHaveBeenCalledWith((timeOrigin + entry.renderTime!) / 1000);
     });
 
     it('uses 0 as duration for text paints', () => {
       const entry = {
         name: 'text-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 1600,
         duration: 0,
         loadTime: 0,
         renderTime: 1600,
         identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -179,30 +180,29 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'element[test-element]',
-          startTime: 1.6,
+          startTime: (timeOrigin + entry.renderTime!) / 1000,
           attributes: expect.objectContaining({
-            'element.paint_type': 'text-paint',
-            'element.render_time': 1600,
-            'element.load_time': 0,
+            'ui.element.paint_type': 'text-paint',
+            'ui.element.render_time': 1600,
+            'ui.element.load_time': 0,
           }),
         }),
         expect.any(Function),
       );
 
-      expect(spanEndSpy).toHaveBeenCalledWith(1.6);
+      expect(spanEndSpy).toHaveBeenCalledWith((timeOrigin + entry.renderTime!) / 1000);
     });
 
-    // per spec, no other kinds are supported but let's make sure we're defensive
-    it('uses 0 as duration for other kinds of entries', () => {
+    it('uses 0 duration for 3rd party image nodes w/o Timing-Allow-Origin header', () => {
       const entry = {
-        name: 'somethingelse',
+        name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 1700,
         duration: 0,
-        loadTime: 0,
-        renderTime: 1700,
+        loadTime: 1700,
+        renderTime: 0,
         identifier: 'test-element',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -210,17 +210,17 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'element[test-element]',
-          startTime: 1.7,
+          startTime: (timeOrigin + entry.loadTime!) / 1000,
           attributes: expect.objectContaining({
-            'element.paint_type': 'somethingelse',
-            'element.render_time': 1700,
-            'element.load_time': 0,
+            'ui.element.paint_type': 'image-paint',
+            'ui.element.render_time': 0,
+            'ui.element.load_time': 1700,
           }),
         }),
         expect.any(Function),
       );
 
-      expect(spanEndSpy).toHaveBeenCalledWith(1.7);
+      expect(spanEndSpy).toHaveBeenCalledWith((timeOrigin + entry.loadTime!) / 1000);
     });
   });
 
@@ -229,14 +229,14 @@ describe('_onElementTiming', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 100,
         duration: 0,
         renderTime: 100,
         identifier: 'my-image',
         element: {
           tagName: 'IMG',
         },
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -244,30 +244,28 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
-            'element.type': 'img',
-            'element.identifier': 'my-image',
-            'element.paint_type': 'image-paint',
-            'element.render_time': 100,
-            'element.load_time': undefined,
-            'element.size': undefined,
-            'element.url': undefined,
+            'ui.element.type': 'img',
+            'ui.element.identifier': 'my-image',
+            'ui.element.paint_type': 'image-paint',
+            'ui.element.render_time': 100,
           }),
         }),
         expect.any(Function),
       );
     });
 
-    it('sets element size if available', () => {
+    it('sets element dimensions if available', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        loadToe: 50,
+        startTime: 100,
         duration: 0,
         renderTime: 100,
         naturalWidth: 512,
         naturalHeight: 256,
         identifier: 'my-image',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -275,8 +273,9 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
-            'element.size': '512x256',
-            'element.identifier': 'my-image',
+            'ui.element.width': 512,
+            'ui.element.height': 256,
+            'ui.element.identifier': 'my-image',
           }),
         }),
         expect.any(Function),
@@ -287,11 +286,13 @@ describe('_onElementTiming', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 100,
+        renderTime: 100,
+        loadTime: 50,
         duration: 0,
         url: 'https://santry.com/image.png',
         identifier: 'my-image',
-      } as Partial<PerformanceEventTiming>;
+      } as Partial<PerformanceElementTiming>;
 
       // @ts-expect-error - only passing a partial entry. This is fine for the test.
       _onElementTiming({ entries: [entry] });
@@ -299,8 +300,8 @@ describe('_onElementTiming', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
-            'element.identifier': 'my-image',
-            'element.url': 'https://santry.com/image.png',
+            'ui.element.identifier': 'my-image',
+            'ui.element.url': 'https://santry.com/image.png',
           }),
         }),
         expect.any(Function),
@@ -311,7 +312,7 @@ describe('_onElementTiming', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        startTime: 0,
+        startTime: 100,
         duration: 0,
         renderTime: 100,
         identifier: 'my-image',
@@ -326,7 +327,6 @@ describe('_onElementTiming', () => {
             'sentry.op': 'ui.elementtiming',
             'sentry.origin': 'auto.ui.browser.elementtiming',
             'sentry.source': 'component',
-            'sentry.span_start_time_source': 'render-time',
             'sentry.transaction_name': undefined,
           }),
         }),
