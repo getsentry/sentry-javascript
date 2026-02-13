@@ -1,4 +1,3 @@
-import { lastEventId } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureUnderscoreErrorException } from '../../../src/common/pages-router-instrumentation/_error';
 
