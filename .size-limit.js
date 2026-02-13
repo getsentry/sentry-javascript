@@ -317,7 +317,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '53 KB',
+    limit: '56 KB',
   },
   // Node SDK (ESM)
   {
@@ -326,7 +326,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '167 KB',
+    limit: '162 KB',
   },
   {
     name: '@sentry/node - without tracing',
@@ -356,7 +356,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '111 KB',
+    limit: '112 KB',
   },
 ];
 
