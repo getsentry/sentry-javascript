@@ -42,7 +42,10 @@ test('Should report an error with a parameterized transaction name for a throwin
   request,
 }) => {
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
-    return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false;
+    return (
+      (errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false) &&
+      errorEvent?.contexts?.nextjs?.route_type === 'route'
+    );
   });
 
   const transactionEventPromise = waitForTransaction('nextjs-16', transactionEvent => {
