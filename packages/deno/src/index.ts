@@ -1,6 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Metric,
   PolymorphicRequest,
   RequestEventData,
   SdkInfo,
