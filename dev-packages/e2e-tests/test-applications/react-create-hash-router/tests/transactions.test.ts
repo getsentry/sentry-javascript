@@ -48,6 +48,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
       'sentry.op': 'browser.domContentLoadedEvent',
+      'sentry.replay_id': expect.any(String),
     },
     description: page.url(),
     op: 'browser.domContentLoadedEvent',
@@ -62,6 +63,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
       'sentry.op': 'browser.connect',
+      'sentry.replay_id': expect.any(String),
     },
     description: page.url(),
     op: 'browser.connect',
@@ -76,6 +78,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
       'sentry.op': 'browser.request',
+      'sentry.replay_id': expect.any(String),
     },
     description: page.url(),
     op: 'browser.request',
@@ -90,6 +93,7 @@ test('Captures a pageload transaction', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
       'sentry.op': 'browser.response',
+      'sentry.replay_id': expect.any(String),
     },
     description: page.url(),
     op: 'browser.response',
