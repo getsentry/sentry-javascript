@@ -1,9 +1,11 @@
+import * as otelApi from '@opentelemetry/api';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryServerInstrumentation,
   isInstrumentationApiUsed,
 } from '../../src/server/createServerInstrumentation';
+import * as serverBuildModule from '../../src/server/serverBuild';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -19,6 +21,25 @@ vi.mock('@sentry/core', async () => {
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
+  };
+});
+
+vi.mock('../../src/server/serverBuild', () => ({
+  getMiddlewareName: vi.fn(),
+}));
+
+vi.mock('@opentelemetry/api', async () => {
+  const actual = await vi.importActual('@opentelemetry/api');
+  return {
+    ...actual,
+    context: {
+      active: vi.fn(() => ({
+        getValue: vi.fn(),
+        setValue: vi.fn(),
+      })),
+      with: vi.fn((ctx, fn) => fn()),
+    },
+    createContextKey: actual.createContextKey,
   };
 });
 
@@ -287,11 +308,14 @@ describe('createSentryServerInstrumentation', () => {
     );
   });
 
-  it('should instrument route middleware with spans', async () => {
+  it('should instrument route middleware with spans (without function name)', async () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
     const mockSetAttributes = vi.fn();
     const mockRootSpan = { setAttributes: mockSetAttributes };
+
+    // No middleware name available
+    vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue(undefined);
 
     (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
     (core.getActiveSpan as any).mockReturnValue({});
@@ -317,17 +341,18 @@ describe('createSentryServerInstrumentation', () => {
 
     expect(core.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'middleware test-route',
         attributes: expect.objectContaining({
           'sentry.op': 'function.react_router.middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
+          'react_router.route.id': 'test-route',
+          'react_router.route.pattern': '/users/:id',
+          'react_router.middleware.index': 0,
         }),
       }),
       expect.any(Function),
     );
 
-    // Verify updateRootSpanWithRoute was called (same as loader/action)
-    // This updates the root span name and sets http.route for parameterized routes
     expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/:id');
     expect(mockSetAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -335,6 +360,153 @@ describe('createSentryServerInstrumentation', () => {
         'sentry.source': 'route',
       }),
     );
+  });
+
+  it('should include middleware index attribute when tracking is available', async () => {
+    const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+    const mockSetAttributes = vi.fn();
+    const mockRootSpan = { setAttributes: mockSetAttributes };
+    const routeId = 'routes/users-with-middleware';
+
+    vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue(undefined);
+
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+
+    const instrumentation = createSentryServerInstrumentation();
+    instrumentation.route?.({
+      id: routeId,
+      index: false,
+      path: '/users/:id',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.middleware(mockCallMiddleware, {
+      request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: '/users/:id',
+      context: undefined,
+    });
+
+    expect(core.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: `middleware ${routeId}`,
+        attributes: expect.objectContaining({
+          'sentry.op': 'function.react_router.middleware',
+          'react_router.route.id': routeId,
+          'react_router.route.pattern': '/users/:id',
+          'react_router.middleware.index': 0,
+        }),
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('should use middleware function name when available from serverBuild', async () => {
+    const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+    const mockSetAttributes = vi.fn();
+    const mockRootSpan = { setAttributes: mockSetAttributes };
+    const routeId = 'routes/protected';
+
+    vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue('authMiddleware');
+
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+
+    const instrumentation = createSentryServerInstrumentation();
+    instrumentation.route?.({
+      id: routeId,
+      index: false,
+      path: '/protected',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.middleware(mockCallMiddleware, {
+      request: { method: 'GET', url: 'http://example.com/protected', headers: { get: () => null } },
+      params: {},
+      unstable_pattern: '/protected',
+      context: undefined,
+    });
+
+    expect(core.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'middleware authMiddleware',
+        attributes: expect.objectContaining({
+          'sentry.op': 'function.react_router.middleware',
+          'react_router.route.id': routeId,
+          'react_router.route.pattern': '/protected',
+          'react_router.middleware.name': 'authMiddleware',
+          'react_router.middleware.index': 0,
+        }),
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('should increment middleware index for multiple middleware calls in same request via OTel context', async () => {
+    const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+    const mockSetAttributes = vi.fn();
+    const mockRootSpan = { setAttributes: mockSetAttributes };
+    const routeId = 'routes/multi-middleware';
+
+    // Simulate counter store that would be created by handler and stored in OTel context
+    const counterStore = { counters: {} as Record<string, number> };
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(otelApi.context.active).mockReturnValue({
+      getValue: vi.fn(() => counterStore),
+      setValue: vi.fn(),
+    } as any);
+
+    vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue(undefined);
+
+    const startSpanCalls: any[] = [];
+    (core.startSpan as any).mockImplementation((opts: any, fn: any) => {
+      startSpanCalls.push(opts);
+      return fn();
+    });
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+
+    const instrumentation = createSentryServerInstrumentation();
+    instrumentation.route?.({
+      id: routeId,
+      index: false,
+      path: '/multi-middleware',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+    const requestInfo = {
+      request: { method: 'GET', url: 'http://example.com/multi-middleware', headers: { get: () => null } },
+      params: {},
+      unstable_pattern: '/multi-middleware',
+      context: undefined,
+    };
+
+    // Call middleware 3 times (simulating 3 middlewares on same route)
+    await hooks.middleware(mockCallMiddleware, requestInfo);
+    await hooks.middleware(mockCallMiddleware, requestInfo);
+    await hooks.middleware(mockCallMiddleware, requestInfo);
+
+    // Filter to only middleware spans
+    const middlewareSpans = startSpanCalls.filter(
+      opts => opts.attributes?.['sentry.op'] === 'function.react_router.middleware',
+    );
+
+    expect(middlewareSpans).toHaveLength(3);
+    expect(middlewareSpans[0].attributes['react_router.middleware.index']).toBe(0);
+    expect(middlewareSpans[1].attributes['react_router.middleware.index']).toBe(1);
+    expect(middlewareSpans[2].attributes['react_router.middleware.index']).toBe(2);
   });
 
   it('should instrument lazy route loading with spans', async () => {

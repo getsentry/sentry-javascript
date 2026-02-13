@@ -1,1 +1,1 @@
-import '@sentry/node/import-hook';
+import '@sentry/node/import';

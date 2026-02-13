@@ -1,8 +1,7 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
+import { generateInstrumentOnce } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
-import { isInstrumentationApiUsed } from '../serverGlobals';
 
 const INTEGRATION_NAME = 'ReactRouterServer';
 
@@ -24,17 +23,11 @@ export const reactRouterServerIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // Skip OTEL patching if the instrumentation API is in use
-      if (isInstrumentationApiUsed()) {
-        return;
-      }
-
-      if (
-        (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) || // https://nodejs.org/en/blog/release/v20.19.0
-        (NODE_VERSION.major === 22 && NODE_VERSION.minor < 12) // https://nodejs.org/en/blog/release/v22.12.0
-      ) {
-        instrumentReactRouterServer();
-      }
+      // Install OTEL instrumentation to capture ServerBuild for middleware name resolution.
+      // When instrumentation API is active, the wrapper captures ServerBuild but skips
+      // per-request wrapping. On Node 20.19+/22.12+, users must import
+      // '@sentry/react-router/loader' first for ESM patching; otherwise names fall back to routeId.
+      instrumentReactRouterServer();
     },
     processEvent(event) {
       // Express generates bogus `*` routes for data loaders, which we want to remove here
