@@ -1,8 +1,8 @@
-import type { Event } from '@sentry/core';
-import { createStackParser, nodeStackLineParser } from '@sentry/core';
+import type { Envelope, Event } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/esm/index.js';
+import { DenoClient, getCurrentScope, getDefaultIntegrations, metrics, Scope } from '../build/esm/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -72,6 +72,43 @@ Deno.test('captureMessage twice', async t => {
 
   await delay(200);
   await assertSnapshot(t, ev);
+});
+
+Deno.test('metrics.count captures a counter metric', async () => {
+  const envelopes: Array<Envelope> = [];
+  const client = new DenoClient({
+    dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
+    integrations: getDefaultIntegrations({}),
+    stackParser: createStackParser(nodeStackLineParser()),
+    transport: makeTestTransport(envelope => {
+      envelopes.push(envelope);
+    }),
+  });
+
+  client.init();
+  const scope = new Scope();
+  scope.setClient(client);
+
+  metrics.count('test.counter', 5, { scope });
+
+  await client.flush(2000);
+
+  // deno-lint-ignore no-explicit-any
+  let metricItem: any = undefined;
+  for (const envelope of envelopes) {
+    forEachEnvelopeItem(envelope, item => {
+      const [headers, body] = item;
+      if (headers.type === 'trace_metric') {
+        metricItem = body;
+      }
+    });
+  }
+
+  assertEquals(metricItem !== undefined, true);
+  assertEquals(metricItem.items.length, 1);
+  assertEquals(metricItem.items[0].name, 'test.counter');
+  assertEquals(metricItem.items[0].type, 'counter');
+  assertEquals(metricItem.items[0].value, 5);
 });
 
 Deno.test('App runs without errors', async _ => {

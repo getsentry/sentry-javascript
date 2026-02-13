@@ -1,6 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Metric,
   PolymorphicRequest,
   RequestEventData,
   SdkInfo,
@@ -89,6 +90,7 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
