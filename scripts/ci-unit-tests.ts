@@ -85,11 +85,11 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): void {
  * Run tests, ignoring the given packages
  */
 function runAllTests(ignorePackages: Set<string>): void {
-  const ignoreFlags = Array.from(ignorePackages)
-    .map(dep => `--ignore="${dep}"`)
+  const excludeFlags = Array.from(ignorePackages)
+    .map(dep => `--exclude="${dep}"`)
     .join(' ');
 
-  run(`yarn test ${ignoreFlags}`);
+  run(`yarn test ${excludeFlags}`);
 }
 
 /**

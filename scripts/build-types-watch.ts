@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /**
  * If `yarn build:types:watch` is run without types files previously having been created, the build will get stuck in an
- * errored state. This happens because lerna runs all of the packages' `yarn build:types:watch` statements in parallel,
+ * errored state. This happens because nx runs all of the packages' `yarn build:types:watch` statements in parallel,
  * and so packages like `@sentry/browser` will at first be missing types they import from packages like `@sentry/core`
  * and `@sentry/core`, causing errors to be thrown. Normally this is fine, because as the dependencies' types get
  * built, file changes will be detected and the dependent packages' types will try again to build themselves. There
@@ -43,4 +43,4 @@ for (const pkg of packages) {
 }
 
 console.log('\nStarting `yarn build:types:watch`.\n');
-childProcess.execSync('yarn lerna run --parallel build:types:watch', { stdio: 'inherit' });
+childProcess.execSync('npx nx run-many -t build:types:watch --parallel=100', { stdio: 'inherit' });

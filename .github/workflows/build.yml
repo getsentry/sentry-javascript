@@ -311,7 +311,7 @@ jobs:
         # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
         run: yarn dedupe-deps:check
       - name: Lint source files
-        run: yarn lint:lerna
+        run: yarn lint:eslint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 

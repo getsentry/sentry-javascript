@@ -10,6 +10,9 @@
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
+    "build:dev": {
+      "dependsOn": ["^build:transpile", "^build:types"]
+    },
     "build:bundle": {
       "inputs": ["production", "^production"],
       "dependsOn": ["build:transpile"],

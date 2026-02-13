@@ -5,5 +5,3 @@ dev-packages/browser-integration-tests/fixtures
 
 /.nx/cache
 /.nx/workspace-data
-
-lerna.json
