@@ -4,8 +4,8 @@ on:
     branches:
       - master
     paths:
-      # When the version is updated on master (but nothing else)
-      - 'lerna.json'
+      # When versions are bumped on master (but no source code changes)
+      - 'packages/*/package.json'
       - '!**/*.js'
       - '!**/*.ts'
   workflow_dispatch:

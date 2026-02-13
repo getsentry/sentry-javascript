@@ -24,7 +24,6 @@ packages/*/sentry-*.tgz
 # logs
 yarn-error.log
 npm-debug.log
-lerna-debug.log
 local.log
 
 # ide
