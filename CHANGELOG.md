@@ -6,53 +6,27 @@
 
 Work in this release was contributed by @limbonaut and @rfoel. Thank you for your contributions!
 
-### Important Changes
+## 10.39.0-alpha.0
 
-- **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
+This preview release includes updates to our Span Streaming PoC implementation. Use at your own risk.
 
-  The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+New:
 
-- **feat(nextjs): New experimental automatic vercel cron monitoring ([#19066](https://github.com/getsentry/sentry-javascript/pull/19192))**
+- Browser: SDKs now also use a span buffer, flushing periodically, on span amount limit and on segment span end
+- Browser: It's now enough to only register `spanStreamingIntegration` in `Sentry.init.()` to opt into span streaming
+- Browser: `sentry.replay_id` attribute is attached to spans started during an active replay
+- Browser: `sentry.profiler_id` attribute is attached to spans started while the continuous profiler is running
+- Browser: Web vital spans are sent as v2 spans
+- Browser: `spanStreamingIntegration` is now exported from CDN bundles supporting tracing
 
-Setting `_experimental.vercelCronMonitoring` to `true` in your Sentry configuration will automatically create Sentry cron monitors for your Vercel Cron Jobs.
+Known issues:
 
-Please note that this is an experimental unstable feature and subject to change.
+- Missing data from various integrations and framework SDKs
+- `ignoreSpans` is not yet applied
 
-```ts
-// next.config.ts
-export default withSentryConfig(nextConfig, {
-  _experimental: {
-    vercelCronMonitoring: true,
-  },
-});
-```
+Untested:
 
-- **feat(node-core): Add node-core/light ([#18502](https://github.com/getsentry/sentry-javascript/pull/18502))**
-
-  This release adds a new light-weight `@sentry/node-core/light` export to `@sentry/node-core`. The export acts as a light-weight SDK that does not depend on OpenTelemetry and emits no spans.
-
-  Use this SDK when:
-  - You only need error tracking, logs or metrics without tracing data (no spans)
-  - You want to minimize bundle size and runtime overhead
-  - You don't need spans emitted by OpenTelemetry instrumentation
-
-  It supports error tracking and reporting, logs, metrics, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
-
-  Install the SDK by running
-
-  ```bash
-  npm install @sentry/node-core
-  ```
-
-  and add Sentry at the top of your application's entry file:
-
-  ```js
-  import * as Sentry from '@sentry/node-core/light';
-
-  Sentry.init({
-    dsn: '__DSN__',
-  });
-  ```
+- Meta frameworks or framework SDKs building on top of @sentry/browser or @sentry/node. Likely, data is missing, noisy spans are not filtered, etc.
 
 ## 10.38.0
 
