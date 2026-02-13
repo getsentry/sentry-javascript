@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 import { extractServerFunctionSha256 } from './utils';
 
 export type ServerEntry = {
@@ -55,12 +55,32 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
               attributes: serverFunctionSpanAttributes,
             },
             () => {
-              return target.apply(thisArg, args);
+              try {
+                return target.apply(thisArg, args);
+              } catch (error) {
+                captureException(error, {
+                  mechanism: {
+                    handled: false,
+                    type: 'auto.function.tanstackstart.server',
+                  },
+                });
+                throw error;
+              }
             },
           );
         }
 
-        return target.apply(thisArg, args);
+        try {
+          return target.apply(thisArg, args);
+        } catch (error) {
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.function.tanstackstart.server',
+            },
+          });
+          throw error;
+        }
       },
     });
   }
