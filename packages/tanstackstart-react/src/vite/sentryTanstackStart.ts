@@ -1,6 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makeNitroSentryExternalPlugin } from './nitro';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -51,7 +52,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
     return [];
   }
 
-  const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+  const plugins: Plugin[] = [makeNitroSentryExternalPlugin(), ...makeAddSentryVitePlugin(options)];
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
