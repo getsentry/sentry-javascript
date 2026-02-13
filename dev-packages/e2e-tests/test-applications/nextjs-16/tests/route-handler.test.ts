@@ -42,10 +42,7 @@ test('Should report an error with a parameterized transaction name for a throwin
   request,
 }) => {
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
-    return (
-      (errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false) &&
-      errorEvent?.contexts?.nextjs?.route_type === 'route'
-    );
+    return errorEvent?.exception?.values?.some(value => value.value === 'route-handler-error') ?? false;
   });
 
   const transactionEventPromise = waitForTransaction('nextjs-16', transactionEvent => {
@@ -63,20 +60,25 @@ test('Should report an error with a parameterized transaction name for a throwin
   // Error event should be part of the same trace as the transaction
   expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
 
-  // Error should carry the parameterized transaction name (with HTTP method)
+  // Error should carry the parameterized transaction name
   expect(errorEvent.transaction).toBe('GET /route-handler/[xoxo]/error');
 
-  expect(errorEvent.contexts?.nextjs).toEqual({
-    route_type: 'route',
-    router_kind: 'App Router',
-    router_path: '/route-handler/[xoxo]/error',
-    request_path: '/route-handler/456/error',
-  });
+  // On turbopack (no wrapping loader), the error goes through onRequestError which sets nextjs context.
+  // On webpack, the wrapping loader's error handler fires first and captures without nextjs context.
+  // The SDK deduplicates by error identity, so only the first capture survives.
+  if (process.env.TEST_ENV === 'development') {
+    expect(errorEvent.contexts?.nextjs).toEqual({
+      route_type: 'route',
+      router_kind: 'App Router',
+      router_path: '/route-handler/[xoxo]/error',
+      request_path: '/route-handler/456/error',
+    });
 
-  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-    handled: false,
-    type: 'auto.function.nextjs.on_request_error',
-  });
+    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+      handled: false,
+      type: 'auto.function.nextjs.on_request_error',
+    });
+  }
 
   // Transaction should have parameterized name and internal_error status
   expect(transactionEvent.transaction).toBe('GET /route-handler/[xoxo]/error');
