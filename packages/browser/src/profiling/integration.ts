@@ -1,12 +1,5 @@
 import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
-import {
-  debug,
-  defineIntegration,
-  getActiveSpan,
-  getRootSpan,
-  hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
-} from '@sentry/core';
+import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
