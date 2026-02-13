@@ -8,9 +8,7 @@ coverage:
   round: down
   range: '0...1'
   status:
-    project:
-      default:
-        enabled: no
+    project: false
     patch:
       default:
         enabled: no
