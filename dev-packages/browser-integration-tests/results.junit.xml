@@ -1,10 +1,6 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="4.057123">
-<testsuite name="suites/replay/privacyBlock/test.ts" timestamp="2026-02-12T21:36:46.863Z" hostname="chromium" tests="1" failures="0" skipped="0" time="2.744" errors="0">
-<testcase name="should allow to manually block elements" classname="suites/replay/privacyBlock/test.ts" time="2.744">
-</testcase>
-</testsuite>
-<testsuite name="suites/replay/privacyDefault/test.ts" timestamp="2026-02-12T21:36:46.863Z" hostname="chromium" tests="1" failures="0" skipped="0" time="2.745" errors="0">
-<testcase name="should have the correct default privacy settings" classname="suites/replay/privacyDefault/test.ts" time="2.745">
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.3956">
+<testsuite name="suites/replay/privacyBlock/test.ts" timestamp="2026-02-13T20:07:07.731Z" hostname="chromium" tests="1" failures="0" skipped="0" time="1.969" errors="0">
+<testcase name="should allow to manually block elements" classname="suites/replay/privacyBlock/test.ts" time="1.969">
 </testcase>
 </testsuite>
 </testsuites>
