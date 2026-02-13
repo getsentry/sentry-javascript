@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.3956">
+<testsuite name="suites/replay/privacyBlock/test.ts" timestamp="2026-02-13T20:07:07.731Z" hostname="chromium" tests="1" failures="0" skipped="0" time="1.969" errors="0">
+<testcase name="should allow to manually block elements" classname="suites/replay/privacyBlock/test.ts" time="1.969">
+</testcase>
+</testsuite>
+</testsuites>
