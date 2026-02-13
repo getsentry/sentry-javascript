@@ -60,8 +60,8 @@ test('Should report an error with a parameterized transaction name for a throwin
   // Error event should be part of the same trace as the transaction
   expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
 
-  // Error should carry the parameterized transaction name
-  expect(errorEvent.transaction).toBe('/route-handler/[xoxo]/error');
+  // Error should carry the parameterized transaction name (with HTTP method)
+  expect(errorEvent.transaction).toBe('GET /route-handler/[xoxo]/error');
 
   expect(errorEvent.contexts?.nextjs).toEqual({
     route_type: 'route',
