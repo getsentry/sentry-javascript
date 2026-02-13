@@ -6,6 +6,7 @@ import { isError, isRequest } from '../utils/is';
 import { addNonEnumerableProperty, fill } from '../utils/object';
 import { supportsNativeFetch } from '../utils/supports';
 import { timestampInSeconds } from '../utils/time';
+import { safeUnref } from '../utils/timer';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
@@ -158,13 +159,15 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
     const responseReader = body.getReader();
 
     // Define a maximum duration after which we just cancel
-    const maxFetchDurationTimeout = setTimeout(
-      () => {
-        body.cancel().then(null, () => {
-          // noop
-        });
-      },
-      90 * 1000, // 90s
+    const maxFetchDurationTimeout = safeUnref(
+      setTimeout(
+        () => {
+          body.cancel().then(null, () => {
+            // noop
+          });
+        },
+        90 * 1000, // 90s
+      ),
     );
 
     let readingActive = true;
@@ -172,11 +175,13 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
       let chunkTimeout;
       try {
         // abort reading if read op takes more than 5s
-        chunkTimeout = setTimeout(() => {
-          body.cancel().then(null, () => {
-            // noop on error
-          });
-        }, 5000);
+        chunkTimeout = safeUnref(
+          setTimeout(() => {
+            body.cancel().then(null, () => {
+              // noop on error
+            });
+          }, 5000),
+        );
 
         // This .read() call will reject/throw when we abort due to timeouts through `body.cancel()`
         const { done } = await responseReader.read();

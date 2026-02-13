@@ -9,7 +9,14 @@ import type {
   Integration,
   IntegrationFn,
 } from '@sentry/core';
-import { debug, defineIntegration, getClient, getFilenameToDebugIdMap, getIsolationScope } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getClient,
+  getFilenameToDebugIdMap,
+  getIsolationScope,
+  safeUnref,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
@@ -72,7 +79,7 @@ function startPolling(
   const pollInterval = (integrationOptions.threshold || DEFAULT_THRESHOLD_MS) / POLL_RATIO;
 
   // unref so timer does not block exit
-  setInterval(() => poll(enabled, initOptions), pollInterval).unref();
+  safeUnref(setInterval(() => poll(enabled, initOptions), pollInterval));
 
   return {
     start: () => {

@@ -10,6 +10,7 @@ import {
   makeSession,
   mergeScopeData,
   normalizeUrlToBase,
+  safeUnref,
   Scope,
   stripSentryFramesAndReverse,
   updateSession,
@@ -298,23 +299,25 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
   await transport.flush(2000);
 }
 
-setInterval(async () => {
-  for (const [threadId, time] of Object.entries(getThreadsLastSeen())) {
-    if (time > threshold) {
-      if (triggeredThreads.has(threadId)) {
-        continue;
-      }
+safeUnref(
+  setInterval(async () => {
+    for (const [threadId, time] of Object.entries(getThreadsLastSeen())) {
+      if (time > threshold) {
+        if (triggeredThreads.has(threadId)) {
+          continue;
+        }
 
-      log(`Blocked thread detected '${threadId}' last polled ${time} ms ago.`);
-      triggeredThreads.add(threadId);
+        log(`Blocked thread detected '${threadId}' last polled ${time} ms ago.`);
+        triggeredThreads.add(threadId);
 
-      try {
-        await sendBlockEvent(threadId);
-      } catch (error) {
-        log(`Failed to send event for thread '${threadId}':`, error);
+        try {
+          await sendBlockEvent(threadId);
+        } catch (error) {
+          log(`Failed to send event for thread '${threadId}':`, error);
+        }
+      } else {
+        triggeredThreads.delete(threadId);
       }
-    } else {
-      triggeredThreads.delete(threadId);
     }
-  }
-}, pollInterval);
+  }, pollInterval),
+);

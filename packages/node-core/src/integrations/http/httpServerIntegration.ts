@@ -13,6 +13,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   httpRequestToRequestData,
+  safeUnref,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
@@ -311,10 +312,12 @@ export function recordRequestSession(
           DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
         });
-        const timeout = setTimeout(() => {
-          DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
-          flushPendingClientAggregates();
-        }, sessionFlushingDelayMS).unref();
+        const timeout = safeUnref(
+          setTimeout(() => {
+            DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
+            flushPendingClientAggregates();
+          }, sessionFlushingDelayMS),
+        );
       }
     }
   });

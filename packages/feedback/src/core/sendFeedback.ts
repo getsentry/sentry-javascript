@@ -1,5 +1,5 @@
 import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/core';
-import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
+import { captureFeedback, getClient, getCurrentScope, getLocationHref, safeUnref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
 
 /**
@@ -35,7 +35,7 @@ export const sendFeedback: SendFeedback = (
   // We want to wait for the feedback to be sent (or not)
   return new Promise<string>((resolve, reject) => {
     // After 30s, we want to clear anyhow
-    const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 30_000);
+    const timeout = safeUnref(setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 30_000));
 
     const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {

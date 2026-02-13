@@ -10,6 +10,7 @@ import {
   getFilenameToDebugIdMap,
   getIsolationScope,
   GLOBAL_OBJ,
+  safeUnref,
 } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -220,20 +221,20 @@ async function _startWorker(
     worker.terminate();
   });
 
-  const timer = setInterval(() => {
-    try {
-      const currentSession = getIsolationScope().getSession();
-      // We need to copy the session object and remove the toJSON method so it can be sent to the worker
-      // serialized without making it a SerializedSession
-      const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
-      // message the worker to tell it the main event loop is still running
-      worker.postMessage({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
-    } catch {
-      //
-    }
-  }, options.pollInterval);
-  // Timer should not block exit
-  timer.unref();
+  const timer = safeUnref(
+    setInterval(() => {
+      try {
+        const currentSession = getIsolationScope().getSession();
+        // We need to copy the session object and remove the toJSON method so it can be sent to the worker
+        // serialized without making it a SerializedSession
+        const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
+        // message the worker to tell it the main event loop is still running
+        worker.postMessage({ session, debugImages: getFilenameToDebugIdMap(initOptions.stackParser) });
+      } catch {
+        //
+      }
+    }, options.pollInterval),
+  );
 
   worker.on('message', (msg: string) => {
     if (msg === 'session-ended') {
