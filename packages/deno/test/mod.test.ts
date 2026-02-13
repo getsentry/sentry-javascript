@@ -1,8 +1,8 @@
-import type { Event } from '@sentry/core';
-import { createStackParser, nodeStackLineParser } from '@sentry/core';
+import type { Envelope, Event } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/esm/index.js';
+import { DenoClient, getCurrentScope, getDefaultIntegrations, logger, Scope } from '../build/esm/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -72,6 +72,43 @@ Deno.test('captureMessage twice', async t => {
 
   await delay(200);
   await assertSnapshot(t, ev);
+});
+
+Deno.test('logger.info captures a log envelope item', async () => {
+  const envelopes: Array<Envelope> = [];
+  const client = new DenoClient({
+    dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
+    enableLogs: true,
+    integrations: getDefaultIntegrations({}),
+    stackParser: createStackParser(nodeStackLineParser()),
+    transport: makeTestTransport(envelope => {
+      envelopes.push(envelope);
+    }),
+  });
+
+  client.init();
+  const scope = new Scope();
+  scope.setClient(client);
+
+  logger.info('test log message', { key: 'value' }, { scope });
+
+  await client.flush(2000);
+
+  // deno-lint-ignore no-explicit-any
+  let logItem: any = undefined;
+  for (const envelope of envelopes) {
+    forEachEnvelopeItem(envelope, item => {
+      const [headers, body] = item;
+      if (headers.type === 'log') {
+        logItem = body;
+      }
+    });
+  }
+
+  assertEquals(logItem !== undefined, true);
+  assertEquals(logItem.items.length, 1);
+  assertEquals(logItem.items[0].level, 'info');
+  assertEquals(logItem.items[0].body, 'test log message');
 });
 
 Deno.test('App runs without errors', async _ => {
