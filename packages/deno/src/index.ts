@@ -1,6 +1,8 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Log,
+  LogSeverityLevel,
   PolymorphicRequest,
   RequestEventData,
   SdkInfo,
