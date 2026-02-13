@@ -1,6 +1,7 @@
 import type { Client } from '../client';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
+import { chainAndCopyPromiseLike } from '../utils/chain-and-copy-promiselike';
 import { isThenable } from '../utils/is';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import type { AsyncContextStrategy } from './types';
@@ -52,17 +53,11 @@ export class AsyncContextStack {
     }
 
     if (isThenable(maybePromiseResult)) {
-      // @ts-expect-error - isThenable returns the wrong type
-      return maybePromiseResult.then(
-        res => {
-          this._popScope();
-          return res;
-        },
-        e => {
-          this._popScope();
-          throw e;
-        },
-      );
+      return chainAndCopyPromiseLike(
+        maybePromiseResult as PromiseLike<Awaited<typeof maybePromiseResult>> & Record<string, unknown>,
+        () => this._popScope(),
+        () => this._popScope(),
+      ) as T;
     }
 
     this._popScope();

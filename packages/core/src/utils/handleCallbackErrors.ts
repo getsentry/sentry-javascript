@@ -1,4 +1,5 @@
 import { isThenable } from '../utils/is';
+import { chainAndCopyPromiseLike } from '../utils/chain-and-copy-promiselike';
 
 /* eslint-disable */
 // Vendor "Awaited" in to be TS 3.8 compatible
@@ -62,7 +63,12 @@ export function handleCallbackErrors<
  * Maybe handle a promise rejection.
  * This expects to be given a value that _may_ be a promise, or any other value.
  * If it is a promise, and it rejects, it will call the `onError` callback.
- * Other than this, it will generally return the given value as-is.
+ *
+ * For thenable objects with extra methods (like jQuery's jqXHR),
+ * this function preserves those methods by wrapping the original thenable in a Proxy
+ * that intercepts .then() calls to apply error handling while forwarding all other
+ * properties to the original object.
+ * This allows code like `startSpan(() => $.ajax(...)).abort()` to work correctly.
  */
 function maybeHandlePromiseRejection<MaybePromise>(
   value: MaybePromise,
@@ -71,22 +77,21 @@ function maybeHandlePromiseRejection<MaybePromise>(
   onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
-    // @ts-expect-error - the isThenable check returns the "wrong" type here
-    return value.then(
-      res => {
+    return chainAndCopyPromiseLike(
+      value as MaybePromise & PromiseLike<Awaited<typeof value>> & Record<string, unknown>,
+      (result) => {
         onFinally();
-        onSuccess(res);
-        return res;
+        onSuccess(result as Awaited<MaybePromise>);
       },
-      e => {
-        onError(e);
-        onFinally();
-        throw e;
+      (err) => {
+        onError(err)
+        onFinally()
       },
-    );
+    ) as MaybePromise;
+  } else {
+    // Non-thenable value - call callbacks immediately and return as-is
+    onFinally();
+    onSuccess(value);
   }
-
-  onFinally();
-  onSuccess(value);
   return value;
 }
