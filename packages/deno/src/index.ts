@@ -1,6 +1,8 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Log,
+  LogSeverityLevel,
   Metric,
   PolymorphicRequest,
   RequestEventData,
