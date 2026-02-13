@@ -31,6 +31,14 @@ export interface LangChainSerialized {
 }
 
 /**
+ * Subset of the 'llm' param passed to createReactAgent
+ */
+export interface BaseChatModel {
+  lc_namespace: string[];
+  modelName: string;
+}
+
+/**
  * LangChain message structure
  * Supports both regular messages and LangChain serialized format
  */

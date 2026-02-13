@@ -10,16 +10,17 @@ import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { extractSystemInstructions } from '../ai/utils';
-import type { LangChainMessage } from '../langchain/types';
+import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';
-import { extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
+import { extractLLMFromParams, extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
 
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
@@ -94,9 +95,11 @@ function instrumentCompiledGraphInvoke(
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
   options: LangGraphOptions,
+  llm?: BaseChatModel | null,
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
+      const modelName = llm?.modelName;
       return startSpan(
         {
           op: 'gen_ai.invoke_agent',
@@ -115,6 +118,9 @@ function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_PIPELINE_NAME_ATTRIBUTE, graphName);
               span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, graphName);
               span.updateName(`invoke_agent ${graphName}`);
+            }
+            if (modelName) {
+              span.setAttribute(GEN_AI_REQUEST_MODEL_ATTRIBUTE, modelName);
             }
 
             // Extract thread_id from the config (second argument)
@@ -177,6 +183,60 @@ function instrumentCompiledGraphInvoke(
       );
     },
   }) as (...args: unknown[]) => Promise<unknown>;
+}
+
+/**
+ * Instruments createReactAgent to create spans for agent creation and invocation
+ *
+ * Creates a `gen_ai.create_agent` span when createReactAgent() is called
+ */
+export function instrumentCreateReactAgent(
+  originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
+  options: LangGraphOptions,
+): (...args: unknown[]) => CompiledGraph {
+  return new Proxy(originalCreateReactAgent, {
+    apply(target, thisArg, args: unknown[]): CompiledGraph {
+      const llm = extractLLMFromParams(args);
+      return startSpan(
+        {
+          op: 'gen_ai.create_agent',
+          name: 'create_agent',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+            [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          },
+        },
+        span => {
+          try {
+            const compiledGraph = Reflect.apply(target, thisArg, args);
+            const compiledOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
+            const originalInvoke = compiledGraph.invoke;
+            if (originalInvoke && typeof originalInvoke === 'function') {
+              compiledGraph.invoke = instrumentCompiledGraphInvoke(
+                originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+                compiledGraph,
+                compiledOptions,
+                options,
+                llm,
+              ) as typeof originalInvoke;
+            }
+
+            return compiledGraph;
+          } catch (error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.langgraph.error',
+              },
+            });
+            throw error;
+          }
+        },
+      );
+    },
+  }) as (...args: unknown[]) => CompiledGraph;
 }
 
 /**
