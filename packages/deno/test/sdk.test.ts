@@ -10,11 +10,13 @@ Deno.test('getDefaultIntegrations returns list of integrations with default opti
   const integrations = getDefaultIntegrations({}).map(integration => integration.name);
   assertEquals(integrations, [
     'InboundFilters',
+    'RequestData',
     'FunctionToString',
     'LinkedErrors',
     'Dedupe',
     'Breadcrumbs',
     'DenoContext',
+    'DenoServe',
     'ContextLines',
     'NormalizePaths',
     'GlobalHandlers',
@@ -25,11 +27,13 @@ Deno.test('getDefaultIntegrations returns spanStreamingIntegration if traceLifec
   const integrations = getDefaultIntegrations({ traceLifecycle: 'stream' }).map(integration => integration.name);
   assertEquals(integrations, [
     'InboundFilters',
+    'RequestData',
     'FunctionToString',
     'LinkedErrors',
     'Dedupe',
     'Breadcrumbs',
     'DenoContext',
+    'DenoServe',
     'ContextLines',
     'NormalizePaths',
     'GlobalHandlers',

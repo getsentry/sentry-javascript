@@ -1,5 +1,12 @@
 import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
-import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getActiveSpan,
+  getRootSpan,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
+} from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -83,6 +90,16 @@ const _browserProfilingIntegration = (() => {
             }
           }, 0);
         }
+
+        // Attach profilerId to every span when the profiler is active (for correlation with profile chunks)
+        client.on('spanStart', (span: Span) => {
+          if (profiler.isRunning()) {
+            const profilerId = profiler.getProfilerId();
+            if (profilerId) {
+              span.setAttribute('sentry.profiler_id', profilerId);
+            }
+          }
+        });
       } else {
         // LEGACY PROFILING (v1)
         if (rootSpan && isAutomatedPageLoadSpan(rootSpan)) {
