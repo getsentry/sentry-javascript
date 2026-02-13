@@ -77,6 +77,7 @@ test('sends an INP span', async ({ page }) => {
     data: {
       'sentry.origin': 'auto.http.browser.inp',
       'sentry.op': 'ui.interaction.click',
+      'sentry.replay_id': expect.any(String),
       release: 'e2e-test',
       environment: 'qa',
       transaction: '/',
