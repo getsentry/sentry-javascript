@@ -14,11 +14,12 @@ import {
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { wrapAlarmWithSentry } from './durableobject-alarm';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
-import { copyExecutionContext } from './utils/copyExecutionContext';
+import { instrumentContext } from './utils/instrumentContext';
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -196,7 +197,7 @@ export function instrumentDurableObjectWithSentry<
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
-      const context = copyExecutionContext(ctx);
+      const context = instrumentContext(ctx);
 
       const options = getFinalOptions(optionsCallback(env), env);
 
@@ -225,7 +226,7 @@ export function instrumentDurableObjectWithSentry<
       }
 
       if (obj.alarm && typeof obj.alarm === 'function') {
-        obj.alarm = wrapMethodWithSentry({ options, context, spanName: 'alarm' }, obj.alarm);
+        obj.alarm = wrapAlarmWithSentry({ options, context }, obj.alarm);
       }
 
       if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {

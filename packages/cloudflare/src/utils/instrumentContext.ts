@@ -42,26 +42,18 @@ export function instrumentContext<T extends ContextType>(ctx: T): T {
   );
 
   // Check if this is a DurableObjectState context with a storage property
-  // If so, wrap the storage with instrumentation and expose the original
+  // If so, wrap the storage with instrumentation
   if ('storage' in ctx && ctx.storage) {
-    const originalStorage = ctx.storage;
     let instrumentedStorage: DurableObjectStorage | undefined;
     descriptors.storage = {
       configurable: true,
       enumerable: true,
       get: () => {
         if (!instrumentedStorage) {
-          instrumentedStorage = instrumentDurableObjectStorage(originalStorage);
+          instrumentedStorage = instrumentDurableObjectStorage(ctx.storage);
         }
         return instrumentedStorage;
       },
-    };
-    // Expose the original uninstrumented storage for internal Sentry use
-    descriptors.originalStorage = {
-      configurable: false,
-      enumerable: false,
-      writable: false,
-      value: originalStorage,
     };
   }
 
