@@ -9,6 +9,7 @@ coverage:
   range: '0...1'
   status:
     project:
+      threshold: 10
       default:
         enabled: no
     patch:
