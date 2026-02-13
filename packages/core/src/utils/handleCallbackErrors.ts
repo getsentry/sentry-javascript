@@ -1,3 +1,4 @@
+import { chainAndCopyPromiseLike } from '../utils/chain-and-copy-promiselike';
 import { isThenable } from '../utils/is';
 
 /* eslint-disable */
@@ -76,23 +77,21 @@ function maybeHandlePromiseRejection<MaybePromise>(
   onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
-    // Attach handlers but still return original promise
-    value.then(
-      res => {
+    return chainAndCopyPromiseLike(
+      value as MaybePromise & PromiseLike<Awaited<typeof value>> & Record<string, unknown>,
+      result => {
         onFinally();
-        onSuccess(res);
+        onSuccess(result as Awaited<MaybePromise>);
       },
       err => {
         onError(err);
         onFinally();
       },
-    );
-
-    return value;
+    ) as MaybePromise;
+  } else {
+    // Non-thenable value - call callbacks immediately and return as-is
+    onFinally();
+    onSuccess(value);
   }
-
-  // Non-thenable value - call callbacks immediately and return as-is
-  onFinally();
-  onSuccess(value);
   return value;
 }

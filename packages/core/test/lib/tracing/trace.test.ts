@@ -212,16 +212,28 @@ describe('startSpan', () => {
 
   describe('AsyncContext withScope promise integrity behavior', () => {
     it('returns the original promise instance', async () => {
-      const original = Promise.resolve(42);
-      const result = startSpan({}, () => original);
-      expect(result).toBe(original); // New behavior
+      const original = Object.assign(Promise.resolve(42), {
+        value: 123,
+        getValue() {
+          return this.value;
+        },
+      });
+      const result = startSpan({ name: 'test' }, () => original);
+      // preserve add-on methods on handled promises
+      expect(result.getValue()).toBe(original.getValue());
     });
 
     it('returns same instance on multiple calls', () => {
-      const p = Promise.resolve(1);
-      const result1 = startSpan({}, () => p);
-      const result2 = startSpan({}, () => p);
-      expect(result1).toBe(result2);
+      const p = Object.assign(Promise.resolve(1), {
+        value: 42,
+        getValue() {
+          return this.value;
+        },
+      });
+      const result1 = startSpan({ name: 'test' }, () => p);
+      const result2 = startSpan({ name: 'test' }, () => p);
+      expect(result1.getValue()).toBe(42);
+      expect(result2.getValue()).toBe(42);
     });
 
     it('preserves custom thenable methods', async () => {
@@ -229,7 +241,7 @@ describe('startSpan', () => {
         then: Promise.resolve(1).then.bind(Promise.resolve(1)),
         abort: vi.fn(),
       };
-      const result = startSpan({}, () => jqXHR);
+      const result = startSpan({ name: 'test' }, () => jqXHR);
       expect(typeof result.abort).toBe('function');
       result.abort();
       expect(jqXHR.abort).toHaveBeenCalled();
