@@ -1,6 +1,7 @@
 import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { createRequestHandler } from '@remix-run/express';
 import { debug } from '@sentry/core';
 import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
@@ -12,7 +13,6 @@ import express from 'express';
 import type { Express } from 'express';
 import type { HttpTerminator } from 'http-terminator';
 import { createHttpTerminator } from 'http-terminator';
-import nock from 'nock';
 
 type DataCollectorOptions = {
   // Optional custom URL
@@ -107,15 +107,25 @@ class TestEnv {
         ? [options.envelopeType]
         : options.envelopeType || (['event'] as EnvelopeItemType[]);
 
+    // Use a ref to capture startIndex right before making the request
+    // The claimed indices mechanism and stopping at count will ensure parallel requests don't interfere
+    const startIndexRef = { startIndex: null as number | null };
     const resProm = this.setupNock(
       options.count || 1,
       typeof options.endServer === 'undefined' ? true : options.endServer,
       envelopeTypeArray,
+      startIndexRef,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    makeRequest(options.method, options.url || this.url, this._axiosConfig);
-    return resProm;
+    // Capture startIndex right before making the request
+    const globalEnvelopesArray = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+    startIndexRef.startIndex = globalEnvelopesArray.length;
+    // Wait for the request to complete so Sentry has time to capture events
+    await makeRequest(options.method, options.url || this.url, this._axiosConfig);
+    // Flush Sentry events to ensure they're sent to the transport
+    await Sentry.flush(2000);
+    const result = await resProm;
+    return result;
   }
 
   /**
@@ -166,51 +176,104 @@ class TestEnv {
     count: number,
     endServer: boolean,
     envelopeType: EnvelopeItemType[],
+    startIndexRef?: { startIndex: number | null },
   ): Promise<Record<string, unknown>[][]> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const envelopes: Record<string, unknown>[][] = [];
-      const mock = nock('https://dsn.ingest.sentry.io')
-        .persist()
-        .post('/api/1337/envelope/', body => {
-          const envelope = parseEnvelope(body);
+      let timeoutId: NodeJS.Timeout | null = null;
+      let checkInterval: NodeJS.Timeout | null = null;
 
-          if (envelopeType.includes(envelope[1]?.type as EnvelopeItemType)) {
-            envelopes.push(envelope);
-          } else {
-            return false;
+      // Track the starting length to only count envelopes added after the request is made
+      // If startIndexRef is provided, use it (set right before request); otherwise capture now
+      let startIndex: number;
+      if (startIndexRef) {
+        // Wait for startIndex to be set (it will be set right before request is made)
+        const getStartIndex = () => {
+          if (startIndexRef.startIndex === null) {
+            const globalEnvelopesArray = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+            return globalEnvelopesArray.length;
+          }
+          return startIndexRef.startIndex;
+        };
+        startIndex = getStartIndex();
+      } else {
+        const globalEnvelopesArray = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+        startIndex = globalEnvelopesArray.length;
+      }
+
+      // Use a global Set to track which envelope indices have been claimed
+      // This prevents parallel setupNock instances from matching the same envelopes
+      if (!(globalThis as any).__SENTRY_TEST_CLAIMED_ENVELOPE_INDICES__) {
+        (globalThis as any).__SENTRY_TEST_CLAIMED_ENVELOPE_INDICES__ = new Set<number>();
+      }
+      const claimedIndices = (globalThis as any).__SENTRY_TEST_CLAIMED_ENVELOPE_INDICES__ as Set<number>;
+
+      // Poll for envelopes from the custom transport
+      const checkForEnvelopes = () => {
+        // If using ref, wait until it's set (set right before request is made)
+        if (startIndexRef && startIndexRef.startIndex === null) {
+          return; // Don't check yet, startIndex hasn't been set
+        }
+
+        const globalEnvelopes = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+
+        // Use the ref value if provided, otherwise use the initial startIndex
+        const currentStartIndex = startIndexRef?.startIndex ?? startIndex;
+
+        // Only check envelopes that were added after the request started
+        // Check each envelope by its index in the global array
+        // Stop once we have enough envelopes to avoid claiming more than needed
+        for (let i = currentStartIndex; i < globalEnvelopes.length && envelopes.length < count; i++) {
+          // Skip if this envelope index has already been claimed by another setupNock
+          if (claimedIndices.has(i)) {
+            continue;
           }
 
-          if (count === envelopes.length) {
-            nock.removeInterceptor(mock);
-
-            if (endServer) {
-              // Cleaning nock only before the server is closed,
-              // not to break tests that use simultaneous requests to the server.
-              // Ex: Remix scope bleed tests.
-              nock.cleanAll();
-
-              // Abort all pending requests to nock to prevent hanging / flakes.
-              // See: https://github.com/nock/nock/issues/1118#issuecomment-544126948
-              nock.abortPendingRequests();
-
-              this._closeServer()
-                .catch(e => {
-                  debug.warn(e);
-                })
-                .finally(() => {
-                  resolve(envelopes);
-                });
-            } else {
-              resolve(envelopes);
+          const envelope = globalEnvelopes[i];
+          // The parsed envelope format is [header, itemHeader, itemPayload]
+          // where itemHeader has a 'type' property
+          const itemHeader = envelope[1];
+          if (itemHeader && envelopeType.includes(itemHeader.type as EnvelopeItemType)) {
+            // Check if we've already added this envelope to our local array
+            if (!envelopes.includes(envelope)) {
+              // Claim this envelope index so other parallel setupNock instances don't match it
+              claimedIndices.add(i);
+              envelopes.push(envelope);
+              // Stop if we have enough envelopes
+              if (envelopes.length >= count) {
+                break;
+              }
             }
           }
+        }
 
-          return true;
-        });
+        if (count === envelopes.length) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (checkInterval) clearInterval(checkInterval);
 
-      mock
-        .query(true) // accept any query params - used for sentry_key param
-        .reply(200);
+          if (endServer) {
+            this._closeServer()
+              .catch(e => {
+                debug.warn(e);
+              })
+              .finally(() => {
+                resolve(envelopes);
+              });
+          } else {
+            resolve(envelopes);
+          }
+        }
+      };
+
+      // Check immediately and then poll every 50ms
+      checkForEnvelopes();
+      checkInterval = setInterval(checkForEnvelopes, 50);
+
+      // Add a timeout to detect if Sentry requests never arrive
+      timeoutId = setTimeout(() => {
+        if (checkInterval) clearInterval(checkInterval);
+        reject(new Error(`Timeout waiting for Sentry envelopes. Expected ${count}, got ${envelopes.length}`));
+      }, 5000);
     });
   }
 
@@ -224,25 +287,27 @@ class TestEnv {
     envelopeType: EnvelopeItemType | EnvelopeItemType[];
   }): Promise<number> {
     return new Promise(resolve => {
-      let reqCount = 0;
+      const envelopeTypeArray =
+        typeof options.envelopeType === 'string' ? [options.envelopeType] : options.envelopeType;
 
-      const mock = nock('https://dsn.ingest.sentry.io')
-        .persist()
-        .post('/api/1337/envelope/', body => {
-          const envelope = parseEnvelope(body);
-
-          if (options.envelopeType.includes(envelope[1]?.type as EnvelopeItemType)) {
-            reqCount++;
-            return true;
-          }
-
-          return false;
-        });
+      // Track the starting length to only count envelopes added after this call
+      const globalEnvelopesArray = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+      const startIndex = globalEnvelopesArray.length;
 
       setTimeout(() => {
-        nock.removeInterceptor(mock);
+        const globalEnvelopes = (globalThis as any).__SENTRY_TEST_ENVELOPES__ || [];
+        // Only count envelopes that were added after this call started
+        const newEnvelopes = globalEnvelopes.slice(startIndex);
+        let reqCount = 0;
 
-        nock.cleanAll();
+        for (const envelope of newEnvelopes) {
+          // The parsed envelope format is [header, itemHeader, itemPayload]
+          // where itemHeader has a 'type' property
+          const itemHeader = envelope[1];
+          if (itemHeader && envelopeTypeArray.includes(itemHeader.type as EnvelopeItemType)) {
+            reqCount++;
+          }
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this._closeServer().then(() => {
@@ -266,20 +331,36 @@ export class RemixTestEnv extends TestEnv {
   }
 
   public static async init(): Promise<RemixTestEnv> {
-    let serverPort;
-    const server = await new Promise<http.Server>(async resolve => {
-      const app = express();
+    const app = express();
 
-      // Vite builds to build/server/index.js instead of build/index.js
-      app.all('*', createRequestHandler({ build: await import('../../../build/server/index.js') }));
+    // Import the build module dynamically
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const buildPath = path.resolve(__dirname, '../../../build/server/index.js');
+    const build = await import(buildPath);
 
-      const server = app.listen(0, () => {
-        serverPort = (server.address() as AddressInfo).port;
-        resolve(server);
-      });
+    const handler = createRequestHandler({ build });
+
+    app.all('*', async (req, res, next) => {
+      try {
+        await handler(req, res);
+      } catch (e) {
+        next(e);
+      }
     });
 
-    return new RemixTestEnv(server, `http://localhost:${serverPort}`);
+    return new Promise((resolve, reject) => {
+      const server = app.listen(0, () => {
+        const address = server.address();
+        if (address && typeof address === 'object') {
+          resolve(new RemixTestEnv(server, `http://localhost:${address.port}`));
+        } else {
+          server.close();
+          reject(new Error('Failed to start server: could not determine port'));
+        }
+      });
+
+      server.on('error', reject);
+    });
   }
 }
 
