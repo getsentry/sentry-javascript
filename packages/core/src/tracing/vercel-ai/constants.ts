@@ -1,8 +1,9 @@
-import type { Span } from '../../types-hoist/span';
+import type { ToolCallSpanContext } from './types';
 
-// Global Map to track tool call IDs to their corresponding spans
+// Global map to track tool call IDs to their corresponding span contexts.
 // This allows us to capture tool errors and link them to the correct span
-export const toolCallSpanMap = new Map<string, Span>();
+// without keeping full Span objects (and their potentially large attributes) alive.
+export const toolCallSpanMap = new Map<string, ToolCallSpanContext>();
 
 // Operation sets for efficient mapping to OpenTelemetry semantic convention values
 export const INVOKE_AGENT_OPS = new Set([

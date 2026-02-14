@@ -1,6 +1,5 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
 import {
   _INTERNAL_cleanupToolCallSpan,
   _INTERNAL_getSpanForToolCallId,
@@ -43,30 +42,43 @@ interface RecordingOptions {
   recordOutputs?: boolean;
 }
 
-interface ToolError {
-  type: 'tool-error' | 'tool-result' | 'tool-call';
+interface ToolErrorPart {
+  type: 'tool-error';
   toolCallId: string;
   toolName: string;
-  input?: {
-    [key: string]: unknown;
-  };
   error: Error;
-  dynamic?: boolean;
 }
 
-function isToolError(obj: unknown): obj is ToolError {
+interface ToolResultPart {
+  type: 'tool-result';
+  toolCallId: string;
+  toolName: string;
+}
+
+function isToolErrorPart(obj: unknown): obj is ToolErrorPart {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
 
   const candidate = obj as Record<string, unknown>;
   return (
-    'type' in candidate &&
-    'error' in candidate &&
-    'toolName' in candidate &&
-    'toolCallId' in candidate &&
     candidate.type === 'tool-error' &&
+    typeof candidate.toolName === 'string' &&
+    typeof candidate.toolCallId === 'string' &&
     candidate.error instanceof Error
+  );
+}
+
+function isToolResultPart(obj: unknown): obj is ToolResultPart {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Record<string, unknown>;
+  return (
+    candidate.type === 'tool-result' &&
+    typeof candidate.toolName === 'string' &&
+    typeof candidate.toolCallId === 'string'
   );
 }
 
@@ -79,59 +91,65 @@ function checkResultForToolErrors(result: unknown): void {
     return;
   }
 
-  const resultObj = result as { content: Array<object> };
+  const resultObj = result as { content: unknown };
   if (!Array.isArray(resultObj.content)) {
     return;
   }
 
   for (const item of resultObj.content) {
-    if (isToolError(item)) {
-      // Try to get the span associated with this tool call ID
-      const associatedSpan = _INTERNAL_getSpanForToolCallId(item.toolCallId) as Span;
-
-      if (associatedSpan) {
-        // We have the span, so link the error using span and trace IDs from the span
-        const spanContext = associatedSpan.spanContext();
-
-        withScope(scope => {
-          // Set the span and trace context for proper linking
-          scope.setContext('trace', {
-            trace_id: spanContext.traceId,
-            span_id: spanContext.spanId,
-          });
-
-          scope.setTag('vercel.ai.tool.name', item.toolName);
-          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-
-          scope.setLevel('error');
-
-          captureException(item.error, {
-            mechanism: {
-              type: 'auto.vercelai.otel',
-              handled: false,
-            },
-          });
-        });
-
-        // Clean up the span mapping since we've processed this tool error
-        // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
-        _INTERNAL_cleanupToolCallSpan(item.toolCallId);
-      } else {
-        // Fallback: capture without span linking
-        withScope(scope => {
-          scope.setTag('vercel.ai.tool.name', item.toolName);
-          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-          scope.setLevel('error');
-
-          captureException(item.error, {
-            mechanism: {
-              type: 'auto.vercelai.otel',
-              handled: false,
-            },
-          });
-        });
-      }
+    // Successful tool calls should not keep toolCallId -> span context mappings alive.
+    if (isToolResultPart(item)) {
+      _INTERNAL_cleanupToolCallSpan(item.toolCallId);
+      continue;
     }
+
+    if (!isToolErrorPart(item)) {
+      continue;
+    }
+
+    // Try to get the span context associated with this tool call ID
+    const spanContext = _INTERNAL_getSpanForToolCallId(item.toolCallId);
+
+    if (spanContext) {
+      // We have a span context, so link the error using span and trace IDs from the span
+      withScope(scope => {
+        // Set the span and trace context for proper linking
+        scope.setContext('trace', {
+          trace_id: spanContext.traceId,
+          span_id: spanContext.spanId,
+        });
+
+        scope.setTag('vercel.ai.tool.name', item.toolName);
+        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+
+        scope.setLevel('error');
+
+        captureException(item.error, {
+          mechanism: {
+            type: 'auto.vercelai.otel',
+            handled: false,
+          },
+        });
+      });
+    } else {
+      // Fallback: capture without span linking
+      withScope(scope => {
+        scope.setTag('vercel.ai.tool.name', item.toolName);
+        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+        scope.setLevel('error');
+
+        captureException(item.error, {
+          mechanism: {
+            type: 'auto.vercelai.otel',
+            handled: false,
+          },
+        });
+      });
+    }
+
+    // Clean up the span mapping since we've processed this tool error
+    // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
+    _INTERNAL_cleanupToolCallSpan(item.toolCallId);
   }
 }
 
