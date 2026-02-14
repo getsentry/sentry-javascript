@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
+import { clickhouseIntegration, instrumentClickhouse } from './clickhouse';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
@@ -43,6 +44,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mysql2Integration(),
     redisIntegration(),
     postgresIntegration(),
+    clickhouseIntegration(),
     prismaIntegration(),
     hapiIntegration(),
     koaIntegration(),
@@ -87,6 +89,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentMysql,
     instrumentMysql2,
     instrumentPostgres,
+    instrumentClickhouse,
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
