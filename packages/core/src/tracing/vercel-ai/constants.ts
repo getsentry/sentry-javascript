@@ -1,8 +1,12 @@
-import type { Span } from '../../types-hoist/span';
+import { LRUMap } from '../../utils/lru';
+import type { ToolCallSpanContext } from './types';
 
-// Global Map to track tool call IDs to their corresponding spans
+export const TOOL_CALL_SPAN_MAP_MAX_SIZE = 10_000;
+
+// Global LRU map to track tool call IDs to their corresponding span contexts.
 // This allows us to capture tool errors and link them to the correct span
-export const toolCallSpanMap = new Map<string, Span>();
+// without keeping full Span objects (and their potentially large attributes) alive.
+export const toolCallSpanMap = new LRUMap<string, ToolCallSpanContext>(TOOL_CALL_SPAN_MAP_MAX_SIZE);
 
 // Operation sets for efficient mapping to OpenTelemetry semantic convention values
 export const INVOKE_AGENT_OPS = new Set([
