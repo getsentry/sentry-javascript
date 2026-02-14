@@ -14,3 +14,13 @@ export { init } from './sdk';
 export function wrapMiddlewaresWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
   return Object.values(middlewares);
 }
+
+/**
+ * No-op stub for client-side builds.
+ * The actual implementation is server-only, but this stub is needed to prevent build errors.
+ */
+export function createTunnelHandler(
+  _allowedDsns: Array<string>,
+): (args: { request: Request }) => Promise<Response> {
+  return async () => new Response('Tunnel handler is not available on the client', { status: 500 });
+}
