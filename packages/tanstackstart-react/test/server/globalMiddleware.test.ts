@@ -15,9 +15,8 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 // Import after mocks are set up
-const { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } = await import(
-  '../../src/server/globalMiddleware'
-);
+const { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } =
+  await import('../../src/server/globalMiddleware');
 
 describe('sentryGlobalRequestMiddleware', () => {
   afterEach(() => {
@@ -84,9 +83,7 @@ describe('sentryGlobalRequestMiddleware', () => {
   });
 
   it('has __SENTRY_INTERNAL__ flag set', () => {
-    expect(
-      (sentryGlobalRequestMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__'],
-    ).toBe(true);
+    expect((sentryGlobalRequestMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__']).toBe(true);
   });
 });
 
@@ -119,8 +116,6 @@ describe('sentryGlobalFunctionMiddleware', () => {
   });
 
   it('has __SENTRY_INTERNAL__ flag set', () => {
-    expect(
-      (sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__'],
-    ).toBe(true);
+    expect((sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__']).toBe(true);
   });
 });
