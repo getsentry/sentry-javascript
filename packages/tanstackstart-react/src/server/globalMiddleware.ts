@@ -1,34 +1,15 @@
 import { addNonEnumerableProperty, captureException, flushIfServerless, withIsolationScope } from '@sentry/core';
 import type { TanStackMiddlewareBase } from '../common/types';
 
-async function sentryRequestHandler({ next }: { next: () => Promise<unknown> }): Promise<unknown> {
-  return withIsolationScope(async () => {
-    try {
-      return await next();
-    } catch (e) {
-      captureException(e, {
-        mechanism: { type: 'auto.function.tanstackstart', handled: false },
-      });
-      throw e;
-    } finally {
-      await flushIfServerless();
-    }
-  });
-}
-
-async function sentryFunctionHandler({ next }: { next: () => Promise<unknown> }): Promise<unknown> {
-  return withIsolationScope(async () => {
-    try {
-      return await next();
-    } catch (e) {
-      captureException(e, {
-        mechanism: { type: 'auto.function.tanstackstart', handled: false },
-      });
-      throw e;
-    } finally {
-      await flushIfServerless();
-    }
-  });
+async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> }): Promise<unknown> {
+  try {
+    return await next();
+  } catch (e) {
+    captureException(e, {
+      mechanism: { type: 'auto.function.tanstackstart', handled: false },
+    });
+    throw e;
+  }
 }
 
 /**
@@ -36,7 +17,7 @@ async function sentryFunctionHandler({ next }: { next: () => Promise<unknown> })
  * Should be added as the first entry in the `requestMiddleware` array of `createStart()`.
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
-  options: { server: sentryRequestHandler as (...args: unknown[]) => unknown },
+  options: { server: sentryMiddlewareHandler as (...args: unknown[]) => unknown },
 };
 
 /**
@@ -44,7 +25,7 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  * Should be added as the first entry in the `functionMiddleware` array of `createStart()`.
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
-  options: { server: sentryFunctionHandler as (...args: unknown[]) => unknown },
+  options: { server: sentryMiddlewareHandler as (...args: unknown[]) => unknown },
 };
 
 // Mark as internal so the Vite auto-instrumentation plugin skips these middleware
