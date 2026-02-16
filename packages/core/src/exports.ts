@@ -16,6 +16,7 @@ import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
+import { getCombinedScopeData } from './utils/scopeData';
 import { timestampInSeconds } from './utils/time';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -270,13 +271,14 @@ export function addEventProcessor(callback: EventProcessor): void {
  */
 export function startSession(context?: SessionContext): Session {
   const isolationScope = getIsolationScope();
-  const currentScope = getCurrentScope();
+
+  const { user } = getCombinedScopeData(isolationScope, getCurrentScope());
 
   // Will fetch userAgent if called from browser sdk
   const { userAgent } = GLOBAL_OBJ.navigator || {};
 
   const session = makeSession({
-    user: Object.keys(currentScope.getUser() || {}).length > 0 ? currentScope.getUser() : isolationScope.getUser(),
+    user,
     ...(userAgent && { userAgent }),
     ...context,
   });
