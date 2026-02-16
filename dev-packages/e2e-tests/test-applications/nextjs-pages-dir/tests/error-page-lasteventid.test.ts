@@ -4,7 +4,6 @@ import { isDevMode } from './isDevMode';
 import { isNext13 } from './nextjsVersion';
 
 test('lastEventId() should return the event ID after captureUnderscoreErrorException', async ({ page }) => {
-  test.skip(!!process.env.TEST_ENV?.includes('development'), 'should be skipped for non-dev mode');
   test.skip(isDevMode, 'should be skipped for non-dev mode');
   test.skip(isNext13, 'should be skipped for Next.js 13');
 
