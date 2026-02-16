@@ -17,41 +17,45 @@ if (!workspaces || !Array.isArray(workspaces)) {
   process.exit(1);
 }
 
+function tryReadJson(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
 // Collect all workspace package names so we know which deps to update
 const workspaceNames = new Set();
 for (const workspace of workspaces) {
-  const pkgPath = path.join(__dirname, '..', workspace, 'package.json');
-  if (!fs.existsSync(pkgPath)) {
-    continue;
+  const pkg = tryReadJson(path.join(__dirname, '..', workspace, 'package.json'));
+  if (pkg) {
+    workspaceNames.add(pkg.name);
   }
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-  workspaceNames.add(pkg.name);
 }
 
 let updatedCount = 0;
 
 for (const workspace of workspaces) {
   const pkgPath = path.join(__dirname, '..', workspace, 'package.json');
-  if (!fs.existsSync(pkgPath)) {
+  const pkg = tryReadJson(pkgPath);
+  if (!pkg) {
     continue;
   }
 
-  const raw = fs.readFileSync(pkgPath, 'utf-8');
-  const pkg = JSON.parse(raw);
   const oldVersion = pkg.version;
 
   // Update the package version
   pkg.version = newVersion;
 
   // Update internal workspace dependency versions (exact, no ^)
+  // This covers dependencies, devDependencies, and peerDependencies
   for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
     if (!pkg[depType]) {
       continue;
     }
 
     for (const [dep, ver] of Object.entries(pkg[depType])) {
-      // Update any internal workspace dependency pinned to the old version
-      // This covers dependencies, devDependencies, and peerDependencies
       if (workspaceNames.has(dep) && ver === oldVersion) {
         pkg[depType][dep] = newVersion;
       }
