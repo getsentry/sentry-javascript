@@ -106,11 +106,13 @@ snapshot[`captureException 1`] = `
   sdk: {
     integrations: [
       "InboundFilters",
+      "RequestData",
       "FunctionToString",
       "LinkedErrors",
       "Dedupe",
       "Breadcrumbs",
       "DenoContext",
+      "DenoServe",
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
@@ -177,11 +179,13 @@ snapshot[`captureMessage 1`] = `
   sdk: {
     integrations: [
       "InboundFilters",
+      "RequestData",
       "FunctionToString",
       "LinkedErrors",
       "Dedupe",
       "Breadcrumbs",
       "DenoContext",
+      "DenoServe",
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
@@ -255,11 +259,13 @@ snapshot[`captureMessage twice 1`] = `
   sdk: {
     integrations: [
       "InboundFilters",
+      "RequestData",
       "FunctionToString",
       "LinkedErrors",
       "Dedupe",
       "Breadcrumbs",
       "DenoContext",
+      "DenoServe",
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
@@ -340,11 +346,13 @@ snapshot[`captureMessage twice 2`] = `
   sdk: {
     integrations: [
       "InboundFilters",
+      "RequestData",
       "FunctionToString",
       "LinkedErrors",
       "Dedupe",
       "Breadcrumbs",
       "DenoContext",
+      "DenoServe",
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
