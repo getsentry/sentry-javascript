@@ -18,24 +18,10 @@ export type InstrumentHandlerCallback = (data: any) => void;
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};
 const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 
-/**
- * Add a handler function.
- * Returns a function to remove the handler.
- */
-export function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): () => void {
+/** Add a handler function. */
+export function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {
   handlers[type] = handlers[type] || [];
   handlers[type].push(handler);
-
-  // Return unsubscribe function
-  return () => {
-    const typeHandlers = handlers[type];
-    if (typeHandlers) {
-      const index = typeHandlers.indexOf(handler);
-      if (index !== -1) {
-        typeHandlers.splice(index, 1);
-      }
-    }
-  };
 }
 
 /**

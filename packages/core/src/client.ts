@@ -1119,40 +1119,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
-   * Disposes of the client and releases all resources.
-   *
-   * This method clears all hooks, event processors, and integration references
-   * to allow the client to be garbage collected. Call this method when you're
-   * done using the client and want to ensure all retained references are released.
-   *
-   * After calling dispose(), the client should not be used anymore.
-   */
-  public dispose(): void {
-    // Clear all hook callbacks to release closures and their captured variables
-    for (const hookName of Object.keys(this._hooks)) {
-      this._hooks[hookName]?.clear();
-    }
-    this._hooks = {};
-
-    // Clear event processors which may hold references to integrations and client
-    this._eventProcessors = [];
-
-    // Clear integration references
-    this._integrations = {};
-
-    // Clear outcomes tracking
-    this._outcomes = {};
-
-    // Clear transport reference to break the circular reference via recordDroppedEvent.bind(this)
-    // The transport holds a bound function that retains the client, so we need to clear it
-    // Use type assertion via unknown to bypass readonly and protected modifiers
-    (this as unknown as { _transport?: Transport })._transport = undefined;
-
-    // Clear the promise buffer to release any pending promises
-    (this as unknown as { _promiseBuffer?: unknown })._promiseBuffer = undefined;
-  }
-
-  /**
    * Send an envelope to Sentry.
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
