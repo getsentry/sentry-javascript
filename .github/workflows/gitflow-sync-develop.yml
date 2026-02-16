@@ -6,6 +6,8 @@ on:
     paths:
       # When versions are bumped on master (written by scripts/bump-version.js)
       - '.version.json'
+      - '!**/*.js'
+      - '!**/*.ts'
   workflow_dispatch:
 
 env:
