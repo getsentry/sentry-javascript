@@ -283,7 +283,10 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
   });
 }
 
-export async function waitForSession(page: Page, callback?: (session: SerializedSession) => boolean): Promise<SerializedSession> {
+export async function waitForSession(
+  page: Page,
+  callback?: (session: SerializedSession) => boolean,
+): Promise<SerializedSession> {
   const req = await page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
