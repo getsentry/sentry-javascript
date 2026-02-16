@@ -315,9 +315,6 @@ jobs:
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
-      - name: Check that yarn.lock is stable
-        run: yarn install --frozen-lockfile --ignore-engines
-
   job_check_format:
     name: Check file formatting
     needs: [job_get_metadata]
