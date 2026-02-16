@@ -326,10 +326,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Check for duplicate dependencies in lockfile
-        run: yarn dedupe-deps:check
       - name: Check that yarn.lock is stable
         run: yarn install --frozen-lockfile --ignore-engines
+      - name: Check for duplicate dependencies in lockfile
+        run: yarn dedupe-deps:check
 
   job_check_format:
     name: Check file formatting
