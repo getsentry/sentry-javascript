@@ -185,7 +185,45 @@ function setupWeightBasedFlushing<
  *   // ...
  * }
  */
+/**
+ * Base implementation for all JavaScript SDK clients.
+ *
+ * Call the constructor with the corresponding options
+ * specific to the client subclass. To access these options later, use
+ * {@link Client.getOptions}.
+ *
+ * If a Dsn is specified in the options, it will be parsed and stored. Use
+ * {@link Client.getDsn} to retrieve the Dsn at any moment. In case the Dsn is
+ * invalid, the constructor will throw a {@link SentryException}. Note that
+ * without a valid Dsn, the SDK will not send any events to Sentry.
+ *
+ * Before sending an event, it is passed through
+ * {@link Client._prepareEvent} to add SDK information and scope data
+ * (breadcrumbs and context). To add more custom information, override this
+ * method and extend the resulting prepared event.
+ *
+ * To issue automatically created events (e.g. via instrumentation), use
+ * {@link Client.captureEvent}. It will prepare the event and pass it through
+ * the callback lifecycle. To issue auto-breadcrumbs, use
+ * {@link Client.addBreadcrumb}.
+ *
+ * @example
+ * class NodeClient extends Client<NodeOptions> {
+ *   public constructor(options: NodeOptions) {
+ *     super(options);
+ *   }
+ *
+ *   // ...
+ * }
+ */
 export abstract class Client<O extends ClientOptions = ClientOptions> {
+  /**
+   * A unique identifier for this client instance.
+   * Used by integrations to check if they're running in the context of the correct client
+   * without holding a reference to the client object (which would prevent garbage collection).
+   */
+  public readonly _clientId: string;
+
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -216,6 +254,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param options Options for the client.
    */
   protected constructor(options: O) {
+    this._clientId = uuid4();
+
+
     this._options = options;
     this._integrations = {};
     this._numProcessing = 0;

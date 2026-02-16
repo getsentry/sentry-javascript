@@ -18,29 +18,6 @@ type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
   };
 };
 
-type WeakClientRef = { deref: () => object | undefined };
-
-/**
- * Wraps a client in a WeakRef if available.
- * Returns undefined if WeakRef is not available, indicating the caller should
- * skip instrumentation to avoid memory leaks in serverless/edge environments.
- *
- * IMPORTANT: This MUST be a separate function from the handler closure scope.
- * V8 creates a shared closure context for all inner functions in a scope. If we
- * had a WeakRef fallback `{ deref: () => client }` in the same scope as the handler,
- * V8 would capture `client` in the shared context, defeating the WeakRef's purpose.
- */
-function _makeWeakClientRef(client: object): WeakClientRef | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  const weakRefImpl = (GLOBAL_OBJ as any).WeakRef;
-  if (typeof weakRefImpl === 'function') {
-    return new weakRefImpl(client) as WeakClientRef;
-  }
-  // Return undefined to indicate WeakRef is not available
-  // The caller should skip adding handlers to prevent memory leaks
-  return undefined;
-}
-
 const INTEGRATION_NAME = 'Console';
 
 /**
@@ -64,20 +41,13 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      // Wrap client in WeakRef via a separate function to avoid retaining it
-      // in the handler closure. See _makeWeakClientRef for details on why
-      // this must be a separate function scope.
-      const clientRef = _makeWeakClientRef(client);
-
-      // If WeakRef is not available (e.g., Cloudflare Workers without enable_weak_ref flag),
-      // skip adding handlers to prevent memory leaks in serverless environments
-      // where a new client is created per request.
-      if (!clientRef) {
-        return;
-      }
+      // Store only the client ID (a primitive) in the closure, not the client object.
+      // This allows the client to be garbage collected while still enabling
+      // the handler to verify it's running in the correct client context.
+      const clientId = client._clientId;
 
       addConsoleInstrumentationHandler(({ args, level }) => {
-        if (getClient() !== clientRef.deref() || !levels.has(level)) {
+        if (getClient()?._clientId !== clientId || !levels.has(level)) {
           return;
         }
 
