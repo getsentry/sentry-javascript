@@ -14,24 +14,53 @@ type FlushLock = {
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
 export function makeFlushLock(context: ExecutionContext): FlushLock {
-  let resolveAllDone: () => void = () => undefined;
+  // Get the original uninstrumented context if available (from instrumentContext wrapper)
+  // This avoids accessing the proxied waitUntil which creates a bound function
+  // that retains the context and prevents GC
+  const originalContext =
+    (context as { _originalContext?: ExecutionContext })._originalContext ?? context;
+
+  let resolveAllDone: (() => void) | undefined;
   const allDone = new Promise<void>(res => {
     resolveAllDone = res;
   });
   let pending = 0;
-  const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
-  context.waitUntil = promise => {
+  let isFinalized = false;
+
+  // Store original waitUntil function reference - use .call() instead of .bind()
+  // to avoid creating a bound function that keeps context permanently alive
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalWaitUntil = originalContext.waitUntil;
+
+  // Wrap waitUntil to track pending promises
+  context.waitUntil = (promise: Promise<unknown>): void => {
+    // After finalization, just pass through to original
+    if (isFinalized) {
+      originalWaitUntil.call(originalContext, promise);
+      return;
+    }
     pending++;
-    return originalWaitUntil(
+    // Use .call() for invocation - this doesn't create a permanent binding
+    originalWaitUntil.call(originalContext,
       promise.finally(() => {
-        if (--pending === 0) resolveAllDone();
+        if (--pending === 0 && resolveAllDone) {
+          resolveAllDone();
+          resolveAllDone = undefined; // Clear reference to allow GC
+        }
       }),
     );
   };
+
   return Object.freeze({
     ready: allDone,
     finalize: () => {
-      if (pending === 0) resolveAllDone();
+      if (!isFinalized) {
+        isFinalized = true;
+        if (pending === 0 && resolveAllDone) {
+          resolveAllDone();
+          resolveAllDone = undefined; // Clear reference to allow GC
+        }
+      }
       return allDone;
     },
   });

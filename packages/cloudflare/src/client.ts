@@ -16,6 +16,10 @@ export class CloudflareClient extends ServerRuntimeClient {
   private _spanCompletionPromise: Promise<void> | null = null;
   private _resolveSpanCompletion: (() => void) | null = null;
 
+  // Store unsubscribe functions for cleanup
+  private _unsubscribeSpanStart: (() => void) | null = null;
+  private _unsubscribeSpanEnd: (() => void) | null = null;
+
   /**
    * Creates a new Cloudflare SDK instance.
    * @param options Configuration options for this SDK.
@@ -37,7 +41,8 @@ export class CloudflareClient extends ServerRuntimeClient {
     this._flushLock = flushLock;
 
     // Track span lifecycle to know when to flush
-    this.on('spanStart', span => {
+    // Store unsubscribe functions for cleanup in dispose()
+    this._unsubscribeSpanStart = this.on('spanStart', span => {
       const spanId = span.spanContext().spanId;
       DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
       this._pendingSpans.add(spanId);
@@ -49,7 +54,7 @@ export class CloudflareClient extends ServerRuntimeClient {
       }
     });
 
-    this.on('spanEnd', span => {
+    this._unsubscribeSpanEnd = this.on('spanEnd', span => {
       const spanId = span.spanContext().spanId;
       DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
       this._pendingSpans.delete(spanId);
@@ -106,6 +111,72 @@ export class CloudflareClient extends ServerRuntimeClient {
     this._pendingSpans.clear();
     this._spanCompletionPromise = null;
     this._resolveSpanCompletion = null;
+  }
+
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * This method clears all Cloudflare-specific state in addition to the base client cleanup.
+   * It unsubscribes from span lifecycle events and clears pending span tracking.
+   *
+   * Call this method after flushing to allow the client to be garbage collected.
+   * After calling dispose(), the client should not be used anymore.
+   */
+  public dispose(): void {
+    DEBUG_BUILD && debug.log('[CloudflareClient] Disposing client...');
+
+    // Unsubscribe from span lifecycle events to break circular references
+    if (this._unsubscribeSpanStart) {
+      this._unsubscribeSpanStart();
+      this._unsubscribeSpanStart = null;
+    }
+    if (this._unsubscribeSpanEnd) {
+      this._unsubscribeSpanEnd();
+      this._unsubscribeSpanEnd = null;
+    }
+
+    // Clear pending spans and completion promise
+    this._resetSpanCompletionPromise();
+
+    // Clear flushLock reference to break context retention
+    (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
+
+    // Clear base client state to allow garbage collection
+    // Access protected/private members via type assertion
+    const self = this as unknown as {
+      _hooks: Record<string, Set<unknown>>;
+      _eventProcessors: unknown[];
+      _integrations: Record<string, unknown>;
+      _transport?: unknown;
+      _promiseBuffer?: unknown;
+      _outcomes: Record<string, unknown>;
+    };
+
+    // Clear all hook callbacks to release closures and their captured variables
+    for (const hookName of Object.keys(self._hooks)) {
+      self._hooks[hookName]?.clear();
+      delete self._hooks[hookName];
+    }
+
+    // Clear event processors which may hold references to integrations and client
+    self._eventProcessors.length = 0;
+
+    // Clear integration references
+    for (const integrationName of Object.keys(self._integrations)) {
+      delete self._integrations[integrationName];
+    }
+
+    // Clear transport reference to break the circular reference via recordDroppedEvent.bind(this)
+    // The transport holds a bound function that retains the client
+    self._transport = undefined;
+
+    // Clear the promise buffer to release any pending promises
+    self._promiseBuffer = undefined;
+
+    // Clear outcomes tracking
+    for (const key of Object.keys(self._outcomes)) {
+      delete self._outcomes[key];
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { Scope } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -13,10 +14,23 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
-import type { CloudflareOptions } from './client';
+import type { CloudflareClient, CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
+
+/**
+ * Flushes the client and then disposes of it to allow garbage collection.
+ * This should be called at the end of each request to prevent memory leaks.
+ *
+ * @param client - The CloudflareClient instance to flush and dispose
+ * @param timeout - Timeout in milliseconds for the flush operation
+ * @returns A promise that resolves when flush and dispose are complete
+ */
+async function flushAndDispose(client: CloudflareClient | undefined, timeout: number): Promise<void> {
+  await flush(timeout);
+  client?.dispose();
+}
 
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
@@ -35,6 +49,86 @@ interface RequestHandlerWrapperOptions {
   captureErrors?: boolean;
 }
 
+/** Returns true when tracing is effectively disabled - enables fast path with less CPU/memory usage. */
+function isTracingDisabled(options: CloudflareOptions): boolean {
+  const rate = options.tracesSampleRate;
+  return rate === 0 || rate === undefined || !Number.isFinite(rate);
+}
+
+/**
+ * Lightweight handler path when tracing is disabled - skips span creation, header iteration,
+ * and streaming response handling to reduce CPU and memory usage.
+ *
+ * Key optimizations:
+ * - Defers header processing until an error occurs (lazy addRequest)
+ * - Skips continueTrace when no incoming trace headers present
+ * - Minimizes object allocations in the hot path
+ */
+async function runHandlerWithoutTracing(
+  isolationScope: Scope,
+  options: CloudflareOptions,
+  request: Request<unknown, IncomingRequestCfProperties<unknown>>,
+  context: ExecutionContext | undefined,
+  captureErrors: boolean,
+  handler: () => Response | Promise<Response>,
+): Promise<Response> {
+  // Get the original uninstrumented context if available (from instrumentContext wrapper)
+  // This avoids accessing the proxied waitUntil which creates a bound function
+  // that retains the context and prevents GC
+  const originalContext = (context as { _originalContext?: ExecutionContext } | undefined)?._originalContext ?? context;
+
+  // Store original waitUntil BEFORE init() wraps it with makeFlushLock
+  // This avoids deadlock where flush() waits for finalize() while wrapped in waitUntil
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalWaitUntil = originalContext?.waitUntil;
+
+  // Pass ctx directly to avoid object spread overhead
+  options.ctx = context;
+  const client = init(options);
+  isolationScope.setClient(client);
+
+  // Lightweight context - skip expensive header iteration
+  addCloudResourceContext(isolationScope);
+  if (request.cf) {
+    addCultureContext(isolationScope, request.cf);
+  }
+
+  // Check if we have incoming trace headers - skip continueTrace if not present
+  const sentryTraceHeader = request.headers.get('sentry-trace');
+  const hasSentryTrace = sentryTraceHeader && sentryTraceHeader.length > 0;
+
+  const runHandler = async (): Promise<Response> => {
+    try {
+      return await handler();
+    } catch (e) {
+      if (captureErrors) {
+        // Only process request headers when an error actually occurs (lazy evaluation)
+        addRequest(isolationScope, request);
+        captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
+      }
+      throw e;
+    } finally {
+      // Use original waitUntil (not wrapped) to avoid deadlock
+      // Use .call() instead of .bind() to avoid creating bound function that retains context
+      // Flush and dispose to allow garbage collection
+      if (originalWaitUntil && originalContext) {
+        originalWaitUntil.call(originalContext, flushAndDispose(client, 2000));
+      }
+    }
+  };
+
+  // Skip continueTrace overhead when no incoming trace - just run the handler directly
+  if (!hasSentryTrace) {
+    return runHandler();
+  }
+
+  // Only use continueTrace when there's an actual incoming trace to continue
+  return continueTrace(
+    { sentryTrace: sentryTraceHeader, baggage: request.headers.get('baggage') },
+    runHandler,
+  );
+}
+
 /**
  * Wraps a cloudflare request handler in Sentry instrumentation
  */
@@ -50,7 +144,23 @@ export function wrapRequestHandler(
     // see: https://github.com/getsentry/sentry-javascript/issues/13217
     const context = wrapperOptions.context as ExecutionContext | undefined;
 
-    const waitUntil = context?.waitUntil?.bind?.(context);
+    // Fast path: when tracing is disabled, skip span creation and expensive operations
+    // (header iteration, URL parsing, streaming handling) to reduce CPU and memory usage.
+    if (isTracingDisabled(options)) {
+      return runHandlerWithoutTracing(isolationScope, options, request, context, captureErrors, () => handler());
+    }
+
+    // Get the original uninstrumented context if available (from instrumentContext wrapper)
+    // This avoids accessing the proxied waitUntil which creates a bound function
+    // that retains the context and prevents GC
+    const originalContext = (context as { _originalContext?: ExecutionContext } | undefined)?._originalContext ?? context;
+
+    // Store original waitUntil BEFORE init() wraps it with makeFlushLock
+    // This avoids deadlock where flush() waits for finalize() while wrapped in waitUntil
+    // Use function reference + .call() instead of .bind() to avoid creating bound function
+    // that keeps context permanently alive and prevents GC
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalWaitUntil = originalContext?.waitUntil;
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
@@ -95,7 +205,9 @@ export function wrapRequestHandler(
         }
         throw e;
       } finally {
-        waitUntil?.(flush(2000));
+        // Use original waitUntil with .call() to avoid bound function retaining context
+        // Flush and dispose to allow garbage collection
+        originalWaitUntil?.call(originalContext, flushAndDispose(client, 2000));
       }
     }
 
@@ -122,7 +234,9 @@ export function wrapRequestHandler(
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flush(2000));
+            // Use original waitUntil with .call() to avoid bound function retaining context
+            // Flush and dispose to allow garbage collection
+            originalWaitUntil?.call(originalContext, flushAndDispose(client, 2000));
             throw e;
           }
 
@@ -149,12 +263,15 @@ export function wrapRequestHandler(
                 } finally {
                   reader.releaseLock();
                   span.end();
-                  waitUntil?.(flush(2000));
+                  // Use original waitUntil with .call() to avoid bound function retaining context
+                  // Flush and dispose to allow garbage collection
+                  originalWaitUntil?.call(originalContext, flushAndDispose(client, 2000));
                 }
               })();
 
               // Keep worker alive until stream monitoring completes (otherwise span won't end)
-              waitUntil?.(streamMonitor);
+              // Use original waitUntil with .call() to avoid bound function retaining context
+              originalWaitUntil?.call(originalContext, streamMonitor);
 
               // Return response with client stream
               return new Response(clientStream, {
@@ -165,14 +282,18 @@ export function wrapRequestHandler(
             } catch (e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
-              waitUntil?.(flush(2000));
+              // Use original waitUntil with .call() to avoid bound function retaining context
+              // Flush and dispose to allow garbage collection
+              originalWaitUntil?.call(originalContext, flushAndDispose(client, 2000));
               return res;
             }
           }
 
           // Non-streaming response - end span immediately and return original
           span.end();
-          waitUntil?.(flush(2000));
+          // Use original waitUntil with .call() to avoid bound function retaining context
+          // Flush and dispose to allow garbage collection
+          originalWaitUntil?.call(originalContext, flushAndDispose(client, 2000));
           return res;
         });
       },
