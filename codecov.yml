@@ -10,3 +10,6 @@ coverage:
         informational: true
   ignore:
     - 'packages/deno/**'
+
+config:
+  files: changed
