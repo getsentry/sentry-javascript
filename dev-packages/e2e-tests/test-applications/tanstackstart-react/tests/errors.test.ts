@@ -59,7 +59,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
     },
   });
 
-  expect(errorEvent.transaction).toBe('/');
+  expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
 });
 
 test('Sends API route error to Sentry via global middleware', async ({ page }) => {
