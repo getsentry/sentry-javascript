@@ -19,6 +19,7 @@ async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> 
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
 };
 
@@ -28,6 +29,7 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
 };
 

@@ -23,7 +23,7 @@ describe('sentryGlobalRequestMiddleware', () => {
     const error = new Error('test error');
     const next = vi.fn().mockRejectedValue(error);
 
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
+    const serverFn = sentryGlobalRequestMiddleware.options.server!;
 
     await expect(serverFn({ next })).rejects.toThrow('test error');
 
@@ -35,7 +35,7 @@ describe('sentryGlobalRequestMiddleware', () => {
   it('does not capture error when next() succeeds', async () => {
     const next = vi.fn().mockResolvedValue('success');
 
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
+    const serverFn = sentryGlobalRequestMiddleware.options.server!;
     const result = await serverFn({ next });
 
     expect(result).toBe('success');
