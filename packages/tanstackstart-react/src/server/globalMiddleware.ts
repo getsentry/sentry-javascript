@@ -30,13 +30,5 @@ export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
 };
 
 // Mark as internal so the Vite auto-instrumentation plugin skips these middleware
-addNonEnumerableProperty(
-  sentryGlobalRequestMiddleware as unknown as Record<string, unknown>,
-  SENTRY_INTERNAL,
-  true,
-);
-addNonEnumerableProperty(
-  sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>,
-  SENTRY_INTERNAL,
-  true,
-);
+addNonEnumerableProperty(sentryGlobalRequestMiddleware as unknown as Record<string, unknown>, SENTRY_INTERNAL, true);
+addNonEnumerableProperty(sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>, SENTRY_INTERNAL, true);
