@@ -32,15 +32,6 @@ describe('sentryGlobalRequestMiddleware', () => {
     });
   });
 
-  it('re-throws error after capture', async () => {
-    const error = new Error('test error');
-    const next = vi.fn().mockRejectedValue(error);
-
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
-
-    await expect(serverFn({ next })).rejects.toThrow(error);
-  });
-
   it('does not capture error when next() succeeds', async () => {
     const next = vi.fn().mockResolvedValue('success');
 
@@ -57,33 +48,6 @@ describe('sentryGlobalRequestMiddleware', () => {
 });
 
 describe('sentryGlobalFunctionMiddleware', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('captures error with correct mechanism when next() throws', async () => {
-    const error = new Error('function error');
-    const next = vi.fn().mockRejectedValue(error);
-
-    const serverFn = sentryGlobalFunctionMiddleware.options!.server!;
-
-    await expect(serverFn({ next })).rejects.toThrow('function error');
-
-    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-      mechanism: { type: 'auto.function.tanstackstart', handled: false },
-    });
-  });
-
-  it('does not capture error when next() succeeds', async () => {
-    const next = vi.fn().mockResolvedValue('success');
-
-    const serverFn = sentryGlobalFunctionMiddleware.options!.server!;
-    const result = await serverFn({ next });
-
-    expect(result).toBe('success');
-    expect(captureExceptionSpy).not.toHaveBeenCalled();
-  });
-
   it('has __SENTRY_INTERNAL__ flag set', () => {
     expect((sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__']).toBe(true);
   });

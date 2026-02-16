@@ -5,7 +5,7 @@ import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common
 import { getMiddlewareSpanOptions } from './utils';
 
 const SENTRY_WRAPPED = '__SENTRY_WRAPPED__';
-const SENTRY_INTERNAL = '__SENTRY_INTERNAL__';
+export const SENTRY_INTERNAL = '__SENTRY_INTERNAL__';
 
 /**
  * Creates a proxy for the next function that ends the current span and restores the parent span.
