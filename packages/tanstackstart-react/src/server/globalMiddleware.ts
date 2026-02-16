@@ -18,7 +18,8 @@ async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> 
  * Should be added as the first entry in the `requestMiddleware` array of `createStart()`.
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
-  options: { server: sentryMiddlewareHandler as (...args: unknown[]) => unknown },
+  '~types': undefined,
+  options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
 };
 
 /**
@@ -26,7 +27,8 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  * Should be added as the first entry in the `functionMiddleware` array of `createStart()`.
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
-  options: { server: sentryMiddlewareHandler as (...args: unknown[]) => unknown },
+  '~types': undefined,
+  options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
 };
 
 // Mark as internal so the Vite auto-instrumentation plugin skips these middleware
