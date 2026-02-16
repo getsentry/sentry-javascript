@@ -9,4 +9,4 @@ coverage:
       default:
         informational: true
   ignore:
-    - "packages/deno/**"
+    - 'packages/deno/**'
