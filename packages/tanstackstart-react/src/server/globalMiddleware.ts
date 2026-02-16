@@ -14,7 +14,7 @@ async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> 
 }
 
 /**
- * Global request middleware that captures errors from all HTTP requests (page loads, API routes, and server function requests).
+ * Global request middleware that captures errors from API route requests.
  * Should be added as the first entry in the `requestMiddleware` array of `createStart()`.
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
@@ -34,5 +34,5 @@ export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
 };
 
 // Mark as internal so the Vite auto-instrumentation plugin skips these middleware
-addNonEnumerableProperty(sentryGlobalRequestMiddleware as unknown as Record<string, unknown>, SENTRY_INTERNAL, true);
-addNonEnumerableProperty(sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>, SENTRY_INTERNAL, true);
+addNonEnumerableProperty(sentryGlobalRequestMiddleware, SENTRY_INTERNAL, true);
+addNonEnumerableProperty(sentryGlobalFunctionMiddleware, SENTRY_INTERNAL, true);
