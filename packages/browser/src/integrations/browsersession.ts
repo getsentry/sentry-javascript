@@ -1,4 +1,4 @@
-import { captureSession, debug, defineIntegration, startSession } from '@sentry/core';
+import { captureSession, debug, defineIntegration, getIsolationScope, startSession } from '@sentry/core';
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -42,6 +42,25 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // discard their duration.
       startSession({ ignoreDuration: true });
       captureSession();
+
+      // User data can be set at any time, for example async after Sentry.init has run and the initial session
+      // envelope was already sent, but still on the initial page.
+      // Therefore, we have to update the ongoing session with the new user data if it exists, to send the `did`.
+      // In theory, sessions, as well as user data is always put onto the isolation scope. So we can listen to the
+      // isolation scope for changes and update the session with the new user data if it exists.
+      // This will not catch users set onto other scopes, like the current scope. For now, we'll accept this limitation.
+      // The alternative is to update and capture the session from within the scope, which might be too costly on the
+      // server side. Given this happens in the scope, we'd need change scope behaviour in the browser, which is out
+      // of scope for now.
+      const isolationScope = getIsolationScope();
+      let previousUser = isolationScope.getUser();
+      getIsolationScope().addScopeListener(scope => {
+        const maybeNewUser = scope.getUser();
+        if (previousUser?.id !== maybeNewUser?.id || previousUser?.ip_address !== maybeNewUser?.ip_address) {
+          captureSession();
+          previousUser = maybeNewUser;
+        }
+      })
 
       if (lifecycle === 'route') {
         // We want to create a session for every navigation as well
