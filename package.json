@@ -34,7 +34,7 @@
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
     "postpublish": "nx run-many -t postpublish --parallel=1",
-    "test": "nx run-many -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test": "nx run-many -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\" && vitest run scripts/bump-version.test.ts",
     "test:unit": "nx run-many -t test:unit --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:update-snapshots": "nx run-many -t test:update-snapshots",
     "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
