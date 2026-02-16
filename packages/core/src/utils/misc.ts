@@ -236,5 +236,7 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
 export function isAlreadyCaptured(exception: unknown): boolean | void {
   try {
     return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
-  } catch {} // eslint-disable-line no-empty
+  } catch {
+    return false;
+  }
 }
