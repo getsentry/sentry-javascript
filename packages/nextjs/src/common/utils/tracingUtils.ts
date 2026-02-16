@@ -3,6 +3,7 @@ import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getActiveSpan,
+  getClient,
   getRootSpan,
   GLOBAL_OBJ,
   Scope,
@@ -112,6 +113,12 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
  * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
  */
 export function dropNextjsRootContext(): void {
+  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+  // mutate their spans with Sentry-internal attributes like `sentry.drop_transaction`
+  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+    return;
+  }
+
   const nextJsOwnedSpan = getActiveSpan();
   if (nextJsOwnedSpan) {
     const rootSpan = getRootSpan(nextJsOwnedSpan);
