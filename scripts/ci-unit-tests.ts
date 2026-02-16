@@ -89,7 +89,7 @@ function runAllTests(ignorePackages: Set<string>): void {
     .map(dep => `--exclude="${dep}"`)
     .join(' ');
 
-  run(`yarn test ${excludeFlags}`);
+  run(`yarn test:unit ${excludeFlags}`);
 }
 
 /**
