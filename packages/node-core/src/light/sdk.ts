@@ -33,12 +33,11 @@ import { isCjs } from '../utils/detection';
 import { getSpotlightConfig } from '../utils/spotlight';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageStrategy';
 import { LightNodeClient } from './client';
-import { httpServerIntegration } from './integrations/httpServerIntegration';
+import { httpIntegration } from './integrations/httpIntegration';
+import { nativeNodeFetchIntegration } from './integrations/nativeNodeFetchIntegration';
 
 /**
  * Get default integrations for the Light Node-Core SDK.
- * Note: HTTP and fetch integrations that require OpenTelemetry are not included.
- * The httpServerIntegration is included for automatic request isolation (requires Node.js 22+).
  */
 export function getDefaultIntegrations(): Integration[] {
   return [
@@ -50,9 +49,8 @@ export function getDefaultIntegrations(): Integration[] {
     systemErrorIntegration(),
     // Native Wrappers
     consoleIntegration(),
-    // HTTP Server (automatic request isolation, requires Node.js 22+)
-    httpServerIntegration(),
-    // Note: httpIntegration() and nativeNodeFetchIntegration() are not included in light mode as they require OpenTelemetry
+    httpIntegration(),
+    nativeNodeFetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),

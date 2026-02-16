@@ -139,6 +139,35 @@ describe('wrapLoadWithSentry', () => {
         expect.any(Function),
       );
     });
+
+    it('uses untrack when present (SvelteKit 2+) to get route id without triggering invalidation', async () => {
+      const routeIdFromUntrack = '/users/[id]';
+      const untrack = vi.fn(<T>(fn: () => T) => fn());
+      const eventWithUntrack = {
+        params: MOCK_LOAD_ARGS.params,
+        route: { id: routeIdFromUntrack },
+        url: MOCK_LOAD_ARGS.url,
+        untrack,
+      };
+
+      async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+        return { post: params.id };
+      }
+
+      const wrappedLoad = wrapLoadWithSentry(load);
+      await wrappedLoad(eventWithUntrack);
+
+      expect(untrack).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: routeIdFromUntrack,
+          attributes: expect.objectContaining({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
   });
 
   it('adds an exception mechanism', async () => {

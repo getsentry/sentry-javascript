@@ -22,12 +22,14 @@
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
-    "fix": "run-s fix:prettier fix:lerna",
+    "fix": "run-s fix:oxfmt fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
-    "lint": "run-s lint:prettier lint:lerna",
+    "fix:oxfmt": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "format": "oxfmt . --write",
+    "lint": "run-s lint:oxfmt lint:lerna",
     "lint:lerna": "lerna run lint",
-    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
+    "lint:oxfmt": "oxfmt . --check",
     "lint:es-compatibility": "lerna run lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
@@ -109,7 +111,7 @@
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-sucrase": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.4",
@@ -125,12 +127,11 @@
     "es-check": "^7.2.1",
     "eslint": "8.57.0",
     "jsdom": "^21.1.2",
-    "lerna": "9.0.3",
+    "lerna": "8.2.4",
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "prettier": "^3.8.1",
-    "prettier-plugin-astro": "^0.14.1",
+    "oxfmt": "^0.31.0",
     "rimraf": "^5.0.10",
     "rollup": "^4.35.0",
     "rollup-plugin-cleanup": "^3.2.1",
@@ -156,36 +157,5 @@
     "**/express/path-to-regexp": "0.1.12"
   },
   "version": "0.0.0",
-  "name": "sentry-javascript",
-  "prettier": {
-    "arrowParens": "avoid",
-    "printWidth": 120,
-    "proseWrap": "always",
-    "singleQuote": true,
-    "trailingComma": "all",
-    "plugins": [
-      "prettier-plugin-astro"
-    ],
-    "overrides": [
-      {
-        "files": "*.md",
-        "options": {
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.mdc",
-        "options": {
-          "parser": "markdown",
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.astro",
-        "options": {
-          "parser": "astro"
-        }
-      }
-    ]
-  }
+  "name": "sentry-javascript"
 }
