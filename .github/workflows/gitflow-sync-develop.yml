@@ -4,10 +4,8 @@ on:
     branches:
       - master
     paths:
-      # When versions are bumped on master (but no source code changes)
-      - 'packages/*/package.json'
-      - '!**/*.js'
-      - '!**/*.ts'
+      # When versions are bumped on master (written by scripts/bump-version.js)
+      - '.version.json'
   workflow_dispatch:
 
 env:
