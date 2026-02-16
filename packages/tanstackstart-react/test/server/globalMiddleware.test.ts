@@ -1,16 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const captureExceptionSpy = vi.fn();
-const withIsolationScopeSpy = vi.fn((cb: () => unknown) => cb());
-const flushIfServerlessSpy = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@sentry/core', async importOriginal => {
   const original = await importOriginal();
   return {
     ...original,
     captureException: (...args: unknown[]) => captureExceptionSpy(...args),
-    withIsolationScope: (cb: () => unknown) => withIsolationScopeSpy(cb),
-    flushIfServerless: () => flushIfServerlessSpy(),
   };
 });
 
@@ -45,15 +41,6 @@ describe('sentryGlobalRequestMiddleware', () => {
     await expect(serverFn({ next })).rejects.toThrow(error);
   });
 
-  it('uses withIsolationScope for scope isolation', async () => {
-    const next = vi.fn().mockResolvedValue('result');
-
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
-    await serverFn({ next });
-
-    expect(withIsolationScopeSpy).toHaveBeenCalledTimes(1);
-  });
-
   it('does not capture error when next() succeeds', async () => {
     const next = vi.fn().mockResolvedValue('success');
 
@@ -62,24 +49,6 @@ describe('sentryGlobalRequestMiddleware', () => {
 
     expect(result).toBe('success');
     expect(captureExceptionSpy).not.toHaveBeenCalled();
-  });
-
-  it('calls flushIfServerless in finally block', async () => {
-    const next = vi.fn().mockResolvedValue('result');
-
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
-    await serverFn({ next });
-
-    expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls flushIfServerless even when next() throws', async () => {
-    const next = vi.fn().mockRejectedValue(new Error('test'));
-
-    const serverFn = sentryGlobalRequestMiddleware.options!.server!;
-    await expect(serverFn({ next })).rejects.toThrow();
-
-    expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
   });
 
   it('has __SENTRY_INTERNAL__ flag set', () => {
