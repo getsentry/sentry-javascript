@@ -1,4 +1,10 @@
-import { captureException, httpRequestToRequestData, withScope } from '@sentry/core';
+import {
+  captureException,
+  getIsolationScope,
+  httpRequestToRequestData,
+  isAlreadyCaptured,
+  withScope,
+} from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
@@ -36,6 +42,13 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   // because Nextjs passes `pathname` to `getInitialProps` but not to `render`.)
   if (!contextOrProps.pathname) {
     return;
+  }
+
+  // If the error was already captured (e.g., by wrapped functions in data fetchers),
+  // return the existing event ID instead of capturing it again (needed for lastEventId() to work)
+  if (err && isAlreadyCaptured(err)) {
+    waitUntil(flushSafelyWithTimeout());
+    return getIsolationScope().lastEventId();
   }
 
   const eventId = withScope(scope => {
