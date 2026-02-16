@@ -315,7 +315,7 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
