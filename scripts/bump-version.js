@@ -1,12 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-function tryReadJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  } catch {
-    return null;
-  }
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
 /**
@@ -30,25 +26,20 @@ function bumpVersions(rootDir, newVersion) {
     throw new Error('Could not find workspaces in root package.json');
   }
 
-  // Collect all workspace package names so we know which deps to update
+  // Read all workspace package.json files upfront.
+  // This ensures we fail early if any workspace is unreadable,
+  // before writing any changes (no partial updates).
+  const workspacePackages = [];
   const workspaceNames = new Set();
   for (const workspace of workspaces) {
-    const pkg = tryReadJson(path.join(rootDir, workspace, 'package.json'));
-    if (pkg) {
-      workspaceNames.add(pkg.name);
-    }
+    const pkgPath = path.join(rootDir, workspace, 'package.json');
+    const pkg = readJson(pkgPath);
+    workspaceNames.add(pkg.name);
+    workspacePackages.push({ pkgPath, pkg });
   }
 
-  let updatedCount = 0;
-
-  for (const workspace of workspaces) {
-    const pkgPath = path.join(rootDir, workspace, 'package.json');
-    const pkg = tryReadJson(pkgPath);
-    if (!pkg) {
-      continue;
-    }
-
-    // Update the package version
+  // Apply version bumps
+  for (const { pkgPath, pkg } of workspacePackages) {
     pkg.version = newVersion;
 
     // Update internal workspace dependency versions (exact, no ^)
@@ -68,10 +59,9 @@ function bumpVersions(rootDir, newVersion) {
     }
 
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-    updatedCount++;
   }
 
-  return updatedCount;
+  return workspacePackages.length;
 }
 
 // CLI entry point

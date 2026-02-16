@@ -326,6 +326,33 @@ test('throws when root package.json has no workspaces', () => {
   }
 });
 
+test('throws when a workspace package.json is unreadable', () => {
+  const rootDir = createTempDir();
+  // List a workspace that doesn't have a package.json
+  writePackageJson(rootDir, {
+    private: true,
+    name: 'test-monorepo',
+    version: '0.0.0',
+    workspaces: ['packages/core', 'packages/missing'],
+  });
+  writePackageJson(path.join(rootDir, 'packages/core'), { name: '@sentry/core', version: '10.0.0' });
+  // packages/missing has no package.json
+
+  try {
+    let threw = false;
+    try {
+      bumpVersions(rootDir, '10.1.0');
+    } catch (e) {
+      threw = true;
+    }
+    assert(threw, 'should throw for unreadable workspace package.json');
+    // Verify core was NOT partially updated
+    assertEqual(readPackageJson(path.join(rootDir, 'packages/core')).version, '10.0.0', 'no partial update');
+  } finally {
+    cleanup(rootDir);
+  }
+});
+
 // ---- Summary ----
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) {
