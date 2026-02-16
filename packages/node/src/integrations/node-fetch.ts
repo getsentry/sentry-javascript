@@ -85,7 +85,7 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
   }
 
   if (!url.endsWith('/') && !path.startsWith('/')) {
-    return `${url}/${path.slice(1)}`;
+    return `${url}/${path}`;
   }
 
   return `${url}${path}`;

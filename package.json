@@ -22,12 +22,14 @@
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
-    "fix": "run-s fix:prettier fix:lerna",
+    "fix": "run-s fix:oxfmt fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
-    "lint": "run-s lint:prettier lint:lerna",
+    "fix:oxfmt": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "format": "oxfmt . --write",
+    "lint": "run-s lint:oxfmt lint:lerna",
     "lint:lerna": "lerna run lint",
-    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
+    "lint:oxfmt": "oxfmt . --check",
     "lint:es-compatibility": "lerna run lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
@@ -64,6 +66,7 @@
     "packages/feedback",
     "packages/gatsby",
     "packages/google-cloud-serverless",
+    "packages/hono",
     "packages/integration-shims",
     "packages/nestjs",
     "packages/nextjs",
@@ -108,7 +111,7 @@
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-sucrase": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.4",
@@ -128,15 +131,14 @@
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "prettier": "^3.6.2",
-    "prettier-plugin-astro": "^0.14.1",
+    "oxfmt": "^0.31.0",
     "rimraf": "^5.0.10",
     "rollup": "^4.35.0",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
     "size-limit": "~11.1.6",
     "sucrase": "^3.35.0",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "typescript": "~5.8.0",
     "vitest": "^3.2.4",
     "yalc": "^1.0.0-pre.53",
@@ -151,39 +153,9 @@
     "gauge/strip-ansi": "6.0.1",
     "wide-align/string-width": "4.2.3",
     "cliui/wrap-ansi": "7.0.0",
-    "sucrase": "getsentry/sucrase#es2020-polyfills"
+    "sucrase": "getsentry/sucrase#es2020-polyfills",
+    "**/express/path-to-regexp": "0.1.12"
   },
   "version": "0.0.0",
-  "name": "sentry-javascript",
-  "prettier": {
-    "arrowParens": "avoid",
-    "printWidth": 120,
-    "proseWrap": "always",
-    "singleQuote": true,
-    "trailingComma": "all",
-    "plugins": [
-      "prettier-plugin-astro"
-    ],
-    "overrides": [
-      {
-        "files": "*.md",
-        "options": {
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.mdc",
-        "options": {
-          "parser": "markdown",
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.astro",
-        "options": {
-          "parser": "astro"
-        }
-      }
-    ]
-  }
+  "name": "sentry-javascript"
 }

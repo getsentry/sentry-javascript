@@ -34,6 +34,8 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 
 - `yarn lint` - Run ESLint and Prettier checks
 - `yarn fix` - Auto-fix linting and formatting issues
+- `yarn format:check` - Check file formatting only
+- `yarn format` - Auto-fix formatting issues
 - `yarn lint:es-compatibility` - Check ES compatibility
 
 ## Git Flow Branching Strategy
@@ -77,6 +79,14 @@ This is a Lerna monorepo with 40+ packages in the `@sentry/*` namespace.
 - Framework packages: `packages/{framework}/` (react, vue, angular, etc.)
 - Client/server entry points where applicable (nextjs, nuxt, sveltekit)
 - Integration tests use Playwright (Remix, browser-integration-tests)
+
+### AI Integrations
+
+- `packages/core/src/tracing/{provider}/` - Core instrumentation logic (OpenAI, Anthropic, Vercel AI, LangChain, etc.)
+- `packages/node/src/integrations/tracing/{provider}/` - Node.js-specific integration + OTel instrumentation
+- `packages/cloudflare/src/integrations/tracing/{provider}.ts` - Edge runtime support
+- Patterns: OTEL Span Processors, Client Wrapping, Callback/Hook Based
+- See `.cursor/rules/adding-a-new-ai-integration.mdc` for implementation guide
 
 ### User Experience Packages
 

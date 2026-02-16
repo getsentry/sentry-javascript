@@ -6,7 +6,9 @@ import { SampleComponent } from '../sample-component/sample-component.components
   selector: 'app-cancel',
   standalone: true,
   imports: [TraceModule, SampleComponent],
-  template: `<app-sample-component [trace]="'sample-component'"></app-sample-component>`,
+  template: `
+    <app-sample-component [trace]="'sample-component'"></app-sample-component>
+  `,
 })
 @TraceClass({ name: 'ComponentTrackingComponent' })
 export class ComponentTrackingComponent implements OnInit, AfterViewInit {

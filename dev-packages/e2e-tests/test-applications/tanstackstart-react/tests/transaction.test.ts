@@ -87,7 +87,7 @@ test('Sends a server function transaction for a nested server function only if i
   // Verify that globalFunctionMiddleware and testNestedLog are sibling spans under the root
   const functionMiddlewareSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
-      span.description === 'globalFunctionMiddleware' && span.origin === 'manual.middleware.tanstackstart',
+      span.description === 'globalFunctionMiddleware' && span.origin === 'auto.middleware.tanstackstart',
   );
   const nestedSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>

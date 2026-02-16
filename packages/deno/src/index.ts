@@ -1,6 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Metric,
   PolymorphicRequest,
   RequestEventData,
   SdkInfo,
@@ -89,12 +90,13 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
-
+export { denoServeIntegration } from './integrations/deno-serve';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';
