@@ -9,6 +9,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { wrapRequestHandler } from '../src/request';
+import { resetSdk } from './testUtils';
 
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -25,6 +26,7 @@ describe('withSentry', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('passes through the response from the handler', async () => {
@@ -157,6 +159,10 @@ describe('withSentry', () => {
         {
           options: {
             ...MOCK_OPTIONS,
+            // Set tracesSampleRate to enable the full path that adds request info
+            // (when tracesSampleRate is undefined/0, the fast path is used which
+            // only adds request info on errors for performance)
+            tracesSampleRate: 1,
             beforeSend(event) {
               sentryEvent = event;
               return null;
@@ -367,6 +373,105 @@ describe('withSentry', () => {
         parent_span_id: undefined,
         links: undefined,
       });
+    });
+  });
+
+  describe('client disposal', () => {
+    test('disposes of the client after the request completes to allow garbage collection', async () => {
+      // Create context with a waitUntil that captures promises
+      const waitUntilPromises: Promise<unknown>[] = [];
+      const context = {
+        waitUntil: vi.fn((promise: Promise<unknown>) => {
+          waitUntilPromises.push(promise);
+        }),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext;
+
+      let capturedClient: CloudflareClient | undefined;
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            tracesSampleRate: 1, // Enable tracing to test full path
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => {
+          // Capture the client inside the handler
+          capturedClient = SentryCore.getClient() as CloudflareClient;
+          // Add Content-Length to skip streaming detection probing
+          const response = new Response('test');
+          response.headers.set('content-length', '4');
+          return response;
+        },
+      );
+
+      // Verify the client was created and has hooks before disposal
+      expect(capturedClient).toBeInstanceOf(CloudflareClient);
+      const hooksBeforeDisposal = (capturedClient as unknown as { _hooks: Record<string, Set<unknown>> })._hooks;
+      expect(Object.keys(hooksBeforeDisposal).length).toBeGreaterThan(0);
+
+      // Wait for all waitUntil promises (flush + dispose happens here)
+      // The flushAndDispose promise is passed to waitUntil
+      expect(waitUntilPromises.length).toBeGreaterThan(0);
+      await Promise.all(waitUntilPromises);
+
+      // After disposal, the internal state should be cleared
+      // We can verify this by checking that the hooks are cleared
+      const hooks = (capturedClient as unknown as { _hooks: Record<string, Set<unknown>> })._hooks;
+      const eventProcessors = (capturedClient as unknown as { _eventProcessors: unknown[] })._eventProcessors;
+      const integrations = (capturedClient as unknown as { _integrations: Record<string, unknown> })._integrations;
+
+      expect(Object.keys(hooks)).toHaveLength(0);
+      expect(eventProcessors).toHaveLength(0);
+      expect(Object.keys(integrations)).toHaveLength(0);
+    });
+
+    test('dispose clears span lifecycle listeners', async () => {
+      const client = new CloudflareClient({
+        dsn: MOCK_OPTIONS.dsn,
+        transport: () => ({ send: async () => ({}), flush: async () => true }),
+        integrations: [],
+        stackParser: () => [],
+      });
+
+      // Get the internal hooks before dispose
+      const hooksBeforeDispose = (client as unknown as { _hooks: Record<string, Set<unknown>> })._hooks;
+      const spanStartHooks = hooksBeforeDispose['spanStart'];
+      const spanEndHooks = hooksBeforeDispose['spanEnd'];
+
+      // Verify hooks exist before dispose
+      expect(spanStartHooks?.size).toBeGreaterThan(0);
+      expect(spanEndHooks?.size).toBeGreaterThan(0);
+
+      // Dispose the client
+      client.dispose();
+
+      // Verify hooks are cleared after dispose
+      const hooksAfterDispose = (client as unknown as { _hooks: Record<string, Set<unknown>> })._hooks;
+      expect(Object.keys(hooksAfterDispose)).toHaveLength(0);
+    });
+
+    test('dispose clears pending spans', async () => {
+      const client = new CloudflareClient({
+        dsn: MOCK_OPTIONS.dsn,
+        transport: () => ({ send: async () => ({}), flush: async () => true }),
+        integrations: [],
+        stackParser: () => [],
+      });
+
+      // Add some pending spans
+      const pendingSpans = (client as unknown as { _pendingSpans: Set<string> })._pendingSpans;
+      pendingSpans.add('span1');
+      pendingSpans.add('span2');
+      expect(pendingSpans.size).toBe(2);
+
+      // Dispose the client
+      client.dispose();
+
+      // Verify pending spans are cleared
+      expect(pendingSpans.size).toBe(0);
     });
   });
 });

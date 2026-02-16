@@ -6,8 +6,32 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
 import { CONSOLE_LEVELS, debug } from '../utils/debug-logger';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 import { _INTERNAL_captureLog } from './internal';
 import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from './utils';
+
+type WeakClientRef = { deref: () => object | undefined };
+
+/**
+ * Wraps a client in a WeakRef if available.
+ * Returns undefined if WeakRef is not available, indicating the caller should
+ * skip instrumentation to avoid memory leaks in serverless/edge environments.
+ *
+ * IMPORTANT: This MUST be a separate function from the handler closure scope.
+ * V8 creates a shared closure context for all inner functions in a scope. If we
+ * had a WeakRef fallback `{ deref: () => client }` in the same scope as the handler,
+ * V8 would capture `client` in the shared context, defeating the WeakRef's purpose.
+ */
+function _makeWeakClientRef(client: object): WeakClientRef | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  const weakRefImpl = (GLOBAL_OBJ as any).WeakRef;
+  if (typeof weakRefImpl === 'function') {
+    return new weakRefImpl(client) as WeakClientRef;
+  }
+  // Return undefined to indicate WeakRef is not available
+  // The caller should skip adding handlers to prevent memory leaks
+  return undefined;
+}
 
 interface CaptureConsoleOptions {
   levels: ConsoleLevel[];
@@ -31,8 +55,23 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
         return;
       }
 
+      // Wrap client in WeakRef via a separate function to avoid retaining it
+      // in the handler closure. See _makeWeakClientRef for details.
+      const clientRef = _makeWeakClientRef(client);
+
+      // If WeakRef is not available (e.g., Cloudflare Workers without enable_weak_ref flag),
+      // skip adding handlers to prevent memory leaks in serverless environments
+      // where a new client is created per request.
+      if (!clientRef) {
+        DEBUG_BUILD &&
+          debug.warn(
+            'ConsoleLogs integration disabled: WeakRef not available. Enable the "enable_weak_ref" compatibility flag in your Cloudflare Worker to use this integration.',
+          );
+        return;
+      }
+
       addConsoleInstrumentationHandler(({ args, level }) => {
-        if (getClient() !== client || !levels.includes(level)) {
+        if (getClient() !== clientRef.deref() || !levels.includes(level)) {
           return;
         }
 

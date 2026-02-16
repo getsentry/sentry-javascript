@@ -10,6 +10,29 @@ import { severityLevelFromString } from '../utils/severity';
 import { safeJoin } from '../utils/string';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 
+type WeakClientRef = { deref: () => object | undefined };
+
+/**
+ * Wraps a client in a WeakRef if available.
+ * Returns undefined if WeakRef is not available, indicating the caller should
+ * skip instrumentation to avoid memory leaks in serverless/edge environments.
+ *
+ * IMPORTANT: This MUST be a separate function from the handler closure scope.
+ * V8 creates a shared closure context for all inner functions in a scope. If we
+ * had a WeakRef fallback `{ deref: () => client }` in the same scope as the handler,
+ * V8 would capture `client` in the shared context, defeating the WeakRef's purpose.
+ */
+function _makeWeakClientRef(client: object): WeakClientRef | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  const weakRefImpl = (GLOBAL_OBJ as any).WeakRef;
+  if (typeof weakRefImpl === 'function') {
+    return new weakRefImpl(client) as WeakClientRef;
+  }
+  // Return undefined to indicate WeakRef is not available
+  // The caller should skip adding handlers to prevent memory leaks
+  return undefined;
+}
+
 interface CaptureConsoleOptions {
   levels?: string[];
 
@@ -35,8 +58,20 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
         return;
       }
 
+      // Wrap client in WeakRef via a separate function to avoid retaining it
+      // in the handler closure. See _makeWeakClientRef in console.ts for details
+      // on why this must be a separate function scope.
+      const clientRef = _makeWeakClientRef(client);
+
+      // If WeakRef is not available (e.g., Cloudflare Workers without enable_weak_ref flag),
+      // skip adding handlers to prevent memory leaks in serverless environments
+      // where a new client is created per request.
+      if (!clientRef) {
+        return;
+      }
+
       addConsoleInstrumentationHandler(({ args, level }) => {
-        if (getClient() !== client || !levels.includes(level)) {
+        if (getClient() !== clientRef.deref() || !levels.includes(level)) {
           return;
         }
 

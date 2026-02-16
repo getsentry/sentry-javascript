@@ -15,6 +15,7 @@ import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 import { markAsInstrumented } from '../src/instrument';
 import * as HonoIntegration from '../src/integrations/hono';
+import { resetSdk } from './testUtils';
 
 // Custom type for hono-like apps (cloudflare handlers) that include errorHandler and onError
 type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
@@ -43,6 +44,7 @@ function addDelayedWaitUntil(context: ExecutionContext) {
 describe('withSentry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   describe('fetch handler', () => {
