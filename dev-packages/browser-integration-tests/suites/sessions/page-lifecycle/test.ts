@@ -1,45 +1,53 @@
 import { expect } from '@playwright/test';
-import type { SessionContext } from '@sentry/core';
+import type { SerializedSession } from '@sentry/core/src';
 import { sentryTest } from '../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  getMultipleSentryEnvelopeRequests,
+  waitForErrorRequest,
+  waitForSession,
+} from '../../../utils/helpers';
 
-sentryTest('should start a session on pageload with page lifecycle.', async ({ getLocalTestUrl, page }) => {
+sentryTest('starts a session on pageload with page lifecycle.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const sessions = await getMultipleSentryEnvelopeRequests<SessionContext>(page, 1, {
-    url,
-    envelopeType: 'session',
-    timeout: 2000,
-  });
+  const sessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
+  await page.goto(url);
+  const session = await sessionPromise;
 
-  expect(sessions.length).toBeGreaterThanOrEqual(1);
-  const session = sessions[0];
   expect(session).toBeDefined();
-  expect(session.init).toBe(true);
-  expect(session.errors).toBe(0);
-  expect(session.status).toBe('ok');
+  expect(session).toEqual({
+    attrs: {
+      environment: 'production',
+      release: '0.1',
+      user_agent: expect.any(String),
+    },
+    errors: 0,
+    init: true,
+    sid: expect.any(String),
+    started: expect.any(String),
+    status: 'ok',
+    timestamp: expect.any(String),
+  });
 });
 
 sentryTest(
-  'should NOT start a new session on pushState navigation with page lifecycle.',
+  "doesn't start a new session on pushState navigation with page lifecycle.",
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const sessionsPromise = getMultipleSentryEnvelopeRequests<SessionContext>(page, 10, {
+    const sessionsPromise = getMultipleSentryEnvelopeRequests<SerializedSession>(page, 10, {
       url,
       envelopeType: 'session',
       timeout: 4000,
     });
 
-    const manualSessionsPromise = getMultipleSentryEnvelopeRequests<SessionContext>(page, 10, {
+    const manualSessionsPromise = getMultipleSentryEnvelopeRequests<SerializedSession>(page, 10, {
       envelopeType: 'session',
       timeout: 4000,
     });
 
-    const eventsPromise = getMultipleSentryEnvelopeRequests<SessionContext>(page, 10, {
-      envelopeType: 'event',
-      timeout: 4000,
-    });
+    const eventsPromise = waitForErrorRequest(page, e => e.message === 'Test error from manual session');
 
     await page.waitForSelector('#navigate');
 
@@ -56,17 +64,17 @@ sentryTest(
     await page.locator('#manual-session').click();
 
     const newSessions = (await manualSessionsPromise).filter(session => session.init);
-    const events = await eventsPromise;
+    const event = envelopeRequestParser(await eventsPromise);
 
     expect(newSessions.length).toBe(2);
     expect(newSessions[0].init).toBe(true);
     expect(newSessions[1].init).toBe(true);
     expect(newSessions[1].sid).not.toBe(newSessions[0].sid);
-    expect(events).toEqual([
+    expect(event).toEqual(
       expect.objectContaining({
         level: 'error',
         message: 'Test error from manual session',
       }),
-    ]);
+    );
   },
 );

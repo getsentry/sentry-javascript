@@ -300,7 +300,7 @@ export async function waitForSession(
         return callback(event);
       }
 
-      return true;
+      return typeof event.init === 'boolean' && event.started !== undefined;
     } catch {
       return false;
     }

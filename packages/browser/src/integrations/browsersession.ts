@@ -54,8 +54,9 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
       // scope behaviour in the browser.
       const isolationScope = getIsolationScope();
       let previousUser = isolationScope.getUser();
-      getIsolationScope().addScopeListener(scope => {
+      isolationScope.addScopeListener(scope => {
         const maybeNewUser = scope.getUser();
+        // sessions only care about user id and ip address, so we only need to capture the session if the user has changed
         if (previousUser?.id !== maybeNewUser?.id || previousUser?.ip_address !== maybeNewUser?.ip_address) {
           // the scope class already writes the user to its session, so we only need to capture the session here
           captureSession();
@@ -67,7 +68,7 @@ export const browserSessionIntegration = defineIntegration((options: BrowserSess
         // We want to create a session for every navigation as well
         addHistoryInstrumentationHandler(({ from, to }) => {
           // Don't create an additional session for the initial route or if the location did not change
-          if (from !== undefined && from !== to) {
+          if (from !== to) {
             startSession({ ignoreDuration: true });
             captureSession();
           }

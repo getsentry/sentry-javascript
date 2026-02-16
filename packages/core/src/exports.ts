@@ -276,7 +276,7 @@ export function startSession(context?: SessionContext): Session {
   const { userAgent } = GLOBAL_OBJ.navigator || {};
 
   const session = makeSession({
-    user: currentScope.getUser() || isolationScope.getUser(),
+    user: Object.keys(currentScope.getUser() || {}).length > 0 ? currentScope.getUser() : isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,
   });
