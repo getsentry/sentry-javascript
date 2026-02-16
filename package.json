@@ -9,7 +9,6 @@
     "build:types": "nx run-many -t build:types",
     "build:watch": "nx run-many -t build:watch",
     "build:dev:watch": "nx run-many -t build:dev:watch",
-    "build:types:watch": "ts-node scripts/build-types-watch.ts",
     "build:tarball": "run-s clean:tarballs build:tarballs",
     "build:tarballs": "nx run-many -t build:tarball",
     "changelog": "ts-node ./scripts/get-commit-list.ts",

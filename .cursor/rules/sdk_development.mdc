@@ -23,7 +23,6 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 - `yarn build:dev` - Development build (transpile + types)
 - `yarn build:dev:watch` - Development build in watch mode (recommended)
 - `yarn build:dev:filter <package>` - Build specific package and dependencies
-- `yarn build:types:watch` - Watch mode for TypeScript types only
 - `yarn build:bundle` - Build browser bundles only
 
 ### Testing
