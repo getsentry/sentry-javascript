@@ -209,9 +209,10 @@ describe('AWSLambda', () => {
     test('captureAllSettledReasons does not throw on mixed array with null and settled results', async () => {
       const handler = () => Promise.resolve([null, { status: 'rejected', reason: new Error() }]);
       const wrappedHandler = wrapHandler(handler, { captureAllSettledReasons: true });
-      await expect(
-        wrappedHandler(fakeEvent, fakeContext, fakeCallback),
-      ).resolves.toEqual([null, { status: 'rejected', reason: expect.any(Error) }]);
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toEqual([
+        null,
+        { status: 'rejected', reason: expect.any(Error) },
+      ]);
       expect(mockCaptureException).toBeCalledTimes(0);
     });
   });
