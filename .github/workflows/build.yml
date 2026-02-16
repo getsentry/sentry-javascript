@@ -316,7 +316,7 @@ jobs:
         run: yarn lint:es-compatibility
 
       - name: Check that yarn.lock is stable
-        run: yarn && git diff --exit-code yarn.lock
+        run: yarn install --frozen-lockfile --ignore-engines
 
   job_check_format:
     name: Check file formatting
