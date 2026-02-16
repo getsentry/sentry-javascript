@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-core",
-  "version": "10.38.0",
+  "version": "10.39.0",
   "description": "Sentry Node-Core SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-core",
@@ -73,8 +73,7 @@
     "@opentelemetry/instrumentation": ">=0.57.1 <1",
     "@opentelemetry/resources": "^1.30.1 || ^2.1.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1 || ^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@sentry/opentelemetry": "10.38.0"
+    "@opentelemetry/semantic-conventions": "^1.39.0"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
@@ -97,14 +96,12 @@
     },
     "@opentelemetry/semantic-conventions": {
       "optional": true
-    },
-    "@sentry/opentelemetry": {
-      "optional": true
     }
   },
   "dependencies": {
     "@apm-js-collab/tracing-hooks": "^0.3.1",
-    "@sentry/core": "10.38.0",
+    "@sentry/core": "10.39.0",
+    "@sentry/opentelemetry": "10.39.0",
     "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
