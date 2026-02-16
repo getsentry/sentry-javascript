@@ -5,6 +5,7 @@ import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common
 import { getMiddlewareSpanOptions } from './utils';
 
 const SENTRY_WRAPPED = '__SENTRY_WRAPPED__';
+const SENTRY_INTERNAL = '__SENTRY_INTERNAL__';
 
 /**
  * Creates a proxy for the next function that ends the current span and restores the parent span.
@@ -39,8 +40,11 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
   middleware: T,
   options: MiddlewareWrapperOptions,
 ): T {
-  if ((middleware as TanStackMiddlewareBase & { [SENTRY_WRAPPED]?: boolean })[SENTRY_WRAPPED]) {
-    // already instrumented
+  if (
+    (middleware as TanStackMiddlewareBase & { [SENTRY_WRAPPED]?: boolean })[SENTRY_WRAPPED] ||
+    (middleware as TanStackMiddlewareBase & { [SENTRY_INTERNAL]?: boolean })[SENTRY_INTERNAL]
+  ) {
+    // already instrumented or internal Sentry middleware
     return middleware;
   }
 

@@ -51,6 +51,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
           type: 'Error',
           value: 'Sentry Server Function Test Error',
           mechanism: {
+            type: 'auto.function.tanstackstart',
             handled: false,
           },
         },
@@ -61,7 +62,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
   expect(errorEvent.transaction).toBe('/');
 });
 
-test('Sends API route error to Sentry if manually instrumented', async ({ page }) => {
+test('Sends API route error to Sentry via global middleware', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
   });
@@ -81,7 +82,8 @@ test('Sends API route error to Sentry if manually instrumented', async ({ page }
           type: 'Error',
           value: 'Sentry API Route Test Error',
           mechanism: {
-            handled: true,
+            type: 'auto.function.tanstackstart',
+            handled: false,
           },
         },
       ],
