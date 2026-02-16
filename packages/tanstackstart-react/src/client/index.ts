@@ -17,12 +17,12 @@ export function wrapMiddlewaresWithSentry<T extends TanStackMiddlewareBase>(midd
 
 /**
  * No-op stub for client-side builds.
- * The actual implementation is server-only, but this stub is needed to prevent build errors.
+ * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
  */
 export const sentryGlobalRequestMiddleware = { options: {} } as TanStackMiddlewareBase;
 
 /**
  * No-op stub for client-side builds.
- * The actual implementation is server-only, but this stub is needed to prevent build errors.
+ * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
  */
 export const sentryGlobalFunctionMiddleware = { options: {} } as TanStackMiddlewareBase;
