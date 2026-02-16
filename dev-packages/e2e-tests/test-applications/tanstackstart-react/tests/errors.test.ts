@@ -62,7 +62,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
   expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
 });
 
-test('Sends API route error to Sentry via global middleware', async ({ page }) => {
+test('Sends API route error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
   });
