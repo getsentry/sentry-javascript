@@ -1,66 +1,33 @@
 {
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": [
       "{workspaceRoot}/*.js",
       "{workspaceRoot}/*.json",
       "{workspaceRoot}/yarn.lock",
       "{workspaceRoot}/dev-packages/rollup-utils/**"
     ],
-    "production": [
-      "default",
-      "!{projectRoot}/test/**/*",
-      "!{projectRoot}/**/*.md",
-      "!{projectRoot}/*.tgz"
-    ]
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
     "build:dev": {
-      "dependsOn": [
-        "^build:transpile",
-        "^build:types"
-      ]
+      "dependsOn": ["^build:transpile", "^build:types"]
     },
     "build:bundle": {
-      "inputs": [
-        "production",
-        "^production"
-      ],
-      "dependsOn": [
-        "build:transpile"
-      ],
-      "outputs": [
-        "{projectRoot}/build/bundles"
-      ],
+      "inputs": ["production", "^production"],
+      "dependsOn": ["build:transpile"],
+      "outputs": ["{projectRoot}/build/bundles"],
       "cache": true
     },
     "build:tarball": {
-      "inputs": [
-        "production",
-        "^production"
-      ],
-      "dependsOn": [
-        "build:transpile",
-        "^build:transpile",
-        "build:types",
-        "^build:types"
-      ],
-      "outputs": [
-        "{projectRoot}/*.tgz"
-      ],
+      "inputs": ["production", "^production"],
+      "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
+      "outputs": ["{projectRoot}/*.tgz"],
       "cache": true
     },
     "build:transpile": {
-      "inputs": [
-        "production",
-        "^production"
-      ],
-      "dependsOn": [
-        "^build:transpile"
-      ],
+      "inputs": ["production", "^production"],
+      "dependsOn": ["^build:transpile"],
       "outputs": [
         "{projectRoot}/build/esm",
         "{projectRoot}/build/cjs",
@@ -70,13 +37,8 @@
       "cache": true
     },
     "build:types": {
-      "inputs": [
-        "production",
-        "^production"
-      ],
-      "dependsOn": [
-        "^build:types"
-      ],
+      "inputs": ["production", "^production"],
+      "dependsOn": ["^build:types"],
       "outputs": [
         "{projectRoot}/build/types",
         "{projectRoot}/build/types-ts3.8",
@@ -86,29 +48,15 @@
       "cache": true
     },
     "lint": {
-      "inputs": [
-        "default"
-      ],
-      "dependsOn": [
-        "^build:types",
-        "build:types"
-      ],
+      "inputs": ["default"],
+      "dependsOn": ["^build:types", "build:types"],
       "outputs": [],
       "cache": true
     },
     "test:unit": {
-      "dependsOn": [
-        "build:types",
-        "^build:types",
-        "build:transpile",
-        "^build:transpile"
-      ],
-      "inputs": [
-        "default"
-      ],
-      "outputs": [
-        "{projectRoot}/coverage"
-      ],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/coverage"],
       "cache": true
     }
   },
