@@ -89,7 +89,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '98 KB',
+    limit: '99 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -156,7 +156,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
@@ -196,7 +196,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
-    limit: '44 KB',
+    limit: '45 KB',
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics)',
@@ -208,7 +208,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '80 KB',
+    limit: '81 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',

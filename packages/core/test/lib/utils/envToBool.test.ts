@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { envToBool } from '../../src/utils/envToBool';
+import { envToBool } from '../../../src/utils/envToBool';
 
 describe('envToBool', () => {
   it.each([

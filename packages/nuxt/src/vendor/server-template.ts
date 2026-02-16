@@ -1,5 +1,5 @@
 import { useNuxt } from '@nuxt/kit';
-import type { NuxtTemplate } from 'nuxt/schema';
+import type { NuxtTemplate } from '@nuxt/schema';
 
 /**
  * Adds a virtual file that can be used within the Nuxt Nitro server build.
