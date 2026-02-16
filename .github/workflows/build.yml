@@ -1217,6 +1217,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
+        job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
         job_size_check,
