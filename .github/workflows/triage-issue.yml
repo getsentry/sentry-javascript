@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: 'Issue number or URL (e.g., 1234 or https://github.com/getsentry/sentry-javascript/issues/1234)'
+        description: 'Issue number (e.g., 1234)'
         required: true
-        type: string
+        type: number
 
 # Per-issue concurrency to prevent duplicate analysis
 concurrency:
@@ -31,13 +31,15 @@ jobs:
     steps:
       - name: Parse issue number
         id: parse-issue
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          INPUT_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
-          if [ "${{ github.event_name }}" = "issues" ]; then
-            ISSUE_NUM="${{ github.event.issue.number }}"
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_NUM="$EVENT_ISSUE_NUMBER"
           else
-            # Extract number from input (supports both "1234" and full URLs)
-            INPUT="${{ github.event.inputs.issue_number }}"
-            ISSUE_NUM=$(echo "$INPUT" | grep -oE '[0-9]+$')
+            ISSUE_NUM="$INPUT_ISSUE_NUMBER"
           fi
           
           echo "issue_number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
