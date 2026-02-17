@@ -1,5 +1,7 @@
 import json, os, sys, urllib.request, urllib.parse
 
+TIMEOUT_SECONDS = 30
+
 
 def graphql(token, query, variables=None):
     payload = json.dumps({"query": query, **({"variables": variables} if variables else {})}).encode()
@@ -8,7 +10,7 @@ def graphql(token, query, variables=None):
         data=payload,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
     )
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
         return json.loads(resp.read())
 
 
@@ -27,14 +29,17 @@ token_data = urllib.parse.urlencode({
 }).encode()
 req = urllib.request.Request("https://api.linear.app/oauth/token", data=token_data,
     headers={"Content-Type": "application/x-www-form-urlencoded"})
-with urllib.request.urlopen(req) as resp:
+with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
     token = json.loads(resp.read()).get("access_token", "")
 if not token:
     print("Failed to obtain Linear access token")
     sys.exit(1)
 
 # --- Fetch issue UUID ---
-data = graphql(token, '{ issue(id: "%s") { id identifier url } }' % identifier)
+data = graphql(token,
+    "query GetIssue($id: String!) { issue(id: $id) { id identifier url } }",
+    {"id": identifier},
+)
 issue = data.get("data", {}).get("issue")
 if not issue:
     print(f"Linear issue {identifier} not found")
@@ -42,7 +47,10 @@ if not issue:
 issue_id = issue["id"]
 
 # --- Check for existing triage comment (idempotency) ---
-data = graphql(token, '{ issue(id: "%s") { comments { nodes { body } } } }' % identifier)
+data = graphql(token,
+    "query GetComments($id: String!) { issue(id: $id) { comments { nodes { body } } } }",
+    {"id": identifier},
+)
 comments = data.get("data", {}).get("issue", {}).get("comments", {}).get("nodes", [])
 for c in comments:
     if c.get("body", "").startswith("## Automated Triage Report"):
