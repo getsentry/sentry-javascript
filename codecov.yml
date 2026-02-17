@@ -7,7 +7,7 @@ coverage:
         enabled: false
     patch:
       default:
-        enabled: false
+        informational: true
   ignore:
     - 'packages/deno/**'
 
