@@ -1,8 +1,9 @@
 name: Triage Issue
 
 on:
-  issues:
-    types: [opened]
+  # Only trigger this workflow manually for now
+  # issues:
+    # types: [opened]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -24,10 +25,10 @@ jobs:
       pull-requests: write
     # Only run for Bug or Feature issues (automatic mode)
     if: |
-      github.event_name == 'workflow_dispatch' || 
-      contains(github.event.issue.labels.*.name, 'Bug') || 
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.issue.labels.*.name, 'Bug') ||
       contains(github.event.issue.labels.*.name, 'Feature')
-    
+
     steps:
       - name: Parse issue number
         id: parse-issue
@@ -41,7 +42,7 @@ jobs:
           else
             ISSUE_NUM="$INPUT_ISSUE_NUMBER"
           fi
-          
+
           echo "issue_number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
           echo "Processing issue #$ISSUE_NUM in CI mode"
 
