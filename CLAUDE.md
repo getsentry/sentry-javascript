@@ -22,7 +22,6 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 - `yarn build:dev` - Development build (transpile + types)
 - `yarn build:dev:watch` - Development build in watch mode (recommended)
 - `yarn build:dev:filter <package>` - Build specific package and dependencies
-- `yarn build:types:watch` - Watch mode for TypeScript types only
 - `yarn build:bundle` - Build browser bundles only
 
 ### Testing
@@ -58,7 +57,7 @@ This repository uses **Git Flow**. See [docs/gitflow.md](docs/gitflow.md) for de
 
 ## Repository Architecture
 
-This is a Lerna monorepo with 40+ packages in the `@sentry/*` namespace.
+This is a monorepo with 40+ packages in the `@sentry/*` namespace, managed with Yarn workspaces and Nx.
 
 ### Core Packages
 
@@ -102,7 +101,7 @@ This is a Lerna monorepo with 40+ packages in the `@sentry/*` namespace.
 
 - Uses Rollup for bundling (`rollup.*.config.mjs`)
 - TypeScript with multiple tsconfig files per package
-- Lerna manages package dependencies and publishing
+- Nx orchestrates task execution across packages with caching
 - Vite for testing with `vitest`
 
 ### Package Structure Pattern

@@ -24,7 +24,6 @@ packages/*/sentry-*.tgz
 # logs
 yarn-error.log
 npm-debug.log
-lerna-debug.log
 local.log
 
 # ide
@@ -54,6 +53,7 @@ tmp.js
 packages/deno/build-types
 packages/deno/build-test
 packages/deno/lib.deno.d.ts
+deno.lock
 
 # gatsby
 packages/gatsby/gatsby-node.d.ts
