@@ -23,6 +23,7 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
    
   options: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     server: createSentryMiddlewareHandler('auto.middleware.tanstackstart.request') as (...args: any[]) => any,
   },
 };
@@ -33,8 +34,9 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
-   
+
   options: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     server: createSentryMiddlewareHandler('auto.middleware.tanstackstart.server_function') as (...args: any[]) => any,
   },
 };
