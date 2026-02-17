@@ -1,4 +1,6 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { flush } from '@sentry/core';
+import type { CloudflareClient } from './client';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -35,4 +37,17 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
       return allDone;
     },
   });
+}
+
+/**
+ * Flushes the client and then disposes of it to allow garbage collection.
+ * This should be called at the end of each request to prevent memory leaks.
+ *
+ * @param client - The CloudflareClient instance to flush and dispose
+ * @param timeout - Timeout in milliseconds for the flush operation
+ * @returns A promise that resolves when flush and dispose are complete
+ */
+export async function flushAndDispose(client: CloudflareClient | undefined, timeout: number): Promise<void> {
+  await flush(timeout);
+  client?.dispose();
 }

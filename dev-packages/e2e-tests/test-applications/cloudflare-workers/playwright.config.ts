@@ -6,10 +6,12 @@ if (!testEnv) {
 }
 
 const APP_PORT = 38787;
+const INSPECTOR_PORT = 9230;
 
 const config = getPlaywrightConfig(
   {
-    startCommand: `pnpm dev --port ${APP_PORT}`,
+    // Enable inspector port for memory profiling tests via CDP
+    startCommand: `pnpm dev --port ${APP_PORT} --inspector-port ${INSPECTOR_PORT}`,
     port: APP_PORT,
   },
   {

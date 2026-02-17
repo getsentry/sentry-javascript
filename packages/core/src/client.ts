@@ -203,12 +203,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _eventProcessors: EventProcessor[];
 
   /** Holds flushable  */
-  private _outcomes: { [key: string]: number };
+  protected _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Set<Function>>;
+  protected _hooks: Record<string, Set<Function>>;
 
-  private _promiseBuffer: PromiseBuffer<unknown>;
+  protected _promiseBuffer: PromiseBuffer<unknown>;
 
   /**
    * Initializes this client instance.

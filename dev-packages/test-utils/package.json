@@ -44,11 +44,13 @@
     "@playwright/test": "~1.56.0"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry/core": "10.39.0",
+    "@types/ws": "^8.5.10",
     "eslint-plugin-regexp": "^1.15.0"
   },
   "volta": {
