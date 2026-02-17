@@ -21,7 +21,7 @@ function createSentryMiddlewareHandler(mechanismType: string) {
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
-   
+
   options: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     server: createSentryMiddlewareHandler('auto.middleware.tanstackstart.request') as (...args: any[]) => any,
