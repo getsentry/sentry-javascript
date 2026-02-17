@@ -28,7 +28,7 @@
 
   Previously, the SDK inconsistently set the user id on sessions, meaning sessions were often lacking proper coupling to the user set for example via `Sentry.setUser()`.
   Additionally, the SDK incorrectly skipped starting a new session for the first soft navigation after the pageload.
-  This patch fixes these issues. As a result, metrics around sessions, like "Crash Ffree Sessions" or "Crash Free Users" might change.
+  This patch fixes these issues. As a result, metrics around sessions, like "Crash Free Sessions" or "Crash Free Users" might change.
   This could also trigger alerts, depending on your set thresholds and conditions.
   We apologize for any inconvenience caused!
 
