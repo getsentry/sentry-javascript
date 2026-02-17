@@ -37,4 +37,3 @@ export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
 export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;
-export declare const createTunnelHandler: typeof serverSdk.createTunnelHandler;
