@@ -29,7 +29,7 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
 };
 
 /**
- * Global function middleware that captures errors from all server function invocations.
+ * Global function middleware that captures errors from server function invocations.
  * Should be added as the first entry in the `functionMiddleware` array of `createStart()`.
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
