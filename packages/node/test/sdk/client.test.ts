@@ -300,6 +300,7 @@ describe('NodeClient', () => {
     new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
 
     // Verify that the instrumentation was registered by checking if its methods were called
+    /* eslint-disable-next-line @typescript-eslint/unbound-method */
     expect(mockInstrumentation.setTracerProvider).toHaveBeenCalled();
   });
 
