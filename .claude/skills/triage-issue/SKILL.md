@@ -13,7 +13,7 @@ You are triaging a GitHub issue for the `getsentry/sentry-javascript` repository
 The user provides: `<issue-number-or-url> [--ci]`
 
 - **Required:** An issue number (e.g. `1234`) or a full GitHub URL (e.g. `https://github.com/getsentry/sentry-javascript/issues/1234`)
-- **Optional:** `--ci` flag — when set, format output as a Linear payload stub instead of a terminal report
+- **Optional:** `--ci` flag — when set, post the triage report as a comment on the existing Linear issue
 
 Parse the issue number from the input. If a URL is given, extract the number from the path.
 
@@ -73,87 +73,134 @@ Based on all gathered information:
 
 ### Step 6: Generate Triage Report
 
-Output the following structured report:
-
-```
-## Issue Triage: #<number>
-
-**Title:** <title>
-**Classification:** <bug|feature request|documentation|support|duplicate>
-**Affected Package(s):** @sentry/<package>, ...
-**Priority:** <high|medium|low>
-**Complexity:** <trivial|moderate|complex>
-
-### Summary
-<1-2 sentence summary of the issue>
-
-### Root Cause Analysis
-<Detailed explanation with file:line code pointers. Reference specific functions, variables, and logic paths.>
-
-### Related Issues & PRs
-- #<number> - <title> (<open|closed|merged>)
-- (or "No related issues found")
-
-### Cross-Repo Findings
-- **bundler-plugins:** <findings or "no matches">
-- **sentry-docs:** <findings or "no matches">
-
-### Recommended Next Steps
-1. <specific action item>
-2. <specific action item>
-3. ...
-```
+Use the template in `assets/triage-report.md` to generate the structured report. Fill in all `<placeholder>` values with the actual issue details.
 
 ### Step 7: Suggested Fix Prompt
 
-If a viable fix is identified (complexity is trivial or moderate, and you can point to specific code changes), include a copyable prompt block:
-
-```
-### Suggested Fix
-
-Complexity: <trivial|moderate|complex>
-
-To apply this fix, run the following prompt in Claude Code:
-
-\`\`\`
-Fix GitHub issue #<number> (<title>).
-
-Root cause: <brief explanation>
-
-Changes needed:
-- In `packages/<pkg>/src/<file>.ts`: <what to change>
-- In `packages/<pkg>/test/<file>.test.ts`: <test updates if needed>
-
-After making changes, run:
-1. yarn build:dev
-2. yarn lint
-3. yarn test (in the affected package directory)
-\`\`\`
-```
+If a viable fix is identified (complexity is trivial or moderate, and you can point to specific code changes), use the template in `assets/suggested-fix-prompt.md` to generate a copyable prompt block. Fill in all `<placeholder>` values with the actual issue details.
 
 If the issue is complex or the fix is unclear, skip this section and instead note in the Recommended Next Steps what investigation is still needed.
 
 ### Step 8: Output Based on Mode
 
 - **Default (no `--ci` flag):** Print the full triage report directly to the terminal. Do NOT post anywhere, do NOT create PRs, do NOT comment on the issue.
-- **`--ci` flag:** Format the triage report as a Linear payload stub and print it. Include a `TODO` note that this will be connected to Linear via MCP/API integration in the future. The stub should look like:
+- **`--ci` flag:** Post the triage report as a comment on the existing Linear issue (auto-created by the Linear–GitHub sync bot). Requires these environment variables (provided via GitHub Actions secrets):
+  - `LINEAR_CLIENT_ID` — Linear OAuth application client ID
+  - `LINEAR_CLIENT_SECRET` — Linear OAuth application client secret
 
-```json
-{
-  "TODO": "Connect to Linear API or MCP tool to post this payload",
-  "teamId": "JAVASCRIPT_SDK_TEAM_ID",
-  "title": "Triage: #<number> - <title>",
-  "description": "<full triage report in markdown>",
-  "priority": <1-4>,
-  "labels": ["triage", "<category>"]
-}
-```
+  **SECURITY: Credential handling rules (MANDATORY)**
+  - NEVER print, echo, or log the value of `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET`, any access token, or any secret.
+  - NEVER interpolate credentials into a string that gets printed to the conversation.
+  - Always pass credentials via environment variable references in Bash commands only.
+  - If a curl command fails, print the response body but NEVER print the request headers.
+
+  **Step 8a: Check required env vars**
+
+  Before making any API calls, verify that the required env vars are set:
+
+  ```bash
+  [[ -z "$LINEAR_CLIENT_ID" ]] && echo "ERROR: LINEAR_CLIENT_ID is not set" && exit 1
+  [[ -z "$LINEAR_CLIENT_SECRET" ]] && echo "ERROR: LINEAR_CLIENT_SECRET is not set" && exit 1
+  ```
+
+  If either is missing, print an error and fall back to printing the report to the terminal.
+
+  **Step 8b: Obtain an access token via client credentials flow**
+
+  Reference: https://linear.app/developers/oauth-2-0-authentication#client-credentials-tokens
+
+  ```bash
+  TOKEN_RESPONSE=$(curl -s -X POST https://api.linear.app/oauth/token \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "grant_type=client_credentials&client_id=$LINEAR_CLIENT_ID&client_secret=$LINEAR_CLIENT_SECRET&scope=issues:create,read,comments:create")
+  LINEAR_ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))")
+  ```
+
+  If the token is empty, print `"Failed to obtain Linear access token"` and the response body (which will not contain secrets), then fall back to printing the report to the terminal.
+
+  The token is valid for 30 days and represents an `app` actor with access to public teams.
+
+  **Step 8c: Find the existing Linear issue**
+
+  The Linear–GitHub sync bot automatically creates a Linear issue when the GitHub issue is opened. Find it by searching for the issue identifier. The issue identifier follows the pattern `JS-XXXX` and can be found in the GitHub issue comments (the bot leaves a comment linking back to Linear).
+
+  First, check the GitHub issue comments (already fetched in Step 1) for a Linear linkback comment. Extract the issue identifier (e.g. `JS-1669`) from the comment body.
+
+  Then fetch the Linear issue by identifier:
+
+  ```bash
+  ISSUE_RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
+    -d '{"query": "{ issue(id: \"JS-XXXX\") { id identifier url title } }"}')
+  ```
+
+  Extract the Linear issue UUID from the response. If the issue is not found, fall back to printing the report to the terminal.
+
+  **Step 8d: Check for existing triage comments (idempotency)**
+
+  Before posting, check if a triage comment already exists to avoid duplicates:
+
+  ```bash
+  COMMENTS_RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
+    -d '{"query": "{ issue(id: \"JS-XXXX\") { comments { nodes { body } } } }"}')
+  ```
+
+  Check if any comment body starts with `## Automated Triage Report`. If one already exists, print `"Triage comment already exists on <identifier>, skipping"` and exit without posting.
+
+  **Step 8e: Post the triage comment**
+
+  **CRITICAL: Always use Python to build and write the JSON payload to a temp file.** Do NOT use shell heredocs (`<<EOF`), string interpolation, or `cat` to construct JSON — this causes escaping issues with `$`, backticks, and newlines that silently corrupt the payload or produce duplicate requests.
+
+  ```python
+  python3 -c '
+  import json, os, tempfile
+
+  issue_id = "<LINEAR_ISSUE_UUID>"  # from Step 8c
+  comment_body = "<TRIAGE_REPORT_CONTENT>"  # the full triage report text
+
+  payload = {
+      "query": "mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { success comment { id body } } }",
+      "variables": {
+          "input": {
+              "issueId": issue_id,
+              "body": comment_body
+          }
+      }
+  }
+
+  fd, path = tempfile.mkstemp(suffix=".json")
+  with os.fdopen(fd, "w") as f:
+      json.dump(payload, f)
+  print(path)
+  '
+  ```
+
+  Then POST the payload file and parse the response:
+
+  ```bash
+  RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
+    -d @"$PAYLOAD_FILE")
+  rm -f "$PAYLOAD_FILE"
+  ```
+
+  Parse `$RESPONSE` using Python. Print only:
+  - On success: `Triage comment posted on <identifier>: <url>`
+  - On failure: `Failed to post triage comment: <error message from response body>`
+
+  If the API call fails, fall back to printing the full report to the terminal.
 
 ## Important Rules
 
 - Do NOT modify any files in the repository.
 - Do NOT create branches, commits, or PRs.
 - Do NOT comment on the GitHub issue.
-- Do NOT post to any external services (unless `--ci` is specified, and even then only print the payload).
+- Do NOT post to external services unless `--ci` is specified.
+- When `--ci` is specified, only post a comment on the existing Linear issue — do NOT create new Linear issues, and do NOT post anywhere else.
+- **NEVER print, log, or expose API keys, tokens, or secrets in conversation output.** Only reference them as `$ENV_VAR` in Bash commands.
 - Focus on accuracy: if you're uncertain about the root cause, say so rather than guessing.
 - Keep the report concise but thorough. Developers should be able to act on it immediately.
