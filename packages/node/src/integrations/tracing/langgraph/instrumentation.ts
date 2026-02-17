@@ -78,7 +78,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
              * This catches ESM imports that resolve through the main package,
              * using the package.json submodule export
              */
-            '@langchain/langgraph/prebuilt',
+            '@langchain/langgraph/dist/prebuilt/index.js',
             supportedVersions,
             this._patch.bind(this),
             exports => exports,
