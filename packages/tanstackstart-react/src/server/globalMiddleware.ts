@@ -2,15 +2,17 @@ import { addNonEnumerableProperty, captureException } from '@sentry/core';
 import type { TanStackMiddlewareBase } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
 
-async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> }): Promise<unknown> {
-  try {
-    return await next();
-  } catch (e) {
-    captureException(e, {
-      mechanism: { type: 'auto.function.tanstackstart', handled: false },
-    });
-    throw e;
-  }
+function createSentryMiddlewareHandler(mechanismType: string) {
+  return async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> }): Promise<unknown> {
+    try {
+      return await next();
+    } catch (e) {
+      captureException(e, {
+        mechanism: { type: mechanismType, handled: false },
+      });
+      throw e;
+    }
+  };
 }
 
 /**
@@ -19,8 +21,10 @@ async function sentryMiddlewareHandler({ next }: { next: () => Promise<unknown> 
  */
 export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
+   
+  options: {
+    server: createSentryMiddlewareHandler('auto.middleware.tanstackstart.request') as (...args: any[]) => any,
+  },
 };
 
 /**
@@ -29,8 +33,10 @@ export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = {
  */
 export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = {
   '~types': undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  options: { server: sentryMiddlewareHandler as (...args: any[]) => any },
+   
+  options: {
+    server: createSentryMiddlewareHandler('auto.middleware.tanstackstart.server_function') as (...args: any[]) => any,
+  },
 };
 
 // Mark as internal so the Vite auto-instrumentation plugin skips these middleware

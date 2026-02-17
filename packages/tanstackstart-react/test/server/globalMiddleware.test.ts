@@ -28,7 +28,7 @@ describe('sentryGlobalRequestMiddleware', () => {
     await expect(serverFn({ next })).rejects.toThrow('test error');
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-      mechanism: { type: 'auto.function.tanstackstart', handled: false },
+      mechanism: { type: 'auto.middleware.tanstackstart.request', handled: false },
     });
   });
 
@@ -48,6 +48,23 @@ describe('sentryGlobalRequestMiddleware', () => {
 });
 
 describe('sentryGlobalFunctionMiddleware', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('captures error with correct mechanism when next() throws', async () => {
+    const error = new Error('test error');
+    const next = vi.fn().mockRejectedValue(error);
+
+    const serverFn = sentryGlobalFunctionMiddleware.options.server!;
+
+    await expect(serverFn({ next })).rejects.toThrow('test error');
+
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { type: 'auto.middleware.tanstackstart.server_function', handled: false },
+    });
+  });
+
   it('has __SENTRY_INTERNAL__ flag set', () => {
     expect((sentryGlobalFunctionMiddleware as unknown as Record<string, unknown>)['__SENTRY_INTERNAL__']).toBe(true);
   });

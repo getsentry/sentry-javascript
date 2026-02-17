@@ -51,7 +51,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
           type: 'Error',
           value: 'Sentry Server Function Test Error',
           mechanism: {
-            type: 'auto.function.tanstackstart',
+            type: 'auto.middleware.tanstackstart.server_function',
             handled: false,
           },
         },
@@ -82,7 +82,7 @@ test('Sends API route error to Sentry with auto-instrumentation', async ({ page 
           type: 'Error',
           value: 'Sentry API Route Test Error',
           mechanism: {
-            type: 'auto.function.tanstackstart',
+            type: 'auto.middleware.tanstackstart.request',
             handled: false,
           },
         },
@@ -93,6 +93,8 @@ test('Sends API route error to Sentry with auto-instrumentation', async ({ page 
   expect(errorEvent.transaction).toBe('GET /api/error');
 });
 
+// the sentry global middleware does not capture errors from SSR loader errors since they are serialized before they reach the middleware layer
+// this test verifies that the error is in fact not sent to Sentry
 test('Does not send SSR loader error to Sentry', async ({ baseURL, page }) => {
   let errorEventOccurred = false;
 
