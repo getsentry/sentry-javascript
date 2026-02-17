@@ -31,6 +31,6 @@ jobs:
             But! If you comment or otherwise update it, I will reset the clock, and if you apply the label `PR: no-auto-close` I will leave it alone ... forever!
           close-pr-message: |
             Closing due to inactivity after stale warning. Comment or reopen when ready to continue, and use `PR: no-auto-close` to opt out of automatic closure.
-          exempt-pr-labels: PR: no-auto-close
-          stale-pr-label: PR: stale
+          exempt-pr-labels: 'PR: no-auto-close'
+          stale-pr-label: 'PR: stale'
           remove-pr-stale-when-updated: true
