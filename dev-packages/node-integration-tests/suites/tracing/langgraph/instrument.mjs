@@ -7,4 +7,11 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: false,
   transport: loggingTransport,
+  beforeSendTransaction: event => {
+    // Filter out mock express server transactions
+    if (event.transaction.includes('/v1/messages')) {
+      return null;
+    }
+    return event;
+  },
 });
