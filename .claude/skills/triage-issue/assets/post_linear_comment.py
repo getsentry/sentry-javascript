@@ -1,6 +1,8 @@
-import json, os, sys, urllib.request, urllib.parse
+import json, os, re, sys, urllib.error, urllib.request, urllib.parse
 
 TIMEOUT_SECONDS = 30
+IDENTIFIER_PATTERN = re.compile(r"^[A-Z]+-\d+$")
+ALLOWED_REPORT_DIR = "/tmp/"
 
 
 def graphql(token, query, variables=None):
@@ -10,13 +12,30 @@ def graphql(token, query, variables=None):
         data=payload,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
     )
-    with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        print(f"Linear API error {e.code}: {body}")
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Linear API request failed: {e.reason}")
+        sys.exit(1)
 
 
 # --- Inputs ---
 identifier = sys.argv[1]       # e.g. "JS-1669"
 report_path = sys.argv[2]      # e.g. "/tmp/triage_report.md"
+
+if not IDENTIFIER_PATTERN.match(identifier):
+    print(f"Invalid identifier format: {identifier}")
+    sys.exit(1)
+
+if not os.path.abspath(report_path).startswith(ALLOWED_REPORT_DIR):
+    print(f"Report path must be under {ALLOWED_REPORT_DIR}")
+    sys.exit(1)
+
 client_id = os.environ["LINEAR_CLIENT_ID"]
 client_secret = os.environ["LINEAR_CLIENT_SECRET"]
 
@@ -29,8 +48,12 @@ token_data = urllib.parse.urlencode({
 }).encode()
 req = urllib.request.Request("https://api.linear.app/oauth/token", data=token_data,
     headers={"Content-Type": "application/x-www-form-urlencoded"})
-with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
-    token = json.loads(resp.read()).get("access_token", "")
+try:
+    with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
+        token = json.loads(resp.read()).get("access_token", "")
+except (urllib.error.HTTPError, urllib.error.URLError) as e:
+    print(f"Failed to obtain Linear access token: {e}")
+    sys.exit(1)
 if not token:
     print("Failed to obtain Linear access token")
     sys.exit(1)
