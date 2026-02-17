@@ -34,4 +34,3 @@ jobs:
           exempt-pr-labels: PR: no-auto-close
           stale-pr-label: PR: stale
           remove-pr-stale-when-updated: true
-          only-prs: true
