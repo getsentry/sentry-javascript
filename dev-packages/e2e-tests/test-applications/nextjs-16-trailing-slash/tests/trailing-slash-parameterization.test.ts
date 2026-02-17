@@ -7,9 +7,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create a correctly named pageload transaction for a static route', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-trailing-slash', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/static-page' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+    return transactionEvent.transaction === '/static-page' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/static-page`);
@@ -96,9 +94,7 @@ test('should create a correctly named pageload transaction for a static nested r
 
 test('should create a correctly named pageload transaction for the catch-all route', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-trailing-slash', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/:slug*' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+    return transactionEvent.transaction === '/:slug*' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/some/unmatched/path`);
@@ -125,9 +121,7 @@ test('should create a correctly named pageload transaction for the catch-all rou
 
 test('should create a correctly named pageload transaction for the home page', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-trailing-slash', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+    return transactionEvent.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
