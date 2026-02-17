@@ -18,8 +18,6 @@
   });
   ```
 
-Work in this release was contributed by @limbonaut and @rfoel. Thank you for your contributions!
-
 ### Important Changes
 
 - fix(node-core): Reduce bundle size by removing apm-js-collab and requiring pino >= 9.10 ([#18631](https://github.com/getsentry/sentry-javascript/pull/18631))
