@@ -1,0 +1,37 @@
+name: 'PR: Stale Notifier'
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *'
+
+permissions:
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn and close stale PRs
+        uses: actions/stale@v10
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          days-before-pr-stale: 21
+          days-before-pr-close: 7
+          stale-pr-message: |
+            This pull request has gone three weeks without activity. In another week, I will close it.
+
+            But! If you comment or otherwise update it, I will reset the clock, and if you apply the label `PR: no-auto-close` I will leave it alone ... forever!
+          close-pr-message: |
+            Closing due to inactivity after stale warning. Comment or reopen when ready to continue, and use `PR: no-auto-close` to opt out of automatic closure.
+          exempt-pr-labels: PR: no-auto-close
+          stale-pr-label: PR: stale
+          remove-pr-stale-when-updated: true
+          only-prs: true
