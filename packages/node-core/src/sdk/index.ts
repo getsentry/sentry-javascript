@@ -3,11 +3,12 @@ import {
   applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
+  conversationIdIntegration,
   debug,
+  envToBool,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -37,7 +38,7 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
-import { envToBool } from '../utils/envToBool';
+import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initializeEsmLoader } from './esmLoader';
@@ -55,6 +56,7 @@ export function getDefaultIntegrations(): Integration[] {
     linkedErrorsIntegration(),
     requestDataIntegration(),
     systemErrorIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
@@ -132,8 +134,6 @@ function _init(
 
   client.init();
 
-  GLOBAL_OBJ._sentryInjectLoaderHookRegister?.();
-
   debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
   client.startClientReportTracking();
@@ -142,6 +142,15 @@ function _init(
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
+
+  // Ensure we flush events when vercel functions are ended
+  // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
+  if (process.env.VERCEL) {
+    process.on('SIGTERM', async () => {
+      // We have 500ms for processing here, so we try to make sure to have enough time to send the events
+      await client.flush(200);
+    });
+  }
 
   return client;
 }
@@ -182,8 +191,9 @@ function getClientOptions(
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClientOptions {
   const release = getRelease(options.release);
-  const spotlight =
-    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
+
+  const spotlight = getSpotlightConfig(options.spotlight);
+
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const mergedOptions = {

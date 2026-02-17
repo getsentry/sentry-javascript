@@ -1,15 +1,10 @@
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
 import { consoleSandbox, createTransport, debug, suppressTracing } from '@sentry/core';
 
-export interface DenoTransportOptions extends BaseTransportOptions {
-  /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
-  headers?: { [key: string]: string };
-}
-
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeFetchTransport(options: DenoTransportOptions): Transport {
+export function makeFetchTransport(options: BaseTransportOptions): Transport {
   const url = new URL(options.url);
 
   Deno.permissions
@@ -19,7 +14,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(`Sentry SDK requires 'net' permission to send events.
-    Run with '--allow-net=${url.host}' to grant the requires permissions.`);
+    Run with '--allow-net=${url.host}' to grant the required permissions.`);
         });
       }
     })

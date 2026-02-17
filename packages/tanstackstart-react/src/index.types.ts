@@ -1,3 +1,5 @@
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
@@ -10,6 +12,7 @@ export * from './config';
 export * from './client';
 export * from './server';
 export * from './common';
+export * from './vite';
 
 /** Initializes Sentry TanStack Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
@@ -20,11 +23,7 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function getSentryRelease(fallback?: string): string | undefined;
-
 export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
-export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
-export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
@@ -36,3 +35,8 @@ export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegra
 export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
 export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
+
+export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;
+
+export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
+export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;

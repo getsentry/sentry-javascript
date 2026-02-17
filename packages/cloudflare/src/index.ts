@@ -16,6 +16,9 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
@@ -96,9 +99,12 @@ export {
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
+  createLangChainCallbackHandler,
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
+  metrics,
+  instrumentLangGraph,
 } from '@sentry/core';
 
 export { withSentry } from './handler';

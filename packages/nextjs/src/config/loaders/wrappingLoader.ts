@@ -1,6 +1,5 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { stringMatchesSomePattern } from '@sentry/core';
-import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
@@ -44,6 +43,7 @@ export type WrappingLoaderOptions = {
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
+  isDev?: boolean;
 };
 
 /**
@@ -67,6 +67,7 @@ export default function wrappingLoader(
     wrappingTargetKind,
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
+    isDev,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -165,9 +166,7 @@ export default function wrappingLoader(
       if (!showedMissingAsyncStorageModuleWarning) {
         // eslint-disable-next-line no-console
         console.warn(
-          `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
-            'RequestAsyncStorage',
-          )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
+          "[@sentry/nextjs] The Sentry SDK could not access the 'RequestAsyncStorage' module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.",
         );
         showedMissingAsyncStorageModuleWarning = true;
       }
@@ -223,7 +222,7 @@ export default function wrappingLoader(
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
-  wrapUserCode(templateCode, userCode, userModuleSourceMap)
+  wrapUserCode(templateCode, userCode, userModuleSourceMap, isDev, this.resourcePath)
     .then(({ code: wrappedCode, map: wrappedCodeSourceMap }) => {
       this.callback(null, wrappedCode, wrappedCodeSourceMap);
     })
@@ -248,6 +247,9 @@ export default function wrappingLoader(
  *
  * @param wrapperCode The wrapper module code
  * @param userModuleCode The user module code
+ * @param userModuleSourceMap The source map for the user module
+ * @param isDev Whether we're in development mode (affects sourcemap generation)
+ * @param userModulePath The absolute path to the user's original module (for sourcemap accuracy)
  * @returns The wrapped user code and a source map that describes the transformations done by this function
  */
 async function wrapUserCode(
@@ -255,6 +257,8 @@ async function wrapUserCode(
   userModuleCode: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
+  isDev?: boolean,
+  userModulePath?: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ code: string; map?: any }> {
   const wrap = (withDefaultExport: boolean): Promise<RollupBuild> =>
@@ -270,21 +274,48 @@ async function wrapUserCode(
           resolveId: id => {
             if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
               return id;
-            } else {
-              return null;
             }
+
+            return null;
           },
           load(id) {
             if (id === SENTRY_WRAPPER_MODULE_NAME) {
               return withDefaultExport ? wrapperCode : wrapperCode.replace('export { default } from', 'export {} from');
-            } else if (id === WRAPPING_TARGET_MODULE_NAME) {
-              return {
-                code: userModuleCode,
-                map: userModuleSourceMap, // give rollup access to original user module source map
-              };
-            } else {
+            }
+
+            if (id !== WRAPPING_TARGET_MODULE_NAME) {
               return null;
             }
+
+            // In prod/build, we should not interfere with sourcemaps
+            if (!isDev || !userModulePath) {
+              return { code: userModuleCode, map: userModuleSourceMap };
+            }
+
+            // In dev mode, we need to adjust the sourcemap to use absolute paths for the user's file.
+            // This ensures debugger breakpoints correctly map back to the original file.
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const userSources: string[] = userModuleSourceMap?.sources;
+            if (Array.isArray(userSources)) {
+              return {
+                code: userModuleCode,
+                map: {
+                  ...userModuleSourceMap,
+                  sources: userSources.map((source: string, index: number) => (index === 0 ? userModulePath : source)),
+                },
+              };
+            }
+
+            // If no sourcemap exists, create a simple identity mapping with the absolute path
+            return {
+              code: userModuleCode,
+              map: {
+                version: 3,
+                sources: [userModulePath],
+                sourcesContent: [userModuleCode],
+                mappings: '',
+              },
+            };
           },
         },
 
@@ -355,7 +386,22 @@ async function wrapUserCode(
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',
-    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map comment in the output
+    // In dev mode, use inline sourcemaps so debuggers can map breakpoints back to original source.
+    // In production, use hidden sourcemaps (no sourceMappingURL comment) to avoid exposing internals.
+    sourcemap: isDev ? 'inline' : 'hidden',
+    // In dev mode, preserve absolute paths in sourcemaps so debuggers can correctly resolve breakpoints.
+    // By default, Rollup converts absolute paths to relative paths, which breaks debugging.
+    // We only do this in dev mode to avoid interfering with Sentry's sourcemap upload in production.
+    sourcemapPathTransform: isDev
+      ? relativeSourcePath => {
+          // If we have userModulePath and this relative path matches the end of it, use the absolute path
+          if (userModulePath?.endsWith(relativeSourcePath)) {
+            return userModulePath;
+          }
+          // Keep other paths (like sentry-wrapper-module) as-is
+          return relativeSourcePath;
+        }
+      : undefined,
   });
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.

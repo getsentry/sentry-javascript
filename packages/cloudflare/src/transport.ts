@@ -2,10 +2,10 @@ import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, Tra
 import { createTransport, SENTRY_BUFFER_FULL_ERROR, suppressTracing } from '@sentry/core';
 
 export interface CloudflareTransportOptions extends BaseTransportOptions {
+  /** Custom fetch function to use. This allows usage of things like Workers VPC */
+  fetch?: typeof fetch;
   /** Fetch API init parameters. */
   fetchOptions?: RequestInit;
-  /** Custom headers for the transport. */
-  headers?: { [key: string]: string };
 }
 
 const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
@@ -89,7 +89,18 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
     };
 
     return suppressTracing(() => {
-      return fetch(options.url, requestOptions).then(response => {
+      return (options.fetch ?? fetch)(options.url, requestOptions).then(async response => {
+        // Consume the response body to satisfy Cloudflare Workers' fetch requirements.
+        // The runtime requires all fetch response bodies to be read or explicitly canceled
+        // to prevent connection stalls and potential deadlocks. We read the body as text
+        // even though we don't use the content, as Sentry's response information is in the headers.
+        // See: https://github.com/getsentry/sentry-javascript/issues/18534
+        try {
+          await response.text();
+        } catch {
+          // no-op
+        }
+
         return {
           statusCode: response.status,
           headers: {

@@ -11,16 +11,16 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@opentelemetry/sdk-node": "0.204.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.204.0",
+    "@opentelemetry/sdk-node": "0.210.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.210.0",
     "@sentry/node": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",
-    "express": "4.20.0",
+    "express": "^4.21.2",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

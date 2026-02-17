@@ -7,7 +7,7 @@ vi.mock('@sentry/vite-plugin', () => ({
     .fn()
     .mockReturnValue([
       { name: 'sentry-telemetry-plugin' },
-      { name: 'sentry-vite-release-injection-plugin' },
+      { name: 'sentry-vite-injection-plugin' },
       { name: 'sentry-vite-component-name-annotate-plugin' },
       { name: 'other-plugin' },
     ]),
@@ -59,7 +59,7 @@ describe('makeCustomSentryVitePlugins', () => {
     const plugins = await makeCustomSentryVitePlugins({});
     expect(plugins).toHaveLength(2);
     expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-release-injection-plugin');
+    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
   });
 
   it('should include component annotation plugin when reactComponentAnnotation.enabled is true', async () => {
@@ -67,7 +67,7 @@ describe('makeCustomSentryVitePlugins', () => {
 
     expect(plugins).toHaveLength(3);
     expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-release-injection-plugin');
+    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
     expect(plugins?.[2]?.name).toBe('sentry-vite-component-name-annotate-plugin');
   });
 
@@ -78,7 +78,7 @@ describe('makeCustomSentryVitePlugins', () => {
 
     expect(plugins).toHaveLength(3);
     expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-release-injection-plugin');
+    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
     expect(plugins?.[2]?.name).toBe('sentry-vite-component-name-annotate-plugin');
   });
 });

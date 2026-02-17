@@ -1,6 +1,4 @@
 import {
-  type SpanAttributes,
-  type StartSpanOptions,
   captureException,
   debug,
   flushIfServerless,
@@ -10,10 +8,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  type SpanAttributes,
   startSpan,
+  type StartSpanOptions,
 } from '@sentry/core';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
+import type { NitroAppPlugin } from 'nitropack';
+import { useStorage } from 'nitropack/runtime';
 import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
@@ -35,7 +35,7 @@ const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemR
 /**
  * Creates a Nitro plugin that instruments the storage driver.
  */
-export default defineNitroPlugin(async _nitroApp => {
+export default (async _nitroApp => {
   // This runs at runtime when the Nitro server starts
   const storage = useStorage();
   // Mounts are suffixed with a colon, so we need to add it to the set items
@@ -64,7 +64,7 @@ export default defineNitroPlugin(async _nitroApp => {
 
   // Wrap the mount method to instrument future mounts
   storage.mount = wrapStorageMount(storage);
-});
+}) satisfies NitroAppPlugin;
 
 /**
  * Instruments a driver by wrapping all method calls using proxies.

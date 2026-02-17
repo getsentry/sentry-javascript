@@ -218,6 +218,7 @@ export function listenForWebVitalReportEvents(
     collected = true;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   onHidden(() => {
     _runCollectorCallbackOnce('pagehide');
   });

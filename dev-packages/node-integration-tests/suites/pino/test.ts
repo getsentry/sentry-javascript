@@ -11,6 +11,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .ignore('event')
+      .ignore('transaction')
       .expect({
         log: log => {
           const traceId1 = log.items?.[0]?.trace_id;
@@ -28,6 +29,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -45,7 +47,6 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                       function: '?',
                       in_app: true,
                       module: 'scenario',
-                      context_line: "      logger.error(new Error('oh no'));",
                     }),
                   ]),
                 },
@@ -63,18 +64,18 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -82,14 +83,16 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                module: { value: 'authentication', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
           ],
         },
@@ -104,6 +107,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-next.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -139,18 +143,18 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -158,14 +162,15 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
           ],
         },
@@ -180,6 +185,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-track.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         log: {
           items: [
@@ -189,18 +195,19 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                msg: { value: 'hello world', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -208,14 +215,154 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                module: { value: 'authentication', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
+            },
+          ],
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('captures structured logs with msg field', async () => {
+    const instrumentPath = join(__dirname, 'instrument.mjs');
+
+    await createRunner(__dirname, 'scenario-structured-logging.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrumentPath)
+      .ignore('transaction')
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-msg',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                msg: { value: 'test-msg', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-msg-2',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                msg: { value: 'test-msg-2', type: 'string' },
+                userId: { value: 'user-123', type: 'string' },
+                action: { value: 'login', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-string',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+          ],
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('captures logs with custom messageKey and errorKey', async () => {
+    const instrumentPath = join(__dirname, 'instrument.mjs');
+
+    await createRunner(__dirname, 'scenario-custom-keys.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrumentPath)
+      .ignore('transaction')
+      .expect({
+        event: {
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'Custom error key',
+                mechanism: {
+                  type: 'pino',
+                  handled: true,
+                },
+                stacktrace: {
+                  frames: expect.arrayContaining([
+                    expect.objectContaining({
+                      function: '?',
+                      in_app: true,
+                      module: 'scenario-custom-keys',
+                    }),
+                  ]),
+                },
+              },
+            ],
+          },
+        },
+      })
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Custom message key',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                user: { value: 'user-123', type: 'string' },
+                action: { value: 'custom-key-test', type: 'string' },
+                message: { value: 'Custom message key', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Custom error key',
+              trace_id: expect.any(String),
+              severity_number: 17,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 50, type: 'integer' },
+                message: { value: 'Custom error key', type: 'string' },
+                error: { value: expect.any(String), type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
             },
           ],
         },

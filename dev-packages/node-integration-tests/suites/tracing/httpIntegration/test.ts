@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
@@ -27,8 +27,8 @@ describe('httpIntegration', () => {
             transaction: {
               contexts: {
                 trace: {
-                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  span_id: expect.stringMatching(/[a-f\d]{16}/),
+                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   data: {
                     url: expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
@@ -69,8 +69,8 @@ describe('httpIntegration', () => {
             transaction: {
               contexts: {
                 trace: {
-                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  span_id: expect.stringMatching(/[a-f\d]{16}/),
+                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
                   data: {
                     url: expect.stringMatching(/\/test$/),
                     'http.response.status_code': 200,
@@ -198,8 +198,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test1',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -214,8 +214,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test2',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -230,8 +230,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test3',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -256,8 +256,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test1-proxy',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -272,8 +272,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test2-proxy',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -288,8 +288,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test3-proxy',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -313,8 +313,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test1-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -329,8 +329,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test2-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -345,8 +345,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test3-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -371,8 +371,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test1-proxy-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -387,8 +387,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test2-proxy-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -403,8 +403,8 @@ describe('httpIntegration', () => {
                   transaction: 'GET /test3-proxy-original',
                   contexts: {
                     trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      span_id: expect.stringMatching(/[a-f\d]{16}/),
+                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
                       data: {
                         'http.response.status_code': 200,
                         'sentry.op': 'http.server',
@@ -433,8 +433,8 @@ describe('httpIntegration', () => {
           transaction: {
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   url: expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,
@@ -459,8 +459,8 @@ describe('httpIntegration', () => {
           transaction: {
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
                 data: {
                   url: expect.stringMatching(/\/test$/),
                   'http.response.status_code': 200,

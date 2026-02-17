@@ -3,6 +3,7 @@ import type { Exception } from '../types-hoist/exception';
 import type { Mechanism } from '../types-hoist/mechanism';
 import type { StackFrame } from '../types-hoist/stackframe';
 import { addNonEnumerableProperty } from './object';
+import { safeMathRandom, withRandomSafeContext } from './randomSafeContext';
 import { snipLine } from './string';
 import { GLOBAL_OBJ } from './worldwide';
 
@@ -24,7 +25,7 @@ function getCrypto(): CryptoInternal | undefined {
 let emptyUuid: string | undefined;
 
 function getRandomByte(): number {
-  return Math.random() * 16;
+  return safeMathRandom() * 16;
 }
 
 /**
@@ -35,7 +36,8 @@ function getRandomByte(): number {
 export function uuid4(crypto = getCrypto()): string {
   try {
     if (crypto?.randomUUID) {
-      return crypto.randomUUID().replace(/-/g, '');
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return withRandomSafeContext(() => crypto.randomUUID!()).replace(/-/g, '');
     }
   } catch {
     // some runtimes can crash invoking crypto
@@ -225,7 +227,13 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   return false;
 }
 
-function isAlreadyCaptured(exception: unknown): boolean | void {
+/**
+ * Checks whether we've already captured the given exception (note: not an identical exception - the very object).
+ * It is considered already captured if it has the `__sentry_captured__` property set to `true`.
+ *
+ * @internal Only considered for internal usage
+ */
+export function isAlreadyCaptured(exception: unknown): boolean | void {
   try {
     return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
   } catch {} // eslint-disable-line no-empty

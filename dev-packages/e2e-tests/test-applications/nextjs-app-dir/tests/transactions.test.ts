@@ -21,7 +21,7 @@ test('Sends a pageload transaction', async ({ page }) => {
       transaction: '/',
       transaction_info: { source: 'url' },
       type: 'transaction',
-      contexts: {
+      contexts: expect.objectContaining({
         react: {
           version: expect.any(String),
         },
@@ -33,13 +33,14 @@ test('Sends a pageload transaction', async ({ page }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.app_router_instrumentation',
+          status: 'ok',
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
             'sentry.source': 'url',
           }),
         },
-      },
+      }),
       request: {
         headers: {
           'User-Agent': expect.any(String),

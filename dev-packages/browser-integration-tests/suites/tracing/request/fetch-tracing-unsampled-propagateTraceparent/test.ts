@@ -18,8 +18,8 @@ sentryTest(
 
     const traceparentData = extractTraceparentData(requestHeaders['sentry-trace']);
     expect(traceparentData).toMatchObject({
-      traceId: expect.stringMatching(/^([a-f0-9]{32})$/),
-      parentSpanId: expect.stringMatching(/^([a-f0-9]{16})$/),
+      traceId: expect.stringMatching(/^([a-f\d]{32})$/),
+      parentSpanId: expect.stringMatching(/^([a-f\d]{16})$/),
       parentSampled: false,
     });
 

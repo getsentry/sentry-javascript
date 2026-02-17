@@ -1,14 +1,22 @@
 import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+  stripDataUrlContent,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import { generateInstrumentOnce, SentryNodeFetchInstrumentation } from '@sentry/node-core';
 import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
-interface NodeFetchOptions {
+interface NodeFetchOptions extends Pick<UndiciInstrumentationConfig, 'requestHook' | 'responseHook'> {
   /**
    * Whether breadcrumbs should be recorded for requests.
    * Defaults to true
@@ -77,7 +85,7 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
   }
 
   if (!url.endsWith('/') && !path.startsWith('/')) {
-    return `${url}/${path.slice(1)}`;
+    return `${url}/${path}`;
   }
 
   return `${url}${path}`;
@@ -101,11 +109,26 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
 
       return !!shouldIgnore;
     },
-    startSpanHook: () => {
+    startSpanHook: request => {
+      const url = getAbsoluteUrl(request.origin, request.path);
+
+      // Sanitize data URLs to prevent long base64 strings in span attributes
+      if (url.startsWith('data:')) {
+        const sanitizedUrl = stripDataUrlContent(url);
+        return {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+          'http.url': sanitizedUrl,
+          [SEMANTIC_ATTRIBUTE_URL_FULL]: sanitizedUrl,
+          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: `${request.method || 'GET'} ${sanitizedUrl}`,
+        };
+      }
+
       return {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
       };
     },
+    requestHook: options.requestHook,
+    responseHook: options.responseHook,
   } satisfies UndiciInstrumentationConfig;
 
   return instrumentationConfig;

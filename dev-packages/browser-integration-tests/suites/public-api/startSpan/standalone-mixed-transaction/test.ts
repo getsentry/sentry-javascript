@@ -34,8 +34,8 @@ sentryTest(
     const traceId = transactionEnvelopeHeader.trace!.trace_id!;
     const parentSpanId = transactionEnvelopeItem.contexts?.trace?.span_id;
 
-    expect(traceId).toMatch(/[a-f0-9]{32}/);
-    expect(parentSpanId).toMatch(/[a-f0-9]{16}/);
+    expect(traceId).toMatch(/[a-f\d]{32}/);
+    expect(parentSpanId).toMatch(/[a-f\d]{16}/);
 
     expect(spanEnvelopeHeader).toEqual({
       sent_at: expect.any(String),
@@ -76,14 +76,14 @@ sentryTest(
       segment_id: transactionEnvelopeItem.contexts?.trace?.span_id,
       parent_span_id: parentSpanId,
       origin: 'manual',
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: traceId,
     });
 
     expect(transactionEnvelopeItem).toEqual({
-      contexts: {
+      contexts: expect.objectContaining({
         trace: {
           data: {
             'sentry.origin': 'manual',
@@ -94,7 +94,7 @@ sentryTest(
           span_id: parentSpanId,
           trace_id: traceId,
         },
-      },
+      }),
       environment: 'production',
       event_id: expect.any(String),
       platform: 'javascript',
@@ -111,7 +111,7 @@ sentryTest(
           description: 'inner',
           origin: 'manual',
           parent_span_id: parentSpanId,
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           trace_id: traceId,

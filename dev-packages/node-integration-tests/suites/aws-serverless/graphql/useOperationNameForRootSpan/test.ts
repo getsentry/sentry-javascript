@@ -20,7 +20,7 @@ describe('graphqlIntegration', () => {
   test('should use GraphQL operation name for root span if useOperationNameForRootSpan is set', async () => {
     await createRunner(__dirname, 'scenario.js')
       .ignore('event')
-      .expect({ transaction: { transaction: 'Test Server Start (query IntrospectionQuery)' } })
+      .expect({ transaction: { transaction: 'Test Server Start' } })
       .expect({ transaction: EXPECTED_TRANSCATION })
       .start()
       .completed();

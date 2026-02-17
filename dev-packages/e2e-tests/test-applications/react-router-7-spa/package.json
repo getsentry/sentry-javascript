@@ -8,10 +8,10 @@
     "@types/react-dom": "18.3.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router": "^7.0.1"
+    "react-router": "^7.13.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "vite": "^6.0.1",
     "@vitejs/plugin-react": "^4.3.4",

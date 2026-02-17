@@ -36,7 +36,7 @@ async function flushWithTimeout(timeout: number): Promise<void> {
  */
 export async function flushIfServerless(
   params: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { timeout?: number; cloudflareWaitUntil?: (task: Promise<any>) => void }
+    | { timeout?: number; cloudflareWaitUntil?: (task: Promise<any>) => void }
     | { timeout?: number; cloudflareCtx?: MinimalCloudflareContext } = {},
 ): Promise<void> {
   const { timeout = 2000 } = params;
@@ -51,6 +51,8 @@ export async function flushIfServerless(
     return;
   }
 
+  // Note: vercelWaitUntil only does something in Vercel Edge runtime
+  // In Node runtime, we use process.on('SIGTERM') instead
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
     // Vercel has a waitUntil equivalent that works without execution context

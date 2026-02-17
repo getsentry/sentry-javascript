@@ -6,9 +6,9 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "^7.1.5",
-    "@react-router/node": "^7.1.5",
-    "@react-router/serve": "^7.1.5",
+    "react-router": "^7.13.0",
+    "@react-router/node": "^7.13.0",
+    "@react-router/serve": "^7.13.0",
     "@sentry/react-router": "latest || *",
     "isbot": "^5.1.17"
   },
@@ -16,8 +16,8 @@
     "@types/react": "18.3.1",
     "@types/react-dom": "18.3.1",
     "@types/node": "^20",
-    "@react-router/dev": "^7.1.5",
-    "@playwright/test": "~1.53.2",
+    "@react-router/dev": "^7.13.0",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"

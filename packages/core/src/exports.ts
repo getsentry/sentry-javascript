@@ -2,6 +2,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { startNewTrace } from './tracing/trace';
 import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
@@ -40,8 +41,8 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-  return getCurrentScope().captureMessage(message, level, context);
+  const hint = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  return getCurrentScope().captureMessage(message, level, hint);
 }
 
 /**
@@ -111,6 +112,15 @@ export function setUser(user: User | null): void {
 }
 
 /**
+ * Sets the conversation ID for the current isolation scope.
+ *
+ * @param conversationId The conversation ID to set. Pass `null` or `undefined` to unset the conversation ID.
+ */
+export function setConversationId(conversationId: string | null | undefined): void {
+  getIsolationScope().setConversationId(conversationId);
+}
+
+/**
  * The last error event id of the isolation scope.
  *
  * Warning: This function really returns the last recorded error event id on the current
@@ -159,14 +169,14 @@ export function withMonitor<T>(
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,
 ): T {
-  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
-  const now = timestampInSeconds();
+  function runCallback(): T {
+    const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+    const now = timestampInSeconds();
 
-  function finishCheckIn(status: FinishedCheckIn['status']): void {
-    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
-  }
-
-  return withIsolationScope(() => {
+    function finishCheckIn(status: FinishedCheckIn['status']): void {
+      captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
+    }
+    // Default behavior without isolateTrace
     let maybePromiseResult: T;
     try {
       maybePromiseResult = callback();
@@ -190,7 +200,9 @@ export function withMonitor<T>(
     finishCheckIn('ok');
 
     return maybePromiseResult;
-  });
+  }
+
+  return withIsolationScope(() => (upsertMonitorConfig?.isolateTrace ? startNewTrace(runCallback) : runCallback()));
 }
 
 /**

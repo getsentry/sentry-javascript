@@ -14,8 +14,6 @@ import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 
 export interface NodeTransportOptions extends BaseTransportOptions {
-  /** Define custom headers */
-  headers?: Record<string, string>;
   /** Set a proxy that should be used for outbound requests. */
   proxy?: string;
   /** HTTPS proxy CA certificates */
@@ -127,12 +125,15 @@ function createRequestExecutor(
           body = body.pipe(createGzip());
         }
 
+        const hostnameIsIPv6 = hostname.startsWith('[');
+
         const req = httpModule.request(
           {
             method: 'POST',
             agent,
             headers,
-            hostname,
+            // Remove "[" and "]" from IPv6 hostnames
+            hostname: hostnameIsIPv6 ? hostname.slice(1, -1) : hostname,
             path: `${pathname}${search}`,
             port,
             protocol,

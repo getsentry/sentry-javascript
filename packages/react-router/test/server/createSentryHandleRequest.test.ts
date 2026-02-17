@@ -42,8 +42,17 @@ describe('createSentryHandleRequest', () => {
       url: '/test',
       version: '1.0.0',
     },
+    ssr: true,
+    routeDiscovery: {
+      mode: 'lazy',
+      manifestPath: '/path/to/manifest',
+    },
     routeModules: {},
-    future: {},
+    future: {
+      unstable_subResourceIntegrity: false,
+      v8_middleware: false,
+      unstable_trailingSlashAwareDataRequests: false,
+    },
     isSpaMode: false,
     staticHandlerContext: {
       matches: [

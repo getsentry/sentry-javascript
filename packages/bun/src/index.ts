@@ -16,6 +16,9 @@ export type {
   Thread,
   User,
   FeatureFlagsIntegration,
+  Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
@@ -45,6 +48,7 @@ export {
   Scope,
   SDK_VERSION,
   setContext,
+  setConversationId,
   setExtra,
   setExtras,
   setTag,
@@ -62,6 +66,7 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -76,6 +81,8 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -130,6 +137,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   honoIntegration,
@@ -143,6 +151,11 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
@@ -163,6 +176,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

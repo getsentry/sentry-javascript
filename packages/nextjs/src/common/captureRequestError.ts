@@ -1,6 +1,6 @@
 import type { RequestEventData } from '@sentry/core';
-import { captureException, headersToDict, vercelWaitUntil, withScope } from '@sentry/core';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
+import { captureException, headersToDict, withScope } from '@sentry/core';
+import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 
 type RequestInfo = {
   path: string;
@@ -33,7 +33,7 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
       route_type: errorContext.routeType,
     });
 
-    scope.setTransactionName(errorContext.routePath);
+    scope.setTransactionName(`${request.method} ${errorContext.routePath}`);
 
     captureException(error, {
       mechanism: {
@@ -42,6 +42,6 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
       },
     });
 
-    vercelWaitUntil(flushSafelyWithTimeout());
+    waitUntil(flushSafelyWithTimeout());
   });
 }

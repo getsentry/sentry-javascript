@@ -18,6 +18,7 @@ vi.mock('@sentry/core', async () => {
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
     startSpan: vi.fn((opts, fn) => fn({})),
+    GLOBAL_OBJ: {},
   };
 });
 
@@ -88,10 +89,13 @@ describe('ReactRouterInstrumentation', () => {
 
   it('should start a span for data requests with active root span', async () => {
     vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
+    // @ts-expect-error MockSpan just for testing
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(mockSpan as Span);
+    // @ts-expect-error MockSpan just for testing
     vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue(mockSpan as Span);
     vi.spyOn(SentryCore, 'spanToJSON').mockReturnValue({ data: {} } as SpanJSON);
     vi.spyOn(Util, 'getSpanName').mockImplementation((pathname, method) => `span:${pathname}:${method}`);
+    // @ts-expect-error MockSpan just for testing
     vi.spyOn(SentryCore, 'startSpan').mockImplementation((_opts, fn) => fn(mockSpan as Span));
 
     const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);

@@ -57,7 +57,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
   const spanEnvelopeItem = spanEnvelope[1][0][1];
 
   const pageloadTraceId = pageloadTransactionEvent.contexts?.trace?.trace_id;
-  expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+  expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
   expect(spanEnvelopeItem).toEqual({
     data: {
@@ -67,7 +67,7 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
       'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
       'lcp.element': 'body > img',
       'lcp.loadTime': expect.any(Number),
       'lcp.renderTime': expect.any(Number),
@@ -84,9 +84,9 @@ sentryTest('captures LCP vital as a standalone span', async ({ getLocalTestUrl, 
     },
     op: 'ui.webvital.lcp',
     origin: 'auto.http.browser.lcp',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
+    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: spanEnvelopeItem.start_timestamp, // LCP is a point-in-time metric
     trace_id: pageloadTraceId,
@@ -126,8 +126,8 @@ sentryTest('LCP span is linked to pageload transaction', async ({ getLocalTestUr
   const pageloadSpanId = eventData.contexts?.trace?.span_id;
   const pageloadTraceId = eventData.contexts?.trace?.trace_id;
 
-  expect(pageloadSpanId).toMatch(/[a-f0-9]{16}/);
-  expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+  expect(pageloadSpanId).toMatch(/[a-f\d]{16}/);
+  expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,

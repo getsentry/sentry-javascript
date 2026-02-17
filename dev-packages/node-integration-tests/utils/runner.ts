@@ -110,7 +110,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
           clearTimeout(timeout);
           if (options.setupCommand) {
             try {
-              execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+              // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
+              const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
+              execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
             } catch (e) {
               log('Error running docker setup command', e);
             }
@@ -172,6 +174,7 @@ type StartResult = {
   childHasExited(): boolean;
   getLogs(): string[];
   getPort(): number | undefined;
+  sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
@@ -611,7 +614,7 @@ export function createRunner(...paths: string[]) {
 
           function tryParseEnvelopeFromStdoutLine(line: string): void {
             // Lines can have leading '[something] [{' which we need to remove
-            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+            const cleanedLine = line.replace(/^.*?\] \[\{"/, '[{"');
 
             // See if we have a port message
             if (cleanedLine.startsWith('{"port":')) {
@@ -667,6 +670,9 @@ export function createRunner(...paths: string[]) {
         },
         getPort(): number | undefined {
           return scenarioServerPort;
+        },
+        sendSignal(signal: NodeJS.Signals): void {
+          child?.kill(signal);
         },
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',
@@ -801,6 +807,7 @@ function convertEsmToCjs(content: string): string {
 
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
+    // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {

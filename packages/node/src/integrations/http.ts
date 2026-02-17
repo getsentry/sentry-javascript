@@ -3,10 +3,15 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
-import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
-  type SentryHttpInstrumentationOptions,
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+  stripDataUrlContent,
+} from '@sentry/core';
+import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
+import {
   addOriginToSpan,
   generateInstrumentOnce,
   getRequestUrl,
@@ -282,6 +287,15 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
     requireParentforOutgoingSpans: false,
     requestHook: (span, req) => {
       addOriginToSpan(span, 'auto.http.otel.http');
+
+      // Sanitize data URLs to prevent long base64 strings in span attributes
+      const url = getRequestUrl(req as ClientRequest);
+      if (url.startsWith('data:')) {
+        const sanitizedUrl = stripDataUrlContent(url);
+        span.setAttribute('http.url', sanitizedUrl);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
+        span.updateName(`${(req as ClientRequest).method || 'GET'} ${sanitizedUrl}`);
+      }
 
       options.instrumentation?.requestHook?.(span, req);
     },

@@ -2,7 +2,7 @@ import type { Integration } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
@@ -114,5 +114,172 @@ describe('Server init()', () => {
 
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
+  });
+
+  describe('OpenNext/Cloudflare runtime detection', () => {
+    const cloudflareContextSymbol = Symbol.for('__cloudflare-context__');
+
+    beforeEach(() => {
+      // Reset the global scope to allow re-initialization
+      SentryNode.getGlobalScope().clear();
+      SentryNode.getIsolationScope().clear();
+      SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
+    });
+
+    afterEach(() => {
+      // Clean up the cloudflare context
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol];
+    });
+
+    it('sets cloudflare runtime when OpenNext context is available', () => {
+      // Mock the OpenNext Cloudflare context
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+        ctx: {
+          waitUntil: vi.fn(),
+        },
+      };
+
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          runtime: { name: 'cloudflare' },
+        }),
+      );
+    });
+
+    it('sets cloudflare in SDK metadata when OpenNext context is available', () => {
+      // Mock the OpenNext Cloudflare context
+      (GLOBAL_OBJ as unknown as Record<symbol, unknown>)[cloudflareContextSymbol] = {
+        ctx: {
+          waitUntil: vi.fn(),
+        },
+      };
+
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          _metadata: expect.objectContaining({
+            sdk: expect.objectContaining({
+              name: 'sentry.javascript.nextjs',
+              packages: expect.arrayContaining([
+                expect.objectContaining({
+                  name: 'npm:@sentry/nextjs',
+                }),
+                expect.objectContaining({
+                  name: 'npm:@sentry/cloudflare',
+                }),
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('does not set cloudflare runtime when OpenNext context is not available', () => {
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({
+          runtime: { name: 'cloudflare' },
+        }),
+      );
+    });
+  });
+
+  describe('environment option', () => {
+    const originalEnv = process.env.SENTRY_ENVIRONMENT;
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    beforeEach(() => {
+      // Reset the global scope to allow re-initialization
+      SentryNode.getGlobalScope().clear();
+      SentryNode.getIsolationScope().clear();
+      SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
+    });
+
+    afterEach(() => {
+      if (originalEnv !== undefined) {
+        process.env.SENTRY_ENVIRONMENT = originalEnv;
+      } else {
+        delete process.env.SENTRY_ENVIRONMENT;
+      }
+      if (originalNodeEnv !== undefined) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
+    });
+
+    it('uses environment from options when provided', () => {
+      delete process.env.SENTRY_ENVIRONMENT;
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        environment: 'custom-env',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('custom-env');
+    });
+
+    it('uses SENTRY_ENVIRONMENT env var when options.environment is not provided', () => {
+      process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('env-from-variable');
+    });
+
+    it('uses NODE_ENV as fallback when neither options.environment nor SENTRY_ENVIRONMENT is provided', () => {
+      delete process.env.SENTRY_ENVIRONMENT;
+      process.env.NODE_ENV = 'production';
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('production');
+    });
+
+    it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {
+      process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        environment: 'options-env',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('options-env');
+    });
+
+    it('prioritizes SENTRY_ENVIRONMENT over NODE_ENV', () => {
+      process.env.SENTRY_ENVIRONMENT = 'sentry-env';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('sentry-env');
+    });
   });
 });

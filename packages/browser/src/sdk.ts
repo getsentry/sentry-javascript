@@ -1,5 +1,6 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
+  conversationIdIntegration,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -12,9 +13,11 @@ import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { browserSessionIntegration } from './integrations/browsersession';
+import { cultureContextIntegration } from './integrations/culturecontext';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
+import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
@@ -30,12 +33,14 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     browserApiErrorsIntegration(),
     breadcrumbsIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    cultureContextIntegration(),
     browserSessionIntegration(),
   ];
 }
@@ -90,14 +95,26 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   const shouldDisableBecauseIsBrowserExtenstion =
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 
+  let defaultIntegrations =
+    options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
+
+  /* rollup-include-development-only */
+  if (options.spotlight) {
+    if (!defaultIntegrations) {
+      defaultIntegrations = [];
+    }
+    const args = typeof options.spotlight === 'string' ? { sidecarUrl: options.spotlight } : undefined;
+    defaultIntegrations.push(spotlightBrowserIntegration(args));
+  }
+  /* rollup-include-development-only-end */
+
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       integrations: options.integrations,
-      defaultIntegrations:
-        options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations,
+      defaultIntegrations,
     }),
     transport: options.transport || makeFetchTransport,
   };

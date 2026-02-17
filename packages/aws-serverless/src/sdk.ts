@@ -44,6 +44,8 @@ export interface WrapperOptions {
 function isPromiseAllSettledResult<T>(result: T[]): boolean {
   return result.every(
     v =>
+      v != null &&
+      typeof v === 'object' &&
       Object.prototype.hasOwnProperty.call(v, 'status') &&
       (Object.prototype.hasOwnProperty.call(v, 'value') || Object.prototype.hasOwnProperty.call(v, 'reason')),
   );
@@ -108,7 +110,7 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
   });
 }
 
-function setupTimeoutWatning(context: Context, options: WrapperOptions): NodeJS.Timeout | undefined {
+function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.Timeout | undefined {
   // In seconds. You cannot go any more granular than this in AWS Lambda.
   const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
   const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
@@ -220,7 +222,7 @@ export function wrapHandler<TEvent, TResult>(
   return async (event: TEvent, context: Context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    timeoutWarningTimer = setupTimeoutWatning(context, options);
+    timeoutWarningTimer = setupTimeoutWarning(context, options);
 
     async function processResult(): Promise<TResult> {
       const scope = getCurrentScope();
@@ -272,7 +274,7 @@ function wrapStreamingHandler<TEvent, TResult>(
   ): Promise<TResult> => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    timeoutWarningTimer = setupTimeoutWatning(context, options);
+    timeoutWarningTimer = setupTimeoutWarning(context, options);
 
     async function processStreamingResult(): Promise<TResult> {
       const scope = getCurrentScope();

@@ -5,12 +5,11 @@ import {
   debug,
   defineIntegration,
   getClient,
+  getCombinedScopeData,
   getCurrentScope,
   getFilenameToDebugIdMap,
-  getGlobalScope,
   getIsolationScope,
   GLOBAL_OBJ,
-  mergeScopeData,
 } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -35,9 +34,7 @@ function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & { __SENTRY_GET_SCOPES__?:
 
 /** Fetches merged scope data */
 function getScopeData(): ScopeData {
-  const scope = getGlobalScope().getScopeData();
-  mergeScopeData(scope, getIsolationScope().getScopeData());
-  mergeScopeData(scope, getCurrentScope().getScopeData());
+  const scope = getCombinedScopeData(getIsolationScope(), getCurrentScope());
 
   // We remove attachments because they likely won't serialize well as json
   scope.attachments = [];
@@ -265,7 +262,17 @@ async function _startWorker(
   };
 }
 
+/**
+ * @see {@link disableBlockDetectionForCallback}
+ *
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 export function disableAnrDetectionForCallback<T>(callback: () => T): T;
+/**
+ * @see {@link disableBlockDetectionForCallback}
+ *
+ * @deprecated The ANR integration has been deprecated. Use `eventLoopBlockIntegration` from `@sentry/node-native` instead.
+ */
 export function disableAnrDetectionForCallback<T>(callback: () => Promise<T>): Promise<T>;
 /**
  * Temporarily disables ANR detection for the duration of a callback function.

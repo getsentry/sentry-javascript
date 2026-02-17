@@ -22,7 +22,6 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 - `yarn build:dev` - Development build (transpile + types)
 - `yarn build:dev:watch` - Development build in watch mode (recommended)
 - `yarn build:dev:filter <package>` - Build specific package and dependencies
-- `yarn build:types:watch` - Watch mode for TypeScript types only
 - `yarn build:bundle` - Build browser bundles only
 
 ### Testing
@@ -31,8 +30,10 @@ You are working on the Sentry JavaScript SDK, a critical production SDK used by 
 
 ### Linting and Formatting
 
-- `yarn lint` - Run ESLint and Prettier checks
+- `yarn lint` - Run ESLint and Oxfmt checks
 - `yarn fix` - Auto-fix linting and formatting issues
+- `yarn format:check` - Check file formatting only
+- `yarn format` - Auto-fix formatting issues
 - `yarn lint:es-compatibility` - Check ES compatibility
 
 ## Git Flow Branching Strategy
@@ -56,7 +57,7 @@ This repository uses **Git Flow**. See [docs/gitflow.md](docs/gitflow.md) for de
 
 ## Repository Architecture
 
-This is a Lerna monorepo with 40+ packages in the `@sentry/*` namespace.
+This is a monorepo with 40+ packages in the `@sentry/*` namespace, managed with Yarn workspaces and Nx.
 
 ### Core Packages
 
@@ -100,7 +101,7 @@ This is a Lerna monorepo with 40+ packages in the `@sentry/*` namespace.
 
 - Uses Rollup for bundling (`rollup.*.config.mjs`)
 - TypeScript with multiple tsconfig files per package
-- Lerna manages package dependencies and publishing
+- Nx orchestrates task execution across packages with caching
 - Vite for testing with `vitest`
 
 ### Package Structure Pattern
@@ -119,6 +120,44 @@ Each package typically contains:
 - Requires initial `yarn build` after `yarn install` for TypeScript linking
 - Integration tests use Playwright extensively
 - Never change the volta, yarn, or package manager setup in general unless explicitly asked for
+
+### E2E Testing
+
+E2E tests are located in `dev-packages/e2e-tests/` and verify SDK behavior in real-world framework scenarios.
+
+#### How Verdaccio Registry Works
+
+E2E tests use [Verdaccio](https://verdaccio.org/), a lightweight npm registry running in Docker. Before tests run:
+
+1. SDK packages are built and packed into tarballs (`yarn build && yarn build:tarball`)
+2. Tarballs are published to Verdaccio at `http://127.0.0.1:4873`
+3. Test applications install packages from Verdaccio instead of public npm
+
+#### The `.npmrc` Requirement
+
+Every E2E test application needs an `.npmrc` file with:
+
+```
+@sentry:registry=http://127.0.0.1:4873
+@sentry-internal:registry=http://127.0.0.1:4873
+```
+
+Without this file, pnpm installs from the public npm registry instead of Verdaccio, so your local changes won't be tested. This is a common cause of "tests pass in CI but fail locally" or vice versa.
+
+#### Running a Single E2E Test
+
+Run the e2e skill.
+
+#### Common Pitfalls and Debugging
+
+1. **Missing `.npmrc`**: Most common issue. Always verify the test app has the correct `.npmrc` file.
+
+2. **Stale tarballs**: After SDK changes, must re-run `yarn build:tarball`.
+
+3. **Debugging tips**:
+   - Check browser console logs for SDK initialization errors
+   - Use `debug: true` in Sentry config
+   - Verify installed package version: check `node_modules/@sentry/*/package.json`
 
 ### Notes for Background Tasks
 

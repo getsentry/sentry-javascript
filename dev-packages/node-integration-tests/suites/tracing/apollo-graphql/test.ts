@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
-// Graphql Instrumentation emits some spans by default on server start
+// Server start transaction (Apollo Server v5 no longer runs introspection query on start)
 const EXPECTED_START_SERVER_TRANSACTION = {
-  transaction: 'Test Server Start (query IntrospectionQuery)',
+  transaction: 'Test Server Start',
 };
 
 describe('GraphQL/Apollo Tests', () => {
@@ -68,7 +68,7 @@ describe('GraphQL/Apollo Tests', () => {
             'sentry.origin': 'auto.graphql.otel.graphql',
           },
           description: 'mutation Mutation',
-          status: 'unknown_error',
+          status: 'internal_error',
           origin: 'auto.graphql.otel.graphql',
         }),
       ]),

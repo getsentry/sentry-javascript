@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Integration, IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
@@ -9,7 +9,6 @@ import {
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
-import { addInstrumentationConfig } from '../sdk/injectLoader';
 
 const SENTRY_TRACK_SYMBOL = Symbol('sentry-track-pino-logger');
 
@@ -19,9 +18,26 @@ type LevelMapping = {
 };
 
 type Pino = {
+  [key: symbol]: unknown;
   levels: LevelMapping;
   [SENTRY_TRACK_SYMBOL]?: 'track' | 'ignore';
 };
+
+/**
+ * Gets a custom Pino key from a logger instance by searching for the symbol.
+ * Pino uses non-global symbols like Symbol('pino.messageKey'): https://github.com/pinojs/pino/blob/8a816c0b1f72de5ae9181f3bb402109b66f7d812/lib/symbols.js
+ */
+function getPinoKey(logger: Pino, symbolName: string, defaultKey: string): string {
+  const symbols = Object.getOwnPropertySymbols(logger);
+  const symbolString = `Symbol(${symbolName})`;
+  for (const sym of symbols) {
+    if (sym.toString() === symbolString) {
+      const value = logger[sym];
+      return typeof value === 'string' ? value : defaultKey;
+    }
+  }
+  return defaultKey;
+}
 
 type MergeObject = {
   [key: string]: unknown;
@@ -81,9 +97,22 @@ type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? Partial<T[P]> : T[P];
 };
 
+type PinoResult = {
+  level?: string;
+  time?: string;
+  pid?: number;
+  hostname?: string;
+} & Record<string, unknown>;
+
+function stripIgnoredFields(result: PinoResult): PinoResult {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { level, time, pid, hostname, ...rest } = result;
+  return rest;
+}
+
 const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions> = {}) => {
   const options: PinoOptions = {
-    autoInstrument: userOptions.autoInstrument === false ? userOptions.autoInstrument : DEFAULT_OPTIONS.autoInstrument,
+    autoInstrument: userOptions.autoInstrument !== false,
     error: { ...DEFAULT_OPTIONS.error, ...userOptions.error },
     log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
   };
@@ -98,42 +127,28 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
     setup: client => {
       const enableLogs = !!client.getOptions().enableLogs;
 
-      addInstrumentationConfig({
-        channelName: 'pino-log',
-        // From Pino v9.10.0 a tracing channel is available directly from Pino:
-        // https://github.com/pinojs/pino/pull/2281
-        module: { name: 'pino', versionRange: '>=8.0.0 < 9.10.0', filePath: 'lib/tools.js' },
-        functionQuery: {
-          functionName: 'asJson',
-          kind: 'Sync',
-        },
-      });
+      const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
-      const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      const integratedChannel = tracingChannel('pino_asJson');
-
-      function onPinoStart(self: Pino, args: PinoHookArgs, result: string): void {
+      function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {
           return;
         }
 
-        const [obj, message, levelNumber] = args;
+        const resultObj = stripIgnoredFields(result);
+
+        const [captureObj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
+        const messageKey = getPinoKey(self, 'pino.messageKey', 'msg');
+        const logMessage = message || (resultObj?.[messageKey] as string | undefined) || '';
 
         if (enableLogs && options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
-            ...obj,
-            'sentry.origin': 'auto.logging.pino',
+            ...resultObj,
+            'sentry.origin': 'auto.log.pino',
             'pino.logger.level': levelNumber,
           };
 
-          const parsedResult = JSON.parse(result) as { name?: string };
-
-          if (parsedResult.name) {
-            attributes['pino.logger.name'] = parsedResult.name;
-          }
-
-          _INTERNAL_captureLog({ level, message, attributes });
+          _INTERNAL_captureLog({ level, message: logMessage, attributes });
         }
 
         if (options.error.levels.includes(level)) {
@@ -153,20 +168,16 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return event;
             });
 
-            if (obj.err) {
-              captureException(obj.err, captureContext);
+            const error = captureObj[getPinoKey(self, 'pino.errorKey', 'err')];
+            if (error) {
+              captureException(error, captureContext);
               return;
             }
 
-            captureMessage(message, captureContext);
+            captureMessage(logMessage, captureContext);
           });
         }
       }
-
-      injectedChannel.end.subscribe(data => {
-        const { self, arguments: args, result } = data as { self: Pino; arguments: PinoHookArgs; result: string };
-        onPinoStart(self, args, result);
-      });
 
       integratedChannel.end.subscribe(data => {
         const {
@@ -174,7 +185,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
           arguments: args,
           result,
         } = data as { instance: Pino; arguments: PinoHookArgs; result: string };
-        onPinoStart(instance, args, result);
+        onPinoStart(instance, args, JSON.parse(result));
       });
     },
   };

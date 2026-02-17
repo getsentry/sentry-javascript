@@ -489,7 +489,7 @@ export function createRunner(...paths: string[]) {
 
           function tryParseEnvelopeFromStdoutLine(line: string): void {
             // Lines can have leading '[something] [{' which we need to remove
-            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+            const cleanedLine = line.replace(/^.*?\] \[\{"/, '[{"');
 
             // See if we have a port message
             if (cleanedLine.startsWith('{"port":')) {
@@ -676,6 +676,7 @@ function convertEsmToCjs(content: string): string {
 
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
+    // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {

@@ -30,9 +30,9 @@ jobs:
     if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
       - name: Check out current branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
           cache: 'yarn'
@@ -40,7 +40,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: NX cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -71,7 +71,7 @@ jobs:
           TEST_RUN_COUNT: 'AUTO'
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure() && steps.test.outcome == 'failure'
         with:
           name: playwright-test-results

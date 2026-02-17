@@ -1,7 +1,7 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 // This test requires Node.js 22+ because it depends on the 'http.client.request.created'
 // diagnostic channel for baggage header propagation, which only exists since Node 22.12.0+ and 23.2.0+
@@ -16,13 +16,13 @@ conditionalTest({ min: 22 })('node >=22', () => {
         const baggageItems = getBaggageHeaderItems(headers);
         traceId = baggageItems.find(item => item.startsWith('sentry-trace_id='))?.split('=')[1] as string;
 
-        expect(traceId).toMatch(/^[0-9a-f]{32}$/);
+        expect(traceId).toMatch(/^[\da-f]{32}$/);
 
         expect(baggageItems).toEqual([
           'sentry-environment=production',
           'sentry-public_key=public',
           'sentry-release=1.0',
-          expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
           'sentry-sample_rate=1',
           'sentry-sampled=true',
           `sentry-trace_id=${traceId}`,
@@ -33,7 +33,7 @@ conditionalTest({ min: 22 })('node >=22', () => {
           'sentry-environment=production',
           'sentry-public_key=public',
           'sentry-release=1.0',
-          expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
           'sentry-sample_rate=1',
           'sentry-sampled=true',
           `sentry-trace_id=${traceId}`,
@@ -45,7 +45,7 @@ conditionalTest({ min: 22 })('node >=22', () => {
           'sentry-environment=production',
           'sentry-public_key=public',
           'sentry-release=1.0',
-          expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
           'sentry-sample_rate=1',
           'sentry-sampled=true',
           `sentry-trace_id=${traceId}`,
@@ -77,7 +77,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           sample_rand: expect.any(String),
         },
       },
@@ -90,7 +90,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-1',
           sample_rand: expect.any(String),
         },
@@ -104,7 +104,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-2',
           sample_rand: expect.any(String),
         },
@@ -118,7 +118,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-2',
           sample_rand: expect.any(String),
         },

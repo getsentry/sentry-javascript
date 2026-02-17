@@ -31,15 +31,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -96,12 +96,6 @@ jobs:
           - test-application: 'nextjs-16'
             build-command: 'test:build-canary-webpack'
             label: 'nextjs-16 (canary-webpack)'
-          - test-application: 'nextjs-turbo'
-            build-command: 'test:build-canary'
-            label: 'nextjs-turbo (canary)'
-          - test-application: 'nextjs-turbo'
-            build-command: 'test:build-latest'
-            label: 'nextjs-turbo (latest)'
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
@@ -114,10 +108,16 @@ jobs:
           - test-application: 'nuxt-4'
             build-command: 'test:build-canary'
             label: 'nuxt-4 (canary)'
+          - test-application: 'tanstackstart-react'
+            build-command: 'test:build-latest'
+            label: 'tanstackstart-react (latest)'
+          - test-application: 'nestjs-11'
+            build-command: 'test:build-latest'
+            label: 'nestjs-11 (latest)'
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
@@ -125,12 +125,12 @@ jobs:
           version: 9.15.9
       - name: Set up Node
         if: matrix.test-application != 'angular-20'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}

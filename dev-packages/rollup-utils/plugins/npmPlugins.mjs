@@ -125,6 +125,24 @@ export function makeDebugBuildStatementReplacePlugin() {
   });
 }
 
+export function makeProductionReplacePlugin() {
+  const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* rollup-include-development-only-end \*\/\s*/g;
+
+  function stripDevBlocks(code) {
+    if (!code) return null;
+    if (!code.includes('rollup-include-development-only')) return null;
+    const replaced = code.replace(pattern, '');
+    return { code: replaced, map: null };
+  }
+
+  return {
+    name: 'remove-dev-mode-blocks',
+    renderChunk(code) {
+      return stripDevBlocks(code);
+    },
+  };
+}
+
 /**
  * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
  * a) evaluates to `true`
@@ -147,20 +165,5 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   return replace({
     preventAssignment: true,
     values,
-  });
-}
-
-/**
- * Plugin that uploads bundle analysis to codecov.
- *
- * @param type The type of bundle being uploaded.
- * @param prefix The prefix for the codecov bundle name. Defaults to 'npm'.
- */
-export function makeCodeCovPlugin() {
-  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
-  return codecovRollupPlugin({
-    enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-    bundleName: packageJson.name,
-    uploadToken: process.env.CODECOV_TOKEN,
   });
 }

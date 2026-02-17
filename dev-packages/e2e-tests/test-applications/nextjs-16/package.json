@@ -16,6 +16,8 @@
     "test:build": "pnpm install && pnpm build",
     "test:build-webpack": "pnpm install && pnpm build-webpack",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
+    "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
@@ -24,15 +26,15 @@
     "@sentry/nextjs": "latest || *",
     "@sentry/core": "latest || *",
     "ai": "^3.0.0",
-    "import-in-the-middle": "^1",
-    "next": "16.0.0-beta.0",
+    "import-in-the-middle": "^2",
+    "next": "16.1.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "require-in-the-middle": "^7",
+    "require-in-the-middle": "^8",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -50,6 +52,15 @@
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16 (webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "pnpm test:build-latest-webpack",
+        "label": "nextjs-16 (latest, webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "nextjs-16 (latest, turbopack)"
       }
     ],
     "optionalVariants": [

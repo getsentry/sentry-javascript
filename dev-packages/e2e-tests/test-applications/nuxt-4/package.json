@@ -11,9 +11,11 @@
     "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
@@ -21,7 +23,7 @@
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

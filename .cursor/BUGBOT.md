@@ -32,7 +32,11 @@ Do not flag the issues below if they appear in tests.
 
 - When calling any `startSpan` API (`startInactiveSpan`, `startSpanManual`, etc), always ensure that the following span attributes are set:
   - `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` (`'sentry.origin'`) with a proper span origin
+    - a proper origin must only contain [a-z], [A-Z], [0-9], `_` and `.` characters.
+    - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
+    - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
+    - flag any non-conforming origin values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
 - When calling `captureException`, always make sure that the `mechanism` is set:
   - `handled`: must be set to `true` or `false`
   - `type`: must be set to a proper origin (i.e. identify the integration and part in the integration that caught the exception).
@@ -41,3 +45,21 @@ Do not flag the issues below if they appear in tests.
       convention as the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` value.
 - When calling `startSpan`, check if error cases are handled. If flag that it might make sense to try/catch and call `captureException`.
 - When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are more than one instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
+
+## Testing Conventions
+
+- When reviewing a `feat` PR, check if the PR includes at least one integration or E2E test.
+  If neither of the two are present, add a comment, recommending to add one.
+- When reviewing a `fix` PR, check if the PR includes at least one unit, integration or e2e test that tests the regression this PR fixes.
+  Usually this means the test failed prior to the fix and passes with the fix.
+  If no tests are present, add a comment recommending to add one.
+- Check that tests actually test the newly added behaviour.
+  For instance, when checking on sent payloads by the SDK, ensure that the newly added data is asserted thoroughly.
+- Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
+- Flag usage of conditionals in one test and recommend splitting up the test for the different paths.
+- Flag usage of loops testing multiple scenarios in one test and recommend using `(it)|(test).each` instead.
+
+## Platform-safe code
+
+- When any `setTimeout` or `setInterval` timers are started in a code path that can end up in server runtime packages (e.g. `@sentry/core` or `@sentry/node`), flag if neither `timeout.unref()` nor `safeUnref()` are called.
+  Not unref'ing a timer can keep CLI-like applications or node scripts from exiting immediately, due to the process waiting on timers started by the SDK.

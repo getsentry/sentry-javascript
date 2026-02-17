@@ -1,4 +1,5 @@
 import { debug } from '@sentry/core';
+import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
 import { supportsNativeDebugIds } from '../util';
@@ -11,6 +12,7 @@ import { generateValueInjectionRules } from './generateValueInjectionRules';
  * @param userSentryOptions - The Sentry build options object.
  * @param routeManifest - The route manifest object.
  * @param nextJsVersion - The Next.js version.
+ * @param vercelCronsConfig - The Vercel crons configuration from vercel.json.
  * @returns The Turbopack config object.
  */
 export function constructTurbopackConfig({
@@ -18,25 +20,36 @@ export function constructTurbopackConfig({
   userSentryOptions,
   routeManifest,
   nextJsVersion,
+  vercelCronsConfig,
 }: {
   userNextConfig: NextConfigObject;
-  userSentryOptions: SentryBuildOptions;
+  userSentryOptions?: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
+  vercelCronsConfig?: VercelCronsConfig;
 }): TurbopackOptions {
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
     (supportsNativeDebugIds(nextJsVersion ?? '') && userNextConfig?.turbopack?.debugIds) ??
-    userSentryOptions.sourcemaps?.disable !== true;
+    userSentryOptions?.sourcemaps?.disable !== true;
 
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
+  const tunnelPath =
+    userSentryOptions?.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
+      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+      : undefined;
+
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
+    tunnelPath,
+    vercelCronsConfig,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {

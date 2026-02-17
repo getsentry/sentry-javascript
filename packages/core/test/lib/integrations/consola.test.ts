@@ -78,7 +78,7 @@ describe('createConsolaReporter', () => {
         level: 'error',
         message: 'This is an error',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.tag': 'test',
           'consola.type': 'error',
           'consola.level': 0,
@@ -98,7 +98,7 @@ describe('createConsolaReporter', () => {
         level: 'warn',
         message: 'This is a warning',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'warn',
         },
       });
@@ -116,7 +116,7 @@ describe('createConsolaReporter', () => {
         level: 'info',
         message: 'This is info',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
         },
       });
@@ -134,7 +134,7 @@ describe('createConsolaReporter', () => {
         level: 'debug',
         message: 'Debug message',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'debug',
         },
       });
@@ -152,7 +152,7 @@ describe('createConsolaReporter', () => {
         level: 'trace',
         message: 'Trace message',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'trace',
         },
       });
@@ -170,7 +170,7 @@ describe('createConsolaReporter', () => {
         level: 'fatal',
         message: 'Fatal error',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'fatal',
         },
       });
@@ -189,7 +189,7 @@ describe('createConsolaReporter', () => {
         level: 'info',
         message: 'Hello world 123 {"key":"value"}',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
         },
       });
@@ -210,7 +210,7 @@ describe('createConsolaReporter', () => {
         level: 'info',
         message: 'Message {"self":"[Circular ~]"}',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
         },
       });
@@ -228,7 +228,7 @@ describe('createConsolaReporter', () => {
         level: 'fatal',
         message: 'Fatal message',
         attributes: {
-          'sentry.origin': 'auto.logging.consola',
+          'sentry.origin': 'auto.log.consola',
           'consola.level': 0,
         },
       });
@@ -257,7 +257,7 @@ describe('createConsolaReporter', () => {
           level: expectedLevel,
           message: `Test ${type} message`,
           attributes: {
-            'sentry.origin': 'auto.logging.consola',
+            'sentry.origin': 'auto.log.consola',
             'consola.type': type,
           },
         });

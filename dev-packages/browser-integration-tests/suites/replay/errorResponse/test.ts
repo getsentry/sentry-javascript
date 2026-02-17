@@ -13,7 +13,7 @@ sentryTest('should stop recording after receiving an error response', async ({ g
   }
   let called = 0;
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     called++;
 
     return route.fulfill({

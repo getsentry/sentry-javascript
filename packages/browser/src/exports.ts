@@ -16,6 +16,10 @@ export type {
   User,
   Session,
   ReportDialogOptions,
+  CaptureContext,
+  ExclusiveEventHintOrCaptureContext,
+  Log,
+  LogSeverityLevel,
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
@@ -78,6 +82,7 @@ export {
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';
+export { uiProfiler } from './profiling';
 export {
   defaultStackParser,
   defaultStackLineParsers,
@@ -97,5 +102,6 @@ export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
+export { browserSessionIntegration } from './integrations/browsersession';
 
 export { lazyLoadIntegration } from './utils/lazyLoadIntegration';

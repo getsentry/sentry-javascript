@@ -1,4 +1,4 @@
-import { type Mocked, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mocked, vi } from 'vitest';
 import { copyExecutionContext } from '../src/utils/copyExecutionContext';
 
 describe('Copy of the execution context', () => {

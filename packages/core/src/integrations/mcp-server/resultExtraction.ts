@@ -15,9 +15,13 @@ import { isValidContentItem } from './validation';
 /**
  * Build attributes for tool result content items
  * @param content - Array of content items from tool result
- * @returns Attributes extracted from each content item including type, text, mime type, URI, and resource info
+ * @param includeContent - Whether to include actual content (text, URIs) or just metadata
+ * @returns Attributes extracted from each content item
  */
-function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number | boolean> {
+function buildAllContentItemAttributes(
+  content: unknown[],
+  includeContent: boolean,
+): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
     [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
   };
@@ -29,29 +33,34 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
 
     const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
-    const safeSet = (key: string, value: unknown): void => {
-      if (typeof value === 'string') {
-        attributes[`${prefix}.${key}`] = value;
+    if (typeof item.type === 'string') {
+      attributes[`${prefix}.content_type`] = item.type;
+    }
+
+    if (includeContent) {
+      const safeSet = (key: string, value: unknown): void => {
+        if (typeof value === 'string') {
+          attributes[`${prefix}.${key}`] = value;
+        }
+      };
+
+      safeSet('mime_type', item.mimeType);
+      safeSet('uri', item.uri);
+      safeSet('name', item.name);
+
+      if (typeof item.text === 'string') {
+        attributes[`${prefix}.content`] = item.text;
       }
-    };
 
-    safeSet('content_type', item.type);
-    safeSet('mime_type', item.mimeType);
-    safeSet('uri', item.uri);
-    safeSet('name', item.name);
+      if (typeof item.data === 'string') {
+        attributes[`${prefix}.data_size`] = item.data.length;
+      }
 
-    if (typeof item.text === 'string') {
-      attributes[`${prefix}.content`] = item.text;
-    }
-
-    if (typeof item.data === 'string') {
-      attributes[`${prefix}.data_size`] = item.data.length;
-    }
-
-    const resource = item.resource;
-    if (isValidContentItem(resource)) {
-      safeSet('resource_uri', resource.uri);
-      safeSet('resource_mime_type', resource.mimeType);
+      const resource = item.resource;
+      if (isValidContentItem(resource)) {
+        safeSet('resource_uri', resource.uri);
+        safeSet('resource_mime_type', resource.mimeType);
+      }
     }
   }
 
@@ -61,14 +70,18 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
 /**
  * Extract tool result attributes for span instrumentation
  * @param result - Tool execution result
+ * @param recordOutputs - Whether to include actual content or just metadata (counts, error status)
  * @returns Attributes extracted from tool result content
  */
-export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
+export function extractToolResultAttributes(
+  result: unknown,
+  recordOutputs: boolean,
+): Record<string, string | number | boolean> {
   if (!isValidContentItem(result)) {
     return {};
   }
 
-  const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content) : {};
+  const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content, recordOutputs) : {};
 
   if (typeof result.isError === 'boolean') {
     attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
@@ -80,43 +93,49 @@ export function extractToolResultAttributes(result: unknown): Record<string, str
 /**
  * Extract prompt result attributes for span instrumentation
  * @param result - Prompt execution result
+ * @param recordOutputs - Whether to include actual content or just metadata (counts)
  * @returns Attributes extracted from prompt result
  */
-export function extractPromptResultAttributes(result: unknown): Record<string, string | number | boolean> {
+export function extractPromptResultAttributes(
+  result: unknown,
+  recordOutputs: boolean,
+): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number | boolean> = {};
   if (!isValidContentItem(result)) {
     return attributes;
   }
 
-  if (typeof result.description === 'string') {
+  if (recordOutputs && typeof result.description === 'string') {
     attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = result.description;
   }
 
   if (Array.isArray(result.messages)) {
     attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
 
-    const messages = result.messages;
-    for (const [i, message] of messages.entries()) {
-      if (!isValidContentItem(message)) {
-        continue;
-      }
-
-      const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
-
-      const safeSet = (key: string, value: unknown): void => {
-        if (typeof value === 'string') {
-          const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
-          attributes[attrName] = value;
+    if (recordOutputs) {
+      const messages = result.messages;
+      for (const [i, message] of messages.entries()) {
+        if (!isValidContentItem(message)) {
+          continue;
         }
-      };
 
-      safeSet('role', message.role);
+        const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
 
-      if (isValidContentItem(message.content)) {
-        const content = message.content;
-        if (typeof content.text === 'string') {
-          const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
-          attributes[attrName] = content.text;
+        const safeSet = (key: string, value: unknown): void => {
+          if (typeof value === 'string') {
+            const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
+            attributes[attrName] = value;
+          }
+        };
+
+        safeSet('role', message.role);
+
+        if (isValidContentItem(message.content)) {
+          const content = message.content;
+          if (typeof content.text === 'string') {
+            const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+            attributes[attrName] = content.text;
+          }
         }
       }
     }

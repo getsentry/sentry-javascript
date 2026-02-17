@@ -31,6 +31,11 @@ const MOCK_ENV = {
   SENTRY_RELEASE: '1.1.1',
 };
 
+// Mock env without DSN for tests that should not initialize the SDK
+const MOCK_ENV_WITHOUT_DSN = {
+  SENTRY_RELEASE: '1.1.1',
+};
+
 function addDelayedWaitUntil(context: ExecutionContext) {
   context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
 }
@@ -72,7 +77,11 @@ describe('withSentry', () => {
         createMockExecutionContext(),
       );
 
-      expect(result).toBe(response);
+      // Response may be wrapped for streaming detection, verify content
+      expect(result?.status).toBe(response.status);
+      if (result) {
+        expect(await result.text()).toBe('test');
+      }
     });
 
     test('merges options from env and callback', async () => {
@@ -145,12 +154,12 @@ describe('withSentry', () => {
           addDelayedWaitUntil(_context);
           return new Response('test');
         },
-      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn(promise => waits.push(promise));
-      await wrappedHandler.fetch?.(new Request('https://example.com'), MOCK_ENV, {
+      await wrappedHandler.fetch?.(new Request('https://example.com'), MOCK_ENV_WITHOUT_DSN, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
@@ -385,12 +394,12 @@ describe('withSentry', () => {
           addDelayedWaitUntil(_context);
           return;
         },
-      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn(promise => waits.push(promise));
-      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, {
+      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV_WITHOUT_DSN, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
@@ -624,12 +633,12 @@ describe('withSentry', () => {
           addDelayedWaitUntil(_context);
           return;
         },
-      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn(promise => waits.push(promise));
-      await wrappedHandler.email?.(createMockEmailMessage(), MOCK_ENV, {
+      await wrappedHandler.email?.(createMockEmailMessage(), MOCK_ENV_WITHOUT_DSN, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
@@ -867,12 +876,12 @@ describe('withSentry', () => {
           addDelayedWaitUntil(_context);
           return;
         },
-      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn(promise => waits.push(promise));
-      await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, {
+      await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV_WITHOUT_DSN, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
@@ -1065,12 +1074,12 @@ describe('withSentry', () => {
           addDelayedWaitUntil(_context);
           return;
         },
-      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn(promise => waits.push(promise));
-      await wrappedHandler.tail?.(createMockTailEvent(), MOCK_ENV, {
+      await wrappedHandler.tail?.(createMockTailEvent(), MOCK_ENV_WITHOUT_DSN, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
@@ -1104,7 +1113,8 @@ describe('withSentry', () => {
       const errorHandlerResponse = honoApp.errorHandler?.(error);
 
       expect(handleHonoException).toHaveBeenCalledTimes(1);
-      expect(handleHonoException).toHaveBeenLastCalledWith(error);
+      // 2nd param is context, which is undefined here
+      expect(handleHonoException).toHaveBeenLastCalledWith(error, undefined);
       expect(errorHandlerResponse?.status).toBe(500);
     });
 

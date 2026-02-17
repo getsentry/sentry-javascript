@@ -80,9 +80,9 @@ export const spotlightBrowserIntegration = defineIntegration(_spotlightIntegrati
 export function isSpotlightInteraction(event: Event): boolean {
   return Boolean(
     event.type === 'transaction' &&
-      event.spans &&
-      event.contexts?.trace &&
-      event.contexts.trace.op === 'ui.action.click' &&
-      event.spans.some(({ description }) => description?.includes('#sentry-spotlight')),
+    event.spans &&
+    event.contexts?.trace &&
+    event.contexts.trace.op === 'ui.action.click' &&
+    event.spans.some(({ description }) => description?.includes('#sentry-spotlight')),
   );
 }

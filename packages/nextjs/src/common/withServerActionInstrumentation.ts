@@ -11,10 +11,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
-  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 
@@ -155,7 +154,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
             },
           );
         } finally {
-          vercelWaitUntil(flushSafelyWithTimeout());
+          waitUntil(flushSafelyWithTimeout());
         }
       },
     );

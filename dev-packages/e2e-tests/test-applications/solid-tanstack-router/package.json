@@ -15,14 +15,14 @@
   "dependencies": {
     "@sentry/solid": "latest || *",
     "@tailwindcss/vite": "^4.0.6",
-    "@tanstack/solid-router": "^1.132.25",
+    "@tanstack/solid-router": "^1.141.8",
     "@tanstack/solid-router-devtools": "^1.132.25",
     "@tanstack/solid-start": "^1.132.25",
     "solid-js": "^1.9.5",
     "tailwindcss": "^4.0.6"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.7.2",
     "vite": "^7.1.7",

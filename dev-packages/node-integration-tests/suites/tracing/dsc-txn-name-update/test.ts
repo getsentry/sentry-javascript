@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 test('adds current transaction name to baggage when the txn name is high-quality', async () => {
   expect.assertions(5);
@@ -12,13 +12,13 @@ test('adds current transaction name to baggage when the txn name is high-quality
       const baggageItems = getBaggageHeaderItems(headers);
       traceId = baggageItems.find(item => item.startsWith('sentry-trace_id='))?.split('=')[1] as string;
 
-      expect(traceId).toMatch(/^[0-9a-f]{32}$/);
+      expect(traceId).toMatch(/^[\da-f]{32}$/);
 
       expect(baggageItems).toEqual([
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -29,7 +29,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -41,7 +41,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
         'sentry-environment=production',
         'sentry-public_key=public',
         'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
         'sentry-sample_rate=1',
         'sentry-sampled=true',
         `sentry-trace_id=${traceId}`,
@@ -72,7 +72,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           sample_rand: expect.any(String),
         },
       },
@@ -85,7 +85,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-1',
           sample_rand: expect.any(String),
         },
@@ -99,7 +99,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-2',
           sample_rand: expect.any(String),
         },
@@ -113,7 +113,7 @@ test('adds current transaction name to trace envelope header when the txn name i
           release: '1.0',
           sample_rate: '1',
           sampled: 'true',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           transaction: 'updated-name-2',
           sample_rand: expect.any(String),
         },

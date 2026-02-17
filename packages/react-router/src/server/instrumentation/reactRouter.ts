@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { isInstrumentationApiUsed } from '../serverGlobals';
 import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
@@ -76,6 +77,13 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
                 return originalRequestHandler(request, initialContext);
               }
 
+              // Skip OTEL instrumentation if instrumentation API is being used
+              // as it handles loader/action spans itself
+              if (isInstrumentationApiUsed()) {
+                DEBUG_BUILD && debug.log('Skipping OTEL loader/action instrumentation - using instrumentation API');
+                return originalRequestHandler(request, initialContext);
+              }
+
               const activeSpan = getActiveSpan();
               const rootSpan = activeSpan && getRootSpan(activeSpan);
 
@@ -93,14 +101,14 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.server',
               });
 
               return startSpan(
                 {
                   name: getSpanName(url.pathname, request.method),
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
                   },
                 },

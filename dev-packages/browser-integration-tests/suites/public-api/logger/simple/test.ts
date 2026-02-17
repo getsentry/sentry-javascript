@@ -1,14 +1,15 @@
 import { expect } from '@playwright/test';
 import type { LogEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  properFullEnvelopeRequestParser,
+  shouldSkipLogsTest,
+} from '../../../../utils/helpers';
 
 sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page }) => {
-  const bundle = process.env.PW_BUNDLE || '';
-  // Only run this for npm package exports
-  if (bundle.startsWith('bundle') || bundle.startsWith('loader')) {
-    sentryTest.skip();
-  }
+  // Only run this for npm package exports and CDN bundles with logs
+  sentryTest.skip(shouldSkipLogsTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { getClient } from '../../src/';
 import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
@@ -111,6 +111,64 @@ describe('init()', () => {
     expect(client).toBeInstanceOf(NodeClient);
   });
 
+  it('registers a SIGTERM handler on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    process.env.VERCEL = '1';
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+
+    expect(addedListeners).toHaveLength(1);
+
+    // Cleanup: remove the handler we added in this test.
+    process.off('SIGTERM', addedListeners[0] as any);
+    process.env.VERCEL = originalVercelEnv;
+  });
+
+  it('flushes when SIGTERM is received on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    process.env.VERCEL = '1';
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    expect(client).toBeInstanceOf(NodeClient);
+
+    const flushSpy = vi.spyOn(client as NodeClient, 'flush').mockResolvedValue(true);
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+    expect(addedListeners).toHaveLength(1);
+
+    process.emit('SIGTERM');
+
+    expect(flushSpy).toHaveBeenCalledWith(200);
+
+    // Cleanup: remove the handler we added in this test.
+    process.off('SIGTERM', addedListeners[0] as any);
+    process.env.VERCEL = originalVercelEnv;
+  });
+
+  it('does not register a SIGTERM handler when not running on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    delete process.env.VERCEL;
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+
+    expect(addedListeners).toHaveLength(0);
+
+    process.env.VERCEL = originalVercelEnv;
+  });
+
   describe('environment variable options', () => {
     const originalProcessEnv = { ...process.env };
 
@@ -215,6 +273,114 @@ describe('init()', () => {
           environment: 'staging',
         }),
       );
+    });
+
+    describe('spotlight configuration', () => {
+      afterEach(() => {
+        delete process.env.SENTRY_SPOTLIGHT;
+      });
+
+      it('enables spotlight with default URL from `SENTRY_SPOTLIGHT` env variable (truthy value)', () => {
+        process.env.SENTRY_SPOTLIGHT = 'true';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBe(true);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('disables spotlight from `SENTRY_SPOTLIGHT` env variable (falsy value)', () => {
+        process.env.SENTRY_SPOTLIGHT = 'false';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBe(false);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('enables spotlight with custom URL from `SENTRY_SPOTLIGHT` env variable', () => {
+        process.env.SENTRY_SPOTLIGHT = 'http://localhost:3000/stream';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBe('http://localhost:3000/stream');
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('enables spotlight with default URL from config `true`', () => {
+        const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+        expect(client?.getOptions().spotlight).toBe(true);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('disables spotlight from config `false`', () => {
+        const client = init({ dsn: PUBLIC_DSN, spotlight: false });
+
+        expect(client?.getOptions().spotlight).toBe(false);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('enables spotlight with custom URL from config', () => {
+        const client = init({ dsn: PUBLIC_DSN, spotlight: 'http://custom:8888/stream' });
+
+        expect(client?.getOptions().spotlight).toBe('http://custom:8888/stream');
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('config `false` overrides `SENTRY_SPOTLIGHT` env variable URL', () => {
+        process.env.SENTRY_SPOTLIGHT = 'http://localhost:3000/stream';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: false });
+
+        expect(client?.getOptions().spotlight).toBe(false);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('config `false` overrides `SENTRY_SPOTLIGHT` env variable truthy value', () => {
+        process.env.SENTRY_SPOTLIGHT = 'true';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: false });
+
+        expect(client?.getOptions().spotlight).toBe(false);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('config `false` with `SENTRY_SPOTLIGHT` env variable falsy value keeps spotlight disabled', () => {
+        process.env.SENTRY_SPOTLIGHT = 'false';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: false });
+
+        expect(client?.getOptions().spotlight).toBe(false);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('config URL overrides `SENTRY_SPOTLIGHT` env variable URL', () => {
+        process.env.SENTRY_SPOTLIGHT = 'http://env:3000/stream';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: 'http://config:8888/stream' });
+
+        expect(client?.getOptions().spotlight).toBe('http://config:8888/stream');
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('config `true` with env var URL uses env var URL', () => {
+        process.env.SENTRY_SPOTLIGHT = 'http://localhost:3000/stream';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+        expect(client?.getOptions().spotlight).toBe('http://localhost:3000/stream');
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('config `true` with env var truthy value uses default URL', () => {
+        process.env.SENTRY_SPOTLIGHT = 'true';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+        expect(client?.getOptions().spotlight).toBe(true);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
     });
   });
 });

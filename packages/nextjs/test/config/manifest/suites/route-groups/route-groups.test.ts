@@ -12,11 +12,14 @@ describe('route-groups', () => {
       expect(manifest).toEqual({
         staticRoutes: [
           { path: '/' },
+          { path: '/api' },
           { path: '/login' },
           { path: '/signup' },
+          { path: '/login' }, // from (auth-v2)
           { path: '/dashboard' },
           { path: '/settings/profile' },
           { path: '/public/about' },
+          { path: '/features' },
         ],
         dynamicRoutes: [
           {
@@ -26,7 +29,10 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
+        isrRoutes: [],
       });
+      // Verify we have 9 static routes total (including duplicates from special chars)
+      expect(manifest.staticRoutes).toHaveLength(9);
     });
 
     test('should handle dynamic routes within route groups', () => {
@@ -35,6 +41,17 @@ describe('route-groups', () => {
       expect(regex.test('/dashboard/123')).toBe(true);
       expect(regex.test('/dashboard/abc')).toBe(true);
       expect(regex.test('/dashboard/123/456')).toBe(false);
+    });
+
+    test.each([
+      { routeGroup: '(auth-v2)', strippedPath: '/login', description: 'hyphens' },
+      { routeGroup: '(api_internal)', strippedPath: '/api', description: 'underscores' },
+      { routeGroup: '(v2.0.beta)', strippedPath: '/features', description: 'dots' },
+    ])('should strip route groups with $description', ({ routeGroup, strippedPath }) => {
+      // Verify the stripped path exists
+      expect(manifest.staticRoutes.find(route => route.path === strippedPath)).toBeDefined();
+      // Verify the route group was stripped, not included
+      expect(manifest.staticRoutes.find(route => route.path.includes(routeGroup))).toBeUndefined();
     });
   });
 
@@ -45,11 +62,14 @@ describe('route-groups', () => {
       expect(manifest).toEqual({
         staticRoutes: [
           { path: '/' },
+          { path: '/(api_internal)/api' },
           { path: '/(auth)/login' },
           { path: '/(auth)/signup' },
+          { path: '/(auth-v2)/login' },
           { path: '/(dashboard)/dashboard' },
           { path: '/(dashboard)/settings/profile' },
           { path: '/(marketing)/public/about' },
+          { path: '/(v2.0.beta)/features' },
         ],
         dynamicRoutes: [
           {
@@ -59,7 +79,9 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
+        isrRoutes: [],
       });
+      expect(manifest.staticRoutes).toHaveLength(9);
     });
 
     test('should handle dynamic routes within route groups with proper regex escaping', () => {
@@ -89,6 +111,14 @@ describe('route-groups', () => {
       expect(authLogin).toBeDefined();
       expect(authSignup).toBeDefined();
       expect(marketingPublic).toBeDefined();
+    });
+
+    test.each([
+      { fullPath: '/(auth-v2)/login', description: 'hyphens' },
+      { fullPath: '/(api_internal)/api', description: 'underscores' },
+      { fullPath: '/(v2.0.beta)/features', description: 'dots' },
+    ])('should preserve route groups with $description when includeRouteGroups is true', ({ fullPath }) => {
+      expect(manifest.staticRoutes.find(route => route.path === fullPath)).toBeDefined();
     });
   });
 });

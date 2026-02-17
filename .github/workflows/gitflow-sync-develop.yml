@@ -4,8 +4,8 @@ on:
     branches:
       - master
     paths:
-      # When the version is updated on master (but nothing else)
-      - 'lerna.json'
+      # When versions are bumped on master (written by scripts/bump-version.js)
+      - '.version.json'
       - '!**/*.js'
       - '!**/*.ts'
   workflow_dispatch:
@@ -23,7 +23,14 @@ jobs:
       contents: write
     steps:
       - name: git checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
 
       # https://github.com/marketplace/actions/github-pull-request-action
       - name: Create Pull Request
@@ -35,8 +42,7 @@ jobs:
           pr_title: '[Gitflow] Merge ${{ env.SOURCE_BRANCH }} into ${{ env.TARGET_BRANCH }}'
           pr_body: 'Merge ${{ env.SOURCE_BRANCH }} branch into ${{ env.TARGET_BRANCH }}'
           pr_label: 'Dev: Gitflow'
-          # This token is scoped to Daniel Griesser
-          github_token: ${{ secrets.REPO_SCOPED_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
 
       - name: Enable automerge for PR
         if: steps.open-pr.outputs.pr_number != ''

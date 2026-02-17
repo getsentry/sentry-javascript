@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
   expect.assertions(11);
@@ -8,12 +8,12 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
   const [SERVER_URL, closeTestServer] = await createTestServer()
     .get('/api/v0', headers => {
       expect(headers['baggage']).toEqual(expect.any(String));
-      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
+      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/));
       expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-1');
     })
     .get('/api/v1', headers => {
       expect(headers['baggage']).toEqual(expect.any(String));
-      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
+      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/));
       expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-1');
     })
     .get('/api/v2', headers => {

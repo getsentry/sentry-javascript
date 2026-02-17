@@ -1,6 +1,12 @@
-import { captureException, httpRequestToRequestData, vercelWaitUntil, withScope } from '@sentry/core';
+import {
+  captureException,
+  getIsolationScope,
+  httpRequestToRequestData,
+  isAlreadyCaptured,
+  withScope,
+} from '@sentry/core';
 import type { NextPageContext } from 'next';
-import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
@@ -13,15 +19,18 @@ type ContextOrProps = {
 /**
  * Capture the exception passed by nextjs to the `_error` page, adding context data as appropriate.
  *
+ * This will not capture the exception if the status code is < 500 or if the pathname is not provided and will thus not return an event ID.
+ *
  * @param contextOrProps The data passed to either `getInitialProps` or `render` by nextjs
+ * @returns The Sentry event ID, or `undefined` if no event was captured
  */
-export async function captureUnderscoreErrorException(contextOrProps: ContextOrProps): Promise<void> {
+export async function captureUnderscoreErrorException(contextOrProps: ContextOrProps): Promise<string | undefined> {
   const { req, res, err } = contextOrProps;
 
   // 404s (and other 400-y friends) can trigger `_error`, but we don't want to send them to Sentry
   const statusCode = res?.statusCode || contextOrProps.statusCode;
   if (statusCode && statusCode < 500) {
-    return Promise.resolve();
+    return;
   }
 
   // In previous versions of the suggested `_error.js` page in which this function is meant to be used, there was a
@@ -32,10 +41,17 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   // twice, we just bail if we sense we're in that now-extraneous second call. (We can tell which function we're in
   // because Nextjs passes `pathname` to `getInitialProps` but not to `render`.)
   if (!contextOrProps.pathname) {
-    return Promise.resolve();
+    return;
   }
 
-  withScope(scope => {
+  // If the error was already captured (e.g., by wrapped functions in data fetchers),
+  // return the existing event ID instead of capturing it again (needed for lastEventId() to work)
+  if (err && isAlreadyCaptured(err)) {
+    waitUntil(flushSafelyWithTimeout());
+    return getIsolationScope().lastEventId();
+  }
+
+  const eventId = withScope(scope => {
     if (req) {
       const normalizedRequest = httpRequestToRequestData(req);
       scope.setSDKProcessingMetadata({ normalizedRequest });
@@ -43,7 +59,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
     // If third-party libraries (or users themselves) throw something falsy, we want to capture it as a message (which
     // is what passing a string to `captureException` will wind up doing)
-    captureException(err || `_error.js called with falsy error (${err})`, {
+    return captureException(err || `_error.js called with falsy error (${err})`, {
       mechanism: {
         type: 'auto.function.nextjs.underscore_error',
         handled: false,
@@ -54,5 +70,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     });
   });
 
-  vercelWaitUntil(flushSafelyWithTimeout());
+  waitUntil(flushSafelyWithTimeout());
+
+  return eventId;
 }

@@ -24,11 +24,16 @@ vi.mock('@sentry/core', () => ({
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
   flushIfServerless: vi.fn(),
+  updateSpanName: vi.fn(),
+  getCurrentScope: vi.fn(() => ({ setTransactionName: vi.fn() })),
+  GLOBAL_OBJ: globalThis,
 }));
 
 describe('wrapSentryHandleRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset global flag for unstable instrumentation
+    delete (globalThis as any).__sentryReactRouterServerInstrumentationUsed;
   });
 
   test('should call original handler with same parameters', async () => {
@@ -78,7 +83,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.request-handler',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');
   });
@@ -174,6 +179,39 @@ describe('wrapSentryHandleRequest', () => {
     await expect(wrappedHandler(request, responseStatusCode, responseHeaders, routerContext, loadContext)).rejects.toBe(
       mockError,
     );
+  });
+
+  test('should set route attributes as fallback when instrumentation API is used (for lazy-only routes)', async () => {
+    // Set the global flag indicating instrumentation API is in use
+    (globalThis as any).__sentryReactRouterServerInstrumentationUsed = true;
+
+    const originalHandler = vi.fn().mockResolvedValue('test');
+    const wrappedHandler = wrapSentryHandleRequest(originalHandler);
+
+    const mockActiveSpan = {};
+    const mockRootSpan = { setAttributes: vi.fn() };
+    const mockRpcMetadata = { type: RPCType.HTTP, route: '/some-path' };
+
+    (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockActiveSpan);
+    (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
+    const getRPCMetadata = vi.fn().mockReturnValue(mockRpcMetadata);
+    (vi.importActual('@opentelemetry/core') as unknown as { getRPCMetadata: typeof getRPCMetadata }).getRPCMetadata =
+      getRPCMetadata;
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [{ route: { path: 'some-path' } }],
+      },
+    } as any;
+
+    await wrappedHandler(new Request('https://nacho.queso'), 200, new Headers(), routerContext, {} as any);
+
+    // Should set route attributes without origin (to preserve instrumentation_api origin)
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+      [ATTR_HTTP_ROUTE]: '/some-path',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    });
+    expect(mockRpcMetadata.route).toBe('/some-path');
   });
 });
 

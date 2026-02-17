@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
-import { createTestServer } from '../../../../utils/server';
 
 test('strips and handles query params in spans of outgoing http requests', async () => {
   expect.assertions(4);
@@ -44,7 +44,7 @@ test('strips and handles query params in spans of outgoing http requests', async
           origin: 'auto.http.otel.http',
           status: 'ok',
           parent_span_id: txn.contexts?.trace?.span_id,
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
           trace_id: txn.contexts?.trace?.trace_id,
         });
       },

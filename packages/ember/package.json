@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "10.21.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for Ember.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
@@ -32,8 +32,8 @@
   "dependencies": {
     "@babel/core": "^7.27.7",
     "@embroider/macros": "^1.16.0",
-    "@sentry/browser": "10.21.0",
-    "@sentry/core": "10.21.0",
+    "@sentry/browser": "10.39.0",
+    "@sentry/core": "10.39.0",
     "ember-auto-import": "^2.7.2",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-htmlbars": "^6.1.1",
@@ -57,7 +57,7 @@
     "@types/ember-resolver": "5.0.13",
     "@types/ember__debug": "^3.16.5",
     "@types/qunit": "~2.19.11",
-    "@types/rsvp": "~4.0.3",
+    "@types/rsvp": "~4.0.9",
     "babel-eslint": "~10.1.0",
     "broccoli-asset-rev": "~3.0.0",
     "ember-cli": "~4.12.3",
@@ -76,8 +76,8 @@
     "loader.js": "~4.7.0",
     "qunit": "~2.22.0",
     "qunit-dom": "~3.2.1",
-    "sinon": "19.0.2",
-    "webpack": "~5.95.0"
+    "sinon": "21.0.1",
+    "webpack": "~5.104.1"
   },
   "engines": {
     "node": ">=18"

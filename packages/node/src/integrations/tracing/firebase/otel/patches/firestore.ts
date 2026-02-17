@@ -38,7 +38,9 @@ import type {
 
 // Inline minimal types used from `shimmer` to avoid importing shimmer's types directly.
 // We only need the shape for `wrap` and `unwrap` used in this file.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ShimmerWrap = (target: any, name: string, wrapper: (...args: any[]) => any) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ShimmerUnwrap = (target: any, name: string) => void;
 
 /**
@@ -55,7 +57,6 @@ export function patchFirestore(
   unwrap: ShimmerUnwrap,
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
 
   let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
@@ -131,7 +132,6 @@ function unwrapMethods(
   for (const method of ['addDoc', 'getDocs', 'setDoc', 'deleteDoc']) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (isWrapped(moduleExports[method])) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       unwrap(moduleExports, method);
     }
   }

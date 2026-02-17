@@ -11,10 +11,10 @@
   "dependencies": {
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
-    "express": "4.20.0"
+    "express": "^4.21.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

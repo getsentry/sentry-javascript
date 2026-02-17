@@ -22,7 +22,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
       // error events have no type field
       if (event && !event.type && event.event_id) {

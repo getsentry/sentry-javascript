@@ -4,14 +4,14 @@ preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
-  ## 1.1 Types
-  - name: npm
-    id: '@sentry/types'
-    includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Core SDKs
+  ## 1.1 Core SDKs
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
+    ## 1.2 Types
+  - name: npm
+    id: '@sentry/types'
+    includeNames: /^sentry-types-\d.*\.tgz$/
   - name: npm
     id: '@sentry/node-core'
     includeNames: /^sentry-node-core-\d.*\.tgz$/
@@ -146,13 +146,14 @@ targets:
   # AWS Lambda Layer target
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDKv10
+    layerName: SentryNodeServerlessSDKv{{{major}}}
     compatibleRuntimes:
       - name: node
         versions:
           - nodejs18.x
           - nodejs20.x
           - nodejs22.x
+          - nodejs24.x
     license: MIT
 
   # CDN Bundle Target

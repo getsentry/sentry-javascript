@@ -1,5 +1,4 @@
 import {
-  type SpanAttributes,
   captureException,
   debug,
   flushIfServerless,
@@ -10,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  type SpanAttributes,
   startSpan,
 } from '@sentry/core';
 import type {
@@ -171,13 +171,9 @@ function getSpanAttributes(
     attributes['http.route'] = event.path;
   }
 
-  // Extract and add HTTP headers as span attributes
-  const client = getClient();
-  const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
-
   // Get headers from the Node.js request object
   const headers = event.node?.req?.headers || {};
-  const headerAttributes = httpHeadersToSpanAttributes(headers, sendDefaultPii);
+  const headerAttributes = httpHeadersToSpanAttributes(headers, getClient()?.getOptions().sendDefaultPii ?? false);
 
   // Merge header attributes with existing attributes
   Object.assign(attributes, headerAttributes);

@@ -1,3 +1,5 @@
+import type { Attributes, TypedAttributeValue } from '../attributes';
+
 export type MetricType = 'counter' | 'gauge' | 'distribution';
 
 export interface Metric {
@@ -9,7 +11,7 @@ export interface Metric {
   /**
    * The value of the metric.
    */
-  value: number | string;
+  value: number;
 
   /**
    * The type of metric.
@@ -27,11 +29,10 @@ export interface Metric {
   attributes?: Record<string, unknown>;
 }
 
-export type SerializedMetricAttributeValue =
-  | { value: string; type: 'string' }
-  | { value: number; type: 'integer' }
-  | { value: number; type: 'double' }
-  | { value: boolean; type: 'boolean' };
+/**
+ * @deprecated this was not intended for public consumption
+ */
+export type SerializedMetricAttributeValue = TypedAttributeValue;
 
 export interface SerializedMetric {
   /**
@@ -42,7 +43,7 @@ export interface SerializedMetric {
   /**
    * The trace ID for this metric.
    */
-  trace_id?: string;
+  trace_id: string;
 
   /**
    * The span ID for this metric.
@@ -67,12 +68,12 @@ export interface SerializedMetric {
   /**
    * The value of the metric.
    */
-  value: number | string;
+  value: number;
 
   /**
    * Arbitrary structured data that stores information about the metric.
    */
-  attributes?: Record<string, SerializedMetricAttributeValue>;
+  attributes?: Attributes;
 }
 
 export type SerializedMetricContainer = {

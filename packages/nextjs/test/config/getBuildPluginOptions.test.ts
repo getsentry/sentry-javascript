@@ -33,6 +33,13 @@ describe('getBuildPluginOptions', () => {
             '/path/to/.next/static/chunks/framework.*',
             '/path/to/.next/static/chunks/polyfills-*',
             '/path/to/.next/static/chunks/webpack-*',
+            '**/page_client-reference-manifest.js',
+            '**/server-reference-manifest.js',
+            '**/next-font-manifest.js',
+            '**/middleware-build-manifest.js',
+            '**/interception-route-rewrite-manifest.js',
+            '**/route_client-reference-manifest.js',
+            '**/middleware-react-loadable-manifest.js',
           ],
           filesToDeleteAfterUpload: undefined,
           rewriteSources: expect.any(Function),
@@ -121,6 +128,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -142,6 +156,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
     });
 
@@ -161,6 +182,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -181,6 +209,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -205,6 +240,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -228,6 +270,13 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/framework.*',
         '/path/to/.next/static/chunks/polyfills-*',
         '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -308,6 +357,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -331,6 +381,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -355,6 +406,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -421,6 +473,83 @@ describe('getBuildPluginOptions', () => {
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     });
 
+    it('uses custom filesToDeleteAfterUpload string when provided', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: '.next/static/**/*.map',
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
+    });
+
+    it('uses custom filesToDeleteAfterUpload array when provided', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: ['.next/static/**/*.map', '.next/server/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map', '.next/server/**/*.map']);
+    });
+
+    it('filesToDeleteAfterUpload overrides deleteSourcemapsAfterUpload default pattern', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+          filesToDeleteAfterUpload: ['custom/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+    });
+
+    it('filesToDeleteAfterUpload bypasses server build guard', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: ['.next/server/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-nodejs',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/server/**/*.map']);
+    });
+
     it('uses custom sourcemap assets when provided', () => {
       const customAssets = ['custom/path/**', 'another/path/**'];
       const sentryBuildOptions: SentryBuildOptions = {
@@ -441,7 +570,7 @@ describe('getBuildPluginOptions', () => {
       expect(result.sourcemaps?.assets).toEqual(customAssets);
     });
 
-    it('uses custom sourcemap ignore patterns when provided', () => {
+    it('merges custom sourcemap ignore patterns with defaults', () => {
       const customIgnore = ['**/vendor/**', '**/node_modules/**'];
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
@@ -458,7 +587,58 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.ignore).toEqual(customIgnore);
+      // Custom patterns should be appended to defaults, not replace them
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
+        '**/vendor/**',
+        '**/node_modules/**',
+      ]);
+    });
+
+    it('handles single string custom sourcemap ignore pattern', () => {
+      const customIgnore = '**/vendor/**';
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          ignore: customIgnore,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      // Single string pattern should be appended to defaults
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+        '**/page_client-reference-manifest.js',
+        '**/server-reference-manifest.js',
+        '**/next-font-manifest.js',
+        '**/middleware-build-manifest.js',
+        '**/interception-route-rewrite-manifest.js',
+        '**/route_client-reference-manifest.js',
+        '**/middleware-react-loadable-manifest.js',
+        '**/vendor/**',
+      ]);
     });
 
     it('disables sourcemaps when disable flag is set', () => {
@@ -570,13 +750,15 @@ describe('getBuildPluginOptions', () => {
           create: true,
           vcsRemote: 'origin',
         },
-        unstable_sentryWebpackPluginOptions: {
-          release: {
-            setCommits: {
-              auto: true,
-            },
-            deploy: {
-              env: 'production',
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            release: {
+              setCommits: {
+                auto: true,
+              },
+              deploy: {
+                env: 'production',
+              },
             },
           },
         },
@@ -589,7 +771,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // The unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
+      // The webpack.unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
       expect(result.release).toHaveProperty('setCommits.auto', true);
       expect(result.release).toHaveProperty('deploy.env', 'production');
     });
@@ -600,12 +782,14 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        reactComponentAnnotation: {
-          enabled: true,
-        },
-        unstable_sentryWebpackPluginOptions: {
+        webpack: {
           reactComponentAnnotation: {
-            enabled: false, // This will override the base setting
+            enabled: true,
+          },
+          unstable_sentryWebpackPluginOptions: {
+            reactComponentAnnotation: {
+              enabled: false, // This will override the base setting
+            },
           },
         },
       };
@@ -692,10 +876,12 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        unstable_sentryWebpackPluginOptions: {
-          applicationKey: 'test-app-key',
-          sourcemaps: {
-            disable: false,
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            applicationKey: 'test-app-key',
+            sourcemaps: {
+              disable: false,
+            },
           },
         },
       };
@@ -760,6 +946,13 @@ describe('getBuildPluginOptions', () => {
           '/path/to/.next/static/chunks/framework.*',
           '/path/to/.next/static/chunks/polyfills-*',
           '/path/to/.next/static/chunks/webpack-*',
+          '**/page_client-reference-manifest.js',
+          '**/server-reference-manifest.js',
+          '**/next-font-manifest.js',
+          '**/middleware-build-manifest.js',
+          '**/interception-route-rewrite-manifest.js',
+          '**/route_client-reference-manifest.js',
+          '**/middleware-react-loadable-manifest.js',
         ],
         filesToDeleteAfterUpload: undefined,
         rewriteSources: expect.any(Function),
@@ -788,6 +981,7 @@ describe('getBuildPluginOptions', () => {
         `${complexPath}/static/**/*.js.map`,
         `${complexPath}/static/**/*.mjs.map`,
         `${complexPath}/static/**/*.cjs.map`,
+        `${complexPath}/static/**/*.css.map`,
       ]);
     });
   });

@@ -136,7 +136,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
-          const shouldSendDefaultPii = client.getOptions().sendDefaultPii ?? false;
 
           // We use the plain tracer.startSpan here so we can pass the span kind
           const span = tracer.startSpan(bestEffortTransactionName, {
@@ -158,7 +157,10 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               'http.flavor': httpVersion,
               'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
               ...getRequestContentLengthAttribute(request),
-              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
+              ...httpHeadersToSpanAttributes(
+                normalizedRequest.headers || {},
+                client.getOptions().sendDefaultPii ?? false,
+              ),
             },
           });
 

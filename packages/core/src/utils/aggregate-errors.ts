@@ -56,15 +56,15 @@ function aggregateExceptionsFromError(
 
   // Recursively call this function in order to walk down a chain of errors
   if (isInstanceOf(error[key], Error)) {
-    applyExceptionGroupFieldsForParentException(exception, exceptionId);
-    const newException = exceptionFromErrorImplementation(parser, error[key]);
+    applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
+    const newException = exceptionFromErrorImplementation(parser, error[key] as Error);
     const newExceptionId = newExceptions.length;
     applyExceptionGroupFieldsForChildException(newException, key, newExceptionId, exceptionId);
     newExceptions = aggregateExceptionsFromError(
       exceptionFromErrorImplementation,
       parser,
       limit,
-      error[key],
+      error[key] as ExtendedError,
       key,
       [newException, ...newExceptions],
       newException,
@@ -74,18 +74,18 @@ function aggregateExceptionsFromError(
 
   // This will create exception grouping for AggregateErrors
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError
-  if (Array.isArray(error.errors)) {
+  if (isExceptionGroup(error)) {
     error.errors.forEach((childError, i) => {
       if (isInstanceOf(childError, Error)) {
-        applyExceptionGroupFieldsForParentException(exception, exceptionId);
-        const newException = exceptionFromErrorImplementation(parser, childError);
+        applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
+        const newException = exceptionFromErrorImplementation(parser, childError as Error);
         const newExceptionId = newExceptions.length;
         applyExceptionGroupFieldsForChildException(newException, `errors[${i}]`, newExceptionId, exceptionId);
         newExceptions = aggregateExceptionsFromError(
           exceptionFromErrorImplementation,
           parser,
           limit,
-          childError,
+          childError as ExtendedError,
           key,
           [newException, ...newExceptions],
           newException,
@@ -98,12 +98,20 @@ function aggregateExceptionsFromError(
   return newExceptions;
 }
 
-function applyExceptionGroupFieldsForParentException(exception: Exception, exceptionId: number): void {
+function isExceptionGroup(error: ExtendedError): error is ExtendedError & { errors: unknown[] } {
+  return Array.isArray(error.errors);
+}
+
+function applyExceptionGroupFieldsForParentException(
+  exception: Exception,
+  exceptionId: number,
+  error: ExtendedError,
+): void {
   exception.mechanism = {
     handled: true,
     type: 'auto.core.linked_errors',
+    ...(isExceptionGroup(error) && { is_exception_group: true }),
     ...exception.mechanism,
-    ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,
   };
 }

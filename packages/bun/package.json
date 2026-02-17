@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "10.21.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -39,8 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.21.0",
-    "@sentry/node": "10.21.0"
+    "@sentry/core": "10.39.0",
+    "@sentry/node": "10.39.0"
   },
   "devDependencies": {
     "bun-types": "^1.2.9"
@@ -52,10 +52,9 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-bun-*.tgz",

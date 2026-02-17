@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getClient } from '../currentScopes';
 import type { HandlerDataFetch } from '../types-hoist/instrument';
 import type { WebFetchHeaders } from '../types-hoist/webfetchapi';
 import { isError, isRequest } from '../utils/is';
@@ -108,12 +109,17 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
             addNonEnumerableProperty(error, 'framesToPop', 1);
           }
 
-          // We enhance the not-so-helpful "Failed to fetch" error messages with the host
+          // We enhance fetch error messages with hostname information based on the configuration.
           // Possible messages we handle here:
           // * "Failed to fetch" (chromium)
           // * "Load failed" (webkit)
           // * "NetworkError when attempting to fetch resource." (firefox)
+          const client = getClient();
+          const enhanceOption = client?.getOptions().enhanceFetchErrorMessages ?? 'always';
+          const shouldEnhance = enhanceOption !== false;
+
           if (
+            shouldEnhance &&
             error instanceof TypeError &&
             (error.message === 'Failed to fetch' ||
               error.message === 'Load failed' ||
@@ -121,7 +127,16 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           ) {
             try {
               const url = new URL(handlerData.fetchData.url);
-              error.message = `${error.message} (${url.host})`;
+              const hostname = url.host;
+
+              if (enhanceOption === 'always') {
+                // Modify the error message directly
+                error.message = `${error.message} (${hostname})`;
+              } else {
+                // Store hostname as non-enumerable property for Sentry-only enhancement
+                // This preserves the original error message for third-party packages
+                addNonEnumerableProperty(error, '__sentry_fetch_url_host__', hostname);
+              }
             } catch {
               // ignore it if errors happen here
             }
@@ -240,11 +255,16 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
   }
 
   if (fetchArgs.length === 2) {
-    const [url, options] = fetchArgs as [FetchResource, object];
+    const [resource, options] = fetchArgs as [FetchResource, object];
 
     return {
-      url: getUrlFromResource(url),
-      method: hasProp(options, 'method') ? String(options.method).toUpperCase() : 'GET',
+      url: getUrlFromResource(resource),
+      method: hasProp(options, 'method')
+        ? String(options.method).toUpperCase()
+        : // Request object as first argument
+          isRequest(resource) && hasProp(resource, 'method')
+          ? String(resource.method).toUpperCase()
+          : 'GET',
     };
   }
 

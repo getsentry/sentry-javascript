@@ -1,6 +1,8 @@
 import * as path from 'path';
+import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
+import { getPackageModules } from '../util';
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -8,9 +10,13 @@ import type { JSONValue, TurbopackMatcherWithRule } from '../types';
 export function generateValueInjectionRules({
   routeManifest,
   nextJsVersion,
+  tunnelPath,
+  vercelCronsConfig,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
+  tunnelPath?: string;
+  vercelCronsConfig?: VercelCronsConfig;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = {};
@@ -25,6 +31,19 @@ export function generateValueInjectionRules({
   if (routeManifest) {
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
   }
+
+  // Inject tunnel route path for both client and server
+  if (tunnelPath) {
+    isomorphicValues._sentryRewritesTunnelPath = tunnelPath;
+  }
+
+  // Inject Vercel crons config for server-side cron auto-instrumentation
+  if (vercelCronsConfig) {
+    serverValues._sentryVercelCronsConfig = JSON.stringify(vercelCronsConfig);
+  }
+  // Inject server modules (matching webpack's __SENTRY_SERVER_MODULES__ behavior)
+  // Use process.cwd() to get the project directory at build time
+  serverValues.__SENTRY_SERVER_MODULES__ = getPackageModules(process.cwd());
 
   if (Object.keys(isomorphicValues).length > 0) {
     clientValues = { ...clientValues, ...isomorphicValues };

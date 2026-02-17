@@ -25,6 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   isInitialized,
   isEnabled,
   startSession,
@@ -54,10 +55,17 @@ export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
-export { makeMultiplexedTransport } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration } from './integration';
-export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
+export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
+export {
+  _INTERNAL_skipAiProviderWrapping,
+  _INTERNAL_shouldSkipAiProviderWrapping,
+  _INTERNAL_clearAiProviderSkips,
+} from './utils/ai/providerSkip';
+export { envToBool } from './utils/envToBool';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
+export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
@@ -85,6 +93,7 @@ export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnSco
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export {
@@ -95,7 +104,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
@@ -114,6 +123,7 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -135,28 +145,34 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors } from './utils/vercel-ai';
-export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
-export { instrumentOpenAiClient } from './utils/openai';
-export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
-export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
-export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
-export { instrumentGoogleGenAIClient } from './utils/google-genai';
-export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
-export type { GoogleGenAIResponse } from './utils/google-genai/types';
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
+export { addVercelAiProcessors } from './tracing/vercel-ai';
+export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './tracing/vercel-ai/utils';
+export { instrumentOpenAiClient } from './tracing/openai';
+export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
+export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
+export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
+export { instrumentGoogleGenAIClient } from './tracing/google-genai';
+export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
+export type { GoogleGenAIResponse } from './tracing/google-genai/types';
+export { createLangChainCallbackHandler } from './tracing/langchain';
+export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
+export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
+export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
+export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
+export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
   AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
-} from './utils/anthropic-ai/types';
+} from './tracing/anthropic-ai/types';
 export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
-} from './utils/google-genai/types';
+} from './tracing/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -205,6 +221,7 @@ export {
   addExceptionMechanism,
   addExceptionTypeValue,
   checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
   getEventDescription,
   parseSemver,
   uuid4,
@@ -258,6 +275,7 @@ export {
   generateSentryTraceHeader,
   propagationContextFromHeaders,
   shouldContinueTrace,
+  generateTraceparentHeader,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';
@@ -300,8 +318,15 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
 } from './utils/url';
-export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
+export {
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+  parseStackFrames,
+  _enhanceErrorWithSentryInfo as _INTERNAL_enhanceErrorWithSentryInfo,
+} from './utils/eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
@@ -309,6 +334,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
@@ -373,7 +399,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
@@ -436,6 +462,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
+  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
@@ -500,3 +527,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';

@@ -19,11 +19,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request_handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request_handler',
         },
       },
       spans: expect.any(Array),
@@ -70,11 +70,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request_handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request_handler',
         },
       },
       spans: expect.any(Array),
@@ -121,16 +121,16 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
-        'sentry.op': 'function.react-router.loader',
+        'sentry.origin': 'auto.http.react_router',
+        'sentry.op': 'function.react_router.loader',
       },
       description: 'Executing Server Loader',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.loader',
-      origin: 'auto.http.react-router',
+      op: 'function.react_router.loader',
+      origin: 'auto.http.react_router',
     });
   });
 
@@ -149,16 +149,16 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
-        'sentry.op': 'function.react-router.action',
+        'sentry.origin': 'auto.http.react_router',
+        'sentry.op': 'function.react_router.action',
       },
       description: 'Executing Server Action',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.action',
-      origin: 'auto.http.react-router',
+      op: 'function.react_router.action',
+      origin: 'auto.http.react_router',
     });
   });
 });
