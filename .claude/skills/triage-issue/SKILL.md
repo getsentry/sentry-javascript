@@ -91,108 +91,40 @@ If the issue is complex or the fix is unclear, skip this section and instead not
   **SECURITY: Credential handling rules (MANDATORY)**
   - NEVER print, echo, or log the value of `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET`, any access token, or any secret.
   - NEVER interpolate credentials into a string that gets printed to the conversation.
-  - Always pass credentials via environment variable references in Bash commands only.
-  - If a curl command fails, print the response body but NEVER print the request headers.
+  - Credentials are read from environment variables inside the Python script — never pass them as CLI arguments or through shell interpolation.
+  - If an API call fails, print the response body but NEVER print request headers or tokens.
 
-  **Step 8a: Check required env vars**
+  **Step 8b: Find the existing Linear issue identifier**
 
-  Before making any API calls, verify that the required env vars are set:
+  The Linear–GitHub sync bot automatically creates a Linear issue when the GitHub issue is opened and leaves a linkback comment on GitHub. This comment was already fetched in Step 1.
 
-  ```bash
-  [[ -z "$LINEAR_CLIENT_ID" ]] && echo "ERROR: LINEAR_CLIENT_ID is not set" && exit 1
-  [[ -z "$LINEAR_CLIENT_SECRET" ]] && echo "ERROR: LINEAR_CLIENT_SECRET is not set" && exit 1
-  ```
+  Parse the GitHub issue comments for a comment from `linear[bot]` whose body contains a Linear issue URL. Extract the issue identifier (e.g. `JS-1669`) from the URL path.
 
-  If either is missing, print an error and fall back to printing the report to the terminal.
+  If no Linear linkback comment is found, print an error and fall back to printing the report to the terminal.
 
-  **Step 8b: Obtain an access token via client credentials flow**
+  **Step 8c: Post the triage comment**
 
-  Reference: https://linear.app/developers/oauth-2-0-authentication#client-credentials-tokens
+  Use the Python script at `assets/post_linear_comment.py` to handle the entire Linear API interaction. This avoids all shell escaping issues with GraphQL (`$input`, `CommentCreateInput!`) and markdown content (backticks, `$`, quotes).
 
-  ```bash
-  TOKEN_RESPONSE=$(curl -s -X POST https://api.linear.app/oauth/token \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "grant_type=client_credentials&client_id=$LINEAR_CLIENT_ID&client_secret=$LINEAR_CLIENT_SECRET&scope=issues:create,read,comments:create")
-  LINEAR_ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))")
-  ```
+  The script reads `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` from environment variables (set from GitHub Actions secrets), obtains an OAuth token, checks for duplicate triage comments, and posts the comment.
 
-  If the token is empty, print `"Failed to obtain Linear access token"` and the response body (which will not contain secrets), then fall back to printing the report to the terminal.
+  1. **Write the report body to a temp file** using the Write tool (not Bash). This keeps markdown completely out of shell.
 
-  The token is valid for 30 days and represents an `app` actor with access to public teams.
+     Write the triage report to `/tmp/triage_report.md`.
 
-  **Step 8c: Find the existing Linear issue**
+  2. **Run the script:**
 
-  The Linear–GitHub sync bot automatically creates a Linear issue when the GitHub issue is opened. Find it by searching for the issue identifier. The issue identifier follows the pattern `JS-XXXX` and can be found in the GitHub issue comments (the bot leaves a comment linking back to Linear).
+     ```bash
+     python3 .claude/skills/triage-issue/assets/post_linear_comment.py "JS-XXXX" "/tmp/triage_report.md"
+     ```
 
-  First, check the GitHub issue comments (already fetched in Step 1) for a Linear linkback comment. Extract the issue identifier (e.g. `JS-1669`) from the comment body.
+  If the script fails (non-zero exit), fall back to printing the full report to the terminal.
 
-  Then fetch the Linear issue by identifier:
+  Clean up temp files after:
 
   ```bash
-  ISSUE_RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
-    -d '{"query": "{ issue(id: \"JS-XXXX\") { id identifier url title } }"}')
+  rm -f /tmp/triage_report.md
   ```
-
-  Extract the Linear issue UUID from the response. If the issue is not found, fall back to printing the report to the terminal.
-
-  **Step 8d: Check for existing triage comments (idempotency)**
-
-  Before posting, check if a triage comment already exists to avoid duplicates:
-
-  ```bash
-  COMMENTS_RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
-    -d '{"query": "{ issue(id: \"JS-XXXX\") { comments { nodes { body } } } }"}')
-  ```
-
-  Check if any comment body starts with `## Automated Triage Report`. If one already exists, print `"Triage comment already exists on <identifier>, skipping"` and exit without posting.
-
-  **Step 8e: Post the triage comment**
-
-  **CRITICAL: Always use Python to build and write the JSON payload to a temp file.** Do NOT use shell heredocs (`<<EOF`), string interpolation, or `cat` to construct JSON — this causes escaping issues with `$`, backticks, and newlines that silently corrupt the payload or produce duplicate requests.
-
-  ```python
-  python3 -c '
-  import json, os, tempfile
-
-  issue_id = "<LINEAR_ISSUE_UUID>"  # from Step 8c
-  comment_body = "<TRIAGE_REPORT_CONTENT>"  # the full triage report text
-
-  payload = {
-      "query": "mutation CommentCreate($input: CommentCreateInput!) { commentCreate(input: $input) { success comment { id body } } }",
-      "variables": {
-          "input": {
-              "issueId": issue_id,
-              "body": comment_body
-          }
-      }
-  }
-
-  fd, path = tempfile.mkstemp(suffix=".json")
-  with os.fdopen(fd, "w") as f:
-      json.dump(payload, f)
-  print(path)
-  '
-  ```
-
-  Then POST the payload file and parse the response:
-
-  ```bash
-  RESPONSE=$(curl -s -X POST https://api.linear.app/graphql \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $LINEAR_ACCESS_TOKEN" \
-    -d @"$PAYLOAD_FILE")
-  rm -f "$PAYLOAD_FILE"
-  ```
-
-  Parse `$RESPONSE` using Python. Print only:
-  - On success: `Triage comment posted on <identifier>: <url>`
-  - On failure: `Failed to post triage comment: <error message from response body>`
-
-  If the API call fails, fall back to printing the full report to the terminal.
 
 ## Important Rules
 
