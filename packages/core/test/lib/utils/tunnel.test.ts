@@ -67,6 +67,18 @@ describe('handleTunnelRequest', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('returns 400 when the envelope body contains malformed JSON', async () => {
+    const result = await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', { method: 'POST', body: 'not valid envelope data{{{' }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result).toBeInstanceOf(Response);
+    expect(result.status).toBe(400);
+    expect(await result.text()).toBe('Invalid envelope');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('returns 403 when the envelope DSN is not in allowedDsns', async () => {
     const result = await handleTunnelRequest({
       request: makeEnvelopeRequest({ dsn: 'https://other@example.com/9999' }),

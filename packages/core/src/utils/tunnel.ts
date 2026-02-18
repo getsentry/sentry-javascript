@@ -27,7 +27,13 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
 
   const body = new Uint8Array(await request.arrayBuffer());
 
-  const [envelopeHeader] = parseEnvelope(body);
+  let envelopeHeader;
+  try {
+    [envelopeHeader] = parseEnvelope(body);
+  } catch {
+    return new Response('Invalid envelope', { status: 400 });
+  }
+
   if (!envelopeHeader) {
     return new Response('Invalid envelope: missing header', { status: 400 });
   }
