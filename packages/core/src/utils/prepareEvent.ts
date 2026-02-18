@@ -11,6 +11,7 @@ import { addExceptionMechanism, uuid4 } from './misc';
 import { normalize } from './normalize';
 import { applyScopeDataToEvent, getCombinedScopeData } from './scopeData';
 import { truncate } from './string';
+import { resolvedSyncPromise } from './syncpromise';
 import { dateTimestampInSeconds } from './time';
 
 /**
@@ -93,7 +94,11 @@ export function prepareEvent(
     ...data.eventProcessors,
   ];
 
-  const result = notifyEventProcessors(eventProcessors, prepared, hint);
+  // Skip event processors for internal exceptions to prevent recursion
+  const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+  const result = isInternalException
+    ? resolvedSyncPromise(prepared)
+    : notifyEventProcessors(eventProcessors, prepared, hint);
 
   return result.then(evt => {
     if (evt) {

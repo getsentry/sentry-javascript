@@ -179,7 +179,7 @@ test rejection`);
     expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
-  test('should not warn when AI_NoOutputGeneratedError is rejected (default ignore)', () =>
+  test('should not warn when AI_NoOutputGeneratedError or AbortError is rejected (default ignore)', () =>
     new Promise<void>(done => {
       expect.assertions(3);
 

@@ -11,7 +11,12 @@ import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
-import { getSanitizedUrlStringFromUrlObject, isURLObjectRelative, parseStringToURLObject } from './utils/url';
+import {
+  getSanitizedUrlStringFromUrlObject,
+  isURLObjectRelative,
+  parseStringToURLObject,
+  stripDataUrlContent,
+} from './utils/url';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -76,19 +81,23 @@ export function instrumentFetchRequest(
 
   const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
-  if (handlerData.endTimestamp && shouldCreateSpanResult) {
+  if (handlerData.endTimestamp) {
     const spanId = handlerData.fetchData.__span;
     if (!spanId) return;
 
     const span = spans[spanId];
-    if (span) {
-      endSpan(span, handlerData);
 
-      _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+    if (span) {
+      // Only end the span and call hooks if we're actually recording
+      if (shouldCreateSpanResult) {
+        endSpan(span, handlerData);
+        _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
+
     return undefined;
   }
 
@@ -317,9 +326,22 @@ function getSpanStartOptions(
   method: string,
   spanOrigin: SpanOrigin,
 ): Parameters<typeof startInactiveSpan>[0] {
+  // Data URLs need special handling because parseStringToURLObject treats them as "relative"
+  // (no "://"), causing getSanitizedUrlStringFromUrlObject to return just the pathname
+  // without the "data:" prefix, making later stripDataUrlContent calls ineffective.
+  // So for data URLs, we strip the content first and use that directly.
+  if (url.startsWith('data:')) {
+    const sanitizedUrl = stripDataUrlContent(url);
+    return {
+      name: `${method} ${sanitizedUrl}`,
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin),
+    };
+  }
+
   const parsedUrl = parseStringToURLObject(url);
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
-    name: parsedUrl ? `${method} ${getSanitizedUrlStringFromUrlObject(parsedUrl)}` : method,
+    name: `${method} ${sanitizedUrl}`,
     attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
   };
 }
@@ -331,7 +353,7 @@ function getFetchSpanAttributes(
   spanOrigin: SpanOrigin,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    url,
+    url: stripDataUrlContent(url),
     type: 'fetch',
     'http.method': method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
@@ -339,7 +361,7 @@ function getFetchSpanAttributes(
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['http.url'] = parsedUrl.href;
+      attributes['http.url'] = stripDataUrlContent(parsedUrl.href);
       attributes['server.address'] = parsedUrl.host;
     }
     if (parsedUrl.search) {

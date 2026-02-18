@@ -1,13 +1,4 @@
 {
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx/tasks-runners/default",
-      "options": {
-        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint", "test:unit", "build:tarball"],
-        "cacheDirectory": ".nxcache"
-      }
-    }
-  },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": [
@@ -19,15 +10,20 @@
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
+    "build:dev": {
+      "dependsOn": ["^build:transpile", "^build:types"]
+    },
     "build:bundle": {
       "inputs": ["production", "^production"],
       "dependsOn": ["build:transpile"],
-      "outputs": ["{projectRoot}/build/bundles"]
+      "outputs": ["{projectRoot}/build/bundles"],
+      "cache": true
     },
     "build:tarball": {
       "inputs": ["production", "^production"],
       "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
-      "outputs": ["{projectRoot}/*.tgz"]
+      "outputs": ["{projectRoot}/*.tgz"],
+      "cache": true
     },
     "build:transpile": {
       "inputs": ["production", "^production"],
@@ -37,7 +33,8 @@
         "{projectRoot}/build/cjs",
         "{projectRoot}/build/npm/esm",
         "{projectRoot}/build/npm/cjs"
-      ]
+      ],
+      "cache": true
     },
     "build:types": {
       "inputs": ["production", "^production"],
@@ -47,18 +44,25 @@
         "{projectRoot}/build/types-ts3.8",
         "{projectRoot}/build/npm/types",
         "{projectRoot}/build/npm/types-ts3.8"
-      ]
+      ],
+      "cache": true
     },
     "lint": {
       "inputs": ["default"],
       "dependsOn": ["^build:types", "build:types"],
-      "outputs": []
+      "outputs": [],
+      "cache": true
     },
     "test:unit": {
       "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
       "inputs": ["default"],
-      "outputs": ["{projectRoot}/coverage"]
+      "outputs": ["{projectRoot}/coverage"],
+      "cache": true
     }
   },
-  "$schema": "./node_modules/nx/schemas/nx-schema.json"
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "cacheDirectory": ".nxcache",
+  "tui": {
+    "autoExit": true
+  }
 }

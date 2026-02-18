@@ -4,6 +4,303 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Add global sentry exception middlewares ([#19330](https://github.com/getsentry/sentry-javascript/pull/19330))**
+
+  The `sentryGlobalRequestMiddleware` and `sentryGlobalFunctionMiddleware` global middlewares capture unhandled exceptions thrown in TanStack Start API routes and server functions. Add them as the first entries in the `requestMiddleware` and `functionMiddleware` arrays of `createStart()`:
+
+  ```ts
+  import { createStart } from '@tanstack/react-start/server';
+  import { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from '@sentry/tanstackstart-react/server';
+
+  export default createStart({
+    requestMiddleware: [sentryGlobalRequestMiddleware, myRequestMiddleware],
+    functionMiddleware: [sentryGlobalFunctionMiddleware, myFunctionMiddleware],
+  });
+  ```
+
+### Important Changes
+
+- fix(node-core): Reduce bundle size by removing apm-js-collab and requiring pino >= 9.10 ([#18631](https://github.com/getsentry/sentry-javascript/pull/18631))
+
+In order to keep receiving pino logs, you need to update your pino version to >= 9.10, the reason for the support bump is to reduce the bundle size of the node-core SDK in frameworks that cannot tree-shake the apm-js-collab dependency.
+
+## 10.39.0
+
+### Important Changes
+
+- **feat(tanstackstart-react): Auto-instrument server function middleware ([#19001](https://github.com/getsentry/sentry-javascript/pull/19001))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments middleware in `createServerFn().middleware([...])` calls. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+
+- **feat(nextjs): New experimental automatic vercel cron monitoring ([#19192](https://github.com/getsentry/sentry-javascript/pull/19192))**
+
+  Setting `_experimental.vercelCronMonitoring` to `true` in your Sentry configuration will automatically create Sentry cron monitors for your Vercel Cron Jobs.
+
+  Please note that this is an experimental unstable feature and subject to change.
+
+  ```ts
+  // next.config.ts
+  export default withSentryConfig(nextConfig, {
+    _experimental: {
+      vercelCronMonitoring: true,
+    },
+  });
+  ```
+
+- **feat(node-core): Add node-core/light ([#18502](https://github.com/getsentry/sentry-javascript/pull/18502))**
+
+  This release adds a new light-weight `@sentry/node-core/light` export to `@sentry/node-core`. The export acts as a light-weight SDK that does not depend on OpenTelemetry and emits no spans.
+
+  Use this SDK when:
+  - You only need error tracking, logs or metrics without tracing data (no spans)
+  - You want to minimize bundle size and runtime overhead
+  - You don't need spans emitted by OpenTelemetry instrumentation
+
+  It supports error tracking and reporting, logs, metrics, automatic request isolation (requires Node.js 22+) and basic tracing via our `Sentry.startSpan*` APIs.
+
+  Install the SDK by running
+
+  ```bash
+  npm install @sentry/node-core
+  ```
+
+  and add Sentry at the top of your application's entry file:
+
+  ```js
+  import * as Sentry from '@sentry/node-core/light';
+
+  Sentry.init({
+    dsn: '__DSN__',
+  });
+  ```
+
+### Other Changes
+
+- feat(browser): Add mode option for the browser session integration ([#18997](https://github.com/getsentry/sentry-javascript/pull/18997))
+- feat(browser): Include culture context with events ([#19148](https://github.com/getsentry/sentry-javascript/pull/19148))
+- feat(browser): Trace continuation from server-timing headers ([#18673](https://github.com/getsentry/sentry-javascript/pull/18673))
+- feat(core,cloudflare): Enable certain fields with env variables ([#19245](https://github.com/getsentry/sentry-javascript/pull/19245))
+- feat(deps): bump @isaacs/brace-expansion from 5.0.0 to 5.0.1 ([#19149](https://github.com/getsentry/sentry-javascript/pull/19149))
+- feat(deps): bump @sentry/bundler-plugin-core from 4.8.0 to 4.9.0 ([#19190](https://github.com/getsentry/sentry-javascript/pull/19190))
+- feat(deps): Bump `glob` in `@sentry/react-router` ([#19162](https://github.com/getsentry/sentry-javascript/pull/19162))
+- feat(deps): bump hono from 4.11.1 to 4.11.7 ([#19068](https://github.com/getsentry/sentry-javascript/pull/19068))
+- feat(hono): Add base for Sentry Hono middleware (Cloudflare) ([#18787](https://github.com/getsentry/sentry-javascript/pull/18787))
+- feat(nextjs): Set cloudflare runtime ([#19084](https://github.com/getsentry/sentry-javascript/pull/19084))
+- feat(node-core): Add outgoing fetch trace propagation to light mode ([#19262](https://github.com/getsentry/sentry-javascript/pull/19262))
+- feat(react): Add `lazyRouteManifest` option to resolve lazy-route names ([#19086](https://github.com/getsentry/sentry-javascript/pull/19086))
+- feat(vercel-ai): Add rerank support and fix token attribute mapping ([#19144](https://github.com/getsentry/sentry-javascript/pull/19144))
+- fix(core): Avoid blocking the process for weightBasedFlushing ([#19174](https://github.com/getsentry/sentry-javascript/pull/19174))
+- fix(core): Avoid blocking the process when calling `flush` on empty buffer ([#19062](https://github.com/getsentry/sentry-javascript/pull/19062))
+- fix(core): Ensure partially set SDK metadata options are preserved ([#19102](https://github.com/getsentry/sentry-javascript/pull/19102))
+- fix(core): Fix truncation to only keep last message in vercel ([#19080](https://github.com/getsentry/sentry-javascript/pull/19080))
+- fix(core): Intercept .withResponse() to preserve OpenAI stream instrumentation ([#19122](https://github.com/getsentry/sentry-javascript/pull/19122))
+- fix(core): Prevent infinite recursion when event processor throws ([#19110](https://github.com/getsentry/sentry-javascript/pull/19110))
+- fix(core): Record client report with reason for HTTP 413 responses ([#19093](https://github.com/getsentry/sentry-javascript/pull/19093))
+- fix(core): Remove outdated `_experiments.enableMetrics` references from metrics JSDoc ([#19252](https://github.com/getsentry/sentry-javascript/pull/19252))
+- fix(core): Respect event.event_id in scope.captureEvent return value ([#19113](https://github.com/getsentry/sentry-javascript/pull/19113))
+- fix(core): use sessionId for MCP transport correlation ([#19172](https://github.com/getsentry/sentry-javascript/pull/19172))
+- fix(deps): Bump `@nestjs/platform-express` to `11.1.13` ([#19206](https://github.com/getsentry/sentry-javascript/pull/19206))
+- fix(deps): Bump diff to 5.2.2 ([#19228](https://github.com/getsentry/sentry-javascript/pull/19228))
+- fix(deps): Bump js-yaml to 3.14.2 and 4.1.1 ([#19216](https://github.com/getsentry/sentry-javascript/pull/19216))
+- fix(deps): Bump lodash to 4.17.23 ([#19211](https://github.com/getsentry/sentry-javascript/pull/19211))
+- fix(deps): Bump mdast-util-to-hast to 13.2.1 ([#19205](https://github.com/getsentry/sentry-javascript/pull/19205))
+- fix(deps): Bump node-forge to 1.3.2 ([#19183](https://github.com/getsentry/sentry-javascript/pull/19183))
+- fix(deps): Bump react-router to 6.30.3 ([#19212](https://github.com/getsentry/sentry-javascript/pull/19212))
+- fix(deps): Bump sinon to `21.0.1` in `@sentry/ember` ([#19246](https://github.com/getsentry/sentry-javascript/pull/19246))
+- fix(deps): Bump vite to 5.4.21 ([#19214](https://github.com/getsentry/sentry-javascript/pull/19214))
+- fix(nextjs): Expose an event id when `captureUnderscoreErrorException` captures an exception ([#19185](https://github.com/getsentry/sentry-javascript/pull/19185))
+- fix(nextjs): Populate **SENTRY_SERVER_MODULES** in Turbopack ([#19231](https://github.com/getsentry/sentry-javascript/pull/19231))
+- fix(node): Use snake_case for Fastify's `request-handler` op. ([#18729](https://github.com/getsentry/sentry-javascript/pull/18729))
+- fix(nuxt): Avoid logging database skip warning when `debug` is disabled ([#19095](https://github.com/getsentry/sentry-javascript/pull/19095))
+- fix(nuxt): Respect configured environment settings ([#19243](https://github.com/getsentry/sentry-javascript/pull/19243))
+- fix(profiling-node): 137 ABI should not be pruned for node 24 ([#19236](https://github.com/getsentry/sentry-javascript/pull/19236))
+- fix(replay): Improve error messages when compression worker fails to load ([#19008](https://github.com/getsentry/sentry-javascript/pull/19008))
+- fix(svelte): Bump svelte dev dependency to `3.59.2` ([#19208](https://github.com/getsentry/sentry-javascript/pull/19208))
+- fix(sveltekit): Detect used adapter via `svelte.config.js` ([#19270](https://github.com/getsentry/sentry-javascript/pull/19270))
+- fix(tanstackstart-react): Use `auto.middleware.tanstackstart` as middleware trace origin ([#19137](https://github.com/getsentry/sentry-javascript/pull/19137))
+- ref(core): Move `shouldPropagateTraceForUrl` from opentelemetry to core ([#19254](https://github.com/getsentry/sentry-javascript/pull/19254))
+- ref(core): Move shouldPropagateTraceForUrl from opentelemetry to core ([#19258](https://github.com/getsentry/sentry-javascript/pull/19258))
+- ref(sveltekit): Use `untrack` to read route id without invalidation ([#19272](https://github.com/getsentry/sentry-javascript/pull/19272))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add cursor rules for AI integrations contributions ([#19167](https://github.com/getsentry/sentry-javascript/pull/19167))
+- chore: Add Makefiles for dev-packages to make it convenient to run tests ([#19203](https://github.com/getsentry/sentry-javascript/pull/19203))
+- chore: bump prettier to 3.8 ([#19198](https://github.com/getsentry/sentry-javascript/pull/19198))
+- chore(bugbot): Add rule to flag not-unref'd timers ([#19082](https://github.com/getsentry/sentry-javascript/pull/19082))
+- chore(deps-dev): bump @sveltejs/kit from 2.49.5 to 2.50.1 ([#19089](https://github.com/getsentry/sentry-javascript/pull/19089))
+- chore(deps-dev): bump ts-node from 10.9.1 to 10.9.2 ([#19189](https://github.com/getsentry/sentry-javascript/pull/19189))
+- chore(deps-dev): bump vite from 3.2.11 to 5.4.21 ([#19227](https://github.com/getsentry/sentry-javascript/pull/19227))
+- chore(deps-dev): bump webpack from 5.95.0 to 5.104.1 ([#19199](https://github.com/getsentry/sentry-javascript/pull/19199))
+- chore(deps-dev): bump yaml from 2.2.2 to 2.8.2 ([#19087](https://github.com/getsentry/sentry-javascript/pull/19087))
+- chore(deps): Bump Apollo Server from v3 to v5 in integration tests ([#19202](https://github.com/getsentry/sentry-javascript/pull/19202))
+- chore(deps): Bump express in test utils + e2e apps ([#19159](https://github.com/getsentry/sentry-javascript/pull/19159))
+- chore(deps): Bump Lerna to v9 ([#19244](https://github.com/getsentry/sentry-javascript/pull/19244))
+- chore(deps): Bump mongoose in integration tests ([#19175](https://github.com/getsentry/sentry-javascript/pull/19175))
+- chore(deps): Bump solidjs to 1.9.11 to fix `seroval` alerts ([#19150](https://github.com/getsentry/sentry-javascript/pull/19150))
+- chore(deps): Bump webpack from 5.97.0 to 5.104.0 in ember-classic e2e test ([#19239](https://github.com/getsentry/sentry-javascript/pull/19239))
+- chore(deps): Bump webpack from 5.104.0 to 5.104.1 in ember-classic e2e test ([#19247](https://github.com/getsentry/sentry-javascript/pull/19247))
+- chore(e2e): Add banner to readme ([#19138](https://github.com/getsentry/sentry-javascript/pull/19138))
+- chore(llm): Add skill for fixing security vulnerabilities ([#19178](https://github.com/getsentry/sentry-javascript/pull/19178))
+- chore(node-core): Fix node-core integration test assertions ([#19219](https://github.com/getsentry/sentry-javascript/pull/19219))
+- ci: Ignore ticket creation for base branches other than develop/master ([#19103](https://github.com/getsentry/sentry-javascript/pull/19103))
+- ci(e2e): Remove `nextjs-turbo` canary tests ([#19118](https://github.com/getsentry/sentry-javascript/pull/19118))
+- ref: Removes unused eslint rule (via yarn fix) ([#19266](https://github.com/getsentry/sentry-javascript/pull/19266))
+- test(e2e): Bump `nextjs-t3` to next 15 ([#19130](https://github.com/getsentry/sentry-javascript/pull/19130))
+- test(e2e): Migrate test app `nextjs-turbo` into `nextjs-15` ([#19107](https://github.com/getsentry/sentry-javascript/pull/19107))
+
+</details>
+
+Work in this release was contributed by @limbonaut and @rfoel. Thank you for your contributions!
+
+## 10.38.0
+
+### Important Changes
+
+- **feat(tanstackstart-react): Auto-instrument request middleware ([#18989](https://github.com/getsentry/sentry-javascript/pull/18989))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments `middleware` arrays in `createFileRoute()`. This captures performance data without requiring manual wrapping with `wrapMiddlewaresWithSentry()`.
+
+### Other Changes
+
+- feat: Use v4.8.0 bundler plugins ([#18993](https://github.com/getsentry/sentry-javascript/pull/18993))
+- feat(browser): Add `logs.metrics` bundle ([#19020](https://github.com/getsentry/sentry-javascript/pull/19020))
+- feat(browser): Add `replay.logs.metrics` bundle ([#19021](https://github.com/getsentry/sentry-javascript/pull/19021))
+- feat(browser): Add `tracing.replay.logs.metrics` bundle ([#19039](https://github.com/getsentry/sentry-javascript/pull/19039))
+- feat(deps): bump import-in-the-middle from 2.0.1 to 2.0.6 ([#19042](https://github.com/getsentry/sentry-javascript/pull/19042))
+- feat(node): Add AI manual instrumentation exports to Node ([#19063](https://github.com/getsentry/sentry-javascript/pull/19063))
+- feat(wasm): initialised sentryWasmImages for webworkers ([#18812](https://github.com/getsentry/sentry-javascript/pull/18812))
+- fix(core): Classify custom `AggregateError`s as exception groups ([#19053](https://github.com/getsentry/sentry-javascript/pull/19053))
+- fix(nextjs): Turn off debugID injection if sourcemaps are explicitly disabled ([#19010](https://github.com/getsentry/sentry-javascript/pull/19010))
+- fix(react): Avoid `String(key)` to fix Symbol conversion error ([#18982](https://github.com/getsentry/sentry-javascript/pull/18982))
+- fix(react): Prevent lazy route handlers from updating wrong navigation span ([#18898](https://github.com/getsentry/sentry-javascript/pull/18898))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+- feat(deps-dev): bump @types/rsvp from 4.0.4 to 4.0.9 ([#19038](https://github.com/getsentry/sentry-javascript/pull/19038))
+- ci(build): Run full test suite on new bundle with logs+metrics ([#19065](https://github.com/getsentry/sentry-javascript/pull/19065))
+- ci(deps): bump actions/create-github-app-token from 1 to 2 ([#19028](https://github.com/getsentry/sentry-javascript/pull/19028))
+- ci(deps): bump peter-evans/create-pull-request from 8.0.0 to 8.1.0 ([#19029](https://github.com/getsentry/sentry-javascript/pull/19029))
+- chore: Add external contributor to CHANGELOG.md ([#19005](https://github.com/getsentry/sentry-javascript/pull/19005))
+- chore(aws-serverless): Fix local cache issues ([#19081](https://github.com/getsentry/sentry-javascript/pull/19081))
+- chore(dependabot): Allow all packages to update ([#19024](https://github.com/getsentry/sentry-javascript/pull/19024))
+- chore(dependabot): Update ignore patterns and add more groups ([#19037](https://github.com/getsentry/sentry-javascript/pull/19037))
+- chore(dependabot): Update ignore patterns and add more groups ([#19043](https://github.com/getsentry/sentry-javascript/pull/19043))
+- chore(deps-dev): bump @edge-runtime/types from 3.0.1 to 4.0.0 ([#19032](https://github.com/getsentry/sentry-javascript/pull/19032))
+- chore(deps-dev): bump @vercel/nft from 0.29.4 to 1.3.0 ([#19030](https://github.com/getsentry/sentry-javascript/pull/19030))
+- chore(deps): bump @actions/artifact from 2.1.11 to 5.0.3 ([#19031](https://github.com/getsentry/sentry-javascript/pull/19031))
+- chore(deps): bump hono from 4.11.4 to 4.11.7 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#19009](https://github.com/getsentry/sentry-javascript/pull/19009))
+- chore(deps): bump next from 16.0.9 to 16.1.5 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#19012](https://github.com/getsentry/sentry-javascript/pull/19012))
+- chore(deps): Bump trpc v11 dependency in e2e test ([#19061](https://github.com/getsentry/sentry-javascript/pull/19061))
+- chore(deps): Bump wrangler to 4.61.0 ([#19023](https://github.com/getsentry/sentry-javascript/pull/19023))
+- chore(deps): Upgrade @remix-run deps to 2.17.4 ([#19040](https://github.com/getsentry/sentry-javascript/pull/19040))
+- chore(deps): Upgrade `next` versions 15 and 16 ([#19057](https://github.com/getsentry/sentry-javascript/pull/19057))
+- chore(deps): Upgrade Lerna to v8 ([#19050](https://github.com/getsentry/sentry-javascript/pull/19050))
+- chore(deps): Upgrade next to 14.2.35 ([#19055](https://github.com/getsentry/sentry-javascript/pull/19055))
+- chore(deps): Upgrade react-router, @react-router/node, @react-router/serve, @react-router/dev to 7.13.0 ([#19026](https://github.com/getsentry/sentry-javascript/pull/19026))
+- chore(llm): Add claude skill + cursor command for adding new cdn bundles ([#19048](https://github.com/getsentry/sentry-javascript/pull/19048))
+- chore(llm): Ignore local Claude settings ([#18893](https://github.com/getsentry/sentry-javascript/pull/18893))
+- chore(react): Update react-router-5 dev dependency to another than 5.0.0 ([#19047](https://github.com/getsentry/sentry-javascript/pull/19047))
+- chore(release): Add generate-changelog script ([#18999](https://github.com/getsentry/sentry-javascript/pull/18999))
+- chore(remix): Upgrade @remix-run/router to ^1.23.2 ([#19045](https://github.com/getsentry/sentry-javascript/pull/19045))
+- chore(solidstart): Bump peer dependencies of @solidjs/start ([#19051](https://github.com/getsentry/sentry-javascript/pull/19051))
+- chore(solidstart): Upgrade Vinxi to update h3 peer dependency ([#19018](https://github.com/getsentry/sentry-javascript/pull/19018))
+- chore(tests): Reject messages from unknown origins in integration tests ([#19016](https://github.com/getsentry/sentry-javascript/pull/19016))
+
+</details>
+
+Work in this release was contributed by @harshit078. Thank you for your contribution!
+
+## 10.37.0
+
+### Important Changes
+
+- **feat(core): Introduces a new `Sentry.setConversationId()` API to track multi turn AI conversations across API calls. ([#18909](https://github.com/getsentry/sentry-javascript/pull/18909))**
+
+  You can now set a conversation ID that will be automatically applied to spans within that scope. This allows you to link traces from the same conversation together.
+
+  ```javascript
+  import * as Sentry from '@sentry/node';
+
+  // Set conversation ID for all subsequent spans
+  Sentry.setConversationId('conv_abc123');
+
+  // All AI spans will now include the gen_ai.conversation.id attribute
+  await openai.chat.completions.create({...});
+  ```
+
+  This is particularly useful for tracking multiple AI API calls that are part of the same conversation, allowing you to analyze entire conversation flows in Sentry.
+  The conversation ID is stored on the isolation scope and automatically applied to spans via the new `conversationIdIntegration`.
+
+- **feat(tanstackstart-react): Auto-instrument global middleware in `sentryTanstackStart` Vite plugin ([#18844](https://github.com/getsentry/sentry-javascript/pull/18844))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments `requestMiddleware` and `functionMiddleware` arrays in `createStart()`. This captures performance data without requiring manual wrapping.
+
+  Auto-instrumentation is enabled by default. To disable it:
+
+  ```ts
+  // vite.config.ts
+  sentryTanstackStart({
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    org: 'your-org',
+    project: 'your-project',
+    autoInstrumentMiddleware: false,
+  });
+  ```
+
+### Other Changes
+
+- feat(core): simplify truncation logic to only keep the newest message ([#18906](https://github.com/getsentry/sentry-javascript/pull/18906))
+- feat(core): Support new client discard reason `invalid` ([#18901](https://github.com/getsentry/sentry-javascript/pull/18901))
+- feat(deps): Bump OpenTelemetry instrumentations ([#18934](https://github.com/getsentry/sentry-javascript/pull/18934))
+- feat(nextjs): Update default ignore list for sourcemaps ([#18938](https://github.com/getsentry/sentry-javascript/pull/18938))
+- feat(node): pass prisma instrumentation options through ([#18900](https://github.com/getsentry/sentry-javascript/pull/18900))
+- feat(nuxt): Don't run source maps related code on Nuxt "prepare" ([#18936](https://github.com/getsentry/sentry-javascript/pull/18936))
+- feat(replay): Update client report discard reason for invalid sessions ([#18796](https://github.com/getsentry/sentry-javascript/pull/18796))
+- feat(winston): Add customLevelMap for winston transport ([#18922](https://github.com/getsentry/sentry-javascript/pull/18922))
+- feat(react-router): Add support for React Router instrumentation API ([#18580](https://github.com/getsentry/sentry-javascript/pull/18580))
+- fix(astro): Do not show warnings for valid options ([#18947](https://github.com/getsentry/sentry-javascript/pull/18947))
+- fix(core): Report well known values in gen_ai.operation.name attribute ([#18925](https://github.com/getsentry/sentry-javascript/pull/18925))
+- fix(node-core): ignore vercel `AbortError` by default on unhandled rejection ([#18973](https://github.com/getsentry/sentry-javascript/pull/18973))
+- fix(nuxt): include sentry.config.server.ts in nuxt app types ([#18971](https://github.com/getsentry/sentry-javascript/pull/18971))
+- fix(profiling): Add `platform` to envelope item header ([#18954](https://github.com/getsentry/sentry-javascript/pull/18954))
+- fix(react): Defer React Router span finalization until lazy routes load ([#18881](https://github.com/getsentry/sentry-javascript/pull/18881))
+- ref(core): rename `gen_ai.input.messages.original_length` to `sentry.sdk_meta.gen_ai.input.messages.original_length` ([#18970](https://github.com/getsentry/sentry-javascript/pull/18970))
+- ref(core): rename `gen_ai.request.messages` to `gen_ai.input.messages` ([#18944](https://github.com/getsentry/sentry-javascript/pull/18944))
+- ref(core): Set system message as separate attribute ([#18978](https://github.com/getsentry/sentry-javascript/pull/18978))
+- deps: Bump version of sentry-bundler-plugins ([#18972](https://github.com/getsentry/sentry-javascript/pull/18972))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(e2e): Add e2e claude skill ([#18957](https://github.com/getsentry/sentry-javascript/pull/18957))
+- chore(e2e): Add Makefile to make running specific e2e test apps easier ([#18953](https://github.com/getsentry/sentry-javascript/pull/18953))
+- chore(e2e): Modify e2e skill to also account for untracked files ([#18959](https://github.com/getsentry/sentry-javascript/pull/18959))
+- ref(tests): use constants in ai integration tests and add missing ones ([#18945](https://github.com/getsentry/sentry-javascript/pull/18945))
+- test(nextjs): Added nextjs CF workers test app ([#18928](https://github.com/getsentry/sentry-javascript/pull/18928))
+- test(prisma): Move to yarn prisma ([#18975](https://github.com/getsentry/sentry-javascript/pull/18975))
+
+</details>
+
+Work in this release was contributed by @sebws, @harshit078, and @fedetorre. Thank you for your contributions!
+
+## 10.36.0
+
+- feat(node): Add Prisma v7 support ([#18908](https://github.com/getsentry/sentry-javascript/pull/18908))
+- feat(opentelemetry): Support `db.system.name` attribute for database spans ([#18902](https://github.com/getsentry/sentry-javascript/pull/18902))
+- feat(deps): Bump OpenTelemetry dependencies ([#18878](https://github.com/getsentry/sentry-javascript/pull/18878))
+- fix(core): Sanitize data URLs in `http.client` spans ([#18896](https://github.com/getsentry/sentry-javascript/pull/18896))
+- fix(nextjs): Add ALS runner fallbacks for serverless environments ([#18889](https://github.com/getsentry/sentry-javascript/pull/18889))
+- fix(node): Profiling debug ID matching
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(deps-dev): bump @remix-run/server-runtime from 2.15.2 to 2.17.3 in /packages/remix ([#18750](https://github.com/getsentry/sentry-javascript/pull/18750))
+
+</details>
+
 ## 10.35.0
 
 ### Important Changes

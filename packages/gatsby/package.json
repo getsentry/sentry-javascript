@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "10.35.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -45,9 +45,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.35.0",
-    "@sentry/react": "10.35.0",
-    "@sentry/webpack-plugin": "^4.6.2"
+    "@sentry/core": "10.39.0",
+    "@sentry/react": "10.39.0",
+    "@sentry/webpack-plugin": "^4.8.0"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0",
@@ -68,10 +68,9 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage *.d.ts sentry-gatsby-*.tgz",

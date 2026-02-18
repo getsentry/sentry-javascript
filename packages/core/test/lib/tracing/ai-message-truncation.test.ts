@@ -96,33 +96,8 @@ describe('message truncation utilities', () => {
 
       // original messages objects must not be mutated
       expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
+      // only the last message should be kept (with media stripped)
       expect(result).toStrictEqual([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/png',
-                data: removed,
-              },
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: {
-            image_url: removed,
-          },
-        },
-        {
-          role: 'agent',
-          type: 'image',
-          content: {
-            b64_json: removed,
-          },
-        },
         {
           role: 'system',
           inlineData: {
@@ -177,39 +152,35 @@ describe('message truncation utilities', () => {
     const giant = 'this is a long string '.repeat(1_000);
     const big = 'this is a long string '.repeat(100);
 
-    it('drops older messages to fit in the limit', () => {
+    it('keeps only the last message without truncation when it fits the limit', () => {
+      // Multiple messages that together exceed 20KB, but last message is small
       const messages = [
-        `0 ${giant}`,
-        { type: 'text', content: `1 ${big}` },
-        { type: 'text', content: `2 ${big}` },
-        { type: 'text', content: `3 ${giant}` },
-        { type: 'text', content: `4 ${big}` },
-        `5 ${big}`,
-        { type: 'text', content: `6 ${big}` },
-        { type: 'text', content: `7 ${big}` },
-        { type: 'text', content: `8 ${big}` },
-        { type: 'text', content: `9 ${big}` },
-        { type: 'text', content: `10 ${big}` },
-        { type: 'text', content: `11 ${big}` },
-        { type: 'text', content: `12 ${big}` },
+        { content: `1 ${humongous}` },
+        { content: `2 ${humongous}` },
+        { content: `3 ${big}` }, // last message - small enough to fit
       ];
 
-      const messagesJson = JSON.stringify(messages, null, 2);
       const result = truncateGenAiMessages(messages);
-      // should not mutate original messages list
-      expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
 
-      // just retain the messages that fit in the budget
-      expect(result).toStrictEqual([
-        `5 ${big}`,
-        { type: 'text', content: `6 ${big}` },
-        { type: 'text', content: `7 ${big}` },
-        { type: 'text', content: `8 ${big}` },
-        { type: 'text', content: `9 ${big}` },
-        { type: 'text', content: `10 ${big}` },
-        { type: 'text', content: `11 ${big}` },
-        { type: 'text', content: `12 ${big}` },
-      ]);
+      // Should only keep the last message, unchanged
+      expect(result).toStrictEqual([{ content: `3 ${big}` }]);
+    });
+
+    it('keeps only the last message with truncation when it does not fit the limit', () => {
+      const messages = [{ content: `1 ${humongous}` }, { content: `2 ${humongous}` }, { content: `3 ${humongous}` }];
+      const result = truncateGenAiMessages(messages);
+      const truncLen = 20_000 - JSON.stringify({ content: '' }).length;
+      expect(result).toStrictEqual([{ content: `3 ${humongous}`.substring(0, truncLen) }]);
+    });
+
+    it('drops if last message cannot be safely truncated', () => {
+      const messages = [
+        { content: `1 ${humongous}` },
+        { content: `2 ${humongous}` },
+        { what_even_is_this: `? ${humongous}` },
+      ];
+      const result = truncateGenAiMessages(messages);
+      expect(result).toStrictEqual([]);
     });
 
     it('fully drops message if content cannot be made to fit', () => {
@@ -314,23 +285,6 @@ describe('message truncation utilities', () => {
           parts: [{ text: `1 ${big}` }, { some_other_field: 'ok' }, { text: `2 ${big}` }, { text: `3 ${big}` }],
         },
       ]);
-    });
-
-    it('truncates first message if none fit', () => {
-      const messages = [{ content: `1 ${humongous}` }, { content: `2 ${humongous}` }, { content: `3 ${humongous}` }];
-      const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - JSON.stringify({ content: '' }).length;
-      expect(result).toStrictEqual([{ content: `3 ${humongous}`.substring(0, truncLen) }]);
-    });
-
-    it('drops if first message cannot be safely truncated', () => {
-      const messages = [
-        { content: `1 ${humongous}` },
-        { content: `2 ${humongous}` },
-        { what_even_is_this: `? ${humongous}` },
-      ];
-      const result = truncateGenAiMessages(messages);
-      expect(result).toStrictEqual([]);
     });
   });
 });

@@ -401,7 +401,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
         ...(sdkInfo && { sdk: sdkInfo }),
         ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
       },
-      [[{ type: 'profile_chunk' }, chunk]],
+      [[{ type: 'profile_chunk', platform: 'javascript' }, chunk]],
     );
 
     client.sendEnvelope(envelope).then(null, reason => {

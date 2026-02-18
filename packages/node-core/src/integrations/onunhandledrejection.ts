@@ -27,7 +27,10 @@ const INTEGRATION_NAME = 'OnUnhandledRejection';
 
 const DEFAULT_IGNORES: IgnoreMatcher[] = [
   {
-    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK, Vercel flush() fails with an error
+    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK V5, Vercel flush() fails with an error
+  },
+  {
+    name: 'AbortError', // When stream aborts in Vercel AI SDK V6
   },
 ];
 

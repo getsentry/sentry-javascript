@@ -15,7 +15,7 @@ import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
-import { copyExecutionContext } from './utils/copyExecutionContext';
+import { instrumentContext } from './utils/instrumentContext';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -38,7 +38,7 @@ export function withSentry<
     QueueHandlerMessage,
     CfHostMetadata
   >,
->(optionsCallback: (env: Env) => CloudflareOptions, handler: T): T {
+>(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {
@@ -46,7 +46,7 @@ export function withSentry<
       handler.fetch = new Proxy(handler.fetch, {
         apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
           const [request, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
+          const context = instrumentContext(ctx);
           args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
@@ -82,7 +82,7 @@ export function withSentry<
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
           const [event, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
+          const context = instrumentContext(ctx);
           args[2] = context;
 
           return withIsolationScope(isolationScope => {
@@ -128,7 +128,7 @@ export function withSentry<
       handler.email = new Proxy(handler.email, {
         apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
           const [emailMessage, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
+          const context = instrumentContext(ctx);
           args[2] = context;
 
           return withIsolationScope(isolationScope => {
@@ -172,7 +172,7 @@ export function withSentry<
       handler.queue = new Proxy(handler.queue, {
         apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
           const [batch, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
+          const context = instrumentContext(ctx);
           args[2] = context;
 
           return withIsolationScope(isolationScope => {
@@ -224,7 +224,7 @@ export function withSentry<
       handler.tail = new Proxy(handler.tail, {
         apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
           const [, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
+          const context = instrumentContext(ctx);
           args[2] = context;
 
           return withIsolationScope(async isolationScope => {

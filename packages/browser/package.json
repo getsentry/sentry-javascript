@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "10.35.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -44,14 +44,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "10.35.0",
-    "@sentry-internal/feedback": "10.35.0",
-    "@sentry-internal/replay": "10.35.0",
-    "@sentry-internal/replay-canvas": "10.35.0",
-    "@sentry/core": "10.35.0"
+    "@sentry-internal/browser-utils": "10.39.0",
+    "@sentry-internal/feedback": "10.39.0",
+    "@sentry-internal/replay": "10.39.0",
+    "@sentry-internal/replay-canvas": "10.39.0",
+    "@sentry/core": "10.39.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "10.35.0",
+    "@sentry-internal/integration-shims": "10.39.0",
     "fake-indexeddb": "^6.2.4"
   },
   "scripts": {
@@ -62,11 +62,10 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
-    "build:dev:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch build:bundle:watch",
+    "build:dev:watch": "run-p build:transpile:watch",
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",

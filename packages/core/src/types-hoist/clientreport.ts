@@ -10,7 +10,8 @@ export type EventDropReason =
   | 'send_error'
   | 'internal_sdk_error'
   | 'buffer_overflow'
-  | 'ignored';
+  | 'ignored'
+  | 'invalid';
 
 export type Outcome = {
   reason: EventDropReason;

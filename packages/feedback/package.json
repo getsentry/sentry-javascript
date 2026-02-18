@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/feedback",
-  "version": "10.35.0",
+  "version": "10.39.0",
   "description": "Sentry SDK integration for user feedback",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/feedback",
@@ -39,7 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.35.0"
+    "@sentry/core": "10.39.0"
   },
   "devDependencies": {
     "preact": "^10.19.4"
@@ -52,11 +52,10 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8 && yarn node ./scripts/shim-preact-export.js",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
-    "build:dev:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch build:bundle:watch",
+    "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-internal-feedback-*.tgz",

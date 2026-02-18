@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solid",
-  "version": "10.35.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
@@ -54,8 +54,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.35.0",
-    "@sentry/core": "10.35.0"
+    "@sentry/browser": "10.39.0",
+    "@sentry/core": "10.39.0"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
@@ -77,7 +77,7 @@
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
-    "solid-js": "^1.8.11",
+    "solid-js": "^1.9.11",
     "vite": "^5.4.11",
     "vite-plugin-solid": "^2.11.6"
   },
@@ -88,10 +88,9 @@
     "build:types": "run-s build:types:core build:types:routers",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",

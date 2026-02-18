@@ -261,7 +261,8 @@ export type SentryBuildOptions = {
     /**
      * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
      *
-     * Default: `[]`
+     * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
+     * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
      *
      * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
      *
@@ -275,6 +276,24 @@ export type SentryBuildOptions = {
      * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
+
+    /**
+     * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
+     *
+     * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
+     *
+     * Use this option when you need fine-grained control over which source maps are deleted.
+     *
+     * @example
+     * ```javascript
+     * withSentryConfig(nextConfig, {
+     *   sourcemaps: {
+     *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
+     *   },
+     * });
+     * ```
+     */
+    filesToDeleteAfterUpload?: string | string[];
   };
 
   /**
@@ -688,6 +707,12 @@ export type SentryBuildOptions = {
    */
   _experimental?: Partial<{
     thirdPartyOriginStackFrames?: boolean;
+    /**
+     * Automatically instrument Vercel Cron Jobs in the App Router with Sentry Cron Monitors.
+     * When enabled, the SDK will detect Vercel cron requests and create check-ins in Sentry.
+     * Requires cron jobs to be configured in `vercel.json`.
+     */
+    vercelCronsMonitoring?: boolean;
   }>;
 
   /**

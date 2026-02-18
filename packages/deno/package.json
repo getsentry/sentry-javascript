@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "10.35.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/core": "10.35.0"
+    "@sentry/core": "10.39.0"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
@@ -43,8 +43,8 @@
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
     "test": "run-s install:deno deno-types test:unit",
-    "test:unit": "deno test --allow-read --allow-run --allow-env --no-check",
-    "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
+    "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check",
+    "test:unit:update": "deno test --allow-net --allow-read --allow-run --allow-env --no-check --allow-write -- --update",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

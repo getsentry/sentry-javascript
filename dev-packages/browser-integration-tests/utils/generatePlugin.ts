@@ -52,8 +52,14 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/bundle.js',
     bundle_min: 'build/bundles/bundle.min.js',
+    bundle_logs_metrics: 'build/bundles/bundle.logs.metrics.js',
+    bundle_logs_metrics_min: 'build/bundles/bundle.logs.metrics.min.js',
+    bundle_logs_metrics_debug_min: 'build/bundles/bundle.logs.metrics.debug.min.js',
     bundle_replay: 'build/bundles/bundle.replay.js',
     bundle_replay_min: 'build/bundles/bundle.replay.min.js',
+    bundle_replay_logs_metrics: 'build/bundles/bundle.replay.logs.metrics.js',
+    bundle_replay_logs_metrics_min: 'build/bundles/bundle.replay.logs.metrics.min.js',
+    bundle_replay_logs_metrics_debug_min: 'build/bundles/bundle.replay.logs.metrics.debug.min.js',
     bundle_tracing: 'build/bundles/bundle.tracing.js',
     bundle_tracing_min: 'build/bundles/bundle.tracing.min.js',
     bundle_tracing_logs_metrics: 'build/bundles/bundle.tracing.logs.metrics.js',
@@ -61,6 +67,9 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_tracing_logs_metrics_debug_min: 'build/bundles/bundle.tracing.logs.metrics.debug.min.js',
     bundle_tracing_replay: 'build/bundles/bundle.tracing.replay.js',
     bundle_tracing_replay_min: 'build/bundles/bundle.tracing.replay.min.js',
+    bundle_tracing_replay_logs_metrics: 'build/bundles/bundle.tracing.replay.logs.metrics.js',
+    bundle_tracing_replay_logs_metrics_min: 'build/bundles/bundle.tracing.replay.logs.metrics.min.js',
+    bundle_tracing_replay_logs_metrics_debug_min: 'build/bundles/bundle.tracing.replay.logs.metrics.debug.min.js',
     bundle_tracing_replay_feedback: 'build/bundles/bundle.tracing.replay.feedback.js',
     bundle_tracing_replay_feedback_min: 'build/bundles/bundle.tracing.replay.feedback.min.js',
     bundle_tracing_replay_feedback_logs_metrics: 'build/bundles/bundle.tracing.replay.feedback.logs.metrics.js',
@@ -191,7 +200,6 @@ class SentryScenarioGenerationPlugin {
 
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         parser.hooks.import.tap(
           this._name,
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {

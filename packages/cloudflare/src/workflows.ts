@@ -22,7 +22,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
-import { copyExecutionContext } from './utils/copyExecutionContext';
+import { instrumentContext } from './utils/instrumentContext';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -158,7 +158,7 @@ export function instrumentWorkflowWithSentry<
   return new Proxy(WorkFlowClass, {
     construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
       const [ctx, env] = args;
-      const context = copyExecutionContext(ctx);
+      const context = instrumentContext(ctx);
       args[0] = context;
 
       const options = optionsCallback(env);
