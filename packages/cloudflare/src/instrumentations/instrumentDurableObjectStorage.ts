@@ -1,7 +1,8 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { storeSpanContext } from '../utils/traceLinks';
 
-const STORAGE_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list'] as const;
+const STORAGE_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list', 'setAlarm', 'getAlarm', 'deleteAlarm'] as const;
 
 type StorageMethod = (typeof STORAGE_METHODS_TO_INSTRUMENT)[number];
 
@@ -10,6 +11,10 @@ type StorageMethod = (typeof STORAGE_METHODS_TO_INSTRUMENT)[number];
  *
  * Wraps the following async methods:
  * - get, put, delete, list (KV API)
+ * - setAlarm, getAlarm, deleteAlarm (Alarm API)
+ *
+ * When setAlarm is called, it also stores the current span context so that when
+ * the alarm fires later, it can link back to the trace that called setAlarm.
  *
  * @param storage - The DurableObjectStorage instance to instrument
  * @returns An instrumented DurableObjectStorage instance
@@ -40,8 +45,16 @@ export function instrumentDurableObjectStorage(storage: DurableObjectStorage): D
               'db.operation.name': methodName,
             },
           },
-          () => {
-            return (original as (...args: unknown[]) => unknown).apply(target, args);
+          async () => {
+            const result = await (original as (...args: unknown[]) => Promise<unknown>).apply(target, args);
+            // When setAlarm is called, store the current span context so that when the alarm
+            // fires later, it can link back to the trace that called setAlarm.
+            // We use the original (uninstrumented) storage (target) to avoid creating a span
+            // for this internal operation.
+            if (methodName === 'setAlarm') {
+              await storeSpanContext(target, 'alarm');
+            }
+            return result;
           },
         );
       };

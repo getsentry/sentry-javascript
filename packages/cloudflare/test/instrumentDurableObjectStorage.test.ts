@@ -1,13 +1,22 @@
 import * as sentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
+import * as traceLinks from '../src/utils/traceLinks';
 
 vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof sentryCore>();
   return {
     ...actual,
     startSpan: vi.fn((opts, callback) => callback()),
     getActiveSpan: vi.fn(),
+  };
+});
+
+vi.mock('../src/utils/traceLinks', async importOriginal => {
+  const actual = await importOriginal<typeof traceLinks>();
+  return {
+    ...actual,
+    storeSpanContext: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -150,18 +159,72 @@ describe('instrumentDurableObjectStorage', () => {
     });
   });
 
-  describe('non-instrumented methods', () => {
-    it('does not instrument alarm methods', async () => {
+  describe('alarm methods', () => {
+    it('instruments setAlarm', async () => {
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.setAlarm(Date.now() + 1000);
+
+      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_setAlarm',
+          op: 'db',
+          attributes: expect.objectContaining({
+            'db.operation.name': 'setAlarm',
+          }),
+        },
+        expect.any(Function),
+      );
+    });
+
+    it('stores span context when setAlarm is called', async () => {
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.setAlarm(Date.now() + 1000);
+
+      expect(traceLinks.storeSpanContext).toHaveBeenCalledWith(mockStorage, 'alarm');
+    });
+
+    it('instruments getAlarm', async () => {
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await instrumented.getAlarm();
-      await instrumented.setAlarm(Date.now() + 1000);
-      await instrumented.deleteAlarm();
 
-      expect(sentryCore.startSpan).not.toHaveBeenCalled();
+      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_getAlarm',
+          op: 'db',
+          attributes: expect.objectContaining({
+            'db.operation.name': 'getAlarm',
+          }),
+        },
+        expect.any(Function),
+      );
     });
 
+    it('instruments deleteAlarm', async () => {
+      const mockStorage = createMockStorage();
+      const instrumented = instrumentDurableObjectStorage(mockStorage);
+
+      await instrumented.deleteAlarm();
+
+      expect(sentryCore.startSpan).toHaveBeenCalledWith(
+        {
+          name: 'durable_object_storage_deleteAlarm',
+          op: 'db',
+          attributes: expect.objectContaining({
+            'db.operation.name': 'deleteAlarm',
+          }),
+        },
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('non-instrumented methods', () => {
     it('does not instrument deleteAll, sync, transaction', async () => {
       const mockStorage = createMockStorage();
       const instrumented = instrumentDurableObjectStorage(mockStorage);
