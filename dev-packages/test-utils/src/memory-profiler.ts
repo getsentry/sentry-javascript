@@ -99,7 +99,7 @@ export class MemoryProfiler {
       host = '127.0.0.1',
       retries = 10,
       retryDelayMs = 2000,
-      gcSettleDelayMs = 2000,
+      gcSettleDelayMs = 3000,
       debug = false,
     } = options;
 
