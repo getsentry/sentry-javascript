@@ -11,7 +11,7 @@ function createTempDir(): string {
 
 function writePackageJson(dir: string, content: Record<string, unknown>): void {
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(content, null, 2) + '\n');
+  fs.writeFileSync(path.join(dir, 'package.json'), `${JSON.stringify(content, null, 2)}\n`);
 }
 
 function readPackageJson(dir: string): Record<string, any> {
