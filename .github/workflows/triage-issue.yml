@@ -58,8 +58,8 @@ jobs:
           settings: |
             {
               "env": {
-                "LINEAR_CLIENT_ID": ${{ secrets.LINEAR_CLIENT_ID }},
-                "LINEAR_CLIENT_SECRET":${{ secrets.LINEAR_CLIENT_SECRET }}
+                "LINEAR_CLIENT_ID": "${{ secrets.LINEAR_CLIENT_ID }}",
+                "LINEAR_CLIENT_SECRET": "${{ secrets.LINEAR_CLIENT_SECRET }}"
               }
             }
           prompt: |
