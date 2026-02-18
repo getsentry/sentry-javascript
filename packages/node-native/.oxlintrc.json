@@ -4,8 +4,13 @@
   "env": {
     "node": true
   },
-  "rules": {
-    "sdk/no-class-field-initializers": "off"
-  },
+  "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "sdk/no-class-field-initializers": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["build/**/*", "examples/**/*", "vitest.config.ts"]
 }
