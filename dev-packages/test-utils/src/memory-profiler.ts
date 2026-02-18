@@ -172,6 +172,35 @@ export class MemoryProfiler {
   }
 
   /**
+   * Take a heap snapshot and return it as a string.
+   * The snapshot is in V8 heap snapshot format (JSON) and can be loaded
+   * into Chrome DevTools for analysis.
+   *
+   * @returns The heap snapshot as a JSON string.
+   */
+  public async takeHeapSnapshot(): Promise<string> {
+    this._ensureConnected();
+
+    const chunks: string[] = [];
+
+    const chunkHandler = (params: Record<string, unknown>): void => {
+      if (typeof params.chunk === 'string') {
+        chunks.push(params.chunk);
+      }
+    };
+
+    this._cdp.on('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
+
+    try {
+      await this._cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+    } finally {
+      this._cdp.off('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
+    }
+
+    return chunks.join('');
+  }
+
+  /**
    * Close the connection to the inspector.
    */
   public async close(): Promise<void> {

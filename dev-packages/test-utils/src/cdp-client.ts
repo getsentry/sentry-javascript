@@ -61,6 +61,8 @@ interface PendingRequest {
   reject: (error: Error) => void;
 }
 
+type EventHandler = (params: Record<string, unknown>) => void;
+
 /**
  * Low-level CDP client for connecting to V8 inspector endpoints.
  *
@@ -78,6 +80,7 @@ export class CDPClient {
   private _ws: WebSocket | null;
   private _messageId: number;
   private _pendingRequests: Map<number, PendingRequest>;
+  private _eventHandlers: Map<string, EventHandler[]>;
   private _connected: boolean;
   private readonly _options: Required<CDPClientOptions>;
 
@@ -85,6 +88,7 @@ export class CDPClient {
     this._ws = null;
     this._messageId = 0;
     this._pendingRequests = new Map();
+    this._eventHandlers = new Map();
     this._connected = false;
     this._options = {
       retries: 5,
@@ -186,6 +190,34 @@ export class CDPClient {
   }
 
   /**
+   * Register an event handler for CDP events.
+   *
+   * @param eventName - The CDP event name (e.g., 'HeapProfiler.addHeapSnapshotChunk')
+   * @param handler - The callback function to handle the event
+   */
+  public on(eventName: string, handler: EventHandler): void {
+    const handlers = this._eventHandlers.get(eventName) || [];
+    handlers.push(handler);
+    this._eventHandlers.set(eventName, handlers);
+  }
+
+  /**
+   * Remove an event handler for CDP events.
+   *
+   * @param eventName - The CDP event name
+   * @param handler - The handler to remove
+   */
+  public off(eventName: string, handler: EventHandler): void {
+    const handlers = this._eventHandlers.get(eventName);
+    if (handlers) {
+      const index = handlers.indexOf(handler);
+      if (index !== -1) {
+        handlers.splice(index, 1);
+      }
+    }
+  }
+
+  /**
    * Close the WebSocket connection.
    */
   public async close(): Promise<void> {
@@ -239,6 +271,13 @@ export class CDPClient {
           // CDP event (not a response to our request)
           if (message.method) {
             this._log('CDP event:', message.method);
+            const handlers = this._eventHandlers.get(message.method);
+            if (handlers) {
+              const params = (message as unknown as { params?: Record<string, unknown> }).params || {};
+              for (const handler of handlers) {
+                handler(params);
+              }
+            }
             return;
           }
 

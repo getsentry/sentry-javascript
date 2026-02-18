@@ -1059,6 +1059,16 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Upload Heap Snapshots
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: heap-snapshots-${{ matrix.test-application }}
+          path: ${{ runner.temp }}/test-application/heap-snapshots
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Pre-process E2E Test Dumps
         if: failure()
         run: |
