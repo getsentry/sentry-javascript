@@ -78,3 +78,28 @@ sentryTest(
     );
   },
 );
+
+sentryTest('Updates the session when an error is thrown', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const initialSessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
+  await page.goto(url);
+  const initialSession = await initialSessionPromise;
+
+  // for good measure, throw in a few navigations
+  await page.locator('#navigate').click();
+  await page.locator('#navigate').click();
+  await page.locator('#navigate').click();
+
+  const updatedSessionPromise = waitForSession(page, s => !s.init && s.status !== 'ok');
+  await page.locator('#error').click();
+  const updatedSession = await updatedSessionPromise;
+
+  expect(updatedSession).toEqual({
+    ...initialSession,
+    errors: 1,
+    init: false,
+    status: 'crashed',
+    timestamp: expect.any(String),
+  });
+});
