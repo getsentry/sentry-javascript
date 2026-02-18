@@ -19,6 +19,7 @@ concurrency:
 jobs:
   triage-issue:
     runs-on: ubuntu-latest
+    environment: ci-triage
     permissions:
       contents: read
       issues: read
