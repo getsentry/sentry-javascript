@@ -44,6 +44,10 @@ async function run() {
         { role: 'user', content: 'Tell me about the weather' },
       ],
     });
+
+    // Test: invoke with null input (resume after human-in-the-loop interrupt)
+    // see: https://docs.langchain.com/oss/javascript/langgraph/use-functional-api#resuming-after-an-error
+    await graph.invoke(null);
   });
 
   await Sentry.flush(2000);

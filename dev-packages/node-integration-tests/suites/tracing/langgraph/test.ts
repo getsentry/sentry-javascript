@@ -67,6 +67,20 @@ describe('LangGraph integration', () => {
         origin: 'auto.ai.langgraph',
         status: 'ok',
       }),
+      // Third invoke_agent span with null input (resume scenario)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
+        }),
+        description: 'invoke_agent weather_assistant',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
     ]),
   };
 
@@ -110,6 +124,20 @@ describe('LangGraph integration', () => {
           [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
           [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining('Tell me about the weather'),
+        }),
+        description: 'invoke_agent weather_assistant',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // Third invoke_agent span with null input (resume scenario)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
         }),
         description: 'invoke_agent weather_assistant',
         op: 'gen_ai.invoke_agent',
