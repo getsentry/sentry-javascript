@@ -1,7 +1,7 @@
 import { describe, expect, it, type Mocked, vi } from 'vitest';
-import { copyExecutionContext } from '../src/utils/copyExecutionContext';
+import { instrumentContext } from '../src/utils/instrumentContext';
 
-describe('Copy of the execution context', () => {
+describe('instrumentContext', () => {
   describe.for([
     'waitUntil',
     'passThroughOnException',
@@ -15,19 +15,19 @@ describe('Copy of the execution context', () => {
       const context = {
         [method]: vi.fn(),
       } as any;
-      const copy = copyExecutionContext(context);
-      copy[method] = vi.fn();
-      expect(context[method]).not.toBe(copy[method]);
+      const instrumented = instrumentContext(context);
+      instrumented[method] = vi.fn();
+      expect(context[method]).not.toBe(instrumented[method]);
     });
 
     it('Overridden method was called', async () => {
       const context = {
         [method]: vi.fn(),
       } as any;
-      const copy = copyExecutionContext(context);
+      const instrumented = instrumentContext(context);
       const overridden = vi.fn();
-      copy[method] = overridden;
-      copy[method]();
+      instrumented[method] = overridden;
+      instrumented[method]();
       expect(overridden).toBeCalled();
       expect(context[method]).not.toBeCalled();
     });
@@ -35,7 +35,7 @@ describe('Copy of the execution context', () => {
 
   it('No side effects', async () => {
     const context = makeExecutionContextMock();
-    expect(() => copyExecutionContext(Object.freeze(context))).not.toThrow(
+    expect(() => instrumentContext(Object.freeze(context))).not.toThrow(
       /Cannot define property \w+, object is not extensible/,
     );
   });
@@ -43,8 +43,8 @@ describe('Copy of the execution context', () => {
     const s = Symbol('test');
     const context = makeExecutionContextMock<ExecutionContext & { [s]: unknown }>();
     context[s] = {};
-    const copy = copyExecutionContext(context);
-    expect(copy[s]).toBe(context[s]);
+    const instrumented = instrumentContext(context);
+    expect(instrumented[s]).toBe(context[s]);
   });
 });
 
