@@ -67,20 +67,6 @@ describe('LangGraph integration', () => {
         origin: 'auto.ai.langgraph',
         status: 'ok',
       }),
-      // Third invoke_agent span with null input (resume scenario)
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
-          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
-        }),
-        description: 'invoke_agent weather_assistant',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.ai.langgraph',
-        status: 'ok',
-      }),
     ]),
   };
 
@@ -124,20 +110,6 @@ describe('LangGraph integration', () => {
           [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
           [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining('Tell me about the weather'),
-        }),
-        description: 'invoke_agent weather_assistant',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.ai.langgraph',
-        status: 'ok',
-      }),
-      // Third invoke_agent span with null input (resume scenario)
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
-          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
         }),
         description: 'invoke_agent weather_assistant',
         op: 'gen_ai.invoke_agent',
@@ -346,4 +318,54 @@ describe('LangGraph integration', () => {
       });
     },
   );
+
+  // Test for null input resume scenario (https://github.com/getsentry/sentry-javascript/issues/19353)
+  const EXPECTED_TRANSACTION_RESUME = {
+    transaction: 'langgraph-resume-test',
+    contexts: {
+      trace: expect.objectContaining({
+        status: 'ok',
+      }),
+    },
+    spans: expect.arrayContaining([
+      // create_agent span
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'resume_agent',
+        },
+        description: 'create_agent resume_agent',
+        op: 'gen_ai.create_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // invoke_agent span with null input (resume)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'resume_agent',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'resume_agent',
+          [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: 'resume-thread-1',
+        }),
+        description: 'invoke_agent resume_agent',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-resume.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('should not throw when invoke is called with null input (resume scenario)', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_RESUME })
+        .start()
+        .completed();
+    });
+  });
 });

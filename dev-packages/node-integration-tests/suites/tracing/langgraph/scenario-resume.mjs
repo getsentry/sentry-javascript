@@ -1,9 +1,8 @@
-import { END, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph';
+import { END, MemorySaver, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph';
 import * as Sentry from '@sentry/node';
 
 async function run() {
-  await Sentry.startSpan({ op: 'function', name: 'langgraph-test' }, async () => {
-    // Define a simple mock LLM function
+  await Sentry.startSpan({ op: 'function', name: 'langgraph-resume-test' }, async () => {
     const mockLlm = () => {
       return {
         messages: [
@@ -24,27 +23,18 @@ async function run() {
       };
     };
 
-    // Create and compile the graph
+    // Test: invoke with null input (resume after human-in-the-loop interrupt)
+    // See: https://github.com/getsentry/sentry-javascript/issues/19353
+    const checkpointer = new MemorySaver();
     const graph = new StateGraph(MessagesAnnotation)
       .addNode('agent', mockLlm)
       .addEdge(START, 'agent')
       .addEdge('agent', END)
-      .compile({ name: 'weather_assistant' });
+      .compile({ name: 'resume_agent', checkpointer });
 
-    // Test: basic invocation
-    await graph.invoke({
-      messages: [{ role: 'user', content: 'What is the weather today?' }],
-    });
-
-    // Test: invocation with multiple messages
-    await graph.invoke({
-      messages: [
-        { role: 'user', content: 'Hello' },
-        { role: 'assistant', content: 'Hi there!' },
-        { role: 'user', content: 'Tell me about the weather' },
-      ],
-    });
-
+    const config = { configurable: { thread_id: 'resume-thread-1' } };
+    await graph.invoke({ messages: [{ role: 'user', content: 'Hello' }] }, config);
+    await graph.invoke(null, config);
   });
 
   await Sentry.flush(2000);
