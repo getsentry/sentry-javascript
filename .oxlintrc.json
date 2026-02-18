@@ -1,6 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "jsdoc", "jest", "vitest"],
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
   "categories": {},
   "rules": {
     // === Base rules from eslint-config-sdk/base.js ===
@@ -55,7 +61,10 @@
     "vitest/no-conditional-tests": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
-    "no-import-assign": "off"
+    "no-import-assign": "off",
+
+    // === Custom SDK rules (via JS plugin) ===
+    "sdk/no-eq-empty": "error"
   },
   "overrides": [
     {
@@ -100,7 +109,9 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+        "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
+        "sdk/no-class-field-initializers": "error",
+        "sdk/no-regexp-constructor": "error"
       }
     }
   ],

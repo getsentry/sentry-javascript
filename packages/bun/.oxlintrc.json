@@ -3,5 +3,8 @@
   "extends": ["../../.oxlintrc.json"],
   "env": {
     "node": true
+  },
+  "rules": {
+    "sdk/no-class-field-initializers": "off"
   }
 }

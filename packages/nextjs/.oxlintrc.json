@@ -5,6 +5,9 @@
     "browser": true,
     "node": true
   },
+  "rules": {
+    "sdk/no-unsafe-random-apis": "error"
+  },
   "overrides": [
     {
       "files": ["src/config/templates/**/*.ts"],
@@ -16,6 +19,12 @@
       "files": ["src/config/polyfills/perf_hooks.js"],
       "globals": {
         "globalThis": "readonly"
+      }
+    },
+    {
+      "files": ["test/**/*.ts", "test/**/*.tsx"],
+      "rules": {
+        "sdk/no-unsafe-random-apis": "off"
       }
     }
   ]

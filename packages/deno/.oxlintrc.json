@@ -1,5 +1,8 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
+  "rules": {
+    "sdk/no-class-field-initializers": "off"
+  },
   "ignorePatterns": ["lib.deno.d.ts", "scripts/*.mjs", "build-types/**", "build-test/**", "build/**"]
 }

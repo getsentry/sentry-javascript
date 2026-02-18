@@ -4,5 +4,8 @@
   "env": {
     "node": true
   },
+  "rules": {
+    "sdk/no-class-field-initializers": "off"
+  },
   "ignorePatterns": ["build/**/*", "examples/**/*", "vitest.config.ts"]
 }
