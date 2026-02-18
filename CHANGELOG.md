@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @LudvigHz. Thank you for your contribution!
+
 - **feat(tanstackstart-react): Add global sentry exception middlewares ([#19330](https://github.com/getsentry/sentry-javascript/pull/19330))**
 
   The `sentryGlobalRequestMiddleware` and `sentryGlobalFunctionMiddleware` global middlewares capture unhandled exceptions thrown in TanStack Start API routes and server functions. Add them as the first entries in the `requestMiddleware` and `functionMiddleware` arrays of `createStart()`:
