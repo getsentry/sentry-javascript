@@ -229,9 +229,9 @@ describe('LangGraph integration', () => {
       // create_agent span
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'create_agent',
-          'sentry.op': 'gen_ai.create_agent',
-          'sentry.origin': 'auto.ai.langgraph',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
         }),
         description: expect.stringContaining('create_agent'),
         op: 'gen_ai.create_agent',
@@ -241,9 +241,9 @@ describe('LangGraph integration', () => {
       // invoke_agent span
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'invoke_agent',
-          'sentry.op': 'gen_ai.invoke_agent',
-          'sentry.origin': 'auto.ai.langgraph',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
         }),
         description: expect.stringContaining('invoke_agent'),
         op: 'gen_ai.invoke_agent',
