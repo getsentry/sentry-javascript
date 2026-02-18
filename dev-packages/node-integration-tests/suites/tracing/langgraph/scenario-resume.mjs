@@ -24,7 +24,7 @@ async function run() {
     };
 
     // Test: invoke with null input (resume after human-in-the-loop interrupt)
-    // See: https://github.com/getsentry/sentry-javascript/issues/19353
+    // See: https://docs.langchain.com/oss/javascript/langgraph/use-functional-api#resuming-after-an-error
     const checkpointer = new MemorySaver();
     const graph = new StateGraph(MessagesAnnotation)
       .addNode('agent', mockLlm)
