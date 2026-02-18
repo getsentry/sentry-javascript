@@ -46,20 +46,6 @@ All ESLint configuration files have been removed from the codebase:
 - `packages/*/.oxlintrc.json` - Extends root, package-specific overrides
 - `dev-packages/*/.oxlintrc.json` - Extends root, dev-package-specific overrides
 
-## Rules Status After Re-evaluation
-
-### Downgraded to Warning
-
-| Rule             | Status | Errors if enabled | Reason                                   |
-| ---------------- | ------ | ----------------- | ---------------------------------------- |
-| `complexity`     | `warn` | 26 errors         | Many functions exceed limit of 20        |
-| `no-unused-vars` | `off`  | 22 errors         | Catch params like `e`, `err` not ignored |
-
-### Test File Overrides Not Working from Root
-
-The glob patterns in root `.oxlintrc.json` overrides like `**/test/**` don't work when running from root.
-Workaround: Rules for test files need to be disabled globally or in package-specific configs.
-
 ## Ignored Files/Directories
 
 These were added to `ignorePatterns` to silence errors in vendored/generated code:
@@ -120,14 +106,12 @@ These were added to `ignorePatterns` to silence errors in vendored/generated cod
 
 The `@sentry-internal/eslint-plugin-sdk` contains 6 custom rules. These can be loaded via Oxlint's JS plugins feature.
 
-| Rule                          | Status      | Notes                                           |
-| ----------------------------- | ----------- | ----------------------------------------------- |
-| `no-eq-empty`                 | **Gap**     | Disallow `=== []` or `=== {}`                   |
-| `no-class-field-initializers` | **Gap**     | Disallow class field initializers (bundle size) |
-| `no-regexp-constructor`       | **Gap**     | Warn about `new RegExp()` usage                 |
-| `no-unsafe-random-apis`       | **Gap**     | Disallow `Math.random()` etc                    |
-| `no-focused-tests`            | **Covered** | Use `jest/no-focused-tests`                     |
-| `no-skipped-tests`            | **Covered** | Use `jest/no-disabled-tests`                    |
+| Rule                          | Status  | Notes                                           |
+| ----------------------------- | ------- | ----------------------------------------------- |
+| `no-eq-empty`                 | **Gap** | Disallow `=== []` or `=== {}`                   |
+| `no-class-field-initializers` | **Gap** | Disallow class field initializers (bundle size) |
+| `no-regexp-constructor`       | **Gap** | Warn about `new RegExp()` usage                 |
+| `no-unsafe-random-apis`       | **Gap** | Disallow `Math.random()` etc                    |
 
 ## Type-Aware Linting
 
