@@ -3,7 +3,7 @@ name: Triage Issue
 on:
   # Only trigger this workflow manually for now
   # issues:
-    # types: [opened]
+  # types: [opened]
   workflow_dispatch:
     inputs:
       issue_number:
