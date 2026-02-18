@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      issues: read
+      pull-requests: read
     # Only run for Bug or Feature issues (automatic mode)
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -53,10 +53,15 @@ jobs:
 
       - name: Run Claude triage
         uses: anthropics/claude-code-action@v1
-        env:
-          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          settings: |
+            {
+              "env": {
+                "LINEAR_CLIENT_ID": ${{ secrets.LINEAR_CLIENT_ID }},
+                "LINEAR_CLIENT_SECRET":${{ secrets.LINEAR_CLIENT_SECRET }}
+              }
+            }
           prompt: |
             /triage-issue ${{ steps.parse-issue.outputs.issue_number }} --mode CI
           claude_args: '--max-turns 20'
