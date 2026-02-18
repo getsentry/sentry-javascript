@@ -12,12 +12,12 @@ export interface HandleTunnelRequestOptions {
 /**
  * Core Sentry tunnel handler - framework agnostic.
  *
- * Validates the envelope DSN against allowed DSNs and constructs a
- * forwarding request to the Sentry ingest endpoint.
+ * Validates the envelope DSN against allowed DSNs, then forwards the
+ * envelope to the Sentry ingest endpoint.
  *
- * @returns A `Request` to forward to Sentry on success, or a `Response` with an error.
+ * @returns A `Response` — either the upstream Sentry response on success, or an error response.
  */
-export async function createTunnelRequest(options: HandleTunnelRequestOptions): Promise<Request | Response> {
+export async function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
   const { request, allowedDsns } = options;
 
   if (allowedDsns.length === 0) {
@@ -54,11 +54,16 @@ export async function createTunnelRequest(options: HandleTunnelRequestOptions): 
 
   const sentryIngestUrl = `https://${dsnComponents.host}/api/${dsnComponents.projectId}/envelope/`;
 
-  return new Request(sentryIngestUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-sentry-envelope',
-    },
-    body,
-  });
+  try {
+    return await fetch(sentryIngestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+      },
+      body,
+    });
+  } catch (error) {
+    debug.error('Sentry tunnel: failed to forward envelope', error);
+    return new Response('Failed to forward envelope to Sentry', { status: 500 });
+  }
 }

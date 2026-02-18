@@ -70,7 +70,7 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
-export { createTunnelRequest } from './utils/tunnel';
+export { handleTunnelRequest } from './utils/tunnel';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 // eslint-disable-next-line deprecation/deprecation
