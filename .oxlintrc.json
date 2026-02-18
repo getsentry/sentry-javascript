@@ -69,7 +69,8 @@
         "typescript/no-explicit-any": "off",
         "typescript/no-non-null-assertion": "off",
         "typescript/no-floating-promises": "off",
-        "max-lines": "off"
+        "max-lines": "off",
+        "complexity": "off"
       }
     },
     {
@@ -101,12 +102,6 @@
       "files": ["**/src/**"],
       "rules": {
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
-      }
-    },
-    {
-      "files": ["**/test/**"],
-      "rules": {
-        "complexity": "off"
       }
     }
   ],
