@@ -19,9 +19,9 @@ export class LayoutShiftManager {
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _onAfterProcessingUnexpectedShift?: (entry: LayoutShift) => void;
 
-  // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers, @typescript-eslint/explicit-member-accessibility
+  // oxlint-disable-next-line sdk/no-class-field-initializers
   _sessionValue = 0;
-  // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers, @typescript-eslint/explicit-member-accessibility
+  // oxlint-disable-next-line sdk/no-class-field-initializers
   _sessionEntries: LayoutShift[] = [];
 
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility

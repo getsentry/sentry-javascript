@@ -54,7 +54,7 @@ export async function makeGlobalValuesInjectionPlugin(
     console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
   }
 
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
   const hooksFileRegexp = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`);
 
   return {

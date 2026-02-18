@@ -9,7 +9,7 @@ import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
 import { safeMathRandom } from './randomSafeContext';
 
-// eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
+// oxlint-disable-next-line sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
     '([0-9a-f]{32})?' + // trace_id

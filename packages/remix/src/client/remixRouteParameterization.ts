@@ -45,7 +45,7 @@ function getCompiledRegex(regexString: string): RegExp | null {
   }
 
   try {
-    // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- regex patterns are from build-time route manifest, not user input
+    // oxlint-disable-next-line sdk/no-regexp-constructor -- regex patterns are from build-time route manifest, not user input
     const regex = new RegExp(regexString);
     compiledRegexCache.set(regexString, regex);
     return regex;
