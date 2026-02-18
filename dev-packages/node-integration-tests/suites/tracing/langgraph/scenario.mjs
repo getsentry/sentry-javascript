@@ -44,7 +44,6 @@ async function run() {
         { role: 'user', content: 'Tell me about the weather' },
       ],
     });
-
   });
 
   await Sentry.flush(2000);
