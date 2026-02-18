@@ -9,7 +9,7 @@
     "no-param-reassign": "error",
     "prefer-template": "error",
     "no-bitwise": "error",
-    "complexity": "warn",
+    "complexity": ["error", { "max": 33 }],
     "no-unused-expressions": ["error", { "allowShortCircuit": true }],
     "guard-for-in": "error",
     "array-callback-return": ["error", { "allowImplicit": true }],
@@ -55,7 +55,8 @@
     "vitest/no-conditional-tests": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+    "no-import-assign": "off"
   },
   "overrides": [
     {
@@ -100,6 +101,12 @@
       "files": ["**/src/**"],
       "rules": {
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+      }
+    },
+    {
+      "files": ["**/test/**"],
+      "rules": {
+        "complexity": "off"
       }
     }
   ],
