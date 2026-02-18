@@ -119,23 +119,27 @@ If the issue is complex or the fix is unclear, skip this section and instead not
   Use the Python script at `assets/post_linear_comment.py` to handle the entire Linear API interaction. This avoids all shell escaping issues with GraphQL (`$input`, `CommentCreateInput!`) and markdown content (backticks, `$`, quotes).
 
   The script reads `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` from environment variables (set from GitHub Actions secrets), obtains an OAuth token, checks for duplicate triage comments, and posts the comment.
-  1. **Write the report body to a temp file** using the Write tool (not Bash). This keeps markdown completely out of shell.
-
-     Write the triage report to `/tmp/triage_report.md`.
+  1. **Write the report body to a file** using the Write tool (not Bash). This keeps markdown completely out of shell.
+     - **In CI:** Write to `triage_report.md` in the repository root. The CI sandbox only allows writes inside the working directory; `/tmp` and Bash output redirection are blocked.
+     - **Locally:** You may use `/tmp/triage_report.md` or `triage_report.md` in the repo root.
 
   2. **Run the script:**
 
      ```bash
-     python3 .claude/skills/triage-issue/assets/post_linear_comment.py "JS-XXXX" "/tmp/triage_report.md"
+     python3 .claude/skills/triage-issue/assets/post_linear_comment.py "JS-XXXX" "triage_report.md"
      ```
+
+     (Use the same path you wrote to: `triage_report.md` in CI, or `/tmp/triage_report.md` locally if you used that.)
 
   If the script fails (non-zero exit), fall back to printing the full report to the terminal.
 
-  Clean up temp files after:
+  Clean up after:
 
   ```bash
-  rm -f /tmp/triage_report.md
+  rm -f triage_report.md
   ```
+
+  (In CI only `triage_report.md` in the repo root is writable; use that path for write, script, and rm.)
 
 ## Important Rules
 
