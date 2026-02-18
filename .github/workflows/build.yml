@@ -307,16 +307,29 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check for duplicate dependencies in lockfile
-        # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
-        run: yarn dedupe-deps:check
       - name: Lint source files
-        run: yarn lint:lerna
+        run: yarn lint:eslint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
+  job_check_lockfile:
+    name: Check lockfile
+    needs: [job_get_metadata]
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
       - name: Check that yarn.lock is stable
-        run: yarn && git diff --exit-code yarn.lock
+        run: yarn install --frozen-lockfile --ignore-engines
+      - name: Check for duplicate dependencies in lockfile
+        run: yarn dedupe-deps:check
 
   job_check_format:
     name: Check file formatting
@@ -1204,6 +1217,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
+        job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
         job_size_check,

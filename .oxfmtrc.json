@@ -12,11 +12,7 @@
     "dev-packages/browser-integration-tests/fixtures",
     "**/test.ts-snapshots/**",
     "/.nx/cache",
-    "/.nx/workspace-data",
-    "dev-packages/**/*.html",
-    "dev-packages/**/*.hbs",
-    "packages/ember/**/*.hbs",
-    "packages/ember/**/*.html"
+    "/.nx/workspace-data"
   ],
   "overrides": [
     {

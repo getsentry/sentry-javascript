@@ -99,13 +99,11 @@
     }
   },
   "dependencies": {
-    "@apm-js-collab/tracing-hooks": "^0.3.1",
     "@sentry/core": "10.39.0",
     "@sentry/opentelemetry": "10.39.0",
     "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer": "^0.8.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.1",
     "@opentelemetry/core": "^2.5.1",
@@ -122,10 +120,9 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
