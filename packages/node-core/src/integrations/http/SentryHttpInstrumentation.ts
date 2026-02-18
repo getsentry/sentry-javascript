@@ -499,10 +499,13 @@ function getResponseContentLengthAttributes(response: http.IncomingMessage): Spa
   }
 }
 
-function getContentLength(headers: http.OutgoingHttpHeaders): number | undefined {
+function getContentLength(headers: http.OutgoingHttpHeaders | http.IncomingHttpHeaders): number | undefined {
   const contentLengthHeader = headers['content-length'];
-  if (typeof contentLengthHeader !== 'string') {
+  if (typeof contentLengthHeader === 'number') {
     return contentLengthHeader;
+  }
+  if (typeof contentLengthHeader !== 'string') {
+    return undefined;
   }
 
   const contentLength = parseInt(contentLengthHeader, 10);
