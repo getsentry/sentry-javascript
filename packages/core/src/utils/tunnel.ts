@@ -1,3 +1,4 @@
+import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import { parseEnvelope } from './envelope';
@@ -52,7 +53,7 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
     return new Response('Invalid DSN', { status: 403 });
   }
 
-  const sentryIngestUrl = `https://${dsnComponents.host}/api/${dsnComponents.projectId}/envelope/`;
+  const sentryIngestUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents);
 
   try {
     return await fetch(sentryIngestUrl, {

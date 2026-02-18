@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
+import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import { handleTunnelRequest } from '../../../src/utils/tunnel';
 
@@ -33,7 +35,7 @@ describe('handleTunnelRequest', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toBe('https://dsn.ingest.sentry.io/api/1337/envelope/');
+    expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
     expect(init.body).toBeInstanceOf(Uint8Array);
@@ -103,7 +105,7 @@ describe('handleTunnelRequest', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url] = fetchMock.mock.calls[0]!;
-    expect(url).toBe('https://dsn.ingest.sentry.io/api/1337/envelope/');
+    expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
     expect(result).toBe(upstreamResponse);
   });
 
