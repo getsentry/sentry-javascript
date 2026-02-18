@@ -5,10 +5,15 @@
     "node": true
   },
   "rules": {
-    "sdk/no-class-field-initializers": "off",
     "sdk/no-unsafe-random-apis": "error"
   },
   "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "sdk/no-class-field-initializers": "off"
+      }
+    },
     {
       "files": ["test/**/*.ts", "test/**/*.tsx"],
       "rules": {
