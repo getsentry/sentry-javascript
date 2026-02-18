@@ -80,7 +80,11 @@ export function instrumentDurableObjectWithSentry<
       }
 
       if (obj.alarm && typeof obj.alarm === 'function') {
-        obj.alarm = wrapMethodWithSentry({ options, context, spanName: 'alarm' }, obj.alarm);
+        // Alarms are independent invocations, so we start a new trace and link to the previous alarm
+        obj.alarm = wrapMethodWithSentry(
+          { options, context, spanName: 'alarm', spanOp: 'function', startNewTrace: true, linkPreviousTrace: true },
+          obj.alarm,
+        );
       }
 
       if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {

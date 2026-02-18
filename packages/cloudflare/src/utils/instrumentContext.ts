@@ -41,13 +41,14 @@ export function instrumentContext<T extends ContextType>(ctx: T): T {
   // If so, wrap the storage with instrumentation
   if ('storage' in ctx && ctx.storage) {
     const originalStorage = ctx.storage;
+    const waitUntil = 'waitUntil' in ctx && typeof ctx.waitUntil === 'function' ? ctx.waitUntil.bind(ctx) : undefined;
     let instrumentedStorage: DurableObjectStorage | undefined;
     descriptors.storage = {
       configurable: true,
       enumerable: true,
       get: () => {
         if (!instrumentedStorage) {
-          instrumentedStorage = instrumentDurableObjectStorage(originalStorage);
+          instrumentedStorage = instrumentDurableObjectStorage(originalStorage, waitUntil);
         }
         return instrumentedStorage;
       },
