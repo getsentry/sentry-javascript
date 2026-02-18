@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solid",
-  "version": "10.38.0",
+  "version": "10.39.0",
   "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
@@ -54,8 +54,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.38.0",
-    "@sentry/core": "10.38.0"
+    "@sentry/browser": "10.39.0",
+    "@sentry/core": "10.39.0"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
@@ -88,10 +88,9 @@
     "build:types": "run-s build:types:core build:types:routers",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",

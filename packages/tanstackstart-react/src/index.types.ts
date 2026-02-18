@@ -37,3 +37,6 @@ export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
 export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;
+
+export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
+export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;

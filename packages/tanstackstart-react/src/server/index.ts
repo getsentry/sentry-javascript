@@ -6,6 +6,7 @@ export * from '@sentry/node';
 export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
+export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
