@@ -34,6 +34,7 @@ import { INSTRUMENTATION_NAME } from './constants';
 import {
   addRequestBreadcrumb,
   addTracePropagationHeadersToOutgoingRequest,
+  getClientRequestUrl,
   getRequestOptions,
 } from './outgoing-requests';
 
@@ -405,13 +406,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     }
 
     const options = getRequestOptions(request);
-    const url = getRequestUrl(request);
+    const url = getClientRequestUrl(request);
     return ignoreOutgoingRequests(url, options);
   }
 }
 
 function _getOutgoingRequestSpanData(request: http.ClientRequest): [string, SpanAttributes] {
-  const url = getRequestUrl(request);
+  const url = getClientRequestUrl(request);
 
   const [name, attributes] = getHttpSpanDetailsFromUrlObject(
     parseStringToURLObject(url),
@@ -437,14 +438,6 @@ function _getOutgoingRequestSpanData(request: http.ClientRequest): [string, Span
       ...attributes,
     },
   ];
-}
-
-function getRequestUrl(request: http.ClientRequest): string {
-  const hostname = request.getHeader('host') || request.host;
-  const protocol = request.protocol;
-  const path = request.path;
-
-  return `${protocol}//${hostname}${path}`;
 }
 
 function _getOutgoingRequestEndedSpanData(response: http.IncomingMessage): SpanAttributes {
