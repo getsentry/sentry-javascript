@@ -391,12 +391,16 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       const span = this._startSpanForOutgoingRequest(request);
 
       // Propagate headers within the span's context so the sentry-trace header
-      // contains the outgoing span's ID, not the parent span's ID
-      if (shouldPropagate) {
+      // contains the outgoing span's ID, not the parent span's ID.
+      // Only do this if the span is recording (has a parent) - otherwise the non-recording
+      // span would produce all-zero trace IDs instead of using the scope's propagation context.
+      if (shouldPropagate && span.isRecording()) {
         const requestContext = trace.setSpan(context.active(), span);
         context.with(requestContext, () => {
           addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
         });
+      } else if (shouldPropagate) {
+        addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
       }
     } else if (shouldPropagate) {
       addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
