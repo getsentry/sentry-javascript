@@ -24,6 +24,7 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+      id-token: write
     # Only run for Bug or Feature issues (automatic mode)
     if: |
       github.event_name == 'workflow_dispatch' ||
