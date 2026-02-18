@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "10.38.0",
+  "version": "10.39.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",
+    "@apollo/server": "^5.4.0",
     "@aws-sdk/client-s3": "^3.552.0",
     "@google/genai": "^1.20.0",
     "@growthbook/growthbook": "^1.6.1",
@@ -37,15 +38,14 @@
     "@nestjs/platform-express": "^11",
     "@prisma/adapter-pg": "7.2.0",
     "@prisma/client": "6.15.0",
-    "@sentry/aws-serverless": "10.38.0",
-    "@sentry/core": "10.38.0",
-    "@sentry/node": "10.38.0",
+    "@sentry/aws-serverless": "10.39.0",
+    "@sentry/core": "10.39.0",
+    "@sentry/node": "10.39.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "ai": "^4.3.16",
     "amqplib": "^0.10.7",
-    "@apollo/server": "^5.4.0",
     "body-parser": "^1.20.3",
     "connect": "^3.7.0",
     "consola": "^3.2.3",
@@ -72,7 +72,7 @@
     "node-schedule": "^2.1.1",
     "openai": "5.18.1",
     "pg": "8.16.0",
-    "pino": "9.9.4",
+    "pino": "9.10.0",
     "pino-next": "npm:pino@^9.12.0",
     "postgres": "^3.4.7",
     "prisma": "6.15.0",
@@ -85,7 +85,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "10.38.0",
+    "@sentry-internal/test-utils": "10.39.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",

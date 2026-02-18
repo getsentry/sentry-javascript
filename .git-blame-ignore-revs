@@ -24,3 +24,6 @@ c88ff463a5566194a454b58bc555f183cf9ee813
 
 # chore: Ensure prettier is run on all files #17497
 90edf65b3d93c89ae576b063a839541022f478cf
+
+# chore: Unignore HTML files and reformat with oxfmt (#19311)
+b1d25bb2462feb02defcdb28221759e26c115d99
