@@ -55,7 +55,6 @@
     "vitest/no-conditional-tests": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
-    "no-unused-vars": "off",
     "no-import-assign": "off"
   },
   "overrides": [
