@@ -22,6 +22,13 @@ const mockEnableSourceMapsPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockNitroSourcemapExcludeSourcesPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-sourcemap-exclude-sources',
+  apply: 'build',
+  enforce: 'post',
+  config: vi.fn(),
+};
+
 const mockMiddlewarePlugin: Plugin = {
   name: 'sentry-tanstack-middleware-auto-instrument',
   apply: 'build',
@@ -31,6 +38,7 @@ const mockMiddlewarePlugin: Plugin = {
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
+  makeNitroSourcemapExcludeSourcesPlugin: vi.fn(() => mockNitroSourcemapExcludeSourcesPlugin),
 }));
 
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
@@ -51,7 +59,12 @@ describe('sentryTanstackStart()', () => {
     it('returns source maps plugins in production mode', () => {
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockEnableSourceMapsPlugin,
+        mockNitroSourcemapExcludeSourcesPlugin,
+      ]);
     });
 
     it('returns no plugins in development mode', () => {
@@ -86,7 +99,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: false },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockEnableSourceMapsPlugin,
+        mockNitroSourcemapExcludeSourcesPlugin,
+      ]);
     });
   });
 
