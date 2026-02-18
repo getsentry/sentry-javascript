@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends client-side error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
@@ -51,6 +51,7 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
           type: 'Error',
           value: 'Sentry Server Function Test Error',
           mechanism: {
+            type: 'auto.middleware.tanstackstart.server_function',
             handled: false,
           },
         },
@@ -58,10 +59,10 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
     },
   });
 
-  expect(errorEvent.transaction).toBe('/');
+  expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
 });
 
-test('Sends API route error to Sentry if manually instrumented', async ({ page }) => {
+test('Sends API route error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
   });
@@ -81,7 +82,8 @@ test('Sends API route error to Sentry if manually instrumented', async ({ page }
           type: 'Error',
           value: 'Sentry API Route Test Error',
           mechanism: {
-            handled: true,
+            type: 'auto.middleware.tanstackstart.request',
+            handled: false,
           },
         },
       ],
@@ -89,4 +91,29 @@ test('Sends API route error to Sentry if manually instrumented', async ({ page }
   });
 
   expect(errorEvent.transaction).toBe('GET /api/error');
+});
+
+// the sentry global middleware does not capture errors from SSR loader errors since they are serialized before they reach the middleware layer
+// this test verifies that the error is in fact not sent to Sentry
+test('Does not send SSR loader error to Sentry', async ({ baseURL, page }) => {
+  let errorEventOccurred = false;
+
+  waitForError('tanstackstart-react', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
+      errorEventOccurred = true;
+    }
+    return event?.transaction === 'GET /ssr-error';
+  });
+
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /ssr-error';
+  });
+
+  await page.goto('/ssr-error');
+
+  await transactionEventPromise;
+
+  await (await fetch(`${baseURL}/api/flush`)).text();
+
+  expect(errorEventOccurred).toBe(false);
 });

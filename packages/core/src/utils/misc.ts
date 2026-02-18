@@ -227,7 +227,13 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   return false;
 }
 
-function isAlreadyCaptured(exception: unknown): boolean | void {
+/**
+ * Checks whether we've already captured the given exception (note: not an identical exception - the very object).
+ * It is considered already captured if it has the `__sentry_captured__` property set to `true`.
+ *
+ * @internal Only considered for internal usage
+ */
+export function isAlreadyCaptured(exception: unknown): boolean | void {
   try {
     return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
   } catch {} // eslint-disable-line no-empty
