@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
@@ -90,6 +91,18 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
   ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
+
+  /**
+   * Hooks for outgoing request spans, called when `createSpansForOutgoingRequests` is enabled.
+   * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
+   */
+  outgoingRequestHook?: (span: Span, request: http.ClientRequest) => void;
+  outgoingResponseHook?: (span: Span, response: http.IncomingMessage) => void;
+  outgoingRequestApplyCustomAttributes?: (
+    span: Span,
+    request: http.ClientRequest,
+    response: http.IncomingMessage,
+  ) => void;
 
   // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
   // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
@@ -255,6 +268,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       onlyIfParent: true,
     });
 
+    this.getConfig().outgoingRequestHook?.(span, request);
+
     const newOnce = new Proxy(originalOnce, {
       apply(target, thisArg, args: Parameters<typeof originalOnce>) {
         const [event] = args;
@@ -298,6 +313,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
       const additionalAttributes = _getOutgoingRequestEndedSpanData(response);
       span.setAttributes(additionalAttributes);
+
+      this.getConfig().outgoingResponseHook?.(span, response);
+      this.getConfig().outgoingRequestApplyCustomAttributes?.(span, request, response);
 
       const endHandler = (forceError: boolean = false): void => {
         this._diag.debug('outgoingRequest on end()');

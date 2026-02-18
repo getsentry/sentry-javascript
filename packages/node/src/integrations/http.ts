@@ -257,6 +257,20 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
         spans: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+        outgoingRequestHook: (span, request) => {
+          // Sanitize data URLs to prevent long base64 strings in span attributes
+          const url = getRequestUrl(request);
+          if (url.startsWith('data:')) {
+            const sanitizedUrl = stripDataUrlContent(url);
+            span.setAttribute('http.url', sanitizedUrl);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
+            span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+          }
+
+          options.instrumentation?.requestHook?.(span, request);
+        },
+        outgoingResponseHook: options.instrumentation?.responseHook,
+        outgoingRequestApplyCustomAttributes: options.instrumentation?.applyCustomAttributesOnSpan,
       } satisfies SentryHttpInstrumentationOptions;
 
       // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
