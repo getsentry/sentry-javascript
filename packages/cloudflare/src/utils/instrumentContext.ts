@@ -1,4 +1,5 @@
-import { type DurableObjectState, type ExecutionContext } from '@cloudflare/workers-types';
+import { type DurableObjectState, type DurableObjectStorage, type ExecutionContext } from '@cloudflare/workers-types';
+import { instrumentDurableObjectStorage } from '../instrumentations/instrumentDurableObjectStorage';
 
 type ContextType = ExecutionContext | DurableObjectState;
 type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) => unknown>;
@@ -8,6 +9,8 @@ type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) =
  *
  * Creates a copy of the context that:
  * - Allows overriding of methods (e.g., waitUntil)
+ * - For DurableObjectState: instruments storage operations (get, put, delete, list, etc.)
+ *   to create Sentry spans automatically
  *
  * @param ctx - The execution context or DurableObjectState to instrument
  * @returns An instrumented copy of the context
@@ -33,6 +36,30 @@ export function instrumentContext<T extends ContextType>(ctx: T): T {
     },
     {} as PropertyDescriptorMap,
   );
+
+  // Check if this is a DurableObjectState context with a storage property
+  // If so, wrap the storage with instrumentation
+  if ('storage' in ctx && ctx.storage) {
+    const originalStorage = ctx.storage;
+    let instrumentedStorage: DurableObjectStorage | undefined;
+    descriptors.storage = {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        if (!instrumentedStorage) {
+          instrumentedStorage = instrumentDurableObjectStorage(originalStorage);
+        }
+        return instrumentedStorage;
+      },
+    };
+    // Expose the original uninstrumented storage for internal Sentry operations
+    // This avoids creating spans for internal storage operations
+    descriptors.originalStorage = {
+      configurable: true,
+      enumerable: false,
+      get: () => originalStorage,
+    };
+  }
 
   return Object.create(ctx, descriptors);
 }
