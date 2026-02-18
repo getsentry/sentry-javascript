@@ -131,7 +131,7 @@
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "oxfmt": "^0.31.0",
+    "oxfmt": "^0.32.0",
     "rimraf": "^5.0.10",
     "rollup": "^4.35.0",
     "rollup-plugin-cleanup": "^3.2.1",

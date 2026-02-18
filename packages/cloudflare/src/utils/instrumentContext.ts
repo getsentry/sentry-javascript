@@ -4,12 +4,15 @@ type ContextType = ExecutionContext | DurableObjectState;
 type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) => unknown>;
 
 /**
- * Creates a new copy of the given execution context, optionally overriding methods.
+ * Instruments an execution context or DurableObjectState with Sentry tracing.
  *
- * @param {ContextType|void} ctx - The execution context to be copied. Can be of type `ContextType` or `void`.
- * @return {ContextType|void} A new execution context with the same properties and overridden methods if applicable.
+ * Creates a copy of the context that:
+ * - Allows overriding of methods (e.g., waitUntil)
+ *
+ * @param ctx - The execution context or DurableObjectState to instrument
+ * @returns An instrumented copy of the context
  */
-export function copyExecutionContext<T extends ContextType>(ctx: T): T {
+export function instrumentContext<T extends ContextType>(ctx: T): T {
   if (!ctx) return ctx;
 
   const overrides: OverridesStore<T> = new Map();
@@ -17,16 +20,19 @@ export function copyExecutionContext<T extends ContextType>(ctx: T): T {
   const prototypeMethodNames = Object.getOwnPropertyNames(contextPrototype) as unknown as (keyof T)[];
   const ownPropertyNames = Object.getOwnPropertyNames(ctx) as unknown as (keyof T)[];
   const instrumented = new Set<unknown>(['constructor']);
-  const descriptors = [...ownPropertyNames, ...prototypeMethodNames].reduce((prevDescriptors, methodName) => {
-    if (instrumented.has(methodName)) return prevDescriptors;
-    if (typeof ctx[methodName] !== 'function') return prevDescriptors;
-    instrumented.add(methodName);
-    const overridableDescriptor = makeOverridableDescriptor(overrides, ctx, methodName);
-    return {
-      ...prevDescriptors,
-      [methodName]: overridableDescriptor,
-    };
-  }, {});
+  const descriptors: PropertyDescriptorMap = [...ownPropertyNames, ...prototypeMethodNames].reduce(
+    (prevDescriptors, methodName) => {
+      if (instrumented.has(methodName)) return prevDescriptors;
+      if (typeof ctx[methodName] !== 'function') return prevDescriptors;
+      instrumented.add(methodName);
+      const overridableDescriptor = makeOverridableDescriptor(overrides, ctx, methodName);
+      return {
+        ...prevDescriptors,
+        [methodName]: overridableDescriptor,
+      };
+    },
+    {} as PropertyDescriptorMap,
+  );
 
   return Object.create(ctx, descriptors);
 }
