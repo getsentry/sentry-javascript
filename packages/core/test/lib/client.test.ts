@@ -2216,7 +2216,9 @@ describe('Client', () => {
     test('close flushes the logs buffer', async () => {
       vi.useRealTimers();
 
-      const flushLogsSpy = vi.spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer').mockImplementation(() => undefined);
+      const flushLogsSpy = vi
+        .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
+        .mockImplementation(() => undefined);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
