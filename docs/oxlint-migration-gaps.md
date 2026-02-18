@@ -104,14 +104,7 @@ These were added to `ignorePatterns` to silence errors in vendored/generated cod
 
 ## Custom Sentry Plugin Rules
 
-The `@sentry-internal/eslint-plugin-sdk` contains 6 custom rules. These can be loaded via Oxlint's JS plugins feature.
-
-| Rule                          | Status  | Notes                                           |
-| ----------------------------- | ------- | ----------------------------------------------- |
-| `no-eq-empty`                 | **Gap** | Disallow `=== []` or `=== {}`                   |
-| `no-class-field-initializers` | **Gap** | Disallow class field initializers (bundle size) |
-| `no-regexp-constructor`       | **Gap** | Warn about `new RegExp()` usage                 |
-| `no-unsafe-random-apis`       | **Gap** | Disallow `Math.random()` etc                    |
+Custom rules have been ported to Oxlint via [JS plugins API](https://oxc.rs/docs/guide/usage/linter/js-plugins.html#using-js-plugins).
 
 ## Type-Aware Linting
 

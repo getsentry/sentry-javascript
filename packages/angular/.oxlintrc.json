@@ -4,5 +4,8 @@
   "env": {
     "browser": true
   },
+  "rules": {
+    "sdk/no-class-field-initializers": "off"
+  },
   "ignorePatterns": ["setup-test.ts", "patch-vitest.ts"]
 }

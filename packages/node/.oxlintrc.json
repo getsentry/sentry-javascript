@@ -3,5 +3,17 @@
   "extends": ["../../.oxlintrc.json"],
   "env": {
     "node": true
-  }
+  },
+  "rules": {
+    "sdk/no-class-field-initializers": "off",
+    "sdk/no-unsafe-random-apis": "error"
+  },
+  "overrides": [
+    {
+      "files": ["test/**/*.ts", "test/**/*.tsx"],
+      "rules": {
+        "sdk/no-unsafe-random-apis": "off"
+      }
+    }
+  ]
 }
