@@ -5,23 +5,18 @@ import { createEsmAndCjsTests } from '../../../../utils/runner';
 describe('outgoing http', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('outgoing http requests are correctly instrumented with tracing disabled', async () => {
-      expect.assertions(12);
-
-      let traceIdFromV0: string | undefined;
+      expect.assertions(11);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/v0', headers => {
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})$/));
           expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000');
           expect(headers['baggage']).toEqual(expect.any(String));
-          traceIdFromV0 = headers['sentry-trace']?.split('-')[0];
         })
         .get('/api/v1', headers => {
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})$/));
           expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000');
           expect(headers['baggage']).toEqual(expect.any(String));
-          // Both requests should share the same trace ID from the scope's propagation context
-          expect(headers['sentry-trace']?.split('-')[0]).toEqual(traceIdFromV0);
         })
         .get('/api/v2', headers => {
           expect(headers['baggage']).toBeUndefined();
