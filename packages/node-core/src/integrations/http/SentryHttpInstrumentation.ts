@@ -62,10 +62,9 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
 
   /**
    * Whether to enable the capability to create spans for outgoing requests via diagnostic channels.
-   * This controls whether the instrumentation subscribes to the `http.client.request.start` channel.
    * If enabled, spans will only be created if the `spans` option is also enabled (default: true).
    *
-   * This is a feature flag that should be enabled by SDKs when the runtime supports it (Node 22+).
+   * This is a feature flag that should be enabled by SDKs when the runtime supports it (Node 22.12+).
    * Individual users should not need to configure this directly.
    *
    * @default `false`
@@ -197,11 +196,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       this._onOutgoingRequestCreated(data.request);
     }) satisfies ChannelListener;
 
-    const onHttpClientRequestStart = ((_data: unknown) => {
-      const data = _data as { request: http.ClientRequest };
-      this._onOutgoingRequestStart(data.request);
-    }) satisfies ChannelListener;
-
     const wrap = <T extends Http | Https>(moduleExports: T): T => {
       if (hasRegisteredHandlers) {
         return moduleExports;
@@ -215,13 +209,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       // In this case, `http.client.response.finish` is not triggered
       subscribe('http.client.request.error', onHttpClientRequestError);
 
-      if (this.getConfig().createSpansForOutgoingRequests) {
-        subscribe('http.client.request.start', onHttpClientRequestStart);
-      }
-      // NOTE: This channel only exist since Node 22
+      // NOTE: This channel only exists since Node 22.12+
       // Before that, outgoing requests are not patched
       // and trace headers are not propagated, sadly.
-      if (this.getConfig().propagateTraceInOutgoingRequests) {
+      if (this.getConfig().propagateTraceInOutgoingRequests || this.getConfig().createSpansForOutgoingRequests) {
         subscribe('http.client.request.created', onHttpClientRequestCreated);
       }
       return moduleExports;
@@ -231,7 +222,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
       unsubscribe('http.client.request.error', onHttpClientRequestError);
       unsubscribe('http.client.request.created', onHttpClientRequestCreated);
-      unsubscribe('http.client.request.start', onHttpClientRequestStart);
     };
 
     /**
@@ -249,27 +239,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   }
 
   /**
-   * This is triggered when an outgoing request starts.
-   * It has access to the request object, and can mutate it before the request is sent.
-   */
-  private _onOutgoingRequestStart(request: http.ClientRequest): void {
-    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling started outgoing request');
-
-    const spansEnabled = this.getConfig().spans ?? true;
-
-    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
-    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
-
-    if (spansEnabled && !shouldIgnore) {
-      this._startSpanForOutgoingRequest(request);
-    }
-  }
-
-  /**
    * Start a span for an outgoing request.
    * The span wraps the callback of the request, and ends when the response is finished.
    */
-  private _startSpanForOutgoingRequest(request: http.ClientRequest): void {
+  private _startSpanForOutgoingRequest(request: http.ClientRequest): Span {
     // We monkey-patch `req.once('response'), which is used to trigger the callback of the request
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     const originalOnce = request.once;
@@ -355,6 +328,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       this._diag.debug('outgoingRequest on request error()', error);
       endSpan({ code: SpanStatusCode.ERROR });
     });
+
+    return span;
   }
 
   /**
@@ -378,9 +353,12 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
   /**
    * This is triggered when an outgoing request is created.
-   * It has access to the request object, and can mutate it before the request is sent.
+   * It creates a span (if enabled) and propagates trace headers within the span's context,
+   * so downstream services link to the outgoing HTTP span rather than its parent.
    */
   private _onOutgoingRequestCreated(request: http.ClientRequest): void {
+    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling outgoing request created');
+
     const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
     this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
 
@@ -388,7 +366,23 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
-    addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
+    const shouldCreateSpan = this.getConfig().createSpansForOutgoingRequests && (this.getConfig().spans ?? true);
+    const shouldPropagate = this.getConfig().propagateTraceInOutgoingRequests;
+
+    if (shouldCreateSpan) {
+      const span = this._startSpanForOutgoingRequest(request);
+
+      // Propagate headers within the span's context so the sentry-trace header
+      // contains the outgoing span's ID, not the parent span's ID
+      if (shouldPropagate) {
+        const requestContext = trace.setSpan(context.active(), span);
+        context.with(requestContext, () => {
+          addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
+        });
+      }
+    } else if (shouldPropagate) {
+      addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
+    }
   }
 
   /**
