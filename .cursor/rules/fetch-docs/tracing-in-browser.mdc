@@ -1,5 +1,5 @@
 ---
-description: Use this rule if you need developer documentation about tracing in the Sentry SDKs for browser environments (e.g. page-load/navigation spans and Web Vitals).
+description: Use this rule if you need developer documentation about tracing for browser environments (e.g. page-load/navigation spans and Web Vitals).
 alwaysApply: false
 ---
 
