@@ -8,11 +8,10 @@
     "SENTRY_DSN": "https://username@domain/123",
     "SENTRY_ENVIRONMENT": "qa",
     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-    "SENTRY_TUNNEL": "http://localhost:3031/"
+    "SENTRY_TUNNEL": "http://localhost:3031/",
   },
   "assets": {
     "binding": "ASSETS",
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+  },
 }
-
