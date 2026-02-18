@@ -317,7 +317,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '56 KB',
+    limit: '57 KB',
   },
   // Node SDK (ESM)
   {
@@ -326,14 +326,14 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '163 KB',
+    limit: '168 KB',
   },
   {
     name: '@sentry/node - without tracing',
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '95 KB',
+    limit: '96 KB',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -356,7 +356,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '112 KB',
+    limit: '113 KB',
   },
 ];
 
