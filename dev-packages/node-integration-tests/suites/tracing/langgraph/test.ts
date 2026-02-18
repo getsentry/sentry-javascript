@@ -361,11 +361,7 @@ describe('LangGraph integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-resume.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should not throw when invoke is called with null input (resume scenario)', async () => {
-      await createRunner()
-        .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_RESUME })
-        .start()
-        .completed();
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_RESUME }).start().completed();
     });
   });
 });
