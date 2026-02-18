@@ -2,6 +2,7 @@ import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
+import { getPackageModules } from '../util';
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -40,6 +41,9 @@ export function generateValueInjectionRules({
   if (vercelCronsConfig) {
     serverValues._sentryVercelCronsConfig = JSON.stringify(vercelCronsConfig);
   }
+  // Inject server modules (matching webpack's __SENTRY_SERVER_MODULES__ behavior)
+  // Use process.cwd() to get the project directory at build time
+  serverValues.__SENTRY_SERVER_MODULES__ = getPackageModules(process.cwd());
 
   if (Object.keys(isomorphicValues).length > 0) {
     clientValues = { ...clientValues, ...isomorphicValues };

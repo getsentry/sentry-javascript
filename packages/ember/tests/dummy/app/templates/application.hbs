@@ -1,21 +1,21 @@
-<div class="app">
-  <div class="container">
-    <div class="box">
-      <div class="sidebar">
-        <div class="logo"></div>
+<div class='app'>
+  <div class='container'>
+    <div class='box'>
+      <div class='sidebar'>
+        <div class='logo'></div>
       </div>
-      <section class="content">
-        <div class="content-container border-bottom">
+      <section class='content'>
+        <div class='content-container border-bottom'>
           <h3>Sentry Instrumented Ember Application</h3>
         </div>
-        <div class="nav">
+        <div class='nav'>
           <Link @route='index'>Errors</Link>
           <Link @route='tracing'>Tracing</Link>
           <Link @route='replay'>Replay</Link>
           <Link @route='with-loading'>With Loading</Link>
           <Link @route='with-error'>With Error</Link>
         </div>
-        <div class="content-container">
+        <div class='content-container'>
           {{outlet}}
         </div>
       </section>

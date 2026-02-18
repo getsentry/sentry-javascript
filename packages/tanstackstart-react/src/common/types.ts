@@ -1,5 +1,8 @@
 export type TanStackMiddlewareBase = {
-  options?: { server?: (...args: unknown[]) => unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  '~types': any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  options: { server?: (...args: any[]) => any };
 };
 
 export type MiddlewareWrapperOptions = {

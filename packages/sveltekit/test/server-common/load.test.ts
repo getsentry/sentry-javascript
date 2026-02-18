@@ -304,4 +304,26 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
 
     expect(proxyFn).not.toHaveBeenCalled();
   });
+
+  it('uses untrack when present (SvelteKit 2+) to get route id without triggering invalidation', async () => {
+    const untrack = vi.fn(<T>(fn: () => T) => fn());
+    const eventWithUntrack = {
+      ...getServerOnlyArgs(),
+      untrack,
+    };
+
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(eventWithUntrack);
+
+    expect(untrack).toHaveBeenCalledTimes(1);
+    expect(mockStartSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '/users/[id]',
+        attributes: expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        }),
+      }),
+      expect.any(Function),
+    );
+  });
 });
