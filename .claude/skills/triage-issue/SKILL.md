@@ -120,7 +120,6 @@ If the issue is complex or the fix is unclear, skip this section and instead not
 
   The script reads `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` from environment variables (set from GitHub Actions secrets), obtains an OAuth token, checks for duplicate triage comments, and posts the comment.
   1. **Write the report body to a file** using the Write tool (not Bash). This keeps markdown completely out of shell.
-
      - **In CI:** Write to `triage_report.md` in the repository root. The CI sandbox only allows writes inside the working directory; `/tmp` and Bash output redirection are blocked.
      - **Locally:** You may use `/tmp/triage_report.md` or `triage_report.md` in the repo root.
 
