@@ -38,7 +38,7 @@ export interface MemoryProfilerOptions {
   /**
    * Delay after garbage collection in milliseconds.
    * This gives V8 time to complete GC before measuring.
-   * @default 500
+   * @default 2000
    */
   gcSettleDelayMs?: number;
 
@@ -99,7 +99,7 @@ export class MemoryProfiler {
       host = '127.0.0.1',
       retries = 10,
       retryDelayMs = 2000,
-      gcSettleDelayMs = 500,
+      gcSettleDelayMs = 2000,
       debug = false,
     } = options;
 
