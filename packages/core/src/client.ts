@@ -445,6 +445,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
+    _INTERNAL_flushLogsBuffer(this);
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
