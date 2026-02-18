@@ -1,0 +1,6 @@
+---
+description: Use this rule if you need developer documentation about tracing in the Sentry SDKs for browser environments (e.g. page-load/navigation spans and Web Vitals).
+alwaysApply: false
+---
+
+Find the SDK developer documentation here: https://develop.sentry.dev/sdk/platform-specifics/javascript-sdks/browser-tracing.md

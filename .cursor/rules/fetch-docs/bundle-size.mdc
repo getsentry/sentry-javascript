@@ -1,0 +1,6 @@
+---
+description: Use this rule if you need developer documentation about bundle size in the Sentry SDKs for browser environments.
+alwaysApply: false
+---
+
+Find the SDK developer documentation here: https://develop.sentry.dev/sdk/platform-specifics/javascript-sdks/bundle-size.md
