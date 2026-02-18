@@ -34,7 +34,7 @@
 
   While we're at it, if you're using Sentry in a Single Page App or meta framework, you might want to give the new `'page'` session lifecycle a try!
   This new mode no longer creates a session per soft navigation but continues the initial session until the next hard page refresh.
-  Check out the [docs](TODO LINK) to learn more!
+  Check out the [docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/browsersession/) to learn more!
 
 Work in this release was contributed by @LudvigHz. Thank you for your contribution!
 
