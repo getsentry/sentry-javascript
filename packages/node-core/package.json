@@ -99,13 +99,11 @@
     }
   },
   "dependencies": {
-    "@apm-js-collab/tracing-hooks": "^0.3.1",
     "@sentry/core": "10.39.0",
     "@sentry/opentelemetry": "10.39.0",
     "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer": "^0.8.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/core": "^2.5.0",
