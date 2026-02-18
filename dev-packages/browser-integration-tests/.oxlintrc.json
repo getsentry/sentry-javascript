@@ -16,6 +16,12 @@
   ],
   "overrides": [
     {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "rules": {
+        "typescript/no-unsafe-member-access": "off"
+      }
+    },
+    {
       "files": ["loader-suites/**/{subject,init}.js"],
       "globals": {
         "Sentry": "readonly"
