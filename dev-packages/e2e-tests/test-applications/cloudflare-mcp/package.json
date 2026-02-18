@@ -35,7 +35,8 @@
   },
   "pnpm": {
     "overrides": {
-      "strip-literal": "~2.0.0"
+      "strip-literal": "~2.0.0",
+      "@modelcontextprotocol/sdk": "1.25.2"
     }
   }
 }
