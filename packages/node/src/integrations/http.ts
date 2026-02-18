@@ -26,7 +26,12 @@ const INTEGRATION_NAME = 'Http';
 
 const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
-const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL = NODE_VERSION.major >= 22;
+// The `http.client.request.created` diagnostics channel, needed for trace propagation,
+// was added in Node 22.12.0 (backported from 23.2.0). Earlier 22.x versions don't have it.
+const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
+  (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
+  (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
+  NODE_VERSION.major >= 24;
 
 interface HttpOptions {
   /**
@@ -194,9 +199,9 @@ export function _shouldUseOtelHttpInstrumentation(
     return false;
   }
 
-  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on Node 22+,
-  // as otherwise the necessary diagnostics channel is not available yet
-  if (!hasSpansEnabled(clientOptions) && NODE_VERSION.major >= 22) {
+  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on a Node version
+  // that fully supports the necessary diagnostics channels for trace propagation
+  if (!hasSpansEnabled(clientOptions) && FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL) {
     return false;
   }
 
