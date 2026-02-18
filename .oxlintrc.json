@@ -23,19 +23,6 @@
     "no-return-await": "error",
     "max-lines": ["error", { "max": 300, "skipComments": true, "skipBlankLines": true }],
 
-    // === TypeScript rules ===
-    "typescript/ban-ts-comment": "error",
-    "typescript/consistent-type-imports": "error",
-    "typescript/prefer-optional-chain": "error",
-    "typescript/no-unnecessary-type-assertion": "error",
-    "typescript/prefer-for-of": "error",
-    "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
-    "typescript/no-dynamic-delete": "error",
-    "typescript/no-unsafe-member-access": "error",
-    "typescript/unbound-method": "error",
-    "typescript/no-empty-function": "off",
-    "typescript/no-explicit-any": "error",
-
     // === Import rules ===
     "import/namespace": "off",
     "import/no-unresolved": "off",
@@ -68,7 +55,38 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.test.js", "**/*.test.jsx", "**/test/**", "**/tests/**"],
+      "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
+      "rules": {
+        "typescript/ban-ts-comment": "error",
+        "typescript/consistent-type-imports": "error",
+        "typescript/prefer-optional-chain": "error",
+        "typescript/no-unnecessary-type-assertion": "error",
+        "typescript/prefer-for-of": "error",
+        "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
+        "typescript/no-dynamic-delete": "error",
+        "typescript/no-unsafe-member-access": "error",
+        "typescript/unbound-method": "error",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-empty-function": "off"
+      }
+    },
+    {
+      "files": ["**/*.js", "**/*.mjs", "**/*.cjs"],
+      "rules": {
+        "typescript/ban-ts-comment": "off",
+        "typescript/consistent-type-imports": "off",
+        "typescript/prefer-optional-chain": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/prefer-for-of": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-dynamic-delete": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.test.js", "**/*.test.jsx", "**/test/**", "**/tests/**", "**/suites/**", "**/loader-suites/**"],
       "rules": {
         "typescript/explicit-function-return-type": "off",
         "no-unused-expressions": "off",
