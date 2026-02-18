@@ -65,5 +65,5 @@ jobs:
             }
           prompt: |
             /triage-issue ${{ steps.parse-issue.outputs.issue_number }} --ci
-            IMPORTANT: Do NOT dismiss any alerts. Do NOT wait for approval.
+            IMPORTANT: Do NOT wait for approval.
           claude_args: '--max-turns 20'
