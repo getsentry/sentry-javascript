@@ -67,4 +67,5 @@ jobs:
           prompt: |
             /triage-issue ${{ steps.parse-issue.outputs.issue_number }} --ci
             IMPORTANT: Do NOT wait for approval.
-          claude_args: '--max-turns 20'
+          claude_args: |
+            --max-turns 20 --allowedTools "Bash(gh api *),Bash(gh pr list *),Bash(python3 .claude/skills/triage-issue/assets/post_linear_comment.py *),Bash(rm -f /tmp/triage_report.md)"
