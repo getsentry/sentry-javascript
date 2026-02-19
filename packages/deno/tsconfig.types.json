@@ -4,6 +4,7 @@
     "declaration": true,
     "declarationMap": false,
     "emitDeclarationOnly": true,
-    "outDir": "build/esm"
+    "outDir": "build/esm",
+    "rootDir": "./src"
   }
 }
