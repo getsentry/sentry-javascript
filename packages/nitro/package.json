@@ -38,6 +38,7 @@
     "nitro": ">=3.0.1-alpha.1"
   },
   "dependencies": {
+    "@sentry/bundler-plugin-core": "^4.9.0",
     "@sentry/core": "10.38.0",
     "@sentry/node": "10.38.0",
     "otel-tracing-channel": "^0.2.0"
