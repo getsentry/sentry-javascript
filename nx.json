@@ -7,12 +7,7 @@
       "{workspaceRoot}/yarn.lock",
       "{workspaceRoot}/dev-packages/rollup-utils/**"
     ],
-    "production": [
-      "default",
-      "!{projectRoot}/test/**/*",
-      "!{projectRoot}/**/*.md",
-      "!{projectRoot}/*.tgz"
-    ]
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
     "build:dev": {
@@ -26,12 +21,7 @@
     },
     "build:tarball": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "build:transpile",
-        "^build:transpile",
-        "build:types",
-        "^build:types"
-      ],
+      "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
       "outputs": ["{projectRoot}/*.tgz"],
       "cache": true
     },
@@ -64,12 +54,7 @@
       "cache": true
     },
     "test:unit": {
-      "dependsOn": [
-        "build:types",
-        "^build:types",
-        "build:transpile",
-        "^build:transpile"
-      ],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
       "inputs": ["default"],
       "outputs": ["{projectRoot}/coverage"],
       "cache": true
