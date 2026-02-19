@@ -141,10 +141,7 @@ If the issue is complex or the fix is unclear, skip this section and instead not
 
      (Use the same path you wrote to: `triage_report.md` in CI, or `/tmp/triage_report.md` locally if you used that.)
 
-     If the script fails (non-zero exit), fall back to printing the full report to the terminal. Print the current working directory so it's clear where the script was run.
-
-  3. **Not CI? Cleanup**
-     When run locally, without `--ci` flag, remove the report file you wrote: `rm -f triage_report.md` or `rm -f /tmp/triage_report.md` as appropriate (use the same path you passed to the script).
+     If the script fails (non-zero exit), fall back to printing the full report to the terminal.
 
 ## Important Rules
 
