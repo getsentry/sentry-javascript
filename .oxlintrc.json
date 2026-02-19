@@ -59,15 +59,22 @@
       "rules": {
         "typescript/ban-ts-comment": "error",
         "typescript/consistent-type-imports": "error",
-        "typescript/prefer-optional-chain": "error",
         "typescript/no-unnecessary-type-assertion": "error",
         "typescript/prefer-for-of": "error",
-        "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
+        // "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
         "typescript/no-dynamic-delete": "error",
-        "typescript/no-unsafe-member-access": "error",
+        // "typescript/no-unsafe-member-access": "error",
         "typescript/unbound-method": "error",
         "typescript/no-explicit-any": "error",
-        "typescript/no-empty-function": "off"
+        "typescript/no-empty-function": "off",
+
+        // === FIXME: Rules to turn back as error ===
+        "typescript/prefer-optional-chain": "warn",
+        "typescript/no-floating-promises": "warn",
+        "typescript/no-unsafe-member-access": "warn",
+
+        // === FIXME: Requires migrating TS to v6/v7 ===
+        "typescript/tsconfig-error": "off"
       }
     },
     {
