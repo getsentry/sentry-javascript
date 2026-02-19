@@ -45,6 +45,7 @@ import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
+import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
@@ -315,6 +316,14 @@ export class SentrySpan implements Span {
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
+      // Guarding sending standalone v1 spans as v2 streamed spans for now.
+      // Otherwise they'd be sent once as v1 spans and again as streamed spans.
+      // We'll migrate CLS and LCP spans to streamed spans in a later PR and
+      // INP spans in the next major of the SDK. At that point, we can fully remove
+      // standalone v1 spans <3
+      if (!this._isStandaloneSpan) {
+        client.emit('afterSpanEnd', this);
+      }
     }
 
     // A segment span is basically the root span of a local span tree.
@@ -337,6 +346,10 @@ export class SentrySpan implements Span {
           client.recordDroppedEvent('sample_rate', 'span');
         }
       }
+      return;
+    } else if (client && hasSpanStreamingEnabled(client)) {
+      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+      client.emit('afterSegmentSpanEnd', this);
       return;
     }
 

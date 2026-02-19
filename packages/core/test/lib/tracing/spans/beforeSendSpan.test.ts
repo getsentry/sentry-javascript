@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { withStreamedSpan } from '../../../src';
-import { isStreamedBeforeSendSpanCallback } from '../../../src/utils/beforeSendSpan';
+import { withStreamedSpan } from '../../../../src';
+import { isStreamedBeforeSendSpanCallback } from '../../../../src/tracing/spans/beforeSendSpan';
 
 describe('beforeSendSpan for span streaming', () => {
   describe('withStreamedSpan', () => {
