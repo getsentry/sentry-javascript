@@ -33,14 +33,20 @@ These scripts provide security defenses for the automated triage-issue workflow 
 # Fetch issue and save to JSON
 gh api repos/getsentry/sentry-javascript/issues/12345 > /tmp/issue.json
 
-# Run security checks
+# Run security checks on issue body
 python3 detect_prompt_injection.py /tmp/issue.json
+if [ $? -ne 0 ]; then
+  echo "Issue rejected - do not proceed"
+  exit 1
+fi
 
-# Check exit code
+# Fetch comments and check them too
+gh api repos/getsentry/sentry-javascript/issues/12345/comments > /tmp/comments.json
+python3 detect_prompt_injection.py /tmp/issue.json /tmp/comments.json
 if [ $? -eq 0 ]; then
   echo "Safe to proceed with triage"
 else
-  echo "Issue rejected - do not proceed"
+  echo "Comment injection detected - do not proceed"
 fi
 ```
 

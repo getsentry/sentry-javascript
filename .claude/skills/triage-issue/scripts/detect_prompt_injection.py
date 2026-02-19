@@ -6,6 +6,14 @@ This script performs two security checks:
 1. Language check: Reject non-English issues
 2. Prompt injection check: Detect malicious patterns in English text
 
+Usage:
+  detect_prompt_injection.py <issue-json-file> [comments-json-file]
+
+  issue-json-file    - GitHub issue JSON (single object with title/body)
+  comments-json-file - Optional GitHub comments JSON (array of comment objects)
+                       When provided, all comment bodies are checked for injection.
+                       Language check is skipped for comments (issue already passed).
+
 Exit codes:
   0 - Safe to proceed (English + no injection detected)
   1 - REJECT: Non-English content or injection detected
@@ -74,11 +82,11 @@ INJECTION_PATTERNS = [
 
     # Role manipulation (8 points)
     (r"\byou\s+are\s+now\s+(in\s+)?((an?\s+)?(admin|developer|debug|system|root))", 8, "Role manipulation"),
-    (r"\b(admin|developer|debug|system)[\s_-]mode", 8, "Mode manipulation"),
+    (r"\b(admin|developer|system)[\s_-]mode", 8, "Mode manipulation"),
 
     # Sensitive file paths (10 points) - legitimate issues rarely reference these
     (r"(~/\.aws/|~/\.ssh/|/root/|/etc/passwd|/etc/shadow)", 10, "System credentials path"),
-    (r"(\.aws/credentials|id_rsa|\.ssh/id_|\.npmrc)", 10, "Credentials file reference"),
+    (r"(\.aws/credentials|id_rsa|\.ssh/id_)", 10, "Credentials file reference"),
 
     # Environment variable exfiltration (8 points)
     (r"\$(aws_secret|aws_access|github_token|anthropic_api|api_key|secret_key)", 8, "Sensitive env var reference"),
@@ -102,7 +110,7 @@ INJECTION_PATTERNS = [
     (r"let\s+me\s+think.{0,20}what\s+you\s+should\s+(really|actually)", 6, "CoT manipulation"),
 
     # Script/iframe injection (10 points)
-    (r"<\s*script[>\s]", 10, "Script tag injection"),
+    (r"<\s*script[^>]*\s(src|onerror|onload)\s*=", 10, "Script tag injection"),
     (r"<\s*iframe[^>]*src\s*=", 10, "Iframe injection"),
 ]
 
@@ -178,9 +186,40 @@ def analyze_issue(issue_data: dict) -> Tuple[bool, str, List[str]]:
     return False, None, ["Language: English ✓", "Injection check: Passed ✓"]
 
 
+def analyze_comments(comments_data: list) -> Tuple[bool, str, List[str]]:
+    """
+    Check issue comments for prompt injection. Language check is skipped
+    because the issue body already passed; comments are checked for injection only.
+
+    Args:
+        comments_data: List of GitHub comment objects (each has a "body" field)
+
+    Returns:
+        (should_reject, reason, details)
+    """
+    for i, comment in enumerate(comments_data):
+        if not isinstance(comment, dict):
+            continue
+        body = comment.get("body") or ""
+        if not body:
+            continue
+
+        is_injection, score, matches = check_injection(body)
+        if is_injection:
+            author = comment.get("user", {}).get("login", "unknown")
+            details = [
+                f"Prompt injection detected in comment #{i + 1} by @{author} (score: {score} points)",
+                "",
+                "Matched patterns:",
+            ] + matches
+            return True, "injection", details
+
+    return False, None, ["Comments injection check: Passed ✓"]
+
+
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: detect_prompt_injection.py <issue-json-file>", file=sys.stderr)
+    if len(sys.argv) not in (2, 3):
+        print("Usage: detect_prompt_injection.py <issue-json-file> [comments-json-file]", file=sys.stderr)
         sys.exit(2)
 
     json_file = sys.argv[1]
@@ -189,7 +228,7 @@ def main():
         with open(json_file, 'r', encoding='utf-8') as f:
             issue_data = json.load(f)
     except Exception as e:
-        print(f"Error reading JSON file: {e}", file=sys.stderr)
+        print(f"Error reading issue JSON file: {e}", file=sys.stderr)
         sys.exit(2)
 
     should_reject, reason, details = analyze_issue(issue_data)
@@ -206,11 +245,38 @@ def main():
             print(line)
         print()
         sys.exit(1)
-    else:
-        print("Security checks passed")
-        for line in details:
-            print(line)
-        sys.exit(0)
+
+    # Check comments if provided
+    if len(sys.argv) == 3:
+        comments_file = sys.argv[2]
+        try:
+            with open(comments_file, 'r', encoding='utf-8') as f:
+                comments_data = json.load(f)
+        except Exception as e:
+            print(f"Error reading comments JSON file: {e}", file=sys.stderr)
+            sys.exit(2)
+
+        if not isinstance(comments_data, list):
+            print("Error: comments JSON must be an array", file=sys.stderr)
+            sys.exit(2)
+
+        should_reject, reason, comment_details = analyze_comments(comments_data)
+        details.extend(comment_details)
+
+        if should_reject:
+            print("=" * 60)
+            print("REJECTED: Prompt injection attempt detected")
+            print("=" * 60)
+            print()
+            for line in comment_details:
+                print(line)
+            print()
+            sys.exit(1)
+
+    print("Security checks passed")
+    for line in details:
+        print(line)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
