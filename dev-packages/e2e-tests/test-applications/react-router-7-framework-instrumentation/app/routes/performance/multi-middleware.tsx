@@ -1,13 +1,13 @@
 import type { Route } from './+types/multi-middleware';
 
 export const middleware: Route.MiddlewareFunction[] = [
-  async function authMiddleware(_args, next) {
+  async function multiAuthMiddleware(_args, next) {
     return next();
   },
-  async function loggingMiddleware(_args, next) {
+  async function multiLoggingMiddleware(_args, next) {
     return next();
   },
-  async function validationMiddleware(_args, next) {
+  async function multiValidationMiddleware(_args, next) {
     return next();
   },
 ];

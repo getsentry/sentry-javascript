@@ -113,9 +113,9 @@ test.describe('server - instrumentation API middleware', () => {
 
     expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.index'])).toEqual([0, 1, 2]);
     expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.name'])).toEqual([
-      'authMiddleware',
-      'loggingMiddleware',
-      'validationMiddleware',
+      'multiAuthMiddleware',
+      'multiLoggingMiddleware',
+      'multiValidationMiddleware',
     ]);
   });
 });
