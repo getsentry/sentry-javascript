@@ -349,6 +349,22 @@ export const buildFeedbackIntegration = ({
       },
 
       /**
+       * Updates the color scheme of the feedback widget at runtime.
+       */
+      setTheme(colorScheme: 'light' | 'dark' | 'system'): void {
+        _options.colorScheme = colorScheme;
+        if (_shadow) {
+          const existingStyle = _shadow.querySelector('style');
+          const newStyle = createMainStyles(_options);
+          if (existingStyle) {
+            _shadow.replaceChild(newStyle, existingStyle);
+          } else {
+            _shadow.prepend(newStyle);
+          }
+        }
+      },
+
+      /**
        * Removes the Feedback integration (including host, shadow DOM, and all widgets)
        */
       remove(): void {
