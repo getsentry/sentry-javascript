@@ -9708,14 +9708,13 @@
   dependencies:
     "@types/ember__object" "*"
 
-"@types/ember__debug@*", "@types/ember__debug@^3.16.5":
-  version "3.16.5"
-  resolved "https://registry.yarnpkg.com/@types/ember__debug/-/ember__debug-3.16.5.tgz#ce04532c100fdc1c97c9f308d69a88d6e956db97"
-  integrity sha512-Sj0idBMOd33PubBbxtXty+tzyVIAbxK4cf8q0AKZ0z5wOL0wsFOLCvMgRMxSME3DB2uvJd4u9tGr15XFM+Z03A==
+"@types/ember__debug@*", "@types/ember__debug@^4.0.8":
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/@types/ember__debug/-/ember__debug-4.0.8.tgz#cccc58e03da1b4b59f8f0c59352fc541b08c9b37"
+  integrity sha512-9wF7STmDHDsUxSjyCq2lpMq/03QOPkBQMGJnV8yOBnVZxB6f+FJH/kxaCprdMkUe7iwAPNEC2zrFFx1tzH75Kg==
   dependencies:
-    "@types/ember__debug" "*"
-    "@types/ember__engine" "*"
     "@types/ember__object" "*"
+    "@types/ember__owner" "*"
 
 "@types/ember__destroyable@*":
   version "3.22.0"

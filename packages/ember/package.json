@@ -55,7 +55,7 @@
     "@glimmer/tracking": "~1.1.2",
     "@types/ember": "~3.16.5",
     "@types/ember-resolver": "5.0.13",
-    "@types/ember__debug": "^3.16.5",
+    "@types/ember__debug": "^4.0.8",
     "@types/qunit": "~2.19.11",
     "@types/rsvp": "~4.0.9",
     "babel-eslint": "~10.1.0",
