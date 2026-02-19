@@ -10,8 +10,6 @@ vi.mock('@sentry/core', async () => {
     getActiveSpan: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn().mockResolvedValue(undefined),
-    SPAN_STATUS_OK: 1,
-    SPAN_STATUS_ERROR: 2,
   };
 });
 
@@ -271,29 +269,5 @@ describe('wrapServerComponent', () => {
 
     expect((wrappedComponent as any).displayName).toBe('MyComponent');
     expect((wrappedComponent as any).customProp).toBe('value');
-  });
-
-  it('should not double-capture already-captured errors', () => {
-    const mockError = new Error('Already captured error');
-    Object.defineProperty(mockError, '__sentry_captured__', { value: true, enumerable: false });
-
-    const mockComponent = vi.fn().mockImplementation(() => {
-      throw mockError;
-    });
-    const mockSetStatus = vi.fn();
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-    (core.getActiveSpan as any).mockReturnValue({ setStatus: mockSetStatus });
-
-    const wrappedComponent = wrapServerComponent(mockComponent, {
-      componentRoute: '/page',
-      componentType: 'Page',
-    });
-
-    expect(() => wrappedComponent()).toThrow('Already captured error');
-    expect(core.captureException).not.toHaveBeenCalled();
   });
 });

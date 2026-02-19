@@ -1,5 +1,4 @@
 import { wrapServerComponent } from '@sentry/react-router';
-import type { Route } from './+types/server-component-async';
 
 async function fetchData(): Promise<{ title: string; content: string }> {
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -9,7 +8,7 @@ async function fetchData(): Promise<{ title: string; content: string }> {
   };
 }
 
-async function AsyncServerComponent(_props: Route.ComponentProps) {
+async function AsyncServerComponent() {
   const data = await fetchData();
 
   return (
@@ -24,8 +23,3 @@ export default wrapServerComponent(AsyncServerComponent, {
   componentRoute: '/rsc/server-component-async',
   componentType: 'Page',
 });
-
-export async function loader() {
-  const data = await fetchData();
-  return data;
-}

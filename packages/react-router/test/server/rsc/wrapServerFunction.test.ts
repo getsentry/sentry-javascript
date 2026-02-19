@@ -125,7 +125,7 @@ describe('wrapServerFunction', () => {
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toThrow('Server function failed');
-    expect(mockSetStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+    expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_ERROR, message: 'internal_error' });
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: {
         type: 'react_router.rsc',
@@ -154,7 +154,7 @@ describe('wrapServerFunction', () => {
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toBe(redirectResponse);
-    expect(mockSetStatus).toHaveBeenCalledWith({ code: 1 });
+    expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_OK });
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
@@ -170,7 +170,7 @@ describe('wrapServerFunction', () => {
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toBe(notFoundResponse);
-    expect(mockSetStatus).toHaveBeenCalledWith({ code: 2, message: 'not_found' });
+    expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_ERROR, message: 'not_found' });
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
@@ -199,23 +199,5 @@ describe('wrapServerFunction', () => {
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toBe(mockError);
-  });
-
-  it('should not double-capture already-captured errors', async () => {
-    const mockError = new Error('Already captured error');
-    // Mark the error as already captured by Sentry
-    Object.defineProperty(mockError, '__sentry_captured__', { value: true, enumerable: false });
-
-    const mockServerFn = vi.fn().mockRejectedValue(mockError);
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
-
-    const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
-
-    await expect(wrappedFn()).rejects.toBe(mockError);
-    // captureException should NOT be called since the error is already captured
-    expect(core.captureException).not.toHaveBeenCalled();
   });
 });

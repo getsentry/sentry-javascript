@@ -3,7 +3,6 @@
 export async function submitForm(formData: FormData): Promise<{ success: boolean; message: string }> {
   const name = formData.get('name') as string;
 
-  // Simulate some async work
   await new Promise(resolve => setTimeout(resolve, 50));
 
   return {

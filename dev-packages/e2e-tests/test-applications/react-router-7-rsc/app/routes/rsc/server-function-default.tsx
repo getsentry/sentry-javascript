@@ -13,8 +13,6 @@ export default function ServerFunctionDefaultPage() {
   return (
     <main>
       <h1>Server Function Default Export Test</h1>
-      <p>This tests "use server" files with only a default export.</p>
-
       <Form method="post">
         <label htmlFor="name">Name:</label>
         <input type="text" id="name" name="name" defaultValue="Default User" />

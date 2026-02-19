@@ -7,7 +7,6 @@ async function ServerComponent({ loaderData }: Route.ComponentProps) {
   return (
     <main>
       <h1>Server Component</h1>
-      <p>This demonstrates a manually wrapped server component.</p>
       <p data-testid="loader-message">Message: {loaderData?.message ?? 'No loader data'}</p>
     </main>
   );

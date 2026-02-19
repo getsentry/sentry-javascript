@@ -18,13 +18,7 @@ export function SentryClient() {
           });
         }
       })
-      .catch(e => {
-        // Silent fail in production, but log in dev for debugging
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.warn('[Sentry] Failed to initialize:', e);
-        }
-      });
+      .catch(() => undefined);
   }, []);
 
   return null;

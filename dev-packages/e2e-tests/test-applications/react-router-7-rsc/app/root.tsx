@@ -19,7 +19,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <SentryClient />
         {children}
         <ScrollRestoration />
-        {/* <Scripts /> is not needed in RSC mode - scripts are injected by the RSC framework */}
       </body>
     </html>
   );

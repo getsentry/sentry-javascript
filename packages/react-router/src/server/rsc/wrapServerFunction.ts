@@ -12,7 +12,7 @@ import {
   startSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse } from './responseUtils';
+import { isNotFoundResponse, isRedirectResponse } from './responseUtils';
 import type { WrapServerFunctionOptions } from './types';
 
 /**
@@ -82,18 +82,16 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
 
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
-            if (!isAlreadyCaptured(error)) {
-              captureException(error, {
-                mechanism: {
-                  type: 'react_router.rsc',
-                  handled: false,
-                  data: {
-                    function: 'serverFunction',
-                    server_function_name: functionName,
-                  },
+            captureException(error, {
+              mechanism: {
+                type: 'react_router.rsc',
+                handled: false,
+                data: {
+                  function: 'serverFunction',
+                  server_function_name: functionName,
                 },
-              });
-            }
+              },
+            });
             throw error;
           } finally {
             await flushIfServerless();
