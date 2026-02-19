@@ -584,17 +584,14 @@ function extractMessageIds(data: unknown): string | undefined {
     return undefined;
   }
 
-  const ids = data
-    .map(item => {
-      if (typeof item === 'number') {
-        return String(item);
-      }
-      if (item && typeof item === 'object' && 'msg_id' in item && (item as { msg_id?: number }).msg_id != null) {
-        return String((item as { msg_id?: number }).msg_id);
-      }
-      return null;
-    })
-    .filter(id => id !== null);
+  const ids: string[] = [];
+  for (const item of data) {
+    if (typeof item === 'number') {
+      ids.push(String(item));
+    } else if (item && typeof item === 'object' && 'msg_id' in item && (item as { msg_id?: number }).msg_id != null) {
+      ids.push(String((item as { msg_id?: number }).msg_id));
+    }
+  }
 
   return ids.length > 0 ? ids.join(',') : undefined;
 }
