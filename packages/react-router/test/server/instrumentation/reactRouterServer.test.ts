@@ -65,6 +65,7 @@ describe('ReactRouterInstrumentation', () => {
   });
 
   it('should call original handler for non-data requests', async () => {
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(true);
     vi.spyOn(Util, 'isDataRequest').mockReturnValue(false);
 
     const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
@@ -77,6 +78,7 @@ describe('ReactRouterInstrumentation', () => {
   });
 
   it('should call original handler if no active root span', async () => {
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(true);
     vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(undefined);
 
@@ -90,6 +92,7 @@ describe('ReactRouterInstrumentation', () => {
   });
 
   it('should start a span for data requests with active root span', async () => {
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(true);
     vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
     // @ts-expect-error MockSpan just for testing
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(mockSpan as Span);
@@ -112,6 +115,7 @@ describe('ReactRouterInstrumentation', () => {
   });
 
   it('should handle invalid URLs gracefully', async () => {
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(true);
     const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
     const wrappedHandler = proxy.createRequestHandler();
     const req = { url: 'not a url', method: 'GET' } as any;
@@ -147,12 +151,40 @@ describe('ReactRouterInstrumentation', () => {
     expect(spy).toHaveBeenCalledWith(resolvedBuild);
   });
 
-  it('should return original handler without wrapping when instrumentation API is active', () => {
+  it('should bypass instrumentation when instrumentation API is active', async () => {
     vi.spyOn(ServerGlobals, 'isInstrumentationApiUsed').mockReturnValue(true);
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(true);
+    vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
 
     const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
     const handler = proxy.createRequestHandler();
 
-    expect(handler).toBe(originalHandler);
+    // Handler is always wrapped; the instrumentation API check happens per-request
+    expect(handler).not.toBe(originalHandler);
+
+    const req = createRequest('https://test.com/data', 'GET');
+    await handler(req);
+
+    // Should delegate to original handler without creating spans
+    expect(originalHandler).toHaveBeenCalledWith(req, undefined);
+    expect(startSpanSpy).not.toHaveBeenCalled();
+  });
+
+  it('should skip span creation when OTEL data-loader span creation is disabled', async () => {
+    vi.spyOn(ServerGlobals, 'isInstrumentationApiUsed').mockReturnValue(false);
+    vi.spyOn(ServerGlobals, 'isOtelDataLoaderSpanCreationEnabled').mockReturnValue(false);
+    vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+
+    const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
+    const handler = proxy.createRequestHandler();
+
+    const req = createRequest('https://test.com/data', 'GET');
+    await handler(req);
+
+    // Should delegate to original handler without creating spans
+    expect(originalHandler).toHaveBeenCalledWith(req, undefined);
+    expect(startSpanSpy).not.toHaveBeenCalled();
   });
 });

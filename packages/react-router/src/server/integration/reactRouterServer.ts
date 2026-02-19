@@ -1,8 +1,9 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node';
+import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
 import { registerServerBuildGlobal } from '../serverBuild';
+import { enableOtelDataLoaderSpanCreation } from '../serverGlobals';
 
 const INTEGRATION_NAME = 'ReactRouterServer';
 
@@ -26,8 +27,16 @@ export const reactRouterServerIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // Enable OTEL data-loader spans only on Node versions without the diagnostics_channel-based instrumentation API.
+      if (
+        (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) ||
+        (NODE_VERSION.major === 22 && NODE_VERSION.minor < 12)
+      ) {
+        enableOtelDataLoaderSpanCreation();
+      }
+
       // Always install to capture ServerBuild for middleware names.
-      // Skips per-request wrapping when instrumentation API is active.
+      // Skips per-request wrapping when instrumentation API is active or OTEL span creation is disabled.
       instrumentReactRouterServer();
     },
     processEvent(event) {
