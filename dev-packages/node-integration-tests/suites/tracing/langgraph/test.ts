@@ -319,7 +319,7 @@ describe('LangGraph integration', () => {
     },
   );
 
-  // Test for null input resume scenario (https://github.com/getsentry/sentry-javascript/issues/19353)
+  // Test for null input resume scenario
   const EXPECTED_TRANSACTION_RESUME = {
     transaction: 'langgraph-resume-test',
     contexts: {
