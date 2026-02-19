@@ -222,6 +222,7 @@ export function addResponsesApiAttributes(span: Span, response: OpenAIResponseOb
       // Filter for function_call type objects in the output array
       const functionCalls = responseWithOutput.output.filter(
         (item): unknown =>
+          // oxlint-disable-next-line typescript/prefer-optional-chain
           typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
       );
 

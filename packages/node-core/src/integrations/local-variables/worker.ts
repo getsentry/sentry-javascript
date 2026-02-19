@@ -46,6 +46,7 @@ function unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables): void {
   }
 
   if ('value' in prop.value) {
+    // oxlint-disable-next-line typescript/prefer-optional-chain
     if (prop.value.value === undefined || prop.value.value === null) {
       vars[prop.name] = `<${prop.value.value}>`;
     } else {

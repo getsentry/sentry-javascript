@@ -254,6 +254,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
     const skipIsolation =
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       '_sentrySkipRequestIsolation' in backwardsForwardsCompatibleEvent.locals &&
       backwardsForwardsCompatibleEvent.locals._sentrySkipRequestIsolation;
 

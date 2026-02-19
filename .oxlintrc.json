@@ -67,9 +67,9 @@
         "typescript/unbound-method": "error",
         "typescript/no-explicit-any": "error",
         "typescript/no-empty-function": "off",
+        "typescript/prefer-optional-chain": ["error"],
 
         // === FIXME: Rules to turn back as error ===
-        "typescript/prefer-optional-chain": "warn",
         "typescript/no-unsafe-member-access": "warn"
       }
     },
@@ -110,7 +110,8 @@
         "typescript/no-floating-promises": "off",
         "typescript/unbound-method": "off",
         "max-lines": "off",
-        "complexity": "off"
+        "complexity": "off",
+        "typescript/prefer-optional-chain": "off"
       }
     },
     {

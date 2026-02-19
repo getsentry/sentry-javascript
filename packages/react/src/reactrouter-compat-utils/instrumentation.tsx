@@ -614,8 +614,8 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const initialEntries = opts?.initialEntries;
     const initialIndex = opts?.initialIndex;
 
-    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
-    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+    const hasOnlyOneInitialEntry = initialEntries?.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries?.[initialIndex];
 
     initialEntry = hasOnlyOneInitialEntry
       ? initialEntries[0]

@@ -105,6 +105,7 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
         }
 
         if (isJsonRpcResponse(message)) {
+          // oxlint-disable-next-line typescript/prefer-optional-chain
           if (message.id !== null && message.id !== undefined) {
             if (message.error) {
               captureJsonRpcErrorResponse(message.error);
