@@ -1,6 +1,6 @@
-import type { BeforeSendStramedSpanCallback, ClientOptions } from '../types-hoist/options';
-import type { StreamedSpanJSON } from '../types-hoist/span';
-import { addNonEnumerableProperty } from './object';
+import type { BeforeSendStramedSpanCallback, ClientOptions } from '../../types-hoist/options';
+import type { StreamedSpanJSON } from '../../types-hoist/span';
+import { addNonEnumerableProperty } from '../../utils/object';
 
 /**
  * A wrapper to use the new span format in your `beforeSendSpan` callback.
