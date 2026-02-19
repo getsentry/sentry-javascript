@@ -39,7 +39,7 @@ export function isNotFoundResponse(error: unknown): boolean {
       return true;
     }
 
-    if (errorObj.status === 404) {
+    if (typeof errorObj.status === 'number' && errorObj.status === 404) {
       return true;
     }
   }
