@@ -2,12 +2,34 @@
 // This tsconfig is used when building @sentry/angular with the Angular
 // compiler and `ng-packagr`. It configures a production build conforming
 // to the Angular Package Format (APF).
+//
+// Does NOT extend the shared base tsconfig because ng-packagr ships its own
+// older TypeScript that doesn't support "moduleResolution": "bundler".
 {
-  "extends": "./tsconfig.json",
+  "include": ["**/*.ts", "src/**/*"],
+  "exclude": ["patch-vitest.ts", "setup-test.ts"],
   "compilerOptions": {
-    "target": "es2020",
+    "declaration": false,
     "declarationMap": false,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "inlineSources": true,
+    "isolatedModules": true,
     "lib": ["DOM", "es2020"],
+    "moduleResolution": "node",
+    "noErrorTruncation": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": true,
+    "preserveWatchOutput": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictBindCallApply": false,
+    "target": "es2020",
+    "types": ["node"],
     "baseUrl": "./"
   },
   "angularCompilerOptions": {
