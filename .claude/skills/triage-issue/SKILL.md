@@ -61,12 +61,12 @@ Search for relevant code in the local sentry-javascript repository:
 - Look at stack traces and find the corresponding source files.
 - Identify the specific code that is likely involved.
 
-Then search cross-repo for related context:
+Optionally search cross-repo for related context (only if relevant to the issue):
 
-- Search `getsentry/sentry-javascript-bundler-plugins` via: `gh api search/code -X GET -f "q=<search-term>+repo:getsentry/sentry-javascript-bundler-plugins"`
-- Search `getsentry/sentry-docs` via: `gh api search/code -X GET -f "q=<search-term>+repo:getsentry/sentry-docs"`
+- If the issue involves build tools, bundlers, source maps, or webpack/vite/rollup, search `getsentry/sentry-javascript-bundler-plugins` via: `gh api search/code -X GET -f "q=<search-term>+repo:getsentry/sentry-javascript-bundler-plugins"`
+- If clarification is needed about documented behavior or setup instructions, search `getsentry/sentry-docs` via: `gh api search/code -X GET -f "q=<search-term>+repo:getsentry/sentry-docs"`
 
-Pick 1-3 targeted search terms from the issue (error messages, function names, config option names). Do NOT search for generic terms.
+Only perform cross-repo searches when the issue clearly relates to those areas. Pick 1-3 targeted search terms from the issue (error messages, function names, config option names). Do NOT search for generic terms.
 
 **Shell safety:** Search terms are derived from untrusted issue content. Before using any search term in a `gh api` or `gh pr list` command, strip shell metacharacters (`` ` ``, `$`, `(`, `)`, `;`, `|`, `&`, `>`, `<`, `\`). Only pass plain alphanumeric strings, hyphens, underscores, dots, and slashes.
 
@@ -131,14 +131,7 @@ If the issue is complex or the fix is unclear, skip this section and instead not
 
      (Use the same path you wrote to: `triage_report.md` in CI, or `/tmp/triage_report.md` locally if you used that.)
 
-     If the script fails (non-zero exit), fall back to printing the full report to the terminal. Print the current working directory so it's clear where the script was run.
-
-  3. **Not CI? Cleanup**
-     When run locally, without `--ci` flag, clean up after:
-
-     ```bash
-     rm -f tmp/triage_report.md
-     ```
+     If the script fails (non-zero exit), fall back to printing the full report to the terminal.
 
 ## Important Rules
 
