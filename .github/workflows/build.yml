@@ -308,7 +308,7 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
-        run: yarn lint:eslint
+        run: yarn lint:oxlint --type-aware
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
