@@ -399,7 +399,7 @@ describe('node', () => {
 
     const result = node(input);
 
-    expect(result?.filename).toBeUndefined();
+    expect(result?.filename).toBe(input);
   });
 
   it('decodes a valid percent-encoded filename', () => {
