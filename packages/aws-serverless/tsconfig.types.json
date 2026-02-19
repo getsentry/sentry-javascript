@@ -9,6 +9,7 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "build/npm/types"
+    "outDir": "build/npm/types",
+    "rootDir": "./src"
   }
 }
