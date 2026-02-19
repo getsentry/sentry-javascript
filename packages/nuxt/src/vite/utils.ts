@@ -1,6 +1,6 @@
+import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
-import type { Nuxt } from 'nuxt/schema';
 import * as path from 'path';
 
 /**

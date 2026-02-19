@@ -106,6 +106,7 @@ function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined
 }
 
 /** Inits the Sentry NextJS SDK on node. */
+// eslint-disable-next-line complexity
 export function init(options: NodeOptions): NodeClient | undefined {
   prepareSafeIdGeneratorContext();
   if (isBuild()) {
@@ -146,7 +147,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     ...options,

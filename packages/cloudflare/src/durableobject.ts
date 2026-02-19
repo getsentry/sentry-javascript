@@ -1,159 +1,14 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import {
-  captureException,
-  flush,
-  getClient,
-  isThenable,
-  type Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
+import { captureException } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
-import { init } from './sdk';
-import { copyExecutionContext } from './utils/copyExecutionContext';
-
-type MethodWrapperOptions = {
-  spanName?: string;
-  spanOp?: string;
-  options: CloudflareOptions;
-  context: ExecutionContext | DurableObjectState;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UncheckedMethod = (...args: any[]) => any;
-type OriginalMethod = UncheckedMethod;
-
-function wrapMethodWithSentry<T extends OriginalMethod>(
-  wrapperOptions: MethodWrapperOptions,
-  handler: T,
-  callback?: (...args: Parameters<T>) => void,
-  noMark?: true,
-): T {
-  if (isInstrumented(handler)) {
-    return handler;
-  }
-
-  if (!noMark) {
-    markAsInstrumented(handler);
-  }
-
-  return new Proxy(handler, {
-    apply(target, thisArg, args: Parameters<T>) {
-      const currentClient = getClient();
-      // if a client is already set, use withScope, otherwise use withIsolationScope
-      const sentryWithScope = currentClient ? withScope : withIsolationScope;
-
-      const wrappedFunction = (scope: Scope): unknown => {
-        // In certain situations, the passed context can become undefined.
-        // For example, for Astro while prerendering pages at build time.
-        // see: https://github.com/getsentry/sentry-javascript/issues/13217
-        const context = wrapperOptions.context as ExecutionContext | undefined;
-
-        const waitUntil = context?.waitUntil?.bind?.(context);
-
-        const currentClient = scope.getClient();
-        if (!currentClient) {
-          const client = init({ ...wrapperOptions.options, ctx: context });
-          scope.setClient(client);
-        }
-
-        if (!wrapperOptions.spanName) {
-          try {
-            if (callback) {
-              callback(...args);
-            }
-            const result = Reflect.apply(target, thisArg, args);
-
-            if (isThenable(result)) {
-              return result.then(
-                (res: unknown) => {
-                  waitUntil?.(flush(2000));
-                  return res;
-                },
-                (e: unknown) => {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
-                    },
-                  });
-                  waitUntil?.(flush(2000));
-                  throw e;
-                },
-              );
-            } else {
-              waitUntil?.(flush(2000));
-              return result;
-            }
-          } catch (e) {
-            captureException(e, {
-              mechanism: {
-                type: 'auto.faas.cloudflare.durable_object',
-                handled: false,
-              },
-            });
-            waitUntil?.(flush(2000));
-            throw e;
-          }
-        }
-
-        const attributes = wrapperOptions.spanOp
-          ? {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
-            }
-          : {};
-
-        return startSpan({ name: wrapperOptions.spanName, attributes }, () => {
-          try {
-            const result = Reflect.apply(target, thisArg, args);
-
-            if (isThenable(result)) {
-              return result.then(
-                (res: unknown) => {
-                  waitUntil?.(flush(2000));
-                  return res;
-                },
-                (e: unknown) => {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
-                    },
-                  });
-                  waitUntil?.(flush(2000));
-                  throw e;
-                },
-              );
-            } else {
-              waitUntil?.(flush(2000));
-              return result;
-            }
-          } catch (e) {
-            captureException(e, {
-              mechanism: {
-                type: 'auto.faas.cloudflare.durable_object',
-                handled: false,
-              },
-            });
-            waitUntil?.(flush(2000));
-            throw e;
-          }
-        });
-      };
-
-      return sentryWithScope(wrappedFunction);
-    },
-  });
-}
+import { instrumentContext } from './utils/instrumentContext';
+import type { UncheckedMethod } from './wrapMethodWithSentry';
+import { wrapMethodWithSentry } from './wrapMethodWithSentry';
 
 /**
  * Instruments a Durable Object class to capture errors and performance data.
@@ -196,7 +51,7 @@ export function instrumentDurableObjectWithSentry<
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
-      const context = copyExecutionContext(ctx);
+      const context = instrumentContext(ctx);
 
       const options = getFinalOptions(optionsCallback(env), env);
 
