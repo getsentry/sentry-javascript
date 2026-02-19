@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
-    "start-local-supabase": "supabase init --force --workdir . && supabase start -o env && supabase db reset",
+    "start-local-supabase": "supabase start -o env && supabase db reset",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm start-local-supabase && pnpm build",
     "test:assert": "pnpm test:prod"
@@ -25,7 +25,7 @@
     "next": "14.2.35",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "supabase": "2.19.7",
+    "supabase": "2.23.4",
     "typescript": "4.9.5"
   },
   "devDependencies": {
