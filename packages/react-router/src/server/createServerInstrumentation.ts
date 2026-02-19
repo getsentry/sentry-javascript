@@ -180,7 +180,9 @@ export function createSentryServerInstrumentation(
 
           updateRootSpanWithRoute(info.request.method, pattern, urlPath);
 
-          const counterStore = context.active().getValue(MIDDLEWARE_COUNTER_KEY) as { counters: Record<string, number> } | undefined;
+          const counterStore = context.active().getValue(MIDDLEWARE_COUNTER_KEY) as
+            | { counters: Record<string, number> }
+            | undefined;
           let middlewareIndex = 0;
           if (counterStore) {
             middlewareIndex = counterStore.counters[routeId] ?? 0;
