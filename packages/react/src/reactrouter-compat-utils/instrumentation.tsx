@@ -249,6 +249,7 @@ function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
   promises.add(promise);
 
   // Clean up when promise resolves/rejects
+  // oxlint-disable-next-line typescript/no-floating-promises
   promise.finally(() => {
     const currentPromises = pendingLazyRouteLoads.get(span);
     if (currentPromises) {

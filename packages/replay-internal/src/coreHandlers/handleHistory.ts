@@ -38,6 +38,7 @@ export function handleHistorySpanListener(replay: ReplayContainer): (handlerData
     replay.triggerUserActivity();
 
     replay.addUpdate(() => {
+      // oxlint-disable-next-line typescript/no-floating-promises
       createPerformanceSpans(replay, [result]);
       // Returning false to flush
       return false;

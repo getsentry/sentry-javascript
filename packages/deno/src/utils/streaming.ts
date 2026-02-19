@@ -81,6 +81,7 @@ function monitorStream(
   onDone: () => void,
 ): ReadableStream<Uint8Array<ArrayBufferLike>> {
   const reader = stream.getReader();
+  // oxlint-disable-next-line typescript/no-floating-promises
   reader.closed.finally(() => onDone());
   return new ReadableStream({
     async start(controller) {
