@@ -901,7 +901,7 @@ function instrumentRpcConsumer(
     return instrumentGenericRpc(target, thisArg, argumentsList);
   }
 
-  const typedParams = queueParams as { queue_name?: string; vt?: number; qty?: number };
+  const typedParams = queueParams as { queue_name?: string; sleep_seconds?: number; n?: number };
   const queueName = typedParams.queue_name;
 
   if (!queueName) {
@@ -1019,7 +1019,7 @@ function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => unknown> 
       try {
         const normalizedName = normalizeRpcFunctionName(argumentsList[0]);
         const isProducerSpan = normalizedName === 'send' || normalizedName === 'send_batch';
-        const isConsumerSpan = normalizedName === 'pop' || normalizedName === 'receive' || normalizedName === 'read';
+        const isConsumerSpan = normalizedName === 'pop' || normalizedName === 'read';
 
         if (isProducerSpan) {
           return instrumentRpcProducer(target, thisArg, argumentsList);
@@ -1058,8 +1058,7 @@ function instrumentGenericRpc(
   builder.then = function (onfulfilled?: (value: unknown) => unknown, onrejected?: (reason: unknown) => unknown) {
     const attributes: Record<string, unknown> = {
       'db.system': 'postgresql',
-      'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
-      'db.table': functionName,
+      'db.operation': 'rpc',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
     };
@@ -1091,7 +1090,7 @@ function instrumentGenericRpc(
 
               const breadcrumb: SupabaseBreadcrumb = {
                 type: 'supabase',
-                category: 'db.insert',
+                category: 'db.rpc',
                 message: `rpc(${functionName})`,
               };
 

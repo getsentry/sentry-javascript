@@ -17,17 +17,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: `Send failed: ${sendError.message}` });
   }
 
-  const { data: receiveData, error: receiveError } = await supabaseClient.rpc('receive', {
+  const { data: readData, error: readError } = await supabaseClient.rpc('read', {
     queue_name: 'e2e-flow-queue',
-    vt: 30,
-    qty: 1,
+    sleep_seconds: 30,
+    n: 1,
   });
 
-  if (receiveError) {
-    return res.status(500).json({ error: `Receive failed: ${receiveError.message}` });
+  if (readError) {
+    return res.status(500).json({ error: `Read failed: ${readError.message}` });
   }
 
-  const processedMessage = receiveData?.[0];
+  const processedMessage = readData?.[0];
 
   if (processedMessage?.msg_id) {
     const { error: archiveError } = await supabaseClient.rpc('archive', {
