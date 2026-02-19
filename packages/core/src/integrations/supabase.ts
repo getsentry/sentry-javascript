@@ -4,15 +4,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
+} from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import {
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+} from '../tracing/dynamicSamplingContext';
 import type { IntegrationFn } from '../types-hoist/integration';
+import type { SpanAttributes, SpanAttributeValue } from '../types-hoist/span';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
+import { safeDateNow } from '../utils/randomSafeContext';
+import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
+import { extractTraceparentData } from '../utils/tracing';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
@@ -74,6 +89,7 @@ type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[numbe
 type PostgRESTQueryOperationFn = (...args: unknown[]) => PostgRESTFilterBuilder;
 
 export interface SupabaseClientInstance {
+  rpc: (fn: string, params: Record<string, unknown>) => Promise<unknown>;
   auth: {
     admin: Record<AuthAdminOperationName, AuthOperationFn>;
   } & Record<AuthOperationName, AuthOperationFn>;
@@ -93,6 +109,7 @@ export interface PostgRESTFilterBuilder {
 
 export interface SupabaseResponse {
   status?: number;
+  data?: unknown;
   error?: {
     message: string;
     code?: string;
@@ -118,6 +135,22 @@ export interface SupabaseBreadcrumb {
 export interface SupabaseClientConstructor {
   prototype: {
     from: (table: string) => PostgRESTQueryBuilder;
+    schema: (schema: string) => { rpc: (...args: unknown[]) => Promise<unknown> };
+    rpc: (...args: unknown[]) => Promise<unknown>;
+  };
+}
+
+interface SupabaseQueueMessage {
+  msg_id?: number;
+  read_ct?: number;
+  enqueued_at?: string;
+  vt?: number;
+  message?: {
+    [key: string]: unknown;
+    _sentry?: {
+      sentry_trace?: string;
+      baggage?: string;
+    };
   };
 }
 
@@ -346,6 +379,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
         }
 
         const pathParts = typedThis.url.pathname.split('/');
+        const rpcIndex = pathParts.indexOf('rpc');
+        // Skip all RPC calls - they are instrumented via createRpcProxyHandler
+        if (rpcIndex !== -1) {
+          return Reflect.apply(target, thisArg, argumentsList);
+        }
         const table = pathParts.length > 0 ? pathParts[pathParts.length - 1] : '';
 
         const queryItems: string[] = [];
@@ -508,6 +546,623 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
   }
 }
 
+function normalizeRpcFunctionName(name: unknown): string {
+  if (!name || typeof name !== 'string') {
+    return '';
+  }
+
+  if (name.includes('.')) {
+    const parts = name.split('.');
+    return parts[parts.length - 1] || '';
+  }
+
+  return name;
+}
+
+function captureSupabaseError(error: unknown, mechanismType: string, context?: Record<string, unknown>): void {
+  captureException(error, scope => {
+    scope.addEventProcessor(e => {
+      addExceptionMechanism(e, {
+        handled: false,
+        type: mechanismType,
+      });
+      return e;
+    });
+    if (context) {
+      scope.setContext('supabase', context);
+    }
+    return scope;
+  });
+}
+
+function extractMessageIds(data: unknown): string | undefined {
+  if (typeof data === 'number') {
+    return String(data);
+  }
+
+  if (!Array.isArray(data)) {
+    return undefined;
+  }
+
+  const ids = data
+    .map(item => {
+      if (typeof item === 'number') {
+        return String(item);
+      }
+      if (item && typeof item === 'object' && 'msg_id' in item && (item as { msg_id?: number }).msg_id != null) {
+        return String((item as { msg_id?: number }).msg_id);
+      }
+      return null;
+    })
+    .filter(id => id !== null);
+
+  return ids.length > 0 ? ids.join(',') : undefined;
+}
+
+function calculateMessageBodySize(message: unknown): number | undefined {
+  if (!message) {
+    return undefined;
+  }
+
+  try {
+    return JSON.stringify(message).length;
+  } catch {
+    return undefined;
+  }
+}
+
+function captureQueueError(
+  error: { message: string; code?: string; details?: unknown },
+  queueName: string | undefined,
+  messageId?: string,
+  extraContext?: Record<string, unknown>,
+): void {
+  const err = new Error(error.message) as SupabaseError;
+  if (error.code) err.code = error.code;
+  if (error.details) err.details = error.details;
+
+  captureSupabaseError(err, 'auto.db.supabase.queue', { queueName, messageId, ...extraContext });
+}
+
+/** Returns latency from an enqueued_at timestamp in milliseconds. */
+function parseEnqueuedAtLatency(enqueuedAt: string | undefined): number | undefined {
+  if (!enqueuedAt) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(enqueuedAt);
+  if (Number.isNaN(timestamp)) {
+    DEBUG_BUILD && debug.warn('Invalid enqueued_at timestamp:', enqueuedAt);
+    return undefined;
+  }
+
+  return safeDateNow() - timestamp;
+}
+
+/** Instruments RPC producer calls with queue.publish spans and trace context injection. */
+function instrumentRpcProducer(
+  target: (...args: unknown[]) => Promise<unknown>,
+  thisArg: unknown,
+  argumentsList: unknown[],
+): Promise<unknown> {
+  if (!Array.isArray(argumentsList) || argumentsList.length < 2) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  const maybeQueueParams = argumentsList[1];
+
+  if (!isPlainObject(maybeQueueParams)) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  const queueParams = maybeQueueParams as { queue_name?: string; message?: unknown; messages?: unknown[] };
+  const queueName = queueParams?.queue_name;
+
+  if (!queueName) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  const operationName = normalizeRpcFunctionName(argumentsList[0]) as 'send' | 'send_batch';
+  const isBatch = operationName === 'send_batch';
+
+  const messageBodySize = calculateMessageBodySize(queueParams?.message || queueParams?.messages);
+
+  return startSpan(
+    {
+      name: `publish ${queueName}`,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.producer',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.publish',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        'messaging.system': 'supabase',
+        'messaging.destination.name': queueName,
+        'messaging.operation.name': operationName,
+        'messaging.operation.type': 'publish',
+        ...(messageBodySize !== undefined && { 'messaging.message.body.size': messageBodySize }),
+      },
+    },
+    span => {
+      const sentryTrace = spanToTraceHeader(span);
+      const scope = getCurrentScope();
+      const client = getClient();
+      const { dsc } = scope.getPropagationContext();
+      const traceContext = spanToTraceContext(span);
+      const sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(
+        dsc ||
+          (client ? getDynamicSamplingContextFromClient(traceContext.trace_id, client) : undefined) ||
+          getDynamicSamplingContextFromSpan(span),
+      );
+
+      const originalParams = argumentsList[1] as {
+        queue_name: string;
+        messages?: Array<{ _sentry?: { sentry_trace?: string; baggage?: string } }>;
+        message?: { _sentry?: { sentry_trace?: string; baggage?: string } };
+      };
+
+      const paramsWithTrace: typeof originalParams = {
+        ...originalParams,
+      };
+
+      if (originalParams?.message) {
+        if (isPlainObject(originalParams.message)) {
+          paramsWithTrace.message = {
+            ...originalParams.message,
+            _sentry: {
+              sentry_trace: sentryTrace,
+              baggage: sentryBaggage,
+            },
+          };
+        } else {
+          DEBUG_BUILD && debug.warn('Non-object message payload, skipping trace injection');
+        }
+      } else if (Array.isArray(originalParams?.messages)) {
+        paramsWithTrace.messages = originalParams.messages.map(message => {
+          if (isPlainObject(message)) {
+            return {
+              ...message,
+              _sentry: {
+                sentry_trace: sentryTrace,
+                baggage: sentryBaggage,
+              },
+            };
+          } else {
+            DEBUG_BUILD && debug.warn('Non-object message in batch, skipping trace injection');
+            return message;
+          }
+        });
+      }
+
+      const modifiedArgumentsList = [argumentsList[0], paramsWithTrace, ...argumentsList.slice(2)];
+
+      const promise = Reflect.apply(target, thisArg, modifiedArgumentsList) as Promise<SupabaseResponse>;
+      return promise.then(
+        (res: SupabaseResponse) => {
+          const messageId = extractMessageIds(res.data);
+
+          if (messageId) {
+            span.setAttribute('messaging.message.id', messageId);
+          }
+
+          if (isBatch && Array.isArray(res.data)) {
+            span.setAttribute('messaging.batch.message_count', res.data.length);
+          }
+
+          const breadcrumbData: Record<string, unknown> = {
+            'messaging.destination.name': queueName,
+          };
+          if (messageId) {
+            breadcrumbData['messaging.message.id'] = messageId;
+          }
+          if (messageBodySize !== undefined) {
+            breadcrumbData['messaging.message.body.size'] = messageBodySize;
+          }
+          if (isBatch && Array.isArray(res.data)) {
+            breadcrumbData['messaging.batch.message_count'] = res.data.length;
+          }
+          addBreadcrumb({
+            type: 'supabase',
+            category: 'queue.publish',
+            message: `queue.publish(${queueName || 'unknown'})`,
+            data: breadcrumbData,
+          });
+
+          if (res.error) {
+            captureQueueError(res.error, queueName, messageId, { operation: operationName });
+          }
+
+          span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
+
+          return res;
+        },
+        (err: unknown) => {
+          span.setStatus({ code: SPAN_STATUS_ERROR });
+
+          captureSupabaseError(err, 'auto.db.supabase.queue', { queueName, operation: operationName });
+
+          throw err;
+        },
+      );
+    },
+  );
+}
+
+function processConsumerSpanData(
+  span: { setAttribute: (key: string, value: SpanAttributeValue | undefined) => void },
+  queueName: string | undefined,
+  cleanedData: SupabaseQueueMessage[],
+): void {
+  const firstItem = cleanedData.length > 0 ? cleanedData[0] : undefined;
+  const isBatch = cleanedData.length > 1;
+
+  let latency: number | undefined;
+  if (isBatch) {
+    let totalLatency = 0;
+    let latencyCount = 0;
+    for (const msg of cleanedData) {
+      const msgLatency = parseEnqueuedAtLatency(msg.enqueued_at);
+      if (msgLatency !== undefined) {
+        totalLatency += msgLatency;
+        latencyCount++;
+      }
+    }
+    latency = latencyCount > 0 ? totalLatency / latencyCount : undefined;
+  } else {
+    latency = parseEnqueuedAtLatency(firstItem?.enqueued_at);
+  }
+
+  const messageId = extractMessageIds(cleanedData);
+
+  span.setAttribute('messaging.batch.message_count', cleanedData.length);
+
+  if (messageId) {
+    span.setAttribute('messaging.message.id', messageId);
+  }
+
+  if (latency !== undefined) {
+    span.setAttribute('messaging.message.receive.latency', latency);
+  }
+
+  const readCount = firstItem?.read_ct ?? 0;
+  const retryCount = Math.max(0, readCount - 1);
+  span.setAttribute('messaging.message.retry.count', retryCount);
+
+  const messageBodySize = calculateMessageBodySize(firstItem?.message);
+  if (messageBodySize !== undefined) {
+    span.setAttribute('messaging.message.body.size', messageBodySize);
+  }
+
+  const breadcrumbData: Record<string, unknown> = {};
+  if (messageId) {
+    breadcrumbData['messaging.message.id'] = messageId;
+  }
+  breadcrumbData['messaging.destination.name'] = queueName;
+  if (messageBodySize !== undefined) {
+    breadcrumbData['messaging.message.body.size'] = messageBodySize;
+  }
+  addBreadcrumb({
+    type: 'supabase',
+    category: 'queue.process',
+    message: `queue.process(${queueName || 'unknown'})`,
+    ...(Object.keys(breadcrumbData).length > 0 && { data: breadcrumbData }),
+  });
+}
+
+/** Removes _sentry metadata from consumer response messages. Returns a shallow copy if metadata was found. */
+function cleanSentryMetadataFromResponse(res: SupabaseResponse): SupabaseResponse {
+  if (!Array.isArray(res.data)) {
+    return res;
+  }
+
+  const messages = res.data as SupabaseQueueMessage[];
+
+  const hasMetadata = messages.some(
+    item => item?.message && typeof item.message === 'object' && '_sentry' in item.message,
+  );
+
+  if (!hasMetadata) {
+    return res;
+  }
+
+  const cleanedData = messages.map(item => {
+    if (item?.message && typeof item.message === 'object') {
+      const messageCopy = { ...(item.message as Record<string, unknown>) };
+      delete messageCopy._sentry;
+      return { ...item, message: messageCopy };
+    }
+    return item;
+  });
+
+  return { ...res, data: cleanedData };
+}
+
+/** Instruments RPC consumer calls with queue.process spans and trace context extraction. */
+function instrumentRpcConsumer(
+  target: (...args: unknown[]) => Promise<unknown>,
+  thisArg: unknown,
+  argumentsList: unknown[],
+): Promise<unknown> {
+  if (!Array.isArray(argumentsList) || argumentsList.length < 2) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  if (typeof argumentsList[0] !== 'string') {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  const operationName = normalizeRpcFunctionName(argumentsList[0]);
+  const queueParams = argumentsList[1];
+
+  if (!isPlainObject(queueParams)) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  const typedParams = queueParams as { queue_name?: string; vt?: number; qty?: number };
+  const queueName = typedParams.queue_name;
+
+  if (!queueName) {
+    return instrumentGenericRpc(target, thisArg, argumentsList);
+  }
+
+  return startSpan(
+    {
+      name: `process ${queueName}`,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.consumer',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        'messaging.system': 'supabase',
+        'messaging.destination.name': queueName,
+        'messaging.operation.name': operationName,
+        'messaging.operation.type': 'process',
+      },
+    },
+    span => {
+      const rpcPromise = Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>;
+
+      return rpcPromise.then(
+        (res: SupabaseResponse) => {
+          if ((!res.data || (Array.isArray(res.data) && res.data.length === 0)) && !res.error) {
+            span.setStatus({ code: SPAN_STATUS_OK });
+            span.setAttribute('messaging.batch.message_count', 0);
+            span.setAttribute('messaging.message.retry.count', 0);
+            addBreadcrumb({
+              type: 'supabase',
+              category: 'queue.process',
+              message: `queue.process(${queueName || 'unknown'})`,
+              data: {
+                'messaging.batch.message_count': 0,
+                'messaging.destination.name': queueName,
+              },
+            });
+            return res;
+          }
+
+          // Extract trace context from first message before cleanup
+          const messages = Array.isArray(res.data) ? (res.data as SupabaseQueueMessage[]) : [];
+          const firstMessage = messages[0]?.message;
+          const sentryTrace = firstMessage?._sentry?.sentry_trace;
+
+          const cleanedRes = cleanSentryMetadataFromResponse(res);
+
+          if (sentryTrace) {
+            const traceparentData = extractTraceparentData(sentryTrace);
+            if (traceparentData?.traceId && traceparentData?.parentSpanId) {
+              const traceFlags = traceparentData.parentSampled ? 1 : 0;
+
+              span.addLink({
+                context: {
+                  traceId: traceparentData.traceId,
+                  spanId: traceparentData.parentSpanId,
+                  traceFlags,
+                },
+                attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'queue.producer' },
+              });
+            }
+          }
+
+          const cleanedData = cleanedRes.data;
+          if (!cleanedData || !Array.isArray(cleanedData)) {
+            span.setAttribute('messaging.message.retry.count', 0);
+            span.setStatus({ code: cleanedRes.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
+
+            addBreadcrumb({
+              type: 'supabase',
+              category: 'queue.process',
+              message: `queue.process(${queueName || 'unknown'})`,
+              data: { 'messaging.destination.name': queueName },
+            });
+
+            if (cleanedRes.error) {
+              captureQueueError(cleanedRes.error, queueName);
+            }
+
+            return cleanedRes;
+          }
+
+          processConsumerSpanData(span, queueName, cleanedData as SupabaseQueueMessage[]);
+
+          if (cleanedRes.error) {
+            const messageId = extractMessageIds(cleanedData);
+            captureQueueError(cleanedRes.error, queueName, messageId);
+          }
+
+          span.setStatus({ code: cleanedRes.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
+
+          return cleanedRes;
+        },
+        (err: unknown) => {
+          addBreadcrumb({
+            type: 'supabase',
+            category: 'queue.process',
+            message: `queue.process(${queueName || 'unknown'})`,
+            data: { 'messaging.destination.name': queueName },
+          });
+
+          captureSupabaseError(err, 'auto.db.supabase.queue', { queueName });
+
+          span.setStatus({ code: SPAN_STATUS_ERROR });
+          throw err;
+        },
+      );
+    },
+  );
+}
+
+/** Creates a shared proxy handler that routes RPC calls to queue or generic instrumentation. */
+function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<unknown>> {
+  return {
+    apply(
+      target: (...args: unknown[]) => Promise<unknown>,
+      thisArg: unknown,
+      argumentsList: unknown[],
+    ): Promise<unknown> {
+      try {
+        const normalizedName = normalizeRpcFunctionName(argumentsList[0]);
+        const isProducerSpan = normalizedName === 'send' || normalizedName === 'send_batch';
+        const isConsumerSpan = normalizedName === 'pop' || normalizedName === 'receive' || normalizedName === 'read';
+
+        if (isProducerSpan) {
+          return instrumentRpcProducer(target, thisArg, argumentsList);
+        }
+
+        if (isConsumerSpan) {
+          return instrumentRpcConsumer(target, thisArg, argumentsList);
+        }
+
+        return instrumentGenericRpc(target, thisArg, argumentsList);
+      } catch (error) {
+        DEBUG_BUILD && debug.warn('Supabase RPC instrumentation failed:', error);
+        return Reflect.apply(target, thisArg, argumentsList);
+      }
+    },
+  };
+}
+
+function instrumentGenericRpc(
+  target: (...args: unknown[]) => Promise<unknown>,
+  thisArg: unknown,
+  argumentsList: unknown[],
+): Promise<unknown> {
+  const functionName = typeof argumentsList[0] === 'string' ? argumentsList[0] : 'unknown';
+  const params = argumentsList[1];
+
+  const attributes: Record<string, unknown> = {
+    'db.system': 'postgresql',
+    'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
+    'db.table': functionName,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+  };
+
+  if (params && typeof params === 'object') {
+    attributes['db.params'] = params;
+  }
+
+  return startSpan(
+    {
+      name: `rpc(${functionName})`,
+      attributes: attributes as SpanAttributes,
+    },
+    span => {
+      return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then(
+        (res: SupabaseResponse) => {
+          if (span && res && typeof res === 'object' && 'status' in res) {
+            setHttpStatus(span, res.status || 500);
+          }
+
+          const breadcrumb: SupabaseBreadcrumb = {
+            type: 'supabase',
+            category: 'db.insert',
+            message: `rpc(${functionName})`,
+          };
+
+          if (params && typeof params === 'object') {
+            breadcrumb.data = { body: params as Record<string, unknown> };
+          }
+
+          addBreadcrumb(breadcrumb);
+
+          if (res && typeof res === 'object' && 'error' in res && res.error) {
+            const error = res.error as { message?: string; code?: string; details?: string };
+            const err = new Error(error.message || 'RPC error') as SupabaseError;
+            if (error.code) err.code = error.code;
+            if (error.details) err.details = error.details;
+
+            if (span) {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+            }
+
+            captureSupabaseError(err, 'auto.db.supabase.rpc', {
+              function: functionName,
+              params,
+            });
+          }
+
+          return res;
+        },
+        (err: Error) => {
+          captureSupabaseError(err, 'auto.db.supabase.rpc', {
+            function: functionName,
+            params,
+          });
+
+          if (span) {
+            setHttpStatus(span, 500);
+          }
+          throw err;
+        },
+      );
+    },
+  );
+}
+
+function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
+  const prototype = (SupabaseClient as SupabaseClientConstructor).prototype;
+  if (!prototype.schema) {
+    return;
+  }
+  if (isInstrumented(prototype.schema)) {
+    return;
+  }
+  (SupabaseClient as SupabaseClientConstructor).prototype.schema = new Proxy(
+    (SupabaseClient as SupabaseClientConstructor).prototype.schema,
+    {
+      apply(target, thisArg, argumentsList) {
+        const supabaseInstance = Reflect.apply(target, thisArg, argumentsList);
+        instrumentRpcMethod(supabaseInstance);
+        return supabaseInstance;
+      },
+    },
+  );
+  markAsInstrumented((SupabaseClient as SupabaseClientConstructor).prototype.schema);
+}
+
+/** No guard needed — `.schema()` returns a fresh object each call. */
+function instrumentRpcMethod(supabaseInstance: { rpc?: (...args: unknown[]) => Promise<unknown> }): void {
+  if (!supabaseInstance.rpc) {
+    return;
+  }
+
+  supabaseInstance.rpc = new Proxy(supabaseInstance.rpc, createRpcProxyHandler());
+}
+
+function instrumentRpc(SupabaseClient: unknown): void {
+  const prototype = (SupabaseClient as SupabaseClientConstructor).prototype;
+
+  if (!prototype?.rpc) {
+    return;
+  }
+
+  if (isInstrumented(prototype.rpc)) {
+    return;
+  }
+
+  const wrappedRpc = new Proxy(prototype.rpc, createRpcProxyHandler());
+  prototype.rpc = wrappedRpc;
+
+  markAsInstrumented(prototype.rpc);
+}
+
 export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
   if (!supabaseClient) {
     DEBUG_BUILD && debug.warn('Supabase integration was not installed because no Supabase client was provided.');
@@ -517,6 +1172,8 @@ export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
     supabaseClient.constructor === Function ? supabaseClient : supabaseClient.constructor;
 
   instrumentSupabaseClientConstructor(SupabaseClientConstructor);
+  instrumentRpcReturnedFromSchemaCall(SupabaseClientConstructor);
+  instrumentRpc(SupabaseClientConstructor);
   instrumentSupabaseAuthClient(supabaseClient as SupabaseClientInstance);
 };
 
