@@ -72,6 +72,7 @@ export const buildFeedbackIntegration = ({
       optionOverrides?: OverrideFeedbackConfiguration,
     ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>>;
     createWidget(optionOverrides?: OverrideFeedbackConfiguration): ActorComponent;
+    setTheme(colorScheme: 'light' | 'dark' | 'system'): void;
     remove(): void;
   }
 > => {
