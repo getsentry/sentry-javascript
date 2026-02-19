@@ -479,6 +479,72 @@ describe('Supabase Queue Instrumentation', () => {
     });
   });
 
+  describe('RPC method chaining', () => {
+    function createMockBuilder() {
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        then: vi.fn().mockImplementation(
+          (onfulfilled?: (...args: unknown[]) => unknown, onrejected?: (...args: unknown[]) => unknown) => {
+          return Promise.resolve({ data: { result: 'ok' }, status: 200 }).then(
+            onfulfilled as any,
+            onrejected as any,
+          );
+        }),
+      };
+    }
+
+    it('should preserve method chaining on the builder returned by rpc()', () => {
+      const mockBuilder = createMockBuilder();
+
+      mockRpcFunction.mockReturnValue(mockBuilder);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const result = mockSupabaseClient.rpc('get_planets', {});
+
+      expect(typeof (result as any).select).toBe('function');
+      (result as any).select('id, name');
+      expect(mockBuilder.select).toHaveBeenCalledWith('id, name');
+    });
+
+    it('should still create a span when rpc() result is awaited', async () => {
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+      const mockBuilder = createMockBuilder();
+
+      mockRpcFunction.mockReturnValue(mockBuilder);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('get_planets', {});
+      });
+
+      const genericCall = (startSpanSpy.mock.calls as Array<[Record<string, unknown>]>).find(
+        call => call[0]?.name === 'rpc(get_planets)',
+      );
+      expect(genericCall).toBeDefined();
+      expect((genericCall as [Record<string, unknown>])[0]).toEqual(
+        expect.objectContaining({
+          name: 'rpc(get_planets)',
+          attributes: expect.objectContaining({
+            'db.system': 'postgresql',
+            'sentry.op': 'db',
+          }),
+        }),
+      );
+    });
+
+    it('should preserve chaining when queue RPC falls back to generic instrumentation', () => {
+      // rpc('send', { some_param: 'value' }) - no queue_name, falls back to generic
+      const mockBuilder = createMockBuilder();
+
+      mockRpcFunction.mockReturnValue(mockBuilder);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const result = mockSupabaseClient.rpc('send', { some_param: 'value' });
+      expect(typeof (result as any).select).toBe('function');
+    });
+  });
+
   describe('Trace Propagation', () => {
     it('should propagate trace from producer to consumer end-to-end', async () => {
       let capturedTraceContext: { sentry_trace?: string; baggage?: string } | undefined;

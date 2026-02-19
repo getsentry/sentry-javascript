@@ -89,7 +89,7 @@ type AuthAdminOperationName = (typeof AUTH_ADMIN_OPERATIONS_TO_INSTRUMENT)[numbe
 type PostgRESTQueryOperationFn = (...args: unknown[]) => PostgRESTFilterBuilder;
 
 export interface SupabaseClientInstance {
-  rpc: (fn: string, params: Record<string, unknown>) => Promise<unknown>;
+  rpc: (fn: string, params: Record<string, unknown>) => unknown;
   auth: {
     admin: Record<AuthAdminOperationName, AuthOperationFn>;
   } & Record<AuthOperationName, AuthOperationFn>;
@@ -135,8 +135,8 @@ export interface SupabaseBreadcrumb {
 export interface SupabaseClientConstructor {
   prototype: {
     from: (table: string) => PostgRESTQueryBuilder;
-    schema: (schema: string) => { rpc: (...args: unknown[]) => Promise<unknown> };
-    rpc: (...args: unknown[]) => Promise<unknown>;
+    schema: (schema: string) => { rpc: (...args: unknown[]) => unknown };
+    rpc: (...args: unknown[]) => unknown;
   };
 }
 
@@ -638,10 +638,10 @@ function parseEnqueuedAtLatency(enqueuedAt: string | undefined): number | undefi
 
 /** Instruments RPC producer calls with queue.publish spans and trace context injection. */
 function instrumentRpcProducer(
-  target: (...args: unknown[]) => Promise<unknown>,
+  target: (...args: unknown[]) => unknown,
   thisArg: unknown,
   argumentsList: unknown[],
-): Promise<unknown> {
+): unknown {
   if (!Array.isArray(argumentsList) || argumentsList.length < 2) {
     return instrumentGenericRpc(target, thisArg, argumentsList);
   }
@@ -874,10 +874,10 @@ function cleanSentryMetadataFromResponse(res: SupabaseResponse): SupabaseRespons
 
 /** Instruments RPC consumer calls with queue.process spans and trace context extraction. */
 function instrumentRpcConsumer(
-  target: (...args: unknown[]) => Promise<unknown>,
+  target: (...args: unknown[]) => unknown,
   thisArg: unknown,
   argumentsList: unknown[],
-): Promise<unknown> {
+): unknown {
   if (!Array.isArray(argumentsList) || argumentsList.length < 2) {
     return instrumentGenericRpc(target, thisArg, argumentsList);
   }
@@ -1006,13 +1006,13 @@ function instrumentRpcConsumer(
 }
 
 /** Creates a shared proxy handler that routes RPC calls to queue or generic instrumentation. */
-function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<unknown>> {
+function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => unknown> {
   return {
     apply(
-      target: (...args: unknown[]) => Promise<unknown>,
+      target: (...args: unknown[]) => unknown,
       thisArg: unknown,
       argumentsList: unknown[],
-    ): Promise<unknown> {
+    ): unknown {
       try {
         const normalizedName = normalizeRpcFunctionName(argumentsList[0]);
         const isProducerSpan = normalizedName === 'send' || normalizedName === 'send_batch';
@@ -1036,81 +1036,99 @@ function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<u
 }
 
 function instrumentGenericRpc(
-  target: (...args: unknown[]) => Promise<unknown>,
+  target: (...args: unknown[]) => unknown,
   thisArg: unknown,
   argumentsList: unknown[],
-): Promise<unknown> {
+): unknown {
   const functionName = typeof argumentsList[0] === 'string' ? argumentsList[0] : 'unknown';
   const params = argumentsList[1];
 
-  const attributes: Record<string, unknown> = {
-    'db.system': 'postgresql',
-    'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
-    'db.table': functionName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-  };
+  const builder = Reflect.apply(target, thisArg, argumentsList) as Record<string, unknown>;
 
-  if (params && typeof params === 'object') {
-    attributes['db.params'] = params;
+  if (!builder || typeof builder.then !== 'function') {
+    return builder;
   }
 
-  return startSpan(
-    {
-      name: `rpc(${functionName})`,
-      attributes: attributes as SpanAttributes,
-    },
-    span => {
-      return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then(
-        (res: SupabaseResponse) => {
-          if (span && res && typeof res === 'object' && 'status' in res) {
-            setHttpStatus(span, res.status || 500);
-          }
+  const originalThen = (builder.then as (...args: unknown[]) => Promise<unknown>).bind(builder);
 
-          const breadcrumb: SupabaseBreadcrumb = {
-            type: 'supabase',
-            category: 'db.insert',
-            message: `rpc(${functionName})`,
-          };
+  // Shadow .then() on the instance so the span is only created when the builder is awaited.
+  builder.then = function (
+    onfulfilled?: (value: unknown) => unknown,
+    onrejected?: (reason: unknown) => unknown,
+  ) {
+    const attributes: Record<string, unknown> = {
+      'db.system': 'postgresql',
+      'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
+      'db.table': functionName,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+    };
 
-          if (params && typeof params === 'object') {
-            breadcrumb.data = { body: params as Record<string, unknown> };
-          }
+    if (params && typeof params === 'object') {
+      attributes['db.params'] = params;
+    }
 
-          addBreadcrumb(breadcrumb);
+    return startSpan(
+      {
+        name: `rpc(${functionName})`,
+        attributes: attributes as SpanAttributes,
+      },
+      span => {
+        return (originalThen() as Promise<SupabaseResponse>)
+          .then(
+            (res: SupabaseResponse) => {
+              if (span && res && typeof res === 'object' && 'status' in res) {
+                setHttpStatus(span, res.status || 500);
+              }
 
-          if (res && typeof res === 'object' && 'error' in res && res.error) {
-            const error = res.error as { message?: string; code?: string; details?: string };
-            const err = new Error(error.message || 'RPC error') as SupabaseError;
-            if (error.code) err.code = error.code;
-            if (error.details) err.details = error.details;
+              const breadcrumb: SupabaseBreadcrumb = {
+                type: 'supabase',
+                category: 'db.insert',
+                message: `rpc(${functionName})`,
+              };
 
-            if (span) {
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-            }
+              if (params && typeof params === 'object') {
+                breadcrumb.data = { body: params as Record<string, unknown> };
+              }
 
-            captureSupabaseError(err, 'auto.db.supabase.rpc', {
-              function: functionName,
-              params,
-            });
-          }
+              addBreadcrumb(breadcrumb);
 
-          return res;
-        },
-        (err: Error) => {
-          captureSupabaseError(err, 'auto.db.supabase.rpc', {
-            function: functionName,
-            params,
-          });
+              if (res && typeof res === 'object' && 'error' in res && res.error) {
+                const error = res.error as { message?: string; code?: string; details?: string };
+                const err = new Error(error.message || 'RPC error') as SupabaseError;
+                if (error.code) err.code = error.code;
+                if (error.details) err.details = error.details;
 
-          if (span) {
-            setHttpStatus(span, 500);
-          }
-          throw err;
-        },
-      );
-    },
-  );
+                if (span) {
+                  span.setStatus({ code: SPAN_STATUS_ERROR });
+                }
+
+                captureSupabaseError(err, 'auto.db.supabase.rpc', {
+                  function: functionName,
+                  params,
+                });
+              }
+
+              return res;
+            },
+            (err: Error) => {
+              captureSupabaseError(err, 'auto.db.supabase.rpc', {
+                function: functionName,
+                params,
+              });
+
+              if (span) {
+                setHttpStatus(span, 500);
+              }
+              throw err;
+            },
+          )
+          .then(onfulfilled, onrejected);
+      },
+    );
+  };
+
+  return builder;
 }
 
 function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
@@ -1135,7 +1153,7 @@ function instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
 }
 
 /** No guard needed — `.schema()` returns a fresh object each call. */
-function instrumentRpcMethod(supabaseInstance: { rpc?: (...args: unknown[]) => Promise<unknown> }): void {
+function instrumentRpcMethod(supabaseInstance: { rpc?: (...args: unknown[]) => unknown }): void {
   if (!supabaseInstance.rpc) {
     return;
   }
