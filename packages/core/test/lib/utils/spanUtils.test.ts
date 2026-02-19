@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentrySpan,
   setCurrentClient,
   SPAN_STATUS_ERROR,
@@ -16,7 +17,7 @@ import {
   TRACEPARENT_REGEXP,
 } from '../../../src';
 import type { SpanLink } from '../../../src/types-hoist/link';
-import type { Span, SpanAttributes, SpanTimeInput } from '../../../src/types-hoist/span';
+import type { Span, SpanAttributes, SpanTimeInput, StreamedSpanJSON } from '../../../src/types-hoist/span';
 import type { SpanStatus } from '../../../src/types-hoist/spanStatus';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import {
@@ -24,7 +25,9 @@ import {
   spanIsSampled,
   spanTimeInputToSeconds,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanToTraceContext,
+  streamedSpanJsonToSerializedSpan,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
   updateSpanName,
@@ -41,6 +44,7 @@ function createMockedOtelSpan({
   status = { code: SPAN_STATUS_UNSET },
   endTime = Date.now(),
   parentSpanId,
+  links = undefined,
 }: {
   spanId: string;
   traceId: string;
@@ -51,6 +55,7 @@ function createMockedOtelSpan({
   status?: SpanStatus;
   endTime?: SpanTimeInput;
   parentSpanId?: string;
+  links?: SpanLink[];
 }): Span {
   return {
     spanContext: () => {
@@ -66,6 +71,7 @@ function createMockedOtelSpan({
     status,
     endTime,
     parentSpanId,
+    links,
   } as OpenTelemetrySdkTraceBaseSpan;
 }
 
@@ -405,6 +411,233 @@ describe('spanToJSON', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
         },
         status: 'unknown_error',
+      });
+    });
+  });
+
+  describe('spanToStreamedSpanJSON', () => {
+    describe('SentrySpan', () => {
+      it('converts a minimal span', () => {
+        const span = new SentrySpan();
+        expect(spanToStreamedSpanJSON(span)).toEqual({
+          span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+          trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+          name: '',
+          start_timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
+          status: 'ok',
+          is_segment: true,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+          },
+        });
+      });
+
+      it('converts a full span', () => {
+        const span = new SentrySpan({
+          op: 'test op',
+          name: 'test name',
+          parentSpanId: '1234',
+          spanId: '5678',
+          traceId: 'abcd',
+          startTimestamp: 123,
+          endTimestamp: 456,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+            attr1: 'value1',
+            attr2: 2,
+            attr3: true,
+          },
+          links: [
+            {
+              context: {
+                spanId: 'span1',
+                traceId: 'trace1',
+                traceFlags: TRACE_FLAG_SAMPLED,
+              },
+              attributes: {
+                'sentry.link.type': 'previous_trace',
+              },
+            },
+          ],
+        });
+        span.setStatus({ code: SPAN_STATUS_OK });
+        span.setAttribute('attr4', [1, 2, 3]);
+
+        expect(spanToStreamedSpanJSON(span)).toEqual({
+          name: 'test name',
+          parent_span_id: '1234',
+          span_id: '5678',
+          trace_id: 'abcd',
+          start_timestamp: 123,
+          end_timestamp: 456,
+          status: 'ok',
+          is_segment: true,
+          attributes: {
+            attr1: 'value1',
+            attr2: 2,
+            attr3: true,
+            attr4: [1, 2, 3],
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+          },
+          links: [
+            {
+              span_id: 'span1',
+              trace_id: 'trace1',
+              sampled: true,
+              attributes: {
+                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+              },
+            },
+          ],
+        });
+      });
+    });
+    describe('OpenTelemetry Span', () => {
+      it('converts a simple span', () => {
+        const span = createMockedOtelSpan({
+          spanId: 'SPAN-1',
+          traceId: 'TRACE-1',
+          name: 'test span',
+          startTime: 123,
+          endTime: [0, 0],
+          attributes: {},
+          status: { code: SPAN_STATUS_UNSET },
+        });
+
+        expect(spanToStreamedSpanJSON(span)).toEqual({
+          span_id: 'SPAN-1',
+          trace_id: 'TRACE-1',
+          parent_span_id: undefined,
+          start_timestamp: 123,
+          end_timestamp: 0,
+          name: 'test span',
+          is_segment: true,
+          status: 'ok',
+          attributes: {},
+        });
+      });
+
+      it('converts a full span', () => {
+        const span = createMockedOtelSpan({
+          spanId: 'SPAN-1',
+          traceId: 'TRACE-1',
+          parentSpanId: 'PARENT-1',
+          name: 'test span',
+          startTime: 123,
+          endTime: 456,
+          attributes: {
+            attr1: 'value1',
+            attr2: 2,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+          },
+          links: [
+            {
+              context: {
+                spanId: 'span1',
+                traceId: 'trace1',
+                traceFlags: TRACE_FLAG_SAMPLED,
+              },
+              attributes: {
+                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+              },
+            },
+          ],
+          status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
+        });
+
+        expect(spanToStreamedSpanJSON(span)).toEqual({
+          span_id: 'SPAN-1',
+          trace_id: 'TRACE-1',
+          parent_span_id: 'PARENT-1',
+          start_timestamp: 123,
+          end_timestamp: 456,
+          name: 'test span',
+          is_segment: true,
+          status: 'error',
+          attributes: {
+            attr1: 'value1',
+            attr2: 2,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+          },
+          links: [
+            {
+              span_id: 'span1',
+              trace_id: 'trace1',
+              sampled: true,
+              attributes: {
+                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+              },
+            },
+          ],
+        });
+      });
+    });
+  });
+
+  describe('streamedSpanJsonToSerializedSpan', () => {
+    it('converts a streamed span JSON with links to a serialized span', () => {
+      const spanJson: StreamedSpanJSON = {
+        name: 'test name',
+        parent_span_id: '1234',
+        span_id: '5678',
+        trace_id: 'abcd',
+        start_timestamp: 123,
+        end_timestamp: 456,
+        status: 'ok',
+        is_segment: true,
+        attributes: {
+          attr1: 'value1',
+          attr2: 2,
+          attr3: true,
+          attr4: [1, 2, 3],
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+        },
+        links: [
+          {
+            span_id: 'span1',
+            trace_id: 'trace1',
+            sampled: true,
+            attributes: {
+              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+            },
+          },
+        ],
+      };
+
+      expect(streamedSpanJsonToSerializedSpan(spanJson)).toEqual({
+        name: 'test name',
+        parent_span_id: '1234',
+        span_id: '5678',
+        trace_id: 'abcd',
+        start_timestamp: 123,
+        end_timestamp: 456,
+        status: 'ok',
+        is_segment: true,
+        attributes: {
+          attr1: { type: 'string', value: 'value1' },
+          attr2: { type: 'integer', value: 2 },
+          attr3: { type: 'boolean', value: true },
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test op' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto' },
+          // notice the absence of `attr4`!
+          // for now, we don't yet serialize array attributes. This test will fail
+          // once we allow serializing them.
+        },
+        links: [
+          {
+            span_id: 'span1',
+            trace_id: 'trace1',
+            sampled: true,
+            attributes: {
+              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
+            },
+          },
+        ],
       });
     });
   });

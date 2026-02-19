@@ -68,6 +68,7 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
+export { withStreamedSpan } from './utils/beforeSendSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -79,11 +80,13 @@ export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
@@ -173,6 +176,9 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
 } from './tracing/google-genai/types';
+
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -387,6 +393,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  StreamedSpanEnvelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -454,6 +461,7 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  StreamedSpanJSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';

@@ -18,6 +18,7 @@ import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
+import { isStreamedBeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
@@ -152,7 +153,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
-        const processedSpan = beforeSendSpan(spanJson);
+        const processedSpan = !isStreamedBeforeSendSpanCallback(beforeSendSpan) ? beforeSendSpan(spanJson) : spanJson;
 
         if (!processedSpan) {
           showSpanDropWarning();
