@@ -1,0 +1,29 @@
+{
+  "name": "nitro-3",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "start": "PORT=3030 NODE_OPTIONS='--import ./instrument.mjs' node .output/server/index.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/browser": "latest || *",
+    "@sentry/nitro": "latest || *"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
+    "nitro": "https://pkg.pr.new/nitrojs/nitro@4001",
+    "rolldown": "latest",
+    "vite": "latest"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

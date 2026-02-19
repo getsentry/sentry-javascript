@@ -19101,6 +19101,14 @@ h3@^1.10.0, h3@^1.12.0, h3@^1.15.3, h3@^1.15.5:
     ufo "^1.6.3"
     uncrypto "^0.1.3"
 
+h3@^2.0.1-rc.13:
+  version "2.0.1-rc.13"
+  resolved "https://registry.yarnpkg.com/h3/-/h3-2.0.1-rc.13.tgz#f11df1dfaa91ac47422a880a9f7f4a26f5e2262f"
+  integrity sha512-1g+GVBDFygRwLEw6CIbFME99M1QiHZfE0bCzXbqOKEDHz23L/RlMJZkIwQl/mJMAauA9G3oO9pSL4tKDpvgagQ==
+  dependencies:
+    rou3 "^0.7.12"
+    srvx "^0.11.1"
+
 handle-thing@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/handle-thing/-/handle-thing-2.0.1.tgz#857f79ce359580c340d43081cc648970d0bb234e"
@@ -24402,6 +24410,11 @@ osenv@^0.1.3:
     os-homedir "^1.0.0"
     os-tmpdir "^1.0.0"
 
+otel-tracing-channel@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/otel-tracing-channel/-/otel-tracing-channel-0.2.0.tgz#55c8dafa55dafaa9daf64dd501a4b5d8e58c3f29"
+  integrity sha512-m+JtCKi05Ou2MpSsAHFqSCBjc2QDlnmXtOasZXvDnU56uBr4UeClXWKvBK8MsGwNCbGUBqwOOPDbjS7+D9A8lw==
+
 own-keys@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/own-keys/-/own-keys-1.0.1.tgz#e4006910a2bf913585289676eebd6f390cf51358"
@@ -28570,6 +28583,11 @@ sqlstring@^2.3.2:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/sqlstring/-/sqlstring-2.3.3.tgz#2ddc21f03bce2c387ed60680e739922c65751d0c"
   integrity sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg==
+
+srvx@^0.11.1:
+  version "0.11.1"
+  resolved "https://registry.yarnpkg.com/srvx/-/srvx-0.11.1.tgz#1137b2e38c6babfe4dade129d09c70e5ea9278d7"
+  integrity sha512-hs+BDmweGNT0DHlcsgB52BOKOn32v1g+CtyCavqstcz19KUDZsAoLVLFV0y03xAOd0KiXbgsguPcCivR6Lj5PA==
 
 srvx@^0.11.2:
   version "0.11.4"
