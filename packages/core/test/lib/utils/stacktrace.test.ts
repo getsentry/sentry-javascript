@@ -393,7 +393,7 @@ describe('node', () => {
     expect(node(input)).toEqual(expectedOutput);
   });
 
-  it('returns undefined when decodeURI throws a URIError', () => {
+  it('returns the raw filename when decodeURI throws a URIError', () => {
     const malformedFilename = '/path/to/%file%.js';
     const input = `at myFunction (${malformedFilename}:10:5)`;
 

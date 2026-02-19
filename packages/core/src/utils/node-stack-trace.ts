@@ -115,10 +115,10 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
         filename = lineMatch[5];
       }
 
-      const maybeFilename = filename ? _safeDecodeURI(filename) : undefined;
+      const maybeDecodedFilename = filename ? _safeDecodeURI(filename) : undefined;
       return {
-        filename: maybeFilename,
-        module: getModule?.(maybeFilename),
+        filename: maybeDecodedFilename ?? filename,
+        module: maybeDecodedFilename && getModule?.(maybeDecodedFilename),
         function: functionName,
         lineno: _parseIntOrUndefined(lineMatch[3]),
         colno: _parseIntOrUndefined(lineMatch[4]),
