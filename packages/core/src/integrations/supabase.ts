@@ -854,22 +854,23 @@ function cleanSentryMetadataFromResponse(res: SupabaseResponse): SupabaseRespons
 
   const messages = res.data as SupabaseQueueMessage[];
 
-  const hasMetadata = messages.some(
-    item => item?.message && typeof item.message === 'object' && '_sentry' in item.message,
-  );
+  let hasMetadata = false;
+  const cleanedData: SupabaseQueueMessage[] = [];
+
+  for (const item of messages) {
+    if (item?.message && typeof item.message === 'object' && '_sentry' in item.message) {
+      hasMetadata = true;
+      const messageCopy = { ...(item.message as Record<string, unknown>) };
+      delete messageCopy._sentry;
+      cleanedData.push({ ...item, message: messageCopy });
+    } else {
+      cleanedData.push(item);
+    }
+  }
 
   if (!hasMetadata) {
     return res;
   }
-
-  const cleanedData = messages.map(item => {
-    if (item?.message && typeof item.message === 'object') {
-      const messageCopy = { ...(item.message as Record<string, unknown>) };
-      delete messageCopy._sentry;
-      return { ...item, message: messageCopy };
-    }
-    return item;
-  });
 
   return { ...res, data: cleanedData };
 }
