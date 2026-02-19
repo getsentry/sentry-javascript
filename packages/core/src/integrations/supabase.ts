@@ -611,6 +611,7 @@ function calculateMessageBodySize(message: unknown): number | undefined {
 function captureQueueError(
   error: { message: string; code?: string; details?: unknown },
   queueName: string | undefined,
+  mechanismType: string,
   messageId?: string,
   extraContext?: Record<string, unknown>,
 ): void {
@@ -618,7 +619,7 @@ function captureQueueError(
   if (error.code) err.code = error.code;
   if (error.details) err.details = error.details;
 
-  captureSupabaseError(err, 'auto.db.supabase.queue', { queueName, messageId, ...extraContext });
+  captureSupabaseError(err, mechanismType, { queueName, messageId, ...extraContext });
 }
 
 /** Returns latency from an enqueued_at timestamp in milliseconds. */
@@ -764,7 +765,9 @@ function instrumentRpcProducer(
           });
 
           if (res.error) {
-            captureQueueError(res.error, queueName, messageId, { operation: operationName });
+            captureQueueError(res.error, queueName, 'auto.db.supabase.queue.producer', messageId, {
+              operation: operationName,
+            });
           }
 
           span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
@@ -774,7 +777,7 @@ function instrumentRpcProducer(
         (err: unknown) => {
           span.setStatus({ code: SPAN_STATUS_ERROR });
 
-          captureSupabaseError(err, 'auto.db.supabase.queue', { queueName, operation: operationName });
+          captureSupabaseError(err, 'auto.db.supabase.queue.producer', { queueName, operation: operationName });
 
           throw err;
         },
@@ -973,7 +976,7 @@ function instrumentRpcConsumer(
             });
 
             if (cleanedRes.error) {
-              captureQueueError(cleanedRes.error, queueName);
+              captureQueueError(cleanedRes.error, queueName, 'auto.db.supabase.queue.consumer');
             }
 
             return cleanedRes;
@@ -983,7 +986,7 @@ function instrumentRpcConsumer(
 
           if (cleanedRes.error) {
             const messageId = extractMessageIds(cleanedData);
-            captureQueueError(cleanedRes.error, queueName, messageId);
+            captureQueueError(cleanedRes.error, queueName, 'auto.db.supabase.queue.consumer', messageId);
           }
 
           span.setStatus({ code: cleanedRes.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
@@ -998,7 +1001,7 @@ function instrumentRpcConsumer(
             data: { 'messaging.destination.name': queueName },
           });
 
-          captureSupabaseError(err, 'auto.db.supabase.queue', { queueName });
+          captureSupabaseError(err, 'auto.db.supabase.queue.consumer', { queueName });
 
           span.setStatus({ code: SPAN_STATUS_ERROR });
           throw err;
