@@ -36,7 +36,7 @@
   This new mode no longer creates a session per soft navigation but continues the initial session until the next hard page refresh.
   Check out the [docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/browsersession/) to learn more!
 
-Work in this release was contributed by @LudvigHz. Thank you for your contribution!
+Work in this release was contributed by @LudvigHz and @jadengis. Thank you for your contribution!
 
 ## 10.39.0
 
