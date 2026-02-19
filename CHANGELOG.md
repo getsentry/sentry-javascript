@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
 - **feat(tanstackstart-react): Add global sentry exception middlewares ([#19330](https://github.com/getsentry/sentry-javascript/pull/19330))**
 
   The `sentryGlobalRequestMiddleware` and `sentryGlobalFunctionMiddleware` global middlewares capture unhandled exceptions thrown in TanStack Start API routes and server functions. Add them as the first entries in the `requestMiddleware` and `functionMiddleware` arrays of `createStart()`:
@@ -18,11 +20,23 @@
   });
   ```
 
-### Important Changes
+- **fix(node-core): Reduce bundle size by removing apm-js-collab and requiring pino >= 9.10 ([#18631](https://github.com/getsentry/sentry-javascript/pull/18631))**
 
-- fix(node-core): Reduce bundle size by removing apm-js-collab and requiring pino >= 9.10 ([#18631](https://github.com/getsentry/sentry-javascript/pull/18631))
+  In order to keep receiving pino logs, you need to update your pino version to >= 9.10, the reason for the support bump is to reduce the bundle size of the node-core SDK in frameworks that cannot tree-shake the apm-js-collab dependency.
 
-In order to keep receiving pino logs, you need to update your pino version to >= 9.10, the reason for the support bump is to reduce the bundle size of the node-core SDK in frameworks that cannot tree-shake the apm-js-collab dependency.
+- **fix(browser): Ensure user id is consistently added to sessions ([#19341](https://github.com/getsentry/sentry-javascript/pull/19341))**
+
+  Previously, the SDK inconsistently set the user id on sessions, meaning sessions were often lacking proper coupling to the user set for example via `Sentry.setUser()`.
+  Additionally, the SDK incorrectly skipped starting a new session for the first soft navigation after the pageload.
+  This patch fixes these issues. As a result, metrics around sessions, like "Crash Free Sessions" or "Crash Free Users" might change.
+  This could also trigger alerts, depending on your set thresholds and conditions.
+  We apologize for any inconvenience caused!
+
+  While we're at it, if you're using Sentry in a Single Page App or meta framework, you might want to give the new `'page'` session lifecycle a try!
+  This new mode no longer creates a session per soft navigation but continues the initial session until the next hard page refresh.
+  Check out the [docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/browsersession/) to learn more!
+
+Work in this release was contributed by @LudvigHz. Thank you for your contribution!
 
 ## 10.39.0
 

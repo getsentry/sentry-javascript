@@ -202,6 +202,7 @@ class SentryScenarioGenerationPlugin {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         parser.hooks.import.tap(
           this._name,
+          // @ts-expect-error - not sure why this is failing suddenly???
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
             const imported = statement.specifiers?.[0]?.imported?.name;
 
