@@ -809,7 +809,9 @@ function processConsumerSpanData(
 
   const messageId = extractMessageIds(cleanedData);
 
-  span.setAttribute('messaging.batch.message_count', cleanedData.length);
+  if (isBatch) {
+    span.setAttribute('messaging.batch.message_count', cleanedData.length);
+  }
 
   if (messageId) {
     span.setAttribute('messaging.message.id', messageId);
