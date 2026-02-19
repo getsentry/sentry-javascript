@@ -15,6 +15,9 @@ import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
+const LOG_SEQUENCE_ATTR_KEY = 'sentry.log.sequence';
+
+let _logSequenceNumber = 0;
 
 /**
  * Sets a log attribute if the value exists and the attribute key is not already present.
@@ -163,6 +166,7 @@ export function _INTERNAL_captureLog(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
+      [LOG_SEQUENCE_ATTR_KEY]: { value: _logSequenceNumber++, type: 'integer' },
     },
   };
 
@@ -214,4 +218,11 @@ export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | u
 function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
   // The reference to the Client <> LogBuffer map is stored on the carrier to ensure it's always the same
   return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
+}
+
+/**
+ * Resets the log sequence number. Only exported for testing purposes.
+ */
+export function _INTERNAL_resetLogSequenceNumber(): void {
+  _logSequenceNumber = 0;
 }
