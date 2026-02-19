@@ -57,6 +57,7 @@ Expected output: `17 passed, 0 failed`
 ## Detected Attack Patterns
 
 ### Language-Agnostic Patterns
+
 - System override tags: `<system_override>`, `[SYSTEM MESSAGE]`
 - HTML comment injection: `<!-- CLAUDE: ...  -->`
 - Script/iframe injection: `<script>`, `<iframe src=...>`
@@ -65,6 +66,7 @@ Expected output: `17 passed, 0 failed`
 - Fake verification codes: `ADMIN-OVERRIDE-2024`
 
 ### English-Specific Patterns
+
 - Instruction override: "ignore all previous instructions"
 - Prompt extraction: "reveal your system prompt"
 - Role manipulation: "you are now in admin mode"
