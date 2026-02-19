@@ -392,4 +392,21 @@ describe('node', () => {
 
     expect(node(input)).toEqual(expectedOutput);
   });
+
+  it('returns the raw filename when decodeURI throws a URIError', () => {
+    const malformedFilename = '/path/to/%file%.js';
+    const input = `at myFunction (${malformedFilename}:10:5)`;
+
+    const result = node(input);
+
+    expect(result?.filename).toBe(malformedFilename);
+  });
+
+  it('decodes a valid percent-encoded filename', () => {
+    const input = 'at myFunction (/path/to/my%20file.js:10:5)';
+
+    const result = node(input);
+
+    expect(result?.filename).toBe('/path/to/my file.js');
+  });
 });

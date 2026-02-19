@@ -116,7 +116,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
       }
 
       return {
-        filename: filename ? decodeURI(filename) : undefined,
+        filename: filename ? _safeDecodeURI(filename) : undefined,
         module: getModule ? getModule(filename) : undefined,
         function: functionName,
         lineno: _parseIntOrUndefined(lineMatch[3]),
@@ -147,4 +147,12 @@ export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
 
 function _parseIntOrUndefined(input: string | undefined): number | undefined {
   return parseInt(input || '', 10) || undefined;
+}
+
+function _safeDecodeURI(filename: string): string {
+  try {
+    return decodeURI(filename);
+  } catch {
+    return filename;
+  }
 }
