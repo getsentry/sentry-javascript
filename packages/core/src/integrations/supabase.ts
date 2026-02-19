@@ -1075,7 +1075,7 @@ function instrumentGenericRpc(
                   setHttpStatus(span, res.status || 500);
                 }
 
-                if (res && typeof res === 'object' && 'error' in res && res.error) {
+                if (res && typeof res === 'object' && 'error' in res && res.error && !('status' in res)) {
                   span.setStatus({ code: SPAN_STATUS_ERROR });
                 }
 
