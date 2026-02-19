@@ -1,7 +1,7 @@
 export interface ServerComponentContext {
   /** The parameterized route path (e.g., "/users/:id") */
   componentRoute: string;
-  componentType: 'Page' | 'Layout' | 'Loading' | 'Error' | 'Template' | 'Not-found' | 'Unknown';
+  componentType: 'Page' | 'Layout' | 'Error' | 'Unknown';
 }
 
 export interface WrapServerFunctionOptions {

@@ -153,7 +153,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(plugin.transform("export function helper() { return 'helper'; }", 'app/routes/utils.tsx')).toBeNull();
     });
 
-    // Server function auto-instrumentation ("use server" files)
     it('wraps "use server" files with server function wrapper code', () => {
       const plugin = createPluginWithRSCDetected();
       const code = [
@@ -256,9 +255,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result!.code).toContain('export default wrapServerFunction("default", _sentry_original.default)');
     });
 
-    // Regression: ensures export class declarations are collected by the AST parser.
-    // While exporting a class from "use server" is uncommon, the plugin should handle
-    // it without crashing rather than silently skipping the export.
     it('wraps export class in a "use server" file', () => {
       const plugin = createPluginWithRSCDetected();
       const code = "'use server';\nexport class MyService { async run() {} }";
@@ -268,7 +264,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result!.code).toContain('export const MyService = wrapServerFunction("MyService"');
     });
 
-    // Regression: export default async function name should be treated as default, not named
     it('does not extract "export default async function name" as a named export', () => {
       const plugin = createPluginWithRSCDetected();
       const code = "'use server';\nexport default async function serverAction() { return {}; }";
@@ -312,20 +307,12 @@ describe('makeAutoInstrumentRSCPlugin', () => {
   });
 
   describe('analyzeModule', () => {
-    // Named export extraction
-    it('extracts export const declarations', () => {
-      const code = "export const submitForm = wrapServerFunction('submitForm', _submitForm);";
-      expect(analyzeModule(code)?.namedExports).toEqual(['submitForm']);
-    });
-
-    it('extracts export function declarations', () => {
-      const code = 'export function submitForm(data) { return data; }';
-      expect(analyzeModule(code)?.namedExports).toEqual(['submitForm']);
-    });
-
-    it('extracts export async function declarations', () => {
-      const code = 'export async function fetchData() { return await fetch("/api"); }';
-      expect(analyzeModule(code)?.namedExports).toEqual(['fetchData']);
+    it.each<[string, string, string[]]>([
+      ['export const', "export const submitForm = wrapServerFunction('submitForm', _submitForm);", ['submitForm']],
+      ['export function', 'export function submitForm(data) { return data; }', ['submitForm']],
+      ['export async function', 'export async function fetchData() { return await fetch("/api"); }', ['fetchData']],
+    ])('extracts %s declarations', (_label, code, expected) => {
+      expect(analyzeModule(code)?.namedExports).toEqual(expected);
     });
 
     it('extracts multiple exports', () => {
@@ -389,28 +376,24 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(analyzeModule(code)?.namedExports).toEqual(['realExport']);
     });
 
-    it('ignores inline type exports in export { type X }', () => {
-      const code = 'type Foo = string;\ntype Baz = number;\nconst bar = 1;\nexport { type Foo, bar, type Baz as Qux }';
-      expect(analyzeModule(code)?.namedExports).toEqual(['bar']);
-    });
-
-    it('ignores type-only export specifiers mixed with regular exports', () => {
-      const code = ['type MyType = string;', 'const a = 1;', 'const b = 2;', 'export { type MyType, a, b }'].join('\n');
-      expect(analyzeModule(code)?.namedExports).toEqual(['a', 'b']);
+    it.each([
+      ['export { type Foo, bar, type Baz as Qux }', ['bar']],
+      ['export { type MyType, a, b }', ['a', 'b']],
+    ])('ignores inline type specifiers in "%s"', (exportLine, expected) => {
+      const code = `type Foo = string;\ntype MyType = string;\ntype Baz = number;\nconst bar = 1;\nconst a = 1;\nconst b = 2;\n${exportLine}`;
+      expect(analyzeModule(code)?.namedExports).toEqual(expected);
     });
 
     it('extracts export class declarations', () => {
       expect(analyzeModule('export class MyClass {}')?.namedExports).toEqual(['MyClass']);
     });
 
-    // Regression test: export default async function does not appear as named export
     it('does not extract "export default async function name" as a named export', () => {
       const result = analyzeModule('export default async function serverAction() { return {}; }');
       expect(result?.namedExports).toEqual([]);
       expect(result?.hasDefaultExport).toBe(true);
     });
 
-    // Directive detection
     it('detects "use server" directive', () => {
       const result = analyzeModule("'use server';\nexport async function action() {}");
       expect(result?.hasUseServerDirective).toBe(true);
@@ -431,7 +414,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result?.hasUseServerDirective).toBe(false);
     });
 
-    // Default export detection
     it('detects default export', () => {
       expect(analyzeModule('export default function Page() {}')?.hasDefaultExport).toBe(true);
     });
@@ -440,7 +422,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(analyzeModule('export function helper() {}')?.hasDefaultExport).toBe(false);
     });
 
-    // Manual wrapping detection
     it('detects manual wrapping with wrapServerFunction import', () => {
       const code =
         "import { wrapServerFunction } from '@sentry/react-router';\nexport const action = wrapServerFunction('action', _action);";
@@ -454,7 +435,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result?.hasManualServerFunctionWrapping).toBe(false);
     });
 
-    // Parse failure
     it('returns null for unparseable code', () => {
       expect(analyzeModule('this is not valid {{{')).toBeNull();
     });

@@ -1,27 +1,7 @@
-import { addNonEnumerableProperty } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse } from '../../../src/server/rsc/responseUtils';
+import { isNotFoundResponse, isRedirectResponse } from '../../../src/server/rsc/responseUtils';
 
 describe('responseUtils', () => {
-  describe('isAlreadyCaptured', () => {
-    it('should return false for errors without __sentry_captured__', () => {
-      expect(isAlreadyCaptured(new Error('test'))).toBe(false);
-    });
-
-    it('should return true for errors with __sentry_captured__ set', () => {
-      const error = new Error('test');
-      addNonEnumerableProperty(error as unknown as Record<string, unknown>, '__sentry_captured__', true);
-      expect(isAlreadyCaptured(error)).toBe(true);
-    });
-
-    it('should return false for non-object values', () => {
-      expect(isAlreadyCaptured(null)).toBe(false);
-      expect(isAlreadyCaptured(undefined)).toBe(false);
-      expect(isAlreadyCaptured('string')).toBe(false);
-      expect(isAlreadyCaptured(42)).toBe(false);
-    });
-  });
-
   describe('isRedirectResponse', () => {
     it.each([301, 302, 303, 307, 308])('should return true for Response with %d status', status => {
       expect(isRedirectResponse(new Response(null, { status }))).toBe(true);

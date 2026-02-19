@@ -13,8 +13,6 @@ export default function ServerFunctionErrorPage() {
   return (
     <main>
       <h1>Server Function Error Test</h1>
-      <p>This page tests error capture in wrapServerFunction.</p>
-
       <Form method="post">
         <input type="hidden" name="trigger" value="error" />
         <button type="submit" id="submit">

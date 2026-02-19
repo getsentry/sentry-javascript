@@ -13,8 +13,6 @@ export default function ServerFunctionArrowPage() {
   return (
     <main>
       <h1>Server Function Arrow Test</h1>
-      <p>This tests export const arrow function wrapping.</p>
-
       <Form method="post">
         <label htmlFor="name">Name:</label>
         <input type="text" id="name" name="name" defaultValue="Arrow User" />

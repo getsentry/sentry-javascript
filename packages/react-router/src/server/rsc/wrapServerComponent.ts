@@ -8,7 +8,7 @@ import {
   SPAN_STATUS_OK,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { isAlreadyCaptured, isNotFoundResponse, isRedirectResponse } from './responseUtils';
+import { isNotFoundResponse, isRedirectResponse } from './responseUtils';
 import type { ServerComponentContext } from './types';
 
 /**
@@ -101,17 +101,15 @@ function handleError(error: unknown, componentRoute: string, componentType: stri
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
 
-  if (!isAlreadyCaptured(error)) {
-    captureException(error, {
-      mechanism: {
-        type: 'react_router.rsc',
-        handled: false,
-        data: {
-          function: 'ServerComponent',
-          component_route: componentRoute,
-          component_type: componentType,
-        },
+  captureException(error, {
+    mechanism: {
+      type: 'react_router.rsc',
+      handled: false,
+      data: {
+        function: 'ServerComponent',
+        component_route: componentRoute,
+        component_type: componentType,
       },
-    });
-  }
+    },
+  });
 }

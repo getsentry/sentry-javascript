@@ -1,20 +1,4 @@
 /**
- * Read-only check for the `__sentry_captured__` flag set by `captureException`.
- * Only reads the flag — does not mark the error — to avoid conflicting with
- * the internal dedup in `captureException`.
- */
-export function isAlreadyCaptured(exception: unknown): boolean {
-  if (exception == null || typeof exception !== 'object') {
-    return false;
-  }
-  try {
-    return !!(exception as Record<string, unknown>).__sentry_captured__;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Check if an error/response is a redirect.
  * Handles both Response objects and internal React Router throwables.
  */

@@ -13,8 +13,6 @@ export default function ServerFunctionPage() {
   return (
     <main>
       <h1>Server Function Test</h1>
-      <p>This page tests wrapServerFunction instrumentation.</p>
-
       <Form method="post">
         <label htmlFor="name">Name:</label>
         <input type="text" id="name" name="name" defaultValue="Sentry User" />
