@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
+import * as exports from '../../../src/exports';
 import type { SupabaseClientInstance, SupabaseResponse } from '../../../src/integrations/supabase';
 import { instrumentSupabaseClient } from '../../../src/integrations/supabase';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../../src/semanticAttributes';
@@ -156,6 +157,37 @@ describe('Supabase Queue Instrumentation', () => {
       ).rejects.toThrow('Queue send failed');
     });
 
+    it('should capture producer errors with producer mechanism type', async () => {
+      const captureExceptionSpy = vi.spyOn(exports, 'captureException').mockImplementation(() => '');
+
+      await callRpc(
+        mockRpcFunction,
+        mockSupabaseClient,
+        'send',
+        { queue_name: 'test-queue', message: { foo: 'bar' } },
+        ERROR_RESPONSE,
+      );
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+
+      // Execute the scope callback to verify mechanism type
+      const scopeCallback = captureExceptionSpy.mock.calls[0]![1] as (scope: any) => any;
+      const mockScope = { addEventProcessor: vi.fn().mockReturnThis(), setContext: vi.fn().mockReturnThis() };
+      scopeCallback(mockScope);
+
+      const eventProcessor = mockScope.addEventProcessor.mock.calls[0]![0];
+      const event = { exception: { values: [{}] } };
+      eventProcessor(event);
+
+      expect(event.exception.values[0]).toEqual(
+        expect.objectContaining({
+          mechanism: expect.objectContaining({ type: 'auto.db.supabase.queue.producer' }),
+        }),
+      );
+
+      captureExceptionSpy.mockRestore();
+    });
+
     it('should not mutate original params for single send or batch send', async () => {
       const singleParams = { queue_name: 'test-queue', message: { foo: 'bar', nested: { value: 42 } } };
       const batchParams = { queue_name: 'test-queue', messages: [{ foo: 'bar' }, { baz: 'qux' }] };
@@ -306,6 +338,30 @@ describe('Supabase Queue Instrumentation', () => {
       const processSpanCall = findSpanCall(startSpanSpy, 'queue.process');
       expect(processSpanCall).toBeDefined();
       expect(processSpanCall?.[0]?.name).toBe('process test-queue');
+    });
+
+    it('should capture consumer errors with consumer mechanism type', async () => {
+      const captureExceptionSpy = vi.spyOn(exports, 'captureException').mockImplementation(() => '');
+
+      await callRpc(mockRpcFunction, mockSupabaseClient, 'pop', { queue_name: 'test-queue' }, ERROR_RESPONSE);
+
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+
+      const scopeCallback = captureExceptionSpy.mock.calls[0]![1] as (scope: any) => any;
+      const mockScope = { addEventProcessor: vi.fn().mockReturnThis(), setContext: vi.fn().mockReturnThis() };
+      scopeCallback(mockScope);
+
+      const eventProcessor = mockScope.addEventProcessor.mock.calls[0]![0];
+      const event = { exception: { values: [{}] } };
+      eventProcessor(event);
+
+      expect(event.exception.values[0]).toEqual(
+        expect.objectContaining({
+          mechanism: expect.objectContaining({ type: 'auto.db.supabase.queue.consumer' }),
+        }),
+      );
+
+      captureExceptionSpy.mockRestore();
     });
 
     it('should set correct attributes on consumer span', async () => {
