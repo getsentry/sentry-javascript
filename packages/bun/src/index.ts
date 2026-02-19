@@ -166,6 +166,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   createSentryWinstonTransport,
+  pinoIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,

@@ -1,0 +1,6 @@
+---
+description: Use this rule if you need developer documentation about Span Attributes within the Sentry SDKs
+alwaysApply: false
+---
+
+Find the SDK developer documentation here: https://develop.sentry.dev/sdk/telemetry/attributes.md
