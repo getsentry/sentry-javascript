@@ -39,7 +39,6 @@ export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSve
     if (!fs.existsSync(configFile)) {
       return {};
     }
-    // @ts-expect-error - we explicitly want to import the svelte config here.
     const svelteConfigModule = await import(`${url.pathToFileURL(configFile).href}`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
