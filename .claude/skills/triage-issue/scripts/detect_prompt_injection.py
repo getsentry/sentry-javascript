@@ -62,8 +62,8 @@ def is_english(text: str) -> Tuple[bool, float]:
 INJECTION_PATTERNS = [
     # System override tags and markers (10 points each)
     (r"<\s*system[_\s-]*(override|message|prompt|instruction)", 10, "System tag injection"),
-    (r"\[SYSTEM[\s_-]*(OVERRIDE|MESSAGE|PROMPT)", 10, "System marker injection"),
-    (r"<!--\s*(CLAUDE|SYSTEM|ADMIN|OVERRIDE):", 10, "HTML comment injection"),
+    (r"\[system[\s_-]*(override|message|prompt)", 10, "System marker injection"),
+    (r"<!--\s*(claude|system|admin|override):", 10, "HTML comment injection"),
 
     # Instruction override attempts (8 points)
     (r"\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)", 8, "Instruction override"),
@@ -85,7 +85,7 @@ INJECTION_PATTERNS = [
     (r"process\.env\.(secret|token|password|api)", 7, "Process.env access"),
 
     # Command execution attempts (7 points)
-    (r"`\s*(env|printenv|cat\s+[~/]|grep\s+SECRET)", 7, "Suspicious command in code block"),
+    (r"`\s*(env|printenv|cat\s+[~/]|grep\s+secret)", 7, "Suspicious command in code block"),
     (r"\b(run|execute).{0,10}(command|script|bash)", 6, "Command execution request"),
     (r"running\s+(this|the)\s+command:\s*`", 6, "Command execution with backticks"),
 
@@ -156,8 +156,7 @@ def analyze_issue(issue_data: dict) -> Tuple[bool, str, List[str]]:
 
     if not is_eng:
         details = [
-            f"Language check failed: {ratio:.1%} ASCII alphabetic characters",
-            f"Required: ≥70% for English content",
+            f"Language check failed: non-English characters detected ({ratio:.1%} ASCII alphabetic)",
             "",
             "This triage system only processes English language issues.",
             "Please submit issues in English for automated triage.",
