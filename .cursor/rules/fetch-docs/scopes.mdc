@@ -1,0 +1,6 @@
+---
+description: Use this rule if you need developer documentation about the concept of Scopes (global, isolation, current) within the Sentry SDKs
+alwaysApply: false
+---
+
+Find the SDK developer documentation here: https://develop.sentry.dev/sdk/telemetry/scopes.md
