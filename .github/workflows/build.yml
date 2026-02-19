@@ -307,16 +307,29 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check for duplicate dependencies in lockfile
-        # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
-        run: yarn dedupe-deps:check
       - name: Lint source files
-        run: yarn lint:lerna
+        run: yarn lint:eslint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
+  job_check_lockfile:
+    name: Check lockfile
+    needs: [job_get_metadata]
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
       - name: Check that yarn.lock is stable
-        run: yarn && git diff --exit-code yarn.lock
+        run: yarn install --frozen-lockfile --ignore-engines
+      - name: Check for duplicate dependencies in lockfile
+        run: yarn dedupe-deps:check
 
   job_check_format:
     name: Check file formatting
@@ -339,7 +352,7 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier
+        run: yarn format:check
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -538,6 +551,7 @@ jobs:
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_browser_playwright_tests:
     name:
@@ -639,6 +653,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          name:
+            browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
+            matrix.shard) || '' }}
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -700,6 +717,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -774,6 +792,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-integration-tests
+          name: node-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || '' }}
 
   job_node_core_integration_tests:
     name:
@@ -823,6 +842,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-core-integration-tests
+          name:
+            node-core-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || ''}}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -890,6 +911,7 @@ jobs:
         with:
           directory: packages/remix
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -987,7 +1009,7 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
-        if: matrix.test-application == 'node-exports-test-app'
+        if: contains(fromJSON('["node-exports-test-app","nextjs-16-bun"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless'
@@ -1081,6 +1103,7 @@ jobs:
         with:
           directory: dev-packages/e2e-tests
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: e2e-${{ matrix.test-application }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
@@ -1204,6 +1227,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
+        job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
         job_size_check,

@@ -1,0 +1,71 @@
+name: Triage Issue
+
+on:
+  # Only trigger this workflow manually for now
+  # issues:
+  # types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number (e.g., 1234)'
+        required: true
+        type: number
+
+# Per-issue concurrency to prevent duplicate analysis
+concurrency:
+  group: triage-issue-${{ github.event.issue.number || github.event.inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  triage-issue:
+    runs-on: ubuntu-latest
+    environment: ci-triage
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      id-token: write
+    # Only run for Bug or Feature issues (automatic mode)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.issue.labels.*.name, 'Bug') ||
+      contains(github.event.issue.labels.*.name, 'Feature')
+
+    steps:
+      - name: Parse issue number
+        id: parse-issue
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          INPUT_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_NUM="$EVENT_ISSUE_NUMBER"
+          else
+            ISSUE_NUM="$INPUT_ISSUE_NUMBER"
+          fi
+
+          echo "issue_number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
+          echo "Processing issue #$ISSUE_NUM in CI mode"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Run Claude triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          settings: |
+            {
+              "env": {
+                "LINEAR_CLIENT_ID": "${{ secrets.LINEAR_CLIENT_ID }}",
+                "LINEAR_CLIENT_SECRET": "${{ secrets.LINEAR_CLIENT_SECRET }}"
+              }
+            }
+          prompt: |
+            /triage-issue ${{ steps.parse-issue.outputs.issue_number }} --ci
+            IMPORTANT: Do NOT wait for approval.
+          claude_args: |
+            --max-turns 20 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *)"

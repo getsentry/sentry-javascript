@@ -1,5 +1,5 @@
 import { addServerPlugin, createResolver } from '@nuxt/kit';
-import type { Nuxt } from 'nuxt/schema';
+import type { Nuxt } from '@nuxt/schema';
 import { addServerTemplate } from '../vendor/server-template';
 
 /**
