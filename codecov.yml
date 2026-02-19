@@ -1,16 +1,15 @@
-comment: off
-codecov:
-  notify:
-    require_ci_to_pass: no
+comment: false
 
 coverage:
-  precision: 2
-  round: down
-  range: '0...1'
   status:
     project:
       default:
-        enabled: no
+        enabled: false
     patch:
       default:
-        enabled: no
+        enabled: false
+  ignore:
+    - 'packages/deno/**'
+
+config:
+  files: changed

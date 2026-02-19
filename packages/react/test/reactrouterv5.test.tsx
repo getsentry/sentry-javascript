@@ -9,9 +9,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
+import { act } from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, reactRouterV5BrowserTracingIntegration, withSentryRouting } from '../src';

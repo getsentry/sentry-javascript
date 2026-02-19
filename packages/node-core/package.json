@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-core",
-  "version": "10.38.0",
+  "version": "10.39.0",
   "description": "Sentry Node-Core SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-core",
@@ -73,8 +73,7 @@
     "@opentelemetry/instrumentation": ">=0.57.1 <1",
     "@opentelemetry/resources": "^1.30.1 || ^2.1.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1 || ^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@sentry/opentelemetry": "10.38.0"
+    "@opentelemetry/semantic-conventions": "^1.39.0"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
@@ -97,18 +96,14 @@
     },
     "@opentelemetry/semantic-conventions": {
       "optional": true
-    },
-    "@sentry/opentelemetry": {
-      "optional": true
     }
   },
   "dependencies": {
-    "@apm-js-collab/tracing-hooks": "^0.3.1",
-    "@sentry/core": "10.38.0",
+    "@sentry/core": "10.39.0",
+    "@sentry/opentelemetry": "10.39.0",
     "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer": "^0.8.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.5.0",
     "@opentelemetry/core": "^2.5.0",
@@ -125,10 +120,9 @@
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",

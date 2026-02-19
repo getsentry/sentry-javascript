@@ -35,14 +35,12 @@ sentryTest(
           {
             pre_context: ['<!DOCTYPE html>', '<html>', '<head>', '    <meta charset="utf-8">', '  </head>', '  <body>'],
             context_line:
-              '      <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\')">Click me</button>',
+              '    <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\');">Click me</button>',
             post_context: [
               expect.stringContaining('<script'), // this line varies in the test based on tarball/cdn bundle (+variants)
-              '  <footer>',
-              '    Some text...',
-              '  ',
+              '  <footer>Some text...</footer>',
               '',
-              '</footer></body>',
+              '</body>',
               '</html>',
             ],
           },
