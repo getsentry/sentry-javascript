@@ -80,7 +80,7 @@ export class IsolatedPromiseBuffer {
 export function makeEdgeTransport(options: VercelEdgeTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
-      body: request.body,
+      body: request.body as BodyInit,
       method: 'POST',
       headers: options.headers,
       ...options.fetchOptions,
