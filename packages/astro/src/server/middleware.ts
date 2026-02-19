@@ -423,9 +423,10 @@ function getParametrizedRoute(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const routesFromManifest = ctx?.[Symbol.for('context.routes')]?.manifest?.routes;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // oxlint-disable-next-line typescript/no-unsafe-member-access
     const matchedRouteSegmentsFromManifest = routesFromManifest?.find(
       (route: { routeData?: { route?: string } }) => route?.routeData?.route === rawRoutePattern,
+      // oxlint-disable-next-line typescript/no-unsafe-member-access
     )?.routeData?.segments;
 
     return (
