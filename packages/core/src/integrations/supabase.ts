@@ -790,7 +790,7 @@ function processConsumerSpanData(
   span: { setAttribute: (key: string, value: SpanAttributeValue | undefined) => void },
   queueName: string | undefined,
   cleanedData: SupabaseQueueMessage[],
-): void {
+): string | undefined {
   const firstItem = cleanedData.length > 0 ? cleanedData[0] : undefined;
   const isBatch = cleanedData.length > 1;
 
@@ -847,6 +847,8 @@ function processConsumerSpanData(
     message: `queue.process(${queueName || 'unknown'})`,
     ...(Object.keys(breadcrumbData).length > 0 && { data: breadcrumbData }),
   });
+
+  return messageId;
 }
 
 /** Removes _sentry metadata from consumer response messages. Returns a shallow copy if metadata was found. */
@@ -982,10 +984,9 @@ function instrumentRpcConsumer(
             return cleanedRes;
           }
 
-          processConsumerSpanData(span, queueName, cleanedData as SupabaseQueueMessage[]);
+          const messageId = processConsumerSpanData(span, queueName, cleanedData as SupabaseQueueMessage[]);
 
           if (cleanedRes.error) {
-            const messageId = extractMessageIds(cleanedData);
             captureQueueError(cleanedRes.error, queueName, 'auto.db.supabase.queue.consumer', messageId);
           }
 
