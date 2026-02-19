@@ -65,6 +65,9 @@ jobs:
               "@sentry.nestjs": {
                 "label": "Nest.js"
               },
+              "@sentry.nitro": {
+                "label": "Nitro"
+              },
               "@sentry.nextjs": {
                 "label": "Next.js"
               },

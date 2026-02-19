@@ -89,13 +89,37 @@ export default defineConfig({
 
 ### 3. Sentry Config Setup
 
-TODO: UPDATE THIS
+Create an `instrument.mjs` file in your project root to initialize the Sentry SDK:
+
+```javascript
+import * as Sentry from '@sentry/nitro';
+
+Sentry.init({
+  dsn: '__YOUR_DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
+Then use `NODE_OPTIONS` to load the instrumentation before your app code:
+
+```bash
+NODE_OPTIONS='--import ./instrument.mjs' npx nitro dev
+```
+
+This works with any Nitro command (`nitro dev`, `nitro preview`, or a production start script).
 
 ## Uploading Source Maps
 
-To upload source maps...
+The `withSentryConfig` function automatically configures source map uploading when the `authToken`, `org`, and `project`
+options are provided:
 
-<!-- TODO: -->
+```javascript
+export default withSentryConfig(config, {
+  org: 'your-sentry-org',
+  project: 'your-sentry-project',
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+});
+```
 
 ## Troubleshoot
 
