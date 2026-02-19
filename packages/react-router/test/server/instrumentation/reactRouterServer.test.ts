@@ -3,6 +3,8 @@ import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReactRouterInstrumentation } from '../../../src/server/instrumentation/reactRouter';
 import * as Util from '../../../src/server/instrumentation/util';
+import * as ServerBuild from '../../../src/server/serverBuild';
+import * as ServerGlobals from '../../../src/server/serverGlobals';
 
 vi.mock('@sentry/core', async () => {
   return {
@@ -116,5 +118,41 @@ describe('ReactRouterInstrumentation', () => {
     await wrappedHandler(req);
 
     expect(originalHandler).toHaveBeenCalledWith(req, undefined);
+  });
+
+  it('should call setServerBuild when static ServerBuild is passed', () => {
+    const spy = vi.spyOn(ServerBuild, 'setServerBuild');
+    vi.spyOn(ServerBuild, 'isServerBuildLike').mockReturnValue(true);
+
+    const staticBuild = { routes: { root: { id: 'root' } } };
+    const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
+    proxy.createRequestHandler(staticBuild);
+
+    expect(spy).toHaveBeenCalledWith(staticBuild);
+  });
+
+  it('should capture ServerBuild from factory function', async () => {
+    const resolvedBuild = { routes: { root: { id: 'root' } } };
+    const buildFactory = vi.fn().mockResolvedValue(resolvedBuild);
+    vi.spyOn(ServerBuild, 'isServerBuildLike').mockImplementation(val => val === resolvedBuild);
+    const spy = vi.spyOn(ServerBuild, 'setServerBuild');
+
+    const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
+    proxy.createRequestHandler(buildFactory);
+
+    // Factory gets wrapped — invoke it via the arg passed to the original createRequestHandler
+    const wrappedFactory = mockModule.createRequestHandler.mock.calls[0][0];
+    await wrappedFactory();
+
+    expect(spy).toHaveBeenCalledWith(resolvedBuild);
+  });
+
+  it('should return original handler without wrapping when instrumentation API is active', () => {
+    vi.spyOn(ServerGlobals, 'isInstrumentationApiUsed').mockReturnValue(true);
+
+    const proxy = (instrumentation as any)._createPatchedModuleProxy(mockModule);
+    const handler = proxy.createRequestHandler();
+
+    expect(handler).toBe(originalHandler);
   });
 });

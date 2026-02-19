@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { isServerBuildLike, setServerBuild } from '../serverBuild';
 import { isInstrumentationApiUsed } from '../serverGlobals';
 import { getOpName, getSpanName, isDataRequest } from './util';
 
@@ -62,7 +63,28 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
         if (prop === 'createRequestHandler') {
           const original = target[prop];
           return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
+            // Capture the ServerBuild reference for middleware name lookup
+            const build = args[0];
+            if (isServerBuildLike(build)) {
+              setServerBuild(build);
+            } else if (typeof build === 'function') {
+              // Build arg can be a factory function (dev mode HMR). Wrap to capture resolved build.
+              const originalBuildFn = build as () => unknown;
+              args[0] = async function sentryWrappedBuildFn() {
+                const resolvedBuild = await originalBuildFn();
+                if (isServerBuildLike(resolvedBuild)) {
+                  setServerBuild(resolvedBuild);
+                }
+                return resolvedBuild;
+              };
+            }
+
             const originalRequestHandler = original.apply(this, args);
+
+            // Skip per-request wrapping when instrumentation API is active
+            if (isInstrumentationApiUsed()) {
+              return originalRequestHandler;
+            }
 
             return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
               let url: URL;
@@ -74,13 +96,6 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
 
               // We currently just want to trace loaders and actions
               if (!isDataRequest(url.pathname)) {
-                return originalRequestHandler(request, initialContext);
-              }
-
-              // Skip OTEL instrumentation if instrumentation API is being used
-              // as it handles loader/action spans itself
-              if (isInstrumentationApiUsed()) {
-                DEBUG_BUILD && debug.log('Skipping OTEL loader/action instrumentation - using instrumentation API');
                 return originalRequestHandler(request, initialContext);
               }
 
