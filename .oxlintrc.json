@@ -86,15 +86,26 @@
       }
     },
     {
-      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.test.js", "**/*.test.jsx", "**/test/**", "**/tests/**", "**/suites/**", "**/loader-suites/**"],
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.js",
+        "**/*.test.jsx",
+        "**/test/**",
+        "**/tests/**",
+        "**/suites/**",
+        "**/loader-suites/**"
+      ],
       "rules": {
         "typescript/explicit-function-return-type": "off",
         "no-unused-expressions": "off",
         "typescript/no-unused-expressions": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-explicit-any": "off",
         "typescript/no-non-null-assertion": "off",
         "typescript/no-floating-promises": "off",
+        "typescript/unbound-method": "off",
         "max-lines": "off",
         "complexity": "off"
       }
