@@ -1008,11 +1008,7 @@ function instrumentRpcConsumer(
 /** Creates a shared proxy handler that routes RPC calls to queue or generic instrumentation. */
 function createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => unknown> {
   return {
-    apply(
-      target: (...args: unknown[]) => unknown,
-      thisArg: unknown,
-      argumentsList: unknown[],
-    ): unknown {
+    apply(target: (...args: unknown[]) => unknown, thisArg: unknown, argumentsList: unknown[]): unknown {
       try {
         const normalizedName = normalizeRpcFunctionName(argumentsList[0]);
         const isProducerSpan = normalizedName === 'send' || normalizedName === 'send_batch';
@@ -1052,10 +1048,7 @@ function instrumentGenericRpc(
   const originalThen = (builder.then as (...args: unknown[]) => Promise<unknown>).bind(builder);
 
   // Shadow .then() on the instance so the span is only created when the builder is awaited.
-  builder.then = function (
-    onfulfilled?: (value: unknown) => unknown,
-    onrejected?: (reason: unknown) => unknown,
-  ) {
+  builder.then = function (onfulfilled?: (value: unknown) => unknown, onrejected?: (reason: unknown) => unknown) {
     const attributes: Record<string, unknown> = {
       'db.system': 'postgresql',
       'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
@@ -1077,8 +1070,16 @@ function instrumentGenericRpc(
         return (originalThen() as Promise<SupabaseResponse>)
           .then(
             (res: SupabaseResponse) => {
-              if (span && res && typeof res === 'object' && 'status' in res) {
-                setHttpStatus(span, res.status || 500);
+              if (span) {
+                if (res && typeof res === 'object' && 'status' in res) {
+                  setHttpStatus(span, res.status || 500);
+                }
+
+                if (res && typeof res === 'object' && 'error' in res && res.error) {
+                  span.setStatus({ code: SPAN_STATUS_ERROR });
+                }
+
+                span.end();
               }
 
               const breadcrumb: SupabaseBreadcrumb = {
@@ -1099,10 +1100,6 @@ function instrumentGenericRpc(
                 if (error.code) err.code = error.code;
                 if (error.details) err.details = error.details;
 
-                if (span) {
-                  span.setStatus({ code: SPAN_STATUS_ERROR });
-                }
-
                 captureSupabaseError(err, 'auto.db.supabase.rpc', {
                   function: functionName,
                   params,
@@ -1119,6 +1116,7 @@ function instrumentGenericRpc(
 
               if (span) {
                 setHttpStatus(span, 500);
+                span.end();
               }
               throw err;
             },

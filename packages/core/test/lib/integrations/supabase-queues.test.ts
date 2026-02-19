@@ -484,13 +484,16 @@ describe('Supabase Queue Instrumentation', () => {
       return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        then: vi.fn().mockImplementation(
-          (onfulfilled?: (...args: unknown[]) => unknown, onrejected?: (...args: unknown[]) => unknown) => {
-          return Promise.resolve({ data: { result: 'ok' }, status: 200 }).then(
-            onfulfilled as any,
-            onrejected as any,
-          );
-        }),
+        then: vi
+          .fn()
+          .mockImplementation(
+            (onfulfilled?: (...args: unknown[]) => unknown, onrejected?: (...args: unknown[]) => unknown) => {
+              return Promise.resolve({ data: { result: 'ok' }, status: 200 }).then(
+                onfulfilled as any,
+                onrejected as any,
+              );
+            },
+          ),
       };
     }
 
