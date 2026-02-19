@@ -2,8 +2,6 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-// Note: React Router middleware instrumentation now works in Framework Mode.
-// Previously this was a known limitation (see: https://github.com/remix-run/react-router/discussions/12950)
 test.describe('server - instrumentation API middleware', () => {
   test('should instrument server middleware with instrumentation API origin', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
@@ -43,20 +41,27 @@ test.describe('server - instrumentation API middleware', () => {
       (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.middleware',
     );
 
+    expect(middlewareSpan).toBeDefined();
     expect(middlewareSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      data: {
+      data: expect.objectContaining({
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
         'sentry.op': 'function.react_router.middleware',
-      },
-      description: '/performance/with-middleware',
+        'react_router.route.id': 'routes/performance/with-middleware',
+        'react_router.route.pattern': '/performance/with-middleware',
+        'react_router.middleware.index': 0,
+      }),
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       op: 'function.react_router.middleware',
       origin: 'auto.function.react_router.instrumentation_api',
     });
+
+    // Middleware name is available via OTEL patching of createRequestHandler
+    expect(middlewareSpan!.data?.['react_router.middleware.name']).toBe('authMiddleware');
+    expect(middlewareSpan!.description).toBe('middleware authMiddleware');
   });
 
   test('should have middleware span run before loader span', async ({ page }) => {
@@ -80,6 +85,37 @@ test.describe('server - instrumentation API middleware', () => {
     expect(loaderSpan).toBeDefined();
 
     // Middleware should start before loader
-    expect(middlewareSpan!.start_timestamp).toBeLessThanOrEqual(loaderSpan!.start_timestamp);
+    expect(middlewareSpan!.start_timestamp).toBeLessThanOrEqual(loaderSpan!.start_timestamp!);
+  });
+
+  test('should track multiple middlewares with correct indices', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'GET /performance/multi-middleware';
+    });
+
+    await page.goto(`/performance/multi-middleware`);
+
+    const transaction = await txPromise;
+
+    await expect(page.locator('#multi-middleware-title')).toBeVisible();
+    await expect(page.locator('#multi-middleware-content')).toHaveText('This route has 3 middlewares');
+
+    const middlewareSpans = transaction?.spans?.filter(
+      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.middleware',
+    );
+
+    expect(middlewareSpans).toHaveLength(3);
+
+    const sortedSpans = [...middlewareSpans!].sort(
+      (a: any, b: any) =>
+        (a.data?.['react_router.middleware.index'] ?? 0) - (b.data?.['react_router.middleware.index'] ?? 0),
+    );
+
+    expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.index'])).toEqual([0, 1, 2]);
+    expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.name'])).toEqual([
+      'authMiddleware',
+      'loggingMiddleware',
+      'validationMiddleware',
+    ]);
   });
 });
