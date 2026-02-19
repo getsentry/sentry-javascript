@@ -131,7 +131,7 @@ function vercelAiEventProcessor(event: Event): Event {
 
     // Also apply to root when it is the invoke_agent pipeline
     const trace = event.contexts?.trace;
-    if (trace && trace.op === 'gen_ai.invoke_agent') {
+    if (trace?.op === 'gen_ai.invoke_agent') {
       applyAccumulatedTokens(trace, tokenAccumulator);
     }
   }

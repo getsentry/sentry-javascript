@@ -146,7 +146,7 @@ export function hoistNonReactStatics<
       // Use key directly - String(key) throws for Symbols if minified to '' + key (#18966)
       if (
         !KNOWN_STATICS[key as keyof typeof KNOWN_STATICS] &&
-        !(excludelist && excludelist[key as keyof C]) &&
+        !excludelist?.[key as keyof C] &&
         !sourceStatics?.[key as string] &&
         !targetStatics?.[key as string] &&
         !getOwnPropertyDescriptor(targetComponent, key) // Don't overwrite existing properties

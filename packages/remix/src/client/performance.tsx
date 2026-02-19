@@ -169,7 +169,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      const lastMatch = matches && matches[matches.length - 1];
+      const lastMatch = matches?.[matches.length - 1];
       if (lastMatch) {
         const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
 

@@ -1310,6 +1310,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
+        // oxlint-disable-next-line typescript/prefer-optional-chain
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
         if (isInternalException) {
           return prepared;

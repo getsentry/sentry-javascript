@@ -143,6 +143,7 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
 
   // config.systemInstruction: ContentUnion
   if (
+    // oxlint-disable-next-line typescript/prefer-optional-chain
     'config' in params &&
     params.config &&
     typeof params.config === 'object' &&

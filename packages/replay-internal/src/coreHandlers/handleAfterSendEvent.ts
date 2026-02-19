@@ -57,7 +57,7 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
 
   // If error event is tagged with replay id it means it was sampled (when in buffer mode)
   // Need to be very careful that this does not cause an infinite loop
-  if (replay.recordingMode !== 'buffer' || !event.tags || !event.tags.replayId) {
+  if (replay.recordingMode !== 'buffer' || !event.tags?.replayId) {
     return;
   }
 

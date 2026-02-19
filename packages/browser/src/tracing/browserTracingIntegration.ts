@@ -503,8 +503,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       if (
         enableLongAnimationFrame &&
         GLOBAL_OBJ.PerformanceObserver &&
-        PerformanceObserver.supportedEntryTypes &&
-        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+        PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
       ) {
         startTrackingLongAnimationFrames();
       } else if (enableLongTask) {

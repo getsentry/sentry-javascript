@@ -73,6 +73,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
   // Due to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the
   // entire event processor. Symbolicated stack traces are just a nice to have.
   try {
+    // oxlint-disable-next-line typescript/prefer-optional-chain
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
       const frames = stackTraceParser.parse(hint.originalException.stack);
       const nextJsVersion = globalWithInjectedValues._sentryNextJsVersion;
