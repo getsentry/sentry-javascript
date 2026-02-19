@@ -1,6 +1,7 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import type { LegacyCSPReport } from './types-hoist/csp';
 import type { DsnComponents } from './types-hoist/dsn';
 import type {
@@ -18,7 +19,6 @@ import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
-import { isStreamedBeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,

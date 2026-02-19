@@ -68,7 +68,8 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
-export { withStreamedSpan } from './utils/beforeSendSpan';
+export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
+export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -178,6 +179,7 @@ export type {
 } from './tracing/google-genai/types';
 
 export { SpanBuffer } from './tracing/spans/spanBuffer';
+export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 
 export type { FeatureFlag } from './utils/featureFlags';
 

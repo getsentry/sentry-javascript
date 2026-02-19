@@ -15,7 +15,6 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
-import { isStreamedBeforeSendSpanCallback } from '../../utils/beforeSendSpan';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
@@ -24,6 +23,7 @@ import {
   streamedSpanJsonToSerializedSpan,
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
+import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -51,7 +51,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
-  if (span === segmentSpan) {
+  if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
     // Allow hook subscribers to mutate the segment span JSON
     client.emit('processSegmentSpan', spanJSON);

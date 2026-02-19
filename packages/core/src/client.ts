@@ -11,6 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
@@ -34,7 +35,6 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
-import { isStreamedBeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -503,6 +503,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public addIntegration(integration: Integration): void {
     const isAlreadyInstalled = this._integrations[integration.name];
 
+    if (!isAlreadyInstalled && integration.beforeSetup) {
+      integration.beforeSetup(this);
+    }
+
     // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
     // Here we need to check manually to make sure to not run this multiple times
@@ -612,6 +616,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
+
+  /**
+   * Register a callback for after a span is ended and the `spanEnd` hook has run.
+   * NOTE: The span cannot be mutated anymore in this callback.
+   */
+  public on(hook: 'afterSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
+
+  /**
+   * Register a callback for after a segment span is ended and the `segmentSpanEnd` hook has run.
+   * NOTE: The segment span cannot be mutated anymore in this callback.
+   */
+  public on(hook: 'afterSegmentSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
@@ -896,12 +912,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'spanEnd', span: Span): void;
 
   /**
-   * Register a callback for when a span JSON is processed, to add some data to the span JSON.
+   * Fire a hook event after a span ends and the `spanEnd` hook has run.
+   */
+  public emit(hook: 'afterSpanEnd', immutableSpan: Readonly<Span>): void;
+
+  /**
+   * Fire a hook event after a segment span ends and the `spanEnd` hook has run.
+   */
+  public emit(hook: 'afterSegmentSpanEnd', immutableSegmentSpan: Readonly<Span>): void;
+
+  /**
+   * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
    */
   public emit(hook: 'processSpan', streamedSpanJSON: StreamedSpanJSON): void;
 
   /**
-   * Register a callback for when a segment span JSON is processed, to add some data to the segment span JSON.
+   * Fire a hook event for when a segment span JSON is processed, to add some data to the segment span JSON.
    */
   public emit(hook: 'processSegmentSpan', streamedSpanJSON: StreamedSpanJSON): void;
 
