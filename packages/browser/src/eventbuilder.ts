@@ -161,12 +161,9 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 }
 
 // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
-// @ts-expect-error - WebAssembly.Exception is a valid class
 function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
   // Check for support
-  // @ts-expect-error - WebAssembly.Exception is a valid class
   if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
-    // @ts-expect-error - WebAssembly.Exception is a valid class
     return exception instanceof WebAssembly.Exception;
   } else {
     return false;
