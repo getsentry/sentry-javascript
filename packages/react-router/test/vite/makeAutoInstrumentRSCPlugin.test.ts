@@ -294,6 +294,16 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result!.code).toContain('wrapServerFunction');
     });
 
+    it('skips string literal export names that are not valid identifiers', () => {
+      const plugin = createPluginWithRSCDetected();
+      const code = '\'use server\';\nfunction a() {}\nfunction b() {}\nexport { a as "my-action", b }';
+      const result = plugin.transform(code, 'app/routes/rsc/actions.ts');
+
+      expect(result).not.toBeNull();
+      expect(result!.code).toContain('export const b = wrapServerFunction("b"');
+      expect(result!.code).not.toContain('my-action');
+    });
+
     it('does not log when debug is disabled', () => {
       const plugin = createPluginWithRSCDetected({ debug: false });
 

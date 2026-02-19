@@ -7,6 +7,7 @@ import type { AutoInstrumentRSCOptions } from './types';
 import t = recast.types.namedTypes;
 
 const JS_EXTENSIONS_RE = /\.(ts|tsx|js|jsx|mjs|mts)$/;
+const JS_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 const WRAPPED_MODULE_SUFFIX = '?sentry-rsc-wrap';
 
 // Prevents the Sentry bundler plugin from transforming this import path
@@ -291,7 +292,9 @@ export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = 
         return null;
       }
 
-      const exportNames = analysis.namedExports;
+      // Skip string literal export names (e.g. `export { fn as "my-action" }`) that
+      // can't be used in `export const name = ...` generated code.
+      const exportNames = analysis.namedExports.filter(name => JS_IDENTIFIER_RE.test(name));
       const includeDefault = analysis.hasDefaultExport;
       if (exportNames.length === 0 && !includeDefault) {
         // eslint-disable-next-line no-console
