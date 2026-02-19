@@ -6,6 +6,6 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "build/types",
-    "rootDir": "./src"
+    "rootDir": "."
   }
 }

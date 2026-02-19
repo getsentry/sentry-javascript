@@ -1,6 +1,6 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
 import { captureException, debug, getClient, getTraceMetaTags } from '@sentry/core';
-import type { VueOptions } from '@sentry/vue/src/types';
+import type { VueOptions } from '@sentry/vue';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';

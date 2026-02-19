@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
+  "include": ["src/**/*", "lib.deno.d.ts"],
   "compilerOptions": {
     "declaration": true,
     "declarationMap": false,
