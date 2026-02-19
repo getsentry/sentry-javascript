@@ -62,8 +62,7 @@ test('Sends server-side Supabase RPC spans and breadcrumbs', async ({ page, base
   expect(rpcSpan).toBeDefined();
   expect(rpcSpan?.data).toEqual(
     expect.objectContaining({
-      'db.operation': 'insert',
-      'db.table': 'get_supabase_status',
+      'db.operation': 'rpc',
       'db.system': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
@@ -76,7 +75,7 @@ test('Sends server-side Supabase RPC spans and breadcrumbs', async ({ page, base
     transactionEvent.breadcrumbs?.some(
       breadcrumb =>
         breadcrumb?.type === 'supabase' &&
-        breadcrumb?.category === 'db.insert' &&
+        breadcrumb?.category === 'db.rpc' &&
         typeof breadcrumb?.message === 'string' &&
         breadcrumb.message.includes('get_supabase_status'),
     ),

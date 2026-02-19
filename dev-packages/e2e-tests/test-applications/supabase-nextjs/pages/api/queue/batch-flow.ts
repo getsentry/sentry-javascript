@@ -29,22 +29,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: `Send batch failed: ${sendError.message}` });
   }
 
-  const { data: receiveData, error: receiveError } = await supabaseClient.rpc('receive', {
+  const { data: readData, error: readError } = await supabaseClient.rpc('read', {
     queue_name: 'batch-flow-queue',
-    vt: 30,
-    qty: 3,
+    sleep_seconds: 30,
+    n: 3,
   });
 
-  if (receiveError) {
-    return res.status(500).json({ error: `Receive failed: ${receiveError.message}` });
+  if (readError) {
+    return res.status(500).json({ error: `Read failed: ${readError.message}` });
   }
 
-  const processedMessages = receiveData?.map((msg: Record<string, unknown>) => ({
+  const processedMessages = readData?.map((msg: Record<string, unknown>) => ({
     messageId: msg.msg_id,
     message: msg.message,
   }));
 
-  const messageIds = receiveData?.map((msg: Record<string, unknown>) => msg.msg_id).filter(Boolean);
+  const messageIds = readData?.map((msg: Record<string, unknown>) => msg.msg_id).filter(Boolean);
   if (messageIds && messageIds.length > 0) {
     const { error: archiveError } = await supabaseClient.rpc('archive', {
       queue_name: 'batch-flow-queue',
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     batchSize: 3,
     produced: { messageIds: sendData },
     consumed: {
-      count: receiveData?.length || 0,
+      count: readData?.length || 0,
       messages: processedMessages,
     },
   });

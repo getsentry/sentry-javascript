@@ -141,29 +141,6 @@ $$;
 
 comment on function pgmq_public.read(queue_name text, sleep_seconds integer, n integer) is 'Reads up to "n" messages from the specified queue with an optional "sleep_seconds" (visibility timeout).';
 
--- Create receive function (alias for read with different parameter names for E2E test compatibility)
-create or replace function pgmq_public.receive(
-    queue_name text,
-    vt integer,
-    qty integer
-)
-  returns setof pgmq.message_record
-  language plpgsql
-  set search_path = ''
-as $$
-begin
-    return query
-    select *
-    from pgmq.read(
-        queue_name := queue_name,
-        vt := vt,
-        qty := qty
-    );
-end;
-$$;
-
-comment on function pgmq_public.receive(queue_name text, vt integer, qty integer) is 'Alias for read() - reads messages from the specified queue with visibility timeout.';
-
 -- Grant execute permissions on wrapper functions to roles
 grant execute on function pgmq_public.pop(text) to postgres, service_role, anon, authenticated;
 grant execute on function pgmq.pop(text) to postgres, service_role, anon, authenticated;
@@ -173,8 +150,6 @@ grant execute on function pgmq.send(text, jsonb, integer) to postgres, service_r
 
 grant execute on function pgmq_public.send_batch(text, jsonb[], integer) to postgres, service_role, anon, authenticated;
 grant execute on function pgmq.send_batch(text, jsonb[], integer) to postgres, service_role, anon, authenticated;
-
-grant execute on function pgmq_public.receive(text, integer, integer) to postgres, service_role, anon, authenticated;
 
 grant execute on function pgmq_public.archive(text, bigint[]) to postgres, service_role, anon, authenticated;
 

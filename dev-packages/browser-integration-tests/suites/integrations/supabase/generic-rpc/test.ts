@@ -50,8 +50,7 @@ sentryTest(
         'sentry.op': 'db',
         'sentry.origin': 'auto.db.supabase',
         'db.system': 'postgresql',
-        'db.operation': 'insert',
-        'db.table': 'my_custom_function',
+        'db.operation': 'rpc',
         'db.params': { param1: 'value1' },
       }),
     });
