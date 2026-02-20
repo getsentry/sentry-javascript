@@ -184,13 +184,14 @@ describe('createConsolaReporter', () => {
 
       sentryReporter.log(logObj);
 
-      expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
+      expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123], 3, 1000);
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'Hello world 123 {"key":"value"}',
+        message: 'Hello world 123',
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          key: 'value',
         },
       });
     });
@@ -208,12 +209,233 @@ describe('createConsolaReporter', () => {
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'Message {"self":"[Circular ~]"}',
+        message: 'Message',
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          self: { self: '[Circular ~]' },
         },
       });
+    });
+
+    it('should extract multiple objects as attributes', () => {
+      const logObj = {
+        type: 'info',
+        message: 'User action',
+        args: [{ userId: 123 }, { sessionId: 'abc-123' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'User action',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          userId: 123,
+          sessionId: 'abc-123',
+        },
+      });
+    });
+
+    it('should handle mixed primitives and objects in args', () => {
+      const logObj = {
+        type: 'info',
+        args: ['Processing', { userId: 456 }, 'for', { action: 'login' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(formatConsoleArgs).toHaveBeenCalledWith(['Processing', 'for'], 3, 1000);
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Processing for',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          userId: 456,
+          action: 'login',
+        },
+      });
+    });
+
+    it('should handle arrays as context attributes', () => {
+      const logObj = {
+        type: 'info',
+        message: 'Array data',
+        args: [[1, 2, 3]],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Array data',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          'consola.args.0': [1, 2, 3],
+        },
+      });
+    });
+
+    it('should not override existing attributes with object properties', () => {
+      const logObj = {
+        type: 'info',
+        message: 'Test',
+        tag: 'api',
+        args: [{ tag: 'should-not-override' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Test',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          'consola.tag': 'api',
+          // tag should not be overridden by the object arg
+        },
+      });
+    });
+
+    it('should handle objects with nested properties', () => {
+      const logObj = {
+        type: 'info',
+        args: ['Event', { user: { id: 123, name: 'John' }, timestamp: Date.now() }],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Event');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes.user).toEqual({ id: 123, name: 'John' });
+      expect(captureCall.attributes.timestamp).toEqual(expect.any(Number));
+    });
+
+    it('should respect normalizeDepth when extracting object properties', () => {
+      const logObj = {
+        type: 'info',
+        args: [
+          'Deep object',
+          {
+            level1: {
+              level2: {
+                level3: {
+                  level4: { level5: 'should be normalized' }, // beause of normalizeDepth=3
+                },
+              },
+            },
+            simpleKey: 'simple value',
+          },
+        ],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Deep object');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes.level1).toEqual({ level2: { level3: { level4: '[Object]' } } });
+      expect(captureCall.attributes.simpleKey).toBe('simple value');
+    });
+
+    it('should store Date objects as context attributes', () => {
+      const now = new Date('2023-01-01T00:00:00.000Z');
+      const logObj = {
+        type: 'info',
+        args: ['Current time:', now],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Current time:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(now);
+    });
+
+    it('should store Error objects as context attributes', () => {
+      const error = new Error('Test error');
+      const logObj = {
+        type: 'error',
+        args: ['Error occurred:', error],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('error');
+      expect(captureCall.message).toBe('Error occurred:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(error);
+    });
+
+    it('should store RegExp objects as context attributes', () => {
+      const pattern = /test/gi;
+      const logObj = {
+        type: 'info',
+        args: ['Pattern:', pattern],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Pattern:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(pattern);
+    });
+
+    it('should store Map and Set objects as context attributes', () => {
+      const map = new Map([
+        ['key', 'value'],
+        ['foo', 'bar'],
+      ]);
+      const set = new Set([1, 2, 3]);
+      const logObj = {
+        type: 'info',
+        args: ['Collections:', map, set],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Collections:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      // Map should be converted to plain object
+      expect(captureCall.attributes['consola.args.0']).toEqual({ key: 'value', foo: 'bar' });
+      // Set should be converted to array
+      expect(captureCall.attributes['consola.args.1']).toEqual([1, 2, 3]);
+    });
+
+    it('should only extract properties from plain objects', () => {
+      const plainObj = { userId: 123, name: 'test' };
+      const error = new Error('test');
+      const logObj = {
+        type: 'info',
+        args: ['Mixed:', plainObj, error],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Mixed:');
+      // Plain object properties should be extracted
+      expect(captureCall.attributes.userId).toBe(123);
+      expect(captureCall.attributes.name).toBe('test');
+      // Error should NOT have properties extracted (stored as context instead)
+      expect(captureCall.attributes.message).toBeUndefined();
+      expect(captureCall.attributes['consola.args.0']).toBe(error);
     });
 
     it('should map consola levels to sentry levels when type is not provided', () => {
