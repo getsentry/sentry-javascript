@@ -66,5 +66,9 @@ jobs:
           prompt: |
             /triage-issue ${{ steps.parse-issue.outputs.issue_number }} --ci
             IMPORTANT: Do NOT wait for approval.
+            Do NOT write to `/tmp/` or any other directory. Only write files (e.g. triage_report.md) inside the workspace (repo root).
+            Do NOT use Bash redirection (> file)—it is blocked.
+            Do NOT use `python3 -c` or other inline Python in Bash, only the provided scripts are allowed.
+            Do NOT attempt to delete (`rm`) temporary files you create.
           claude_args: |
-            --max-turns 20 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *),Bash(python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py *)"
+            --max-turns 20 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(npm info *),Bash(npm ls *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *),Bash(python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py *)"

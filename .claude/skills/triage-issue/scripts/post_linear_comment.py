@@ -2,7 +2,7 @@ import json, os, re, sys, urllib.error, urllib.request, urllib.parse
 
 TIMEOUT_SECONDS = 30
 IDENTIFIER_PATTERN = re.compile(r"^[A-Z]+-\d+$")
-# /tmp/ is allowed for local runs; repo cwd is required in CI (sandbox only allows writes in working dir)
+# In CI only the workspace (cwd) is writable; /tmp/ is allowed for local runs
 ALLOWED_REPORT_PREFIXES = ("/tmp/", os.path.abspath(os.getcwd()) + os.sep)
 
 
@@ -32,7 +32,7 @@ def graphql(token, query, variables=None):
 
 # --- Inputs ---
 identifier = sys.argv[1]       # e.g. "JS-1669"
-report_path = sys.argv[2]      # e.g. "/tmp/triage_report.md"
+report_path = sys.argv[2]      # e.g. "triage_report.md" (repo root; in CI use repo root only)
 
 if not IDENTIFIER_PATTERN.match(identifier):
     print(f"Invalid identifier format: {identifier}")
@@ -40,7 +40,7 @@ if not IDENTIFIER_PATTERN.match(identifier):
 
 if not _report_path_allowed(report_path):
     print(
-        f"Report path must be under /tmp/ or under current working directory ({os.getcwd()})"
+        f"Report path must be under current working directory ({os.getcwd()}) or /tmp/. In CI use repo root, e.g. triage_report.md"
     )
     sys.exit(1)
 
