@@ -36,12 +36,15 @@ type MethodWrapperOptions = {
   /**
    * If true, stores the current span context and links to the previous invocation's span.
    * Requires `startNewTrace` to be true. Uses Durable Object storage to persist the link.
+   *
+   * WARNING: Enabling this option causes the wrapped method to always return a Promise,
+   * even if the original method was synchronous. Only use this for methods that are
+   * inherently async (e.g., Cloudflare's `alarm()` handler).
+   *
    * @default false
    */
   linkPreviousTrace?: boolean;
 };
-
-type SpanLink = ReturnType<typeof buildSpanLinks>[number];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UncheckedMethod = (...args: any[]) => any;
@@ -80,7 +83,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
       const currentClient = getClient();
       const sentryWithScope = startNewTrace ? withIsolationScope : currentClient ? withScope : withIsolationScope;
 
-      const wrappedFunction = async (scope: Scope): Promise<unknown> => {
+      const wrappedFunction = (scope: Scope): unknown | Promise<unknown> => {
         // In certain situations, the passed context can become undefined.
         // For example, for Astro while prerendering pages at build time.
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
@@ -100,21 +103,13 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
           }
         }
 
-        let links: SpanLink[] | undefined;
-        let storedContext: StoredSpanContext | undefined;
         const methodName = wrapperOptions.spanName || 'unknown';
 
-        if (linkPreviousTrace && storage) {
-          storedContext = await getStoredSpanContext(storage, methodName);
-          if (storedContext) {
-            links = buildSpanLinks(storedContext);
-          }
-        }
-
-        const storeContextIfNeeded = async (): Promise<void> => {
+        const teardown = async (): Promise<void> => {
           if (linkPreviousTrace && storage) {
             await storeSpanContext(storage, methodName);
           }
+          await flush(2000);
         };
 
         if (!wrapperOptions.spanName) {
@@ -126,26 +121,23 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             if (isThenable(result)) {
               return result.then(
-                async (res: unknown) => {
-                  await storeContextIfNeeded();
-                  waitUntil?.(flush(2000));
+                (res: unknown) => {
+                  waitUntil?.(teardown());
                   return res;
                 },
-                async (e: unknown) => {
+                (e: unknown) => {
                   captureException(e, {
                     mechanism: {
                       type: 'auto.faas.cloudflare.durable_object',
                       handled: false,
                     },
                   });
-                  await storeContextIfNeeded();
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(teardown());
                   throw e;
                 },
               );
             } else {
-              await storeContextIfNeeded();
-              waitUntil?.(flush(2000));
+              waitUntil?.(teardown());
               return result;
             }
           } catch (e) {
@@ -155,8 +147,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            await storeContextIfNeeded();
-            waitUntil?.(flush(2000));
+            waitUntil?.(teardown());
             throw e;
           }
         }
@@ -169,8 +160,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             }
           : {};
 
-        const executeSpan = (): unknown => {
-          return startSpan({ name: spanName, attributes, links }, async span => {
+        const executeSpan = (storedContext?: StoredSpanContext): unknown => {
+          const links = storedContext ? buildSpanLinks(storedContext) : undefined;
+
+          return startSpan({ name: spanName, attributes, links }, span => {
             // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
             // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
             // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
@@ -188,26 +181,23 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
               if (isThenable(result)) {
                 return result.then(
-                  async (res: unknown) => {
-                    await storeContextIfNeeded();
-                    waitUntil?.(flush(2000));
+                  (res: unknown) => {
+                    waitUntil?.(teardown());
                     return res;
                   },
-                  async (e: unknown) => {
+                  (e: unknown) => {
                     captureException(e, {
                       mechanism: {
                         type: 'auto.faas.cloudflare.durable_object',
                         handled: false,
                       },
                     });
-                    await storeContextIfNeeded();
-                    waitUntil?.(flush(2000));
+                    waitUntil?.(teardown());
                     throw e;
                   },
                 );
               } else {
-                await storeContextIfNeeded();
-                waitUntil?.(flush(2000));
+                waitUntil?.(teardown());
                 return result;
               }
             } catch (e) {
@@ -217,15 +207,25 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                   handled: false,
                 },
               });
-              await storeContextIfNeeded();
-              waitUntil?.(flush(2000));
+              waitUntil?.(teardown());
               throw e;
             }
           });
         };
 
+        // When linking to previous trace, we need to fetch the stored context first
+        // We chain this with the span execution to avoid making the outer function async
+        if (linkPreviousTrace && storage) {
+          const storedContextPromise = getStoredSpanContext(storage, methodName);
+
+          if (startNewTrace) {
+            return storedContextPromise.then(storedContext => startNewTraceCore(() => executeSpan(storedContext)));
+          }
+          return storedContextPromise.then(storedContext => executeSpan(storedContext));
+        }
+
         if (startNewTrace) {
-          return startNewTraceCore(executeSpan);
+          return startNewTraceCore(() => executeSpan());
         }
 
         return executeSpan();

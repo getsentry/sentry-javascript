@@ -69,7 +69,7 @@ describe('wrapMethodWithSentry', () => {
   });
 
   describe('basic wrapping', () => {
-    it('wraps a sync method and returns its result', () => {
+    it('wraps a sync method and returns its result synchronously (not a Promise)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const options = {
         options: {},
@@ -77,9 +77,44 @@ describe('wrapMethodWithSentry', () => {
       };
 
       const wrapped = wrapMethodWithSentry(options, handler);
-      wrapped();
+      const result = wrapped();
 
       expect(handler).toHaveBeenCalled();
+      expect(result).not.toBeInstanceOf(Promise);
+      expect(result).toBe('sync-result');
+    });
+
+    it('wraps a sync method with spanName and returns synchronously (not a Promise)', () => {
+      const handler = vi.fn().mockReturnValue('sync-result');
+      const options = {
+        options: {},
+        context: createMockContext(),
+        spanName: 'test-span',
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+      const result = wrapped();
+
+      expect(handler).toHaveBeenCalled();
+      expect(result).not.toBeInstanceOf(Promise);
+      expect(result).toBe('sync-result');
+    });
+
+    it('wraps a sync method with startNewTrace and returns synchronously (not a Promise)', () => {
+      const handler = vi.fn().mockReturnValue('sync-result');
+      const options = {
+        options: {},
+        context: createMockContext(),
+        spanName: 'test-span',
+        startNewTrace: true,
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+      const result = wrapped();
+
+      expect(handler).toHaveBeenCalled();
+      expect(result).not.toBeInstanceOf(Promise);
+      expect(result).toBe('sync-result');
     });
 
     it('wraps an async method and returns a promise', async () => {
@@ -90,9 +125,37 @@ describe('wrapMethodWithSentry', () => {
       };
 
       const wrapped = wrapMethodWithSentry(options, handler);
-      await wrapped();
+      const result = wrapped();
 
+      expect(result).toBeInstanceOf(Promise);
+      await expect(result).resolves.toBe('async-result');
       expect(handler).toHaveBeenCalled();
+    });
+
+    it('returns a Promise when linkPreviousTrace is true (even for sync handlers)', async () => {
+      const handler = vi.fn().mockReturnValue('sync-result');
+      const mockStorage = {
+        get: vi.fn().mockResolvedValue(undefined),
+        put: vi.fn().mockResolvedValue(undefined),
+      };
+      const context = {
+        waitUntil: vi.fn(),
+        originalStorage: mockStorage,
+      } as any;
+
+      const options = {
+        options: {},
+        context,
+        spanName: 'alarm',
+        startNewTrace: true,
+        linkPreviousTrace: true,
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+      const result = wrapped();
+
+      expect(result).toBeInstanceOf(Promise);
+      await expect(result).resolves.toBe('sync-result');
     });
 
     it('marks handler as instrumented', () => {

@@ -1,10 +1,12 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { storeSpanContext } from '../utils/traceLinks';
 
 const STORAGE_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list', 'setAlarm', 'getAlarm', 'deleteAlarm'] as const;
 
 type StorageMethod = (typeof STORAGE_METHODS_TO_INSTRUMENT)[number];
+
+type WaitUntil = (promise: Promise<unknown>) => void;
 
 /**
  * Instruments DurableObjectStorage methods with Sentry spans.
@@ -17,9 +19,13 @@ type StorageMethod = (typeof STORAGE_METHODS_TO_INSTRUMENT)[number];
  * the alarm fires later, it can link back to the trace that called setAlarm.
  *
  * @param storage - The DurableObjectStorage instance to instrument
+ * @param waitUntil - Optional waitUntil function to defer span context storage
  * @returns An instrumented DurableObjectStorage instance
  */
-export function instrumentDurableObjectStorage(storage: DurableObjectStorage): DurableObjectStorage {
+export function instrumentDurableObjectStorage(
+  storage: DurableObjectStorage,
+  waitUntil?: WaitUntil,
+): DurableObjectStorage {
   return new Proxy(storage, {
     get(target, prop, receiver) {
       const original = Reflect.get(target, prop, receiver);
@@ -45,16 +51,35 @@ export function instrumentDurableObjectStorage(storage: DurableObjectStorage): D
               'db.operation.name': methodName,
             },
           },
-          async () => {
-            const result = await (original as (...args: unknown[]) => Promise<unknown>).apply(target, args);
-            // When setAlarm is called, store the current span context so that when the alarm
-            // fires later, it can link back to the trace that called setAlarm.
-            // We use the original (uninstrumented) storage (target) to avoid creating a span
-            // for this internal operation.
-            if (methodName === 'setAlarm') {
-              await storeSpanContext(target, 'alarm');
+          () => {
+            const teardown = async (): Promise<void> => {
+              // When setAlarm is called, store the current span context so that when the alarm
+              // fires later, it can link back to the trace that called setAlarm.
+              // We use the original (uninstrumented) storage (target) to avoid creating a span
+              // for this internal operation. The storage is deferred via waitUntil to not block.
+              if (methodName === 'setAlarm') {
+                await storeSpanContext(target, 'alarm');
+              }
+            };
+
+            const result = (original as (...args: unknown[]) => unknown).apply(target, args);
+
+            if (!isThenable(result)) {
+              waitUntil?.(teardown());
+
+              return result;
             }
-            return result;
+
+            return result.then(
+              res => {
+                waitUntil?.(teardown());
+                return res;
+              },
+              e => {
+                throw e;
+              },
+            );
+
           },
         );
       };
