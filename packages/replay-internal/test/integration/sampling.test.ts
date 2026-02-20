@@ -37,7 +37,7 @@ describe('Integration | sampling', () => {
     // This is what the `_context` member is initialized with
     expect(replay.getContext()).toEqual({
       errorIds: new Set(),
-      traceIds: new Set(),
+      traceIds: [],
       urls: [],
       initialTimestamp: expect.any(Number),
       initialUrl: '',
@@ -78,7 +78,7 @@ describe('Integration | sampling', () => {
       errorIds: new Set(),
       initialTimestamp: expect.any(Number),
       initialUrl: 'http://localhost:3000/',
-      traceIds: new Set(),
+      traceIds: [],
       urls: ['http://localhost:3000/'],
     });
     expect(replay.recordingMode).toBe('buffer');

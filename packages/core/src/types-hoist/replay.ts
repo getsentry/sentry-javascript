@@ -9,6 +9,8 @@ export interface ReplayEvent extends Event {
   replay_start_timestamp?: number;
   error_ids: string[];
   trace_ids: string[];
+  // Data expected is [timestamp (seconds), trace id]
+  traces_by_timestamp: [number, string][];
   replay_id: string;
   segment_id: number;
   replay_type: ReplayRecordingMode;
