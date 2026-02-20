@@ -50,7 +50,7 @@ export function addTracePropagationHeadersToOutgoingRequest(
   request: ClientRequest,
   propagationDecisionMap: LRUMap<string, boolean>,
 ): void {
-  const url = getRequestUrl(request);
+  const url = getClientRequestUrl(request);
 
   const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
   const headersToAdd = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
@@ -146,7 +146,10 @@ export function getRequestOptions(request: ClientRequest): RequestOptions {
   };
 }
 
-function getRequestUrl(request: ClientRequest): string {
+/**
+ *
+ */
+export function getClientRequestUrl(request: ClientRequest): string {
   const hostname = request.getHeader('host') || request.host;
   const protocol = request.protocol;
   const path = request.path;
