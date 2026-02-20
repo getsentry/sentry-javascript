@@ -48,6 +48,9 @@ async function saveHeapSnapshot(profiler: MemoryProfiler, filename: string): Pro
  * This is configured in playwright.config.ts.
  */
 test.describe('Worker V8 isolate memory tests', () => {
+  // Heap snapshot collection is slow, especially on CI - increase timeout to 2 minutes
+  test.setTimeout(120_000);
+
   test('worker memory is reclaimed after GC', async ({ baseURL }) => {
     const profiler = new MemoryProfiler({ port: INSPECTOR_PORT, debug: true });
 
