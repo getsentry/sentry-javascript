@@ -36,9 +36,10 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import { createRoutes, getTransactionName } from '../utils/utils';
+import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
+import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -95,11 +96,6 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
-function isCloudflareEnv(): boolean {
-  // eslint-disable-next-line no-restricted-globals
-  return navigator?.userAgent?.includes('Cloudflare');
-}
-
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
@@ -119,13 +115,17 @@ function getTraceAndBaggage(): {
 function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (this: unknown, request: Request, ...args: unknown[]): Promise<Response> {
-      if (instrumentTracing) {
-        const activeSpan = getActiveSpan();
-        const rootSpan = activeSpan && getRootSpan(activeSpan);
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
 
+      const serverTimingHeader = rootSpan ? generateSentryServerTimingHeader(rootSpan) : null;
+
+      let response: Response;
+
+      if (instrumentTracing) {
         const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
-        return startSpan(
+        response = await startSpan(
           {
             // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
             // So we don't need to care too much about the fallback name, it's just for typing purposes....
@@ -143,8 +143,14 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
           },
         );
       } else {
-        return origDocumentRequestFunction.call(this, request, ...args);
+        response = await origDocumentRequestFunction.call(this, request, ...args);
       }
+
+      if (serverTimingHeader && response instanceof Response) {
+        return injectServerTimingHeaderValue(response, serverTimingHeader);
+      }
+
+      return response;
     };
   };
 }
@@ -186,13 +192,15 @@ function makeWrappedDataFunction(
   build?: ServerBuild,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    let res: Response | AppData;
+
     if (instrumentTracing) {
       // Update span name for Cloudflare Workers/Hydrogen environments
       if (build) {
         updateSpanWithRoute(args, build);
       }
 
-      return startSpan(
+      res = await startSpan(
         {
           op: `function.remix.${name}`,
           name: id,
@@ -207,8 +215,22 @@ function makeWrappedDataFunction(
         },
       );
     } else {
-      return errorHandleDataFunction.call(this, origFn, name, args);
+      res = await errorHandleDataFunction.call(this, origFn, name, args);
     }
+
+    // Redirects bypass makeWrappedDocumentRequestFunction, so we inject Server-Timing here.
+    if (isResponse(res) && isRedirectResponse(res)) {
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
+      if (rootSpan) {
+        const serverTimingHeader = generateSentryServerTimingHeader(rootSpan);
+        if (serverTimingHeader) {
+          return injectServerTimingHeaderValue(res, serverTimingHeader);
+        }
+      }
+    }
+
+    return res;
   };
 }
 
