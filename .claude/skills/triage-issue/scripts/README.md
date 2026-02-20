@@ -18,3 +18,7 @@ Parses `gh api` JSON output (single issue or search results) into a readable sum
 ## post_linear_comment.py
 
 Posts the triage report to an existing Linear issue. Reads `LINEAR_CLIENT_ID` and `LINEAR_CLIENT_SECRET` from environment variables — never pass secrets as CLI arguments.
+
+## write_job_summary.py
+
+Reads Claude Code execution output JSON (from the triage GitHub Action) and prints Markdown for the job summary: duration, turns, cost, and a note when the run stopped due to `error_max_turns`. Used by the workflow step that runs `if: always()` so the summary is posted even when the triage step fails (e.g. max turns reached).
