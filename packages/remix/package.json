@@ -72,7 +72,7 @@
     "@sentry/core": "10.39.0",
     "@sentry/node": "10.39.0",
     "@sentry/react": "10.39.0",
-    "glob": "^10.3.4",
+    "glob": "^13.0.6",
     "yargs": "^17.6.0"
   },
   "devDependencies": {
