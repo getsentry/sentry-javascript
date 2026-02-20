@@ -32,17 +32,22 @@ export function getTraceLinkKey(methodName: string): string {
 /**
  * Stores the current span context in Durable Object storage for trace linking.
  * Uses the original uninstrumented storage to avoid creating spans for internal operations.
+ * Errors are silently ignored to prevent internal storage failures from propagating to user code.
  */
 export async function storeSpanContext(originalStorage: DurableObjectStorage, methodName: string): Promise<void> {
-  const activeSpan = getActiveSpan();
-  if (activeSpan) {
-    const spanContext = activeSpan.spanContext();
-    const storedContext: StoredSpanContext = {
-      traceId: spanContext.traceId,
-      spanId: spanContext.spanId,
-      sampled: spanContext.traceFlags === TraceFlags.SAMPLED,
-    };
-    await originalStorage.put(getTraceLinkKey(methodName), storedContext);
+  try {
+    const activeSpan = getActiveSpan();
+    if (activeSpan) {
+      const spanContext = activeSpan.spanContext();
+      const storedContext: StoredSpanContext = {
+        traceId: spanContext.traceId,
+        spanId: spanContext.spanId,
+        sampled: spanContext.traceFlags === TraceFlags.SAMPLED,
+      };
+      await originalStorage.put(getTraceLinkKey(methodName), storedContext);
+    }
+  } catch {
+    // Silently ignore storage errors to prevent internal failures from affecting user code
   }
 }
 

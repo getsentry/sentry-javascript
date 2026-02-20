@@ -162,10 +162,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
         }
 
         const spanName = wrapperOptions.spanName || methodName;
-        const attributes = {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp || 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
-        };
+        const attributes = wrapperOptions.spanOp
+          ? {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
+            }
+          : {};
 
         const executeSpan = (): unknown => {
           return startSpan({ name: spanName, attributes, links }, async span => {

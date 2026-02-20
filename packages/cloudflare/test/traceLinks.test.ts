@@ -81,6 +81,23 @@ describe('traceLinks', () => {
 
       expect(mockStorage.put).not.toHaveBeenCalled();
     });
+
+    it('silently ignores storage errors', async () => {
+      const mockSpanContext = {
+        traceId: 'abc123def456789012345678901234ab',
+        spanId: '1234567890abcdef',
+        traceFlags: TraceFlags.SAMPLED,
+      };
+      const mockSpan = {
+        spanContext: vi.fn().mockReturnValue(mockSpanContext),
+      };
+      vi.mocked(sentryCore.getActiveSpan).mockReturnValue(mockSpan as any);
+
+      const mockStorage = createMockStorage();
+      mockStorage.put = vi.fn().mockRejectedValue(new Error('Storage quota exceeded'));
+
+      await expect(storeSpanContext(mockStorage, 'alarm')).resolves.toBeUndefined();
+    });
   });
 
   describe('getStoredSpanContext', () => {
