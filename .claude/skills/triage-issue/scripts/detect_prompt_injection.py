@@ -30,9 +30,11 @@ def is_english(text: str) -> Tuple[bool, float]:
     """
     Check if text is primarily English.
 
-    Strategy: English text should NOT contain accented characters common in
-    European languages (é, ñ, ö, ç, etc.). Even mostly-ASCII foreign text
-    will have a few of these markers.
+    Strategy:
+    1. Reject text where a significant fraction of alphabetic characters are
+       non-ASCII (covers Cyrillic, CJK, Arabic, Hebrew, Thai, Hangul, etc.).
+    2. Also reject text that contains accented Latin characters common in
+       Romance/Germanic languages (é, ñ, ö, ç, etc.).
 
     Args:
         text: Text to check
@@ -43,22 +45,56 @@ def is_english(text: str) -> Tuple[bool, float]:
     if not text or len(text.strip()) < 20:
         return True, 1.0  # Too short to determine, assume OK
 
+    total_alpha = sum(1 for c in text if c.isalpha())
+    if total_alpha == 0:
+        return True, 1.0
+
+    ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+    ratio = ascii_alpha / total_alpha
+
+    # If more than 20% of alphabetic characters are non-ASCII, treat as
+    # non-English. This catches Cyrillic, CJK, Arabic, Hebrew, Thai,
+    # Hangul, Devanagari, and any other non-Latin script.
+    if ratio < 0.80:
+        return False, ratio
+
+    # For text that is mostly ASCII, also reject known non-Latin script
+    # characters that could appear as a small minority (e.g. a single
+    # Cyrillic word embedded in otherwise ASCII text).
+    NON_LATIN_RANGES = [
+        (0x0400, 0x04FF),  # Cyrillic
+        (0x0500, 0x052F),  # Cyrillic Supplement
+        (0x0600, 0x06FF),  # Arabic
+        (0x0590, 0x05FF),  # Hebrew
+        (0x0E00, 0x0E7F),  # Thai
+        (0x3040, 0x309F),  # Hiragana
+        (0x30A0, 0x30FF),  # Katakana
+        (0x4E00, 0x9FFF),  # CJK Unified Ideographs
+        (0xAC00, 0xD7AF),  # Hangul Syllables
+        (0x0900, 0x097F),  # Devanagari
+        (0x0980, 0x09FF),  # Bengali
+        (0x0A80, 0x0AFF),  # Gujarati
+        (0x0C00, 0x0C7F),  # Telugu
+        (0x0B80, 0x0BFF),  # Tamil
+    ]
+
+    def is_non_latin(c: str) -> bool:
+        cp = ord(c)
+        return any(start <= cp <= end for start, end in NON_LATIN_RANGES)
+
+    non_latin_count = sum(1 for c in text if is_non_latin(c))
+    if non_latin_count > 3:
+        return False, ratio
+
     # Common accented characters in Romance and Germanic languages
     # These rarely appear in English bug reports
     NON_ENGLISH_CHARS = set('áéíóúàèìòùâêîôûäëïöüãõñçßø')
-
-    # Check for presence of non-English characters
     text_lower = text.lower()
     has_non_english = any(c in NON_ENGLISH_CHARS for c in text_lower)
 
     if has_non_english:
-        # Calculate ratio for reporting
-        ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
-        total_alpha = sum(1 for c in text if c.isalpha())
-        ratio = ascii_alpha / total_alpha if total_alpha > 0 else 1.0
         return False, ratio
 
-    # No accented chars found - assume English
     return True, 1.0
 
 
