@@ -1050,6 +1050,7 @@ jobs:
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+          SAVE_HEAP_SNAPSHOTS: 'true'
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v6

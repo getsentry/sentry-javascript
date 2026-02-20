@@ -22,20 +22,33 @@ const INSPECTOR_PORT = 9230;
 // Directory for heap snapshots (will be uploaded as artifacts in CI)
 const HEAP_SNAPSHOTS_DIR = path.join(process.cwd(), 'heap-snapshots');
 
+// Set to true to save heap snapshots for debugging (slow, especially on CI)
+const SAVE_HEAP_SNAPSHOTS = process.env.SAVE_HEAP_SNAPSHOTS === 'true';
+
 /**
  * Save a heap snapshot to disk for later analysis.
  * Files can be loaded into Chrome DevTools Memory tab.
+ * This is slow and optional - controlled by SAVE_HEAP_SNAPSHOTS env var.
  */
 async function saveHeapSnapshot(profiler: MemoryProfiler, filename: string): Promise<void> {
+  if (!SAVE_HEAP_SNAPSHOTS) {
+    return;
+  }
+
   if (!fs.existsSync(HEAP_SNAPSHOTS_DIR)) {
     fs.mkdirSync(HEAP_SNAPSHOTS_DIR, { recursive: true });
   }
 
-  const snapshot = await profiler.takeHeapSnapshot();
-  const filepath = path.join(HEAP_SNAPSHOTS_DIR, filename);
-  fs.writeFileSync(filepath, snapshot);
-  // eslint-disable-next-line no-console
-  console.log(`Heap snapshot saved to: ${filepath} (${(snapshot.length / 1024 / 1024).toFixed(2)} MB)`);
+  try {
+    const snapshot = await profiler.takeHeapSnapshot();
+    const filepath = path.join(HEAP_SNAPSHOTS_DIR, filename);
+    fs.writeFileSync(filepath, snapshot);
+    // eslint-disable-next-line no-console
+    console.log(`Heap snapshot saved to: ${filepath} (${(snapshot.length / 1024 / 1024).toFixed(2)} MB)`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(`Failed to save heap snapshot ${filename}:`, err);
+  }
 }
 
 /**
@@ -48,16 +61,13 @@ async function saveHeapSnapshot(profiler: MemoryProfiler, filename: string): Pro
  * This is configured in playwright.config.ts.
  */
 test.describe('Worker V8 isolate memory tests', () => {
-  // Heap snapshot collection is slow, especially on CI - increase timeout to 2 minutes
-  test.setTimeout(120_000);
+  // Memory profiling can be slow, especially on CI - increase timeout to 3 minutes
+  test.setTimeout(180_000);
 
   test('worker memory is reclaimed after GC', async ({ baseURL }) => {
     const profiler = new MemoryProfiler({ port: INSPECTOR_PORT, debug: true });
 
     await profiler.connect();
-
-    // Take baseline snapshot before any requests
-    await saveHeapSnapshot(profiler, 'baseline.heapsnapshot');
 
     await profiler.startProfiling();
 
@@ -71,9 +81,6 @@ test.describe('Worker V8 isolate memory tests', () => {
 
     const result = await profiler.stopProfiling();
 
-    // Take final snapshot after requests and GC
-    await saveHeapSnapshot(profiler, 'final.heapsnapshot');
-
     // eslint-disable-next-line no-console
     console.log(`Memory growth: ${result.growthKB.toFixed(2)} KB`);
     // eslint-disable-next-line no-console
@@ -85,6 +92,10 @@ test.describe('Worker V8 isolate memory tests', () => {
     // and have ~100KB variance between runs. Threshold set to accommodate this
     // while still catching real memory leaks.
     expect(result.growthKB).toBeLessThan(1500);
+
+    // Save heap snapshots after assertion for debugging failed tests
+    // Controlled by SAVE_HEAP_SNAPSHOTS=true env var
+    await saveHeapSnapshot(profiler, 'final.heapsnapshot');
 
     await profiler.close();
   });

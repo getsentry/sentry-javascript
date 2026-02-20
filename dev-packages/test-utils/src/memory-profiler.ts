@@ -47,6 +47,13 @@ export interface MemoryProfilerOptions {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * Timeout for heap snapshot operations in milliseconds.
+   * Heap snapshots can be slow, especially on CI environments.
+   * @default 120000 (2 minutes)
+   */
+  heapSnapshotTimeoutMs?: number;
 }
 
 /**
@@ -89,6 +96,7 @@ export interface MemoryProfilingResult {
 export class MemoryProfiler {
   private readonly _cdp: CDPClient;
   private readonly _gcSettleDelayMs: number;
+  private readonly _heapSnapshotTimeoutMs: number;
   private _initialized: boolean;
   private _baseline: HeapUsage | null;
 
@@ -101,6 +109,7 @@ export class MemoryProfiler {
       retryDelayMs = 2000,
       gcSettleDelayMs = 3000,
       debug = false,
+      heapSnapshotTimeoutMs = 120_000,
     } = options;
 
     this._cdp = new CDPClient({
@@ -110,6 +119,7 @@ export class MemoryProfiler {
       debug,
     });
     this._gcSettleDelayMs = gcSettleDelayMs;
+    this._heapSnapshotTimeoutMs = heapSnapshotTimeoutMs;
     this._initialized = false;
     this._baseline = null;
   }
@@ -192,7 +202,7 @@ export class MemoryProfiler {
     this._cdp.on('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
 
     try {
-      await this._cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+      await this._cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false }, this._heapSnapshotTimeoutMs);
     } finally {
       this._cdp.off('HeapProfiler.addHeapSnapshotChunk', chunkHandler);
     }
