@@ -1,3 +1,5 @@
+import { safeUnref } from './timer';
+
 type DebouncedCallback = {
   (): void | unknown;
   flush: () => void | unknown;
@@ -61,10 +63,10 @@ export function debounce(func: CallbackFunction, wait: number, options?: Debounc
     if (timerId) {
       clearTimeout(timerId);
     }
-    timerId = setTimeoutImpl(invokeFunc, wait);
+    timerId = safeUnref(setTimeoutImpl(invokeFunc, wait));
 
     if (maxWait && maxTimerId === undefined) {
-      maxTimerId = setTimeoutImpl(invokeFunc, maxWait);
+      maxTimerId = safeUnref(setTimeoutImpl(invokeFunc, maxWait));
     }
 
     return callbackReturnValue;

@@ -9,6 +9,7 @@ import {
   _INTERNAL_flushLogsBuffer,
   applySdkMetadata,
   debug,
+  safeUnref,
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
@@ -144,12 +145,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
         this._flushOutcomes();
       };
 
-      this._clientReportInterval = setInterval(() => {
-        DEBUG_BUILD && debug.log('Flushing client reports based on interval.');
-        this._flushOutcomes();
-      }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS)
-        // Unref is critical for not preventing the process from exiting because the interval is active.
-        .unref();
+      this._clientReportInterval = safeUnref(
+        setTimeout(() => {
+          DEBUG_BUILD && debug.log('Flushing client reports based on interval.');
+          this._flushOutcomes();
+        }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS),
+      );
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
