@@ -1,5 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { FastifyOtelInstrumentation } from '@fastify/otel';
+import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,
@@ -168,7 +169,8 @@ export const instrumentFastify = generateInstrumentOnce(`${INTEGRATION_NAME}.v5`
     handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
   });
 
-  return fastifyOtelInstrumentationInstance;
+  // Returning this as Instrumentation to avoid leaking @fastify/otel types into the public API
+  return fastifyOtelInstrumentationInstance as unknown as Instrumentation<InstrumentationConfig>;
 });
 
 const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions>) => {
