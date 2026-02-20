@@ -18,7 +18,7 @@ def _format_single_issue(data: dict) -> None:
     num = data.get("number")
     title = _sanitize_title(data.get("title", ""))
     state = data.get("state", "")
-    print(f"#{num} {state} {title}")
+    print(f"#{num} {title} {state}")
     labels = data.get("labels", [])
     if labels:
         names = [l.get("name", "") for l in labels if isinstance(l, dict)]
