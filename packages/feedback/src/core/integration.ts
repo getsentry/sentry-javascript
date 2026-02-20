@@ -173,6 +173,7 @@ export const buildFeedbackIntegration = ({
     };
 
     let _shadow: ShadowRoot | null = null;
+    let _mainStyle: HTMLStyleElement | null = null;
     let _subscriptions: Unsubscribe[] = [];
 
     /**
@@ -185,7 +186,8 @@ export const buildFeedbackIntegration = ({
         DOCUMENT.body.appendChild(host);
 
         _shadow = host.attachShadow({ mode: 'open' });
-        _shadow.appendChild(createMainStyles(options));
+        _mainStyle = createMainStyles(options);
+        _shadow.appendChild(_mainStyle);
       }
       return _shadow;
     };
@@ -355,13 +357,13 @@ export const buildFeedbackIntegration = ({
       setTheme(colorScheme: 'light' | 'dark' | 'system'): void {
         _options.colorScheme = colorScheme;
         if (_shadow) {
-          const existingStyle = _shadow.querySelector('style');
           const newStyle = createMainStyles(_options);
-          if (existingStyle) {
-            _shadow.replaceChild(newStyle, existingStyle);
+          if (_mainStyle) {
+            _shadow.replaceChild(newStyle, _mainStyle);
           } else {
             _shadow.prepend(newStyle);
           }
+          _mainStyle = newStyle;
         }
       },
 
@@ -372,6 +374,7 @@ export const buildFeedbackIntegration = ({
         if (_shadow) {
           _shadow.parentElement?.remove();
           _shadow = null;
+          _mainStyle = null;
         }
         // Remove any lingering subscriptions
         _subscriptions.forEach(sub => sub());
