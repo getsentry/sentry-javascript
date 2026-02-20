@@ -1,6 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makeCopyInstrumentationFilePlugin } from './copyInstrumentationFile';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -19,6 +20,29 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * @default true
    */
   autoInstrumentMiddleware?: boolean;
+
+  /**
+   * Path to the instrumentation file to be copied to the server build output directory.
+   *
+   * Relative paths are resolved from the current working directory.
+   *
+   * @default 'instrument.server.mjs'
+   */
+  instrumentationFilePath?: string;
+
+  /**
+   * Custom server output directory path for the instrumentation file.
+   *
+   * By default, the plugin auto-detects the output directory:
+   * - For Nitro: reads from Vite environment config
+   * - For Cloudflare/Netlify: uses `dist/server`
+   *
+   * Use this option to override the default when your deployment target
+   * uses a non-standard output directory.
+   *
+   * @example 'build/server'
+   */
+  serverOutputDir?: string;
 }
 
 /**
@@ -52,6 +76,14 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   }
 
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+
+  // copy instrumentation file to build output
+  plugins.push(
+    makeCopyInstrumentationFilePlugin({
+      instrumentationFilePath: options.instrumentationFilePath,
+      serverOutputDir: options.serverOutputDir,
+    }),
+  );
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {

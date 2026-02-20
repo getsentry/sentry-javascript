@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && cp instrument.server.mjs .output/server",
+    "build": "vite build",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
