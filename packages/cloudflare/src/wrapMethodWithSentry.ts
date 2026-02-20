@@ -1,3 +1,4 @@
+import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import {
   captureException,
   flush,
@@ -13,6 +14,11 @@ import {
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { init } from './sdk';
+
+/** Extended DurableObjectState with originalStorage exposed by instrumentContext */
+interface InstrumentedDurableObjectState extends DurableObjectState {
+  originalStorage?: DurableObjectStorage;
+}
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -58,13 +64,13 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
         // In certain situations, the passed context can become undefined.
         // For example, for Astro while prerendering pages at build time.
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
-        const context = wrapperOptions.context as ExecutionContext | undefined;
+        const context = wrapperOptions.context as InstrumentedDurableObjectState | undefined;
 
         const waitUntil = context?.waitUntil?.bind?.(context);
 
         const currentClient = scope.getClient();
         if (!currentClient) {
-          const client = init({ ...wrapperOptions.options, ctx: context });
+          const client = init({ ...wrapperOptions.options, ctx: context as unknown as ExecutionContext | undefined });
           scope.setClient(client);
         }
 
