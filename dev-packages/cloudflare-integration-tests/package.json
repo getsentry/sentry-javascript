@@ -16,7 +16,7 @@
     "@langchain/langgraph": "^1.0.1",
     "@sentry/cloudflare": "10.39.0",
     "@sentry/hono": "10.39.0",
-    "hono": "^4.11.7"
+    "hono": "^4.11.10"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250922.0",

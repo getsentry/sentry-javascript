@@ -4,6 +4,124 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.40.0
+
+### Important Changes
+
+- **feat(tanstackstart-react): Add global sentry exception middlewares ([#19330](https://github.com/getsentry/sentry-javascript/pull/19330))**
+
+  The `sentryGlobalRequestMiddleware` and `sentryGlobalFunctionMiddleware` global middlewares capture unhandled exceptions thrown in TanStack Start API routes and server functions. Add them as the first entries in the `requestMiddleware` and `functionMiddleware` arrays of `createStart()`:
+
+  ```ts
+  import { createStart } from '@tanstack/react-start/server';
+  import { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from '@sentry/tanstackstart-react/server';
+
+  export default createStart({
+    requestMiddleware: [sentryGlobalRequestMiddleware, myRequestMiddleware],
+    functionMiddleware: [sentryGlobalFunctionMiddleware, myFunctionMiddleware],
+  });
+  ```
+
+- **fix(node-core): Reduce bundle size by removing apm-js-collab and requiring pino >= 9.10 ([#18631](https://github.com/getsentry/sentry-javascript/pull/18631))**
+
+  In order to keep receiving pino logs, you need to update your pino version to >= 9.10, the reason for the support bump is to reduce the bundle size of the node-core SDK in frameworks that cannot tree-shake the apm-js-collab dependency.
+
+- **fix(browser): Ensure user id is consistently added to sessions ([#19341](https://github.com/getsentry/sentry-javascript/pull/19341))**
+
+  Previously, the SDK inconsistently set the user id on sessions, meaning sessions were often lacking proper coupling to the user set for example via `Sentry.setUser()`.
+  Additionally, the SDK incorrectly skipped starting a new session for the first soft navigation after the pageload.
+  This patch fixes these issues. As a result, metrics around sessions, like "Crash Free Sessions" or "Crash Free Users" might change.
+  This could also trigger alerts, depending on your set thresholds and conditions.
+  We apologize for any inconvenience caused!
+
+  While we're at it, if you're using Sentry in a Single Page App or meta framework, you might want to give the new `'page'` session lifecycle a try!
+  This new mode no longer creates a session per soft navigation but continues the initial session until the next hard page refresh.
+  Check out the [docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/browsersession/) to learn more!
+
+### Other Changes
+
+- feat(astro): Add support for Astro on CF Workers ([#19265](https://github.com/getsentry/sentry-javascript/pull/19265))
+- feat(cloudflare): Instrument async KV API ([#19404](https://github.com/getsentry/sentry-javascript/pull/19404))
+- feat(core): Add framework-agnostic tunnel handler ([#18892](https://github.com/getsentry/sentry-javascript/pull/18892))
+- feat(deno): Export logs API from Deno SDK ([#19313](https://github.com/getsentry/sentry-javascript/pull/19313))
+- feat(deno): Export metrics API from Deno SDK ([#19305](https://github.com/getsentry/sentry-javascript/pull/19305))
+- feat(deno): Instrument Deno.serve with async context support ([#19230](https://github.com/getsentry/sentry-javascript/pull/19230))
+- feat(deps): Bump body-parser from 1.20.4 to 2.2.2 ([#19191](https://github.com/getsentry/sentry-javascript/pull/19191))
+- feat(deps): Bump hono from 4.11.7 to 4.11.10 ([#19440](https://github.com/getsentry/sentry-javascript/pull/19440))
+- feat(deps): Bump qs from 6.14.1 to 6.14.2 ([#19310](https://github.com/getsentry/sentry-javascript/pull/19310))
+- feat(nextjs): Add `sourcemaps.filesToDeleteAfterUpload` as a top-level option ([#19280](https://github.com/getsentry/sentry-javascript/pull/19280))
+- feat(node): Add `ignoreConnectSpans` option to `postgresIntegration` ([#19291](https://github.com/getsentry/sentry-javascript/pull/19291))
+- fix(aws-serverless): Prevent crash in `isPromiseAllSettledResult` with null/undefined array elements ([#19346](https://github.com/getsentry/sentry-javascript/pull/19346))
+- fix(bun): Export pinoIntegration from @sentry/node ([#17990](https://github.com/getsentry/sentry-javascript/pull/17990))
+- fix(core,browser): Delete SentryNonRecordingSpan from fetch/xhr map ([#19336](https://github.com/getsentry/sentry-javascript/pull/19336))
+- fix(core): Langgraph state graph invoke accepts null to resume ([#19374](https://github.com/getsentry/sentry-javascript/pull/19374))
+- fix(core): Wrap decodeURI in node stack trace parser to handle malformed URIs ([#19400](https://github.com/getsentry/sentry-javascript/pull/19400))
+- fix(nextjs): Apply environment from `options` if set ([#19274](https://github.com/getsentry/sentry-javascript/pull/19274))
+- fix(nextjs): Don't set `sentry.drop_transaction` attribute on spans when `skipOpenTelemetrySetup` is enabled ([#19333](https://github.com/getsentry/sentry-javascript/pull/19333))
+- fix(nextjs): Normalize trailing slashes in App Router route parameterization ([#19365](https://github.com/getsentry/sentry-javascript/pull/19365))
+- fix(nextjs): Return correct lastEventId for SSR pages ([#19240](https://github.com/getsentry/sentry-javascript/pull/19240))
+- fix(nextjs): Set parameterized transaction name for non-transaction events ([#19316](https://github.com/getsentry/sentry-javascript/pull/19316))
+- fix(node-core): Align pino mechanism type with spec conventions ([#19363](https://github.com/getsentry/sentry-javascript/pull/19363))
+- fix(nuxt): Use `options.rootDir` instead of `options.srcDir` ([#19343](https://github.com/getsentry/sentry-javascript/pull/19343))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#19395](https://github.com/getsentry/sentry-javascript/pull/19395))
+- chore: Add github action to notify stale PRs ([#19361](https://github.com/getsentry/sentry-javascript/pull/19361))
+- chore: Add oxfmt changes to blame ignore rev list ([#19366](https://github.com/getsentry/sentry-javascript/pull/19366))
+- chore: Enhance AI integration guidelines with runtime-specific placement ([#19296](https://github.com/getsentry/sentry-javascript/pull/19296))
+- chore: Ignore `lerna.json` for prettier ([#19288](https://github.com/getsentry/sentry-javascript/pull/19288))
+- chore: Migrate to oxfmt ([#19200](https://github.com/getsentry/sentry-javascript/pull/19200))
+- chore: Revert to lerna v8 ([#19294](https://github.com/getsentry/sentry-javascript/pull/19294))
+- chore: Unignore HTML files and reformat with oxfmt ([#19311](https://github.com/getsentry/sentry-javascript/pull/19311))
+- chore(ci): Add `environment` to triage action ([#19375](https://github.com/getsentry/sentry-javascript/pull/19375))
+- chore(ci): Add `id-token: write` permission to triage workflow ([#19381](https://github.com/getsentry/sentry-javascript/pull/19381))
+- chore(ci): Move monorepo to nx ([#19325](https://github.com/getsentry/sentry-javascript/pull/19325))
+- chore(cursor): Add rules for fetching develop docs ([#19377](https://github.com/getsentry/sentry-javascript/pull/19377))
+- chore(deps-dev): Bump @sveltejs/kit from 2.49.5 to 2.52.2 in sveltekit-2 ([#19441](https://github.com/getsentry/sentry-javascript/pull/19441))
+- chore(deps-dev): Bump @sveltejs/kit from 2.49.5 to 2.52.2 in sveltekit-2-kit-tracing ([#19446](https://github.com/getsentry/sentry-javascript/pull/19446))
+- chore(deps-dev): Bump @sveltejs/kit from 2.50.1 to 2.52.2 ([#19442](https://github.com/getsentry/sentry-javascript/pull/19442))
+- chore(deps-dev): Bump @testing-library/react from 13.0.0 to 15.0.5 ([#19194](https://github.com/getsentry/sentry-javascript/pull/19194))
+- chore(deps-dev): Bump @types/ember__debug from 3.16.5 to 4.0.8 ([#19429](https://github.com/getsentry/sentry-javascript/pull/19429))
+- chore(deps-dev): Bump ember-resolver from 13.0.2 to 13.1.1 ([#19301](https://github.com/getsentry/sentry-javascript/pull/19301))
+- chore(deps): Bump @actions/glob from 0.4.0 to 0.6.1 ([#19427](https://github.com/getsentry/sentry-javascript/pull/19427))
+- chore(deps): Bump agents from 0.2.32 to 0.3.10 in cloudflare-mcp ([#19326](https://github.com/getsentry/sentry-javascript/pull/19326))
+- chore(deps): Bump hono from 4.11.7 to 4.11.10 in cloudflare-hono ([#19438](https://github.com/getsentry/sentry-javascript/pull/19438))
+- chore(deps): Bump transitive dep `fast-xml-parser` ([#19433](https://github.com/getsentry/sentry-javascript/pull/19433))
+- chore(deps): Upgrade tar to 7.5.9 to fix CVE-2026-26960 ([#19445](https://github.com/getsentry/sentry-javascript/pull/19445))
+- chore(github): Add `allowedTools` to Claude GitHub action ([#19386](https://github.com/getsentry/sentry-javascript/pull/19386))
+- chore(github): Add workflow to trigger `triage-issue` skill ([#19358](https://github.com/getsentry/sentry-javascript/pull/19358))
+- chore(github): Add write tool for markdown report ([#19387](https://github.com/getsentry/sentry-javascript/pull/19387))
+- chore(github): Change tool permission path ([#19389](https://github.com/getsentry/sentry-javascript/pull/19389))
+- chore(llm): Add `triage-issue` skill ([#19356](https://github.com/getsentry/sentry-javascript/pull/19356))
+- chore(llm): Better defense against prompt injection in triage skill ([#19410](https://github.com/getsentry/sentry-javascript/pull/19410))
+- chore(llm): Make cross-repo search optional and remove file cleanup ([#19401](https://github.com/getsentry/sentry-javascript/pull/19401))
+- chore(node-core): Make @sentry/opentelemetry not a peer dep in node-core ([#19308](https://github.com/getsentry/sentry-javascript/pull/19308))
+- chore(repo): Allow WebFetch for Sentry docs in Claude settings ([#18890](https://github.com/getsentry/sentry-javascript/pull/18890))
+- chore(skills): Add security notes for injection defense ([#19379](https://github.com/getsentry/sentry-javascript/pull/19379))
+- chore(triage-issue): Improve triage prompt for accuracy ([#19454](https://github.com/getsentry/sentry-javascript/pull/19454))
+- chore(triage-skill): Add GitHub parsing python util script ([#19405](https://github.com/getsentry/sentry-javascript/pull/19405))
+- ci(fix-security-vulnerability): Add id token write permission ([#19412](https://github.com/getsentry/sentry-javascript/pull/19412))
+- ci(fix-security-vulnerability): Be specific about how to fetch the alert page ([#19414](https://github.com/getsentry/sentry-javascript/pull/19414))
+- ci(fix-security-vulnerability): Use opus 4.6 ([#19416](https://github.com/getsentry/sentry-javascript/pull/19416))
+- ci(github): Add tilde to file path to not exact-match ([#19392](https://github.com/getsentry/sentry-javascript/pull/19392))
+- ci(triage-skill): Allow `Write` and remove `rm` permission ([#19397](https://github.com/getsentry/sentry-javascript/pull/19397))
+- ci(triage-skill): Run on opened issues ([#19423](https://github.com/getsentry/sentry-javascript/pull/19423))
+- docs(nuxt): Remove duplicated setup instructions ([#19422](https://github.com/getsentry/sentry-javascript/pull/19422))
+- feat(ci): Add security vulnerability skill action ([#19355](https://github.com/getsentry/sentry-javascript/pull/19355))
+- feat(deps): Bump babel-loader from 8.2.5 to 10.0.0 ([#19303](https://github.com/getsentry/sentry-javascript/pull/19303))
+- fix: Updated the codecov config ([#19350](https://github.com/getsentry/sentry-javascript/pull/19350))
+- fix(deps): Bump nuxt devDependency to fix CVE-2026-24001 ([#19249](https://github.com/getsentry/sentry-javascript/pull/19249))
+- ref(cloudflare): Move internal files and functions around ([#19369](https://github.com/getsentry/sentry-javascript/pull/19369))
+- ref(nuxt): Remove `defineNitroPlugin` wrapper ([#19334](https://github.com/getsentry/sentry-javascript/pull/19334))
+- test(nextjs): Add bun e2e test app ([#19318](https://github.com/getsentry/sentry-javascript/pull/19318))
+- tests(langchain): Fix langchain v1 internal error tests ([#19409](https://github.com/getsentry/sentry-javascript/pull/19409))
+
+</details>
+
+Work in this release was contributed by @LudvigHz and @jadengis. Thank you for your contributions!
+
 ## 10.39.0
 
 ### Important Changes

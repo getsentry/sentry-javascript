@@ -473,6 +473,83 @@ describe('getBuildPluginOptions', () => {
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     });
 
+    it('uses custom filesToDeleteAfterUpload string when provided', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: '.next/static/**/*.map',
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
+    });
+
+    it('uses custom filesToDeleteAfterUpload array when provided', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: ['.next/static/**/*.map', '.next/server/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map', '.next/server/**/*.map']);
+    });
+
+    it('filesToDeleteAfterUpload overrides deleteSourcemapsAfterUpload default pattern', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+          filesToDeleteAfterUpload: ['custom/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+    });
+
+    it('filesToDeleteAfterUpload bypasses server build guard', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          filesToDeleteAfterUpload: ['.next/server/**/*.map'],
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-nodejs',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/server/**/*.map']);
+    });
+
     it('uses custom sourcemap assets when provided', () => {
       const customAssets = ['custom/path/**', 'another/path/**'];
       const sentryBuildOptions: SentryBuildOptions = {

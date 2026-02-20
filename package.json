@@ -1,47 +1,49 @@
 {
   "private": true,
   "scripts": {
-    "build": "node ./scripts/verify-packages-versions.js && lerna run build:transpile,build:types,build:bundle",
-    "build:bundle": "lerna run build:bundle",
-    "build:dev": "lerna run build:types,build:transpile",
-    "build:dev:filter": "lerna run build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
-    "build:transpile": "lerna run build:transpile",
-    "build:types": "lerna run build:types",
-    "build:watch": "lerna run build:watch",
-    "build:dev:watch": "lerna run build:dev:watch",
-    "build:types:watch": "ts-node scripts/build-types-watch.ts",
+    "build": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:bundle",
+    "build:bundle": "nx run-many -t build:bundle",
+    "build:dev": "nx run-many -t build:types build:transpile",
+    "build:dev:filter": "nx run-many -t build:dev -p",
+    "build:transpile": "nx run-many -t build:transpile",
+    "build:types": "nx run-many -t build:types",
+    "build:watch": "nx run-many -t build:watch",
+    "build:dev:watch": "nx run-many -t build:dev:watch",
     "build:tarball": "run-s clean:tarballs build:tarballs",
-    "build:tarballs": "lerna run build:tarball",
+    "build:tarballs": "nx run-many -t build:tarball",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "generate-changelog": "ts-node ./scripts/generate-changelog.ts",
-    "circularDepCheck": "lerna run circularDepCheck",
+    "circularDepCheck": "nx run-many -t circularDepCheck",
     "clean": "run-s clean:build clean:caches",
-    "clean:build": "lerna run clean",
+    "clean:build": "nx run-many -t clean",
     "clean:caches": "yarn rimraf eslintcache .nxcache .nx",
-    "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
+    "clean:deps": "rimraf packages/*/node_modules dev-packages/*/node_modules && rm -rf node_modules && yarn",
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
-    "fix": "run-s fix:prettier fix:lerna",
-    "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
-    "lint": "run-s lint:prettier lint:lerna",
-    "lint:lerna": "lerna run lint",
-    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
-    "lint:es-compatibility": "lerna run lint:es-compatibility",
+    "fix": "run-s fix:oxfmt fix:eslint",
+    "fix:eslint": "nx run-many -t fix",
+    "fix:oxfmt": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "format": "oxfmt . --write",
+    "lint": "run-s lint:oxfmt lint:eslint",
+    "lint:eslint": "nx run-many -t lint",
+    "lint:oxfmt": "oxfmt . --check",
+    "lint:es-compatibility": "nx run-many -t lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
-    "postpublish": "lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\" test",
-    "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\" test:unit",
-    "test:update-snapshots": "lerna run test:update-snapshots",
+    "postpublish": "nx run-many -t postpublish --parallel=1",
+    "test": "nx run-many -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test:scripts": "vitest run scripts/bump-version.test.ts",
+    "test:unit": "nx run-many -t test:unit --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test:update-snapshots": "nx run-many -t test:update-snapshots",
     "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:pr:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:pr:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
     "test:ci:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts",
-    "test:ci:bun": "lerna run test --scope @sentry/bun",
-    "yalc:publish": "lerna run yalc:publish"
+    "test:ci:bun": "nx run-many -t test -p @sentry/bun",
+    "yalc:publish": "nx run-many -t yalc:publish"
   },
   "volta": {
     "node": "20.19.2",
@@ -109,7 +111,7 @@
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-sucrase": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.4",
@@ -125,12 +127,11 @@
     "es-check": "^7.2.1",
     "eslint": "8.57.0",
     "jsdom": "^21.1.2",
-    "lerna": "8.2.4",
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "prettier": "^3.8.1",
-    "prettier-plugin-astro": "^0.14.1",
+    "nx": "22.5.0",
+    "oxfmt": "^0.32.0",
     "rimraf": "^5.0.10",
     "rollup": "^4.35.0",
     "rollup-plugin-cleanup": "^3.2.1",
@@ -145,8 +146,7 @@
   },
   "//_resolutions_comment": [
     "Because new versions of strip-ansi, string-width, and wrap-ansi are ESM only packages,",
-    "we need to resolve them to the CommonJS versions.",
-    "This is a temporary solution until we can upgrade to a version of lerna that supports ESM packages"
+    "we need to resolve them to the CommonJS versions."
   ],
   "resolutions": {
     "gauge/strip-ansi": "6.0.1",
@@ -156,36 +156,5 @@
     "**/express/path-to-regexp": "0.1.12"
   },
   "version": "0.0.0",
-  "name": "sentry-javascript",
-  "prettier": {
-    "arrowParens": "avoid",
-    "printWidth": 120,
-    "proseWrap": "always",
-    "singleQuote": true,
-    "trailingComma": "all",
-    "plugins": [
-      "prettier-plugin-astro"
-    ],
-    "overrides": [
-      {
-        "files": "*.md",
-        "options": {
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.mdc",
-        "options": {
-          "parser": "markdown",
-          "proseWrap": "preserve"
-        }
-      },
-      {
-        "files": "*.astro",
-        "options": {
-          "parser": "astro"
-        }
-      }
-    ]
-  }
+  "name": "sentry-javascript"
 }
