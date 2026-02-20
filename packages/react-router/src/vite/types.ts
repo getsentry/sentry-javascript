@@ -74,4 +74,32 @@ export type SentryReactRouterBuildOptions = BuildTimeOptionsBase &
      */
     sourceMapsUploadOptions?: SourceMapsOptions;
     // todo(v11): Remove this option (all options already exist in BuildTimeOptionsBase)
+
+    /**
+     * @experimental Options for automatic RSC server function instrumentation.
+     * RSC mode is auto-detected when `unstable_reactRouterRSC()` is present in the Vite config.
+     * Use this option to enable debug logging or to explicitly disable with `{ enabled: false }`.
+     * Server components must be wrapped manually using `wrapServerComponent`.
+     */
+    experimental_rscAutoInstrumentation?: AutoInstrumentRSCOptions;
   };
+
+/**
+ * Options for the experimental RSC auto-instrumentation Vite plugin.
+ *
+ * RSC mode is auto-detected — no explicit flag is needed. Pass this option only to
+ * customize behavior or to explicitly disable with `{ enabled: false }`.
+ */
+export type AutoInstrumentRSCOptions = {
+  /**
+   * Enable or disable auto-instrumentation of server functions.
+   * @default true
+   */
+  enabled?: boolean;
+
+  /**
+   * Enable debug logging to see which files are being instrumented.
+   * @default false
+   */
+  debug?: boolean;
+};
