@@ -10,10 +10,11 @@ import type { Event, EventHint } from './types-hoist/event';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
-import type { BaseTransportOptions } from './types-hoist/transport';
+import type { BaseTransportOptions, Transport } from './types-hoist/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
 import { uuid4 } from './utils/misc';
+import type { PromiseBuffer } from './utils/promisebuffer';
 import { resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
 
@@ -150,6 +151,32 @@ export class ServerRuntimeClient<
     this.sendEnvelope(envelope);
 
     return id;
+  }
+
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * This method clears all internal state to allow the client to be garbage collected.
+   * It clears hooks, event processors, integrations, transport, and other internal references.
+   *
+   * Call this method after flushing to allow the client to be garbage collected.
+   * After calling dispose(), the client should not be used anymore.
+   *
+   * Subclasses should override this method to clean up their own resources and call `super.dispose()`.
+   */
+  public dispose(): void {
+    DEBUG_BUILD && debug.log('Disposing client...');
+
+    for (const hookName of Object.keys(this._hooks)) {
+      this._hooks[hookName]?.clear();
+    }
+
+    this._hooks = {};
+    this._eventProcessors.length = 0;
+    this._integrations = {};
+    this._outcomes = {};
+    (this as unknown as { _transport?: Transport })._transport = undefined;
+    (this as unknown as { _promiseBuffer?: PromiseBuffer<unknown> })._promiseBuffer = undefined;
   }
 
   /**
