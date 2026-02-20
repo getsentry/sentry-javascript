@@ -54,6 +54,7 @@ Same rule: any non-zero exit code means stop immediately.
 ### Step 2: Classify the Issue
 
 Determine:
+
 - **Category:** `bug`, `feature request`, `documentation`, `support`, or `duplicate`
 - **Affected package(s):** from labels, stack traces, imports, or SDK names mentioned
 - **Priority:** `high` (regression, data loss, crash), `medium`, or `low` (feature requests, support)
@@ -63,6 +64,7 @@ Determine:
 Search for relevant code using Grep/Glob. Find error messages, function names, and stack trace paths in the local repo.
 
 Cross-repo searches (only when clearly relevant):
+
 - Bundler issues: `gh api search/code -X GET -f "q=<term>+repo:getsentry/sentry-javascript-bundler-plugins"`
 - Docs issues: `gh api search/code -X GET -f "q=<term>+repo:getsentry/sentry-docs"`
 
@@ -92,7 +94,6 @@ If complexity is trivial or moderate and specific code changes are identifiable,
 
 - **Default:** Print the full triage report to the terminal.
 - **`--ci`:** Post to the existing Linear issue.
-
   1. Find the Linear issue ID from the `linear[bot]` linkback comment in the GitHub comments.
   2. Write the report to a file using the Write tool (not Bash): `triage_report.md`
   3. Post it:
