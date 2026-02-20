@@ -62,6 +62,17 @@ Based on the issue title, body, labels, and comments, determine:
   - Feature requests with few reactions (low)
   - General questions or support requests (low)
 
+### Step 2b: Alternative Interpretations
+
+Do not default to the reporter’s framing. Before locking in category and recommended action, explicitly consider:
+
+1. **Setup vs SDK:** Could this be misconfiguration or use of Sentry in the wrong way for their environment (e.g. wrong package, wrong options, missing build step) rather than an SDK defect? If so, classify and recommend setup/docs correction, not a code change.
+2. **Proposed fix vs best approach:** The reporter may suggest a concrete fix (e.g. “add this to the README”). Evaluate whether that is the best approach or if a different action is better (e.g. link to official docs instead of duplicating content, fix documentation location, or change setup guidance). Recommend the **best** approach, not necessarily the one requested.
+3. **Support vs bug/feature:** Could this be a usage question or environment issue that should be handled as support or documentation rather than a code change?
+4. **Duplicate or superseded:** Could this be covered by an existing issue, a different package, or a deprecated code path?
+
+If any of these alternative interpretations apply, capture them in the triage report under **Alternative interpretations / Recommended approach** and base **Recommended Next Steps** on the best approach, not the first obvious one.
+
 ### Step 3: Codebase Research
 
 Search for relevant code in the local sentry-javascript repository:
@@ -89,13 +100,18 @@ Only perform cross-repo searches when the issue clearly relates to those areas. 
 
 Based on all gathered information:
 
-- Identify the likely root cause with specific code pointers (`file:line` format)
-- Assess **complexity**: `trivial` (config/typo fix), `moderate` (logic change in 1-2 files), or `complex` (architectural change, multiple packages)
-- If you cannot determine a root cause, say so clearly and explain what additional information would be needed.
+- Identify the likely root cause with specific code pointers (`file:line` format) when it is an SDK-side issue.
+- If the cause is **user setup, environment, or usage** rather than SDK code, state that clearly and describe what correct setup or usage would look like; do not invent a code root cause.
+- Assess **complexity**: `trivial` (config/typo fix), `moderate` (logic change in 1-2 files), or `complex` (architectural change, multiple packages). For setup/docs-only resolutions, complexity is often `trivial`.
+- **Uncertainty:** If you cannot determine root cause, category, or best fix due to missing information (e.g. no repro, no stack trace, no matching code), say so explicitly and list what additional information would be needed. Do not guess; record the gap in the report.
 
 ### Step 6: Generate Triage Report
 
 Use the template in `assets/triage-report.md` to generate the structured report. Fill in all `<placeholder>` values with the actual issue details.
+
+- **Alternative interpretations:** If Step 2b revealed that the reporter’s framing or proposed fix is not ideal, fill in the **Alternative interpretations / Recommended approach** section with the preferred interpretation and recommended action.
+- **Information gaps:** If any key fact could not be determined (root cause, affected package, repro steps, or whether this is incorrect SDK setup vs bug), fill in **Information gaps / Uncertainty** with a concise list of what is missing and what would be needed to proceed. Omit this section only when you have enough information to act.
+- Keep the report **accurate and concise**: every sentence should be actionable or clearly mark uncertainty; avoid filler or hedging that does not add information.
 
 ### Step 7: Suggested Fix Prompt
 
@@ -160,5 +176,6 @@ If the issue is complex or the fix is unclear, skip this section and instead not
 
 **QUALITY:**
 
-- Focus on accuracy: if you're uncertain about the root cause, say so rather than guessing.
-- Keep the report concise but thorough. Developers should be able to act on it immediately.
+- **Accuracy over guessing:** If you are uncertain about root cause, category, or best fix, state that explicitly and list what is missing. Do not guess or invent code pointers when the cause may be setup or when information is insufficient.
+- **Out-of-the-box thinking:** Do not default to the reporter’s framing or suggested fix. Consider misconfiguration, wrong solution proposed, and whether the best action is different (e.g. docs link vs new content, setup guidance vs code change). Recommend the best approach.
+- **Concise and actionable:** Every part of the report should be either actionable or a clear statement of uncertainty. Omit redundant phrasing; developers should be able to act on the report immediately.
