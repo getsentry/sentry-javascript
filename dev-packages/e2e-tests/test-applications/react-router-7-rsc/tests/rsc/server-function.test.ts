@@ -43,10 +43,10 @@ test.describe('RSC - Server Function Wrapper', () => {
       sdk: {
         name: 'sentry.javascript.react-router',
         version: expect.any(String),
-        packages: expect.arrayContaining([
-          expect.objectContaining({ name: 'npm:@sentry/react-router', version: expect.any(String) }),
-          expect.objectContaining({ name: 'npm:@sentry/node', version: expect.any(String) }),
-        ]),
+        packages: [
+          { name: 'npm:@sentry/react-router', version: expect.any(String) },
+          { name: 'npm:@sentry/node', version: expect.any(String) },
+        ],
       },
     });
 

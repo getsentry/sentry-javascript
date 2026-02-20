@@ -205,7 +205,6 @@ describe('wrapServerComponent', () => {
     });
     const result = wrappedComponent();
 
-    // Wait for the promise to resolve so the .then() handler fires
     await result;
     // Allow microtask queue to flush
     await new Promise(resolve => setTimeout(resolve, 0));

@@ -12,7 +12,6 @@ export async function submitForm(formData: FormData): Promise<{ success: boolean
 }
 
 export async function submitFormWithError(_formData: FormData): Promise<{ success: boolean; message: string }> {
-  // Simulate an error in server function
   throw new Error('RSC Server Function Error: Something went wrong!');
 }
 

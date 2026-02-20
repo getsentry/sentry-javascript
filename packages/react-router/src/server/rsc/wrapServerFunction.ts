@@ -18,8 +18,7 @@ import type { WrapServerFunctionOptions } from './types';
 /**
  * Wraps a server function (marked with `"use server"` directive) with Sentry error and performance instrumentation.
  *
- * @experimental This API is experimental and may change in minor releases.
- * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
+ * @experimental
  *
  * @example
  * ```ts
