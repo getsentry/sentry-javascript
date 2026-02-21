@@ -1,0 +1,171 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "jsdoc", "jest", "vitest"],
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
+  "categories": {},
+  "rules": {
+    // === Base rules from eslint-config-sdk/base.js ===
+    "no-console": "error",
+    "no-alert": "error",
+    "no-param-reassign": "error",
+    "prefer-template": "error",
+    "no-bitwise": "error",
+    "complexity": ["error", { "max": 33 }],
+    "no-unused-expressions": ["error", { "allowShortCircuit": true }],
+    "guard-for-in": "error",
+    "array-callback-return": ["error", { "allowImplicit": true }],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "no-return-await": "error",
+    "max-lines": ["error", { "max": 300, "skipComments": true, "skipBlankLines": true }],
+
+    // === Import rules ===
+    "import/namespace": "off",
+    "import/no-unresolved": "off",
+
+    // === Jest/Vitest rules ===
+    "jest/no-focused-tests": "error",
+    "jest/no-disabled-tests": "error",
+
+    // === Rules turned off (not enforced in ESLint or causing false positives) ===
+    "no-control-regex": "off",
+    "jsdoc/check-tag-names": "off",
+    "jsdoc/require-yields": "off",
+    "no-useless-rename": "off",
+    "no-constant-binary-expression": "off",
+    "jest/no-conditional-expect": "off",
+    "jest/expect-expect": "off",
+    "jest/no-standalone-expect": "off",
+    "jest/require-to-throw-message": "off",
+    "jest/valid-title": "off",
+    "jest/no-export": "off",
+    "jest/valid-describe-callback": "off",
+    "vitest/hoisted-apis-on-top": "off",
+    "vitest/no-conditional-tests": "off",
+    "no-unsafe-optional-chaining": "off",
+    "no-eval": "off",
+    "no-import-assign": "off",
+
+    // === Custom SDK rules (via JS plugin) ===
+    "sdk/no-eq-empty": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
+      "rules": {
+        "typescript/ban-ts-comment": "error",
+        "typescript/consistent-type-imports": "error",
+        "typescript/no-unnecessary-type-assertion": "error",
+        "typescript/prefer-for-of": "error",
+        // "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
+        "typescript/no-dynamic-delete": "error",
+        // "typescript/no-unsafe-member-access": "error",
+        "typescript/unbound-method": "error",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-empty-function": "off",
+
+        // === FIXME: Rules to turn back as error ===
+        "typescript/prefer-optional-chain": "warn",
+        "typescript/no-floating-promises": "warn",
+        "typescript/no-unsafe-member-access": "warn",
+
+        // === FIXME: Requires migrating TS to v6/v7 ===
+        "typescript/tsconfig-error": "off"
+      }
+    },
+    {
+      "files": ["**/*.js", "**/*.mjs", "**/*.cjs"],
+      "rules": {
+        "typescript/ban-ts-comment": "off",
+        "typescript/consistent-type-imports": "off",
+        "typescript/prefer-optional-chain": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/prefer-for-of": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-dynamic-delete": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.js",
+        "**/*.test.jsx",
+        "**/test/**",
+        "**/tests/**",
+        "**/suites/**",
+        "**/loader-suites/**"
+      ],
+      "rules": {
+        "typescript/explicit-function-return-type": "off",
+        "no-unused-expressions": "off",
+        "typescript/no-unused-expressions": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-non-null-assertion": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/unbound-method": "off",
+        "max-lines": "off",
+        "complexity": "off"
+      }
+    },
+    {
+      "files": ["*.tsx"],
+      "rules": {
+        "jsdoc/require-jsdoc": "off"
+      }
+    },
+    {
+      "files": ["*.config.js", "*.config.mjs", "*.config.ts", "vite.config.ts", ".size-limit.js"],
+      "rules": {
+        "no-console": "off",
+        "max-lines": "off"
+      }
+    },
+    {
+      "files": [
+        "**/scenarios/**",
+        "**/rollup-utils/**",
+        "**/bundle-analyzer-scenarios/**",
+        "**/bundle-analyzer-scenarios/*.cjs",
+        "**/bundle-analyzer-scenarios/*.js"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
+        "sdk/no-class-field-initializers": "error",
+        "sdk/no-regexp-constructor": "error"
+      }
+    }
+  ],
+  "env": {
+    "es2017": true,
+    "node": true
+  },
+  "globals": {},
+  "ignorePatterns": [
+    "coverage/**",
+    "build/**",
+    "dist/**",
+    "cjs/**",
+    "esm/**",
+    "examples/**",
+    "test/manual/**",
+    "types/**",
+    "scripts/*.js",
+    "node_modules/**"
+  ]
+}

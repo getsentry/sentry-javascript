@@ -2798,7 +2798,7 @@ describe('Client', () => {
     // would affect the entire test suite.
     // Maybe this can be re-enabled when switching to vitest.
     //
-    // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+    // eslint-disable-next-line jest/no-disabled-tests
     test.skip('handles asynchronous errors', async () => {
       const error = new Error('Test error');
       const callback = vi.fn().mockRejectedValue(error);

@@ -50,9 +50,9 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build sentry-types-*.tgz",
-    "lint": "eslint . --format stylish",
+    "lint": "oxlint .",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "fix": "eslint . --format stylish --fix",
+    "fix": "oxlint . --fix",
     "yalc:publish": "yalc publish --push --sig"
   },
   "dependencies": {

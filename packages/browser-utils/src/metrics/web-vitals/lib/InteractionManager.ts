@@ -51,14 +51,14 @@ export class InteractionManager {
    * longest one is first. The list is at most MAX_INTERACTIONS_TO_CONSIDER
    * long.
    */
-  // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers, @typescript-eslint/explicit-member-accessibility
+  // oxlint-disable-next-line sdk/no-class-field-initializers
   _longestInteractionList: Interaction[] = [];
 
   /**
    * A mapping of longest interactions by their interaction ID.
    * This is used for faster lookup.
    */
-  // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers, @typescript-eslint/explicit-member-accessibility
+  // oxlint-disable-next-line sdk/no-class-field-initializers
   _longestInteractionMap: Map<number, Interaction> = new Map();
 
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility

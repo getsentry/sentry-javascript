@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "env": {
+    "node": true
+  },
+  "rules": {
+    "sdk/no-unsafe-random-apis": "error"
+  },
+  "overrides": [
+    {
+      "files": ["test/**/*.ts", "test/**/*.tsx"],
+      "rules": {
+        "sdk/no-unsafe-random-apis": "off"
+      }
+    }
+  ]
+}

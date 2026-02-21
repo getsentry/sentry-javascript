@@ -23,8 +23,8 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "oxlint . --fix",
+    "lint": "oxlint .",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",

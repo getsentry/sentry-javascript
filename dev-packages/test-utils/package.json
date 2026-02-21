@@ -31,8 +31,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "fix": "oxlint . --fix",
+    "lint": "oxlint .",
     "build": "run-s build:transpile build:types",
     "build:tarball": "run-s build:transpile build:types",
     "build:dev": "yarn build",

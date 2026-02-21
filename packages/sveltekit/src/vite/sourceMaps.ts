@@ -253,7 +253,7 @@ export async function makeCustomSentryVitePlugins(
         if (fs.existsSync(mapFile)) {
           const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
           const cleanedMapContent = mapContent.replace(
-            // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- no user input + escaped anyway
+            // oxlint-disable-next-line sdk/no-regexp-constructor -- no user input + escaped anyway
             new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
             '',
           );
