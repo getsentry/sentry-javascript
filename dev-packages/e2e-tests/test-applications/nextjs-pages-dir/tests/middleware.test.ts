@@ -1,7 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+const packageJson = require('../package.json');
+const nextjsVersion = packageJson.dependencies.next;
+const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+
 test('Should create a transaction for middleware', async ({ request }) => {
+  test.skip(
+    nextjsMajor === 13,
+    'Middleware transactions are not created in Next.js 13 after dropping tracing from middleware',
+  );
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
   });
@@ -22,6 +30,10 @@ test('Should create a transaction for middleware', async ({ request }) => {
 });
 
 test('Faulty middlewares', async ({ request }) => {
+  test.skip(
+    nextjsMajor === 13,
+    'Middleware transactions are not created in Next.js 13 after dropping tracing from middleware',
+  );
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
   });
@@ -53,6 +65,10 @@ test('Faulty middlewares', async ({ request }) => {
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
+  test.skip(
+    nextjsMajor === 13,
+    'Middleware transactions are not created in Next.js 13 after dropping tracing from middleware',
+  );
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'middleware GET' &&
