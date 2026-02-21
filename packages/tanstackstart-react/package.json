@@ -20,12 +20,12 @@
     ".": {
       "types": "./build/types/index.types.d.ts",
       "workerd": {
-        "import": "./build/esm/index.server.js",
-        "require": "./build/cjs/index.server.js"
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js"
       },
       "worker": {
-        "import": "./build/esm/index.server.js",
-        "require": "./build/cjs/index.server.js"
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js"
       },
       "browser": {
         "import": "./build/esm/index.client.js",
@@ -35,6 +35,12 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       }
+    },
+    "./cloudflare": {
+      "types": "./build/types/cloudflare/index.d.ts",
+      "import": "./build/esm/cloudflare/index.js",
+      "require": "./build/cjs/cloudflare/index.js",
+      "default": "./build/esm/cloudflare/index.js"
     },
     "./import": {
       "import": {
@@ -80,7 +86,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
+    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts && madge --circular src/cloudflare/index.ts",
     "clean": "rimraf build coverage sentry-tanstackstart-react-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
