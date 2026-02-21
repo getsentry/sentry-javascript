@@ -4,6 +4,7 @@
     "module": "esnext",
     "lib": ["es2020"],
     "outDir": "build",
+    "rootDir": "./src",
     "types": ["node"]
   },
   "include": ["src/**/*"]

@@ -44,7 +44,7 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
 
     makeFetch(sidecarUrl, {
       method: 'POST',
-      body: serializeEnvelope(envelope),
+      body: serializeEnvelope(envelope) as BodyInit,
       headers: {
         'Content-Type': 'application/x-sentry-envelope',
       },

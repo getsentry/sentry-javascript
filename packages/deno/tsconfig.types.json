@@ -1,9 +1,11 @@
 {
   "extends": "./tsconfig.json",
+  "include": ["src/**/*", "lib.deno.d.ts"],
   "compilerOptions": {
     "declaration": true,
     "declarationMap": false,
     "emitDeclarationOnly": true,
-    "outDir": "build/esm"
+    "outDir": "build/esm",
+    "rootDir": "./src"
   }
 }

@@ -20,6 +20,7 @@ const ENTRY_TYPES: Record<
 > = {
   // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   paint: createPaintEntry,
   // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   navigation: createNavigationEntry,

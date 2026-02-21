@@ -120,7 +120,6 @@ describe('wrapServerLoader', () => {
   it('should skip span creation and warn when instrumentation API is used', async () => {
     // Reset modules to get a fresh copy with unset warning flag
     vi.resetModules();
-    // @ts-expect-error - Dynamic import for module reset works at runtime but vitest's typecheck doesn't fully support it
     const { wrapServerLoader: freshWrapServerLoader } = await import('../../src/server/wrapServerLoader');
 
     // Set the global flag indicating instrumentation API is in use
