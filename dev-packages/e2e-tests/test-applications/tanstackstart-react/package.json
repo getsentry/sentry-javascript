@@ -17,7 +17,8 @@
     "@tanstack/react-start": "^1.136.0",
     "@tanstack/react-router": "^1.136.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "nitro": "latest || *"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
@@ -29,7 +30,6 @@
     "typescript": "^5.9.0",
     "vite": "7.2.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "nitro": "^3.0.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
