@@ -1,7 +1,11 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
-import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
+import {
+  makeAddSentryVitePlugin,
+  makeEnableSourceMapsVitePlugin,
+  makeNitroSourcemapExcludeSourcesPlugin,
+} from './sourceMaps';
 
 /**
  * Build-time options for the Sentry TanStack Start SDK.
@@ -62,6 +66,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
   if (!sourceMapsDisabled) {
     plugins.push(...makeEnableSourceMapsVitePlugin(options));
+    plugins.push(makeNitroSourcemapExcludeSourcesPlugin(options));
   }
 
   return plugins;

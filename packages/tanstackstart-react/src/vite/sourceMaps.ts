@@ -101,6 +101,31 @@ export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): P
   ];
 }
 
+/**
+ * A Sentry plugin for TanStack Start to set `sourcemapExcludeSources: false` in the Nitro config.
+ *
+ * By default, Nitro sets `sourcemapExcludeSources: true`, which means the original source code is not included
+ * in the source maps. This makes it impossible for Sentry to display un-minified code snippets on the Issues page.
+ */
+export function makeNitroSourcemapExcludeSourcesPlugin(_options: BuildTimeOptionsBase): Plugin {
+  return {
+    name: 'sentry-tanstackstart-nitro-sourcemap-exclude-sources',
+    apply: 'build',
+    enforce: 'post',
+    config() {
+      return {
+        nitro: {
+          rollupConfig: {
+            output: {
+              sourcemapExcludeSources: false,
+            },
+          },
+        },
+      } as UserConfig;
+    },
+  };
+}
+
 /** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
  *
  *     1. User explicitly disabled source maps
