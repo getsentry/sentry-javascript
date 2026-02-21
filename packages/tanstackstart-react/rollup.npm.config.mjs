@@ -3,7 +3,13 @@ import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sent
 export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/client/index.ts', 'src/server/index.ts'],
+      entrypoints: [
+        'src/index.server.ts',
+        'src/index.client.ts',
+        'src/client/index.ts',
+        'src/server/index.ts',
+        'src/cloudflare/index.ts',
+      ],
     }),
   ),
   ...makeOtelLoaders('./build', 'sentry-node'),

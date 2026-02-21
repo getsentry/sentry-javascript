@@ -1,6 +1,5 @@
-import { addNonEnumerableProperty } from '@sentry/core';
-import type { Span } from '@sentry/node';
-import { getActiveSpan, startSpanManual, withActiveSpan } from '@sentry/node';
+import type { Span } from '@sentry/core';
+import { addNonEnumerableProperty, getActiveSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common/types';
 import { getMiddlewareSpanOptions } from './utils';
 
