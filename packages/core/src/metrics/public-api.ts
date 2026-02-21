@@ -1,5 +1,6 @@
 import type { Scope } from '../scope';
-import type { Metric, MetricType } from '../types-hoist/metric';
+import { MULTIPLEXED_METRIC_ROUTING_KEY } from '../transports/multiplexed';
+import type { Metric, MetricRoutingInfo, MetricType } from '../types-hoist/metric';
 import { _INTERNAL_captureMetric } from './internal';
 
 /**
@@ -20,6 +21,12 @@ export interface MetricOptions {
    * The scope to capture the metric with.
    */
   scope?: Scope;
+
+  /**
+   * The routing information for multiplexed transport.
+   * Each metric can be sent to multiple DSNs.
+   */
+  routing?: Array<MetricRoutingInfo>;
 }
 
 /**
@@ -31,10 +38,10 @@ export interface MetricOptions {
  * @param options - Options for capturing the metric.
  */
 function captureMetric(type: MetricType, name: string, value: number, options?: MetricOptions): void {
-  _INTERNAL_captureMetric(
-    { type, name, value, unit: options?.unit, attributes: options?.attributes },
-    { scope: options?.scope },
-  );
+  const attributes = options?.routing
+    ? { ...options.attributes, [MULTIPLEXED_METRIC_ROUTING_KEY]: options.routing }
+    : options?.attributes;
+  _INTERNAL_captureMetric({ type, name, value, unit: options?.unit, attributes }, { scope: options?.scope });
 }
 
 /**
