@@ -13,6 +13,7 @@ import {
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
+import * as logsInternalModule from '../../src/logs/internal';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import * as traceModule from '../../src/tracing/trace';
@@ -2210,6 +2211,24 @@ describe('Client', () => {
       await client.close(delay);
       // Sends after close shouldn't work anymore
       expect(getSentCount()).toBe(1);
+    });
+
+    test('close flushes the logs buffer', async () => {
+      vi.useRealTimers();
+
+      const flushLogsSpy = vi
+        .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
+        .mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      await client.close();
+
+      expect(flushLogsSpy).toHaveBeenCalledTimes(1);
+      expect(flushLogsSpy).toHaveBeenCalledWith(client);
+
+      flushLogsSpy.mockRestore();
     });
 
     test('multiple concurrent flush calls should just work', async () => {
