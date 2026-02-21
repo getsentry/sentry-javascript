@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release
-        required: true
+        description: Version to release (or "auto")
+        required: false
       force:
         description: Force a release even when there are release-blockers (optional)
         required: false
@@ -12,6 +12,10 @@ on:
         description: Target branch to merge into. Uses the default branch as a fallback (optional)
         required: false
         default: master
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release:
     runs-on: ubuntu-24.04
@@ -32,7 +36,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Prepare release
-        uses: getsentry/action-prepare-release@v1
+        uses: getsentry/craft@5d154a7facb096e38889be2c6caf2fd23649aa92# v2
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
