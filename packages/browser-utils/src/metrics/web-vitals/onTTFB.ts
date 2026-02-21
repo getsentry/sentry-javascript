@@ -19,6 +19,8 @@ import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getNavigationEntry } from './lib/getNavigationEntry';
 import { initMetric } from './lib/initMetric';
+import { observe } from './lib/observe';
+import { softNavs } from './lib/softNavs';
 import { whenActivated } from './lib/whenActivated';
 import type { MetricRatingThresholds, ReportOpts, TTFBMetric } from './types';
 
@@ -56,21 +58,40 @@ const whenReady = (callback: () => void) => {
  * and server processing time.
  */
 export const onTTFB = (onReport: (metric: TTFBMetric) => void, opts: ReportOpts = {}) => {
-  const metric = initMetric('TTFB');
-  const report = bindReporter(onReport, metric, TTFBThresholds, opts.reportAllChanges);
+  // Set defaults
+  const softNavsEnabled = softNavs(opts);
+
+  let metric = initMetric('TTFB');
+  let report = bindReporter(onReport, metric, TTFBThresholds, opts.reportAllChanges);
 
   whenReady(() => {
-    const navigationEntry = getNavigationEntry();
-
-    if (navigationEntry) {
+    const hardNavEntry = getNavigationEntry();
+    if (hardNavEntry) {
+      const responseStart = hardNavEntry.responseStart;
       // The activationStart reference is used because TTFB should be
       // relative to page activation rather than navigation start if the
       // page was prerendered. But in cases where `activationStart` occurs
       // after the first byte is received, this time should be clamped at 0.
-      metric.value = Math.max(navigationEntry.responseStart - getActivationStart(), 0);
+      metric.value = Math.max(responseStart - getActivationStart(), 0);
 
-      metric.entries = [navigationEntry];
+      metric.entries = [hardNavEntry];
       report(true);
+
+      // Listen for soft-navigation entries and emit a dummy 0 TTFB entry
+      const reportSoftNavTTFBs = (entries: SoftNavigationEntry[]) => {
+        entries.forEach(entry => {
+          if (entry.navigationId) {
+            metric = initMetric('TTFB', 0, 'soft-navigation', entry.navigationId);
+            metric.entries = [entry];
+            report = bindReporter(onReport, metric, TTFBThresholds, opts.reportAllChanges);
+            report(true);
+          }
+        });
+      };
+
+      if (softNavsEnabled) {
+        observe('soft-navigation', reportSoftNavTTFBs, opts);
+      }
     }
   });
 };
