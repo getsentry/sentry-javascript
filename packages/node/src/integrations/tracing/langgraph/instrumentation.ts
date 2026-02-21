@@ -6,7 +6,7 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
-import { getClient, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
+import { getClient, instrumentCreateReactAgent, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.0.0 <2.0.0'];
 
@@ -18,6 +18,7 @@ type LangGraphInstrumentationOptions = InstrumentationConfig & LangGraphOptions;
 interface PatchedModuleExports {
   [key: string]: unknown;
   StateGraph?: abstract new (...args: unknown[]) => unknown;
+  createReactAgent?: (...args: unknown[]) => CompiledGraph;
 }
 
 /**
@@ -31,28 +32,72 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
   /**
    * Initializes the instrumentation by defining the modules to be patched.
    */
-  public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition(
-      '@langchain/langgraph',
-      supportedVersions,
-      this._patch.bind(this),
-      exports => exports,
-      [
-        new InstrumentationNodeModuleFile(
-          /**
-           * In CJS, LangGraph packages re-export from dist/index.cjs files.
-           * Patching only the root module sometimes misses the real implementation or
-           * gets overwritten when that file is loaded. We add a file-level patch so that
-           * _patch runs again on the concrete implementation
-           */
-          '@langchain/langgraph/dist/index.cjs',
-          supportedVersions,
-          this._patch.bind(this),
-          exports => exports,
-        ),
-      ],
-    );
-    return module;
+  public init(): InstrumentationModuleDefinition[] {
+    return [
+      new InstrumentationNodeModuleDefinition(
+        '@langchain/langgraph',
+        supportedVersions,
+        this._patch.bind(this),
+        exports => exports,
+        [
+          new InstrumentationNodeModuleFile(
+            /**
+             * In CJS, LangGraph packages re-export from dist/index.cjs files.
+             * Patching only the root module sometimes misses the real implementation or
+             * gets overwritten when that file is loaded. We add a file-level patch so that
+             * _patch runs again on the concrete implementation
+             */
+            '@langchain/langgraph/dist/index.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+          new InstrumentationNodeModuleFile(
+            /**
+             * In CJS, LangGraph packages re-export from dist/prebuilt/index.cjs files.
+             * Patching only the root module sometimes misses the real implementation or
+             * gets overwritten when that file is loaded. We add a file-level patch so that
+             * _patch runs again on the concrete implementation
+             */
+            '@langchain/langgraph/dist/prebuilt/index.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+        ],
+      ),
+      new InstrumentationNodeModuleDefinition(
+        '@langchain/langgraph/prebuilt',
+        supportedVersions,
+        this._patch.bind(this),
+        exports => exports,
+        [
+          new InstrumentationNodeModuleFile(
+            /**
+             * ESM builds use dist/prebuilt/index.js (without .cjs extension)
+             * This catches ESM imports that resolve through the main package,
+             * using the package.json submodule export
+             */
+            '@langchain/langgraph/dist/prebuilt/index.js',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+          new InstrumentationNodeModuleFile(
+            /**
+             * In CJS, LangGraph packages re-export from dist/prebuilt/index.cjs files.
+             * Patching only the root module sometimes misses the real implementation or
+             * gets overwritten when that file is loaded. We add a file-level patch so that
+             * _patch runs again on the concrete implementation
+             */
+            '@langchain/langgraph/dist/prebuilt/index.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+        ],
+      ),
+    ];
   }
 
   /**
@@ -81,6 +126,17 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
         StateGraph.prototype.compile as (...args: unknown[]) => CompiledGraph,
         options,
       );
+    }
+
+    // Patch createReactAgent to instrument the agent creation and invocation
+    if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
+      const originalCreateReactAgent = exports.createReactAgent;
+      Object.defineProperty(exports, 'createReactAgent', {
+        value: instrumentCreateReactAgent(originalCreateReactAgent as (...args: unknown[]) => CompiledGraph, options),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
     }
 
     return exports;

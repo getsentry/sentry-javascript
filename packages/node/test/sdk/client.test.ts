@@ -1,5 +1,5 @@
 import { ProxyTracer } from '@opentelemetry/api';
-import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
+import type * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import type { Event, EventHint, Log } from '@sentry/core';
 import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
@@ -285,18 +285,23 @@ describe('NodeClient', () => {
   });
 
   it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
-    const registerInstrumentationsSpy = vi
-      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
-      .mockImplementationOnce(() => () => undefined);
-    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
+    const mockInstrumentation = {
+      setTracerProvider: vi.fn(),
+      setMeterProvider: vi.fn(),
+      enable: vi.fn(),
+      disable: vi.fn(),
+      getConfig: vi.fn(() => ({})),
+      setConfig: vi.fn(),
+      getModuleDefinitions: vi.fn(() => []),
+    } as unknown as opentelemetryInstrumentationPackage.Instrumentation;
+
+    const instrumentationsArray = [mockInstrumentation];
 
     new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
 
-    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instrumentations: instrumentationsArray,
-      }),
-    );
+    // Verify that the instrumentation was registered by checking if its methods were called
+    /* eslint-disable-next-line @typescript-eslint/unbound-method */
+    expect(mockInstrumentation.setTracerProvider).toHaveBeenCalled();
   });
 
   describe('log capture', () => {

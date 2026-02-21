@@ -223,6 +223,46 @@ describe('LangGraph integration', () => {
     });
   });
 
+  const EXPECTED_TRANSACTION_REACT_AGENT = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // create_agent span
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+        }),
+        description: expect.stringContaining('create_agent'),
+        op: 'gen_ai.create_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // invoke_agent span
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+        }),
+        description: expect.stringContaining('invoke_agent'),
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('should instrument LangGraph createReactAgent with default PII settings', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT })
+        .start()
+        .completed();
+    });
+  });
+
   // Test for thread_id (conversation ID) support
   const EXPECTED_TRANSACTION_THREAD_ID = {
     transaction: 'langgraph-thread-id-test',
