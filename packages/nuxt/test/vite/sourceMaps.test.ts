@@ -333,10 +333,14 @@ describe('getPluginOptions', () => {
 });
 
 describe('validateDifferentSourceMapSettings', () => {
-  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
 
   afterEach(() => {
-    consoleWarnSpy.mockClear();
+    consoleWarnSpy.mockRestore();
   });
 
   it('does not warn when both settings match', () => {
@@ -350,16 +354,14 @@ describe('validateDifferentSourceMapSettings', () => {
   });
 
   it('warns when settings conflict', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     validateDifferentSourceMapSettings({
       nuxtSettingKey: 'sourcemap.server',
       nuxtSettingValue: true,
       otherSettingKey: 'nitro.sourceMap',
       otherSettingValue: false,
     });
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('sourcemap.server'));
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('nitro.sourceMap'));
-    warnSpy.mockRestore();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sourcemap.server'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('nitro.sourceMap'));
   });
 });
 
@@ -383,23 +385,20 @@ describe('extractNuxtSourceMapSetting', () => {
 });
 
 describe('validate sourcemap settings', () => {
-  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleLogSpy.mockClear();
-    consoleWarnSpy.mockClear();
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   describe('should handle nitroConfig.rollupConfig.output.sourcemap settings', () => {
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
     type MinimalNitroConfig = {
       sourceMap?: SourceMapSetting;
       rollupConfig?: {
@@ -453,15 +452,18 @@ describe('validate sourcemap settings', () => {
 describe('change Nuxt source map settings', () => {
   let nuxt: { options: { sourcemap: { client: boolean | 'hidden'; server: boolean | 'hidden' } } };
   let sentryModuleOptions: SentryNuxtModuleOptions;
-
-  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleLogSpy.mockClear();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
     nuxt = { options: { sourcemap: { client: undefined } } };
     sentryModuleOptions = {};
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   it.each([
