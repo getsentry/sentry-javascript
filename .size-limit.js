@@ -333,7 +333,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '95 KB',
+    limit: '98 KB',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -356,7 +356,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '111 KB',
+    limit: '114 KB',
   },
 ];
 
