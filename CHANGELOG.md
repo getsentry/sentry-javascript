@@ -36,6 +36,11 @@
   This new mode no longer creates a session per soft navigation but continues the initial session until the next hard page refresh.
   Check out the [docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/browsersession/) to learn more!
 
+- **ref!(gatsby): Drop Gatsby v2 support
+  ([#19467](https://github.com/getsentry/sentry-javascript/pull/19467))**
+
+We drop support for Gatsby v2 (which still relies on webpack 4) for a critical security update in https://github.com/getsentry/sentry-javascript-bundler-plugins/releases/tag/5.0.0
+
 Work in this release was contributed by @LudvigHz and @jadengis. Thank you for your contributions!
 
 ## 10.39.0
