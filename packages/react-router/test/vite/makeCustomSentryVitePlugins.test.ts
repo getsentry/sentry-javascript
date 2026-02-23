@@ -3,14 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 
 vi.mock('@sentry/vite-plugin', () => ({
-  sentryVitePlugin: vi
-    .fn()
-    .mockReturnValue([
-      { name: 'sentry-telemetry-plugin' },
-      { name: 'sentry-vite-injection-plugin' },
-      { name: 'sentry-vite-component-name-annotate-plugin' },
-      { name: 'other-plugin' },
-    ]),
+  sentryVitePlugin: vi.fn().mockReturnValue([{ name: 'sentry-vite-plugin' }]),
 }));
 
 describe('makeCustomSentryVitePlugins', () => {
@@ -55,30 +48,9 @@ describe('makeCustomSentryVitePlugins', () => {
     );
   });
 
-  it('should only return telemetry and release injection plugins', async () => {
+  it('should return all plugins from sentryVitePlugin', async () => {
     const plugins = await makeCustomSentryVitePlugins({});
-    expect(plugins).toHaveLength(2);
-    expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
-  });
-
-  it('should include component annotation plugin when reactComponentAnnotation.enabled is true', async () => {
-    const plugins = await makeCustomSentryVitePlugins({ reactComponentAnnotation: { enabled: true } });
-
-    expect(plugins).toHaveLength(3);
-    expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
-    expect(plugins?.[2]?.name).toBe('sentry-vite-component-name-annotate-plugin');
-  });
-
-  it('should include component annotation plugin when unstable_sentryVitePluginOptions.reactComponentAnnotation.enabled is true', async () => {
-    const plugins = await makeCustomSentryVitePlugins({
-      unstable_sentryVitePluginOptions: { reactComponentAnnotation: { enabled: true } },
-    });
-
-    expect(plugins).toHaveLength(3);
-    expect(plugins?.[0]?.name).toBe('sentry-telemetry-plugin');
-    expect(plugins?.[1]?.name).toBe('sentry-vite-injection-plugin');
-    expect(plugins?.[2]?.name).toBe('sentry-vite-component-name-annotate-plugin');
+    expect(plugins).toHaveLength(1);
+    expect(plugins?.[0]?.name).toBe('sentry-vite-plugin');
   });
 });
