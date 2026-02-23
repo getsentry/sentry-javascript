@@ -95,11 +95,11 @@
     "@opentelemetry/sdk-trace-base": "^2.5.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@prisma/instrumentation": "7.2.0",
+    "@fastify/otel": "0.16.0",
     "@sentry/core": "10.39.0",
     "@sentry/node-core": "10.39.0",
     "@sentry/opentelemetry": "10.39.0",
-    "import-in-the-middle": "^2.0.6",
-    "minimatch": "^9.0.0"
+    "import-in-the-middle": "^2.0.6"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"
