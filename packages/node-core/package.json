@@ -105,11 +105,11 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-async-hooks": "^2.5.0",
-    "@opentelemetry/core": "^2.5.0",
+    "@opentelemetry/context-async-hooks": "^2.5.1",
+    "@opentelemetry/core": "^2.5.1",
     "@opentelemetry/instrumentation": "^0.211.0",
-    "@opentelemetry/resources": "^2.5.0",
-    "@opentelemetry/sdk-trace-base": "^2.5.0",
+    "@opentelemetry/resources": "^2.5.1",
+    "@opentelemetry/sdk-trace-base": "^2.5.1",
     "@opentelemetry/semantic-conventions": "^1.39.0",
     "@types/node": "^18.19.1"
   },
