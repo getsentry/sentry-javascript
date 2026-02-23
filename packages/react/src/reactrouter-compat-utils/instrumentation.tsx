@@ -982,7 +982,7 @@ function updatePageloadTransaction({
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     }
-  } else if (activeRootSpan && _enableAsyncRouteHandlers && _lazyRouteManifest && _lazyRouteManifest.length > 0) {
+  } else if (_enableAsyncRouteHandlers && _lazyRouteManifest && _lazyRouteManifest.length > 0) {
     // No matching branches yet -- fall back to manifest for parameterized name.
     const [name, source] = resolveRouteNameAndSource(
       location,
@@ -996,8 +996,11 @@ function updatePageloadTransaction({
 
     if (source === 'route') {
       getCurrentScope().setTransactionName(name || '/');
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+      if (activeRootSpan) {
+        activeRootSpan.updateName(name);
+        activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      }
     }
   }
 }

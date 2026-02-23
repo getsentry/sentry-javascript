@@ -128,8 +128,6 @@ export interface AgnosticRouteMatch<
   route: RouteObjectType;
 }
 
-export type AgnosticDataRouteMatch = AgnosticRouteMatch<string, AgnosticDataRouteObject>;
-
 interface UseMatchesMatch {
   id: string;
   pathname: string;
