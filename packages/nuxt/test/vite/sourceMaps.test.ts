@@ -4,7 +4,9 @@ import type { SentryNuxtModuleOptions } from '../../src/common/types';
 import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
+  extractNuxtSourceMapSetting,
   getPluginOptions,
+  validateDifferentSourceMapSettings,
   validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
 
@@ -328,6 +330,56 @@ describe('getPluginOptions', () => {
       expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
     },
   );
+});
+
+describe('validateDifferentSourceMapSettings', () => {
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+  afterEach(() => {
+    consoleWarnSpy.mockClear();
+  });
+
+  it('does not warn when both settings match', () => {
+    validateDifferentSourceMapSettings({
+      nuxtSettingKey: 'sourcemap.server',
+      nuxtSettingValue: true,
+      otherSettingKey: 'nitro.sourceMap',
+      otherSettingValue: true,
+    });
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns when settings conflict', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    validateDifferentSourceMapSettings({
+      nuxtSettingKey: 'sourcemap.server',
+      nuxtSettingValue: true,
+      otherSettingKey: 'nitro.sourceMap',
+      otherSettingValue: false,
+    });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('sourcemap.server'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('nitro.sourceMap'));
+    warnSpy.mockRestore();
+  });
+});
+
+describe('extractNuxtSourceMapSetting', () => {
+  it.each<{
+    runtime: 'client' | 'server' | undefined;
+    sourcemap: SourceMapSetting | { client?: SourceMapSetting; server?: SourceMapSetting };
+    expected: SourceMapSetting | undefined;
+  }>([
+    { runtime: undefined, sourcemap: true, expected: undefined },
+    { runtime: 'client', sourcemap: true, expected: true },
+    { runtime: 'server', sourcemap: 'hidden', expected: 'hidden' },
+    { runtime: 'client', sourcemap: { client: true, server: false }, expected: true },
+    { runtime: 'server', sourcemap: { client: true, server: 'hidden' }, expected: 'hidden' },
+  ])('returns correct value for runtime=$runtime and sourcemap type', ({ runtime, sourcemap, expected }) => {
+    const nuxt = { options: { sourcemap } };
+    expect(extractNuxtSourceMapSetting(nuxt as Parameters<typeof extractNuxtSourceMapSetting>[0], runtime)).toBe(
+      expected,
+    );
+  });
 });
 
 describe('validate sourcemap settings', () => {
