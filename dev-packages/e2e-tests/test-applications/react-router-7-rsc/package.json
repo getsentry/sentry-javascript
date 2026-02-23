@@ -25,7 +25,7 @@
   },
   "scripts": {
     "build": "react-router build",
-    "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm add @react-router/dev@latest && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm add @react-router/dev@latest && pnpm add @vitejs/plugin-rsc@latest && pnpm build",
     "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
     "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
     "proxy": "node start-event-proxy.mjs",

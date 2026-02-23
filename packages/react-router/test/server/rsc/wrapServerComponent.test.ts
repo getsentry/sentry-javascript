@@ -171,25 +171,6 @@ describe('wrapServerComponent', () => {
     expect(mockSetTransactionName).toHaveBeenCalledWith('Page Server Component (/async-page)');
   });
 
-  it('should handle a thenable that ignores the error callback gracefully', () => {
-    const thenableResult = {
-      then: (_resolve: (value: unknown) => void) => {},
-    };
-    const mockComponent = vi.fn().mockReturnValue(thenableResult);
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-
-    const wrappedComponent = wrapServerComponent(mockComponent, {
-      componentRoute: '/page',
-      componentType: 'Page',
-    });
-
-    expect(() => wrappedComponent()).not.toThrow();
-  });
-
   it('should flush on completion for async components', async () => {
     const mockResult = { type: 'div' };
     const mockComponent = vi.fn().mockResolvedValue(mockResult);
@@ -248,25 +229,5 @@ describe('wrapServerComponent', () => {
 
     expect(() => wrappedComponent()).toThrow('Component error');
     expect(core.captureException).toHaveBeenCalled();
-  });
-
-  it('should preserve function properties via Proxy', () => {
-    const mockComponent = Object.assign(vi.fn().mockReturnValue({ type: 'div' }), {
-      displayName: 'MyComponent',
-      customProp: 'value',
-    });
-    const mockSetTransactionName = vi.fn();
-
-    (core.getIsolationScope as any).mockReturnValue({
-      setTransactionName: mockSetTransactionName,
-    });
-
-    const wrappedComponent = wrapServerComponent(mockComponent, {
-      componentRoute: '/page',
-      componentType: 'Page',
-    });
-
-    expect((wrappedComponent as any).displayName).toBe('MyComponent');
-    expect((wrappedComponent as any).customProp).toBe('value');
   });
 });

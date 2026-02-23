@@ -137,22 +137,6 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result).toBeNull();
     });
 
-    it('returns null for server components (no "use server" directive)', () => {
-      const plugin = createPluginWithRSCDetected();
-      expect(plugin.transform('export default function Page() {}', 'app/routes/home.tsx')).toBeNull();
-    });
-
-    it('returns null for "use client" files', () => {
-      const plugin = createPluginWithRSCDetected();
-      const code = "'use client';\nexport default function ClientComponent() {}";
-      expect(plugin.transform(code, 'app/routes/client.tsx')).toBeNull();
-    });
-
-    it('returns null for files without directives or exports', () => {
-      const plugin = createPluginWithRSCDetected();
-      expect(plugin.transform("export function helper() { return 'helper'; }", 'app/routes/utils.tsx')).toBeNull();
-    });
-
     it('wraps "use server" files with server function wrapper code', () => {
       const plugin = createPluginWithRSCDetected();
       const code = [

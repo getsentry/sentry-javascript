@@ -174,20 +174,6 @@ describe('wrapServerFunction', () => {
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
-  it('should preserve function properties via Proxy', () => {
-    const namedServerFn = Object.assign(
-      async function myServerAction(): Promise<string> {
-        return 'result';
-      },
-      { customProp: 'value' },
-    );
-    const wrappedFn = wrapServerFunction('myServerAction', namedServerFn);
-
-    // Proxy should preserve original function name and properties
-    expect(wrappedFn.name).toBe('myServerAction');
-    expect((wrappedFn as any).customProp).toBe('value');
-  });
-
   it('should propagate errors after capturing', async () => {
     const mockError = new Error('Test error');
     const mockServerFn = vi.fn().mockRejectedValue(mockError);

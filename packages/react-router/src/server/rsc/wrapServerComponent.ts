@@ -42,6 +42,7 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
 
   return new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
+      // No span — runs within the HTTP request span
       const isolationScope = getIsolationScope();
 
       const transactionName = `${componentType} Server Component (${componentRoute})`;
@@ -58,8 +59,7 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       if (result && typeof (result as any).then === 'function') {
-        // Attach handlers as side-effects. These create new promises but we intentionally
-        // return the original so React sees the unmodified rejection.
+        // Side-effect handlers — return the original thenable so React sees the unmodified rejection
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         (result as any).then(
           () => {

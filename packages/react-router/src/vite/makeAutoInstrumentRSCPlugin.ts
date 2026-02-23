@@ -15,7 +15,6 @@ const SENTRY_PACKAGE = '@sentry/react-router';
 
 /** Exported for testing. */
 export interface ModuleAnalysis {
-  hasUseClientDirective: boolean;
   hasUseServerDirective: boolean;
   hasDefaultExport: boolean;
   hasManualServerFunctionWrapping: boolean;
@@ -33,18 +32,14 @@ interface BabelExportSpecifier extends t.ExportSpecifier {
   exportKind?: string;
 }
 
-/** Extracts directive values ("use client"/"use server") from the program. */
-function extractDirectives(program: t.Program): { useClient: boolean; useServer: boolean } {
-  let useClient = false;
+/** Extracts directive values ("use server") from the program. */
+function extractDirectives(program: t.Program): { useServer: boolean } {
   let useServer = false;
 
   // Babel puts directives in program.directives (e.g. "use strict", "use server")
   if (program.directives) {
     for (const d of program.directives) {
       const value = d.value?.value;
-      if (value === 'use client') {
-        useClient = true;
-      }
       if (value === 'use server') {
         useServer = true;
       }
@@ -64,15 +59,12 @@ function extractDirectives(program: t.Program): { useClient: boolean; useServer:
     if (typeof value !== 'string') {
       break;
     }
-    if (value === 'use client') {
-      useClient = true;
-    }
     if (value === 'use server') {
       useServer = true;
     }
   }
 
-  return { useClient, useServer };
+  return { useServer };
 }
 
 /**
@@ -202,7 +194,6 @@ export function analyzeModule(code: string): ModuleAnalysis | null {
   });
 
   return {
-    hasUseClientDirective: directives.useClient,
     hasUseServerDirective: directives.useServer,
     hasDefaultExport,
     hasManualServerFunctionWrapping,

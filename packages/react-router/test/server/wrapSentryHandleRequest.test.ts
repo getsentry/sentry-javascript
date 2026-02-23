@@ -4,10 +4,12 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   flushIfServerless,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
   getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  updateSpanName,
 } from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
@@ -17,17 +19,21 @@ vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },
   getRPCMetadata: vi.fn(),
 }));
-vi.mock('@sentry/core', () => ({
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
-  getActiveSpan: vi.fn(),
-  getRootSpan: vi.fn(),
-  getTraceMetaTags: vi.fn(),
-  flushIfServerless: vi.fn(),
-  updateSpanName: vi.fn(),
-  getCurrentScope: vi.fn(() => ({ setTransactionName: vi.fn() })),
-  GLOBAL_OBJ: globalThis,
-}));
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
+    SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
+    getActiveSpan: vi.fn(),
+    getRootSpan: vi.fn(),
+    getTraceMetaTags: vi.fn(),
+    flushIfServerless: vi.fn(),
+    updateSpanName: vi.fn(),
+    getCurrentScope: vi.fn(() => ({ setTransactionName: vi.fn() })),
+    GLOBAL_OBJ: globalThis,
+  };
+});
 
 describe('wrapSentryHandleRequest', () => {
   beforeEach(() => {
@@ -35,6 +41,23 @@ describe('wrapSentryHandleRequest', () => {
     // Reset global flag for unstable instrumentation
     delete (globalThis as any).__sentryReactRouterServerInstrumentationUsed;
   });
+
+  function setupManifestTest() {
+    const originalHandler = vi.fn().mockResolvedValue('test');
+    const wrappedHandler = wrapSentryHandleRequest(originalHandler);
+
+    const mockActiveSpan = {};
+    const mockRootSpan = { setAttributes: vi.fn() };
+    const mockSetTransactionName = vi.fn();
+
+    (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockActiveSpan);
+    (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
+    (getCurrentScope as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+
+    return { wrappedHandler, mockRootSpan, mockSetTransactionName };
+  }
 
   test('should call original handler with same parameters', async () => {
     const originalHandler = vi.fn().mockResolvedValue('original response');
@@ -181,6 +204,181 @@ describe('wrapSentryHandleRequest', () => {
     );
   });
 
+  test('should use manifest routes when staticHandlerContext.matches is empty', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          'rsc-layout': { path: 'rsc', parentId: 'root' },
+          'rsc-server-component': { path: 'server-component', parentId: 'rsc-layout' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/rsc/server-component'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /rsc/server-component');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /rsc/server-component');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [ATTR_HTTP_ROUTE]: '/rsc/server-component',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      }),
+    );
+  });
+
+  test('should handle parameterized routes from manifest', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          performance: { path: 'performance', parentId: 'root' },
+          'performance-param': { path: 'with/:param', parentId: 'performance' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/performance/with/some-param'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /performance/with/:param');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /performance/with/:param');
+  });
+
+  test('should match routes with dots in path segments', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          'api-v1': { path: 'api', parentId: 'root' },
+          'api-v1-users': { path: 'v1.0/users', parentId: 'api-v1' },
+        },
+      },
+    } as any;
+
+    // /api/v1.0/users should match (dot is literal)
+    await wrappedHandler(
+      new Request('https://example.com/api/v1.0/users'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /api/v1.0/users');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /api/v1.0/users');
+
+    vi.clearAllMocks();
+    const { wrappedHandler: wrappedHandlerNoMatch } = setupManifestTest();
+
+    // /api/v1X0/users should not match (would incorrectly match with unescaped .)
+    await wrappedHandlerNoMatch(
+      new Request('https://example.com/api/v1X0/users'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).not.toHaveBeenCalled();
+  });
+
+  test('should match manifest routes when URL has trailing slash', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          'rsc-layout': { path: 'rsc', parentId: 'root' },
+          'rsc-server-component': { path: 'server-component', parentId: 'rsc-layout' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/rsc/server-component/'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /rsc/server-component');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /rsc/server-component');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [ATTR_HTTP_ROUTE]: '/rsc/server-component',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      }),
+    );
+  });
+
+  test('should prefer staticHandlerContext.matches over manifest', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [{ route: { path: 'static-path' } }],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          'manifest-route': { path: 'manifest-path', parentId: 'root' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(new Request('https://example.com/static-path'), 200, new Headers(), routerContext, {} as any);
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /static-path');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /static-path');
+  });
+
+  test('should not set attributes when manifest is missing', async () => {
+    const { wrappedHandler, mockRootSpan } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+    } as any;
+
+    await wrappedHandler(new Request('https://example.com/some-path'), 200, new Headers(), routerContext, {} as any);
+
+    expect(mockRootSpan.setAttributes).not.toHaveBeenCalled();
+    expect(updateSpanName).not.toHaveBeenCalled();
+  });
+
   test('should set route attributes as fallback when instrumentation API is used (for lazy-only routes)', async () => {
     // Set the global flag indicating instrumentation API is in use
     (globalThis as any).__sentryReactRouterServerInstrumentationUsed = true;
@@ -212,6 +410,120 @@ describe('wrapSentryHandleRequest', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');
+  });
+
+  test('should prefer static route over parameterized route with similar path length', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          'api-name': { path: 'api/:name', parentId: 'root' },
+          'api-users': { path: 'api/users', parentId: 'root' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/api/users'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /api/users');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /api/users');
+  });
+
+  test('should match static route even when shorter than parameterized route', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          users: { path: 'users', parentId: 'root' },
+          'users-id': { path: ':id', parentId: 'users' },
+          'users-me': { path: 'me', parentId: 'users' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/users/me'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/me');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /users/me');
+  });
+
+  test('should match wildcard catch-all route as least-specific fallback', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          about: { path: 'about', parentId: 'root' },
+          catchall: { path: '*', parentId: 'root' },
+        },
+      },
+    } as any;
+
+    // /unknown should fall through to catch-all
+    await wrappedHandler(
+      new Request('https://example.com/unknown/deep/path'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /*');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /*');
+  });
+
+  test('should match wildcard route with prefix', async () => {
+    const { wrappedHandler, mockRootSpan, mockSetTransactionName } = setupManifestTest();
+
+    const routerContext = {
+      staticHandlerContext: {
+        matches: [],
+      },
+      manifest: {
+        routes: {
+          root: { path: undefined, parentId: undefined },
+          docs: { path: 'docs', parentId: 'root' },
+          'docs-catchall': { path: '*', parentId: 'docs' },
+        },
+      },
+    } as any;
+
+    await wrappedHandler(
+      new Request('https://example.com/docs/api/reference'),
+      200,
+      new Headers(),
+      routerContext,
+      {} as any,
+    );
+
+    expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /docs/*');
+    expect(mockSetTransactionName).toHaveBeenCalledWith('GET /docs/*');
   });
 });
 

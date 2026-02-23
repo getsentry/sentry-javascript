@@ -4,7 +4,11 @@ import rsc from '@vitejs/plugin-rsc/plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig(async env => ({
-  plugins: [...(await sentryReactRouter({}, env)), unstable_reactRouterRSC(), rsc()],
+  plugins: [
+    ...(await sentryReactRouter({ experimental_rscAutoInstrumentation: { enabled: true } }, env)),
+    unstable_reactRouterRSC(),
+    rsc(),
+  ],
   optimizeDeps: {
     exclude: ['chokidar'],
   },

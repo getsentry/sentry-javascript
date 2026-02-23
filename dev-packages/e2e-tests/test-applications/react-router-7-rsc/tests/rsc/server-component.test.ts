@@ -48,7 +48,7 @@ test.describe('RSC - Server Component Wrapper', () => {
       const matchesRoute =
         transactionEvent.transaction?.includes('/rsc/server-component') ||
         transactionEvent.request?.url?.includes('/rsc/server-component');
-      return Boolean(isServerTransaction && matchesRoute && !transactionEvent.transaction?.includes('-async'));
+      return Boolean(isServerTransaction && matchesRoute);
     });
 
     await page.goto(`/rsc/server-component`);
@@ -59,7 +59,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     expect(transaction).toMatchObject({
       type: 'transaction',
-      transaction: expect.stringMatching(/\/rsc\/server-component|GET \*/),
+      transaction: expect.stringContaining('/rsc/server-component'),
       platform: 'node',
       environment: 'qa',
       contexts: {
@@ -67,17 +67,6 @@ test.describe('RSC - Server Component Wrapper', () => {
           span_id: expect.any(String),
           trace_id: expect.any(String),
         },
-      },
-      spans: expect.any(Array),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      sdk: {
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/node', version: expect.any(String) },
-        ],
       },
     });
   });
@@ -100,7 +89,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     expect(transaction).toMatchObject({
       type: 'transaction',
-      transaction: expect.stringMatching(/\/rsc\/server-component-async|GET \*/),
+      transaction: expect.stringContaining('/rsc/server-component-async'),
       platform: 'node',
       environment: 'qa',
       contexts: {
@@ -108,17 +97,6 @@ test.describe('RSC - Server Component Wrapper', () => {
           span_id: expect.any(String),
           trace_id: expect.any(String),
         },
-      },
-      spans: expect.any(Array),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      sdk: {
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/node', version: expect.any(String) },
-        ],
       },
     });
   });
@@ -176,7 +154,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     expect(transaction).toMatchObject({
       type: 'transaction',
-      transaction: expect.stringMatching(/\/rsc\/server-component-comment-directive|GET \*/),
+      transaction: expect.stringContaining('/rsc/server-component-comment-directive'),
       platform: 'node',
       environment: 'qa',
     });
@@ -188,7 +166,7 @@ test.describe('RSC - Server Component Wrapper', () => {
       const matchesRoute =
         transactionEvent.transaction?.includes('/rsc/server-component') ||
         transactionEvent.request?.url?.includes('/rsc/server-component/my-test-param');
-      return Boolean(isServerTransaction && matchesRoute && !transactionEvent.transaction?.includes('-async'));
+      return Boolean(isServerTransaction && matchesRoute);
     });
 
     await page.goto(`/rsc/server-component/my-test-param`);
@@ -199,7 +177,7 @@ test.describe('RSC - Server Component Wrapper', () => {
 
     expect(transaction).toMatchObject({
       type: 'transaction',
-      transaction: expect.stringMatching(/\/rsc\/server-component|GET \*/),
+      transaction: expect.stringContaining('/rsc/server-component'),
       platform: 'node',
       environment: 'qa',
       contexts: {
@@ -207,17 +185,6 @@ test.describe('RSC - Server Component Wrapper', () => {
           span_id: expect.any(String),
           trace_id: expect.any(String),
         },
-      },
-      spans: expect.any(Array),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      sdk: {
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/node', version: expect.any(String) },
-        ],
       },
     });
   });

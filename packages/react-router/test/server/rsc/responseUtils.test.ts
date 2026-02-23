@@ -19,16 +19,12 @@ describe('responseUtils', () => {
       expect(isRedirectResponse({ status: 302, location: '/new-path' })).toBe(true);
     });
 
-    it('should return false for non-object values', () => {
-      expect(isRedirectResponse(null)).toBe(false);
-      expect(isRedirectResponse(undefined)).toBe(false);
-      expect(isRedirectResponse('error')).toBe(false);
-      expect(isRedirectResponse(42)).toBe(false);
-    });
-
-    it('should return false for Error objects', () => {
-      expect(isRedirectResponse(new Error('test'))).toBe(false);
-    });
+    it.each([null, undefined, 'error', 42, new Error('test')])(
+      'should return false for non-object value: %p',
+      value => {
+        expect(isRedirectResponse(value)).toBe(false);
+      },
+    );
   });
 
   describe('isNotFoundResponse', () => {
@@ -49,11 +45,8 @@ describe('responseUtils', () => {
       expect(isNotFoundResponse({ status: 404 })).toBe(true);
     });
 
-    it('should return false for non-object values', () => {
-      expect(isNotFoundResponse(null)).toBe(false);
-      expect(isNotFoundResponse(undefined)).toBe(false);
-      expect(isNotFoundResponse('error')).toBe(false);
-      expect(isNotFoundResponse(42)).toBe(false);
+    it.each([null, undefined, 'error', 42])('should return false for non-object value: %p', value => {
+      expect(isNotFoundResponse(value)).toBe(false);
     });
   });
 });
