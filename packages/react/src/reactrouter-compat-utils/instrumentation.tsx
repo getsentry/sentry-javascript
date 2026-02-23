@@ -827,8 +827,7 @@ export function handleNavigation(opts: {
     return;
   }
 
-  // No manifest fallback needed here (unlike updatePageloadTransaction) because React Router
-  // only updates state.location when navigation completes (idle), so routes are already resolved.
+  // When branches are available, use them directly. Otherwise, fall back to the manifest below.
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
@@ -917,6 +916,33 @@ export function handleNavigation(opts: {
     } else {
       // If no span was created, remove the placeholder
       activeNavigationSpans.delete(client);
+    }
+  } else if (
+    (navigationType === 'PUSH' || navigationType === 'POP') &&
+    _enableAsyncRouteHandlers &&
+    _lazyRouteManifest &&
+    _lazyRouteManifest.length > 0
+  ) {
+    // Manifest fallback: branches not yet available, try manifest for parameterized name.
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes || routes,
+      allRoutes || routes,
+      [] as RouteMatch[],
+      basename,
+      _lazyRouteManifest,
+      _enableAsyncRouteHandlers,
+    );
+
+    if (source === 'route') {
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
     }
   }
 }
