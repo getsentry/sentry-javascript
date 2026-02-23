@@ -19,7 +19,7 @@ export function tanstackRouterBrowserTracingIntegration(
   _options?: Record<string, unknown>,
 ): Integration {
   return {
-    name: 'TanstackRouterBrowserTracing',
+    name: 'BrowserTracing',
     setup() {},
   };
 }
