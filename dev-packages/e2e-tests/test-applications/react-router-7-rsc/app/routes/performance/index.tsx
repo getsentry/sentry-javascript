@@ -1,6 +1,7 @@
+import { wrapServerComponent } from '@sentry/react-router';
 import { Link } from 'react-router';
 
-export default function PerformancePage() {
+function PerformancePage() {
   return (
     <main>
       <h1>Performance Test</h1>
@@ -14,3 +15,8 @@ export default function PerformancePage() {
     </main>
   );
 }
+
+export default wrapServerComponent(PerformancePage, {
+  componentRoute: '/performance',
+  componentType: 'Page',
+});

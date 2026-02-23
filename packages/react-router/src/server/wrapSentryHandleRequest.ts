@@ -67,7 +67,7 @@ export function wrapSentryHandleRequest(
     const parameterizedPath =
       routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
 
-    // When staticHandlerContext.matches doesn't provide a route (e.g. RSC mode),
+    // When staticHandlerContext.matches doesn't provide a route,
     // fall back to matching the request URL against the route manifest.
     const resolvedPath = parameterizedPath ?? matchUrlToManifestRoute(request.url, routerContext);
 
@@ -196,7 +196,7 @@ function computeScore(pattern: string): number {
 
 /**
  * Matches a request URL against the route manifest to find the parameterized route path.
- * Used as a fallback when staticHandlerContext.matches is not available (e.g. RSC mode).
+ * Used as a fallback when staticHandlerContext.matches is empty.
  */
 function matchUrlToManifestRoute(
   requestUrl: string,

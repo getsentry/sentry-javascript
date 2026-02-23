@@ -1,11 +1,17 @@
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   captureException,
   debug,
   flushIfServerless,
   getActiveSpan,
+  getCurrentScope,
   getIsolationScope,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  updateSpanName,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import { isNotFoundResponse, isRedirectResponse } from './responseUtils';
@@ -47,6 +53,24 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
 
       const transactionName = `${componentType} Server Component (${componentRoute})`;
       isolationScope.setTransactionName(transactionName);
+
+      // In RSC mode, wrapSentryHandleRequest is never called (React Router bypasses entry.server.tsx),
+      // so we parameterize the HTTP span here from the component's route context.
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+      if (rootSpan && componentRoute) {
+        const routeName = componentRoute.startsWith('/') ? componentRoute : `/${componentRoute}`;
+        // Server components are only rendered during GET requests (page loads).
+        // Server functions (POST) go through wrapServerFunction instead.
+        const httpTransactionName = `GET ${routeName}`;
+        updateSpanName(rootSpan, httpTransactionName);
+        getCurrentScope().setTransactionName(httpTransactionName);
+        rootSpan.setAttributes({
+          [ATTR_HTTP_ROUTE]: routeName,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.rsc',
+        });
+      }
 
       let result: ReturnType<T>;
       try {

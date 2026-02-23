@@ -8,6 +8,9 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     getIsolationScope: vi.fn(),
     getActiveSpan: vi.fn(),
+    getRootSpan: vi.fn(),
+    getCurrentScope: vi.fn(),
+    updateSpanName: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn().mockResolvedValue(undefined),
   };
@@ -36,6 +39,81 @@ describe('wrapServerComponent', () => {
     expect(result).toEqual(mockResult);
     expect(mockComponent).toHaveBeenCalledWith({ id: '123' });
     expect(mockSetTransactionName).toHaveBeenCalledWith('Page Server Component (/users/:id)');
+  });
+
+  it('should parameterize the root HTTP span with the component route', () => {
+    const mockComponent = vi.fn().mockReturnValue({ type: 'div' });
+    const mockSetTransactionName = vi.fn();
+    const mockScopeSetTransactionName = vi.fn();
+    const mockRootSpan = { setAttributes: vi.fn() };
+    const mockActiveSpan = {};
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+    (core.getActiveSpan as any).mockReturnValue(mockActiveSpan);
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+    (core.getCurrentScope as any).mockReturnValue({
+      setTransactionName: mockScopeSetTransactionName,
+    });
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/users/:id',
+      componentType: 'Page',
+    });
+    wrappedComponent({ id: '123' });
+
+    expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/:id');
+    expect(mockScopeSetTransactionName).toHaveBeenCalledWith('GET /users/:id');
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+      'http.route': '/users/:id',
+      'sentry.source': 'route',
+      'sentry.origin': 'auto.http.react_router.rsc',
+    });
+  });
+
+  it('should normalize route without leading slash when parameterizing root span', () => {
+    const mockComponent = vi.fn().mockReturnValue({ type: 'div' });
+    const mockSetTransactionName = vi.fn();
+    const mockScopeSetTransactionName = vi.fn();
+    const mockRootSpan = { setAttributes: vi.fn() };
+    const mockActiveSpan = {};
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+    (core.getActiveSpan as any).mockReturnValue(mockActiveSpan);
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+    (core.getCurrentScope as any).mockReturnValue({
+      setTransactionName: mockScopeSetTransactionName,
+    });
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: 'users/:id',
+      componentType: 'Page',
+    });
+    wrappedComponent({ id: '123' });
+
+    expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/:id');
+    expect(mockScopeSetTransactionName).toHaveBeenCalledWith('GET /users/:id');
+  });
+
+  it('should not parameterize root span when no active span exists', () => {
+    const mockComponent = vi.fn().mockReturnValue({ type: 'div' });
+    const mockSetTransactionName = vi.fn();
+
+    (core.getIsolationScope as any).mockReturnValue({
+      setTransactionName: mockSetTransactionName,
+    });
+    (core.getActiveSpan as any).mockReturnValue(undefined);
+
+    const wrappedComponent = wrapServerComponent(mockComponent, {
+      componentRoute: '/users/:id',
+      componentType: 'Page',
+    });
+    wrappedComponent({ id: '123' });
+
+    expect(core.updateSpanName).not.toHaveBeenCalled();
   });
 
   it('should capture exceptions on sync error', () => {
