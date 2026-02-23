@@ -7,6 +7,23 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 
+import type { Integration } from '@sentry/core';
+
+/**
+ * A no-op stub of the browser tracing integration for the server. Router setup code is shared between client and server,
+ * so this stub is needed to prevent build errors during SSR bundling.
+ */
+export function tanstackRouterBrowserTracingIntegration(
+  _router: unknown,
+  _options?: Record<string, unknown>,
+): Integration {
+  return {
+    name: 'TanstackRouterBrowserTracing',
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    setup() {},
+  };
+}
+
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
  * so they should simply be a passthrough.
