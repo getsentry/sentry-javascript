@@ -30,6 +30,9 @@ export type Route = {
 interface VueRouter {
   onError: (fn: (err: Error) => void) => void;
   beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
+  // Vue Router 3 exposes a `mode` property ('hash' | 'history' | 'abstract').
+  // Vue Router 4+ replaced it with `options.history`. Used for version detection.
+  mode?: string;
 }
 
 /**
@@ -52,9 +55,16 @@ export function instrumentVueRouter(
 ): void {
   let hasHandledFirstPageLoad = false;
 
+  // Detect Vue Router 3 by checking for the `mode` property which only exists in VR3.
+  // Vue Router 4+ uses `options.history` instead and does not expose `mode`.
+  const isLegacyRouter = 'mode' in router;
+
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 
-  router.beforeEach((to, _from, next) => {
+  // Use rest params to capture `next` without declaring it as a named parameter.
+  // This keeps Function.length === 2, which tells Vue Router 4+/5+ to use the
+  // modern return-based resolution (no deprecation warning in Vue Router 5.0.3+).
+  router.beforeEach((to: Route, _from: Route, ...rest: [(() => void)?]) => {
     // We avoid trying to re-fetch the page load span when we know we already handled it the first time
     const activePageLoadSpan = !hasHandledFirstPageLoad ? getActivePageLoadSpan() : undefined;
 
@@ -116,11 +126,16 @@ export function instrumentVueRouter(
       });
     }
 
-    // Vue Router 4 no longer exposes the `next` function, so we need to
-    // check if it's available before calling it.
-    // `next` needs to be called in Vue Router 3 so that the hook is resolved.
-    if (next) {
-      next();
+    // Vue Router 3 requires `next()` to be called to resolve the navigation guard.
+    // Vue Router 4+ auto-resolves guards with Function.length < 3 via `guardToPromiseFn`.
+    // In Vue Router 5.0.3+, the `next` callback passed to guards is wrapped with
+    // `withDeprecationWarning()`, so calling it emits a console warning. We avoid
+    // calling it on modern routers where it is both unnecessary and noisy.
+    if (isLegacyRouter) {
+      const next = rest[0];
+      if (typeof next === 'function') {
+        next();
+      }
     }
   });
 }
