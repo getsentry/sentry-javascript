@@ -35,6 +35,7 @@ describe('getPluginOptions', () => {
         authToken: 'default-token',
         url: 'https://santry.io',
         telemetry: true,
+        debug: false,
         sourcemaps: expect.objectContaining({
           rewriteSources: expect.any(Function),
         }),
@@ -43,7 +44,6 @@ describe('getPluginOptions', () => {
             metaFramework: 'nuxt',
           }),
         }),
-        debug: false,
       }),
     );
   });
@@ -57,6 +57,7 @@ describe('getPluginOptions', () => {
     expect(options).toEqual(
       expect.objectContaining({
         telemetry: true,
+        debug: false,
         sourcemaps: expect.objectContaining({
           rewriteSources: expect.any(Function),
         }),
@@ -65,7 +66,6 @@ describe('getPluginOptions', () => {
             metaFramework: 'nuxt',
           }),
         }),
-        debug: false,
       }),
     );
   });
@@ -106,6 +106,14 @@ describe('getPluginOptions', () => {
         debug: true,
       }),
     );
+  });
+
+  it('normalizes source paths via rewriteSources', () => {
+    const options = getPluginOptions({} as SentryNuxtModuleOptions, undefined);
+    const rewrite = options.sourcemaps?.rewriteSources as ((s: string) => string) | undefined;
+    expect(rewrite).toBeTypeOf('function');
+    expect(rewrite!('../../../foo/bar')).toBe('./foo/bar');
+    expect(rewrite!('./local')).toBe('./local');
   });
 
   it('prioritizes new BuildTimeOptionsBase options over deprecated ones', () => {
@@ -268,27 +276,19 @@ describe('getPluginOptions', () => {
       name: 'both client and server fallback are true',
       clientFallback: true,
       serverFallback: true,
-      customOptions: {},
-      expectedFilesToDelete: [
-        '.*/**/public/**/*.map',
-        '.*/**/server/**/*.map',
-        '.*/**/output/**/*.map',
-        '.*/**/function/**/*.map',
-      ],
+      expected: ['.*/**/public/**/*.map', '.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
       name: 'only client fallback is true',
       clientFallback: true,
       serverFallback: false,
-      customOptions: {},
-      expectedFilesToDelete: ['.*/**/public/**/*.map'],
+      expected: ['.*/**/public/**/*.map'],
     },
     {
       name: 'only server fallback is true',
       clientFallback: false,
       serverFallback: true,
-      customOptions: {},
-      expectedFilesToDelete: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
+      expected: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
       name: 'no fallback, but custom filesToDeleteAfterUpload is provided (deprecated)',
@@ -299,7 +299,7 @@ describe('getPluginOptions', () => {
           sourcemaps: { filesToDeleteAfterUpload: ['deprecated/path/**/*.map'] },
         },
       },
-      expectedFilesToDelete: ['deprecated/path/**/*.map'],
+      expected: ['deprecated/path/**/*.map'],
     },
     {
       name: 'no fallback, but custom filesToDeleteAfterUpload is provided (new)',
@@ -308,24 +308,24 @@ describe('getPluginOptions', () => {
       customOptions: {
         sourcemaps: { filesToDeleteAfterUpload: ['new-custom/path/**/*.map'] },
       },
-      expectedFilesToDelete: ['new-custom/path/**/*.map'],
+      expected: ['new-custom/path/**/*.map'],
     },
     {
       name: 'no fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload',
       clientFallback: false,
       serverFallback: false,
       customOptions: {},
-      expectedFilesToDelete: undefined,
+      expected: undefined,
     },
   ])(
     'sets filesToDeleteAfterUpload correctly when $name',
-    ({ clientFallback, serverFallback, customOptions, expectedFilesToDelete }) => {
+    ({ clientFallback, serverFallback, customOptions = {}, expected }) => {
       const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
         client: clientFallback,
         server: serverFallback,
       });
 
-      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expectedFilesToDelete);
+      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
     },
   );
 });
