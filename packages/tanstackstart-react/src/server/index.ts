@@ -1,14 +1,14 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
+import type { Integration } from '@sentry/core';
+
 export * from '@sentry/node';
 
 export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
-
-import type { Integration } from '@sentry/core';
 
 /**
  * A no-op stub of the browser tracing integration for the server. Router setup code is shared between client and server,
@@ -20,7 +20,6 @@ export function tanstackRouterBrowserTracingIntegration(
 ): Integration {
   return {
     name: 'TanstackRouterBrowserTracing',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setup() {},
   };
 }
