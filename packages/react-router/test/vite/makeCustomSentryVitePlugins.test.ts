@@ -53,4 +53,35 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(plugins).toHaveLength(1);
     expect(plugins?.[0]?.name).toBe('sentry-vite-plugin');
   });
+
+  it('should disable sourcemap upload with "disable-upload" by default', async () => {
+    await makeCustomSentryVitePlugins({});
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          disable: 'disable-upload',
+        }),
+      }),
+    );
+  });
+
+  it('should allow overriding sourcemaps via unstable_sentryVitePluginOptions', async () => {
+    await makeCustomSentryVitePlugins({
+      unstable_sentryVitePluginOptions: {
+        sourcemaps: {
+          assets: ['dist/**'],
+        },
+      },
+    });
+
+    // unstable_sentryVitePluginOptions is spread last, so it fully overrides sourcemaps
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: {
+          assets: ['dist/**'],
+        },
+      }),
+    );
+  });
 });

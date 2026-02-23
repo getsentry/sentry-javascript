@@ -42,7 +42,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     },
     // will be handled in buildEnd hook
     sourcemaps: {
-      disable: true,
+      disable: 'disable-upload',
       ...unstable_sentryVitePluginOptions?.sourcemaps,
     },
     ...unstable_sentryVitePluginOptions,
