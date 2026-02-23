@@ -63,6 +63,11 @@ export function injectServerTimingHeaderValue(response: Response, serverTimingVa
     const headers = new Headers(response.headers);
     const existing = headers.get('Server-Timing');
 
+    // Avoid duplicate entries when manually injected in entry.server.tsx
+    if (existing?.includes('sentry-trace')) {
+      return response;
+    }
+
     headers.set('Server-Timing', existing ? `${existing}, ${serverTimingValue}` : serverTimingValue);
 
     return new Response(response.body, {

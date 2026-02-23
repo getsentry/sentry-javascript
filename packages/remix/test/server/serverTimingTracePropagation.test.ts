@@ -127,5 +127,23 @@ describe('serverTimingTracePropagation', () => {
 
       expect(result.headers.get('Server-Timing')).toBe('cache;dur=100, sentry-trace;desc="test"');
     });
+
+    it('skips injection when sentry-trace already exists in Server-Timing header', () => {
+      const mockResponse = new Response('test body', {
+        status: 200,
+        headers: new Headers({
+          'Server-Timing': 'sentry-trace;desc="existing-trace", baggage;desc="existing-baggage"',
+        }),
+      });
+
+      const result = injectServerTimingHeaderValue(
+        mockResponse,
+        'sentry-trace;desc="new-trace", baggage;desc="new-baggage"',
+      );
+
+      expect(result.headers.get('Server-Timing')).toBe(
+        'sentry-trace;desc="existing-trace", baggage;desc="existing-baggage"',
+      );
+    });
   });
 });
