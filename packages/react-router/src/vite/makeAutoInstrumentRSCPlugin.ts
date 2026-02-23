@@ -207,7 +207,10 @@ export function getServerFunctionWrapperCode(
   exportNames: string[],
   includeDefault: boolean = false,
 ): string {
-  const wrappedId = JSON.stringify(`${originalId}${WRAPPED_MODULE_SUFFIX}`);
+  // Vite may add query strings (e.g. ?v=abc) to module IDs — strip them so
+  // the wrapped re-import points at a clean filesystem path.
+  const cleanId = originalId.split('?')[0] ?? originalId;
+  const wrappedId = JSON.stringify(`${cleanId}${WRAPPED_MODULE_SUFFIX}`);
   const lines = [
     "'use server';",
     `import { wrapServerFunction } from '${SENTRY_PACKAGE}';`,
@@ -247,7 +250,8 @@ export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = 
       if (!id.includes(WRAPPED_MODULE_SUFFIX)) {
         return null;
       }
-      const originalPath = id.slice(0, -WRAPPED_MODULE_SUFFIX.length);
+      const idWithoutSuffix = id.slice(0, -WRAPPED_MODULE_SUFFIX.length);
+      const originalPath = idWithoutSuffix.split('?')[0] ?? idWithoutSuffix;
       try {
         return await readFile(originalPath, 'utf-8');
       } catch {

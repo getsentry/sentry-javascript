@@ -481,6 +481,13 @@ describe('makeAutoInstrumentRSCPlugin', () => {
       expect(result).not.toContain('export default');
     });
 
+    it('strips query strings from the original ID before appending the suffix', () => {
+      const result = getServerFunctionWrapperCode('/app/routes/actions.ts?v=123', ['myAction']);
+
+      expect(result).toContain('/app/routes/actions.ts?sentry-rsc-wrap');
+      expect(result).not.toContain('?v=123');
+    });
+
     it('handles file with only default export when includeDefault is true', () => {
       const result = getServerFunctionWrapperCode('/app/routes/actions.ts', [], true);
 
