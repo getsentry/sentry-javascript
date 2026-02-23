@@ -6,8 +6,10 @@ to stdout as Markdown for GitHub Actions job summary (GITHUB_STEP_SUMMARY).
 Usage:
   python3 write_job_summary.py <path-to-claude-execution-output.json>
 
-Handles single JSON object or NDJSON (one JSON object per line).
-Uses the last object with type "result" when multiple are present.
+The execution file is written by anthropics/claude-code-action as a single
+JSON array of messages (JSON.stringify(messages, null, 2)) at
+$RUNNER_TEMP/claude-execution-output.json. We also support NDJSON (one
+object per line). Uses the last object with type "result" for metrics.
 
 Job summary has a ~1MB limit; raw JSON is truncated if needed to avoid job abort.
 """
@@ -52,17 +54,25 @@ def main() -> int:
             continue
         try:
             obj = json.loads(line)
-            if obj.get("type") == "result":
+            if isinstance(obj, dict) and obj.get("type") == "result":
                 results.append(obj)
+            elif isinstance(obj, list):
+                for item in obj:
+                    if isinstance(item, dict) and item.get("type") == "result":
+                        results.append(item)
         except json.JSONDecodeError:
             continue
 
     if not results:
-        # Try parsing whole content as single JSON
+        # Try parsing whole content as single JSON (object or array)
         try:
             obj = json.loads(content)
-            if obj.get("type") == "result":
+            if isinstance(obj, dict) and obj.get("type") == "result":
                 results = [obj]
+            elif isinstance(obj, list):
+                for item in obj:
+                    if isinstance(item, dict) and item.get("type") == "result":
+                        results.append(item)
         except json.JSONDecodeError:
             pass
 
