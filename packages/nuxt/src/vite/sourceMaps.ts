@@ -1,8 +1,10 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
-import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
+import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { createSentryViteConfigPlugin } from './sentryVitePlugin';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
@@ -15,7 +17,11 @@ export type SourceMapSetting = boolean | 'hidden' | 'inline';
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
-export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
+export function setupSourceMaps(
+  moduleOptions: SentryNuxtModuleOptions,
+  nuxt: Nuxt,
+  addVitePlugin: (plugin: Plugin | (() => Plugin), options?: { dev?: boolean; build?: boolean }) => void,
+): void {
   // TODO(v11): remove deprecated options (also from SentryNuxtModuleOptions type)
 
   const isDebug = moduleOptions.debug;
@@ -76,39 +82,16 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
     }
   });
 
-  nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
-    if (sourceMapsEnabled && viteConfig.mode !== 'development' && !nuxt.options?._prepare) {
-      const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
-      const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
-
-      viteConfig.build = viteConfig.build || {};
-      const viteSourceMap = viteConfig.build.sourcemap;
-
-      // Vite source map options are the same as the Nuxt source map config options (unless overwritten)
-      validateDifferentSourceMapSettings({
-        nuxtSettingKey: `sourcemap.${runtime}`,
-        nuxtSettingValue: nuxtSourceMapSetting,
-        otherSettingKey: 'viteConfig.build.sourcemap',
-        otherSettingValue: viteSourceMap,
-      });
-
-      if (isDebug) {
-        if (!runtime) {
-          // eslint-disable-next-line no-console
-          console.log("[Sentry] Cannot detect runtime (client/server) inside hook 'vite:extendConfig'.");
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(`[Sentry] Adding Sentry Vite plugin to the ${runtime} runtime.`);
-        }
-      }
-
-      // Add Sentry plugin
-      // Vite plugin is added on the client and server side (hook runs twice)
-      // Nuxt client source map is 'false' by default. Warning about this will be shown already in an earlier step, and it's also documented that `nuxt.sourcemap.client` needs to be enabled.
-      viteConfig.plugins = viteConfig.plugins || [];
-      viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)));
-    }
-  });
+  addVitePlugin(
+    createSentryViteConfigPlugin({
+      nuxt,
+      moduleOptions,
+      sourceMapsEnabled,
+      shouldDeleteFilesFallback,
+    }),
+    // Only add source map plugin during build
+    { dev: false, build: true },
+  );
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
@@ -379,7 +362,13 @@ export function validateNitroSourceMapSettings(
   }
 }
 
-function validateDifferentSourceMapSettings({
+/**
+ * Validates that source map settings are consistent between Nuxt and Vite/Nitro configurations.
+ * Logs a warning if conflicting settings are detected.
+ *
+ * @internal Only exported for testing.
+ */
+export function validateDifferentSourceMapSettings({
   nuxtSettingKey,
   nuxtSettingValue,
   otherSettingKey,
