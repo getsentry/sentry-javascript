@@ -114,6 +114,9 @@ jobs:
           - test-application: 'nestjs-11'
             build-command: 'test:build-latest'
             label: 'nestjs-11 (latest)'
+          - test-application: 'nitro-3'
+            build-command: 'test:build-canary'
+            label: 'nitro-3 (canary)'
 
     steps:
       - name: Check out current commit

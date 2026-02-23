@@ -129,6 +129,9 @@ targets:
   - name: npm
     id: '@sentry/react-router'
     includeNames: /^sentry-react-router-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/nitro'
+    includeNames: /^sentry-nitro-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1
