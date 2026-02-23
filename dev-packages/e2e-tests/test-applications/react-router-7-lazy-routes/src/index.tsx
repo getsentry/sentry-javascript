@@ -13,27 +13,14 @@ import {
 import Index from './pages/Index';
 import Deep from './pages/Deep';
 
-function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number } {
+function getRuntimeConfig(): { idleTimeout?: number } {
   if (typeof window === 'undefined') {
     return {};
   }
 
   try {
     const url = new URL(window.location.href);
-    const timeoutParam = url.searchParams.get('timeout');
     const idleTimeoutParam = url.searchParams.get('idleTimeout');
-
-    let lazyRouteTimeout: number | undefined = undefined;
-    if (timeoutParam) {
-      if (timeoutParam === 'Infinity') {
-        lazyRouteTimeout = Infinity;
-      } else {
-        const parsed = parseInt(timeoutParam, 10);
-        if (!isNaN(parsed)) {
-          lazyRouteTimeout = parsed;
-        }
-      }
-    }
 
     let idleTimeout: number | undefined = undefined;
     if (idleTimeoutParam) {
@@ -44,7 +31,6 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
     }
 
     return {
-      lazyRouteTimeout,
       idleTimeout,
     };
   } catch (error) {
@@ -87,7 +73,6 @@ Sentry.init({
       matchRoutes,
       trackFetchStreamPerformance: true,
       enableAsyncRouteHandlers: true,
-      lazyRouteTimeout: runtimeConfig.lazyRouteTimeout,
       idleTimeout: runtimeConfig.idleTimeout,
       lazyRouteManifest,
     }),

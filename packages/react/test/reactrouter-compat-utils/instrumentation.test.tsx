@@ -53,9 +53,6 @@ vi.mock('@sentry/browser', async requireActual => {
 vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
   resolveRouteNameAndSource: vi.fn(() => ['Test Route', 'route']),
   initializeRouterUtils: vi.fn(),
-  getGlobalLocation: vi.fn(() => ({ pathname: '/test', search: '', hash: '' })),
-  getGlobalPathname: vi.fn(() => '/test'),
-  routeIsDescendant: vi.fn(() => false),
   transactionNameHasWildcard: vi.fn((name: string) => {
     return name.includes('/*') || name === '*' || name.endsWith('*');
   }),
@@ -151,43 +148,6 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       expect(integration).toHaveProperty('afterAllSetup');
       expect(typeof integration.setup).toBe('function');
       expect(typeof integration.afterAllSetup).toBe('function');
-    });
-  });
-
-  describe('span.end() patching for early cancellation', () => {
-    it('should update transaction name when span.end() is called during cancellation', () => {
-      const mockEnd = vi.fn();
-      let patchedEnd: ((...args: any[]) => any) | null = null;
-
-      const updateNameMock = vi.fn();
-      const setAttributeMock = vi.fn();
-
-      const testSpan = {
-        updateName: updateNameMock,
-        setAttribute: setAttributeMock,
-        get end() {
-          return patchedEnd || mockEnd;
-        },
-        set end(fn: (...args: any[]) => any) {
-          patchedEnd = fn;
-        },
-      } as unknown as Span;
-
-      // Simulate the patching behavior
-      const originalEnd = testSpan.end.bind(testSpan);
-      (testSpan as any).end = function patchedEndFn(...args: any[]) {
-        // This simulates what happens in the actual implementation
-        updateNameMock('Updated Route');
-        setAttributeMock('sentry.source', 'route');
-        return originalEnd(...args);
-      };
-
-      // Call the patched end
-      testSpan.end(12345);
-
-      expect(updateNameMock).toHaveBeenCalledWith('Updated Route');
-      expect(setAttributeMock).toHaveBeenCalledWith('sentry.source', 'route');
-      expect(mockEnd).toHaveBeenCalledWith(12345);
     });
   });
 });
@@ -419,7 +379,7 @@ describe('updateNavigationSpan with wildcard detection', () => {
   });
 });
 
-describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
+describe('updateNavigationSpan - source upgrade logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -443,8 +403,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       end: vi.fn(),
     } as unknown as Span;
 
-    // Simulate patchSpanEnd calling tryUpdateSpanNameBeforeEnd
-    // by updating the span name during a navigation
+    // Simulate updating the span name during a navigation
     updateNavigationSpan(
       testSpan,
       { pathname: '/users/123', search: '', hash: '', state: null, key: 'test' },
@@ -487,7 +446,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     );
 
     // Should not update because span is already named
-    // The early return in tryUpdateSpanNameBeforeEnd protects against downgrades
     // This test verifies that route->url downgrades are blocked
     expect(mockUpdateName).not.toHaveBeenCalled();
     expect(mockSetAttribute).not.toHaveBeenCalled();
@@ -543,7 +501,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       return name === '/users/*'; // Only the current wildcard name returns true
     });
 
-    // Target: After timeout, resolves to URL (lazy route didn't finish loading)
+    // Target: Resolves to URL when lazy route name is not yet available
     vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/123', 'url']);
 
     const mockUpdateName = vi.fn();
@@ -628,8 +586,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     );
 
     // Note: updateNavigationSpan always updates if not already named
-    // This test validates that the isImprovement logic works correctly in tryUpdateSpanNameBeforeEnd
-    // which is called during span.end() patching
+    // This test validates that the isImprovement logic works correctly
     expect(mockUpdateName).toHaveBeenCalled(); // Initial set is allowed
   });
 
@@ -892,8 +849,9 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         useLocation: vi.fn(),
         useNavigationType: vi.fn(),
         createRoutesFromChildren: vi.fn(),
-        matchRoutes: vi.fn(),
+        matchRoutes: vi.fn().mockReturnValue([{ pathname: '/', pathnameBase: '/', route: { path: '/' }, params: {} }]),
       });
+      integration.setup(mockClient);
       integration.afterAllSetup(mockClient);
 
       // Mock startBrowserTracingNavigationSpan to return our mock span
@@ -922,21 +880,11 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         key: 'test1',
       };
 
-      const matches = [
-        {
-          pathname: '/search',
-          pathnameBase: '/search',
-          route: { path: '/search', element: <div /> },
-          params: {},
-        },
-      ];
-
       handleNavigation({
         location,
         routes: [{ path: '/search', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that handleNavigation calls startBrowserTracingNavigationSpan
@@ -966,22 +914,12 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         key: 'test1',
       };
 
-      const matches = [
-        {
-          pathname: '/search',
-          pathnameBase: '/search',
-          route: { path: '/search', element: <div /> },
-          params: {},
-        },
-      ];
-
       // First navigation - should create span
       handleNavigation({
         location,
         routes: [{ path: '/search', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
@@ -993,7 +931,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/search', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that duplicate detection uses locationKey (not just pathname)
@@ -1013,22 +950,12 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         key: 'test1',
       };
 
-      const matches = [
-        {
-          pathname: '/search',
-          pathnameBase: '/search',
-          route: { path: '/search', element: <div /> },
-          params: {},
-        },
-      ];
-
       // First navigation
       handleNavigation({
         location: location1,
         routes: [{ path: '/search', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
@@ -1048,7 +975,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/search', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that query params are included in locationKey for duplicate detection
@@ -1068,22 +994,12 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         key: 'test1',
       };
 
-      const matches = [
-        {
-          pathname: '/page',
-          pathnameBase: '/page',
-          route: { path: '/page', element: <div /> },
-          params: {},
-        },
-      ];
-
       // First navigation
       handleNavigation({
         location: location1,
         routes: [{ path: '/page', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Mock spanToJSON to indicate span hasn't ended yet
@@ -1103,7 +1019,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/page', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that hash values are included in locationKey for duplicate detection
@@ -1125,15 +1040,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         key: 'test1',
       };
 
-      const matches = [
-        {
-          pathname: '/users/123',
-          pathnameBase: '/users',
-          route: { path: '/users/*', element: <div /> },
-          params: { '*': '123' },
-        },
-      ];
-
       // First navigation - resolves to wildcard name
       vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/*', 'route']);
       // Mock transactionNameHasWildcard to return true for wildcards, false for parameterized
@@ -1146,7 +1052,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/users/*', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       const firstSpan = mockNavigationSpan;
@@ -1167,7 +1072,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/users/:id', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that wildcard span names are upgraded when parameterized routes become available
@@ -1189,15 +1093,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       // Mock resolveRouteNameAndSource to return consistent route name
       vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users', 'route']);
 
-      const matches = [
-        {
-          pathname: '/users',
-          pathnameBase: '/users',
-          route: { path: '/users', element: <div /> },
-          params: {},
-        },
-      ];
-
       // First call: Partial location (from <Routes location="/users">)
       // React Router creates location with undefined search and hash
       const partialLocation: Location = {
@@ -1213,7 +1108,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/users', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
@@ -1236,7 +1130,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         routes: [{ path: '/users', element: <div /> }],
         navigationType: 'PUSH',
         version: '6' as const,
-        matches: matches as any,
       });
 
       // Verifies that undefined values are normalized, preventing duplicate spans
@@ -1365,8 +1258,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     });
 
     // Regression test: Verify that routes added AFTER a span starts are still accessible
-    // This is the key fix for the lazy routes pageload bug where patchSpanEnd
-    // was using a stale snapshot instead of the global allRoutes set.
+    // This ensures the global allRoutes set (not a stale snapshot) is used for route matching.
     it('should maintain reference to global set (not snapshot) for late route additions', () => {
       allRoutes.clear();
 
@@ -1377,7 +1269,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       ];
       addRoutesToAllRoutes(initialRoutes);
 
-      // Capture a reference to allRoutes (simulating what patchSpanEnd does AFTER the fix)
+      // Capture a reference to allRoutes (the global set, not a snapshot)
       const routesReference = allRoutes;
 
       // Later, lazy routes are loaded via patchRoutesOnNavigation

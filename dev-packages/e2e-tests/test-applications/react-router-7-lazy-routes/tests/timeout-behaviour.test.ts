@@ -1,55 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction.includes('deep')
-    );
-  });
-
-  // Route takes ~900ms, timeout allows 1050ms (50 + 1000)
-  // Routes will load in time → parameterized name
-  await page.goto('/?idleTimeout=50&timeout=1000');
-
-  const navigationLink = page.locator('id=navigation-to-deep');
-  await expect(navigationLink).toBeVisible();
-  await navigationLink.click();
-
-  const event = await transactionPromise;
-
-  // Should get full parameterized route
-  expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
-  expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
-});
-
-test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction.includes('deep')
-    );
-  });
-
-  // Infinity timeout → waits as long as possible (capped at finalTimeout to prevent indefinite hangs)
-  await page.goto('/?idleTimeout=50&timeout=Infinity');
-
-  const navigationLink = page.locator('id=navigation-to-deep');
-  await expect(navigationLink).toBeVisible();
-  await navigationLink.click();
-
-  const event = await transactionPromise;
-
-  // Should wait for routes to load (up to finalTimeout) and get full route
-  expect(event.transaction).toBe('/deep/level2/level3/:id');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
-  expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
-});
-
 test('idleTimeout: Captures all activity with increased timeout', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
@@ -87,9 +38,8 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
     );
   });
 
-  // Very low idleTimeout (50ms) and lazyRouteTimeout (100ms)
-  // Transaction finishes quickly, but still gets parameterized route name
-  await page.goto('/?idleTimeout=50&timeout=100');
+  // Very low idleTimeout (50ms) -- transaction finishes quickly but still gets parameterized route name
+  await page.goto('/?idleTimeout=50');
 
   const navigationLink = page.locator('id=navigation-to-deep');
   await expect(navigationLink).toBeVisible();

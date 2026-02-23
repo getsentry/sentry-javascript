@@ -24,7 +24,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import { hoistNonReactStatics } from '../hoist-non-react-statics';
 import type {
   Action,
-  AgnosticDataRouteMatch,
   CreateRouterFunction,
   CreateRoutesFromChildren,
   Location,
@@ -55,7 +54,6 @@ let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 
 let _enableAsyncRouteHandlers: boolean = false;
-let _lazyRouteTimeout = 3000;
 let _lazyRouteManifest: string[] | undefined;
 let _basename: string = '';
 
@@ -69,12 +67,6 @@ const activeNavigationSpans = new WeakMap<
 
 // Exported for testing only
 export const allRoutes = new Set<RouteObject>();
-
-// Tracks lazy route loads to wait before finalizing span names
-const pendingLazyRouteLoads = new WeakMap<Span, Set<Promise<unknown>>>();
-
-// Tracks deferred lazy route promises that can be resolved when patchRoutesOnNavigation is called
-const deferredLazyRouteResolvers = new WeakMap<Span, () => void>();
 
 /**
  * Schedules a callback using requestAnimationFrame when available (browser),
@@ -189,13 +181,8 @@ export interface ReactRouterOptions {
   /**
    * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
    *
-   * - Set to `0` to not wait at all (immediate finalization)
-   * - Set to `Infinity` to wait as long as possible (capped at `finalTimeout` to prevent indefinite hangs)
-   * - Negative values will fall back to the default
-   *
-   * Defaults to 3× the configured `idleTimeout` (default: 3000ms).
-   *
-   * @default idleTimeout * 3
+   * @deprecated This option is no longer used. Use `lazyRouteManifest` instead for reliable
+   * parameterized route names with lazy routes. This option will be removed in a future major version.
    */
   lazyRouteTimeout?: number;
 
@@ -236,52 +223,6 @@ export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentR
 
   if (newRoutes.length > 0) {
     parentRoute.children = [...existingChildren, ...newRoutes];
-  }
-}
-
-/** Registers a pending lazy route load promise for a span. */
-function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
-  let promises = pendingLazyRouteLoads.get(span);
-  if (!promises) {
-    promises = new Set();
-    pendingLazyRouteLoads.set(span, promises);
-  }
-  promises.add(promise);
-
-  // Clean up when promise resolves/rejects
-  promise.finally(() => {
-    const currentPromises = pendingLazyRouteLoads.get(span);
-    if (currentPromises) {
-      currentPromises.delete(promise);
-    }
-  });
-}
-
-/**
- * Creates a deferred promise for a span that will be resolved when patchRoutesOnNavigation is called.
- * This ensures that patchedEnd waits for patchRoutesOnNavigation to be called before ending the span.
- */
-function createDeferredLazyRoutePromise(span: Span): void {
-  const deferredPromise = new Promise<void>(resolve => {
-    deferredLazyRouteResolvers.set(span, resolve);
-  });
-
-  trackLazyRouteLoad(span, deferredPromise);
-}
-
-/**
- * Resolves the deferred lazy route promise for a span.
- * Called when patchRoutesOnNavigation is invoked.
- */
-function resolveDeferredLazyRoutePromise(span: Span): void {
-  const resolver = deferredLazyRouteResolvers.get(span);
-  if (resolver) {
-    resolver();
-    deferredLazyRouteResolvers.delete(span);
-    // Clear the flag so patchSpanEnd doesn't wait unnecessarily for routes that have already loaded
-    if ((span as unknown as Record<string, boolean>).__sentry_may_have_lazy_routes__) {
-      (span as unknown as Record<string, boolean>).__sentry_may_have_lazy_routes__ = false;
-    }
   }
 }
 
@@ -508,27 +449,11 @@ export function createV6CompatibleWrapCreateBrowserRouter<
       }
     }
 
-    // Capture the active span BEFORE creating the router.
-    // This is important because the span might end (due to idle timeout) before
-    // patchRoutesOnNavigation is called by React Router.
+    // Capture the active span BEFORE creating the router for updatePageloadTransaction below
+    // and for wrapPatchRoutesOnNavigation (where it's stored in the navigation context so async
+    // handlers don't fall back to getActiveRootSpan(), which could return a wrong span).
     const activeRootSpan = getActiveRootSpan();
 
-    // If patchRoutesOnNavigation is provided and we have an active span,
-    // mark the span as having potential lazy routes and create a deferred promise.
-    const hasPatchRoutesOnNavigation =
-      opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
-    if (hasPatchRoutesOnNavigation && activeRootSpan) {
-      // Mark the span as potentially having lazy routes
-      addNonEnumerableProperty(
-        activeRootSpan as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
-      createDeferredLazyRoutePromise(activeRootSpan);
-    }
-
-    // Pass the captured span to wrapPatchRoutesOnNavigation so it uses the same span
-    // even if the span has ended by the time patchRoutesOnNavigation is called.
     const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan);
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
@@ -589,19 +514,6 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 
     // Capture the active span BEFORE creating the router (same as browser router)
     const memoryActiveRootSpanEarly = getActiveRootSpan();
-
-    // If patchRoutesOnNavigation is provided and we have an active span,
-    // mark the span as having potential lazy routes and create a deferred promise.
-    const hasPatchRoutesOnNavigation =
-      opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
-    if (hasPatchRoutesOnNavigation && memoryActiveRootSpanEarly) {
-      addNonEnumerableProperty(
-        memoryActiveRootSpanEarly as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
-      createDeferredLazyRoutePromise(memoryActiveRootSpanEarly);
-    }
 
     const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly);
 
@@ -668,44 +580,21 @@ export function createReactRouterV6CompatibleTracingIntegration(
     enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
-    lazyRouteTimeout,
+    // eslint-disable-next-line deprecation/deprecation
+    lazyRouteTimeout: _ignoredLazyRouteTimeout,
     lazyRouteManifest,
   } = options;
+
+  if (DEBUG_BUILD && _ignoredLazyRouteTimeout !== undefined) {
+    debug.warn(
+      '[React Router] The `lazyRouteTimeout` option is deprecated and no longer has any effect. Use the `lazyRouteManifest` option instead for reliable parameterized route names with lazy routes.',
+    );
+  }
 
   return {
     ...integration,
     setup(client) {
       integration.setup(client);
-
-      const finalTimeout = options.finalTimeout ?? 30000;
-      const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
-      const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
-
-      // Cap Infinity at finalTimeout to prevent indefinite hangs
-      if (configuredMaxWait === Infinity) {
-        _lazyRouteTimeout = finalTimeout;
-        DEBUG_BUILD &&
-          debug.log(
-            '[React Router] lazyRouteTimeout set to Infinity, capping at finalTimeout:',
-            finalTimeout,
-            'ms to prevent indefinite hangs',
-          );
-      } else if (Number.isNaN(configuredMaxWait)) {
-        DEBUG_BUILD &&
-          debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
-        _lazyRouteTimeout = defaultMaxWait;
-      } else if (configuredMaxWait < 0) {
-        DEBUG_BUILD &&
-          debug.warn(
-            '[React Router] lazyRouteTimeout must be non-negative or Infinity, got:',
-            configuredMaxWait,
-            'falling back to:',
-            defaultMaxWait,
-          );
-        _lazyRouteTimeout = defaultMaxWait;
-      } else {
-        _lazyRouteTimeout = configuredMaxWait;
-      }
 
       _useEffect = useEffect;
       _useLocation = useLocation;
@@ -782,7 +671,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         });
         isMountRenderPass.current = false;
       } else {
-        // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
+        // Note: Component-based routes don't support lazy route tracking
         // because React.lazy() loads happen at the component level, not the router level.
         // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
         handleNavigation({
@@ -819,9 +708,9 @@ function wrapPatchRoutesOnNavigation(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const targetPath = (args as any)?.path;
 
-      // Use current active span if available, otherwise fall back to captured span (from router creation time).
-      // This ensures navigation spans use their own span (not the stale pageload span), while still
-      // supporting pageload spans that may have ended before patchRoutesOnNavigation is called.
+      // Prefer the current active span so navigation spans use their own span (not the stale pageload span).
+      // The capturedSpan fallback ensures a known reference is stored in the navigation context (line below),
+      // preventing async handlers from falling back to getActiveRootSpan() which could return a wrong span.
       const activeRootSpan = getActiveRootSpan() ?? capturedSpan;
 
       if (!isMemoryRouter) {
@@ -882,53 +771,36 @@ function wrapPatchRoutesOnNavigation(
         }
       }
 
-      const lazyLoadPromise = (async () => {
-        // Set context so async handlers can access correct targetPath and span
-        const contextToken = setNavigationContext(targetPath, activeRootSpan);
-        let result;
-        try {
-          result = await originalPatchRoutes(args);
-        } finally {
-          clearNavigationContext(contextToken);
-          // Resolve the deferred promise now that patchRoutesOnNavigation has completed.
-          // This ensures patchedEnd has waited long enough for the lazy routes to load.
-          if (activeRootSpan) {
-            resolveDeferredLazyRoutePromise(activeRootSpan);
-          }
-        }
-
-        // Use the captured activeRootSpan instead of getActiveRootSpan() to avoid race conditions
-        // where user navigates away during lazy route loading and we'd update the wrong span
-        const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
-        if (
-          activeRootSpan &&
-          spanJson &&
-          !spanJson.timestamp && // Span hasn't ended yet
-          spanJson.op === 'navigation'
-        ) {
-          // Use targetPath consistently - don't fall back to WINDOW.location which may have changed
-          // if the user navigated away during async loading
-          const pathname = targetPath;
-
-          if (pathname) {
-            updateNavigationSpan(
-              activeRootSpan,
-              { pathname, search: '', hash: '', state: null, key: 'default' },
-              Array.from(allRoutes),
-              false,
-              _matchRoutes,
-            );
-          }
-        }
-
-        return result;
-      })();
-
-      if (activeRootSpan) {
-        trackLazyRouteLoad(activeRootSpan, lazyLoadPromise);
+      // Set context so async handlers can access correct targetPath and span
+      const contextToken = setNavigationContext(targetPath, activeRootSpan);
+      let result;
+      try {
+        result = await originalPatchRoutes(args);
+      } finally {
+        clearNavigationContext(contextToken);
       }
 
-      return lazyLoadPromise;
+      // Best-effort span name update if the span hasn't ended yet.
+      // Uses captured activeRootSpan (not getActiveRootSpan()) to avoid updating the wrong span.
+      const spanJson = activeRootSpan ? spanToJSON(activeRootSpan) : undefined;
+      if (
+        activeRootSpan &&
+        spanJson &&
+        !spanJson.timestamp && // Span hasn't ended yet
+        spanJson.op === 'navigation'
+      ) {
+        if (targetPath) {
+          updateNavigationSpan(
+            activeRootSpan,
+            { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
+            Array.from(allRoutes),
+            false,
+            _matchRoutes,
+          );
+        }
+      }
+
+      return result;
     },
   };
 }
@@ -939,12 +811,11 @@ export function handleNavigation(opts: {
   routes: RouteObject[];
   navigationType: Action;
   version: V6CompatibleVersion;
-  matches?: AgnosticDataRouteMatch;
   basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
+  const { location, routes, navigationType, version, basename, allRoutes } = opts;
+  const branches = _matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
@@ -956,6 +827,8 @@ export function handleNavigation(opts: {
     return;
   }
 
+  // No manifest fallback needed here (unlike updatePageloadTransaction) because React Router
+  // only updates state.location when navigation completes (idle), so routes are already resolved.
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
@@ -1041,7 +914,6 @@ export function handleNavigation(opts: {
         pathname: location.pathname,
         locationKey,
       });
-      patchSpanEnd(navigationSpan, location, routes, basename, 'navigation');
     } else {
       // If no span was created, remove the placeholder
       activeNavigationSpans.delete(client);
@@ -1082,20 +954,16 @@ function updatePageloadTransaction({
   activeRootSpan,
   location,
   routes,
-  matches,
   basename,
   allRoutes,
 }: {
   activeRootSpan: Span | undefined;
   location: Location;
   routes: RouteObject[];
-  matches?: AgnosticDataRouteMatch;
   basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  const branches = Array.isArray(matches)
-    ? matches
-    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
+  const branches = _matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[];
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1113,221 +981,25 @@ function updatePageloadTransaction({
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-
-      // Patch span.end() to ensure we update the name one last time before the span is sent
-      patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
     }
-  } else if (activeRootSpan) {
-    // Even if branches is null (can happen when lazy routes haven't loaded yet),
-    // we still need to patch span.end() so that when lazy routes load and the span ends,
-    // we can update the transaction name correctly.
-    patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
-  }
-}
-
-/**
- * Determines if a span name should be updated during wildcard route resolution.
- *
- * Update conditions (in priority order):
- * 1. No current name + allowNoCurrentName: true → always update (pageload spans)
- * 2. Current name has wildcard + new is route without wildcard → upgrade (e.g., "/users/*" → "/users/:id")
- * 3. Current source is not 'route' + new source is 'route' → upgrade (e.g., URL → parameterized route)
- *
- * @param currentName - The current span name (may be undefined)
- * @param currentSource - The current span source ('route', 'url', or undefined)
- * @param newName - The proposed new span name
- * @param newSource - The proposed new span source
- * @param allowNoCurrentName - If true, allow updates when there's no current name (for pageload spans)
- * @returns true if the span name should be updated
- */
-function shouldUpdateWildcardSpanName(
-  currentName: string | undefined,
-  currentSource: string | undefined,
-  newName: string,
-  newSource: string,
-  allowNoCurrentName = false,
-): boolean {
-  if (!newName) {
-    return false;
-  }
-
-  if (!currentName && allowNoCurrentName) {
-    return true;
-  }
-
-  const hasWildcard = currentName && transactionNameHasWildcard(currentName);
-
-  if (hasWildcard && newSource === 'route' && !transactionNameHasWildcard(newName)) {
-    return true;
-  }
-
-  if (currentSource !== 'route' && newSource === 'route') {
-    return true;
-  }
-
-  return false;
-}
-
-function tryUpdateSpanNameBeforeEnd(
-  span: Span,
-  spanJson: ReturnType<typeof spanToJSON>,
-  currentName: string | undefined,
-  location: Location,
-  routes: RouteObject[],
-  basename: string | undefined,
-  spanType: 'pageload' | 'navigation',
-  allRoutes: Set<RouteObject>,
-): void {
-  try {
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-
-    if (currentSource === 'route' && currentName && !transactionNameHasWildcard(currentName)) {
-      return;
-    }
-
-    const currentAllRoutes = Array.from(allRoutes);
-    const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = _matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
-
-    if (!branches) {
-      return;
-    }
-
+  } else if (activeRootSpan && _enableAsyncRouteHandlers && _lazyRouteManifest && _lazyRouteManifest.length > 0) {
+    // No matching branches yet -- fall back to manifest for parameterized name.
     const [name, source] = resolveRouteNameAndSource(
       location,
-      routesToUse,
-      routesToUse,
-      branches,
+      allRoutes || routes,
+      allRoutes || routes,
+      [] as RouteMatch[],
       basename,
       _lazyRouteManifest,
       _enableAsyncRouteHandlers,
     );
 
-    const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
-    const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
-
-    if (isImprovement && spanNotEnded) {
-      span.updateName(name);
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    if (source === 'route') {
+      getCurrentScope().setTransactionName(name || '/');
+      activeRootSpan.updateName(name);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     }
-  } catch (error) {
-    DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
   }
-}
-
-/**
- * Patches the span.end() method to update the transaction name one last time before the span is sent.
- * This handles cases where the span is cancelled early (e.g., document.hidden) before lazy routes have finished loading.
- */
-function patchSpanEnd(
-  span: Span,
-  location: Location,
-  routes: RouteObject[],
-  basename: string | undefined,
-  spanType: 'pageload' | 'navigation',
-): void {
-  const patchedPropertyName = `__sentry_${spanType}_end_patched__` as const;
-  const hasEndBeenPatched = (span as unknown as Record<string, boolean | undefined>)?.[patchedPropertyName];
-
-  if (hasEndBeenPatched || !span.end) {
-    return;
-  }
-
-  // Uses global allRoutes to access lazy-loaded routes added after this function was called.
-
-  const originalEnd = span.end.bind(span);
-  let endCalled = false;
-
-  span.end = function patchedEnd(...args) {
-    if (endCalled) {
-      return;
-    }
-    endCalled = true;
-
-    // Capture timestamp immediately to avoid delay from async operations
-    // If no timestamp was provided, capture the current time now
-    const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
-
-    const spanJson = spanToJSON(span);
-    const currentName = spanJson.description;
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-
-    // Helper to clean up activeNavigationSpans after span ends
-    const cleanupNavigationSpan = (): void => {
-      const client = getClient();
-      if (client && spanType === 'navigation') {
-        const trackedNav = activeNavigationSpans.get(client);
-        if (trackedNav && trackedNav.span === span) {
-          activeNavigationSpans.delete(client);
-        }
-      }
-    };
-
-    const pendingPromises = pendingLazyRouteLoads.get(span);
-    const mayHaveLazyRoutes = (span as unknown as Record<string, boolean>).__sentry_may_have_lazy_routes__;
-
-    // Wait for lazy routes if:
-    // 1. (There are pending promises OR the span was marked as potentially having lazy routes) AND
-    // 2. Current name exists AND
-    // 3. Either the name has a wildcard OR the source is not 'route' (URL-based names)
-    const hasPendingOrMayHaveLazyRoutes = (pendingPromises && pendingPromises.size > 0) || mayHaveLazyRoutes;
-    const shouldWaitForLazyRoutes =
-      hasPendingOrMayHaveLazyRoutes &&
-      currentName &&
-      (transactionNameHasWildcard(currentName) || currentSource !== 'route');
-
-    if (shouldWaitForLazyRoutes) {
-      if (_lazyRouteTimeout === 0) {
-        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
-        cleanupNavigationSpan();
-        originalEnd(endTimestamp);
-        return;
-      }
-
-      // If we have pending promises, wait for them. Otherwise, just wait for the timeout.
-      // This handles the case where we know lazy routes might load but patchRoutesOnNavigation
-      // hasn't been called yet.
-      const timeoutPromise = new Promise<void>(r => setTimeout(r, _lazyRouteTimeout));
-      let waitPromise: Promise<void>;
-
-      if (pendingPromises && pendingPromises.size > 0) {
-        const allSettled = Promise.allSettled(pendingPromises).then(() => {});
-        waitPromise = _lazyRouteTimeout === Infinity ? allSettled : Promise.race([allSettled, timeoutPromise]);
-      } else {
-        // No pending promises yet, but we know lazy routes might load
-        // Wait for the timeout to give React Router time to call patchRoutesOnNavigation
-        waitPromise = timeoutPromise;
-      }
-
-      waitPromise
-        .then(() => {
-          const updatedSpanJson = spanToJSON(span);
-          tryUpdateSpanNameBeforeEnd(
-            span,
-            updatedSpanJson,
-            updatedSpanJson.description,
-            location,
-            routes,
-            basename,
-            spanType,
-            allRoutes,
-          );
-          cleanupNavigationSpan();
-          originalEnd(endTimestamp);
-        })
-        .catch(() => {
-          cleanupNavigationSpan();
-          originalEnd(endTimestamp);
-        });
-      return;
-    }
-
-    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
-    cleanupNavigationSpan();
-    originalEnd(endTimestamp);
-  };
-
-  addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1365,7 +1037,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
           });
           isMountRenderPass.current = false;
         } else {
-          // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
+          // Note: Component-based routes don't support lazy route tracking
           // because React.lazy() loads happen at the component level, not the router level.
           // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
           handleNavigation({ location, routes, navigationType, version, allRoutes: Array.from(allRoutes) });

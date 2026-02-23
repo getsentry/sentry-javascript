@@ -427,8 +427,7 @@ test('Updates pageload transaction name correctly when span is cancelled early (
   // Check if the span was indeed cancelled (should have idle_span_finish_reason attribute)
   const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
   if (idleSpanFinishReason) {
-    // If the span was cancelled due to visibility change, verify it still got the right name
-    expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
+    expect(['externalFinish', 'cancelled', 'idleTimeout']).toContain(idleSpanFinishReason);
   }
 });
 
@@ -498,7 +497,7 @@ test('Updates navigation transaction name correctly when span is cancelled early
   }
 
   if (idleSpanFinishReason) {
-    expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
+    expect(['externalFinish', 'cancelled', 'idleTimeout']).toContain(idleSpanFinishReason);
   }
 });
 
@@ -1034,9 +1033,11 @@ test('Three-route rapid navigation preserves distinct transaction names', async 
   await slowFetchLink.click();
   await page.waitForTimeout(150);
 
-  // Navigate to another-lazy before slow-fetch resolves
-  const anotherLazyLink = page.locator('id=delayed-lazy-to-another-lazy');
-  await anotherLazyLink.click();
+  // Navigate to another-lazy before slow-fetch resolves.
+  // Use programmatic navigation because the delayed-lazy page may have
+  // already unmounted (the /slow-fetch route has no element).
+  // eslint-disable-next-line no-restricted-globals
+  await page.evaluate(() => (window as any).__REACT_ROUTER__.navigate('/another-lazy/sub'));
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
   await page.waitForTimeout(2000);
@@ -1241,8 +1242,8 @@ test('Slow lazy route pageload with early span end still gets parameterized rout
     );
   });
 
-  // idleTimeout=300 ends span before 500ms lazy route loads, timeout=1000 waits for lazy routes
-  await page.goto('/slow-fetch/123?idleTimeout=300&timeout=1000');
+  // idleTimeout=300 ends span before 500ms lazy route loads
+  await page.goto('/slow-fetch/123?idleTimeout=300');
 
   const event = await transactionPromise;
 
@@ -1253,60 +1254,6 @@ test('Slow lazy route pageload with early span end still gets parameterized rout
 
   const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
   expect(['idleTimeout', 'externalFinish']).toContain(idleSpanFinishReason);
-});
-
-// Regression: Wildcard route names should be upgraded to parameterized routes when lazy routes load
-test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
-  });
-
-  await page.goto('/wildcard-lazy/456?idleTimeout=300&timeout=1000');
-
-  const event = await transactionPromise;
-
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
-});
-
-// Regression: Navigation to slow lazy route should get parameterized name even if span ends early.
-// Network activity from dynamic imports extends the idle timeout until lazy routes load.
-test('Slow lazy route navigation with early span end still gets parameterized route name (regression)', async ({
-  page,
-}) => {
-  // Configure short idle timeout (300ms) but longer lazy route timeout (1000ms)
-  await page.goto('/?idleTimeout=300&timeout=1000');
-
-  // Wait for pageload to complete
-  await page.waitForTimeout(500);
-
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
-  });
-
-  // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
-  // The dynamic import creates network activity that extends the span lifetime
-  const wildcardLazyLink = page.locator('id=navigation-to-wildcard-lazy');
-  await expect(wildcardLazyLink).toBeVisible();
-  await wildcardLazyLink.click();
-
-  const event = await navigationPromise;
-
-  // The navigation transaction should have the parameterized route name
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
 });
 
 test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
@@ -1437,7 +1384,7 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
 // lazyRouteManifest: provides parameterized name when lazy routes don't resolve in time
 test('Route manifest provides correct name when navigation span ends before lazy route resolves', async ({ page }) => {
   // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
-  await page.goto('/?idleTimeout=50&timeout=0');
+  await page.goto('/?idleTimeout=50');
 
   // Wait for pageload to complete
   await page.waitForTimeout(200);
@@ -1474,7 +1421,7 @@ test('Route manifest provides correct name when pageload span ends before lazy r
     );
   });
 
-  await page.goto('/wildcard-lazy/123?idleTimeout=50&timeout=0');
+  await page.goto('/wildcard-lazy/123?idleTimeout=50');
 
   const event = await pageloadPromise;
 
