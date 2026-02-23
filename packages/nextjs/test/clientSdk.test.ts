@@ -166,4 +166,89 @@ describe('Client init()', () => {
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });
+
+  describe('environment option', () => {
+    const originalEnv = process.env.SENTRY_ENVIRONMENT;
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      if (originalEnv !== undefined) {
+        process.env.SENTRY_ENVIRONMENT = originalEnv;
+      } else {
+        delete process.env.SENTRY_ENVIRONMENT;
+      }
+      if (originalNodeEnv !== undefined) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
+    });
+
+    it('uses environment from options when provided', () => {
+      delete process.env.SENTRY_ENVIRONMENT;
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: TEST_DSN,
+        environment: 'custom-env',
+      });
+
+      expect(reactInit).toHaveBeenCalledTimes(1);
+      const callArgs = reactInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('custom-env');
+    });
+
+    it('uses SENTRY_ENVIRONMENT env var when options.environment is not provided', () => {
+      process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: TEST_DSN,
+      });
+
+      expect(reactInit).toHaveBeenCalledTimes(1);
+      const callArgs = reactInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('env-from-variable');
+    });
+
+    it('uses NODE_ENV as fallback when neither options.environment nor SENTRY_ENVIRONMENT is provided', () => {
+      delete process.env.SENTRY_ENVIRONMENT;
+      process.env.NODE_ENV = 'production';
+
+      init({
+        dsn: TEST_DSN,
+      });
+
+      expect(reactInit).toHaveBeenCalledTimes(1);
+      const callArgs = reactInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('production');
+    });
+
+    it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {
+      process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: TEST_DSN,
+        environment: 'options-env',
+      });
+
+      expect(reactInit).toHaveBeenCalledTimes(1);
+      const callArgs = reactInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('options-env');
+    });
+
+    it('prioritizes SENTRY_ENVIRONMENT over NODE_ENV', () => {
+      process.env.SENTRY_ENVIRONMENT = 'sentry-env';
+      process.env.NODE_ENV = 'development';
+
+      init({
+        dsn: TEST_DSN,
+      });
+
+      expect(reactInit).toHaveBeenCalledTimes(1);
+      const callArgs = reactInit.mock.calls[0]?.[0];
+      expect(callArgs?.environment).toBe('sentry-env');
+    });
+  });
 });

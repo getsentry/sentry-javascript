@@ -1,7 +1,7 @@
 import type { Event, EventProcessor } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
@@ -75,6 +75,69 @@ describe('Nuxt Server SDK', () => {
       const callArgs = nodeInit.mock.calls[0]?.[0];
       expect(callArgs).toBeDefined();
       expect(callArgs?.defaultIntegrations).toBe(false);
+    });
+
+    describe('environment option', () => {
+      const originalEnv = process.env.SENTRY_ENVIRONMENT;
+
+      beforeEach(() => {
+        delete process.env.SENTRY_ENVIRONMENT;
+      });
+
+      afterEach(() => {
+        if (originalEnv !== undefined) {
+          process.env.SENTRY_ENVIRONMENT = originalEnv;
+        } else {
+          delete process.env.SENTRY_ENVIRONMENT;
+        }
+      });
+
+      it('uses environment from options when provided', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          environment: 'custom-env',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('custom-env');
+      });
+
+      it('uses SENTRY_ENVIRONMENT env var when options.environment is not provided', () => {
+        process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('env-from-variable');
+      });
+
+      it('uses fallback environment when neither options.environment nor SENTRY_ENVIRONMENT is provided', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        // Should fallback to either 'development' or 'production' depending on the environment
+        expect(callArgs?.environment).toBeDefined();
+      });
+
+      it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {
+        process.env.SENTRY_ENVIRONMENT = 'env-from-variable';
+
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          environment: 'options-env',
+        });
+
+        expect(nodeInit).toHaveBeenCalledTimes(1);
+        const callArgs = nodeInit.mock.calls[0]?.[0];
+        expect(callArgs?.environment).toBe('options-env');
+      });
     });
 
     describe('lowQualityTransactionsFilter', () => {

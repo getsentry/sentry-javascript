@@ -83,7 +83,7 @@ sentryTest(
     });
 
     expect(transactionEnvelopeItem).toEqual({
-      contexts: {
+      contexts: expect.objectContaining({
         trace: {
           data: {
             'sentry.origin': 'manual',
@@ -94,7 +94,7 @@ sentryTest(
           span_id: parentSpanId,
           trace_id: traceId,
         },
-      },
+      }),
       environment: 'production',
       event_id: expect.any(String),
       platform: 'javascript',

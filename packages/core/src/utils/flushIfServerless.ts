@@ -36,7 +36,7 @@ async function flushWithTimeout(timeout: number): Promise<void> {
  */
 export async function flushIfServerless(
   params: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { timeout?: number; cloudflareWaitUntil?: (task: Promise<any>) => void }
+    | { timeout?: number; cloudflareWaitUntil?: (task: Promise<any>) => void }
     | { timeout?: number; cloudflareCtx?: MinimalCloudflareContext } = {},
 ): Promise<void> {
   const { timeout = 2000 } = params;

@@ -21,7 +21,7 @@ test('Sends a pageload transaction', async ({ page }) => {
       transaction: '/',
       transaction_info: { source: 'url' },
       type: 'transaction',
-      contexts: {
+      contexts: expect.objectContaining({
         react: {
           version: expect.any(String),
         },
@@ -40,7 +40,7 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.source': 'url',
           }),
         },
-      },
+      }),
       request: {
         headers: {
           'User-Agent': expect.any(String),

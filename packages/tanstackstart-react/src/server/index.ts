@@ -6,6 +6,7 @@ export * from '@sentry/node';
 export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
+export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
 
 import type { Integration } from '@sentry/core';
 

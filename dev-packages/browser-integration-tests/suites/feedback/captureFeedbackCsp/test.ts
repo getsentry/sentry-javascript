@@ -37,6 +37,11 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
     type: 'feedback',
     breadcrumbs: expect.any(Array),
     contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
       feedback: {
         contact_email: 'janedoe@example.org',
         message: 'my example feedback',

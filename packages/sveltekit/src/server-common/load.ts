@@ -7,6 +7,7 @@ import {
 } from '@sentry/core';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
+import { getRouteId } from '../common/utils';
 import { sendErrorToSentry } from './utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
@@ -33,7 +34,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
-      const routeId = event.route?.id;
+      const routeId = getRouteId(event);
 
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
@@ -94,10 +95,9 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
       // Accessing any member of `event.route` causes SvelteKit to invalidate the
-      // server `load` function's data on every route change.
-      // To work around this, we use `Object.getOwnPropertyDescriptor` which doesn't invoke the proxy.
-      // https://github.com/sveltejs/kit/blob/e133aba479fa9ba0e7f9e71512f5f937f0247e2c/packages/kit/src/runtime/server/page/load_data.js#L111C3-L124
-      const routeId = event.route && (Object.getOwnPropertyDescriptor(event.route, 'id')?.value as string | undefined);
+      // server `load` function's data on every route change. We use `getRouteId` which uses
+      // SvelteKit 2's `untrack` when available, otherwise getOwnPropertyDescriptor for 1.x.
+      const routeId = getRouteId(event);
 
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function

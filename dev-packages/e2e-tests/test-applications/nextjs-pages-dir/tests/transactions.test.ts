@@ -21,7 +21,7 @@ test('Sends a pageload transaction', async ({ page }) => {
       transaction: '/',
       transaction_info: { source: 'route' },
       type: 'transaction',
-      contexts: {
+      contexts: expect.objectContaining({
         react: {
           version: expect.any(String),
         },
@@ -40,7 +40,7 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.source': 'route',
           }),
         },
-      },
+      }),
       request: {
         headers: {
           'User-Agent': expect.any(String),
@@ -70,7 +70,7 @@ test('Sends a navigation transaction', async ({ page }) => {
       transaction: '/user/[id]',
       transaction_info: { source: 'route' },
       type: 'transaction',
-      contexts: {
+      contexts: expect.objectContaining({
         react: {
           version: expect.any(String),
         },
@@ -98,7 +98,7 @@ test('Sends a navigation transaction', async ({ page }) => {
             },
           ],
         },
-      },
+      }),
       request: {
         headers: {
           'User-Agent': expect.any(String),

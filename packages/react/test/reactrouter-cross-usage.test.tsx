@@ -9,8 +9,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { act, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
+import { act } from 'react';
 import {
   createMemoryRouter,
   createRoutesFromChildren,

@@ -44,6 +44,8 @@ export interface WrapperOptions {
 function isPromiseAllSettledResult<T>(result: T[]): boolean {
   return result.every(
     v =>
+      v != null &&
+      typeof v === 'object' &&
       Object.prototype.hasOwnProperty.call(v, 'status') &&
       (Object.prototype.hasOwnProperty.call(v, 'value') || Object.prototype.hasOwnProperty.call(v, 'reason')),
   );

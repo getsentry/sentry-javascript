@@ -16,6 +16,6 @@ function makeHttpRequest(url) {
   });
 }
 
-await Sentry.startSpan({ name: 'outer' }, async () => {
+Sentry.startSpan({ name: 'outer' }, async () => {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v1`);
 });

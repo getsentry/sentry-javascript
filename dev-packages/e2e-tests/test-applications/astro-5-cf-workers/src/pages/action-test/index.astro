@@ -1,0 +1,31 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Action Test">
+  <h1>Action Test Page</h1>
+  <form id="test-form">
+    <input type="text" name="name" value="test" />
+    <button type="submit">Submit Action</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    import { actions } from 'astro:actions';
+
+    const form = document.getElementById('test-form') as HTMLFormElement;
+    const result = document.getElementById('result') as HTMLDivElement;
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const response = await actions.testAction({ name: 'test', shouldError: false });
+        result.textContent = JSON.stringify(response);
+      } catch (err) {
+        result.textContent = `Error: ${err}`;
+      }
+    });
+  </script>
+</Layout>

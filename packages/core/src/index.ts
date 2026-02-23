@@ -62,6 +62,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
+export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -70,6 +71,8 @@ export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
+export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export { handleTunnelRequest } from './utils/tunnel';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 // eslint-disable-next-line deprecation/deprecation
@@ -92,6 +95,7 @@ export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnSco
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export {
@@ -219,6 +223,7 @@ export {
   addExceptionMechanism,
   addExceptionTypeValue,
   checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
   getEventDescription,
   parseSemver,
   uuid4,

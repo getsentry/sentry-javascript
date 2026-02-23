@@ -200,9 +200,9 @@ class SentryScenarioGenerationPlugin {
 
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         parser.hooks.import.tap(
           this._name,
+          // @ts-expect-error - not sure why this is failing suddenly???
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
             const imported = statement.specifiers?.[0]?.imported?.name;
 
