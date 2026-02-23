@@ -186,4 +186,16 @@ describe('wrapServerFunction', () => {
 
     await expect(wrappedFn()).rejects.toBe(mockError);
   });
+
+  describe('non-function exports', () => {
+    it('should return non-function values unchanged', () => {
+      expect(wrapServerFunction('foo', 3 as any)).toBe(3);
+      expect(wrapServerFunction('foo', null as any)).toBe(null);
+    });
+
+    it('should return object as-is', () => {
+      const obj = { key: 'value' };
+      expect(wrapServerFunction('foo', obj as any)).toBe(obj);
+    });
+  });
 });

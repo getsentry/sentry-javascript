@@ -41,6 +41,12 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
   serverFunction: T,
   options: WrapServerFunctionOptions = {},
 ): T {
+  // Auto-instrumentation wraps all exports from "use server" files, including non-function values.
+  if (typeof serverFunction !== 'function') {
+    DEBUG_BUILD && debug.warn(`[RSC] Not wrapping non-function export: ${functionName}`);
+    return serverFunction;
+  }
+
   DEBUG_BUILD && debug.log(`[RSC] Wrapping server function: ${functionName}`);
 
   return new Proxy(serverFunction, {
