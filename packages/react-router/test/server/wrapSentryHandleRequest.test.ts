@@ -428,13 +428,7 @@ describe('wrapSentryHandleRequest', () => {
       },
     } as any;
 
-    await wrappedHandler(
-      new Request('https://example.com/api/users'),
-      200,
-      new Headers(),
-      routerContext,
-      {} as any,
-    );
+    await wrappedHandler(new Request('https://example.com/api/users'), 200, new Headers(), routerContext, {} as any);
 
     expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /api/users');
     expect(mockSetTransactionName).toHaveBeenCalledWith('GET /api/users');
@@ -457,13 +451,7 @@ describe('wrapSentryHandleRequest', () => {
       },
     } as any;
 
-    await wrappedHandler(
-      new Request('https://example.com/users/me'),
-      200,
-      new Headers(),
-      routerContext,
-      {} as any,
-    );
+    await wrappedHandler(new Request('https://example.com/users/me'), 200, new Headers(), routerContext, {} as any);
 
     expect(updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/me');
     expect(mockSetTransactionName).toHaveBeenCalledWith('GET /users/me');
