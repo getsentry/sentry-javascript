@@ -6,12 +6,15 @@ import { safeUnref } from '../../utils/timer';
 import { getDynamicSamplingContextFromSpan } from '../dynamicSamplingContext';
 import type { SerializedStreamedSpanWithSegmentSpan } from './captureSpan';
 import { createStreamedSpanEnvelope } from './envelope';
+import { estimateSerializedSpanSizeInBytes } from './estimateSize';
 
 /**
  * We must not send more than 1000 spans in one envelope.
  * Otherwise the envelope is dropped by Relay.
  */
 const MAX_SPANS_PER_ENVELOPE = 1000;
+
+const MAX_TRACE_WEIGHT_IN_BYTES = 5_000_000;
 
 export interface SpanBufferOptions {
   /**
@@ -29,6 +32,14 @@ export interface SpanBufferOptions {
    * @default 5_000
    */
   flushInterval?: number;
+
+  /**
+   * Max accumulated byte weight of spans per trace before auto-flush.
+   * Size is estimated, not exact. Uses 2 bytes per character for strings (UTF-16).
+   *
+   * @default 5_000_000 (5 MB)
+   */
+  maxTraceWeightInBytes?: number;
 }
 
 /**
@@ -45,23 +56,28 @@ export interface SpanBufferOptions {
 export class SpanBuffer {
   /* Bucket spans by their trace id */
   private _traceMap: Map<string, Set<SerializedStreamedSpanWithSegmentSpan>>;
+  private _traceWeightMap: Map<string, number>;
 
   private _flushIntervalId: ReturnType<typeof setInterval> | null;
   private _client: Client;
   private _maxSpanLimit: number;
   private _flushInterval: number;
+  private _maxTraceWeight: number;
 
   public constructor(client: Client, options?: SpanBufferOptions) {
     this._traceMap = new Map();
+    this._traceWeightMap = new Map();
     this._client = client;
 
-    const { maxSpanLimit, flushInterval } = options ?? {};
+    const { maxSpanLimit, flushInterval, maxTraceWeightInBytes } = options ?? {};
 
     this._maxSpanLimit =
       maxSpanLimit && maxSpanLimit > 0 && maxSpanLimit <= MAX_SPANS_PER_ENVELOPE
         ? maxSpanLimit
         : MAX_SPANS_PER_ENVELOPE;
     this._flushInterval = flushInterval && flushInterval > 0 ? flushInterval : 5_000;
+    this._maxTraceWeight =
+      maxTraceWeightInBytes && maxTraceWeightInBytes > 0 ? maxTraceWeightInBytes : MAX_TRACE_WEIGHT_IN_BYTES;
 
     this._flushIntervalId = null;
     this._debounceFlushInterval();
@@ -77,6 +93,7 @@ export class SpanBuffer {
         clearInterval(this._flushIntervalId);
       }
       this._traceMap.clear();
+      this._traceWeightMap.clear();
     });
   }
 
@@ -93,7 +110,10 @@ export class SpanBuffer {
       this._traceMap.set(traceId, traceBucket);
     }
 
-    if (traceBucket.size >= this._maxSpanLimit) {
+    const newWeight = (this._traceWeightMap.get(traceId) ?? 0) + estimateSerializedSpanSizeInBytes(spanJSON);
+    this._traceWeightMap.set(traceId, newWeight);
+
+    if (traceBucket.size >= this._maxSpanLimit || newWeight >= this._maxTraceWeight) {
       this.flush(traceId);
       this._debounceFlushInterval();
     }
@@ -128,7 +148,7 @@ export class SpanBuffer {
     if (!traceBucket.size) {
       // we should never get here, given we always add a span  when we create a new bucket
       // and delete the bucket once we flush out the trace
-      this._traceMap.delete(traceId);
+      this._removeTrace(traceId);
       return;
     }
 
@@ -137,7 +157,7 @@ export class SpanBuffer {
     const segmentSpan = spans[0]?._segmentSpan;
     if (!segmentSpan) {
       DEBUG_BUILD && debug.warn('No segment span reference found on span JSON, cannot compute DSC');
-      this._traceMap.delete(traceId);
+      this._removeTrace(traceId);
       return;
     }
 
@@ -157,7 +177,12 @@ export class SpanBuffer {
       DEBUG_BUILD && debug.error('Error while sending streamed span envelope:', reason);
     });
 
+    this._removeTrace(traceId);
+  }
+
+  private _removeTrace(traceId: string): void {
     this._traceMap.delete(traceId);
+    this._traceWeightMap.delete(traceId);
   }
 
   private _debounceFlushInterval(): void {

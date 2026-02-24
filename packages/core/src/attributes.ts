@@ -1,4 +1,6 @@
 import type { DurationUnit, FractionUnit, InformationUnit } from './types-hoist/measurement';
+import { Primitive } from './types-hoist/misc';
+import { isPrimitive } from './utils/is';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,6 +127,46 @@ export function serializeAttributes<T>(
     }
   }
   return serializedAttributes;
+}
+
+/**
+ * Estimates the serialized byte size of {@link Attributes},
+ * with a couple of heuristics for performance.
+ */
+export function estimateTypedAttributesSizeInBytes(attributes: Attributes | undefined): number {
+  if (!attributes) {
+    return 0;
+  }
+  let weight = 0;
+  for (const [key, attr] of Object.entries(attributes)) {
+    weight += key.length * 2;
+    weight += attr.type.length * 2;
+    weight += (attr.unit?.length ?? 0) * 2;
+    const val = attr.value;
+
+    if (Array.isArray(val)) {
+      // Assumption: Individual array items have the same type and roughly the same size
+      // probably not always true but allows us to cut down on runtime
+      weight += estimatePrimitiveSizeInBytes(val[0]) * val.length;
+    } else if (isPrimitive(val)) {
+      weight += estimatePrimitiveSizeInBytes(val);
+    } else {
+      // default fallback for anything else (objects)
+      weight += 100;
+    }
+  }
+  return weight;
+}
+
+function estimatePrimitiveSizeInBytes(value: Primitive): number {
+  if (typeof value === 'string') {
+    return value.length * 2;
+  } else if (typeof value === 'boolean') {
+    return 4;
+  } else if (typeof value === 'number') {
+    return 8;
+  }
+  return 0;
 }
 
 /**
