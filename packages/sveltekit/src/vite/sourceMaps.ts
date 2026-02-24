@@ -84,66 +84,29 @@ export async function makeCustomSentryVitePlugins(
 
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
 
-  const sentryViteDebugIdUploadPlugin = sentryPlugins.find(
-    plugin => plugin.name === 'sentry-vite-debug-id-upload-plugin',
-  );
+  // In @sentry/vite-plugin v5, all functionality is consolidated into a single 'sentry-vite-plugin'.
+  // We need to defer its writeBundle to closeBundle because SvelteKit invokes the adapter at closeBundle.
+  const sentryMainPlugin = sentryPlugins.find(plugin => plugin.name === 'sentry-vite-plugin');
 
-  const sentryViteFileDeletionPlugin = sentryPlugins.find(plugin => plugin.name === 'sentry-file-deletion-plugin');
-
-  const sentryViteReleaseManagementPlugin = sentryPlugins.find(
-    // sentry-debug-id-upload-plugin was the old (misleading) name of the plugin
-    // sentry-release-management-plugin is the new name
-    plugin => plugin.name === 'sentry-debug-id-upload-plugin' || plugin.name === 'sentry-release-management-plugin',
-  );
-
-  if (!sentryViteDebugIdUploadPlugin) {
+  if (!sentryMainPlugin) {
     debug &&
       // eslint-disable-next-line no-console
       console.warn(
-        'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+        'sentry-vite-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
 
-    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
     _resolveFilesToDeleteAfterUpload?.(undefined);
 
     return sentryPlugins;
   }
 
-  if (!sentryViteFileDeletionPlugin) {
-    debug &&
-      // eslint-disable-next-line no-console
-      console.warn(
-        'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
-      );
+  const unchangedSentryVitePlugins = sentryPlugins.filter(plugin => plugin.name !== 'sentry-vite-plugin');
 
-    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
-    _resolveFilesToDeleteAfterUpload?.(undefined);
+  // Extract writeBundle from the main plugin so we can defer it to closeBundle
+  const originalWriteBundle = sentryMainPlugin.writeBundle;
 
-    return sentryPlugins;
-  }
-
-  if (!sentryViteReleaseManagementPlugin) {
-    debug &&
-      // eslint-disable-next-line no-console
-      console.warn(
-        'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
-      );
-
-    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
-    _resolveFilesToDeleteAfterUpload?.(undefined);
-
-    return sentryPlugins;
-  }
-
-  const unchangedSentryVitePlugins = sentryPlugins.filter(
-    plugin =>
-      ![
-        'sentry-vite-debug-id-upload-plugin',
-        'sentry-file-deletion-plugin',
-        'sentry-release-management-plugin', // new name of release management plugin
-        'sentry-debug-id-upload-plugin', // old name of release management plugin
-      ].includes(plugin.name),
-  );
+  // Create a modified version of the main plugin without writeBundle
+  const modifiedMainPlugin: Plugin = { ...sentryMainPlugin, writeBundle: undefined };
 
   let isSSRBuild = true;
 
@@ -262,12 +225,12 @@ export async function makeCustomSentryVitePlugins(
       }
 
       try {
-        // So here, we're just calling the original plugin's `writeBundle` method to upload the source maps.
-        // Our plugin hook expects output options to glob for source maps. We don't have this option in `closeBundle`.
-        // So we just pass in the `outDir` we determined earlier.
-        // Not pretty but my testing shows that it works.
-        // @ts-expect-error - this hook exists on the plugin!
-        await sentryViteDebugIdUploadPlugin.writeBundle({ dir: outDir });
+        // Call the original plugin's writeBundle to upload source maps, manage releases, and delete files.
+        // We pass in the `outDir` we determined earlier as output options.
+        if (typeof originalWriteBundle === 'function') {
+          // @ts-expect-error - calling writeBundle with only outputOptions, without the full bundle arg
+          await originalWriteBundle({ dir: outDir });
+        }
       } catch {
         // eslint-disable-next-line no-console
         console.warn('[Source Maps Plugin] Failed to upload source maps!');
@@ -283,55 +246,12 @@ export async function makeCustomSentryVitePlugins(
     },
   };
 
-  // The file deletion plugin is originally called in `writeBundle`.
-  // We need to call it in `closeBundle` though, because we also postpone
-  // the upload step to `closeBundle`
-  const customFileDeletionPlugin: Plugin = {
-    name: 'sentry-sveltekit-file-deletion-plugin',
-    apply: 'build', // only apply this plugin at build time
-    enforce: 'post',
-    closeBundle: async () => {
-      if (!isSSRBuild) {
-        return;
-      }
-
-      const writeBundleFn = sentryViteFileDeletionPlugin?.writeBundle;
-      if (typeof writeBundleFn === 'function') {
-        // This is fine though, because the original method doesn't consume any arguments in its `writeBundle` callback.
-        const outDir = path.resolve(process.cwd(), adapterOutputDir);
-        try {
-          // @ts-expect-error - the writeBundle hook expects two args we can't pass in here (they're only available in `writeBundle`)
-          await writeBundleFn({ dir: outDir });
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.warn('Failed to delete source maps:', e);
-        }
-      }
-    },
-  };
-
-  const customReleaseManagementPlugin: Plugin = {
-    name: 'sentry-sveltekit-release-management-plugin',
-    apply: 'build', // only apply this plugin at build time
-    enforce: 'post',
-    closeBundle: async () => {
-      try {
-        // @ts-expect-error - this hook exists on the plugin!
-        await sentryViteReleaseManagementPlugin.writeBundle();
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[Source Maps Plugin] Failed to upload release data:', e);
-      }
-    },
-  };
-
   return [
+    modifiedMainPlugin,
     ...unchangedSentryVitePlugins,
     sourceMapSettingsPlugin,
     filesToDeleteAfterUploadConfigPlugin,
-    customReleaseManagementPlugin,
     customDebugIdUploadPlugin,
-    customFileDeletionPlugin,
   ];
 }
 
