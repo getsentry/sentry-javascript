@@ -55,6 +55,8 @@ export function generateValueInjectionRules({
     rules.push({
       matcher: '**/instrumentation-client.*',
       rule: {
+        // Only run on user code, not node_modules or Next.js internals
+        condition: { not: 'foreign' },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
@@ -72,6 +74,8 @@ export function generateValueInjectionRules({
     rules.push({
       matcher: '**/instrumentation.*',
       rule: {
+        // Only run on user code, not node_modules or Next.js internals
+        condition: { not: 'foreign' },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),

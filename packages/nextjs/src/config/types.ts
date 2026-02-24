@@ -849,6 +849,17 @@ type TurbopackRuleCondition = {
   path: string | RegExp;
 };
 
+// Condition used to filter when a loader rule applies.
+// Supports built-in string conditions ('foreign', 'browser', 'development', 'production', 'node', 'edge-light')
+// and boolean operators matching the Turbopack advanced condition syntax.
+type TurbopackRuleConditionFilter =
+  | string
+  | { not: TurbopackRuleConditionFilter }
+  | { all: TurbopackRuleConditionFilter[] }
+  | { any: TurbopackRuleConditionFilter[] }
+  | { path: string | RegExp }
+  | { content: RegExp };
+
 export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
 
 export type TurbopackMatcherWithRule = {
@@ -859,6 +870,7 @@ export type TurbopackMatcherWithRule = {
 type TurbopackRuleConfigItemOptions = {
   loaders: TurbopackLoaderItem[];
   as?: string;
+  condition?: TurbopackRuleConditionFilter;
 };
 
 type TurbopackRuleConfigItem =

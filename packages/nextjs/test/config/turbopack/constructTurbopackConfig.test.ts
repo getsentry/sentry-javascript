@@ -40,6 +40,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -66,6 +67,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -78,6 +80,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -164,6 +167,7 @@ describe('constructTurbopackConfig', () => {
         rules: {
           '*.test.js': ['jest-loader'],
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -203,6 +207,7 @@ describe('constructTurbopackConfig', () => {
         rules: {
           '*.test.js': ['jest-loader'],
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -215,6 +220,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -256,6 +262,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -286,6 +293,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -298,6 +306,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -332,6 +341,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -344,6 +354,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -374,6 +385,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -386,6 +398,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -414,6 +427,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -426,6 +440,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -469,6 +484,7 @@ describe('constructTurbopackConfig', () => {
         rules: {
           '*.css': ['css-loader'],
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -482,6 +498,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -513,6 +530,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -525,6 +543,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -579,6 +598,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -591,6 +611,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -620,6 +641,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -633,6 +655,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -674,6 +697,7 @@ describe('constructTurbopackConfig', () => {
         rules: {
           '*.test.js': ['jest-loader'],
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -686,6 +710,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -733,6 +758,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -759,6 +785,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -801,6 +828,7 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -843,6 +871,7 @@ describe('constructTurbopackConfig', () => {
         rules: {
           '*.scss': ['sass-loader'],
           '**/instrumentation-client.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
@@ -856,6 +885,7 @@ describe('constructTurbopackConfig', () => {
             ],
           },
           '**/instrumentation.*': {
+            condition: { not: 'foreign' },
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
