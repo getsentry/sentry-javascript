@@ -270,7 +270,7 @@ function instrumentMethod<T extends unknown[], R>(
         // Use startSpanManual for streaming methods to control span lifecycle
         return startSpanManual(
           {
-            name: `${operationName} ${model} stream-response`,
+            name: `${operationName} ${model}`,
             op: getSpanOperation(methodPath),
             attributes: requestAttributes,
           },

@@ -37,6 +37,9 @@ type ContentMedia = Record<string, unknown> &
         image_url: `data:${string}`;
       }
     | {
+        image_url: { url: `data:${string}` };
+      }
+    | {
         type: 'blob' | 'base64';
         content: string;
       }
@@ -45,6 +48,14 @@ type ContentMedia = Record<string, unknown> &
       }
     | {
         uri: `data:${string}`;
+      }
+    | {
+        type: 'input_audio';
+        input_audio: { data: string };
+      }
+    | {
+        type: 'file';
+        file: { file_data?: string };
       }
   );
 
@@ -93,7 +104,7 @@ const jsonBytes = (value: unknown): number => {
  * @returns Truncated string that fits within maxBytes
  */
 function truncateTextByBytes(text: string, maxBytes: number): string {
-  if (utf8Bytes(text) <= maxBytes) {
+  if (utf8Bytes(text) < maxBytes) {
     return text;
   }
 
@@ -106,7 +117,7 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
     const candidate = text.slice(0, mid);
     const byteSize = utf8Bytes(candidate);
 
-    if (byteSize <= maxBytes) {
+    if (byteSize < maxBytes) {
       bestFit = candidate;
       low = mid + 1;
     } else {
@@ -173,12 +184,29 @@ function isContentMedia(part: unknown): part is ContentMedia {
   return (
     isContentMediaSource(part) ||
     hasInlineData(part) ||
+    hasImageUrl(part) ||
+    hasInputAudio(part) ||
+    hasFileData(part) ||
     ('media_type' in part && typeof part.media_type === 'string' && 'data' in part) ||
-    ('image_url' in part && typeof part.image_url === 'string' && part.image_url.startsWith('data:')) ||
     ('type' in part && (part.type === 'blob' || part.type === 'base64')) ||
     'b64_json' in part ||
     ('type' in part && 'result' in part && part.type === 'image_generation') ||
     ('uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:'))
+  );
+}
+function hasImageUrl(part: NonNullable<unknown>): boolean {
+  if (!('image_url' in part)) return false;
+  if (typeof part.image_url === 'string') return part.image_url.startsWith('data:');
+  return hasNestedImageUrl(part);
+}
+function hasNestedImageUrl(part: NonNullable<unknown>): part is { image_url: { url: string } } {
+  return (
+    'image_url' in part &&
+    !!part.image_url &&
+    typeof part.image_url === 'object' &&
+    'url' in part.image_url &&
+    typeof part.image_url.url === 'string' &&
+    part.image_url.url.startsWith('data:')
   );
 }
 function isContentMediaSource(part: NonNullable<unknown>): boolean {
@@ -191,6 +219,28 @@ function hasInlineData(part: NonNullable<unknown>): part is { inlineData: { data
     typeof part.inlineData === 'object' &&
     'data' in part.inlineData &&
     typeof part.inlineData.data === 'string'
+  );
+}
+function hasInputAudio(part: NonNullable<unknown>): part is { type: 'input_audio'; input_audio: { data: string } } {
+  return (
+    'type' in part &&
+    part.type === 'input_audio' &&
+    'input_audio' in part &&
+    !!part.input_audio &&
+    typeof part.input_audio === 'object' &&
+    'data' in part.input_audio &&
+    typeof part.input_audio.data === 'string'
+  );
+}
+function hasFileData(part: NonNullable<unknown>): part is { type: 'file'; file: { file_data: string } } {
+  return (
+    'type' in part &&
+    part.type === 'file' &&
+    'file' in part &&
+    !!part.file &&
+    typeof part.file === 'object' &&
+    'file_data' in part.file &&
+    typeof part.file.file_data === 'string'
   );
 }
 
@@ -318,7 +368,7 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
   return [];
 }
 
-const REMOVED_STRING = '[Filtered]';
+const REMOVED_STRING = '[Blob substitute]';
 
 const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri'] as const;
 
@@ -330,6 +380,18 @@ function stripInlineMediaFromSingleMessage(part: ContentMedia): ContentMedia {
   // google genai inline data blob objects
   if (hasInlineData(part)) {
     strip.inlineData = { ...part.inlineData, data: REMOVED_STRING };
+  }
+  // OpenAI vision format: { image_url: { url: "data:..." } }
+  if (hasNestedImageUrl(part)) {
+    strip.image_url = { ...part.image_url, url: REMOVED_STRING };
+  }
+  // OpenAI audio format: { type: "input_audio", input_audio: { data: "...", format: "wav" } }
+  if (hasInputAudio(part)) {
+    strip.input_audio = { ...part.input_audio, data: REMOVED_STRING };
+  }
+  // OpenAI file format: { type: "file", file: { file_data: "...", filename: "..." } }
+  if (hasFileData(part)) {
+    strip.file = { ...part.file, file_data: REMOVED_STRING };
   }
   for (const field of MEDIA_FIELDS) {
     if (typeof strip[field] === 'string') strip[field] = REMOVED_STRING;
@@ -401,6 +463,11 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
     return messages;
   }
 
+  // The result is always a single-element array that callers wrap with
+  // JSON.stringify([message]), so subtract the 2-byte array wrapper ("["  and "]")
+  // to ensure the final serialized value stays under the limit.
+  const effectiveMaxBytes = maxBytes - 2;
+
   // Always keep only the last message
   const lastMessage = messages[messages.length - 1];
 
@@ -410,12 +477,12 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
 
   // Check if it fits
   const messageBytes = jsonBytes(strippedMessage);
-  if (messageBytes <= maxBytes) {
+  if (messageBytes <= effectiveMaxBytes) {
     return stripped;
   }
 
   // Truncate the single message if needed
-  return truncateSingleMessage(strippedMessage, maxBytes);
+  return truncateSingleMessage(strippedMessage, effectiveMaxBytes);
 }
 
 /**

@@ -84,7 +84,7 @@ describe('anthropic-ai-utils', () => {
     it('sets length along with truncated value', () => {
       const content = 'A'.repeat(200_000);
       setMessagesAttribute(span, [{ role: 'user', content }]);
-      const result = [{ role: 'user', content: 'A'.repeat(19972) }];
+      const result = [{ role: 'user', content: 'A'.repeat(19969) }];
       expect(mock.attributes).toStrictEqual({
         'sentry.sdk_meta.gen_ai.input.messages.original_length': 1,
         'gen_ai.input.messages': JSON.stringify(result),

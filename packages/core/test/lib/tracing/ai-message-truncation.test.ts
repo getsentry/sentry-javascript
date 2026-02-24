@@ -13,7 +13,7 @@ describe('message truncation utilities', () => {
 
     it('strips inline media from messages', () => {
       const b64 = Buffer.from('lots of data\n').toString('base64');
-      const removed = '[Filtered]';
+      const removed = '[Blob substitute]';
       const messages = [
         {
           role: 'user',
@@ -148,6 +148,265 @@ describe('message truncation utilities', () => {
       ]);
     });
 
+    it('strips OpenAI vision format with nested image_url object', () => {
+      const b64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8/5+hnoEIwDiqkL4KAQBf9AoL/k2KLAAAAABJRU5ErkJggg==';
+      const removed = '[Blob substitute]';
+
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/png;base64,${b64}`,
+              },
+            },
+          ],
+        },
+      ];
+
+      const messagesJson = JSON.stringify(messages, null, 2);
+      const result = truncateGenAiMessages(messages);
+
+      // original messages must not be mutated
+      expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: removed,
+              },
+            },
+          ],
+        },
+      ]);
+
+      // Validate no raw base64 leaks
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toMatch(/[A-Za-z0-9+/]{100,}={0,2}/);
+      expect(serialized).toContain('[Blob substitute]');
+    });
+
+    it('does not redact image_url with regular URL (non-data: scheme)', () => {
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'https://example.com/image.png',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = truncateGenAiMessages(messages);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'https://example.com/image.png',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('strips multiple image parts in a single message', () => {
+      const b64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8/5+hnoEIwDiqkL4KAQBf9AoL/k2KLAAAAABJRU5ErkJggg==';
+      const removed = '[Blob substitute]';
+
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Compare these images' },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/png;base64,${b64}` },
+            },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${b64}` },
+            },
+            {
+              type: 'image_url',
+              image_url: { url: 'https://example.com/safe.png' },
+            },
+          ],
+        },
+      ];
+
+      const result = truncateGenAiMessages(messages);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Compare these images' },
+            {
+              type: 'image_url',
+              image_url: { url: removed },
+            },
+            {
+              type: 'image_url',
+              image_url: { url: removed },
+            },
+            {
+              type: 'image_url',
+              image_url: { url: 'https://example.com/safe.png' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('strips input_audio data from messages', () => {
+      const b64Audio = Buffer.from('fake audio data for testing').toString('base64');
+      const removed = '[Blob substitute]';
+
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What does this audio say?' },
+            {
+              type: 'input_audio',
+              input_audio: {
+                data: b64Audio,
+                format: 'wav',
+              },
+            },
+          ],
+        },
+      ];
+
+      const messagesJson = JSON.stringify(messages, null, 2);
+      const result = truncateGenAiMessages(messages);
+
+      expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What does this audio say?' },
+            {
+              type: 'input_audio',
+              input_audio: {
+                data: removed,
+                format: 'wav',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toContain(b64Audio);
+      expect(serialized).toContain(removed);
+    });
+
+    it('strips file_data from file content parts', () => {
+      const b64File = Buffer.from('fake file content for testing').toString('base64');
+      const removed = '[Blob substitute]';
+
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize this document' },
+            {
+              type: 'file',
+              file: {
+                file_data: b64File,
+                filename: 'document.pdf',
+              },
+            },
+          ],
+        },
+      ];
+
+      const messagesJson = JSON.stringify(messages, null, 2);
+      const result = truncateGenAiMessages(messages);
+
+      expect(JSON.stringify(messages, null, 2)).toBe(messagesJson);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize this document' },
+            {
+              type: 'file',
+              file: {
+                file_data: removed,
+                filename: 'document.pdf',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const serialized = JSON.stringify(result);
+      expect(serialized).not.toContain(b64File);
+      expect(serialized).toContain(removed);
+    });
+
+    it('does not redact file parts that only have file_id (no inline data)', () => {
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize this document' },
+            {
+              type: 'file',
+              file: {
+                file_id: 'file-abc123',
+                filename: 'document.pdf',
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = truncateGenAiMessages(messages);
+
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize this document' },
+            {
+              type: 'file',
+              file: {
+                file_id: 'file-abc123',
+                filename: 'document.pdf',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
     const humongous = 'this is a long string '.repeat(10_000);
     const giant = 'this is a long string '.repeat(1_000);
     const big = 'this is a long string '.repeat(100);
@@ -169,7 +428,7 @@ describe('message truncation utilities', () => {
     it('keeps only the last message with truncation when it does not fit the limit', () => {
       const messages = [{ content: `1 ${humongous}` }, { content: `2 ${humongous}` }, { content: `3 ${humongous}` }];
       const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - JSON.stringify({ content: '' }).length;
+      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length - 1;
       expect(result).toStrictEqual([{ content: `3 ${humongous}`.substring(0, truncLen) }]);
     });
 
@@ -191,7 +450,7 @@ describe('message truncation utilities', () => {
     it('truncates if the message content string will not fit', () => {
       const messages = [{ content: `2 ${humongous}` }];
       const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - JSON.stringify({ content: '' }).length;
+      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length - 1;
       expect(result).toStrictEqual([{ content: `2 ${humongous}`.substring(0, truncLen) }]);
     });
 
@@ -229,9 +488,11 @@ describe('message truncation utilities', () => {
       // case that seems unlikely in normal usage.
       const truncLen =
         20_000 -
+        2 -
         JSON.stringify({
           parts: ['', { some_other_field: 'no text here', text: '' }],
-        }).length;
+        }).length -
+        1;
 
       expect(result).toStrictEqual([
         {
@@ -249,9 +510,11 @@ describe('message truncation utilities', () => {
       const result = truncateGenAiMessages(messages);
       const truncLen =
         20_000 -
+        2 -
         JSON.stringify({
           parts: [{ text: '' }],
-        }).length;
+        }).length -
+        1;
       expect(result).toStrictEqual([
         {
           parts: [
