@@ -8,6 +8,7 @@ vi.mock('../src/sdk', () => ({
   init: vi.fn(() => ({
     getOptions: () => ({}),
     on: vi.fn(),
+    dispose: vi.fn(),
   })),
 }));
 
@@ -237,7 +238,7 @@ describe('wrapMethodWithSentry', () => {
   });
 
   describe('waitUntil flush', () => {
-    it('calls waitUntil with flush when context has waitUntil', async () => {
+    it('calls waitUntil with flushAndDispose when context has waitUntil', async () => {
       const waitUntil = vi.fn();
       const context = {
         waitUntil,
@@ -254,6 +255,7 @@ describe('wrapMethodWithSentry', () => {
       await wrapped();
 
       expect(waitUntil).toHaveBeenCalled();
+      // flushAndDispose calls flush internally
       expect(sentryCore.flush).toHaveBeenCalledWith(2000);
     });
 
