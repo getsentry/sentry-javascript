@@ -72,7 +72,7 @@ jobs:
             Do NOT use `python3 -c` or other inline Python in Bash, only the provided scripts are allowed.
             Do NOT attempt to delete (`rm`) temporary files you create.
           claude_args: |
-            --max-turns 40 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(npm info *),Bash(npm ls *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *),Bash(python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py *),Bash(python3 .claude/skills/triage-issue/scripts/write_job_summary.py *)"
+            --max-turns 50 --allowedTools "Write,Bash(gh api *),Bash(gh pr list *),Bash(npm info *),Bash(npm ls *),Bash(python3 .claude/skills/triage-issue/scripts/post_linear_comment.py *),Bash(python3 .claude/skills/triage-issue/scripts/parse_gh_issues.py *),Bash(python3 .claude/skills/triage-issue/scripts/detect_prompt_injection.py *),Bash(python3 .claude/skills/triage-issue/scripts/write_job_summary.py *)"
 
       - name: Post triage job summary
         if: always()
