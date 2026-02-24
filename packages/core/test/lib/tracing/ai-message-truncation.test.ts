@@ -428,7 +428,7 @@ describe('message truncation utilities', () => {
     it('keeps only the last message with truncation when it does not fit the limit', () => {
       const messages = [{ content: `1 ${humongous}` }, { content: `2 ${humongous}` }, { content: `3 ${humongous}` }];
       const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length - 1;
+      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length;
       expect(result).toStrictEqual([{ content: `3 ${humongous}`.substring(0, truncLen) }]);
     });
 
@@ -450,7 +450,7 @@ describe('message truncation utilities', () => {
     it('truncates if the message content string will not fit', () => {
       const messages = [{ content: `2 ${humongous}` }];
       const result = truncateGenAiMessages(messages);
-      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length - 1;
+      const truncLen = 20_000 - 2 - JSON.stringify({ content: '' }).length;
       expect(result).toStrictEqual([{ content: `2 ${humongous}`.substring(0, truncLen) }]);
     });
 
@@ -491,8 +491,7 @@ describe('message truncation utilities', () => {
         2 -
         JSON.stringify({
           parts: ['', { some_other_field: 'no text here', text: '' }],
-        }).length -
-        1;
+        }).length;
 
       expect(result).toStrictEqual([
         {
@@ -513,8 +512,7 @@ describe('message truncation utilities', () => {
         2 -
         JSON.stringify({
           parts: [{ text: '' }],
-        }).length -
-        1;
+        }).length;
       expect(result).toStrictEqual([
         {
           parts: [

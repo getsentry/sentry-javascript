@@ -62,15 +62,15 @@ const jsonBytes = (value: unknown): number => {
 };
 
 /**
- * Truncate a string to fit within maxBytes when encoded as UTF-8.
+ * Truncate a string to fit within maxBytes (inclusive) when encoded as UTF-8.
  * Uses binary search for efficiency with multi-byte characters.
  *
  * @param text - The string to truncate
- * @param maxBytes - Maximum byte length (UTF-8 encoded)
- * @returns Truncated string that fits within maxBytes
+ * @param maxBytes - Maximum byte length (inclusive, UTF-8 encoded)
+ * @returns Truncated string whose UTF-8 byte length is at most maxBytes
  */
 function truncateTextByBytes(text: string, maxBytes: number): string {
-  if (utf8Bytes(text) < maxBytes) {
+  if (utf8Bytes(text) <= maxBytes) {
     return text;
   }
 
@@ -83,7 +83,7 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
     const candidate = text.slice(0, mid);
     const byteSize = utf8Bytes(candidate);
 
-    if (byteSize < maxBytes) {
+    if (byteSize <= maxBytes) {
       bestFit = candidate;
       low = mid + 1;
     } else {
