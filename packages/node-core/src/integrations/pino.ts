@@ -162,7 +162,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
               addExceptionMechanism(event, {
                 handled: options.error.handled,
-                type: 'pino',
+                type: 'auto.log.pino',
               });
 
               return event;

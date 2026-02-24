@@ -37,6 +37,11 @@
       "import": {
         "default": "./build/loader-hook.mjs"
       }
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "typesVersions": {
@@ -56,7 +61,7 @@
     "@sentry/core": "10.39.0",
     "@sentry/node": "10.39.0",
     "@sentry/react": "10.39.0",
-    "@sentry/vite-plugin": "^4.8.0"
+    "@sentry/vite-plugin": "^5.1.0"
   },
   "devDependencies": {
     "vite": "^5.4.11"
