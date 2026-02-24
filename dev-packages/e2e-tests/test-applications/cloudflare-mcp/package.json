@@ -17,7 +17,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.24.0",
     "@sentry/cloudflare": "latest || *",
-    "agents": "0.2.32",
+    "agents": "0.3.10",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -35,7 +35,8 @@
   },
   "pnpm": {
     "overrides": {
-      "strip-literal": "~2.0.0"
+      "strip-literal": "~2.0.0",
+      "@modelcontextprotocol/sdk": "1.25.2"
     }
   }
 }

@@ -87,19 +87,19 @@ async function run() {
     ]);
 
     // Test 3: Error handling
-    //   const errorModel = new ChatAnthropic({
-    //     model: 'error-model',
-    //     apiKey: 'mock-api-key',
-    //     clientOptions: {
-    //       baseURL: baseUrl,
-    //     },
-    //   });
+    const errorModel = new ChatAnthropic({
+      model: 'error-model',
+      apiKey: 'mock-api-key',
+      clientOptions: {
+        baseURL: baseUrl,
+      },
+    });
 
-    //   try {
-    //     await errorModel.invoke('This will fail');
-    //   } catch {
-    //     // Expected error
-    //   }
+    try {
+      await errorModel.invoke('This will fail');
+    } catch {
+      // Expected error
+    }
   });
 
   await Sentry.flush(2000);

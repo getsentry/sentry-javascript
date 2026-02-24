@@ -276,6 +276,24 @@ export type SentryBuildOptions = {
      * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
+
+    /**
+     * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
+     *
+     * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
+     *
+     * Use this option when you need fine-grained control over which source maps are deleted.
+     *
+     * @example
+     * ```javascript
+     * withSentryConfig(nextConfig, {
+     *   sourcemaps: {
+     *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
+     *   },
+     * });
+     * ```
+     */
+    filesToDeleteAfterUpload?: string | string[];
   };
 
   /**

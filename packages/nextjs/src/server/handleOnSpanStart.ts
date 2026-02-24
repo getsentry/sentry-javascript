@@ -46,6 +46,14 @@ export function handleOnSpanStart(span: Span): void {
       // Preserving the original attribute despite internally not depending on it
       rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
 
+      // Update the isolation scope's transaction name so that non-transaction events
+      // (e.g. captureMessage, captureException) also get the parameterized route.
+      // eslint-disable-next-line deprecation/deprecation
+      const method = rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD];
+      if (typeof method === 'string') {
+        getIsolationScope().setTransactionName(`${method} ${route}`);
+      }
+
       // Check if this is a Vercel cron request and start a check-in
       maybeStartCronCheckIn(rootSpan, route);
     }

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SessionContext } from '@sentry/core';
+import type { SerializedSession } from '@sentry/core/src';
 import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
 
@@ -8,7 +8,7 @@ sentryTest(
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const sessionsPromise = getMultipleSentryEnvelopeRequests<SessionContext>(page, 10, {
+    const sessionsPromise = getMultipleSentryEnvelopeRequests<SerializedSession>(page, 10, {
       url,
       envelopeType: 'session',
       timeout: 4000,
@@ -20,8 +20,8 @@ sentryTest(
     await page.locator('#navigate').click();
     await page.locator('#navigate').click();
 
-    const sessions = (await sessionsPromise).filter(session => session.init);
+    const startedSessions = (await sessionsPromise).filter(session => session.init);
 
-    expect(sessions.length).toBe(3);
+    expect(startedSessions.length).toBe(4);
   },
 );

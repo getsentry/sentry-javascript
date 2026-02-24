@@ -14,3 +14,15 @@ export { init } from './sdk';
 export function wrapMiddlewaresWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
   return Object.values(middlewares);
 }
+
+/**
+ * No-op stub for client-side builds.
+ * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
+ */
+export const sentryGlobalRequestMiddleware: TanStackMiddlewareBase = { '~types': undefined, options: {} };
+
+/**
+ * No-op stub for client-side builds.
+ * The actual implementation is server-only, but this stub is needed to prevent rendering errors.
+ */
+export const sentryGlobalFunctionMiddleware: TanStackMiddlewareBase = { '~types': undefined, options: {} };

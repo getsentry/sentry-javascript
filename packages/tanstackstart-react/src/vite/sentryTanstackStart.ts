@@ -28,7 +28,7 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * ```typescript
  * // vite.config.ts
  * import { defineConfig } from 'vite';
- * import { sentryTanstackStart } from '@sentry/tanstackstart-react';
+ * import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite';
  * import { tanstackStart } from '@tanstack/react-start/plugin/vite';
  *
  * export default defineConfig({
