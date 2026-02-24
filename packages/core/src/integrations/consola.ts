@@ -1,10 +1,30 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
-import { formatConsoleArgs } from '../logs/utils';
+import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
-import { isPlainObject, isPrimitive } from '../utils/is';
+import { isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
+
+/**
+ * Result of extracting structured attributes from console arguments.
+ */
+export interface ExtractAttributesResult {
+  /**
+   * Extracted attributes to add to the log.
+   */
+  attributes?: Record<string, unknown>;
+
+  /**
+   * The message to use (if determined).
+   */
+  message?: string;
+
+  /**
+   * Remaining arguments to process as parameters.
+   */
+  remainingArgs?: unknown[];
+}
 
 /**
  * Options for the Sentry Consola reporter.
@@ -39,6 +59,34 @@ interface ConsolaReporterOptions {
    * ```
    */
   client?: Client;
+
+  /**
+   * Custom function to extract structured attributes from console arguments.
+   *
+   * Return null/undefined to use default behavior, which extracts attributes
+   * when the first argument is a plain object.
+   *
+   * @param args - The raw arguments from consola
+   * @returns Extraction result or null for default behavior
+   *
+   * @example
+   * ```ts
+   * const sentryReporter = Sentry.createConsolaReporter({
+   *   extractAttributes: (args) => {
+   *     // Custom logic to determine attributes
+   *     if (args[0]?.type === 'structured') {
+   *       return {
+   *         attributes: args[0],
+   *         message: args[1],
+   *         remainingArgs: args.slice(2)
+   *       };
+   *     }
+   *     return null; // Use default behavior
+   *   }
+   * });
+   * ```
+   */
+  extractAttributes?: (args: unknown[]) => ExtractAttributesResult | null | undefined;
 }
 
 export interface ConsolaReporter {
@@ -64,6 +112,7 @@ export interface ConsolaReporter {
 export interface ConsolaLogObject {
   /**
    * Allows additional custom properties to be set on the log object.
+   * todo: they are not prefixed?
    * These properties will be captured as log attributes with a 'consola.' prefix.
    *
    * @example
@@ -75,6 +124,7 @@ export interface ConsolaLogObject {
    *   userId: 123,
    *   sessionId: 'abc-123'
    * });
+   * todo: NOOO it does not?
    * // Will create attributes: consola.userId and consola.sessionId
    * ```
    */
@@ -147,11 +197,138 @@ export interface ConsolaLogObject {
    *
    * When provided, this is the final formatted message. When not provided,
    * the message should be constructed from the `args` array.
+   *
+   * In reporters, this is probably always undefined: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    */
   message?: string;
 }
 
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
+
+/**
+ * Extracts structured attributes from args if first arg is a plain object.
+ *
+ * @param args - The console arguments
+ * @param normalizeDepth - The depth to normalize the values
+ * @param normalizeMaxBreadth - The max breadth to normalize the values
+ * @returns Extraction result with attributes, message, and remaining args, or null for fallback behavior
+ */
+function extractStructuredAttributes(
+  args: unknown[] | undefined,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): ExtractAttributesResult | null {
+  if (!args || args.length === 0) {
+    return null;
+  }
+
+  const firstArg = args[0];
+
+  // Check if first arg is a plain object
+  if (!isPlainObject(firstArg)) {
+    return null; // Fallback to legacy behavior
+  }
+
+  // Extract attributes from first arg
+  const attributes = normalize(firstArg, normalizeDepth, normalizeMaxBreadth) as Record<string, unknown>;
+
+  // Determine message (second arg if string, otherwise empty)
+  const secondArg = args[1];
+  const message = typeof secondArg === 'string' ? secondArg : '';
+
+  // Remaining args start from index 2 if we used second arg as message, otherwise from index 1
+  const remainingArgsStartIndex = typeof secondArg === 'string' ? 2 : 1;
+  const remainingArgs = args.slice(remainingArgsStartIndex);
+
+  return {
+    attributes,
+    message,
+    remainingArgs,
+  };
+}
+
+/**
+ * Processes args in fallback mode (same as console integration): formatted message plus template and parameters.
+ * Does not extract objects from args as attributes.
+ *
+ * @param args - The console arguments
+ * @param consolaMessage - The message from consola (used when args is empty)
+ * @param normalizeDepth - The depth to normalize the values
+ * @param normalizeMaxBreadth - The max breadth to normalize the values
+ * @returns Object containing the message and message attributes (template + parameters)
+ */
+function processArgsFallbackMode(
+  args: unknown[] | undefined,
+  consolaMessage: string | undefined,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): { message: string; messageAttributes: Record<string, unknown> } {
+  const messageAttributes: Record<string, unknown> = {};
+
+  if (!args?.length) {
+    return { message: consolaMessage || '', messageAttributes };
+  }
+
+  const message = formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth);
+
+  const firstArg = args[0];
+  const followingArgs = args.slice(1);
+
+  if (followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg)) {
+    const templateAttrs = createConsoleTemplateAttributes(firstArg, followingArgs);
+    for (const key in templateAttrs) {
+      const value = templateAttrs[key];
+      messageAttributes[key] = key.startsWith('sentry.message.parameter.')
+        ? normalize(value, normalizeDepth, normalizeMaxBreadth)
+        : value;
+    }
+  }
+
+  return { message, messageAttributes };
+}
+
+/**
+ * Processes structured extraction result and builds message and attributes.
+ *
+ * @param extractionResult - The result from extraction
+ * @param consolaMessage - The message from consola
+ * @param attributes - The attributes object to add extracted properties to
+ * @param normalizeDepth - The depth to normalize the values
+ * @param normalizeMaxBreadth - The max breadth to normalize the values
+ * @returns Object containing the message and message attributes
+ */
+function processStructuredMode(
+  extractionResult: ExtractAttributesResult,
+  consolaMessage: string | undefined,
+  attributes: Record<string, unknown>,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): { message: string; messageAttributes: Record<string, unknown> } {
+  const { attributes: extractedAttrs, message: extractedMsg, remainingArgs } = extractionResult;
+  const messageAttributes: Record<string, unknown> = {};
+
+  // Use extracted message or consolaMessage
+  const message = extractedMsg || consolaMessage || '';
+
+  // Add extracted attributes, but don't override existing or consola-prefixed attributes
+  if (extractedAttrs) {
+    for (const key in extractedAttrs) {
+      // Only add if not conflicting with existing or consola-prefixed attributes
+      if (!(key in attributes) && !(`consola.${key}` in attributes)) {
+        attributes[key] = extractedAttrs[key];
+      }
+    }
+  }
+
+  // Add remaining args as parameters
+  if (remainingArgs && remainingArgs.length > 0) {
+    remainingArgs.forEach((arg, index) => {
+      messageAttributes[`sentry.message.parameter.${index}`] = normalize(arg, normalizeDepth, normalizeMaxBreadth);
+    });
+  }
+
+  return { message, messageAttributes };
+}
 
 /**
  * Creates a new Sentry reporter for Consola that forwards logs to Sentry. Requires the `enableLogs` option to be enabled.
@@ -189,8 +366,13 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
   return {
     log(logObj: ConsolaLogObject) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { type, level, message: consolaMessage, args, tag, date: _date, ...attributes } = logObj;
+      const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
+
+      // Extra keys on logObj (beyond reserved) indicate consola merged a single object, e.g. consola.log({ message: "x", userId: 1 })
+      const hasExtraKeys = Object.keys(rest).length > 0;
+
+      // Build attributes: extra keys first, then add reserved base attributes
+      const attributes: Record<string, unknown> = { ...rest };
 
       // Get client - use provided client or current client
       const client = providedClient || getClient();
@@ -208,7 +390,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
-      // Build base attributes first
       attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {
@@ -224,46 +405,48 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
-      // Process args: separate primitives for message, extract objects as attributes
-      let message = consolaMessage || '';
-      if (args?.length) {
-        const primitives: unknown[] = [];
-        let contextIndex = 0;
-
-        for (const arg of args) {
-          if (isPrimitive(arg)) {
-            primitives.push(arg);
-          } else if (typeof arg === 'object' && arg !== null) {
-            // Plain objects: extract properties as individual attributes
-            if (isPlainObject(arg)) {
-              try {
-                for (const key in arg) {
-                  // Only add if not conflicting with existing or consola-prefixed attributes
-                  if (!(key in attributes) && !(`consola.${key}` in attributes)) {
-                    // Normalize the value to respect normalizeDepth
-                    attributes[key] = normalize(arg[key], normalizeDepth, normalizeMaxBreadth);
-                  }
-                }
-              } catch {
-                // Skip on error
-              }
-            } else {
-              // Non-plain objects (Date, Error, Map, Set, etc.) and arrays: Store as args attribute so they get properly serialized
-              // Special handling for Map and Set to preserve their data
-              attributes[`consola.args.${contextIndex++}`] =
-                arg instanceof Map ? Object.fromEntries(arg) : arg instanceof Set ? Array.from(arg) : arg;
-            }
-          } else {
-            primitives.push(arg);
-          }
-        }
-
-        if (primitives.length) {
-          message = message
-            ? `${message} ${formatConsoleArgs(primitives, normalizeDepth, normalizeMaxBreadth)}`
-            : formatConsoleArgs(primitives, normalizeDepth, normalizeMaxBreadth);
-        }
+      // Consola-merged: single object was spread by consola (e.g. consola.log({ message: "inline-message", userId, action }))
+      if (hasExtraKeys && args && args.length >= 1 && typeof args[0] === 'string') {
+        const message = args[0];
+        _INTERNAL_captureLog({
+          level: logSeverityLevel,
+          message,
+          attributes,
+        });
+        return;
       }
+
+      // Try custom extraction first
+      let extractionResult: ExtractAttributesResult | null = null;
+      if (options.extractAttributes && args) {
+        extractionResult = options.extractAttributes(args) || null;
+      }
+
+      // Object-first: first arg is plain object
+      if (!extractionResult && args && args.length > 0 && isPlainObject(args[0])) {
+        extractionResult = extractStructuredAttributes(args, normalizeDepth, normalizeMaxBreadth);
+      }
+
+      let message: string;
+      let messageAttributes: Record<string, unknown> = {};
+
+      if (extractionResult) {
+        const result = processStructuredMode(
+          extractionResult,
+          consolaMessage,
+          attributes,
+          normalizeDepth,
+          normalizeMaxBreadth,
+        );
+        message = result.message;
+        messageAttributes = result.messageAttributes;
+      } else {
+        const fallback = processArgsFallbackMode(args, consolaMessage, normalizeDepth, normalizeMaxBreadth);
+        message = fallback.message;
+        messageAttributes = fallback.messageAttributes;
+      }
+
+      Object.assign(attributes, messageAttributes);
 
       _INTERNAL_captureLog({
         level: logSeverityLevel,
