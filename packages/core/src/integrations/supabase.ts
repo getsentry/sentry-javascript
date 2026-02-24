@@ -417,11 +417,13 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
-        if (queryItems.length) {
+        const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+        if (sendDefaultPii && queryItems.length) {
           attributes['db.query'] = queryItems;
         }
 
-        if (Object.keys(body).length) {
+        if (sendDefaultPii && Object.keys(body).length) {
           attributes['db.body'] = body;
         }
 
@@ -451,10 +453,10 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     }
 
                     const supabaseContext: Record<string, any> = {};
-                    if (queryItems.length) {
+                    if (sendDefaultPii && queryItems.length) {
                       supabaseContext.query = queryItems;
                     }
-                    if (Object.keys(body).length) {
+                    if (sendDefaultPii && Object.keys(body).length) {
                       supabaseContext.body = body;
                     }
 
@@ -480,18 +482,20 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     message: description,
                   };
 
-                  const data: Record<string, unknown> = {};
+                  if (sendDefaultPii) {
+                    const data: Record<string, unknown> = {};
 
-                  if (queryItems.length) {
-                    data.query = queryItems;
-                  }
+                    if (queryItems.length) {
+                      data.query = queryItems;
+                    }
 
-                  if (Object.keys(body).length) {
-                    data.body = body;
-                  }
+                    if (Object.keys(body).length) {
+                      data.body = body;
+                    }
 
-                  if (Object.keys(data).length) {
-                    breadcrumb.data = data;
+                    if (Object.keys(data).length) {
+                      breadcrumb.data = data;
+                    }
                   }
 
                   addBreadcrumb(breadcrumb);
@@ -1063,8 +1067,16 @@ function instrumentGenericRpc(
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
     };
 
-    if (params && typeof params === 'object') {
+    const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+    const includeParams = sendDefaultPii && params != null && typeof params === 'object';
+
+    if (includeParams) {
       attributes['db.params'] = params;
+    }
+
+    const rpcContext: Record<string, unknown> = { function: functionName };
+    if (includeParams) {
+      rpcContext.params = params;
     }
 
     return startSpan(
@@ -1094,7 +1106,7 @@ function instrumentGenericRpc(
                 message: `rpc(${functionName})`,
               };
 
-              if (params && typeof params === 'object') {
+              if (includeParams) {
                 breadcrumb.data = { body: params as Record<string, unknown> };
               }
 
@@ -1106,19 +1118,13 @@ function instrumentGenericRpc(
                 if (error.code) err.code = error.code;
                 if (error.details) err.details = error.details;
 
-                captureSupabaseError(err, 'auto.db.supabase.rpc', {
-                  function: functionName,
-                  params,
-                });
+                captureSupabaseError(err, 'auto.db.supabase.rpc', rpcContext);
               }
 
               return res;
             },
             (err: Error) => {
-              captureSupabaseError(err, 'auto.db.supabase.rpc', {
-                function: functionName,
-                params,
-              });
+              captureSupabaseError(err, 'auto.db.supabase.rpc', rpcContext);
 
               if (span) {
                 setHttpStatus(span, 500);
