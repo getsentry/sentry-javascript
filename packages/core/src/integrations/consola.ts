@@ -86,7 +86,9 @@ interface ConsolaReporterOptions {
    * });
    * ```
    */
-  extractAttributes?: (args: unknown[]) => ExtractAttributesResult | null | undefined;
+  // `any` is the type that consola provides for log arguments
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extractAttributes?: (args: any[]) => ExtractAttributesResult | null | undefined;
 }
 
 export interface ConsolaReporter {
@@ -111,8 +113,7 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
-   * Allows additional custom properties to be set on the log object.
-   * todo: they are not prefixed?
+   * Allows additional custom properties to be set on the log object when reporter is called directly.
    * These properties will be captured as log attributes with a 'consola.' prefix.
    *
    * @example
@@ -124,7 +125,6 @@ export interface ConsolaLogObject {
    *   userId: 123,
    *   sessionId: 'abc-123'
    * });
-   * todo: NOOO it does not?
    * // Will create attributes: consola.userId and consola.sessionId
    * ```
    */
@@ -198,7 +198,9 @@ export interface ConsolaLogObject {
    * When provided, this is the final formatted message. When not provided,
    * the message should be constructed from the `args` array.
    *
-   * In reporters, this is probably always undefined: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
+   * Note: In reporters, `message` is typically undefined. It is primarily for
+   * `consola.[type]({ message: 'xxx' })` usage and is normalized into `args` before
+   * reporters receive the log object. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    */
   message?: string;
 }
@@ -232,7 +234,7 @@ function extractStructuredAttributes(
   // Extract attributes from first arg
   const attributes = normalize(firstArg, normalizeDepth, normalizeMaxBreadth) as Record<string, unknown>;
 
-  // Determine message (second arg if string, otherwise empty)
+  // Determine message (second arg if 'string', otherwise empty)
   const secondArg = args[1];
   const message = typeof secondArg === 'string' ? secondArg : '';
 
@@ -276,8 +278,7 @@ function processArgsFallbackMode(
 
   if (followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg)) {
     const templateAttrs = createConsoleTemplateAttributes(firstArg, followingArgs);
-    for (const key in templateAttrs) {
-      const value = templateAttrs[key];
+    for (const [key, value] of Object.entries(templateAttrs)) {
       messageAttributes[key] = key.startsWith('sentry.message.parameter.')
         ? normalize(value, normalizeDepth, normalizeMaxBreadth)
         : value;
@@ -312,10 +313,10 @@ function processStructuredMode(
 
   // Add extracted attributes, but don't override existing or consola-prefixed attributes
   if (extractedAttrs) {
-    for (const key in extractedAttrs) {
+    for (const [key, value] of Object.entries(extractedAttrs)) {
       // Only add if not conflicting with existing or consola-prefixed attributes
       if (!(key in attributes) && !(`consola.${key}` in attributes)) {
-        attributes[key] = extractedAttrs[key];
+        attributes[key] = value;
       }
     }
   }
@@ -365,14 +366,18 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
   const providedClient = options.client;
 
   return {
+    // eslint-disable-next-line complexity
     log(logObj: ConsolaLogObject) {
-      const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
+      const { type, level, message: consolaMessage, args, tag, ...rest } = logObj;
 
-      // Extra keys on logObj (beyond reserved) indicate consola merged a single object, e.g. consola.log({ message: "x", userId: 1 })
+      // Extra keys on logObj (beyond reserved) indicate direct `reporter.log({ type, message, ...rest })`
       const hasExtraKeys = Object.keys(rest).length > 0;
 
-      // Build attributes: extra keys first, then add reserved base attributes
-      const attributes: Record<string, unknown> = { ...rest };
+      // Build attributes: custom properties from logObj get a consola. prefix; base attributes added below may override
+      const attributes: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(rest)) {
+        attributes[`consola.${key}`] = value;
+      }
 
       // Get client - use provided client or current client
       const client = providedClient || getClient();
@@ -405,7 +410,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
-      // Consola-merged: single object was spread by consola (e.g. consola.log({ message: "inline-message", userId, action }))
+      // Direct Reporter Log: E.g. reporter.log({ message: "inline-message", userId, action })
       if (hasExtraKeys && args && args.length >= 1 && typeof args[0] === 'string') {
         const message = args[0];
         _INTERNAL_captureLog({
