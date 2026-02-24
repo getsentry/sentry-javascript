@@ -71,10 +71,7 @@
         // === FIXME: Rules to turn back as error ===
         "typescript/prefer-optional-chain": "warn",
         "typescript/no-floating-promises": "warn",
-        "typescript/no-unsafe-member-access": "warn",
-
-        // === FIXME: Requires migrating TS to v6/v7 ===
-        "typescript/tsconfig-error": "off"
+        "typescript/no-unsafe-member-access": "warn"
       }
     },
     {
