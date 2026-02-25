@@ -17,7 +17,7 @@ export function isExpectedError(exception: unknown): boolean {
   const ex = exception as Record<string, unknown>;
 
   // HttpException
-  if (typeof ex.getStatus === 'function' && typeof ex.getResponse === 'function') {
+  if (typeof ex.getStatus === 'function' && typeof ex.getResponse === 'function' && typeof ex.initMessage === 'function') {
     return true;
   }
 
