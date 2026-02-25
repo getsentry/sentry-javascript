@@ -1,65 +1,69 @@
 # Sentry JavaScript SDK
 
-This is the official Sentry JavaScript SDK monorepo — a critical production SDK used by thousands of applications. It contains 40+ packages in the `@sentry/*` namespace, managed with Yarn workspaces and Nx.
+Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
 
 ## Setup
 
-- Uses [Volta](https://volta.sh/) for Node.js/Yarn/PNPM version management
-- Requires `VOLTA_FEATURE_PNPM=1` environment variable for PNPM support
-- After cloning: `yarn install && yarn build` (initial build required for TypeScript linking)
+- [Volta](https://volta.sh/) for Node.js/Yarn/PNPM version management
+- Requires `VOLTA_FEATURE_PNPM=1`
+- After cloning: `yarn install && yarn build`
 - Never change Volta, Yarn, or package manager versions unless explicitly asked
 
-## Build & Test Commands
+## Package Manager
 
-- `yarn build` — Full production build with package verification
-- `yarn build:dev` — Development build (transpile + types)
-- `yarn build:dev:filter @sentry/<package>` — Build specific package and dependencies
-- `yarn build:bundle` — Build browser bundles only
-- `yarn test` — Run all unit tests
-- `yarn lint` — Run ESLint and Oxfmt checks
-- `yarn fix` — Auto-fix linting and formatting issues
-- `yarn format` — Auto-fix formatting with Oxfmt
+Use **yarn**: `yarn install`, `yarn build`, `yarn test`, `yarn lint`
 
-### Testing a Single Package
+| Command | Purpose |
+|---------|---------|
+| `yarn build` | Full production build |
+| `yarn build:dev` | Dev build (transpile + types) |
+| `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps |
+| `yarn build:bundle` | Browser bundles only |
+| `yarn test` | All unit tests |
+| `yarn lint` | ESLint + Oxfmt |
+| `yarn fix` | Auto-fix lint + format |
+| `yarn format` | Auto-fix formatting (Oxfmt) |
 
-```bash
-cd packages/<package-name> && yarn test
-yarn build:dev:filter @sentry/<package-name>
+Single package: `cd packages/<name> && yarn test`
+
+## Commit Attribution
+
+AI commits MUST include:
+```
+Co-Authored-By: <agent model name> <noreply@anthropic.com>
 ```
 
-### E2E Testing
+## Git Workflow
 
-E2E tests live in `dev-packages/e2e-tests/` and use [Verdaccio](https://verdaccio.org/) (local npm registry in Docker). Every test application needs an `.npmrc` file:
+Uses **Git Flow** (see `docs/gitflow.md`).
 
-```
-@sentry:registry=http://127.0.0.1:4873
-@sentry-internal:registry=http://127.0.0.1:4873
-```
+- **All PRs target `develop`** (NOT `master`)
+- `master` = last released state — never merge directly
+- Feature branches: `feat/descriptive-name`
+- Never update dependencies, `package.json`, or build scripts unless explicitly asked
 
-```bash
-yarn build && yarn build:tarball   # Build and pack tarballs
-cd dev-packages/e2e-tests
-yarn test:run <app-name>           # Run a specific test app
-```
+## Before Every Commit
 
-Common pitfalls: missing `.npmrc` (most common), stale tarballs (re-run `yarn build:tarball` after changes).
-
-To run E2E tests, prefer using the `/e2e` skill which handles building and running automatically.
+1. `yarn format`
+2. `yarn lint`
+3. `yarn test`
+4. `yarn build:dev`
+5. NEVER push on `develop`
 
 ## Architecture
 
-### Core Packages
+### Core
 
-- `packages/core/` — Base SDK: interfaces, type definitions, core functionality
-- `packages/types/` — Shared TypeScript types (**deprecated — never modify**)
-- `packages/browser-utils/` — Browser-specific utilities and instrumentation
-- `packages/node-core/` — Node core logic (excluding OpenTelemetry instrumentation)
+- `packages/core/` — Base SDK: interfaces, types, core functionality
+- `packages/types/` — Shared types (**deprecated — never modify**)
+- `packages/browser-utils/` — Browser utilities and instrumentation
+- `packages/node-core/` — Node core logic (excludes OTel instrumentation)
 
 ### Platform SDKs
 
-- `packages/browser/` — Browser SDK with CDN bundle variants
-- `packages/node/` — Node.js SDK (OpenTelemetry instrumentation on top of node-core; general Node code goes in node-core)
-- `packages/bun/`, `packages/deno/`, `packages/cloudflare/` — Runtime-specific SDKs
+- `packages/browser/` — Browser SDK + CDN bundles
+- `packages/node/` — Node.js SDK (OTel instrumentation on top of node-core)
+- `packages/bun/`, `packages/deno/`, `packages/cloudflare/`
 
 ### Framework Integrations
 
@@ -68,67 +72,45 @@ To run E2E tests, prefer using the `/e2e` skill which handles building and runni
 
 ### AI Integrations
 
-- `packages/core/src/tracing/{provider}/` — Core instrumentation logic (OpenAI, Anthropic, Vercel AI, LangChain, etc.)
-- `packages/node/src/integrations/tracing/{provider}/` — Node.js-specific integration + OTel instrumentation
-- `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime support
-- Patterns: OTEL Span Processors, Client Wrapping, Callback/Hook Based
+- `packages/core/src/tracing/{provider}/` — Core instrumentation
+- `packages/node/src/integrations/tracing/{provider}/` — Node.js integration + OTel
+- `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime
+- See `.cursor/rules/adding-a-new-ai-integration.mdc` for implementation guide
 
-### User Experience Packages
+### User Experience
 
-- `packages/replay-internal/` — Session replay
-- `packages/replay-canvas/` — Canvas recording for replay
-- `packages/replay-worker/` — Web worker support for replay
-- `packages/feedback/` — User feedback integration
+- `packages/replay-internal/`, `packages/replay-canvas/`, `packages/replay-worker/` — Session replay
+- `packages/feedback/` — User feedback
 
-### Development Packages (`dev-packages/`)
+### Dev Packages (`dev-packages/`)
 
 - `browser-integration-tests/` — Playwright browser tests
-- `e2e-tests/` — E2E tests for 70+ framework combinations
+- `e2e-tests/` — E2E tests (70+ framework combos)
 - `node-integration-tests/` — Node.js integration tests
-- `test-utils/` — Shared testing utilities
+- `test-utils/` — Shared test utilities
 - `rollup-utils/` — Build utilities
-
-### Package Structure Pattern
-
-Each package typically contains:
-
-- `src/index.ts` — Main entry point
-- `src/sdk.ts` — SDK initialization logic
-- `rollup.npm.config.mjs` — Build configuration
-- `tsconfig.json`, `tsconfig.test.json`, `tsconfig.types.json`
-- `test/` directory with corresponding test files
-
-## Build System
-
-- Rollup for bundling (`rollup.*.config.mjs`)
-- TypeScript with multiple tsconfig files per package
-- Nx for task orchestration and caching
-- Vitest for unit testing
-
-## Git Workflow
-
-This repository uses **Git Flow** (see `docs/gitflow.md`).
-
-- **All PRs target the `develop` branch** (NOT `master`)
-- `master` represents the last released state — never merge directly into it
-- Feature branches: `feat/descriptive-name`
-- Release branches: `release/X.Y.Z`
-- Avoid changing `package.json` on `develop` during pending releases
-- Never update dependencies, `package.json` content, or build scripts unless explicitly asked
 
 ## Coding Standards
 
-- Follow existing code conventions in each package
-- Check imports and dependencies — only use libraries already in the codebase
-- Look at neighboring files for patterns and style
-- Never introduce code that exposes secrets or keys
-- When modifying a set of files, ensure all occurrences in the codebase are covered (including `src/` and `test/` directories)
+- Follow existing conventions — check neighboring files
+- Only use libraries already in the codebase
+- Never expose secrets or keys
+- When modifying files, cover all occurrences (including `src/` and `test/`)
 
-## Before Every Commit
+## Skills
 
-1. `yarn format` — fix formatting
-2. `yarn lint` — fix linting
-3. `yarn test` — all tests pass
-4. `yarn build:dev` — builds successfully
-5. NEVER push on develop
-6. Target `develop` branch for PRs
+### E2E Testing
+
+Use `/e2e` skill to run E2E tests. See `.claude/skills/e2e/SKILL.md`
+
+### Security Vulnerabilities
+
+Use `/fix-security-vulnerability` skill for Dependabot alerts. See `.claude/skills/fix-security-vulnerability/SKILL.md`
+
+### Issue Triage
+
+Use `/triage-issue` skill. See `.claude/skills/triage-issue/SKILL.md`
+
+### CDN Bundles
+
+Use `/add-cdn-bundle` skill. See `.claude/skills/add-cdn-bundle/SKILL.md`
