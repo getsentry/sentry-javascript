@@ -112,7 +112,7 @@ describe('createConsolaReporter', () => {
       ['trace', 'trace'],
       ['fatal', 'fatal'],
     ] as const)('maps type "%s" to Sentry level "%s"', (type, expectedLevel) => {
-      sentryReporter.log({ type, message: `${type} message` });
+      sentryReporter.log({ type, args: [`${type} message`] });
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -132,7 +132,7 @@ describe('createConsolaReporter', () => {
       ['log', 'info'],
       ['silent', 'trace'],
     ] as const)('maps consola type "%s" to Sentry level "%s"', (type, expectedLevel) => {
-      sentryReporter.log({ type, message: `Test ${type}` });
+      sentryReporter.log({ type, args: [`Test ${type}`] });
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -149,7 +149,7 @@ describe('createConsolaReporter', () => {
     it('uses level number when type is missing', () => {
       sentryReporter.log({
         level: 0, // Fatal level
-        message: 'Fatal message',
+        args: ['Fatal message'],
       });
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
@@ -174,21 +174,21 @@ describe('createConsolaReporter', () => {
       // Should capture error
       filteredReporter.log({
         type: 'error',
-        message: 'Error message',
+        args: ['Error message'],
       });
       expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(1);
 
       // Should capture warn
       filteredReporter.log({
         type: 'warn',
-        message: 'Warn message',
+        args: ['Warn message'],
       });
       expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(2);
 
       // Should not capture info
       filteredReporter.log({
         type: 'info',
-        message: 'Info message',
+        args: ['Info message'],
       });
       expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(2);
     });
@@ -200,7 +200,7 @@ describe('createConsolaReporter', () => {
       ['trace', 'debug', 'info', 'warn', 'error', 'fatal'].forEach(type => {
         defaultReporter.log({
           type,
-          message: `${type} message`,
+          args: [`${type} message`],
         });
       });
 

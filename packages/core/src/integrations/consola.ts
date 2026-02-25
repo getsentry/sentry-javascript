@@ -123,12 +123,19 @@ export interface ConsolaLogObject {
   /**
    * The raw arguments passed to the log method.
    *
-   * When `message` is not provided, these args are typically formatted into the final message.
+   * These args are typically formatted into the final `message`. In Consola reporters, `message` is not provided.
    *
    * @example
    * ```ts
    * consola.info('Hello', 'world', { user: 'john' });
    * // args = ['Hello', 'world', { user: 'john' }]
+   * ```
+   *
+   * @example
+   * ```ts
+   * // `message` is a reserved property in Consola
+   * consola.log({ message: 'Hello' });
+   * // args = ['Hello']
    * ```
    */
   args?: unknown[];
