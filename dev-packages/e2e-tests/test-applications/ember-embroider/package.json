@@ -66,6 +66,11 @@
   "ember": {
     "edition": "octane"
   },
+  "pnpm": {
+    "overrides": {
+      "@embroider/macros": "1.19.7"
+    }
+  },
   "volta": {
     "extends": "../../package.json"
   }

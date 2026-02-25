@@ -78,6 +78,11 @@
     "@babel/traverse": "~7.25.9",
     "clean-css": "^5.3.0"
   },
+  "pnpm": {
+    "overrides": {
+      "@embroider/macros": "1.19.7"
+    }
+  },
   "ember": {
     "edition": "octane"
   },
