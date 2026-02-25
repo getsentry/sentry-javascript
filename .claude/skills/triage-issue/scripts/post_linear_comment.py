@@ -84,7 +84,7 @@ data = graphql(token,
 )
 comments = data.get("data", {}).get("issue", {}).get("comments", {}).get("nodes", [])
 for c in comments:
-    if c.get("body", "").startswith("## Automated Triage Report"):
+    if c.get("body", "").startswith("## Issue Triage:"):
         print(f"Triage comment already exists on {identifier}, skipping")
         sys.exit(0)
 
