@@ -226,9 +226,9 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       }
       const message = messageParts.join(' ');
 
-      // Build attributes: `rest` properties from logObj get a "consola" prefix; base attributes added below may override
       const attributes: Record<string, unknown> = {};
 
+      // Build attributes: `rest` properties from logObj get a "consola" prefix; base attributes added below may override
       for (const [key, value] of Object.entries(rest)) {
         attributes[`consola.${key}`] = value;
       }
