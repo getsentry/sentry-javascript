@@ -50,19 +50,22 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
               'tanstackstart.function.hash.sha256': functionSha256,
             };
 
-            return startSpan(
+            // eslint-disable-next-line no-return-await
+            return await startSpan(
               {
                 op: op,
                 name: `${method} ${url.pathname}`,
                 attributes: serverFunctionSpanAttributes,
               },
-              () => {
-                return target.apply(thisArg, args);
+              async () => {
+                // eslint-disable-next-line no-return-await
+                return await target.apply(thisArg, args);
               },
             );
           }
 
-          return target.apply(thisArg, args);
+          // eslint-disable-next-line no-return-await
+          return await target.apply(thisArg, args);
         } finally {
           await flushIfServerless();
         }
