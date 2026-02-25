@@ -58,8 +58,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
                 attributes: serverFunctionSpanAttributes,
               },
               async () => {
-                // eslint-disable-next-line no-return-await
-                return await target.apply(thisArg, args);
+                return target.apply(thisArg, args);
               },
             );
           }
