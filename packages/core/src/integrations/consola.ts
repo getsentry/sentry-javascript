@@ -61,7 +61,7 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
-   * Allows additional custom properties to be set on the log object.
+   * Allows additional custom properties to be set on the log object (e.g. when reporter is called directly)
    * These properties will be captured as log attributes with a 'consola.' prefix.
    *
    * @example
@@ -194,8 +194,11 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
   return {
     log(logObj: ConsolaLogObject) {
+      // We need to exclude certain known properties from being added as additional attributes
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { type, level, message: consolaMessage, args, tag, date: _date, ...attributes } = logObj;
+      const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
+
+      const hasExtraLogObjKeys = Object.keys(rest).length > 0;
 
       // Get client - use provided client or current client
       const client = providedClient || getClient();
@@ -223,6 +226,13 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       }
       const message = messageParts.join(' ');
 
+      // Build attributes: `rest` properties from logObj get a "consola" prefix; base attributes added below may override
+      const attributes: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(rest)) {
+        attributes[`consola.${key}`] = value;
+      }
+
       // Build attributes
       attributes['sentry.origin'] = 'auto.log.consola';
 
@@ -237,6 +247,15 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       // Only add level if it's a valid number (not null/undefined)
       if (level != null && typeof level === 'number') {
         attributes['consola.level'] = level;
+      }
+
+      // Extra keys on logObj (beyond reserved) indicate direct `reporter.log({ type, message, ...rest })`
+      if (hasExtraLogObjKeys && args && args.length >= 1 && typeof args[0] === 'string') {
+        // Use first 'string' arg as message
+        const message = args[0];
+
+        _INTERNAL_captureLog({ level: logSeverityLevel, message, attributes });
+        return;
       }
 
       _INTERNAL_captureLog({

@@ -207,4 +207,51 @@ describe('createConsolaReporter', () => {
       expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(6);
     });
   });
+
+  describe('direct reporter call (extra log keys)', () => {
+    it('consola-merged: args=[message] with extra keys on logObj', () => {
+      sentryReporter.log({
+        type: 'log',
+        level: 2,
+        args: ['obj-message'],
+        userId: 123,
+        action: 'login',
+        time: '2026-02-24T10:24:04.477Z',
+        smallObj: { word: 'hi' },
+        tag: '',
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+
+      // Message from args
+      expect(call.message).toBe('obj-message');
+      expect(call.attributes).toMatchObject({
+        'consola.type': 'log',
+        'consola.level': 2,
+        'consola.userId': 123,
+        'consola.smallObj': { word: 'hi' },
+        'consola.action': 'login',
+        'consola.time': '2026-02-24T10:24:04.477Z',
+        'sentry.origin': 'auto.log.consola',
+      });
+      expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
+    });
+
+    it('direct reporter.log({ type, message, userId, sessionId }) captures custom keys with consola. prefix', () => {
+      sentryReporter.log({
+        type: 'info',
+        message: 'User action',
+        userId: 123,
+        sessionId: 'abc-123',
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe('User action');
+      expect(call.attributes).toMatchObject({
+        'consola.type': 'info',
+        'consola.userId': 123,
+        'consola.sessionId': 'abc-123',
+      });
+    });
+  });
 });
