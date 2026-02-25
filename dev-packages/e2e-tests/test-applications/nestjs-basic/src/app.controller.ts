@@ -67,6 +67,11 @@ export class AppController {
     return this.appService.testExpectedRpcException(id);
   }
 
+  @Get('test-axios-error/:id')
+  async testAxiosError(@Param('id') id: string) {
+    return this.appService.testAxiosError(id);
+  }
+
   @Get('test-span-decorator-async')
   async testSpanDecoratorAsync() {
     return { result: await this.appService.testSpanDecoratorAsync() };
