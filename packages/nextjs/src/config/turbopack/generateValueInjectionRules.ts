@@ -2,7 +2,7 @@ import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
-import { getPackageModules } from '../util';
+import { getPackageModules, supportsTurbopackRuleCondition } from '../util';
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -50,11 +50,16 @@ export function generateValueInjectionRules({
     serverValues = { ...serverValues, ...isomorphicValues };
   }
 
+  const hasConditionSupport = nextJsVersion ? supportsTurbopackRuleCondition(nextJsVersion) : false;
+
   // Client value injection
   if (Object.keys(clientValues).length > 0) {
     rules.push({
       matcher: '**/instrumentation-client.*',
       rule: {
+        // Only run on user code, not node_modules or Next.js internals
+        // condition field is only supported in Next.js 16+
+        ...(hasConditionSupport ? { condition: { not: 'foreign' } } : {}),
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
@@ -72,6 +77,9 @@ export function generateValueInjectionRules({
     rules.push({
       matcher: '**/instrumentation.*',
       rule: {
+        // Only run on user code, not node_modules or Next.js internals
+        // condition field is only supported in Next.js 16+
+        ...(hasConditionSupport ? { condition: { not: 'foreign' } } : {}),
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
