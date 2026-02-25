@@ -8,11 +8,11 @@ dotagents [--user] <command> [options]
 
 ### Global Flags
 
-| Flag | Description |
-|------|-------------|
-| `--user` | Operate on user scope (`~/.agents/`) instead of current project |
-| `--help`, `-h` | Show help |
-| `--version`, `-V` | Show version |
+| Flag              | Description                                                     |
+| ----------------- | --------------------------------------------------------------- |
+| `--user`          | Operate on user scope (`~/.agents/`) instead of current project |
+| `--help`, `-h`    | Show help                                                       |
+| `--version`, `-V` | Show version                                                    |
 
 ## Commands
 
@@ -27,12 +27,13 @@ dotagents init --force
 dotagents --user init
 ```
 
-| Flag | Description |
-|------|-------------|
+| Flag              | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
 | `--agents <list>` | Comma-separated agent targets (claude, cursor, codex, vscode, opencode) |
-| `--force` | Overwrite existing `agents.toml` |
+| `--force`         | Overwrite existing `agents.toml`                                        |
 
 **Interactive mode** (when TTY is available):
+
 1. Select agents (multiselect)
 2. Manage `.gitignore` for installed skills?
 3. Trust policy: allow all sources or restrict to trusted
@@ -48,12 +49,13 @@ dotagents install --frozen
 dotagents install --force
 ```
 
-| Flag | Description |
-|------|-------------|
+| Flag       | Description                                                        |
+| ---------- | ------------------------------------------------------------------ |
 | `--frozen` | Fail if lockfile is missing or out of sync; do not modify lockfile |
-| `--force` | Ignore locked commits and resolve all skills to latest refs |
+| `--force`  | Ignore locked commits and resolve all skills to latest refs        |
 
 **Workflow:**
+
 1. Load config and lockfile
 2. Expand wildcard entries (discover all skills from source)
 3. Validate trust for each skill source
@@ -81,14 +83,15 @@ dotagents add git:https://git.corp.dev/team/skills      # Non-GitHub git URL
 dotagents add path:./my-skills/custom                   # Local path
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name <name>` | Specify which skill to add (repeatable; alias: `--skill`) |
-| `--skill <name>` | Alias for `--name` (repeatable) |
-| `--ref <ref>` | Pin to a specific tag, branch, or commit |
-| `--all` | Add all skills from the source as a wildcard entry (`name = "*"`) |
+| Flag             | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `--name <name>`  | Specify which skill to add (repeatable; alias: `--skill`)         |
+| `--skill <name>` | Alias for `--name` (repeatable)                                   |
+| `--ref <ref>`    | Pin to a specific tag, branch, or commit                          |
+| `--all`          | Add all skills from the source as a wildcard entry (`name = "*"`) |
 
 **Specifier formats:**
+
 - `owner/repo` -- GitHub shorthand
 - `owner/repo@ref` -- GitHub with pinned ref
 - `https://github.com/owner/repo` -- GitHub HTTPS URL
@@ -134,6 +137,7 @@ dotagents sync
 ```
 
 **Actions performed:**
+
 1. Adopt orphaned skills (installed but not declared in config)
 2. Regenerate `.agents/.gitignore`
 3. Check for missing skills
@@ -153,11 +157,12 @@ dotagents list
 dotagents list --json
 ```
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 **Status indicators:**
+
 - `✓` ok -- installed, integrity matches
 - `~` modified -- locally modified since install
 - `✗` missing -- in config but not installed
@@ -178,13 +183,13 @@ dotagents mcp add github --command npx --args -y --args @modelcontextprotocol/se
 dotagents mcp add remote-api --url https://mcp.example.com/sse --header "Authorization:Bearer token"
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--command <cmd>` | Command to run (stdio transport) |
-| `--args <arg>` | Command arguments (repeatable) |
-| `--url <url>` | HTTP endpoint URL (HTTP transport) |
-| `--header <Key:Value>` | HTTP headers (repeatable) |
-| `--env <VAR>` | Environment variable names to pass through (repeatable) |
+| Flag                   | Description                                             |
+| ---------------------- | ------------------------------------------------------- |
+| `--command <cmd>`      | Command to run (stdio transport)                        |
+| `--args <arg>`         | Command arguments (repeatable)                          |
+| `--url <url>`          | HTTP endpoint URL (HTTP transport)                      |
+| `--header <Key:Value>` | HTTP headers (repeatable)                               |
+| `--env <VAR>`          | Environment variable names to pass through (repeatable) |
 
 Either `--command` or `--url` is required (mutually exclusive).
 
@@ -205,6 +210,6 @@ dotagents mcp list
 dotagents mcp list --json
 ```
 
-| Flag | Description |
-|------|-------------|
+| Flag     | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |

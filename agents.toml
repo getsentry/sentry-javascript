@@ -5,9 +5,9 @@ gitignore = false
 agents = ["claude", "cursor"]
 
 [trust]
-github_orgs = [ "getsentry" ]
+github_orgs = ["getsentry"]
 
-github_repos = [ "getsentry/skills" ]
+github_repos = ["getsentry/skills"]
 
 
 [[skills]]
