@@ -1,3 +1,4 @@
+import { flushIfServerless } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 import { extractServerFunctionSha256 } from './utils';
 
@@ -32,35 +33,39 @@ export type ServerEntry = {
 export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
   if (serverEntry.fetch) {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
-      apply: (target, thisArg, args) => {
-        const request: Request = args[0];
-        const url = new URL(request.url);
-        const method = request.method || 'GET';
+      async apply(target, thisArg, args) {
+        try {
+          const request: Request = args[0];
+          const url = new URL(request.url);
+          const method = request.method || 'GET';
 
-        // instrument server functions
-        if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-          const functionSha256 = extractServerFunctionSha256(url.pathname);
-          const op = 'function.tanstackstart';
+          // instrument server functions
+          if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
+            const functionSha256 = extractServerFunctionSha256(url.pathname);
+            const op = 'function.tanstackstart';
 
-          const serverFunctionSpanAttributes = {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-            'tanstackstart.function.hash.sha256': functionSha256,
-          };
+            const serverFunctionSpanAttributes = {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+              'tanstackstart.function.hash.sha256': functionSha256,
+            };
 
-          return startSpan(
-            {
-              op: op,
-              name: `${method} ${url.pathname}`,
-              attributes: serverFunctionSpanAttributes,
-            },
-            () => {
-              return target.apply(thisArg, args);
-            },
-          );
+            return startSpan(
+              {
+                op: op,
+                name: `${method} ${url.pathname}`,
+                attributes: serverFunctionSpanAttributes,
+              },
+              () => {
+                return target.apply(thisArg, args);
+              },
+            );
+          }
+
+          return target.apply(thisArg, args);
+        } finally {
+          await flushIfServerless();
         }
-
-        return target.apply(thisArg, args);
       },
     });
   }
