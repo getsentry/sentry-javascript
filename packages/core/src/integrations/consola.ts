@@ -253,9 +253,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       // Extra keys on logObj (beyond reserved) indicate direct `reporter.log({ type, message, ...rest })`
       if (hasExtraLogObjKeys && args && args.length >= 1 && typeof args[0] === 'string') {
         // Use first 'string' arg as message
-        const message = args[0];
-
-        _INTERNAL_captureLog({ level: logSeverityLevel, message, attributes });
+        _INTERNAL_captureLog({ level: logSeverityLevel, message: args[0], attributes });
         return;
       }
 
