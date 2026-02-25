@@ -41,7 +41,7 @@
   "dependencies": {
     "@sentry/browser": "10.40.0",
     "@sentry/core": "10.40.0",
-    "magic-string": "^0.30.0"
+    "magic-string": "~0.30.0"
   },
   "peerDependencies": {
     "svelte": "3.x || 4.x || 5.x"
