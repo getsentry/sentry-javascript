@@ -13,22 +13,23 @@ Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
 
 Use **yarn**: `yarn install`, `yarn build`, `yarn test`, `yarn lint`
 
-| Command | Purpose |
-|---------|---------|
-| `yarn build` | Full production build |
-| `yarn build:dev` | Dev build (transpile + types) |
-| `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps |
-| `yarn build:bundle` | Browser bundles only |
-| `yarn test` | All unit tests |
-| `yarn lint` | ESLint + Oxfmt |
-| `yarn fix` | Auto-fix lint + format |
-| `yarn format` | Auto-fix formatting (Oxfmt) |
+| Command                               | Purpose                       |
+| ------------------------------------- | ----------------------------- |
+| `yarn build`                          | Full production build         |
+| `yarn build:dev`                      | Dev build (transpile + types) |
+| `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
+| `yarn build:bundle`                   | Browser bundles only          |
+| `yarn test`                           | All unit tests                |
+| `yarn lint`                           | ESLint + Oxfmt                |
+| `yarn fix`                            | Auto-fix lint + format        |
+| `yarn format`                         | Auto-fix formatting (Oxfmt)   |
 
 Single package: `cd packages/<name> && yarn test`
 
 ## Commit Attribution
 
 AI commits MUST include:
+
 ```
 Co-Authored-By: <agent model name> <noreply@anthropic.com>
 ```
