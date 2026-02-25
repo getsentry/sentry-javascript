@@ -27,11 +27,7 @@ describe('sentrySolidStartVite()', () => {
     const names = plugins.map(plugin => plugin.name);
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
-      'sentry-telemetry-plugin',
-      'sentry-vite-injection-plugin',
-      'sentry-release-management-plugin',
-      'sentry-vite-debug-id-upload-plugin',
-      'sentry-file-deletion-plugin',
+      'sentry-vite-plugin',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });

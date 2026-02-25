@@ -551,6 +551,7 @@ jobs:
         uses: getsentry/codecov-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_browser_playwright_tests:
     name:
@@ -652,6 +653,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          name:
+            browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
+            matrix.shard) || '' }}
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -713,6 +717,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -787,6 +792,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-integration-tests
+          name: node-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || '' }}
 
   job_node_core_integration_tests:
     name:
@@ -836,6 +842,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-core-integration-tests
+          name:
+            node-core-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || ''}}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -903,6 +911,7 @@ jobs:
         with:
           directory: packages/remix
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -1094,6 +1103,7 @@ jobs:
         with:
           directory: dev-packages/e2e-tests
           token: ${{ secrets.GITHUB_TOKEN }}
+          name: e2e-${{ matrix.test-application }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:

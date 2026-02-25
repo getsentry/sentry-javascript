@@ -68,6 +68,27 @@ export function supportsProductionCompileHook(version: string): boolean {
 }
 
 /**
+ * Checks if the current Next.js version supports the `condition` field in Turbopack rules.
+ * This field was introduced in Next.js 16.
+ *
+ * @param version - version string to check.
+ * @returns true if Next.js version is 16 or higher
+ */
+export function supportsTurbopackRuleCondition(version: string): boolean {
+  if (!version) {
+    return false;
+  }
+
+  const { major } = parseSemver(version);
+
+  if (major === undefined) {
+    return false;
+  }
+
+  return major >= 16;
+}
+
+/**
  * Checks if the current Next.js version supports native debug ids for turbopack.
  * This feature was first introduced in Next.js v15.6.0-canary.36 and marked stable in Next.js v16
  *

@@ -12,7 +12,6 @@ export * from './config';
 export * from './client';
 export * from './server';
 export * from './common';
-export * from './vite';
 
 /** Initializes Sentry TanStack Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
@@ -38,5 +37,6 @@ export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
 export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;
 
+export declare const tanstackRouterBrowserTracingIntegration: typeof clientSdk.tanstackRouterBrowserTracingIntegration;
 export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
 export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;

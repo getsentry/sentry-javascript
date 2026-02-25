@@ -72,7 +72,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'hook.name': 'fastify -> @fastify/otel - onRequest',
       'sentry.op': 'hook.fastify',
       'sentry.origin': 'auto.http.otel.fastify',
-      'service.name': 'fastify',
     },
     description: '@fastify/otel - onRequest',
     op: 'hook.fastify',
