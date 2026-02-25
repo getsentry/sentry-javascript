@@ -213,7 +213,7 @@ describe('createConsolaReporter', () => {
       sentryReporter.log({
         type: 'log',
         level: 2,
-        args: ['obj-message'],
+        args: ['Hello', 'world', { some: 'obj' }],
         userId: 123,
         action: 'login',
         time: '2026-02-24T10:24:04.477Z',
@@ -224,7 +224,7 @@ describe('createConsolaReporter', () => {
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
 
       // Message from args
-      expect(call.message).toBe('obj-message');
+      expect(call.message).toBe('Hello world {"some":"obj"}');
       expect(call.attributes).toMatchObject({
         'consola.type': 'log',
         'consola.level': 2,

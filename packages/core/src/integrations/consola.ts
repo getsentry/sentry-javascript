@@ -250,13 +250,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
-      // Extra keys on logObj (beyond reserved) indicate direct `reporter.log({ type, message, ...rest })`
-      if (hasExtraLogObjKeys && args && args.length >= 1 && typeof args[0] === 'string') {
-        // Use first 'string' arg as message
-        _INTERNAL_captureLog({ level: logSeverityLevel, message: args[0], attributes });
-        return;
-      }
-
       _INTERNAL_captureLog({
         level: logSeverityLevel,
         message,
