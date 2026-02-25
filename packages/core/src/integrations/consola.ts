@@ -62,8 +62,9 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
-   * Allows additional custom properties to be set on the log object (e.g. when reporter is called directly)
-   * These properties will be captured as log attributes with a 'consola.' prefix.
+   * Allows additional custom properties to be set on the log object. These properties will be captured as log attributes.
+   *
+   * Additional properties are set when passing a single object with a `message` (`consola.[type]({ message: '', ... })`) or if the reporter is called directly
    *
    * @example
    * ```ts
@@ -74,7 +75,7 @@ export interface ConsolaLogObject {
    *   userId: 123,
    *   sessionId: 'abc-123'
    * });
-   * // Will create attributes: consola.userId and consola.sessionId
+   * // Will create attributes: `userId` and `sessionId`
    * ```
    */
   [key: string]: unknown;
@@ -153,6 +154,10 @@ export interface ConsolaLogObject {
    *
    * When provided, this is the final formatted message. When not provided,
    * the message should be constructed from the `args` array.
+   *
+   * Note: In reporters, `message` is typically undefined. It is primarily for
+   * `consola.[type]({ message: 'xxx' })` usage and is normalized into `args` before
+   * reporters receive the log object. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    */
   message?: string;
 }
@@ -199,8 +204,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
 
-      const hasExtraLogObjKeys = Object.keys(rest).length > 0;
-
       // Get client - use provided client or current client
       const client = providedClient || getClient();
       if (!client) {
@@ -229,12 +232,11 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       const attributes: Record<string, unknown> = {};
 
-      // Build attributes: `rest` properties from logObj get a "consola" prefix; base attributes added below may override
+      // Build attributes
       for (const [key, value] of Object.entries(rest)) {
-        attributes[`consola.${key}`] = normalize(value, normalizeDepth, normalizeMaxBreadth);
+        attributes[key] = normalize(value, normalizeDepth, normalizeMaxBreadth);
       }
 
-      // Build attributes
       attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {

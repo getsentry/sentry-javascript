@@ -208,8 +208,8 @@ describe('createConsolaReporter', () => {
     });
   });
 
-  describe('direct reporter call (extra log keys)', () => {
-    it('consola-merged: args=[message] with extra keys on logObj', () => {
+  describe('message and args handling', () => {
+    it('consola-merged: args=[message] with extra keys on log object', () => {
       sentryReporter.log({
         type: 'log',
         level: 2,
@@ -228,16 +228,16 @@ describe('createConsolaReporter', () => {
       expect(call.attributes).toMatchObject({
         'consola.type': 'log',
         'consola.level': 2,
-        'consola.userId': 123,
-        'consola.smallObj': { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
-        'consola.action': 'login',
-        'consola.time': '2026-02-24T10:24:04.477Z',
+        userId: 123,
+        smallObj: { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
+        action: 'login',
+        time: '2026-02-24T10:24:04.477Z',
         'sentry.origin': 'auto.log.consola',
       });
       expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
     });
 
-    it('direct reporter.log({ type, message, userId, sessionId }) captures custom keys with consola. prefix', () => {
+    it('capturing custom keys mimicking `log({ message: "", ... })` or direct reporter.log({ type, message, userId, sessionId })', () => {
       sentryReporter.log({
         type: 'info',
         message: 'User action',
@@ -249,8 +249,8 @@ describe('createConsolaReporter', () => {
       expect(call.message).toBe('User action');
       expect(call.attributes).toMatchObject({
         'consola.type': 'info',
-        'consola.userId': 123,
-        'consola.sessionId': 'abc-123',
+        userId: 123,
+        sessionId: 'abc-123',
       });
     });
   });
