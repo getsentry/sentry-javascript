@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
+import { normalize } from '../utils/normalize';
 
 /**
  * Options for the Sentry Consola reporter.
@@ -230,7 +231,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       // Build attributes: `rest` properties from logObj get a "consola" prefix; base attributes added below may override
       for (const [key, value] of Object.entries(rest)) {
-        attributes[`consola.${key}`] = value;
+        attributes[`consola.${key}`] = normalize(value, normalizeDepth, normalizeMaxBreadth);
       }
 
       // Build attributes

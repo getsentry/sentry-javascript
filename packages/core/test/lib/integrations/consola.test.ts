@@ -217,7 +217,7 @@ describe('createConsolaReporter', () => {
         userId: 123,
         action: 'login',
         time: '2026-02-24T10:24:04.477Z',
-        smallObj: { word: 'hi' },
+        smallObj: { firstLevel: { secondLevel: { thirdLevel: { fourthLevel: 'deep' } } } },
         tag: '',
       });
 
@@ -229,7 +229,7 @@ describe('createConsolaReporter', () => {
         'consola.type': 'log',
         'consola.level': 2,
         'consola.userId': 123,
-        'consola.smallObj': { word: 'hi' },
+        'consola.smallObj': { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
         'consola.action': 'login',
         'consola.time': '2026-02-24T10:24:04.477Z',
         'sentry.origin': 'auto.log.consola',
