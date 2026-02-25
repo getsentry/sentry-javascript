@@ -125,7 +125,7 @@ export interface ConsolaLogObject {
   /**
    * The raw arguments passed to the log method.
    *
-   * These args are typically formatted into the final `message`. In Consola reporters, `message` is not provided.
+   * These args are typically formatted into the final `message`. In Consola reporters, `message` is not provided. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    *
    * @example
    * ```ts
