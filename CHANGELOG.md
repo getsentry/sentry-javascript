@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.41.0-beta.0
+
+This is an internal beta release to test adding traces by timestamp to replay events for EAP trace association: https://github.com/getsentry/sentry-javascript/pull/18048.
+
 ## 10.40.0
 
 ### Important Changes
