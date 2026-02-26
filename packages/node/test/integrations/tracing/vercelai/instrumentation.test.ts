@@ -235,7 +235,9 @@ describe('cleanupToolCallSpanContexts', () => {
   test('cleans up span context for tool-error items', () => {
     _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
 
-    cleanupToolCallSpanContexts([{ type: 'tool-error', toolCallId: 'tool-1', toolName: 'bash', error: new Error('fail') }]);
+    cleanupToolCallSpanContexts([
+      { type: 'tool-error', toolCallId: 'tool-1', toolName: 'bash', error: new Error('fail') },
+    ]);
 
     expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toBeUndefined();
   });

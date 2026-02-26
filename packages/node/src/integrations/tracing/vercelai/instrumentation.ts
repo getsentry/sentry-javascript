@@ -135,6 +135,9 @@ function captureToolErrors(content: Array<object>): void {
   }
 }
 
+/**
+ * Remove span context entries for all completed tool calls in the content array.
+ */
 export function cleanupToolCallSpanContexts(content: Array<object>): void {
   for (const item of content) {
     if (
