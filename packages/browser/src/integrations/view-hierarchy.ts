@@ -1,4 +1,4 @@
-import type { Attachment, Event, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core';
+import type { Attachment, Event, EventHint, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core';
 import { defineIntegration, getComponentName } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
@@ -23,7 +23,14 @@ interface Options {
    *
    * Default: Always attach.
    */
-  shouldAttach?: (event: Event) => boolean;
+  shouldAttach?: (event: Event, hint: EventHint) => boolean;
+
+  /**
+   * A function that returns the root element to start walking the DOM from.
+   *
+   * Default: `window.document.body`
+   */
+  rootElement?: () => HTMLElement | undefined;
 
   /**
    * Called for each HTMLElement as we walk the DOM.
@@ -43,7 +50,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
 
   /** Walk an element */
   function walk(element: HTMLElement, windows: ViewHierarchyWindow[]): void {
-    // With Web Components, we need walk into shadow DOMs
+    // With Web Components, we need to walk into shadow DOMs
     const children = 'shadowRoot' in element && element.shadowRoot ? element.shadowRoot.children : element.children;
 
     for (const child of children) {
@@ -97,7 +104,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
   return {
     name: 'ViewHierarchy',
     processEvent: (event, hint) => {
-      if (options.shouldAttach && options.shouldAttach(event) === false) {
+      if (options.shouldAttach && options.shouldAttach(event, hint) === false) {
         return event;
       }
 
@@ -107,7 +114,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
         windows: [],
       };
 
-      walk(WINDOW.document.body, root.windows);
+      walk(options.rootElement?.() || WINDOW.document.body, root.windows);
 
       const attachment: Attachment = {
         filename: 'view-hierarchy.json',
