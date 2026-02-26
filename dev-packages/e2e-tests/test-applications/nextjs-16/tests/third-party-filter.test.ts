@@ -2,10 +2,6 @@ import test, { expect } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('First-party error should not be tagged as third-party code', async ({ page }) => {
-  // This test only applies to Turbopack builds where the moduleMetadataInjectionLoader is active.
-  // On webpack builds, the @sentry/webpack-plugin handles metadata injection instead.
-  // We run the test for all environments since the integration is always configured,
-  // but the assertion is meaningful primarily for Turbopack (development mode default).
 
   const errorPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.some(value => value.value === 'first-party-error') ?? false;
