@@ -39,6 +39,9 @@
   });
   ```
 
+Work in this release was contributed by @YevheniiKotyrlo. Thank you for your contribution!
+
+
 ## 10.40.0
 
 ### Important Changes
