@@ -1,7 +1,7 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import {
-  _INTERNAL_cleanupToolCallSpanContextContext,
+  _INTERNAL_cleanupToolCallSpanContext,
   _INTERNAL_getSpanContextForToolCallId,
   addNonEnumerableProperty,
   captureException,
