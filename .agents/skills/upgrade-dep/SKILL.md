@@ -23,6 +23,7 @@ Ensure updated `package.json` files end with a newline.
 ## OpenTelemetry constraint
 
 **STOP** if upgrading any `opentelemetry` package would introduce forbidden versions:
+
 - `2.x.x` (e.g., `2.0.0`)
 - `0.2xx.x` (e.g., `0.200.0`, `0.201.0`)
 

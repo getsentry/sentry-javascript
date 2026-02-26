@@ -1,7 +1,7 @@
 ---
 name: upgrade-otel
 description: Upgrade OpenTelemetry instrumentations across the Sentry JavaScript SDK. Use when bumping OTel instrumentation packages to their latest versions.
-argument-hint: ""
+argument-hint: ''
 ---
 
 # Upgrading OpenTelemetry Instrumentations
