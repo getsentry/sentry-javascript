@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanMap } from './constants';
+import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanContextMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -238,7 +238,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
-    toolCallSpanMap.set(toolCallId, span.spanContext());
+    toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type

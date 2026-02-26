@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { addVercelAiProcessors } from '../../../src/tracing/vercel-ai';
-import { toolCallSpanMap } from '../../../src/tracing/vercel-ai/constants';
-import { _INTERNAL_cleanupToolCallSpan, _INTERNAL_getSpanForToolCallId } from '../../../src/tracing/vercel-ai/utils';
+import { toolCallSpanContextMap } from '../../../src/tracing/vercel-ai/constants';
+import { _INTERNAL_cleanupToolCallSpan, _INTERNAL_getSpanContextForToolCallId } from '../../../src/tracing/vercel-ai/utils';
 import {
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
@@ -79,7 +79,7 @@ function createToolCallSpan(params: {
 
 describe('vercel-ai tool call span context map', () => {
   beforeEach(() => {
-    toolCallSpanMap.clear();
+    toolCallSpanContextMap.clear();
   });
 
   it('stores toolCallId -> span context on spanStart', () => {
@@ -97,12 +97,12 @@ describe('vercel-ai tool call span context map', () => {
 
     client.emit('spanStart', span);
 
-    expect(_INTERNAL_getSpanForToolCallId('tool-call-1')).toMatchObject({
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-call-1')).toMatchObject({
       traceId: 'trace-id-1',
       spanId: 'span-id-1',
     });
 
     _INTERNAL_cleanupToolCallSpan('tool-call-1');
-    expect(_INTERNAL_getSpanForToolCallId('tool-call-1')).toBeUndefined();
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-call-1')).toBeUndefined();
   });
 });

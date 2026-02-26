@@ -146,7 +146,7 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './tracing/vercel-ai';
-export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './tracing/vercel-ai/utils';
+export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpan } from './tracing/vercel-ai/utils';
 export { instrumentOpenAiClient } from './tracing/openai';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
 export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';

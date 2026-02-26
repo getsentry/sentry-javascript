@@ -2,7 +2,7 @@ import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@op
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import {
   _INTERNAL_cleanupToolCallSpan,
-  _INTERNAL_getSpanForToolCallId,
+  _INTERNAL_getSpanContextForToolCallId,
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
@@ -108,7 +108,7 @@ function checkResultForToolErrors(result: unknown): void {
     }
 
     // Try to get the span context associated with this tool call ID
-    const spanContext = _INTERNAL_getSpanForToolCallId(item.toolCallId);
+    const spanContext = _INTERNAL_getSpanContextForToolCallId(item.toolCallId);
 
     if (spanContext) {
       // We have a span context, so link the error using span and trace IDs from the span
