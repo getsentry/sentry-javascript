@@ -11,7 +11,7 @@ Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
 
 ## Package Manager
 
-Use **yarn**: `yarn install`, `yarn build`, `yarn test`, `yarn lint`
+Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
 
 | Command                               | Purpose                       |
 | ------------------------------------- | ----------------------------- |
