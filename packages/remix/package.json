@@ -72,8 +72,7 @@
     "@sentry/core": "10.40.0",
     "@sentry/node": "10.40.0",
     "@sentry/react": "10.40.0",
-    "glob": "^10.3.4",
-    "yargs": "^17.6.0"
+    "glob": "^10.3.4"
   },
   "devDependencies": {
     "@remix-run/node": "^2.17.4",

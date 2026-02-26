@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const yargs = require('yargs');
+const { parseArgs } = require('node:util');
 
 const { createRelease } = require('./createRelease');
 const { injectDebugId } = require('./injectDebugId');
@@ -7,62 +7,68 @@ const { injectDebugId } = require('./injectDebugId');
 const DEFAULT_URL_PREFIX = '~/build/';
 const DEFAULT_BUILD_PATH = 'public/build';
 
-const argv = yargs(process.argv.slice(2))
-  .option('release', {
-    type: 'string',
-    describe:
-      'The release number\n' +
-      "If not provided, a new release id will be determined by Sentry CLI's `propose-version`.\n" +
-      'See: https://docs.sentry.io/product/releases/suspect-commits/#using-the-cli\n',
-  })
-  .option('org', {
-    type: 'string',
-    describe: 'The Sentry organization slug',
-  })
-  .option('project', {
-    type: 'string',
-    describe: 'The Sentry project slug',
-  })
-  .option('url', {
-    type: 'string',
-    describe: 'The Sentry server URL',
-  })
-  .option('urlPrefix', {
-    type: 'string',
-    describe: 'URL prefix to add to the beginning of all filenames',
-    default: DEFAULT_URL_PREFIX,
-  })
-  .option('buildPath', {
-    type: 'string',
-    describe: 'The path to the build directory',
-    default: DEFAULT_BUILD_PATH,
-  })
-  .option('disableDebugIds', {
-    type: 'boolean',
-    describe: 'Disable the injection and upload of debug ids',
-    default: false,
-  })
-  .option('deleteAfterUpload', {
-    type: 'boolean',
-    describe: 'Delete sourcemaps after uploading',
-    default: true,
-  })
-  .usage(
-    'Usage: $0\n' +
-      '  [--release RELEASE]\n' +
-      '  [--org ORG]\n' +
-      '  [--project PROJECT]\n' +
-      '  [--url URL]\n' +
-      '  [--urlPrefix URL_PREFIX]\n' +
-      '  [--buildPath BUILD_PATH]\n\n' +
-      '  [--disableDebugIds true|false]\n\n' +
-      '  [--deleteAfterUpload true|false]\n\n' +
-      'This CLI tool will upload sourcemaps to Sentry for the given release.\n' +
-      'It has defaults for URL prefix and build path for Remix builds, but you can override them.\n\n' +
-      'If you need a more advanced configuration, you can use `sentry-cli` instead.\n' +
-      'https://github.com/getsentry/sentry-cli',
-  )
-  .wrap(120).argv;
+const USAGE = `Usage: sentry-upload-sourcemaps [options]
+
+Options:
+  --release RELEASE        The release number. If not provided, a new release
+                           id will be determined by Sentry CLI's propose-version.
+                           See: https://docs.sentry.io/product/releases/suspect-commits/#using-the-cli
+  --org ORG                The Sentry organization slug
+  --project PROJECT        The Sentry project slug
+  --url URL                The Sentry server URL
+  --urlPrefix URL_PREFIX   URL prefix to add to the beginning of all filenames
+                           [default: "${DEFAULT_URL_PREFIX}"]
+  --buildPath BUILD_PATH   The path to the build directory
+                           [default: "${DEFAULT_BUILD_PATH}"]
+  --disableDebugIds        Disable the injection and upload of debug ids
+                           [default: false]
+  --deleteAfterUpload      Delete sourcemaps after uploading
+                           [default: true]
+  --keepAfterUpload        Keep sourcemaps after uploading (prevents deletion).
+                           Use this instead of --no-deleteAfterUpload for
+                           compatibility with Node < 20.16.
+                           [default: false]
+  -h, --help               Show this help message
+
+This CLI tool will upload sourcemaps to Sentry for the given release.
+It has defaults for URL prefix and build path for Remix builds, but you
+can override them.
+
+If you need a more advanced configuration, you can use sentry-cli instead.
+https://github.com/getsentry/sentry-cli`;
+
+// Note: Unlike yargs, util.parseArgs with strict mode (the default):
+// - Rejects unknown flags (stricter, catches typos)
+// - Does not auto-convert kebab-case to camelCase (use --urlPrefix, not --url-prefix)
+// - Boolean flags cannot take =true/=false values (use bare --flag to enable)
+const { values: argv } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    release:           { type: 'string' },
+    org:               { type: 'string' },
+    project:           { type: 'string' },
+    url:               { type: 'string' },
+    urlPrefix:         { type: 'string', default: DEFAULT_URL_PREFIX },
+    buildPath:         { type: 'string', default: DEFAULT_BUILD_PATH },
+    disableDebugIds:   { type: 'boolean', default: false },
+    deleteAfterUpload: { type: 'boolean', default: true },
+    keepAfterUpload:   { type: 'boolean', default: false },
+    help:              { type: 'boolean', short: 'h', default: false },
+  },
+});
+
+if (argv.help) {
+  // eslint-disable-next-line no-console
+  console.log(USAGE);
+  process.exit(0);
+}
+
+// --keepAfterUpload overrides --deleteAfterUpload to prevent source map deletion.
+// This flag exists because util.parseArgs does not support --no-deleteAfterUpload
+// on Node < 20.16, so without it there is no way to disable deletion.
+if (argv.keepAfterUpload) {
+  argv.deleteAfterUpload = false;
+}
 
 const buildPath = argv.buildPath || DEFAULT_BUILD_PATH;
 const urlPrefix = argv.urlPrefix || DEFAULT_URL_PREFIX;
