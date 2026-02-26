@@ -1,6 +1,5 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
 import {
   _INTERNAL_cleanupToolCallSpanContext,
   _INTERNAL_getSpanContextForToolCallId,
@@ -83,7 +82,7 @@ function isToolResult(obj: unknown): obj is { type: 'tool-result'; toolCallId: s
  * Check for tool errors in the result and capture them
  * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
  */
-export function _INTERNAL_checkResultForToolErrors(result: unknown): void {
+export function checkResultForToolErrors(result: unknown): void {
   if (typeof result !== 'object' || result === null || !('content' in result)) {
     return;
   }
@@ -265,7 +264,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
             },
             () => {},
             result => {
-              _INTERNAL_checkResultForToolErrors(result);
+              checkResultForToolErrors(result);
             },
           );
         },

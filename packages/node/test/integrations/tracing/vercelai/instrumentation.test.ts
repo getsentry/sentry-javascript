@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, test } from 'vitest';
 import { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_toolCallSpanContextMap } from '@sentry/core';
+import { beforeEach, describe, expect, test } from 'vitest';
 import {
+  checkResultForToolErrors,
   determineRecordingSettings,
-  _INTERNAL_checkResultForToolErrors,
 } from '../../../../src/integrations/tracing/vercelai/instrumentation';
 
 describe('determineRecordingSettings', () => {
@@ -226,7 +226,7 @@ describe('checkResultForToolErrors', () => {
     _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
     _INTERNAL_toolCallSpanContextMap.set('tool-2', { traceId: 't2', spanId: 's2' });
 
-    _INTERNAL_checkResultForToolErrors({
+    checkResultForToolErrors({
       content: [{ type: 'tool-result', toolCallId: 'tool-1', toolName: 'bash' }],
     });
 
@@ -238,7 +238,7 @@ describe('checkResultForToolErrors', () => {
   test('cleans up span context map on tool-error', () => {
     _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
 
-    _INTERNAL_checkResultForToolErrors({
+    checkResultForToolErrors({
       content: [{ type: 'tool-error', toolCallId: 'tool-1', toolName: 'bash', error: new Error('fail') }],
     });
 
@@ -249,7 +249,7 @@ describe('checkResultForToolErrors', () => {
     _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
     _INTERNAL_toolCallSpanContextMap.set('tool-2', { traceId: 't2', spanId: 's2' });
 
-    _INTERNAL_checkResultForToolErrors({
+    checkResultForToolErrors({
       content: [
         { type: 'tool-result', toolCallId: 'tool-1', toolName: 'bash' },
         { type: 'tool-error', toolCallId: 'tool-2', toolName: 'bash', error: new Error('fail') },
@@ -261,7 +261,7 @@ describe('checkResultForToolErrors', () => {
   });
 
   test('does not throw for tool-error with unknown toolCallId', () => {
-    _INTERNAL_checkResultForToolErrors({
+    checkResultForToolErrors({
       content: [{ type: 'tool-error', toolCallId: 'unknown', toolName: 'bash', error: new Error('fail') }],
     });
 
@@ -271,9 +271,9 @@ describe('checkResultForToolErrors', () => {
   test('ignores results without content array', () => {
     _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
 
-    _INTERNAL_checkResultForToolErrors({});
-    _INTERNAL_checkResultForToolErrors(null);
-    _INTERNAL_checkResultForToolErrors({ content: 'not-an-array' });
+    checkResultForToolErrors({});
+    checkResultForToolErrors(null);
+    checkResultForToolErrors({ content: 'not-an-array' });
 
     // Map should be untouched
     expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toEqual({ traceId: 't1', spanId: 's1' });
