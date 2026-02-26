@@ -76,7 +76,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `packages/core/src/tracing/{provider}/` — Core instrumentation
 - `packages/node/src/integrations/tracing/{provider}/` — Node.js integration + OTel
 - `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime
-- See `.cursor/rules/adding-a-new-ai-integration.mdc` for implementation guide
+- Use `/add-ai-integration` skill when adding or modifying integrations
 
 ### User Experience
 
@@ -132,3 +132,7 @@ Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
 ### OpenTelemetry Instrumentation Upgrades
 
 Use `/upgrade-otel` skill. See `.claude/skills/upgrade-otel/SKILL.md`
+
+### AI Integration
+
+Use `/add-ai-integration` skill. See `.claude/skills/add-ai-integration/SKILL.md`
