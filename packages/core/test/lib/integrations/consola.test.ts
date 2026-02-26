@@ -133,12 +133,10 @@ describe('createConsolaReporter', () => {
     });
 
     it('should format message from args', () => {
-      const logObj = {
+      sentryReporter.log({
         type: 'info',
         args: ['Hello', 'world', 123, { key: 'value' }],
-      };
-
-      sentryReporter.log(logObj);
+      });
 
       expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
@@ -147,20 +145,154 @@ describe('createConsolaReporter', () => {
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          'sentry.message.parameter.0': 'world',
+          'sentry.message.parameter.1': 123,
+          'sentry.message.parameter.2': { key: 'value' },
+          'sentry.message.template': 'Hello {} {} {}',
         },
       });
+    });
+
+    it('uses consolaMessage when result.message is empty (e.g. args is [])', () => {
+      sentryReporter.log({
+        type: 'info',
+        message: 'From consola message key',
+        args: [],
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe('From consola message key');
+    });
+
+    it('uses formatConsoleArgs when result.message and consolaMessage are falsy but args is truthy', () => {
+      sentryReporter.log({
+        type: 'info',
+        args: [],
+      });
+
+      expect(formatConsoleArgs).toHaveBeenCalledWith([], 3, 1000);
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe('');
+    });
+
+    it('overrides consola.tag or sentry.origin with object properties', () => {
+      sentryReporter.log({
+        type: 'info',
+        message: 'Test',
+        tag: 'api',
+        args: [{ 'sentry.origin': 'object-args', 'consola.tag': 'object-args-tag' }, 'Test'],
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.attributes?.['sentry.origin']).toBe('object-args');
+      expect(call.attributes?.['consola.tag']).toBe('object-args-tag');
+    });
+
+    it('respects normalizeDepth in fallback mode', () => {
+      sentryReporter.log({
+        type: 'info',
+        args: [
+          'Deep',
+          {
+            level1: { level2: { level3: { level4: 'deep' } } },
+            simpleKey: 'simple value',
+          },
+        ],
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.attributes?.['sentry.message.parameter.0']).toEqual({
+        level1: { level2: { level3: '[Object]' } },
+        simpleKey: 'simple value',
+      });
+    });
+
+    it('adds additional params in object-first mode', () => {
+      sentryReporter.log({
+        type: 'info',
+        args: [
+          {
+            level1: { level2: { level3: { level4: 'deep' } } },
+            simpleKey: 'simple value',
+          },
+          'Deep object',
+          12345,
+          { another: 'object', level1: { level2: { level3: { level4: 'deep' } } } },
+        ],
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe(
+        '{"level1":{"level2":{"level3":"[Object]"}},"simpleKey":"simple value"} Deep object 12345 {"another":"object","level1":{"level2":{"level3":"[Object]"}}}',
+      );
+      expect(call.attributes?.level1).toEqual({ level2: { level3: '[Object]' } });
+      expect(call.attributes?.simpleKey).toBe('simple value');
+
+      expect(call.attributes?.['sentry.message.template']).toBeUndefined();
+      expect(call.attributes?.['sentry.message.parameter.0']).toBe(12345);
+      expect(call.attributes?.['sentry.message.parameter.1']).toStrictEqual({
+        another: 'object',
+        level1: { level2: { level3: '[Object]' } },
+      });
+    });
+
+    it('stores Date and Error in message params (fallback)', () => {
+      const date = new Date('2023-01-01T00:00:00.000Z');
+      sentryReporter.log({ type: 'info', args: ['Time:', date] });
+      expect(vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0]!.attributes?.['sentry.message.parameter.0']).toBe(
+        '2023-01-01T00:00:00.000Z',
+      );
+
+      vi.clearAllMocks();
+      const err = new Error('Test error');
+      sentryReporter.log({ type: 'error', args: ['Error occurred:', err] });
+      const errCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(errCall.attributes?.['sentry.message.parameter.0']).toMatchObject({
+        message: 'Test error',
+        name: 'Error',
+      });
+    });
+
+    it('handles console substitution patterns in first arg', () => {
+      sentryReporter.log({ type: 'info', args: ['Value: %d, another: %s', 42, 'hello'] });
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+
+      // We don't substitute as it gets too complicated on the client-side: https://github.com/getsentry/sentry-javascript/pull/17703
+      expect(call.message).toBe('Value: %d, another: %s 42 hello');
+      expect(call.attributes?.['sentry.message.template']).toBeUndefined();
+      expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
+    });
+
+    it.each([
+      ['string', ['Normal log', { data: 1 }, 123], 'Normal log {} {}', undefined],
+      ['array', [[1, 2, 3], 'Array data'], undefined, undefined],
+      ['Error', [new Error('Test'), 'Error occurred'], undefined, 'error'],
+    ] as const)('falls back to non-object extracting when first arg is %s', (_, args, template, level) => {
+      vi.clearAllMocks();
+      // @ts-expect-error Testing legacy fallback
+      sentryReporter.log({ type: level ?? 'info', args });
+      expect(formatConsoleArgs).toHaveBeenCalled();
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      if (template !== undefined) expect(call.attributes?.['sentry.message.template']).toBe(template);
+      if (template === 'Normal log {} {}') expect(call.attributes?.data).toBeUndefined();
+      if (level) expect(call.level).toBe(level);
+    });
+
+    it('object-first: empty object as first arg', () => {
+      sentryReporter.log({ type: 'info', args: [{}, 'Empty object log'] });
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe('{} Empty object log');
+      expect(call.attributes?.['sentry.origin']).toBe('auto.log.consola');
     });
 
     it('should handle args with unparseable objects', () => {
       const circular: any = {};
       circular.self = circular;
 
-      const logObj = {
+      sentryReporter.log({
         type: 'info',
         args: ['Message', circular],
-      };
-
-      sentryReporter.log(logObj);
+      });
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
@@ -168,39 +300,29 @@ describe('createConsolaReporter', () => {
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          'sentry.message.template': 'Message {}',
+          'sentry.message.parameter.0': { self: '[Circular ~]' },
         },
       });
     });
 
-    it('consola-merged: args=[message] with extra keys on log object', () => {
+    it('formats message from args when message not provided (template + params)', () => {
       sentryReporter.log({
-        type: 'log',
-        level: 2,
-        args: ['Hello', 'world', { some: 'obj' }],
-        userId: 123,
-        action: 'login',
-        time: '2026-02-24T10:24:04.477Z',
-        smallObj: { firstLevel: { secondLevel: { thirdLevel: { fourthLevel: 'deep' } } } },
-        tag: '',
+        type: 'info',
+        args: ['Hello', 'world', 123, { key: 'value' }],
       });
 
+      expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
       const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
-
-      // Message from args
-      expect(call.message).toBe('Hello world {"some":"obj"}');
-      expect(call.attributes).toMatchObject({
-        'consola.type': 'log',
-        'consola.level': 2,
-        userId: 123,
-        smallObj: { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
-        action: 'login',
-        time: '2026-02-24T10:24:04.477Z',
-        'sentry.origin': 'auto.log.consola',
-      });
-      expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
+      expect(call.level).toBe('info');
+      expect(call.message).toContain('Hello');
+      expect(call.attributes?.['sentry.message.template']).toBe('Hello {} {} {}');
+      expect(call.attributes?.['sentry.message.parameter.0']).toBe('world');
+      expect(call.attributes?.['sentry.message.parameter.1']).toBe(123);
+      expect(call.attributes?.['sentry.message.parameter.2']).toEqual({ key: 'value' });
     });
 
-    it('capturing custom keys mimicking direct reporter.log({ type, message, userId, sessionId })', () => {
+    it('Uses "message" key as fallback message, when no args are available', () => {
       sentryReporter.log({
         type: 'info',
         message: 'User action',

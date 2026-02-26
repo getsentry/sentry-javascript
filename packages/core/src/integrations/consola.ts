@@ -1,9 +1,35 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
-import { formatConsoleArgs } from '../logs/utils';
+import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
+import { isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
+
+/**
+ * Result of extracting structured attributes from console arguments.
+ */
+export interface ExtractAttributesResult {
+  /**
+   * The log message to use for the log entry, typically constructed from the console arguments.
+   */
+  message?: string;
+
+  /**
+   * The parameterized template string which is added as `sentry.message.template` attribute if applicable.
+   */
+  messageTemplate?: string;
+
+  /**
+   * Remaining arguments to process as attributes with keys like `sentry.message.parameter.0`, `sentry.message.parameter.1`, etc.
+   */
+  messageParameters?: unknown[];
+
+  /**
+   * Additional attributes to add to the log.
+   */
+  attributes?: Record<string, unknown>;
+}
 
 /**
  * Options for the Sentry Consola reporter.
@@ -220,16 +246,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
-      // Format the log message using the same approach as consola's basic reporter
-      const messageParts = [];
-      if (consolaMessage) {
-        messageParts.push(consolaMessage);
-      }
-      if (args && args.length > 0) {
-        messageParts.push(formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth));
-      }
-      const message = messageParts.join(' ');
-
       const attributes: Record<string, unknown> = {};
 
       // Build attributes
@@ -252,9 +268,23 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
+      const extractionResult = processExtractedAttributes(
+        defaultExtractAttributes(args, normalizeDepth, normalizeMaxBreadth),
+        normalizeDepth,
+        normalizeMaxBreadth,
+      );
+
+      if (extractionResult?.attributes) {
+        Object.assign(attributes, extractionResult.attributes);
+      }
+
       _INTERNAL_captureLog({
         level: logSeverityLevel,
-        message,
+        message:
+          extractionResult?.message ||
+          consolaMessage ||
+          (args && formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth)) ||
+          '',
         attributes,
       });
     },
@@ -329,4 +359,82 @@ function getLogSeverityLevel(type?: string, level?: number | null): LogSeverityL
 
   // Default fallback
   return 'info';
+}
+
+/**
+ * Extracts structured attributes from console arguments. If the first argument is a plain object, its properties are extracted as attributes.
+ */
+function defaultExtractAttributes(
+  args: unknown[] | undefined,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): ExtractAttributesResult {
+  if (!args?.length) {
+    return { message: '' };
+  }
+
+  // Message looks like how consola logs the message to the console (all args stringified and joined)
+  const message = formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth);
+
+  const firstArg = args[0];
+
+  if (isPlainObject(firstArg)) {
+    // Remaining args start from index 2 i f we used second arg as message, otherwise from index 1
+    const remainingArgsStartIndex = typeof args[1] === 'string' ? 2 : 1;
+    const remainingArgs = args.slice(remainingArgsStartIndex);
+
+    return {
+      message,
+      // Object content from first arg is added as attributes
+      attributes: firstArg,
+      // Add remaining args as message parameters
+      messageParameters: remainingArgs,
+    };
+  } else {
+    const followingArgs = args.slice(1);
+
+    const hasStringSubstitutions =
+      followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg);
+
+    return {
+      message,
+      messageTemplate: hasStringSubstitutions ? firstArg : undefined,
+      messageParameters: hasStringSubstitutions ? followingArgs : undefined,
+    };
+  }
+}
+
+/**
+ * Processes extracted attributes by normalizing them and preparing message parameter attributes if a template is present.
+ */
+function processExtractedAttributes(
+  extractionResult: ExtractAttributesResult,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): { message: string | undefined; attributes: Record<string, unknown> } {
+  const { message, attributes, messageTemplate, messageParameters } = extractionResult;
+
+  const messageParamAttributes: Record<string, unknown> = {};
+
+  if (messageTemplate && messageParameters) {
+    const templateAttrs = createConsoleTemplateAttributes(messageTemplate, messageParameters);
+
+    for (const [key, value] of Object.entries(templateAttrs)) {
+      messageParamAttributes[key] = key.startsWith('sentry.message.parameter.')
+        ? normalize(value, normalizeDepth, normalizeMaxBreadth)
+        : value;
+    }
+  } else if (messageParameters && messageParameters.length > 0) {
+    messageParameters.forEach((arg, index) => {
+      messageParamAttributes[`sentry.message.parameter.${index}`] = normalize(arg, normalizeDepth, normalizeMaxBreadth);
+    });
+  }
+
+  return {
+    message: message,
+    attributes: {
+      ...normalize(attributes, normalizeDepth, normalizeMaxBreadth),
+      ...messageParamAttributes,
+    },
+  };
 }
