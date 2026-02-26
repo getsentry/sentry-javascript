@@ -46,11 +46,11 @@ export function isContentMedia(part: unknown): part is ContentMedia {
     hasImageUrl(part) ||
     hasInputAudio(part) ||
     hasFileData(part) ||
-    ('media_type' in part && typeof part.media_type === 'string' && 'data' in part) ||
-    ('type' in part && (part.type === 'blob' || part.type === 'base64')) ||
-    'b64_json' in part ||
-    ('type' in part && 'result' in part && part.type === 'image_generation') ||
-    ('uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:'))
+    hasMediaTypeData(part) ||
+    hasBlobOrBase64Type(part) ||
+    hasB64Json(part) ||
+    hasImageGenerationResult(part) ||
+    hasDataUri(part)
   );
 }
 
@@ -107,6 +107,26 @@ function hasFileData(part: NonNullable<unknown>): part is { type: 'file'; file: 
     'file_data' in part.file &&
     typeof part.file.file_data === 'string'
   );
+}
+
+function hasMediaTypeData(part: NonNullable<unknown>): part is { media_type: string; data: string } {
+  return 'media_type' in part && typeof part.media_type === 'string' && 'data' in part;
+}
+
+function hasBlobOrBase64Type(part: NonNullable<unknown>): part is { type: 'blob' | 'base64'; content: string } {
+  return 'type' in part && (part.type === 'blob' || part.type === 'base64');
+}
+
+function hasB64Json(part: NonNullable<unknown>): part is { b64_json: string } {
+  return 'b64_json' in part;
+}
+
+function hasImageGenerationResult(part: NonNullable<unknown>): part is { type: 'image_generation'; result: string } {
+  return 'type' in part && 'result' in part && part.type === 'image_generation';
+}
+
+function hasDataUri(part: NonNullable<unknown>): part is { uri: string } {
+  return 'uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:');
 }
 
 const REMOVED_STRING = '[Blob substitute]';
