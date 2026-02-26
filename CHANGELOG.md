@@ -4,6 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(nextjs): Add Turbopack support for `thirdPartyErrorFilterIntegration` ([#19542](https://github.com/getsentry/sentry-javascript/pull/19542))**
+
+  We added experimental support for the `thirdPartyErrorFilterIntegration` with Turbopack builds.
+
+  This feature requires Next.js 16+ and is currently behind an experimental flag:
+
+  ```js
+  // next.config.ts
+  import { withSentryConfig } from '@sentry/nextjs';
+
+  export default withSentryConfig(nextConfig, {
+    _experimental: {
+      turbopackApplicationKey: 'my-app-key',
+    },
+  });
+  ```
+
+  Then configure the integration in your client instrumentation file with a matching key:
+
+  ```js
+  // instrumentation-client.ts
+  import * as Sentry from '@sentry/nextjs';
+
+  Sentry.init({
+    integrations: [
+      Sentry.thirdPartyErrorFilterIntegration({
+        filterKeys: ['my-app-key'],
+        behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+      }),
+    ],
+  });
+  ```
+
 ## 10.40.0
 
 ### Important Changes
