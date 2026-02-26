@@ -713,6 +713,17 @@ export type SentryBuildOptions = {
      * Requires cron jobs to be configured in `vercel.json`.
      */
     vercelCronsMonitoring?: boolean;
+    /**
+     * Application key used by `thirdPartyErrorFilterIntegration` to distinguish
+     * first-party code from third-party code in Turbopack builds.
+     *
+     * When set, a Turbopack loader injects `_sentryModuleMetadata` into every
+     * first-party module, mirroring what `@sentry/webpack-plugin` does for
+     * webpack builds via its `moduleMetadata` / `applicationKey` option.
+     *
+     * Requires Next.js 16+
+     */
+    turbopackApplicationKey?: string;
   }>;
 
   /**
