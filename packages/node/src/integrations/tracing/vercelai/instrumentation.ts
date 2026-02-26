@@ -1,5 +1,6 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import type { Span } from '@sentry/core';
 import {
   _INTERNAL_cleanupToolCallSpanContext,
   _INTERNAL_getSpanContextForToolCallId,
@@ -42,114 +43,108 @@ interface RecordingOptions {
   recordOutputs?: boolean;
 }
 
-interface ToolErrorPart {
-  type: 'tool-error';
+interface ToolError {
+  type: 'tool-error' | 'tool-result' | 'tool-call';
   toolCallId: string;
   toolName: string;
+  input?: {
+    [key: string]: unknown;
+  };
   error: Error;
+  dynamic?: boolean;
 }
 
-interface ToolResultPart {
-  type: 'tool-result';
-  toolCallId: string;
-  toolName: string;
-}
-
-function isToolErrorPart(obj: unknown): obj is ToolErrorPart {
+function isToolError(obj: unknown): obj is ToolError {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
 
   const candidate = obj as Record<string, unknown>;
   return (
+    'type' in candidate &&
+    'error' in candidate &&
+    'toolName' in candidate &&
+    'toolCallId' in candidate &&
     candidate.type === 'tool-error' &&
-    typeof candidate.toolName === 'string' &&
-    typeof candidate.toolCallId === 'string' &&
     candidate.error instanceof Error
   );
 }
 
-function isToolResultPart(obj: unknown): obj is ToolResultPart {
+function isToolResult(obj: unknown): obj is { type: 'tool-result'; toolCallId: string } {
   if (typeof obj !== 'object' || obj === null) {
     return false;
   }
 
   const candidate = obj as Record<string, unknown>;
-  return (
-    candidate.type === 'tool-result' &&
-    typeof candidate.toolName === 'string' &&
-    typeof candidate.toolCallId === 'string'
-  );
+  return candidate.type === 'tool-result' && typeof candidate.toolCallId === 'string';
 }
 
 /**
  * Check for tool errors in the result and capture them
  * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
  */
-function checkResultForToolErrors(result: unknown): void {
+export function _INTERNAL_checkResultForToolErrors(result: unknown): void {
   if (typeof result !== 'object' || result === null || !('content' in result)) {
     return;
   }
 
-  const resultObj = result as { content: unknown };
+  const resultObj = result as { content: Array<object> };
   if (!Array.isArray(resultObj.content)) {
     return;
   }
 
   for (const item of resultObj.content) {
-    // Successful tool calls should not keep toolCallId -> span context mappings alive.
-    if (isToolResultPart(item)) {
+    // Clean up successful tool call entries to prevent memory leaks
+    if (isToolResult(item)) {
       _INTERNAL_cleanupToolCallSpanContext(item.toolCallId);
       continue;
     }
 
-    if (!isToolErrorPart(item)) {
-      continue;
+    if (isToolError(item)) {
+      // Try to get the span context associated with this tool call ID
+      const spanContext = _INTERNAL_getSpanContextForToolCallId(item.toolCallId);
+
+      if (spanContext) {
+        // We have the span context, so link the error using span and trace IDs
+        withScope(scope => {
+          // Set the span and trace context for proper linking
+          scope.setContext('trace', {
+            trace_id: spanContext.traceId,
+            span_id: spanContext.spanId,
+          });
+
+          scope.setTag('vercel.ai.tool.name', item.toolName);
+          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+
+          scope.setLevel('error');
+
+          captureException(item.error, {
+            mechanism: {
+              type: 'auto.vercelai.otel',
+              handled: false,
+            },
+          });
+        });
+
+        // Clean up the span mapping since we've processed this tool error
+        // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
+        _INTERNAL_cleanupToolCallSpanContext(item.toolCallId);
+      } else {
+        // Fallback: capture without span linking
+        withScope(scope => {
+          scope.setTag('vercel.ai.tool.name', item.toolName);
+          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+          scope.setLevel('error');
+
+          captureException(item.error, {
+            mechanism: {
+              type: 'auto.vercelai.otel',
+              handled: false,
+            },
+          });
+        });
+      }
     }
-
-    // Try to get the span context associated with this tool call ID
-    const spanContext = _INTERNAL_getSpanContextForToolCallId(item.toolCallId);
-
-    if (spanContext) {
-      // We have a span context, so link the error using span and trace IDs from the span
-      withScope(scope => {
-        // Set the span and trace context for proper linking
-        scope.setContext('trace', {
-          trace_id: spanContext.traceId,
-          span_id: spanContext.spanId,
-        });
-
-        scope.setTag('vercel.ai.tool.name', item.toolName);
-        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-
-        scope.setLevel('error');
-
-        captureException(item.error, {
-          mechanism: {
-            type: 'auto.vercelai.otel',
-            handled: false,
-          },
-        });
-      });
-    } else {
-      // Fallback: capture without span linking
-      withScope(scope => {
-        scope.setTag('vercel.ai.tool.name', item.toolName);
-        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-        scope.setLevel('error');
-
-        captureException(item.error, {
-          mechanism: {
-            type: 'auto.vercelai.otel',
-            handled: false,
-          },
-        });
-      });
-    }
-
-    // Clean up the span mapping since we've processed this tool error
-    // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
-    _INTERNAL_cleanupToolCallSpanContext(item.toolCallId);
   }
 }
 
@@ -270,7 +265,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
             },
             () => {},
             result => {
-              checkResultForToolErrors(result);
+              _INTERNAL_checkResultForToolErrors(result);
             },
           );
         },
