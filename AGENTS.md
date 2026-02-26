@@ -56,7 +56,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 ### Core
 
 - `packages/core/` — Base SDK: interfaces, types, core functionality
-- `packages/types/` — Shared types (**deprecated — never modify**)
+- `packages/types/` — Shared types (**deprecated, never modify – instead find types in packages/core**)
 - `packages/browser-utils/` — Browser utilities and instrumentation
 - `packages/node-core/` — Node core logic (excludes OTel instrumentation)
 
