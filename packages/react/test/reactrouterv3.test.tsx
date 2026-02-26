@@ -10,8 +10,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import * as React from 'react';
+import { act } from 'react';
 import { createMemoryHistory, createRoutes, IndexRoute, match, Route, Router } from 'react-router-3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';

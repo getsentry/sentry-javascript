@@ -198,6 +198,43 @@ test('feedback dialog can be cancelled', async ({ page }) => {
   await expect(feedbackDialog).not.toBeVisible({ timeout: 5000 });
 });
 
+test('setTheme changes the feedback widget color scheme', async ({ page }) => {
+  await page.goto('/');
+
+  // First open a widget to force shadow DOM creation
+  await page.getByTestId('toggle-feedback-button').click();
+  await expect(page.locator('.widget__actor')).toBeVisible({ timeout: 5000 });
+
+  // Switch to dark theme and verify shadow DOM style reflects it
+  await page.getByTestId('set-dark-theme').click();
+  const hasDarkScheme = await page.evaluate(() => {
+    const host = document.querySelector('#sentry-feedback');
+    const style = host?.shadowRoot?.querySelector('style');
+    return style?.textContent?.includes('color-scheme: only dark') ?? false;
+  });
+  expect(hasDarkScheme).toBe(true);
+
+  // Switch to light theme and verify
+  await page.getByTestId('set-light-theme').click();
+  const hasLightScheme = await page.evaluate(() => {
+    const host = document.querySelector('#sentry-feedback');
+    const style = host?.shadowRoot?.querySelector('style');
+    return style?.textContent?.includes('color-scheme: only light') ?? false;
+  });
+  expect(hasLightScheme).toBe(true);
+
+  // Switch to system and verify no forced light/dark color-scheme at host level
+  await page.getByTestId('set-system-theme').click();
+  const hasSystemScheme = await page.evaluate(() => {
+    const host = document.querySelector('#sentry-feedback');
+    const style = host?.shadowRoot?.querySelector('style');
+    const content = style?.textContent ?? '';
+    // System mode uses a media query for dark theme, not a forced color-scheme
+    return !content.includes('color-scheme: only light') && content.includes('prefers-color-scheme');
+  });
+  expect(hasSystemScheme).toBe(true);
+});
+
 test('crash report button triggers error for user feedback modal', async ({ page }) => {
   const errorPromise = waitForEnvelopeItem('nextjs-16-userfeedback', envelopeItem => {
     const [envelopeItemHeader, envelopeItemBody] = envelopeItem;

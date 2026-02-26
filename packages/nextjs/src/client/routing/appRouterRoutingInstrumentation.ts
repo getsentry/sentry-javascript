@@ -9,6 +9,14 @@ import {
 import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
 
+/**
+ * Strips trailing slash from a pathname, unless it's the root path.
+ * This normalizes paths like '/about/' to '/about' to handle Next.js `trailingSlash: true` config.
+ */
+function stripTrailingSlash(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
 /**
@@ -35,10 +43,11 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
-  const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
+  const pathname = stripTrailingSlash(WINDOW.location.pathname);
+  const parameterizedPathname = maybeParameterizeRoute(pathname);
   const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(client, {
-    name: parameterizedPathname ?? WINDOW.location.pathname,
+    name: parameterizedPathname ?? pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     startTime: origin ? origin / 1000 : undefined,
     attributes: {
@@ -93,7 +102,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
     const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
     const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
-    const unparameterizedPathname = new URL(normalizedHref, WINDOW.location.href).pathname;
+    const unparameterizedPathname = stripTrailingSlash(new URL(normalizedHref, WINDOW.location.href).pathname);
     const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
     const pathname = parameterizedPathname ?? unparameterizedPathname;
 
@@ -123,16 +132,17 @@ export function appRouterInstrumentNavigation(client: Client): void {
   };
 
   WINDOW.addEventListener('popstate', () => {
-    const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
+    const pathname = stripTrailingSlash(WINDOW.location.pathname);
+    const parameterizedPathname = maybeParameterizeRoute(pathname);
     if (currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
-      currentRouterPatchingNavigationSpanRef.current.updateName(parameterizedPathname ?? WINDOW.location.pathname);
+      currentRouterPatchingNavigationSpanRef.current.updateName(parameterizedPathname ?? pathname);
       currentRouterPatchingNavigationSpanRef.current.setAttribute(
         SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
         parameterizedPathname ? 'route' : 'url',
       );
     } else {
       currentRouterPatchingNavigationSpanRef.current = startBrowserTracingNavigationSpan(client, {
-        name: parameterizedPathname ?? WINDOW.location.pathname,
+        name: parameterizedPathname ?? pathname,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
@@ -217,10 +227,10 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           const normalizedHref =
             basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
           if (routerFunctionName === 'push') {
-            transactionName = transactionNameifyRouterArgument(normalizedHref);
+            transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
             transactionAttributes['navigation.type'] = 'router.push';
           } else if (routerFunctionName === 'replace') {
-            transactionName = transactionNameifyRouterArgument(normalizedHref);
+            transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
             transactionAttributes['navigation.type'] = 'router.replace';
           } else if (routerFunctionName === 'back') {
             transactionAttributes['navigation.type'] = 'router.back';

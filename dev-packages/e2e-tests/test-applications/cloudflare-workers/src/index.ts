@@ -20,17 +20,26 @@ class MyDurableObjectBase extends DurableObject<Env> {
   }
 
   async fetch(request: Request) {
-    const { pathname } = new URL(request.url);
-    switch (pathname) {
+    const url = new URL(request.url);
+    switch (url.pathname) {
       case '/throwException': {
         await this.throwException();
         break;
       }
-      case '/ws':
+      case '/ws': {
         const webSocketPair = new WebSocketPair();
         const [client, server] = Object.values(webSocketPair);
         this.ctx.acceptWebSocket(server);
         return new Response(null, { status: 101, webSocket: client });
+      }
+      case '/storage/put': {
+        await this.ctx.storage.put('test-key', 'test-value');
+        return new Response('Stored');
+      }
+      case '/storage/get': {
+        const value = await this.ctx.storage.get('test-key');
+        return new Response(`Got: ${value}`);
+      }
     }
     return new Response('DO is fine');
   }

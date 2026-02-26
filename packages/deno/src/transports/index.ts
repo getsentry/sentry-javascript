@@ -14,7 +14,7 @@ export function makeFetchTransport(options: BaseTransportOptions): Transport {
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(`Sentry SDK requires 'net' permission to send events.
-    Run with '--allow-net=${url.host}' to grant the requires permissions.`);
+    Run with '--allow-net=${url.host}' to grant the required permissions.`);
         });
       }
     })

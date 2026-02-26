@@ -81,19 +81,23 @@ export function instrumentFetchRequest(
 
   const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
-  if (handlerData.endTimestamp && shouldCreateSpanResult) {
+  if (handlerData.endTimestamp) {
     const spanId = handlerData.fetchData.__span;
     if (!spanId) return;
 
     const span = spans[spanId];
-    if (span) {
-      endSpan(span, handlerData);
 
-      _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+    if (span) {
+      // Only end the span and call hooks if we're actually recording
+      if (shouldCreateSpanResult) {
+        endSpan(span, handlerData);
+        _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
+
     return undefined;
   }
 
