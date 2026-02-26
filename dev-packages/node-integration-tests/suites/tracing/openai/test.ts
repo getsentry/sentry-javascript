@@ -125,7 +125,7 @@ describe('OpenAI integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 18,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 12,
         },
-        description: 'chat gpt-4 stream-response',
+        description: 'chat gpt-4',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
@@ -152,7 +152,7 @@ describe('OpenAI integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 10,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 6,
         },
-        description: 'chat gpt-4 stream-response',
+        description: 'chat gpt-4',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
@@ -167,7 +167,7 @@ describe('OpenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
         },
-        description: 'chat error-model stream-response',
+        description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'internal_error',
@@ -283,7 +283,7 @@ describe('OpenAI integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 18,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 12,
         }),
-        description: 'chat gpt-4 stream-response',
+        description: 'chat gpt-4',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
@@ -314,7 +314,7 @@ describe('OpenAI integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 10,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 6,
         }),
-        description: 'chat gpt-4 stream-response',
+        description: 'chat gpt-4',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
@@ -331,7 +331,7 @@ describe('OpenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
         },
-        description: 'chat error-model stream-response',
+        description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'internal_error',
@@ -975,6 +975,66 @@ describe('OpenAI integration', () => {
                 description: 'chat gpt-4',
                 op: 'gen_ai.chat',
                 status: 'ok',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-vision.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('redacts inline base64 image data in vision requests', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              // Single image vision request
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4o',
+                  [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining('[Blob substitute]'),
+                  [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+                }),
+                description: 'chat gpt-4o',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+              // Multiple images vision request
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4o',
+                  [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining('[Blob substitute]'),
+                  [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+                }),
+                description: 'chat gpt-4o',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+
+    test('preserves regular URLs in image_url (does not redact https links)', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              // The second span (multiple images) should still contain the https URL
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining('https://example.com/image.png'),
+                }),
               }),
             ]),
           },
