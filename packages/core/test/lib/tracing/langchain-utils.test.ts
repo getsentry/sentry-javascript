@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { extractChatModelRequestAttributes, normalizeLangChainMessages } from '../../../src/tracing/langchain/utils';
 import { GEN_AI_INPUT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
 import type { LangChainMessage } from '../../../src/tracing/langchain/types';
+import { extractChatModelRequestAttributes, normalizeLangChainMessages } from '../../../src/tracing/langchain/utils';
 
 describe('normalizeLangChainMessages', () => {
   it('normalizes messages with _getType()', () => {
@@ -63,7 +63,7 @@ describe('normalizeLangChainMessages', () => {
   });
 
   describe('multimodal content media stripping', () => {
-    const b64Data = 'iVBORw0KGgoAAAANSUhEUgAAAAUA' + 'A'.repeat(200);
+    const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${  'A'.repeat(200)}`;
     const BLOB_SUBSTITUTE = '[Blob substitute]';
 
     it('strips base64 image_url from multimodal array content via _getType()', () => {
@@ -221,7 +221,7 @@ describe('normalizeLangChainMessages', () => {
 });
 
 describe('extractChatModelRequestAttributes with multimodal content', () => {
-  const b64Data = 'iVBORw0KGgoAAAANSUhEUgAAAAUA' + 'A'.repeat(200);
+  const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${  'A'.repeat(200)}`;
 
   it('strips base64 from input messages attribute', () => {
     const serialized = { id: ['langchain', 'chat_models', 'openai'], name: 'ChatOpenAI' };
