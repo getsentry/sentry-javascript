@@ -62,6 +62,76 @@ describe('createConsolaReporter', () => {
   });
 
   describe('message and args handling', () => {
+    describe('calling consola with object-only', () => {
+      it('args=[object] with message key uses only message as log message and other keys as attributes', () => {
+        sentryReporter.log({
+          type: 'log',
+          level: 2,
+          tag: '',
+          // Calling consola with a `message` key like below will format the log object like here in this test
+          args: ['Calling: consola.log({ message: "", time: new Date(), userId: 123, smallObj: { word: "hi" } })'],
+          time: '2026-02-24T10:24:04.477Z',
+          userId: 123,
+          smallObj: { word: 'hi' },
+        });
+        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        expect(call.message).toBe(
+          'Calling: consola.log({ message: "", time: new Date(), userId: 123, smallObj: { word: "hi" } })',
+        );
+        expect(call.attributes).toMatchObject({
+          time: '2026-02-24T10:24:04.477Z',
+          userId: 123,
+          smallObj: { word: 'hi' },
+        });
+      });
+
+      it('args=[object] with no message key uses empty message and object as attributes', () => {
+        sentryReporter.log({
+          type: 'log',
+          level: 2,
+          tag: '',
+          args: [
+            {
+              noMessage: 'Calling: consola.log({ noMessage: "", time: new Date() })',
+              time: '2026-02-24T10:24:04.477Z',
+            },
+          ],
+        });
+        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        expect(call.message).toBe(
+          '{"noMessage":"Calling: consola.log({ noMessage: \\"\\", time: new Date() })","time":"2026-02-24T10:24:04.477Z"}',
+        );
+        expect(call.attributes).toMatchObject({
+          noMessage: 'Calling: consola.log({ noMessage: "", time: new Date() })',
+          time: '2026-02-24T10:24:04.477Z',
+        });
+      });
+
+      it('args=[object with message] keeps message in attributes only (e.g. .raw())', () => {
+        sentryReporter.log({
+          type: 'log',
+          level: 2,
+          tag: '',
+          args: [
+            {
+              message: 'Calling: consola.raw({ message: "", userId: 123, smallObj: { word: "hi" } })',
+              userId: 123,
+              smallObj: { word: 'hi' },
+            },
+          ],
+        });
+        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        expect(call.message).toBe(
+          '{"message":"Calling: consola.raw({ message: \\"\\", userId: 123, smallObj: { word: \\"hi\\" } })","userId":123,"smallObj":{"word":"hi"}}',
+        );
+        expect(call.attributes).toMatchObject({
+          message: 'Calling: consola.raw({ message: "", userId: 123, smallObj: { word: "hi" } })',
+          userId: 123,
+          smallObj: { word: 'hi' },
+        });
+      });
+    });
+
     it('should format message from args', () => {
       const logObj = {
         type: 'info',
