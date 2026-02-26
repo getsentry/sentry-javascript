@@ -1,7 +1,7 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import {
-  _INTERNAL_cleanupToolCallSpan,
+  _INTERNAL_cleanupToolCallSpanContextContext,
   _INTERNAL_getSpanContextForToolCallId,
   addNonEnumerableProperty,
   captureException,
@@ -99,7 +99,7 @@ function checkResultForToolErrors(result: unknown): void {
   for (const item of resultObj.content) {
     // Successful tool calls should not keep toolCallId -> span context mappings alive.
     if (isToolResultPart(item)) {
-      _INTERNAL_cleanupToolCallSpan(item.toolCallId);
+      _INTERNAL_cleanupToolCallSpanContext(item.toolCallId);
       continue;
     }
 
@@ -149,7 +149,7 @@ function checkResultForToolErrors(result: unknown): void {
 
     // Clean up the span mapping since we've processed this tool error
     // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
-    _INTERNAL_cleanupToolCallSpan(item.toolCallId);
+    _INTERNAL_cleanupToolCallSpanContext(item.toolCallId);
   }
 }
 

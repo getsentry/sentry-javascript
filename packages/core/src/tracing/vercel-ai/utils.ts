@@ -84,7 +84,7 @@ export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolC
 /**
  * Clean up the span mapping for a tool call ID
  */
-export function _INTERNAL_cleanupToolCallSpan(toolCallId: string): void {
+export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
   toolCallSpanContextMap.delete(toolCallId);
 }
 
