@@ -393,13 +393,13 @@ function defaultExtractAttributes(
   } else {
     const followingArgs = args.slice(1);
 
-    const hasStringSubstitutions =
+    const shouldAddTemplateAttr =
       followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg);
 
     return {
       message,
-      messageTemplate: hasStringSubstitutions ? firstArg : undefined,
-      messageParameters: hasStringSubstitutions ? followingArgs : undefined,
+      messageTemplate: shouldAddTemplateAttr ? firstArg : undefined,
+      messageParameters: shouldAddTemplateAttr ? followingArgs : undefined,
     };
   }
 }
