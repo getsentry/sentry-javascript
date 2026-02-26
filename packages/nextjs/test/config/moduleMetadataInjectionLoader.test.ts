@@ -25,7 +25,7 @@ function createLoaderThis(
 describe('moduleMetadataInjectionLoader', () => {
   it('should inject metadata snippet into simple code', () => {
     const loaderThis = createLoaderThis('my-app');
-    const userCode = 'import * as Sentry from \'@sentry/nextjs\';\nSentry.init();';
+    const userCode = "import * as Sentry from '@sentry/nextjs';\nSentry.init();";
 
     const result = moduleMetadataInjectionLoader.call(loaderThis, userCode);
 

@@ -62,11 +62,7 @@ export function constructTurbopackConfig({
   // `condition` field in Turbopack rules (Next.js 16+). Without `condition: { not: 'foreign' }`,
   // the loader would tag node_modules as first-party, defeating the purpose.
   const applicationKey = userSentryOptions?._experimental?.turbopackApplicationKey;
-  if (
-    applicationKey &&
-    nextJsVersion &&
-    supportsTurbopackRuleCondition(nextJsVersion)
-  ) {
+  if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
       rule: {
