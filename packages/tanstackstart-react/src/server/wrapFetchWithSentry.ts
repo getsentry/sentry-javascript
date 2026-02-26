@@ -50,7 +50,6 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
               'tanstackstart.function.hash.sha256': functionSha256,
             };
 
-            // eslint-disable-next-line no-return-await
             return await startSpan(
               {
                 op: op,
@@ -63,7 +62,6 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             );
           }
 
-          // eslint-disable-next-line no-return-await
           return await target.apply(thisArg, args);
         } finally {
           await flushIfServerless();

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
-import * as glob from 'glob';
+import { globSync } from 'glob';
 import * as path from 'path';
 import * as YAML from 'yaml';
 
@@ -19,7 +19,7 @@ const sentryScopedPackagesInVerdaccioConfig = Object.keys(verdaccioConfig.packag
   packageName.startsWith('@sentry/'),
 );
 
-const packageJsonPaths = glob.sync('packages/*/package.json', {
+const packageJsonPaths = globSync('packages/*/package.json', {
   cwd: repositoryRoot,
   absolute: true,
 });
