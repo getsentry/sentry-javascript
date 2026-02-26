@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "10.39.0",
+  "version": "10.40.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -21,13 +21,12 @@
     "clean:pnpm": "pnpm store prune"
   },
   "devDependencies": {
-    "@types/glob": "8.0.0",
     "@types/node": "^18.19.1",
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "eslint-plugin-regexp": "^1.15.0",
-    "glob": "8.0.3",
-    "rimraf": "^5.0.10",
+    "glob": "^13.0.6",
+    "rimraf": "^6.1.3",
     "ts-node": "10.9.2",
     "yaml": "2.8.2"
   },

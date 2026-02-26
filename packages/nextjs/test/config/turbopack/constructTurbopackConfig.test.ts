@@ -874,6 +874,68 @@ describe('constructTurbopackConfig', () => {
   });
 });
 
+describe('condition field version gating', () => {
+  it('should include condition field for Next.js 16+', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      nextJsVersion: '16.0.0',
+    });
+
+    const serverRule = result.rules!['**/instrumentation.*'] as { condition?: unknown; loaders: unknown[] };
+    expect(serverRule.condition).toEqual({ not: 'foreign' });
+  });
+
+  it('should include condition field for Next.js 17+', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      routeManifest: { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] },
+      nextJsVersion: '17.0.0',
+    });
+
+    const clientRule = result.rules!['**/instrumentation-client.*'] as { condition?: unknown; loaders: unknown[] };
+    const serverRule = result.rules!['**/instrumentation.*'] as { condition?: unknown; loaders: unknown[] };
+    expect(clientRule.condition).toEqual({ not: 'foreign' });
+    expect(serverRule.condition).toEqual({ not: 'foreign' });
+  });
+
+  it('should not include condition field for Next.js 15.x', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      nextJsVersion: '15.4.1',
+    });
+
+    const serverRule = result.rules!['**/instrumentation.*'] as { condition?: unknown; loaders: unknown[] };
+    expect(serverRule).not.toHaveProperty('condition');
+  });
+
+  it('should not include condition field for Next.js 14.x', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      nextJsVersion: '14.2.0',
+    });
+
+    const serverRule = result.rules!['**/instrumentation.*'] as { condition?: unknown; loaders: unknown[] };
+    expect(serverRule).not.toHaveProperty('condition');
+  });
+
+  it('should not include condition field when nextJsVersion is undefined', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({ userNextConfig });
+
+    const serverRule = result.rules!['**/instrumentation.*'] as { condition?: unknown; loaders: unknown[] };
+    expect(serverRule).not.toHaveProperty('condition');
+  });
+});
+
 describe('safelyAddTurbopackRule', () => {
   const mockRule = {
     loaders: [

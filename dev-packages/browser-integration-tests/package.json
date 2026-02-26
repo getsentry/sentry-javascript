@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.39.0",
+  "version": "10.40.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -60,7 +60,7 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/rrweb": "2.34.0",
-    "@sentry/browser": "10.39.0",
+    "@sentry/browser": "10.40.0",
     "@supabase/supabase-js": "2.49.3",
     "axios": "^1.12.2",
     "babel-loader": "^10.0.0",
@@ -69,10 +69,9 @@
     "webpack": "^5.95.0"
   },
   "devDependencies": {
-    "@types/glob": "8.0.0",
     "@types/node": "^18.19.1",
     "eslint-plugin-regexp": "^1.15.0",
-    "glob": "8.0.3"
+    "glob": "^13.0.6"
   },
   "volta": {
     "extends": "../../package.json"
