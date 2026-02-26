@@ -7,6 +7,12 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
+  integrations: [
+    Sentry.thirdPartyErrorFilterIntegration({
+      filterKeys: ['nextjs-16-e2e'],
+      behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+    }),
+  ],
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;

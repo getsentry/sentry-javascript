@@ -10,5 +10,6 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   _experimental: {
     vercelCronsMonitoring: true,
+    turbopackApplicationKey: 'nextjs-16-e2e',
   },
 });
