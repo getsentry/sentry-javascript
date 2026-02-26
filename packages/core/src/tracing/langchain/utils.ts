@@ -82,14 +82,18 @@ function asString(v: unknown): string {
  * // would end up in span attributes, since downstream stripping only works on objects.
  */
 function normalizeContent(v: unknown): string {
-  if (Array.isArray(v)) {
-    const stripped = v.map(part =>
-      part && typeof part === 'object' && isContentMedia(part) ? stripInlineMediaFromSingleMessage(part) : part,
-    );
-    return JSON.stringify(stripped);
-  }
-  if (v && typeof v === 'object' && isContentMedia(v)) {
-    return JSON.stringify(stripInlineMediaFromSingleMessage(v));
+  try {
+    if (Array.isArray(v)) {
+      const stripped = v.map(part =>
+        part && typeof part === 'object' && isContentMedia(part) ? stripInlineMediaFromSingleMessage(part) : part,
+      );
+      return JSON.stringify(stripped);
+    }
+    if (v && typeof v === 'object' && isContentMedia(v)) {
+      return JSON.stringify(stripInlineMediaFromSingleMessage(v));
+    }
+  } catch {
+    return String(v);
   }
   return asString(v);
 }
