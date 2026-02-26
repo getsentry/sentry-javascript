@@ -62,7 +62,6 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             );
           }
 
-           
           return await target.apply(thisArg, args);
         } finally {
           await flushIfServerless();
