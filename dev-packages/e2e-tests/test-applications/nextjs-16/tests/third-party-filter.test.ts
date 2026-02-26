@@ -2,7 +2,6 @@ import test, { expect } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('First-party error should not be tagged as third-party code', async ({ page }) => {
-
   const errorPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.some(value => value.value === 'first-party-error') ?? false;
   });
