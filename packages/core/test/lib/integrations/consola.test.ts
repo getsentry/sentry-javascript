@@ -62,7 +62,7 @@ describe('createConsolaReporter', () => {
   });
 
   describe('message and args handling', () => {
-    it('should format message from args when message is not provided', () => {
+    it('should format message from args', () => {
       const logObj = {
         type: 'info',
         args: ['Hello', 'world', 123, { key: 'value' }],
@@ -99,6 +99,51 @@ describe('createConsolaReporter', () => {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
         },
+      });
+    });
+
+    it('consola-merged: args=[message] with extra keys on log object', () => {
+      sentryReporter.log({
+        type: 'log',
+        level: 2,
+        args: ['Hello', 'world', { some: 'obj' }],
+        userId: 123,
+        action: 'login',
+        time: '2026-02-24T10:24:04.477Z',
+        smallObj: { firstLevel: { secondLevel: { thirdLevel: { fourthLevel: 'deep' } } } },
+        tag: '',
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+
+      // Message from args
+      expect(call.message).toBe('Hello world {"some":"obj"}');
+      expect(call.attributes).toMatchObject({
+        'consola.type': 'log',
+        'consola.level': 2,
+        userId: 123,
+        smallObj: { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
+        action: 'login',
+        time: '2026-02-24T10:24:04.477Z',
+        'sentry.origin': 'auto.log.consola',
+      });
+      expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
+    });
+
+    it('capturing custom keys mimicking direct reporter.log({ type, message, userId, sessionId })', () => {
+      sentryReporter.log({
+        type: 'info',
+        message: 'User action',
+        userId: 123,
+        sessionId: 'abc-123',
+      });
+
+      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      expect(call.message).toBe('User action');
+      expect(call.attributes).toMatchObject({
+        'consola.type': 'info',
+        userId: 123,
+        sessionId: 'abc-123',
       });
     });
   });
@@ -205,53 +250,6 @@ describe('createConsolaReporter', () => {
       });
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(6);
-    });
-  });
-
-  describe('message and args handling', () => {
-    it('consola-merged: args=[message] with extra keys on log object', () => {
-      sentryReporter.log({
-        type: 'log',
-        level: 2,
-        args: ['Hello', 'world', { some: 'obj' }],
-        userId: 123,
-        action: 'login',
-        time: '2026-02-24T10:24:04.477Z',
-        smallObj: { firstLevel: { secondLevel: { thirdLevel: { fourthLevel: 'deep' } } } },
-        tag: '',
-      });
-
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
-
-      // Message from args
-      expect(call.message).toBe('Hello world {"some":"obj"}');
-      expect(call.attributes).toMatchObject({
-        'consola.type': 'log',
-        'consola.level': 2,
-        userId: 123,
-        smallObj: { firstLevel: { secondLevel: { thirdLevel: '[Object]' } } }, // Object is normalized
-        action: 'login',
-        time: '2026-02-24T10:24:04.477Z',
-        'sentry.origin': 'auto.log.consola',
-      });
-      expect(call.attributes?.['sentry.message.parameter.0']).toBeUndefined();
-    });
-
-    it('capturing custom keys mimicking `log({ message: "", ... })` or direct reporter.log({ type, message, userId, sessionId })', () => {
-      sentryReporter.log({
-        type: 'info',
-        message: 'User action',
-        userId: 123,
-        sessionId: 'abc-123',
-      });
-
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
-      expect(call.message).toBe('User action');
-      expect(call.attributes).toMatchObject({
-        'consola.type': 'info',
-        userId: 123,
-        sessionId: 'abc-123',
-      });
     });
   });
 });
