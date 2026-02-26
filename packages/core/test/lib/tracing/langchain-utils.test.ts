@@ -63,7 +63,7 @@ describe('normalizeLangChainMessages', () => {
   });
 
   describe('multimodal content media stripping', () => {
-    const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${  'A'.repeat(200)}`;
+    const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${'A'.repeat(200)}`;
     const BLOB_SUBSTITUTE = '[Blob substitute]';
 
     it('strips base64 image_url from multimodal array content via _getType()', () => {
@@ -221,7 +221,7 @@ describe('normalizeLangChainMessages', () => {
 });
 
 describe('extractChatModelRequestAttributes with multimodal content', () => {
-  const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${  'A'.repeat(200)}`;
+  const b64Data = `iVBORw0KGgoAAAANSUhEUgAAAAUA${'A'.repeat(200)}`;
 
   it('strips base64 from input messages attribute', () => {
     const serialized = { id: ['langchain', 'chat_models', 'openai'], name: 'ChatOpenAI' };
