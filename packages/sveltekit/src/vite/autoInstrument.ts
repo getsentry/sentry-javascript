@@ -1,10 +1,11 @@
+import * as acorn from 'acorn';
+import { tsPlugin } from '@sveltejs/acorn-typescript';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as recast from 'recast';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import { parser } from './recastTypescriptParser';
-import t = recast.types.namedTypes;
+
+const AcornParser = acorn.Parser.extend(tsPlugin());
 
 export type AutoInstrumentSelection = {
   /**
@@ -123,23 +124,21 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
 
-  const ast = recast.parse(code, {
-    parser,
-  });
-
-  const program = (ast as { program?: t.Program }).program;
-
-  if (!program) {
+  let program: acorn.Program;
+  try {
+    program = AcornParser.parse(code, {
+      sourceType: 'module',
+      ecmaVersion: 'latest',
+      locations: true,
+    });
+  } catch {
     // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
     return false;
   }
 
   const hasLoadDeclaration = program.body
-    .filter(
-      (statement): statement is recast.types.namedTypes.ExportNamedDeclaration =>
-        statement.type === 'ExportNamedDeclaration',
-    )
+    .filter((statement): statement is acorn.ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
     .find(exportDecl => {
       // find `export const load = ...`
       if (exportDecl.declaration?.type === 'VariableDeclaration') {
@@ -160,11 +159,8 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
         return exportDecl.specifiers.find(specifier => {
           return (
             (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
-            // Type casting here because somehow the 'exportExtensions' plugin isn't reflected in the possible types
-            // This plugin adds support for exporting something as a string literal (see comment above)
-            // Doing this to avoid adding another babel plugin dependency
-            ((specifier.exported.type as 'StringLiteral' | '') === 'StringLiteral' &&
-              (specifier.exported as unknown as t.StringLiteral).value === 'load')
+            // ESTree/acorn represents `export { x as "load" }` with a Literal node (not Babel's StringLiteral)
+            (specifier.exported.type === 'Literal' && specifier.exported.value === 'load')
           );
         });
       }

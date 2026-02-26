@@ -47,18 +47,17 @@
     }
   },
   "dependencies": {
-    "@babel/parser": "7.26.9",
     "@sentry/cloudflare": "10.44.0",
     "@sentry/core": "10.44.0",
     "@sentry/node": "10.44.0",
     "@sentry/svelte": "10.44.0",
     "@sentry/vite-plugin": "^5.1.0",
+    "@sveltejs/acorn-typescript": "^1.0.9",
+    "acorn": "^8.14.0",
     "magic-string": "~0.30.0",
-    "recast": "0.23.11",
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@babel/types": "^7.26.3",
     "@sveltejs/kit": "^2.53.3",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
