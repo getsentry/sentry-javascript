@@ -50,7 +50,6 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
               'tanstackstart.function.hash.sha256': functionSha256,
             };
 
-             
             return await startSpan(
               {
                 op: op,
