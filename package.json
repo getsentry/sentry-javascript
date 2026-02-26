@@ -91,6 +91,7 @@
     "packages/types",
     "packages/typescript",
     "packages/vercel-edge",
+    "packages/vinext",
     "packages/vue",
     "packages/wasm",
     "dev-packages/browser-integration-tests",
