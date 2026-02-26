@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  extractChatModelRequestAttributes,
-  normalizeLangChainMessages,
-} from '../../../src/tracing/langchain/utils';
+import { extractChatModelRequestAttributes, normalizeLangChainMessages } from '../../../src/tracing/langchain/utils';
 import { GEN_AI_INPUT_MESSAGES_ATTRIBUTE } from '../../../src/tracing/ai/gen-ai-attributes';
 import type { LangChainMessage } from '../../../src/tracing/langchain/types';
 
