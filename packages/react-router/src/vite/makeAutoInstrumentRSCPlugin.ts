@@ -6,6 +6,8 @@ import type { AutoInstrumentRSCOptions } from './types';
 
 import t = recast.types.namedTypes;
 
+type AutoInstrumentRSCPluginOptions = AutoInstrumentRSCOptions & { debug?: boolean };
+
 const JS_EXTENSIONS_RE = /\.(ts|tsx|js|jsx|mjs|mts)$/;
 const JS_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 const WRAPPED_MODULE_SUFFIX = '?sentry-rsc-wrap';
@@ -227,7 +229,7 @@ export function getServerFunctionWrapperCode(
 }
 
 /** @experimental May change in minor releases. */
-export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCOptions = {}): Plugin {
+export function makeAutoInstrumentRSCPlugin(options: AutoInstrumentRSCPluginOptions = {}): Plugin {
   const { enabled = true, debug = false } = options;
 
   let rscDetected = false;

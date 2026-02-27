@@ -94,10 +94,4 @@ export type AutoInstrumentRSCOptions = {
    * @default false
    */
   enabled?: boolean;
-
-  /**
-   * Enable debug logging to see which files are being instrumented.
-   * @default false
-   */
-  debug?: boolean;
 };
