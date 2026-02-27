@@ -76,7 +76,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `packages/core/src/tracing/{provider}/` — Core instrumentation
 - `packages/node/src/integrations/tracing/{provider}/` — Node.js integration + OTel
 - `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime
-- See `.cursor/rules/adding-a-new-ai-integration.mdc` for implementation guide
+- Use `/add-ai-integration` skill when adding or modifying integrations
 
 ### User Experience
 
@@ -98,6 +98,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
 
+## Reference Documentation
+
+- [Span Attributes](https://develop.sentry.dev/sdk/telemetry/attributes.md)
+- [Scopes (global, isolation, current)](https://develop.sentry.dev/sdk/telemetry/scopes.md)
+
 ## Skills
 
 ### E2E Testing
@@ -115,3 +120,19 @@ Use `/triage-issue` skill. See `.claude/skills/triage-issue/SKILL.md`
 ### CDN Bundles
 
 Use `/add-cdn-bundle` skill. See `.claude/skills/add-cdn-bundle/SKILL.md`
+
+### Publishing a Release
+
+Use `/release` skill. See `.claude/skills/release/SKILL.md`
+
+### Dependency Upgrades
+
+Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
+
+### OpenTelemetry Instrumentation Upgrades
+
+Use `/upgrade-otel` skill. See `.claude/skills/upgrade-otel/SKILL.md`
+
+### AI Integration
+
+Use `/add-ai-integration` skill. See `.claude/skills/add-ai-integration/SKILL.md`
