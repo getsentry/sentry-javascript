@@ -155,8 +155,12 @@ function resolveFullRoutePath(
   routes: Record<string, { path?: string; parentId?: string } | undefined>,
 ): string | undefined {
   const parts: string[] = [];
+  // Guard against circular parentId references in corrupted route manifests
+  const seen = new Set<string>();
   let currentId: string | undefined = routeId;
   while (currentId) {
+    if (seen.has(currentId)) break;
+    seen.add(currentId);
     const route: { path?: string; parentId?: string } | undefined = routes[currentId];
     if (!route) break;
     if (route.path) {
