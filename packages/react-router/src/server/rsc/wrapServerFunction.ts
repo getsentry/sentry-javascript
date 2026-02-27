@@ -9,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  startSpan,
+  startSpanManual,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import { isNotFoundResponse, isRedirectResponse } from './responseUtils';
@@ -58,7 +58,9 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
 
       const hasActiveSpan = !!getActiveSpan();
 
-      return startSpan(
+      // startSpanManual is used instead of startSpan because startSpan's error handler
+      // would overwrite the intentional SPAN_STATUS_OK set for redirect responses.
+      return startSpanManual(
         {
           name: spanName,
           forceTransaction: !hasActiveSpan,
@@ -73,15 +75,18 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
         async span => {
           try {
             const result = await originalFunction.apply(thisArg, args);
+            span.end();
             return result;
           } catch (error) {
             if (isRedirectResponse(error)) {
               span.setStatus({ code: SPAN_STATUS_OK });
+              span.end();
               throw error;
             }
 
             if (isNotFoundResponse(error)) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+              span.end();
               throw error;
             }
 
@@ -97,6 +102,7 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
                 },
               },
             });
+            span.end();
             throw error;
           } finally {
             await flushIfServerless();

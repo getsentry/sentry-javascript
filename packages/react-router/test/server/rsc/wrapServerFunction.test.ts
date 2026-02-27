@@ -6,7 +6,7 @@ vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    startSpan: vi.fn(),
+    startSpanManual: vi.fn(),
     getIsolationScope: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn().mockResolvedValue(undefined),
@@ -25,7 +25,7 @@ describe('wrapServerFunction', () => {
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn(), end: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
     const result = await wrappedFn('arg1', 'arg2');
@@ -34,7 +34,7 @@ describe('wrapServerFunction', () => {
     expect(mockServerFn).toHaveBeenCalledWith('arg1', 'arg2');
     expect(core.getIsolationScope).toHaveBeenCalled();
     expect(mockSetTransactionName).toHaveBeenCalledWith('serverFunction/testFunction');
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(core.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'serverFunction/testFunction',
         forceTransaction: true,
@@ -56,12 +56,12 @@ describe('wrapServerFunction', () => {
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.getActiveSpan as any).mockReturnValue({ spanId: 'existing-span' });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn(), end: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
     await wrappedFn();
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(core.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         forceTransaction: false,
       }),
@@ -74,7 +74,7 @@ describe('wrapServerFunction', () => {
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn(), end: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn, {
       name: 'Custom Span Name',
@@ -82,7 +82,7 @@ describe('wrapServerFunction', () => {
     await wrappedFn();
 
     expect(mockSetTransactionName).toHaveBeenCalledWith('Custom Span Name');
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(core.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Custom Span Name',
       }),
@@ -95,14 +95,14 @@ describe('wrapServerFunction', () => {
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn(), end: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn, {
       attributes: { 'custom.attr': 'value' },
     });
     await wrappedFn();
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(core.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           [core.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.rsc.server_function',
@@ -117,10 +117,13 @@ describe('wrapServerFunction', () => {
     const mockError = new Error('Server function failed');
     const mockServerFn = vi.fn().mockRejectedValue(mockError);
     const mockSetStatus = vi.fn();
+    const mockEnd = vi.fn();
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) =>
+      fn({ setStatus: mockSetStatus, end: mockEnd }),
+    );
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
@@ -136,6 +139,7 @@ describe('wrapServerFunction', () => {
         },
       },
     });
+    expect(mockEnd).toHaveBeenCalled();
     expect(core.flushIfServerless).toHaveBeenCalled();
   });
 
@@ -146,15 +150,19 @@ describe('wrapServerFunction', () => {
     });
     const mockServerFn = vi.fn().mockRejectedValue(redirectResponse);
     const mockSetStatus = vi.fn();
+    const mockEnd = vi.fn();
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) =>
+      fn({ setStatus: mockSetStatus, end: mockEnd }),
+    );
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toBe(redirectResponse);
     expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_OK });
+    expect(mockEnd).toHaveBeenCalled();
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
@@ -162,15 +170,19 @@ describe('wrapServerFunction', () => {
     const notFoundResponse = new Response(null, { status: 404 });
     const mockServerFn = vi.fn().mockRejectedValue(notFoundResponse);
     const mockSetStatus = vi.fn();
+    const mockEnd = vi.fn();
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) =>
+      fn({ setStatus: mockSetStatus, end: mockEnd }),
+    );
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
     await expect(wrappedFn()).rejects.toBe(notFoundResponse);
     expect(mockSetStatus).toHaveBeenCalledWith({ code: core.SPAN_STATUS_ERROR, message: 'not_found' });
+    expect(mockEnd).toHaveBeenCalled();
     expect(core.captureException).not.toHaveBeenCalled();
   });
 
@@ -180,7 +192,7 @@ describe('wrapServerFunction', () => {
     const mockSetTransactionName = vi.fn();
 
     (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
-    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (core.startSpanManual as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn(), end: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
 
