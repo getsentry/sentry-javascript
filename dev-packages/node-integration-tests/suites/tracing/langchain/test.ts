@@ -376,4 +376,41 @@ describe('LangChain integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('uses runName for chain spans instead of unknown_chain', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: 'chain format_prompt',
+                op: 'gen_ai.invoke_agent',
+                origin: 'auto.ai.langchain',
+                data: expect.objectContaining({
+                  'langchain.chain.name': 'format_prompt',
+                }),
+              }),
+              expect.objectContaining({
+                description: 'chain parse_output',
+                op: 'gen_ai.invoke_agent',
+                origin: 'auto.ai.langchain',
+                data: expect.objectContaining({
+                  'langchain.chain.name': 'parse_output',
+                }),
+              }),
+              expect.objectContaining({
+                description: 'chat claude-3-5-sonnet-20241022',
+                op: 'gen_ai.chat',
+                origin: 'auto.ai.langchain',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
