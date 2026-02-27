@@ -49,7 +49,7 @@ test.describe('server - instrumentation API middleware', () => {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
         'sentry.op': 'function.react_router.middleware',
         'react_router.route.id': 'routes/performance/with-middleware',
-        'react_router.route.pattern': '/performance/with-middleware',
+        'http.route': '/performance/with-middleware',
         'react_router.middleware.index': 0,
       }),
       parent_span_id: expect.any(String),

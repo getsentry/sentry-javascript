@@ -198,7 +198,7 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
-                'react_router.route.pattern': routePattern,
+                [ATTR_HTTP_ROUTE]: routePattern,
                 ...(middlewareName && { 'react_router.middleware.name': middlewareName }),
                 'react_router.middleware.index': middlewareIndex,
               },

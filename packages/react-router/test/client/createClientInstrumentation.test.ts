@@ -483,7 +483,7 @@ describe('createSentryClientInstrumentation', () => {
           'sentry.op': 'function.react_router.client_middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
-          'react_router.route.pattern': '/users/:id',
+          'http.route': '/users/:id',
           'react_router.middleware.index': 0,
         }),
       }),

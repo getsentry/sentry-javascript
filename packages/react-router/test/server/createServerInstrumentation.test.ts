@@ -360,7 +360,7 @@ describe('createSentryServerInstrumentation', () => {
           'sentry.op': 'function.react_router.middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
-          'react_router.route.pattern': '/users/:id',
+          'http.route': '/users/:id',
           'react_router.middleware.index': 0,
         }),
       }),
@@ -390,7 +390,7 @@ describe('createSentryServerInstrumentation', () => {
         attributes: expect.objectContaining({
           'sentry.op': 'function.react_router.middleware',
           'react_router.route.id': 'routes/protected',
-          'react_router.route.pattern': '/protected',
+          'http.route': '/protected',
           'react_router.middleware.name': 'authMiddleware',
           'react_router.middleware.index': 0,
         }),

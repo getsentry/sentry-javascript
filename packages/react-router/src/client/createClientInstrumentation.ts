@@ -288,7 +288,7 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
-                'react_router.route.pattern': routePattern,
+                'http.route': routePattern,
                 'react_router.middleware.index': middlewareIndex,
               },
             },
