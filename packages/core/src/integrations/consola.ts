@@ -9,7 +9,7 @@ import { normalize } from '../utils/normalize';
 /**
  * Result of extracting structured attributes from console arguments.
  */
-export interface ExtractAttributesResult {
+interface ExtractAttributesResult {
   /**
    * The log message to use for the log entry, typically constructed from the console arguments.
    */
