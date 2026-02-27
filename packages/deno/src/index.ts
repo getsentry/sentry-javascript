@@ -78,6 +78,7 @@ export {
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
