@@ -62,6 +62,7 @@ export function eventEnvelope(
   event: Event,
   { includeSampleRand = false, sdk = 'cloudflare' }: { includeSampleRand?: boolean; sdk?: 'cloudflare' | 'hono' } = {},
 ): Envelope {
+  console.log('version::', SDK_VERSION);
   return [
     {
       event_id: UUID_MATCHER,

@@ -8,7 +8,7 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
       eventEnvelope(
         {
           level: 'error',
-          transaction: 'GET /error',
+          transaction: 'GET /error/:param',
           exception: {
             values: [
               {
@@ -24,12 +24,16 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
           request: {
             headers: expect.any(Object),
             method: 'GET',
-            url: expect.any(String),
+            url: 'http://localhost:8787/error/param-123',
           },
         },
         { includeSampleRand: true, sdk: 'hono' },
       ),
     )
+    .expect(envelope => {
+      console.log('event::', JSON.stringify(envelope, null, 2));
+    })
+
     .expect(envelope => {
       const [, envelopeItems] = envelope;
       const [itemHeader, itemPayload] = envelopeItems[0];
@@ -39,7 +43,7 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
       expect(itemPayload).toMatchObject({
         type: 'transaction',
         platform: 'javascript',
-        transaction: 'GET /error',
+        transaction: 'GET /error/:param',
         contexts: {
           trace: {
             span_id: expect.any(String),
@@ -51,7 +55,7 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
         },
         request: expect.objectContaining({
           method: 'GET',
-          url: expect.stringContaining('/error'),
+          url: expect.stringContaining('/error/param-123'),
         }),
       });
     })
@@ -59,7 +63,7 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
     .unordered()
     .start(signal);
 
-  await runner.makeRequest('get', '/error', { expectError: true });
+  await runner.makeRequest('get', '/error/param-123', { expectError: true });
   await runner.completed();
 });
 
