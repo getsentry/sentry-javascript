@@ -6,6 +6,29 @@
 
 ### Important Changes
 
+- **feat(core,cloudflare,deno): Add `instrumentPostgresJsSql` instrumentation**
+
+  Added a new instrumentation helper for the [`postgres`](https://github.com/porsager/postgres) (postgres.js) library, designed for
+  SDKs that are not based on OpenTelemetry (e.g. Cloudflare, Deno). This wraps a postgres.js `sql` tagged template instance so that
+  all queries automatically create Sentry spans.
+
+  ```javascript
+  import postgres from 'postgres';
+  import * as Sentry from '@sentry/cloudflare'; // or '@sentry/deno'
+
+  export default Sentry.withSentry(env => ({ dsn: '__DSN__' }), {
+    async fetch(request, env, ctx) {
+      const sql = Sentry.instrumentPostgresJsSql(postgres(env.DATABASE_URL));
+
+      // All queries now create Sentry spans
+      const users = await sql`SELECT * FROM users WHERE id = ${userId}`;
+      return Response.json(users);
+    },
+  });
+  ```
+
+  The instrumentation is available in `@sentry/core`, `@sentry/cloudflare`, and `@sentry/deno`.
+
 - **feat(nextjs): Add Turbopack support for `thirdPartyErrorFilterIntegration` ([#19542](https://github.com/getsentry/sentry-javascript/pull/19542))**
 
   We added experimental support for the `thirdPartyErrorFilterIntegration` with Turbopack builds.
