@@ -8502,10 +8502,10 @@
   resolved "https://registry.yarnpkg.com/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.8.tgz#69c746a7c232094c117c50dedbd1279fc64887b7"
   integrity sha512-esgN+54+q0NjB0Y/4BomT9samII7jGwNy/2a3wNZbT2A2RpmXsXwUt24LvLhx6jUq2gVk4cWEvcRO6MFQbOfNA==
 
-"@sveltejs/kit@^2.52.2":
-  version "2.52.2"
-  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.52.2.tgz#8de4a96ef7b54a59ccb2d13f4297da3f22c3ec1d"
-  integrity sha512-1in76dftrofUt138rVLvYuwiQLkg9K3cG8agXEE6ksf7gCGs8oIr3+pFrVtbRmY9JvW+psW5fvLM/IwVybOLBA==
+"@sveltejs/kit@^2.53.3":
+  version "2.53.3"
+  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.53.3.tgz#72283a76e63ca62ddc7f500f47ed4aaf86b2b0c4"
+  integrity sha512-tshOeBUid2v5LAblUpatIdFm5Cyykbw2EiKWOunAAX0A/oJaR7DOdC9wLR5Qqh9zUf3QUISA2m9A3suBdQSYQg==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
     "@sveltejs/acorn-typescript" "^1.0.5"
@@ -28096,6 +28096,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
