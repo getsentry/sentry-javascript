@@ -1,5 +1,5 @@
-import * as acorn from 'acorn';
 import { tsPlugin } from '@sveltejs/acorn-typescript';
+import * as acorn from 'acorn';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
