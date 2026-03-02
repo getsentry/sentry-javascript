@@ -26,12 +26,25 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./effect": {
+      "import": {
+        "types": "./build/types/integrations/effect/index.d.ts",
+        "default": "./build/esm/integrations/effect/index.js"
+      },
+      "require": {
+        "types": "./build/types/integrations/effect/index.d.ts",
+        "default": "./build/cjs/integrations/effect/index.js"
+      }
     }
   },
   "typesVersions": {
     "<5.0": {
       "build/types/index.d.ts": [
         "build/types-ts3.8/index.d.ts"
+      ],
+      "build/types/integrations/effect/index.d.ts": [
+        "build/types-ts3.8/integrations/effect/index.d.ts"
       ]
     }
   },
@@ -62,7 +75,16 @@
     "extends": "../../package.json"
   },
   "sideEffects": false,
+  "peerDependencies": {
+    "effect": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "effect": "^3.19.19",
     "zod": "^3.24.1"
   }
 }
