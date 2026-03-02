@@ -41,6 +41,17 @@
   "dependencies": {
     "@sentry/core": "10.41.0"
   },
+  "peerDependencies": {
+    "effect": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "effect": "^3.19.19"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",

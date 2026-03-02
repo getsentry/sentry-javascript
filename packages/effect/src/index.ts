@@ -89,4 +89,5 @@ export {
 } from '@sentry/core';
 
 export { EffectClient } from './client';
-export { init } from './sdk';
+export { effectLayer } from './layer';
+export type { EffectLayerOptions } from './layer';
