@@ -2,7 +2,6 @@ import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/
 import {
   captureException,
   continueTrace,
-  flush,
   getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
@@ -14,6 +13,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
@@ -95,7 +95,7 @@ export function wrapRequestHandler(
         }
         throw e;
       } finally {
-        waitUntil?.(flush(2000));
+        waitUntil?.(flushAndDispose(client));
       }
     }
 
@@ -122,7 +122,7 @@ export function wrapRequestHandler(
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(client));
             throw e;
           }
 
@@ -149,7 +149,7 @@ export function wrapRequestHandler(
                 } finally {
                   reader.releaseLock();
                   span.end();
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(client));
                 }
               })();
 
@@ -165,14 +165,22 @@ export function wrapRequestHandler(
             } catch (e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(client));
               return res;
             }
           }
 
           // Non-streaming response - end span immediately and return original
           span.end();
-          waitUntil?.(flush(2000));
+
+          // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
+          // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
+          // will still be called and may need the client to capture errors.
+          if (res.status === 101) {
+            waitUntil?.(client?.flush(2000));
+          } else {
+            waitUntil?.(flushAndDispose(client));
+          }
           return res;
         });
       },
