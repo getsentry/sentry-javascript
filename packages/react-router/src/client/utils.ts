@@ -1,3 +1,5 @@
+import { GLOBAL_OBJ } from '@sentry/core';
+
 /**
  * Resolves a navigate argument to a pathname string.
  *
@@ -18,5 +20,5 @@ export function resolveNavigateArg(target: unknown): string {
   }
 
   // Object `to` without pathname - navigation stays on current path
-  return (typeof window !== 'undefined' && window.location?.pathname) || '/';
+  return (GLOBAL_OBJ as typeof GLOBAL_OBJ & Window).location?.pathname || '/';
 }
