@@ -23,10 +23,8 @@ vi.mock('@sentry/core', async () => {
 
 const mockVueRouter = {
   onError: vi.fn<[(error: Error) => void]>(),
-  beforeEach: vi.fn<[(from: Route, to: Route, next?: () => void) => void]>(),
+  beforeEach: vi.fn<[(from: Route, to: Route) => void]>(),
 };
-
-const mockNext = vi.fn();
 
 const testRoutes: Record<string, Route> = {
   initialPageloadRoute: { matched: [], params: {}, path: '', query: {} },
@@ -118,8 +116,8 @@ describe('instrumentVueRouter()', () => {
 
       const from = testRoutes[fromKey]!;
       const to = testRoutes[toKey]!;
-      beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
-      beforeEachCallback(to, from, mockNext);
+      beforeEachCallback(to, testRoutes['initialPageloadRoute']!); // fake initial pageload
+      beforeEachCallback(to, from);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(2);
       expect(mockStartSpan).toHaveBeenLastCalledWith({
@@ -131,8 +129,6 @@ describe('instrumentVueRouter()', () => {
         },
         op: 'navigation',
       });
-
-      expect(mockNext).toHaveBeenCalledTimes(2);
     },
   );
 
@@ -171,7 +167,7 @@ describe('instrumentVueRouter()', () => {
       const from = testRoutes[fromKey]!;
       const to = testRoutes[toKey]!;
 
-      beforeEachCallback(to, from, mockNext);
+      beforeEachCallback(to, from);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       expect(mockRootSpan.updateName).toHaveBeenCalledWith(transactionName);
@@ -180,8 +176,6 @@ describe('instrumentVueRouter()', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
         ...getAttributesForRoute(to),
       });
-
-      expect(mockNext).toHaveBeenCalledTimes(1);
     },
   );
 
@@ -198,8 +192,8 @@ describe('instrumentVueRouter()', () => {
 
     const from = testRoutes.normalRoute1!;
     const to = testRoutes.namedRoute!;
-    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
-    beforeEachCallback(to, from, mockNext);
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!); // fake initial pageload
+    beforeEachCallback(to, from);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartSpan).toHaveBeenLastCalledWith({
@@ -226,8 +220,8 @@ describe('instrumentVueRouter()', () => {
 
     const from = testRoutes.normalRoute1!;
     const to = testRoutes.namedRoute!;
-    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
-    beforeEachCallback(to, from, mockNext);
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!); // fake initial pageload
+    beforeEachCallback(to, from);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartSpan).toHaveBeenLastCalledWith({
@@ -284,7 +278,7 @@ describe('instrumentVueRouter()', () => {
     const to = testRoutes['normalRoute1']!;
     const from = testRoutes['initialPageloadRoute']!;
 
-    beforeEachCallback(to, from, mockNext);
+    beforeEachCallback(to, from);
 
     expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
@@ -318,7 +312,7 @@ describe('instrumentVueRouter()', () => {
     const from = testRoutes['initialPageloadRoute']!;
     const to = testRoutes['normalRoute1']!;
 
-    beforeEachCallback(to, from, mockNext);
+    beforeEachCallback(to, from);
 
     expect(scopeSetTransactionNameSpy).toHaveBeenCalledTimes(1);
     expect(scopeSetTransactionNameSpy).toHaveBeenCalledWith('/books/:bookId/chapter/:chapterId');
@@ -357,7 +351,7 @@ describe('instrumentVueRouter()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
-      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!);
 
       expect(mockRootSpan.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
       expect(mockStartSpan).not.toHaveBeenCalled();
@@ -381,14 +375,14 @@ describe('instrumentVueRouter()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
-      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
-      beforeEachCallback(testRoutes['normalRoute2']!, testRoutes['normalRoute1']!, mockNext);
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!); // fake initial pageload
+      beforeEachCallback(testRoutes['normalRoute2']!, testRoutes['normalRoute1']!);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(expectedCallsAmount);
     },
   );
 
-  it("doesn't throw when `next` is not available in the beforeEach callback (Vue Router 4)", () => {
+  it('does not declare a third parameter to avoid Vue Router next() deprecation warning', () => {
     const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
     instrumentVueRouter(
       mockVueRouter,
@@ -398,21 +392,45 @@ describe('instrumentVueRouter()', () => {
 
     const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1!;
-    const to = testRoutes.namedRoute!;
-    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
-    beforeEachCallback(to, from, undefined);
+    // Vue Router uses Function.length to detect whether the guard uses the legacy
+    // `next` callback. Guards with < 3 params use the modern return-based pattern.
+    expect(beforeEachCallback.length).toBeLessThan(3);
+  });
 
-    // first startTx call happens when the instrumentation is initialized (for pageloads)
-    expect(mockStartSpan).toHaveBeenLastCalledWith({
-      name: '/login',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        ...getAttributesForRoute(to),
-      },
-      op: 'navigation',
-    });
+  it('calls next() for Vue Router 3 (legacy router with mode property)', () => {
+    const mockNext = vi.fn();
+    const mockLegacyRouter = {
+      onError: vi.fn<[(error: Error) => void]>(),
+      beforeEach: vi.fn<[(from: Route, to: Route, next?: () => void) => void]>(),
+      mode: 'history',
+    };
+
+    const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
+    instrumentVueRouter(
+      mockLegacyRouter,
+      { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
+      mockStartSpan,
+    );
+
+    const beforeEachCallback = mockLegacyRouter.beforeEach.mock.calls[0]![0]!;
+    beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
+
+    expect(mockNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call next() for Vue Router 4+ (modern router without mode property)', () => {
+    const mockNext = vi.fn();
+    const mockStartSpan = vi.fn().mockReturnValue(MOCK_SPAN);
+    instrumentVueRouter(
+      mockVueRouter,
+      { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
+      mockStartSpan,
+    );
+
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+    beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
+
+    expect(mockNext).not.toHaveBeenCalled();
   });
 });
 

@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
+import { normalize } from '../utils/normalize';
 
 /**
  * Options for the Sentry Consola reporter.
@@ -61,8 +62,9 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
-   * Allows additional custom properties to be set on the log object.
-   * These properties will be captured as log attributes with a 'consola.' prefix.
+   * Allows additional custom properties to be set on the log object. These properties will be captured as log attributes.
+   *
+   * Additional properties are set when passing a single object with a `message` (`consola.[type]({ message: '', ... })`) or if the reporter is called directly
    *
    * @example
    * ```ts
@@ -73,7 +75,7 @@ export interface ConsolaLogObject {
    *   userId: 123,
    *   sessionId: 'abc-123'
    * });
-   * // Will create attributes: consola.userId and consola.sessionId
+   * // Will create attributes: `userId` and `sessionId`
    * ```
    */
   [key: string]: unknown;
@@ -123,12 +125,19 @@ export interface ConsolaLogObject {
   /**
    * The raw arguments passed to the log method.
    *
-   * When `message` is not provided, these args are typically formatted into the final message.
+   * These args are typically formatted into the final `message`. In Consola reporters, `message` is not provided.
    *
    * @example
    * ```ts
    * consola.info('Hello', 'world', { user: 'john' });
    * // args = ['Hello', 'world', { user: 'john' }]
+   * ```
+   *
+   * @example
+   * ```ts
+   * // `message` is a reserved property in Consola
+   * consola.log({ message: 'Hello' });
+   * // args = ['Hello']
    * ```
    */
   args?: unknown[];
@@ -145,6 +154,10 @@ export interface ConsolaLogObject {
    *
    * When provided, this is the final formatted message. When not provided,
    * the message should be constructed from the `args` array.
+   *
+   * Note: In reporters, `message` is typically undefined. It is primarily for
+   * `consola.[type]({ message: 'xxx' })` usage and is normalized into `args` before
+   * reporters receive the log object. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    */
   message?: string;
 }
@@ -187,8 +200,9 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
   return {
     log(logObj: ConsolaLogObject) {
+      // We need to exclude certain known properties from being added as additional attributes
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { type, level, message: consolaMessage, args, tag, date: _date, ...attributes } = logObj;
+      const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
 
       // Get client - use provided client or current client
       const client = providedClient || getClient();
@@ -216,7 +230,13 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       }
       const message = messageParts.join(' ');
 
+      const attributes: Record<string, unknown> = {};
+
       // Build attributes
+      for (const [key, value] of Object.entries(rest)) {
+        attributes[key] = normalize(value, normalizeDepth, normalizeMaxBreadth);
+      }
+
       attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {

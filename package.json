@@ -133,7 +133,7 @@
     "nx": "22.5.0",
     "oxfmt": "^0.32.0",
     "rimraf": "^5.0.10",
-    "rollup": "^4.35.0",
+    "rollup": "^4.59.0",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
     "size-limit": "~11.1.6",
@@ -149,6 +149,9 @@
     "we need to resolve them to the CommonJS versions."
   ],
   "resolutions": {
+    "**/nx/minimatch": "10.2.4",
+    "**/ng-packagr/postcss-url/minimatch": "3.1.5",
+    "**/@angular-devkit/build-angular/minimatch": "5.1.9",
     "gauge/strip-ansi": "6.0.1",
     "wide-align/string-width": "4.2.3",
     "cliui/wrap-ansi": "7.0.0",

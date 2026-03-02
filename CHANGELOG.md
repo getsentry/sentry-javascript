@@ -4,6 +4,103 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.41.0
+
+### Important Changes
+
+- **feat(core,cloudflare,deno): Add `instrumentPostgresJsSql` instrumentation ([#19566](https://github.com/getsentry/sentry-javascript/pull/19566))**
+
+  Added a new instrumentation helper for the [`postgres`](https://github.com/porsager/postgres) (postgres.js) library, designed for
+  SDKs that are not based on OpenTelemetry (e.g. Cloudflare, Deno). This wraps a postgres.js `sql` tagged template instance so that
+  all queries automatically create Sentry spans.
+
+  ```javascript
+  import postgres from 'postgres';
+  import * as Sentry from '@sentry/cloudflare'; // or '@sentry/deno'
+
+  export default Sentry.withSentry(env => ({ dsn: '__DSN__' }), {
+    async fetch(request, env, ctx) {
+      const sql = Sentry.instrumentPostgresJsSql(postgres(env.DATABASE_URL));
+
+      // All queries now create Sentry spans
+      const users = await sql`SELECT * FROM users WHERE id = ${userId}`;
+      return Response.json(users);
+    },
+  });
+  ```
+
+  The instrumentation is available in `@sentry/core`, `@sentry/cloudflare`, and `@sentry/deno`.
+
+- **feat(nextjs): Add Turbopack support for `thirdPartyErrorFilterIntegration` ([#19542](https://github.com/getsentry/sentry-javascript/pull/19542))**
+
+  We added experimental support for the `thirdPartyErrorFilterIntegration` with Turbopack builds.
+
+  This feature requires Next.js 16+ and is currently behind an experimental flag:
+
+  ```js
+  // next.config.ts
+  import { withSentryConfig } from '@sentry/nextjs';
+
+  export default withSentryConfig(nextConfig, {
+    _experimental: {
+      turbopackApplicationKey: 'my-app-key',
+    },
+  });
+  ```
+
+  Then configure the integration in your client instrumentation file with a matching key:
+
+  ```js
+  // instrumentation-client.ts
+  import * as Sentry from '@sentry/nextjs';
+
+  Sentry.init({
+    integrations: [
+      Sentry.thirdPartyErrorFilterIntegration({
+        filterKeys: ['my-app-key'],
+        behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+      }),
+    ],
+  });
+  ```
+
+### Other Changes
+
+- feat(core,cloudflare): Add dispose to the client for proper cleanup ([#19506](https://github.com/getsentry/sentry-javascript/pull/19506))
+- feat(deps): Bump rxjs from 7.8.1 to 7.8.2 ([#19545](https://github.com/getsentry/sentry-javascript/pull/19545))
+- feat(nextjs): Use `not: foreign` condition in turbopack loaders ([#19502](https://github.com/getsentry/sentry-javascript/pull/19502))
+- feat(react-router): Include middleware function names and indices ([#19109](https://github.com/getsentry/sentry-javascript/pull/19109))
+- fix(consola): Normalize extra keys from consola ([#19511](https://github.com/getsentry/sentry-javascript/pull/19511))
+- fix(core): Improve message truncation for multimodal content and normalize streaming span names ([#19500](https://github.com/getsentry/sentry-javascript/pull/19500))
+- fix(core): Strip inline media from multimodal content before stringification ([#19540](https://github.com/getsentry/sentry-javascript/pull/19540))
+- fix(deps): Bump transitive rollup deps to patch CVE-2026-27606 ([#19565](https://github.com/getsentry/sentry-javascript/pull/19565))
+- fix(langchain): Use runName argument in handleChainStart to fix unknown_chain spans ([#19554](https://github.com/getsentry/sentry-javascript/pull/19554))
+- fix(nestjs): Improve control flow exception filtering ([#19524](https://github.com/getsentry/sentry-javascript/pull/19524))
+- fix(tanstackstart-react): Flush events in server entry point for serverless environments ([#19513](https://github.com/getsentry/sentry-javascript/pull/19513))
+- fix(vue): Avoid triggering deprecated next callback from router instrumentation ([#19476](https://github.com/getsentry/sentry-javascript/pull/19476))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Updating minimatch ([#19434](https://github.com/getsentry/sentry-javascript/pull/19434))
+- chore(agents): Add `dotagents` ([#19526](https://github.com/getsentry/sentry-javascript/pull/19526))
+- chore(agents): Add nested `AGENTS.md` for browser ([#19551](https://github.com/getsentry/sentry-javascript/pull/19551))
+- chore(agents): Add nested `AGENTS.md` for nextjs ([#19556](https://github.com/getsentry/sentry-javascript/pull/19556))
+- chore(agents): Consolidate SDK dev rules into `AGENTS.md` ([#19521](https://github.com/getsentry/sentry-javascript/pull/19521))
+- chore(agents): Migrate repo-wide cursor rules to skills ([#19549](https://github.com/getsentry/sentry-javascript/pull/19549))
+- chore(agents): Remove stale cursor commands ([#19560](https://github.com/getsentry/sentry-javascript/pull/19560))
+- chore(ci): Validate alert id ([#19499](https://github.com/getsentry/sentry-javascript/pull/19499))
+- chore(deps): Bump rollup to 4.59.0 to fix path traversal vulnerability ([#19538](https://github.com/getsentry/sentry-javascript/pull/19538))
+- chore(lint): Remove junit report file ([#19491](https://github.com/getsentry/sentry-javascript/pull/19491))
+- chore(svelte,sveltekit): Use version range for magic-string ([#19520](https://github.com/getsentry/sentry-javascript/pull/19520))
+- chore(tanstackstart): Fix leftover formatting issue ([#19536](https://github.com/getsentry/sentry-javascript/pull/19536))
+- test(consola): Restructure tests ([#19517](https://github.com/getsentry/sentry-javascript/pull/19517))
+- test(node): Test runName parameter in handleChainStart for langchain ([#19562](https://github.com/getsentry/sentry-javascript/pull/19562))
+
+</details>
+
+Work in this release was contributed by @YevheniiKotyrlo. Thank you for your contribution!
+
 ## 10.40.0
 
 ### Important Changes

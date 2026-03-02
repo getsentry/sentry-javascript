@@ -713,6 +713,17 @@ export type SentryBuildOptions = {
      * Requires cron jobs to be configured in `vercel.json`.
      */
     vercelCronsMonitoring?: boolean;
+    /**
+     * Application key used by `thirdPartyErrorFilterIntegration` to distinguish
+     * first-party code from third-party code in Turbopack builds.
+     *
+     * When set, a Turbopack loader injects `_sentryModuleMetadata` into every
+     * first-party module, mirroring what `@sentry/webpack-plugin` does for
+     * webpack builds via its `moduleMetadata` / `applicationKey` option.
+     *
+     * Requires Next.js 16+
+     */
+    turbopackApplicationKey?: string;
   }>;
 
   /**
@@ -849,6 +860,17 @@ type TurbopackRuleCondition = {
   path: string | RegExp;
 };
 
+// Condition used to filter when a loader rule applies.
+// Supports built-in string conditions ('foreign', 'browser', 'development', 'production', 'node', 'edge-light')
+// and boolean operators matching the Turbopack advanced condition syntax.
+type TurbopackRuleConditionFilter =
+  | string
+  | { not: TurbopackRuleConditionFilter }
+  | { all: TurbopackRuleConditionFilter[] }
+  | { any: TurbopackRuleConditionFilter[] }
+  | { path: string | RegExp }
+  | { content: RegExp };
+
 export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
 
 export type TurbopackMatcherWithRule = {
@@ -859,6 +881,7 @@ export type TurbopackMatcherWithRule = {
 type TurbopackRuleConfigItemOptions = {
   loaders: TurbopackLoaderItem[];
   as?: string;
+  condition?: TurbopackRuleConditionFilter;
 };
 
 type TurbopackRuleConfigItem =

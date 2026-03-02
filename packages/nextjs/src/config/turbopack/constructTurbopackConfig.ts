@@ -1,8 +1,9 @@
 import { debug } from '@sentry/core';
+import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
-import { supportsNativeDebugIds } from '../util';
+import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
@@ -54,6 +55,28 @@ export function constructTurbopackConfig({
 
   for (const { matcher, rule } of valueInjectionRules) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
+  }
+
+  // Add module metadata injection loader for thirdPartyErrorFilterIntegration support.
+  // This is only added when turbopackApplicationKey is set AND the Next.js version supports the
+  // `condition` field in Turbopack rules (Next.js 16+). Without `condition: { not: 'foreign' }`,
+  // the loader would tag node_modules as first-party, defeating the purpose.
+  const applicationKey = userSentryOptions?._experimental?.turbopackApplicationKey;
+  if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
+    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+      matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
+      rule: {
+        condition: { not: 'foreign' },
+        loaders: [
+          {
+            loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
+            options: {
+              applicationKey,
+            },
+          },
+        ],
+      },
+    });
   }
 
   return newConfig;

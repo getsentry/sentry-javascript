@@ -10,7 +10,7 @@ export type ValueInjectionLoaderOptions = {
 // We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other directive.
 // As an additional complication directives may come after any number of comments.
 // This regex is shamelessly stolen from: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/7f984482c73e4284e8b12a08dfedf23b5a82f0af/packages/bundler-plugin-core/src/index.ts#L535-L539
-const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
+export const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
   // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
   new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";?|\'[^\']*\';?)?');
 

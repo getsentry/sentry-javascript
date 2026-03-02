@@ -1,7 +1,6 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import {
   captureException,
-  flush,
   getClient,
   isThenable,
   type Scope,
@@ -12,6 +11,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { init } from './sdk';
 
@@ -74,6 +74,8 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
           scope.setClient(client);
         }
 
+        const clientToDispose = currentClient || scope.getClient();
+
         if (!wrapperOptions.spanName) {
           try {
             if (callback) {
@@ -84,7 +86,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             if (isThenable(result)) {
               return result.then(
                 (res: unknown) => {
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   return res;
                 },
                 (e: unknown) => {
@@ -94,12 +96,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                       handled: false,
                     },
                   });
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   throw e;
                 },
               );
             } else {
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(clientToDispose));
               return result;
             }
           } catch (e) {
@@ -109,7 +111,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(clientToDispose));
             throw e;
           }
         }
@@ -128,7 +130,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             if (isThenable(result)) {
               return result.then(
                 (res: unknown) => {
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   return res;
                 },
                 (e: unknown) => {
@@ -138,12 +140,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                       handled: false,
                     },
                   });
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   throw e;
                 },
               );
             } else {
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(clientToDispose));
               return result;
             }
           } catch (e) {
@@ -153,7 +155,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(clientToDispose));
             throw e;
           }
         });
