@@ -38,7 +38,7 @@ export function setupSourceMaps(
           (sourceMapsUploadOptions.enabled ?? true);
 
   // In case we overwrite the source map settings, we default to deleting the files
-  let shouldDeleteFilesFallback = { client: true, server: true };
+  const shouldDeleteFilesFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
     if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
@@ -47,13 +47,12 @@ export function setupSourceMaps(
       // - for server to viteConfig.build.sourceMap and nitro.sourceMap
       // On server, nitro.rollupConfig.output.sourcemap remains unaffected from this change.
 
-      // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will eventually overwrite with 'hidden'
+      // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will overwrite with 'hidden', if needed.
       const previousSourceMapSettings = changeNuxtSourceMapSettings(nuxt, moduleOptions);
 
-      shouldDeleteFilesFallback = {
-        client: previousSourceMapSettings.client === 'unset',
-        server: previousSourceMapSettings.server === 'unset',
-      };
+      // Mutate in place so the Vite plugin (which captured this object at registration time) sees the updated values
+      shouldDeleteFilesFallback.client = previousSourceMapSettings.client === 'unset';
+      shouldDeleteFilesFallback.server = previousSourceMapSettings.server === 'unset';
 
       if (isDebug && (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)) {
         const enabledDeleteFallbacks =

@@ -76,17 +76,17 @@ describe('setupSourceMaps hooks', () => {
   });
 
   describe('vite plugin registration', () => {
-    it('registers a vite plugin after modules:done hook', async () => {
+    it('calls `addVitePlugin` when setupSourceMaps is called', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-      await mockNuxt.triggerHook('modules:done');
 
       const plugin = getCapturedPlugin();
       expect(plugin).not.toBeNull();
       expect(plugin?.name).toBe('sentry-nuxt-vite-config');
+      // modules:done is called afterward. Later, the plugin is actually added
     });
 
     it.each([
@@ -176,6 +176,66 @@ describe('setupSourceMaps hooks', () => {
       }
 
       expect(mockSentryVitePlugin).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('shouldDeleteFilesFallback passed to getPluginOptions in Vite plugin', () => {
+    const defaultFilesToDeleteAfterUpload = [
+      '.*/**/public/**/*.map',
+      '.*/**/server/**/*.map',
+      '.*/**/output/**/*.map',
+      '.*/**/function/**/*.map',
+    ];
+
+    it('uses mutated shouldDeleteFilesFallback (unset → true): plugin.config() after modules:done gets fallback filesToDeleteAfterUpload', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({
+        _prepare: false,
+        dev: false,
+        sourcemap: { client: undefined, server: undefined },
+      });
+      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      const plugin = getCapturedPlugin();
+      expect(plugin).not.toBeNull();
+      if (plugin && typeof plugin.config === 'function') {
+        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
+      }
+
+      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({
+            filesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload,
+          }),
+        }),
+      );
+    });
+
+    it('uses mutated shouldDeleteFilesFallback (explicitly enabled → false): plugin.config() after modules:done gets no filesToDeleteAfterUpload', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({
+        _prepare: false,
+        dev: false,
+        sourcemap: { client: true, server: true },
+      });
+      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      const plugin = getCapturedPlugin();
+      expect(plugin).not.toBeNull();
+      if (plugin && typeof plugin.config === 'function') {
+        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
+      }
+
+      const pluginOptions = (mockSentryVitePlugin?.mock?.calls?.[0] as unknown[])?.[0] as {
+        sourcemaps?: { filesToDeleteAfterUpload?: string[] };
+      };
+      expect(pluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     });
   });
 
