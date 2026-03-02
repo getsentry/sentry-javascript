@@ -81,6 +81,29 @@ test.describe('client - navigation performance', () => {
     });
   });
 
+  test('should create navigation transaction when navigating with search-only object `to` prop', async ({ page }) => {
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation';
+    });
+
+    await page.goto(`/performance`); // pageload
+    await page.waitForTimeout(1000); // give it a sec before navigation
+    await page.getByRole('link', { name: 'Search Only Navigate' }).click(); // navigation with search-only object to
+
+    const transaction = await txPromise;
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router',
+        },
+      },
+      transaction: '/performance',
+      type: 'transaction',
+    });
+  });
+
   test('should update navigation transaction for dynamic routes', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === '/performance/with/:param';
