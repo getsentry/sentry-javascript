@@ -130,7 +130,7 @@ describe('Hono Cloudflare Middleware', () => {
     const honoIntegration = { name: 'Hono' } as SentryCore.Integration;
     const otherIntegration = { name: 'Other' } as SentryCore.Integration;
 
-    const getIntegrationsResult = (): SentryCore.Integration[] => {
+    const getIntegrationsResult = () => {
       const optionsCallback = withSentryMock.mock.calls[0]?.[0];
       return optionsCallback().integrations;
     };
@@ -143,7 +143,18 @@ describe('Hono Cloudflare Middleware', () => {
       const app = new Hono();
       sentry(app, { integrations: input });
 
-      expect(getIntegrationsResult()).toEqual(expected);
+      const integrationsFn = getIntegrationsResult() as (defaults: SentryCore.Integration[]) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual(expected);
+    });
+
+    it('filters Hono from defaults when user provides an array', () => {
+      const app = new Hono();
+      sentry(app, { integrations: [otherIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as (defaults: SentryCore.Integration[]) => SentryCore.Integration[];
+      // Simulates getIntegrationsToSetup: defaults (from Cloudflare) include Hono; result must exclude it
+      const defaultsWithHono = [honoIntegration, otherIntegration];
+      expect(integrationsFn(defaultsWithHono)).toEqual([otherIntegration, otherIntegration]);
     });
 
     it('filters Hono integration out of a function result', () => {

@@ -23,10 +23,10 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
       // Always filter out the Hono integration from user-provided integrations (or when nothing is specified).
       // The Hono integration is already set up by withSentry, so adding it again would cause double-capturing (and non-parametrized URLs).
       integrations: Array.isArray(userIntegrations)
-        ? userIntegrations.filter(filterHonoIntegration)
+        ? defaults => [...defaults.filter(filterHonoIntegration), ...userIntegrations.filter(filterHonoIntegration)]
         : typeof userIntegrations === 'function'
-          ? (defaults: Integration[]) => userIntegrations(defaults).filter(filterHonoIntegration)
-          : (defaults: Integration[]) => defaults.filter(filterHonoIntegration),
+          ? defaults => userIntegrations(defaults).filter(filterHonoIntegration)
+          : defaults => defaults.filter(filterHonoIntegration),
     }),
     app,
   );
