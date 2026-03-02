@@ -1,5 +1,5 @@
 import type { DurationUnit, FractionUnit, InformationUnit } from './types-hoist/measurement';
-import { Primitive } from './types-hoist/misc';
+import type { Primitive } from './types-hoist/misc';
 import { isPrimitive } from './utils/is';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
