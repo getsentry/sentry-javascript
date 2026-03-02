@@ -12,7 +12,9 @@
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [General SDK Docs](https://docs.sentry.io/quickstart/) - Official Docs for this Hono SDK are coming soon!
+
+The current [Hono SDK Docs](https://docs.sentry.io/platforms/javascript/guides/hono/) explain using Sentry in Hono by using other Sentry SDKs (e.g. `@sentry/node` or `@sentry/cloudflare`)
 
 ## Install
 
@@ -24,9 +26,9 @@ npm install @sentry/hono
 
 ## Setup (Cloudflare Workers)
 
-### Enable Node.js compatibility
+### 1. Enable Node.js compatibility
 
-Either set the `nodejs_compat` compatibility flags in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
+Set the `nodejs_compat` compatibility flag in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
 
 ```jsonc {tabTitle:JSON} {filename:wrangler.jsonc}
 {
@@ -38,7 +40,7 @@ Either set the `nodejs_compat` compatibility flags in your `wrangler.jsonc`/`wra
 compatibility_flags = ["nodejs_compat"]
 ```
 
-### Initialize Sentry in your Hono app
+### 2. Initialize Sentry in your Hono app
 
 Initialize the Sentry Hono middleware as early as possible in your app:
 
@@ -47,12 +49,16 @@ import { sentry } from '@sentry/hono/cloudflare';
 
 const app = new Hono();
 
+// Initialize Sentry middleware right after creating the app
 app.use(
   '*',
   sentry(app, {
     dsn: 'your-sentry-dsn',
+    // ...other Sentry options
   }),
 );
+
+// ... your routes and other middleware
 
 export default app;
 ```
