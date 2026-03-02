@@ -150,6 +150,67 @@ describe('Cloudflare Pages vs Workers detection', () => {
       expect(baseConfigHookObject.logger.error).not.toHaveBeenCalled();
     });
 
+    it('correctly parses wrangler.json with URLs containing double slashes', async () => {
+      getWranglerConfig.mockReturnValue({
+        filename: 'wrangler.json',
+        content: JSON.stringify({
+          pages_build_output_dir: './dist',
+          vars: {
+            API_URL: 'https://api.example.com/v1',
+            ANOTHER_URL: 'http://localhost:3000',
+          },
+        }),
+      });
+
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+      });
+    });
+
+    it('correctly parses wrangler.jsonc with URLs and comments', async () => {
+      getWranglerConfig.mockReturnValue({
+        filename: 'wrangler.jsonc',
+        content: `{
+          // API configuration
+          "pages_build_output_dir": "./dist",
+          "vars": {
+            "API_URL": "https://api.example.com/v1", // Production API
+            "WEBHOOK_URL": "https://hooks.example.com/callback"
+          }
+          /* Multi-line
+             comment */
+        }`,
+      });
+
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+      });
+    });
+
     it('does not show warning for Pages project with wrangler.toml', async () => {
       getWranglerConfig.mockReturnValue({
         filename: 'wrangler.toml',
@@ -174,6 +235,40 @@ pages_build_output_dir = "./dist"
       expect(baseConfigHookObject.logger.error).not.toHaveBeenCalled();
     });
 
+    it('correctly identifies Workers when pages_build_output_dir appears only in comments', async () => {
+      getWranglerConfig.mockReturnValue({
+        filename: 'wrangler.toml',
+        content: `
+name = "my-astro-worker"
+# pages_build_output_dir is not used for Workers
+main = "dist/_worker.js/index.js"
+
+[assets]
+directory = "./dist"
+        `,
+      });
+
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        config: {
+          // @ts-expect-error - we only need to pass what we actually use
+          adapter: { name: '@astrojs/cloudflare' },
+        },
+        command: 'build',
+      });
+
+      // Workers should get both Cloudflare Vite plugins (including sentryCloudflareVitePlugin)
+      // This distinguishes it from Pages which only gets sentryCloudflareNodeWarningPlugin
+      expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
+        vite: expect.objectContaining({
+          plugins: ['sentryCloudflareNodeWarningPlugin', 'sentryCloudflareVitePlugin'],
+        }),
+      });
+    });
+
     it('does not add Cloudflare Vite plugins for Pages production build', async () => {
       getWranglerConfig.mockReturnValue({
         filename: 'wrangler.json',
@@ -195,9 +290,9 @@ pages_build_output_dir = "./dist"
       });
 
       // Check that sentryCloudflareVitePlugin is NOT in any of the calls
-      expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith(
-        { vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }) },
-      );
+      expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+      });
     });
 
     it('still adds SSR noExternal config for Pages in dev mode', async () => {

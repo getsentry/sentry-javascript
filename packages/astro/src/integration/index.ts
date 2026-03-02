@@ -278,16 +278,15 @@ function isCloudflarePages(): boolean {
     const content = fs.readFileSync(configPath, 'utf-8');
 
     if (configFile.endsWith('.toml')) {
-      return content.includes('pages_build_output_dir');
+      // https://regex101.com/r/Uxe4p0/1
+      // Match pages_build_output_dir as a TOML key (at start of line, ignoring whitespace)
+      // This avoids false positives from comments (lines starting with #)
+      return /^\s*pages_build_output_dir\s*=/m.test(content);
     }
 
-    try {
-      // Strip comments from JSONC before parsing
-      const parsed = JSON.parse(content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, ''));
-      return 'pages_build_output_dir' in parsed;
-    } catch {
-      return false;
-    }
+    // Match "pages_build_output_dir" as a JSON key (followed by :)
+    // This works for both .json and .jsonc without needing to strip comments
+    return /"pages_build_output_dir"\s*:/.test(content);
   }
 
   return false;
