@@ -259,4 +259,101 @@ describe('SpanBuffer', () => {
 
     expect(sendEnvelopeSpy).not.toHaveBeenCalled();
   });
+
+  describe('weight-based flushing', () => {
+    function makeSpan(
+      traceId: string,
+      spanId: string,
+      segmentSpan: InstanceType<typeof SentrySpan>,
+      overrides: Partial<SerializedStreamedSpanWithSegmentSpan> = {},
+    ): SerializedStreamedSpanWithSegmentSpan {
+      return {
+        trace_id: traceId,
+        span_id: spanId,
+        name: 'test span',
+        start_timestamp: Date.now() / 1000,
+        end_timestamp: Date.now() / 1000,
+        status: 'ok',
+        is_segment: false,
+        _segmentSpan: segmentSpan,
+        ...overrides,
+      };
+    }
+
+    it('flushes a trace when its weight limit is exceeded', () => {
+      // Use a very small weight threshold so a single span with attributes tips it over
+      const buffer = new SpanBuffer(client, { maxTraceWeightInBytes: 200 });
+      const segmentSpan = new SentrySpan({ name: 'segment', sampled: true });
+
+      // First span: small, under threshold
+      buffer.add(makeSpan('trace1', 'span1', segmentSpan, { name: 'a' }));
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      // Second span: has a large name that pushes it over 200 bytes
+      buffer.add(makeSpan('trace1', 'span2', segmentSpan, { name: 'a'.repeat(80) }));
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not flush when weight stays below the threshold', () => {
+      const buffer = new SpanBuffer(client, { maxTraceWeightInBytes: 10_000 });
+      const segmentSpan = new SentrySpan({ name: 'segment', sampled: true });
+
+      buffer.add(makeSpan('trace1', 'span1', segmentSpan));
+      buffer.add(makeSpan('trace1', 'span2', segmentSpan));
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    it('resets weight tracking after a weight-triggered flush so new spans accumulate fresh weight', () => {
+      // Base estimate per span is 152 bytes. With threshold 400:
+      // - big span  ('a' * 200): 152 + 200*2 = 552 bytes → exceeds 400, triggers flush
+      // - small span (name 'b'):  152 + 1*2  = 154 bytes
+      // - two small spans combined: 308 bytes < 400 → no second flush
+      const buffer = new SpanBuffer(client, { maxTraceWeightInBytes: 400 });
+      const segmentSpan = new SentrySpan({ name: 'segment', sampled: true });
+
+      buffer.add(makeSpan('trace1', 'span1', segmentSpan, { name: 'a'.repeat(200) }));
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      buffer.add(makeSpan('trace1', 'span2', segmentSpan, { name: 'b' }));
+      buffer.add(makeSpan('trace1', 'span3', segmentSpan, { name: 'c' }));
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('tracks weight independently per trace', () => {
+      const buffer = new SpanBuffer(client, { maxTraceWeightInBytes: 200 });
+      const segmentSpan1 = new SentrySpan({ name: 'segment1', sampled: true });
+      const segmentSpan2 = new SentrySpan({ name: 'segment2', sampled: true });
+
+      // trace1 gets a heavy span that exceeds the limit
+      buffer.add(makeSpan('trace1', 'span1', segmentSpan1, { name: 'a'.repeat(80) }));
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect((sentEnvelopes[0]?.[1]?.[0]?.[1] as { items: Array<{ trace_id: string }> })?.items[0]?.trace_id).toBe(
+        'trace1',
+      );
+
+      // trace2 only has a small span and should not be flushed
+      buffer.add(makeSpan('trace2', 'span2', segmentSpan2, { name: 'b' }));
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('estimates spans with attributes as heavier than bare spans', () => {
+      // Use a threshold that a bare span cannot reach but an attributed span can
+      const buffer = new SpanBuffer(client, { maxTraceWeightInBytes: 300 });
+      const segmentSpan = new SentrySpan({ name: 'segment', sampled: true });
+
+      // A span with many string attributes should tip it over
+      buffer.add(
+        makeSpan('trace1', 'span1', segmentSpan, {
+          attributes: {
+            'http.method': { type: 'string', value: 'GET' },
+            'http.url': { type: 'string', value: 'https://example.com/api/v1/users?page=1&limit=100' },
+            'db.statement': { type: 'string', value: 'SELECT * FROM users WHERE id = 1' },
+          },
+        }),
+      );
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });
