@@ -61,7 +61,7 @@
     "@babel/types": "^7.26.3",
     "@sveltejs/kit": "^2.53.3",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "svelte": "^4.2.8",
+    "svelte": "^5.53.5",
     "vite": "^5.4.11"
   },
   "scripts": {
