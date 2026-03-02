@@ -12,9 +12,6 @@ app.use(
   sentry(app, {
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    debug: true,
-    // check out what removing this integration changes
-    integrations: (integrations: unknown[]) => integrations.filter(integration => integration?.name !== 'Hono'),
   }),
 );
 

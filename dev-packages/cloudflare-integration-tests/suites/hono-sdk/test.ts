@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
 
-it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
+it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
       eventEnvelope(
@@ -24,15 +24,24 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
           request: {
             headers: expect.any(Object),
             method: 'GET',
-            url: 'http://localhost:8787/error/param-123',
+            url: expect.stringContaining('/error/param-123'),
           },
+          breadcrumbs: [
+            {
+              timestamp: expect.any(Number),
+              category: 'console',
+              level: 'error',
+              message: 'Error: Test error from Hono app',
+              data: expect.objectContaining({
+                logger: 'console',
+                arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
+              }),
+            },
+          ],
         },
         { includeSampleRand: true, sdk: 'hono' },
       ),
     )
-    .expect(envelope => {
-      console.log('event::', JSON.stringify(envelope, null, 2));
-    })
 
     .expect(envelope => {
       const [, envelopeItems] = envelope;
@@ -57,9 +66,20 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
           method: 'GET',
           url: expect.stringContaining('/error/param-123'),
         }),
+        breadcrumbs: [
+          {
+            timestamp: expect.any(Number),
+            category: 'console',
+            level: 'error',
+            message: 'Error: Test error from Hono app',
+            data: expect.objectContaining({
+              logger: 'console',
+              arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
+            }),
+          },
+        ],
       });
     })
-
     .unordered()
     .start(signal);
 

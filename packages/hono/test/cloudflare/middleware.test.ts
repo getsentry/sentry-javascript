@@ -125,4 +125,70 @@ describe('Hono Cloudflare Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
   });
+
+  describe('filters Hono integration from user-provided integrations', () => {
+    const honoIntegration = { name: 'Hono' } as SentryCore.Integration;
+    const otherIntegration = { name: 'Other' } as SentryCore.Integration;
+
+    const getIntegrationsResult = (): SentryCore.Integration[] => {
+      const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+      return optionsCallback().integrations;
+    };
+
+    it.each([
+      ['filters Hono integration out', [honoIntegration, otherIntegration], [otherIntegration]],
+      ['keeps non-Hono integrations', [otherIntegration], [otherIntegration]],
+      ['returns empty array when only Hono integration provided', [honoIntegration], []],
+    ])('%s (array)', (_name, input, expected) => {
+      const app = new Hono();
+      sentry(app, { integrations: input });
+
+      expect(getIntegrationsResult()).toEqual(expected);
+    });
+
+    it('filters Hono integration out of a function result', () => {
+      const app = new Hono();
+      sentry(app, { integrations: () => [honoIntegration, otherIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual([otherIntegration]);
+    });
+
+    it('passes defaults through to the user-provided integrations function', () => {
+      const app = new Hono();
+      const userFn = vi.fn((_defaults: SentryCore.Integration[]) => [otherIntegration]);
+      const defaults = [{ name: 'Default' } as SentryCore.Integration];
+
+      sentry(app, { integrations: userFn });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      integrationsFn(defaults);
+
+      expect(userFn).toHaveBeenCalledWith(defaults);
+    });
+
+    it('filters Hono integration returned by the user-provided integrations function', () => {
+      const app = new Hono();
+      sentry(app, { integrations: (_defaults: SentryCore.Integration[]) => [honoIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual([]);
+    });
+
+    it('filters Hono integration from defaults when integrations is undefined', () => {
+      const app = new Hono();
+      sentry(app, {});
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([honoIntegration, otherIntegration])).toEqual([otherIntegration]);
+    });
+  });
 });
