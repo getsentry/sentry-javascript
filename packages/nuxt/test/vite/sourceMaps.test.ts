@@ -4,7 +4,9 @@ import type { SentryNuxtModuleOptions } from '../../src/common/types';
 import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
+  extractNuxtSourceMapSetting,
   getPluginOptions,
+  validateDifferentSourceMapSettings,
   validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
 
@@ -35,6 +37,7 @@ describe('getPluginOptions', () => {
         authToken: 'default-token',
         url: 'https://santry.io',
         telemetry: true,
+        debug: false,
         sourcemaps: expect.objectContaining({
           rewriteSources: expect.any(Function),
         }),
@@ -43,7 +46,6 @@ describe('getPluginOptions', () => {
             metaFramework: 'nuxt',
           }),
         }),
-        debug: false,
       }),
     );
   });
@@ -57,6 +59,7 @@ describe('getPluginOptions', () => {
     expect(options).toEqual(
       expect.objectContaining({
         telemetry: true,
+        debug: false,
         sourcemaps: expect.objectContaining({
           rewriteSources: expect.any(Function),
         }),
@@ -65,7 +68,6 @@ describe('getPluginOptions', () => {
             metaFramework: 'nuxt',
           }),
         }),
-        debug: false,
       }),
     );
   });
@@ -106,6 +108,14 @@ describe('getPluginOptions', () => {
         debug: true,
       }),
     );
+  });
+
+  it('normalizes source paths via rewriteSources', () => {
+    const options = getPluginOptions({} as SentryNuxtModuleOptions, undefined);
+    const rewrite = options.sourcemaps?.rewriteSources as ((s: string) => string) | undefined;
+    expect(rewrite).toBeTypeOf('function');
+    expect(rewrite!('../../../foo/bar')).toBe('./foo/bar');
+    expect(rewrite!('./local')).toBe('./local');
   });
 
   it('prioritizes new BuildTimeOptionsBase options over deprecated ones', () => {
@@ -268,27 +278,19 @@ describe('getPluginOptions', () => {
       name: 'both client and server fallback are true',
       clientFallback: true,
       serverFallback: true,
-      customOptions: {},
-      expectedFilesToDelete: [
-        '.*/**/public/**/*.map',
-        '.*/**/server/**/*.map',
-        '.*/**/output/**/*.map',
-        '.*/**/function/**/*.map',
-      ],
+      expected: ['.*/**/public/**/*.map', '.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
       name: 'only client fallback is true',
       clientFallback: true,
       serverFallback: false,
-      customOptions: {},
-      expectedFilesToDelete: ['.*/**/public/**/*.map'],
+      expected: ['.*/**/public/**/*.map'],
     },
     {
       name: 'only server fallback is true',
       clientFallback: false,
       serverFallback: true,
-      customOptions: {},
-      expectedFilesToDelete: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
+      expected: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
       name: 'no fallback, but custom filesToDeleteAfterUpload is provided (deprecated)',
@@ -299,7 +301,7 @@ describe('getPluginOptions', () => {
           sourcemaps: { filesToDeleteAfterUpload: ['deprecated/path/**/*.map'] },
         },
       },
-      expectedFilesToDelete: ['deprecated/path/**/*.map'],
+      expected: ['deprecated/path/**/*.map'],
     },
     {
       name: 'no fallback, but custom filesToDeleteAfterUpload is provided (new)',
@@ -308,46 +310,95 @@ describe('getPluginOptions', () => {
       customOptions: {
         sourcemaps: { filesToDeleteAfterUpload: ['new-custom/path/**/*.map'] },
       },
-      expectedFilesToDelete: ['new-custom/path/**/*.map'],
+      expected: ['new-custom/path/**/*.map'],
     },
     {
       name: 'no fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload',
       clientFallback: false,
       serverFallback: false,
       customOptions: {},
-      expectedFilesToDelete: undefined,
+      expected: undefined,
     },
   ])(
     'sets filesToDeleteAfterUpload correctly when $name',
-    ({ clientFallback, serverFallback, customOptions, expectedFilesToDelete }) => {
+    ({ clientFallback, serverFallback, customOptions = {}, expected }) => {
       const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
         client: clientFallback,
         server: serverFallback,
       });
 
-      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expectedFilesToDelete);
+      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
     },
   );
 });
 
-describe('validate sourcemap settings', () => {
-  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+describe('validateDifferentSourceMapSettings', () => {
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleLogSpy.mockClear();
-    consoleWarnSpy.mockClear();
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('does not warn when both settings match', () => {
+    validateDifferentSourceMapSettings({
+      nuxtSettingKey: 'sourcemap.server',
+      nuxtSettingValue: true,
+      otherSettingKey: 'nitro.sourceMap',
+      otherSettingValue: true,
+    });
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns when settings conflict', () => {
+    validateDifferentSourceMapSettings({
+      nuxtSettingKey: 'sourcemap.server',
+      nuxtSettingValue: true,
+      otherSettingKey: 'nitro.sourceMap',
+      otherSettingValue: false,
+    });
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sourcemap.server'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('nitro.sourceMap'));
+  });
+});
+
+describe('extractNuxtSourceMapSetting', () => {
+  it.each<{
+    runtime: 'client' | 'server' | undefined;
+    sourcemap: SourceMapSetting | { client?: SourceMapSetting; server?: SourceMapSetting };
+    expected: SourceMapSetting | undefined;
+  }>([
+    { runtime: undefined, sourcemap: true, expected: undefined },
+    { runtime: 'client', sourcemap: true, expected: true },
+    { runtime: 'server', sourcemap: 'hidden', expected: 'hidden' },
+    { runtime: 'client', sourcemap: { client: true, server: false }, expected: true },
+    { runtime: 'server', sourcemap: { client: true, server: 'hidden' }, expected: 'hidden' },
+  ])('returns correct value for runtime=$runtime and sourcemap type', ({ runtime, sourcemap, expected }) => {
+    const nuxt = { options: { sourcemap } };
+    expect(extractNuxtSourceMapSetting(nuxt as Parameters<typeof extractNuxtSourceMapSetting>[0], runtime)).toBe(
+      expected,
+    );
+  });
+});
+
+describe('validate sourcemap settings', () => {
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   describe('should handle nitroConfig.rollupConfig.output.sourcemap settings', () => {
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
     type MinimalNitroConfig = {
       sourceMap?: SourceMapSetting;
       rollupConfig?: {
@@ -401,15 +452,18 @@ describe('validate sourcemap settings', () => {
 describe('change Nuxt source map settings', () => {
   let nuxt: { options: { sourcemap: { client: boolean | 'hidden'; server: boolean | 'hidden' } } };
   let sentryModuleOptions: SentryNuxtModuleOptions;
-
-  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleLogSpy.mockClear();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
     nuxt = { options: { sourcemap: { client: undefined } } };
     sentryModuleOptions = {};
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   it.each([
