@@ -100,6 +100,37 @@ describe('createSentryClientInstrumentation', () => {
     expect(mockCallNavigate).toHaveBeenCalled();
   });
 
+  it('should create navigation span with correct name when `to` is an object', async () => {
+    const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+    const mockClient = {};
+
+    (core.getClient as any).mockReturnValue(mockClient);
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+
+    expect(mockInstrument).toHaveBeenCalled();
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    // Call the navigate hook with an object `to` (pathname + search)
+    await hooks.navigate(mockCallNavigate, {
+      currentUrl: '/home',
+      to: { pathname: '/items/123', search: '?foo=bar' },
+    });
+
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(mockClient, {
+      name: '/items/123',
+      attributes: expect.objectContaining({
+        'sentry.source': 'url',
+        'sentry.op': 'navigation',
+        'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+        'navigation.type': 'router.navigate',
+      }),
+    });
+    expect(mockCallNavigate).toHaveBeenCalled();
+  });
+
   it('should instrument router fetch with spans', async () => {
     const mockCallFetch = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
