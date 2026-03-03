@@ -52,7 +52,7 @@ sentryTest(
     const envelopeItemHeader = profileChunkEnvelopeItem[0];
     const envelopeItemPayload = profileChunkEnvelopeItem[1];
 
-    expect(envelopeItemHeader).toHaveProperty('type', 'profile_chunk');
+    expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
     expect(envelopeItemPayload.profile).toBeDefined();
 
     validateProfilePayloadMetadata(envelopeItemPayload);

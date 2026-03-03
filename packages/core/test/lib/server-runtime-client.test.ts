@@ -301,4 +301,24 @@ describe('ServerRuntimeClient', () => {
       );
     });
   });
+
+  describe('dispose', () => {
+    it('resets _promiseBuffer to a new empty buffer instead of undefined', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      // Access the private _promiseBuffer before dispose
+      const originalBuffer = client['_promiseBuffer'];
+      expect(originalBuffer).toBeDefined();
+
+      client.dispose();
+
+      // After dispose, _promiseBuffer should still be defined (not undefined)
+      const bufferAfterDispose = client['_promiseBuffer'];
+      expect(bufferAfterDispose).toBeDefined();
+      expect(bufferAfterDispose).not.toBe(originalBuffer);
+      // Verify it's a fresh buffer with no pending items
+      expect(bufferAfterDispose.$).toEqual([]);
+    });
+  });
 });

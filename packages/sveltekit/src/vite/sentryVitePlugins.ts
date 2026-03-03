@@ -21,13 +21,13 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
+  const svelteConfig = await loadSvelteConfig();
+
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(options.debug)),
+    adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
-
-  const svelteConfig = await loadSvelteConfig();
 
   const sentryPlugins: Plugin[] = [];
 

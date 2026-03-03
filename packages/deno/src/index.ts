@@ -1,6 +1,9 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  Log,
+  LogSeverityLevel,
+  Metric,
   PolymorphicRequest,
   RequestEventData,
   SdkInfo,
@@ -75,6 +78,7 @@ export {
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -89,12 +93,15 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
+  logger,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
-
+export { denoServeIntegration } from './integrations/deno-serve';
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

@@ -15,6 +15,8 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { isServerBuildLike, setServerBuild } from '../serverBuild';
+import { isInstrumentationApiUsed, isOtelDataLoaderSpanCreationEnabled } from '../serverGlobals';
 import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
@@ -61,9 +63,31 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
         if (prop === 'createRequestHandler') {
           const original = target[prop];
           return function sentryWrappedCreateRequestHandler(this: unknown, ...args: unknown[]) {
+            // Capture the ServerBuild reference for middleware name lookup
+            const build = args[0];
+            if (isServerBuildLike(build)) {
+              setServerBuild(build);
+            } else if (typeof build === 'function') {
+              // Build arg can be a factory function (dev mode HMR). Wrap to capture resolved build.
+              const originalBuildFn = build as () => unknown;
+              args[0] = async function sentryWrappedBuildFn() {
+                const resolvedBuild = await originalBuildFn();
+                if (isServerBuildLike(resolvedBuild)) {
+                  setServerBuild(resolvedBuild);
+                }
+                return resolvedBuild;
+              };
+            }
+
             const originalRequestHandler = original.apply(this, args);
 
             return async function sentryWrappedRequestHandler(request: Request, initialContext?: unknown) {
+              // Skip OTEL span creation when instrumentation API is active or when span creation is not enabled.
+              // Checked per-request (not at handler-creation time) because in dev, createRequestHandler runs before entry.server.tsx.
+              if (isInstrumentationApiUsed() || !isOtelDataLoaderSpanCreationEnabled()) {
+                return originalRequestHandler(request, initialContext);
+              }
+
               let url: URL;
               try {
                 url = new URL(request.url);

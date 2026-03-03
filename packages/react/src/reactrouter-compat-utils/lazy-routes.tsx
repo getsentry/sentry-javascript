@@ -8,19 +8,28 @@ import { getActiveRootSpan, getNavigationContext } from './utils';
 /**
  * Captures location at invocation time. Prefers navigation context over window.location
  * since window.location hasn't updated yet when async handlers are invoked.
+ *
+ * When inside a patchRoutesOnNavigation call, uses the captured targetPath. If targetPath
+ * is undefined (patchRoutesOnNavigation can be invoked without a path argument), returns
+ * null rather than falling back to WINDOW.location which could be stale/wrong after the
+ * user navigated away during async loading. Returning null causes the span name update
+ * to be skipped, which is safer than using incorrect location data.
  */
 function captureCurrentLocation(): Location | null {
   const navContext = getNavigationContext();
-  // Only use navigation context if targetPath is defined (it can be undefined
-  // if patchRoutesOnNavigation was invoked without a path argument)
-  if (navContext?.targetPath) {
-    return {
-      pathname: navContext.targetPath,
-      search: '',
-      hash: '',
-      state: null,
-      key: 'default',
-    };
+
+  if (navContext) {
+    if (navContext.targetPath) {
+      return {
+        pathname: navContext.targetPath,
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+      };
+    }
+    // Don't fall back to potentially stale WINDOW.location
+    return null;
   }
 
   if (typeof WINDOW !== 'undefined') {

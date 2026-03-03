@@ -5,6 +5,7 @@ import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../
 import { detectActiveBundler, supportsProductionCompileHook } from '../util';
 import { constructWebpackConfigFunction } from '../webpack';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
+import type { VercelCronsConfigResult } from './getFinalConfigObjectUtils';
 
 /**
  * Information about the active bundler and feature support based on Next.js version.
@@ -70,16 +71,21 @@ export function maybeConstructTurbopackConfig(
   routeManifest: RouteManifest | undefined,
   nextJsVersion: string | undefined,
   bundlerInfo: BundlerInfo,
+  vercelCronsConfigResult: VercelCronsConfigResult,
 ): TurbopackOptions | undefined {
   if (!bundlerInfo.isTurbopack) {
     return undefined;
   }
+
+  // Only pass crons config if the span-based approach is enabled
+  const vercelCronsConfig = vercelCronsConfigResult.strategy === 'spans' ? vercelCronsConfigResult.config : undefined;
 
   return constructTurbopackConfig({
     userNextConfig: incomingUserNextConfigObject,
     userSentryOptions,
     routeManifest,
     nextJsVersion,
+    vercelCronsConfig,
   });
 }
 
@@ -251,6 +257,7 @@ export function getWebpackPatch({
   nextJsVersion,
   shouldUseRunAfterProductionCompileHook,
   bundlerInfo,
+  vercelCronsConfigResult,
 }: {
   incomingUserNextConfigObject: NextConfigObject;
   userSentryOptions: SentryBuildOptions;
@@ -259,6 +266,7 @@ export function getWebpackPatch({
   nextJsVersion: string | undefined;
   shouldUseRunAfterProductionCompileHook: boolean;
   bundlerInfo: BundlerInfo;
+  vercelCronsConfigResult: VercelCronsConfigResult;
 }): Partial<NextConfigObject> {
   if (!bundlerInfo.isWebpack || userSentryOptions.webpack?.disableSentryConfig) {
     return {};
@@ -272,6 +280,7 @@ export function getWebpackPatch({
       routeManifest,
       nextJsVersion,
       useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+      vercelCronsConfigResult,
     }),
   };
 }

@@ -27,8 +27,8 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 class SentryCloudflareTracer implements Tracer {
   public startSpan(name: string, options?: SpanOptions): Span {
     return startInactiveSpan({
-      name,
       ...options,
+      name,
       attributes: {
         ...options?.attributes,
         'sentry.cloudflare_tracer': true,
@@ -56,8 +56,8 @@ class SentryCloudflareTracer implements Tracer {
     const opts = (typeof options === 'object' && options !== null ? options : {}) as SpanOptions;
 
     const spanOpts = {
-      name,
       ...opts,
+      name,
       attributes: {
         ...opts.attributes,
         'sentry.cloudflare_tracer': true,

@@ -49,6 +49,7 @@ import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
+import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -137,11 +138,14 @@ function setupWeightBasedFlushing<
       // This prevents flushing being delayed by items that arrive close to the timeout limit
       // and thus resetting the flushing timeout and delaying items being flushed.
       isTimerActive = true;
-      flushTimeout = setTimeout(() => {
-        flushFn(client);
-        // Note: isTimerActive is reset by the flushHook handler above, not here,
-        // to avoid race conditions when new items arrive during the flush.
-      }, DEFAULT_FLUSH_INTERVAL);
+      // Use safeUnref so the timer doesn't prevent the process from exiting
+      flushTimeout = safeUnref(
+        setTimeout(() => {
+          flushFn(client);
+          // Note: isTimerActive is reset by the flushHook handler above, not here,
+          // to avoid race conditions when new items arrive during the flush.
+        }, DEFAULT_FLUSH_INTERVAL),
+      );
     }
   });
 
@@ -199,12 +203,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _eventProcessors: EventProcessor[];
 
   /** Holds flushable  */
-  private _outcomes: { [key: string]: number };
+  protected _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Set<Function>>;
+  protected _hooks: Record<string, Set<Function>>;
 
-  private _promiseBuffer: PromiseBuffer<unknown>;
+  protected _promiseBuffer: PromiseBuffer<unknown>;
 
   /**
    * Initializes this client instance.
@@ -441,6 +445,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
+    _INTERNAL_flushLogsBuffer(this);
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
@@ -1093,6 +1098,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return {};
   }
 
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * Subclasses should override this method to clean up their own resources.
+   * After calling dispose(), the client should not be used anymore.
+   */
+  public dispose(): void {
+    // Base class has no cleanup logic - subclasses implement their own
+  }
+
   /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Setup integrations for this client. */
@@ -1150,7 +1165,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
     let ticked = 0;
 
-    // if no timeout is provided, we wait "forever" until everything is processed
     while (!timeout || ticked < timeout) {
       await new Promise(resolve => setTimeout(resolve, 1));
 

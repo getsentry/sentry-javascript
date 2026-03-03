@@ -3,6 +3,7 @@ import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
   browserSessionIntegration,
+  cultureContextIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
   init as browserInit,
@@ -12,6 +13,7 @@ import {
 import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
+  conversationIdIntegration,
   debug,
   dedupeIntegration,
   functionToStringIntegration,
@@ -36,11 +38,13 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     breadcrumbsIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
+    cultureContextIntegration(),
     browserSessionIntegration(),
   ];
 }

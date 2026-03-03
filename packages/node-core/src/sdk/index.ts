@@ -3,11 +3,12 @@ import {
   applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
+  conversationIdIntegration,
   debug,
+  envToBool,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -37,7 +38,7 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
-import { envToBool } from '../utils/envToBool';
+import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initializeEsmLoader } from './esmLoader';
@@ -55,6 +56,7 @@ export function getDefaultIntegrations(): Integration[] {
     linkedErrorsIntegration(),
     requestDataIntegration(),
     systemErrorIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
@@ -132,8 +134,6 @@ function _init(
 
   client.init();
 
-  GLOBAL_OBJ._sentryInjectLoaderHookRegister?.();
-
   debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
   client.startClientReportTracking();
@@ -192,22 +192,7 @@ function getClientOptions(
 ): NodeClientOptions {
   const release = getRelease(options.release);
 
-  // Parse spotlight configuration with proper precedence per spec
-  let spotlight: boolean | string | undefined;
-  if (options.spotlight === false) {
-    spotlight = false;
-  } else if (typeof options.spotlight === 'string') {
-    spotlight = options.spotlight;
-  } else {
-    // options.spotlight is true or undefined
-    const envBool = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
-    const envUrl = envBool === null && process.env.SENTRY_SPOTLIGHT ? process.env.SENTRY_SPOTLIGHT : undefined;
-
-    spotlight =
-      options.spotlight === true
-        ? (envUrl ?? true) // true: use env URL if present, otherwise true
-        : (envBool ?? envUrl); // undefined: use env var (bool or URL)
-  }
+  const spotlight = getSpotlightConfig(options.spotlight);
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 

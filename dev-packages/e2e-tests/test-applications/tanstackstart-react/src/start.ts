@@ -1,9 +1,11 @@
+import { sentryGlobalFunctionMiddleware, sentryGlobalRequestMiddleware } from '@sentry/tanstackstart-react';
 import { createStart } from '@tanstack/react-start';
-import { wrappedGlobalRequestMiddleware, wrappedGlobalFunctionMiddleware } from './middleware';
+// NOTE: These are NOT wrapped - auto-instrumentation via the Vite plugin will wrap them
+import { globalFunctionMiddleware, globalRequestMiddleware } from './middleware';
 
 export const startInstance = createStart(() => {
   return {
-    requestMiddleware: [wrappedGlobalRequestMiddleware],
-    functionMiddleware: [wrappedGlobalFunctionMiddleware],
+    requestMiddleware: [sentryGlobalRequestMiddleware, globalRequestMiddleware],
+    functionMiddleware: [sentryGlobalFunctionMiddleware, globalFunctionMiddleware],
   };
 });

@@ -1,19 +1,23 @@
 import { addServerPlugin, createResolver } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import type { NitroConfig } from 'nitropack/types';
+import type { SentryNuxtModuleOptions } from '../common/types';
 import { addServerTemplate } from '../vendor/server-template';
 
 /**
  * Sets up the database instrumentation.
  */
-export function addDatabaseInstrumentation(nitro: NitroConfig): void {
+export function addDatabaseInstrumentation(nitro: NitroConfig, moduleOptions?: SentryNuxtModuleOptions): void {
   if (!nitro.experimental?.database) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',
-      );
-    });
+    // We cannot use DEBUG_BUILD here because it is a runtime flag, so it is not available for build time scripts
+    // So we have to pass in the module options to the build time script
+    moduleOptions?.debug &&
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',
+        );
+      });
 
     return;
   }

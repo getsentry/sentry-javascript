@@ -1,4 +1,16 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -18,16 +30,16 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
           // Chat model span
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.langchain',
-              'gen_ai.system': 'anthropic',
-              'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
-              'gen_ai.request.temperature': 0.7,
-              'gen_ai.request.max_tokens': 100,
-              'gen_ai.usage.input_tokens': 10,
-              'gen_ai.usage.output_tokens': 15,
-              'gen_ai.usage.total_tokens': 25,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
             }),
             description: 'chat claude-3-5-sonnet-20241022',
             op: 'gen_ai.chat',
@@ -36,8 +48,8 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
           // Chain span
           expect.objectContaining({
             data: expect.objectContaining({
-              'sentry.origin': 'auto.ai.langchain',
-              'sentry.op': 'gen_ai.invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
               'langchain.chain.name': 'my_test_chain',
             }),
             description: 'chain my_test_chain',
@@ -47,9 +59,9 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
           // Tool span
           expect.objectContaining({
             data: expect.objectContaining({
-              'sentry.origin': 'auto.ai.langchain',
-              'sentry.op': 'gen_ai.execute_tool',
-              'gen_ai.tool.name': 'search_tool',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+              [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'search_tool',
             }),
             description: 'execute_tool search_tool',
             op: 'gen_ai.execute_tool',

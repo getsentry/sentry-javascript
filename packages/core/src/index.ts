@@ -25,6 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   isInitialized,
   isEnabled,
   startSession,
@@ -61,6 +62,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
+export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -69,6 +71,8 @@ export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
+export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export { handleTunnelRequest } from './utils/tunnel';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 // eslint-disable-next-line deprecation/deprecation
@@ -91,6 +95,7 @@ export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnSco
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export {
@@ -115,11 +120,13 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
+export { instrumentPostgresJsSql } from './integrations/postgresjs';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -217,6 +224,7 @@ export {
   addExceptionMechanism,
   addExceptionTypeValue,
   checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
   getEventDescription,
   parseSemver,
   uuid4,
@@ -313,6 +321,7 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
 } from './utils/url';
 export {
   eventFromMessage,
@@ -393,7 +402,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {

@@ -206,7 +206,7 @@ function handleStreamingRequest<T extends unknown[], R>(
 ): R | Promise<R> {
   const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
   const spanConfig = {
-    name: `${operationName} ${model} stream-response`,
+    name: `${operationName} ${model}`,
     op: getSpanOperation(methodPath),
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };

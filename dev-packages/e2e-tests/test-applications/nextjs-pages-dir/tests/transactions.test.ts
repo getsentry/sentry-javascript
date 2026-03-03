@@ -21,7 +21,7 @@ test('Sends a pageload transaction', async ({ page }) => {
       transaction: '/',
       transaction_info: { source: 'route' },
       type: 'transaction',
-      contexts: {
+      contexts: expect.objectContaining({
         react: {
           version: expect.any(String),
         },
@@ -40,12 +40,70 @@ test('Sends a pageload transaction', async ({ page }) => {
             'sentry.source': 'route',
           }),
         },
-      },
+      }),
       request: {
         headers: {
           'User-Agent': expect.any(String),
         },
         url: 'http://localhost:3030/',
+      },
+    }),
+  );
+});
+
+test('Sends a navigation transaction', async ({ page }) => {
+  // Skip in dev mode - flaky due to slow compilation affecting transaction timing
+  test.skip(isDevMode, 'Skipped in dev mode due to flakiness from slow compilation');
+
+  await page.goto('/');
+
+  const clientNavigationTxnEventPromise = waitForTransaction('nextjs-pages-dir', txnEvent => {
+    return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/user/[id]';
+  });
+
+  await page.getByText('navigate').click();
+
+  const clientTxnEvent = await clientNavigationTxnEventPromise;
+
+  expect(clientTxnEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/user/[id]',
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: expect.objectContaining({
+        react: {
+          version: expect.any(String),
+        },
+        trace: {
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          op: 'navigation',
+          origin: 'auto.navigation.nextjs.pages_router_instrumentation',
+          status: 'ok',
+          data: expect.objectContaining({
+            'sentry.idle_span_finish_reason': 'idleTimeout',
+            'sentry.op': 'navigation',
+            'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
+            'sentry.sample_rate': 1,
+            'sentry.source': 'route',
+          }),
+          links: [
+            {
+              attributes: {
+                'sentry.link.type': 'previous_trace',
+              },
+              sampled: true,
+              span_id: expect.stringMatching(/[a-f0-9]{16}/),
+              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            },
+          ],
+        },
+      }),
+      request: {
+        headers: {
+          'User-Agent': expect.any(String),
+        },
+        url: 'http://localhost:3030/user/5',
       },
     }),
   );

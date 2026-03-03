@@ -1,3 +1,5 @@
+import { isContentMedia, stripInlineMediaFromSingleMessage } from './mediaStripping';
+
 /**
  * Default maximum size in bytes for GenAI messages.
  * Messages exceeding this limit will be truncated.
@@ -22,31 +24,6 @@ type ContentArrayMessage = {
     type: string;
   }[];
 };
-
-/**
- * Inline media content source, with a potentially very large base64
- * blob or data: uri.
- */
-type ContentMedia = Record<string, unknown> &
-  (
-    | {
-        media_type: string;
-        data: string;
-      }
-    | {
-        image_url: `data:${string}`;
-      }
-    | {
-        type: 'blob' | 'base64';
-        content: string;
-      }
-    | {
-        b64_json: string;
-      }
-    | {
-        uri: `data:${string}`;
-      }
-  );
 
 /**
  * Message format used by Google GenAI API.
@@ -85,12 +62,12 @@ const jsonBytes = (value: unknown): number => {
 };
 
 /**
- * Truncate a string to fit within maxBytes when encoded as UTF-8.
+ * Truncate a string to fit within maxBytes (inclusive) when encoded as UTF-8.
  * Uses binary search for efficiency with multi-byte characters.
  *
  * @param text - The string to truncate
- * @param maxBytes - Maximum byte length (UTF-8 encoded)
- * @returns Truncated string that fits within maxBytes
+ * @param maxBytes - Maximum byte length (inclusive, UTF-8 encoded)
+ * @returns Truncated string whose UTF-8 byte length is at most maxBytes
  */
 function truncateTextByBytes(text: string, maxBytes: number): string {
   if (utf8Bytes(text) <= maxBytes) {
@@ -162,36 +139,6 @@ function isContentMessage(message: unknown): message is ContentMessage {
  */
 function isContentArrayMessage(message: unknown): message is ContentArrayMessage {
   return message !== null && typeof message === 'object' && 'content' in message && Array.isArray(message.content);
-}
-
-/**
- * Check if a content part is an OpenAI/Anthropic media source
- */
-function isContentMedia(part: unknown): part is ContentMedia {
-  if (!part || typeof part !== 'object') return false;
-
-  return (
-    isContentMediaSource(part) ||
-    hasInlineData(part) ||
-    ('media_type' in part && typeof part.media_type === 'string' && 'data' in part) ||
-    ('image_url' in part && typeof part.image_url === 'string' && part.image_url.startsWith('data:')) ||
-    ('type' in part && (part.type === 'blob' || part.type === 'base64')) ||
-    'b64_json' in part ||
-    ('type' in part && 'result' in part && part.type === 'image_generation') ||
-    ('uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:'))
-  );
-}
-function isContentMediaSource(part: NonNullable<unknown>): boolean {
-  return 'type' in part && typeof part.type === 'string' && 'source' in part && isContentMedia(part.source);
-}
-function hasInlineData(part: NonNullable<unknown>): part is { inlineData: { data?: string } } {
-  return (
-    'inlineData' in part &&
-    !!part.inlineData &&
-    typeof part.inlineData === 'object' &&
-    'data' in part.inlineData &&
-    typeof part.inlineData.data === 'string'
-  );
 }
 
 /**
@@ -294,11 +241,17 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
  * @returns Array containing the truncated message, or empty array if truncation fails
  */
 function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
-  /* c8 ignore start - unreachable */
-  if (!message || typeof message !== 'object') {
+  if (!message) return [];
+
+  // Handle plain strings (e.g., embeddings input)
+  if (typeof message === 'string') {
+    const truncated = truncateTextByBytes(message, maxBytes);
+    return truncated ? [truncated] : [];
+  }
+
+  if (typeof message !== 'object') {
     return [];
   }
-  /* c8 ignore stop */
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
@@ -310,25 +263,6 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
 
   // Unknown message format: cannot truncate safely
   return [];
-}
-
-const REMOVED_STRING = '[Filtered]';
-
-const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri'] as const;
-
-function stripInlineMediaFromSingleMessage(part: ContentMedia): ContentMedia {
-  const strip = { ...part };
-  if (isContentMedia(strip.source)) {
-    strip.source = stripInlineMediaFromSingleMessage(strip.source);
-  }
-  // google genai inline data blob objects
-  if (hasInlineData(part)) {
-    strip.inlineData = { ...part.inlineData, data: REMOVED_STRING };
-  }
-  for (const field of MEDIA_FIELDS) {
-    if (typeof strip[field] === 'string') strip[field] = REMOVED_STRING;
-  }
-  return strip;
 }
 
 /**
@@ -374,19 +308,19 @@ function stripInlineMediaFromMessages(messages: unknown[]): unknown[] {
  * Truncate an array of messages to fit within a byte limit.
  *
  * Strategy:
- * - Keeps the newest messages (from the end of the array)
- * - Uses O(n) algorithm: precompute sizes once, then find largest suffix under budget
- * - If no complete messages fit, attempts to truncate the newest single message
+ * - Always keeps only the last (newest) message
+ * - Strips inline media from the message
+ * - Truncates the message content if it exceeds the byte limit
  *
  * @param messages - Array of messages to truncate
- * @param maxBytes - Maximum total byte limit for all messages
- * @returns Truncated array of messages
+ * @param maxBytes - Maximum total byte limit for the message
+ * @returns Array containing only the last message (possibly truncated)
  *
  * @example
  * ```ts
  * const messages = [msg1, msg2, msg3, msg4]; // newest is msg4
  * const truncated = truncateMessagesByBytes(messages, 10000);
- * // Returns [msg3, msg4] if they fit, or [msg4] if only it fits, etc.
+ * // Returns [msg4] (truncated if needed)
  * ```
  */
 function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown[] {
@@ -395,46 +329,26 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
     return messages;
   }
 
-  // strip inline media first. This will often get us below the threshold,
-  // while preserving human-readable information about messages sent.
-  const stripped = stripInlineMediaFromMessages(messages);
+  // The result is always a single-element array that callers wrap with
+  // JSON.stringify([message]), so subtract the 2-byte array wrapper ("["  and "]")
+  // to ensure the final serialized value stays under the limit.
+  const effectiveMaxBytes = maxBytes - 2;
 
-  // Fast path: if all messages fit, return as-is
-  const totalBytes = jsonBytes(stripped);
-  if (totalBytes <= maxBytes) {
+  // Always keep only the last message
+  const lastMessage = messages[messages.length - 1];
+
+  // Strip inline media from the single message
+  const stripped = stripInlineMediaFromMessages([lastMessage]);
+  const strippedMessage = stripped[0];
+
+  // Check if it fits
+  const messageBytes = jsonBytes(strippedMessage);
+  if (messageBytes <= effectiveMaxBytes) {
     return stripped;
   }
 
-  // Precompute each message's JSON size once for efficiency
-  const messageSizes = stripped.map(jsonBytes);
-
-  // Find the largest suffix (newest messages) that fits within the budget
-  let bytesUsed = 0;
-  let startIndex = stripped.length; // Index where the kept suffix starts
-
-  for (let i = stripped.length - 1; i >= 0; i--) {
-    const messageSize = messageSizes[i];
-
-    if (messageSize && bytesUsed + messageSize > maxBytes) {
-      // Adding this message would exceed the budget
-      break;
-    }
-
-    if (messageSize) {
-      bytesUsed += messageSize;
-    }
-    startIndex = i;
-  }
-
-  // If no complete messages fit, try truncating just the newest message
-  if (startIndex === stripped.length) {
-    // we're truncating down to one message, so all others dropped.
-    const newestMessage = stripped[stripped.length - 1];
-    return truncateSingleMessage(newestMessage, maxBytes);
-  }
-
-  // Return the suffix that fits
-  return stripped.slice(startIndex);
+  // Truncate the single message if needed
+  return truncateSingleMessage(strippedMessage, effectiveMaxBytes);
 }
 
 /**

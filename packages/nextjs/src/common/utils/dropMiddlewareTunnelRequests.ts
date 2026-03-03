@@ -1,12 +1,6 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
-import {
-  getClient,
-  GLOBAL_OBJ,
-  isSentryRequestUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  type Span,
-  type SpanAttributes,
-} from '@sentry/core';
+import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
+import { isSentryRequestSpan } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
@@ -21,6 +15,12 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * 2. Requests to Sentry ingest (after rewrite)
  */
 export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
+  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+  // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
+  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+    return;
+  }
+
   // Only filter middleware spans or HTTP fetch spans
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request
@@ -40,36 +40,6 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
     // Mark the span to be dropped
     span.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
   }
-}
-
-/**
- * Local copy of `@sentry/opentelemetry`'s `isSentryRequestSpan`, to avoid pulling the whole package into Edge bundles.
- */
-function isSentryRequestSpan(span: Span): boolean {
-  const attributes = spanToAttributes(span);
-  if (!attributes) {
-    return false;
-  }
-
-  const httpUrl = attributes['http.url'] || attributes['url.full'];
-  if (!httpUrl) {
-    return false;
-  }
-
-  return isSentryRequestUrl(httpUrl.toString(), getClient());
-}
-
-function spanToAttributes(span: Span): Record<string, unknown> | undefined {
-  // OTEL spans expose attributes in different shapes depending on implementation.
-  // We only need best-effort read access.
-  type MaybeSpanAttributes = {
-    attributes?: Record<string, unknown>;
-    _attributes?: Record<string, unknown>;
-  };
-
-  const maybeSpan = span as unknown as MaybeSpanAttributes;
-  const attrs = maybeSpan.attributes || maybeSpan._attributes;
-  return attrs;
 }
 
 /**

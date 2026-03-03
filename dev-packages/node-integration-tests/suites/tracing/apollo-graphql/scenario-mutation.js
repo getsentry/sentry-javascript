@@ -12,7 +12,7 @@ Sentry.init({
 setInterval(() => {}, 1000);
 
 async function run() {
-  const { gql } = require('apollo-server');
+  const gql = require('graphql-tag');
   const server = require('./apollo-server')();
 
   await Sentry.startSpan(

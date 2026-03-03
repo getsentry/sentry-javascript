@@ -32,6 +32,13 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
+    contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
+    },
     sdk: {
       integrations: expect.arrayContaining([
         'InboundFilters',
@@ -73,6 +80,13 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
+    contexts: {
+      culture: {
+        locale: expect.any(String),
+        timezone: expect.any(String),
+        calendar: expect.any(String),
+      },
+    },
     sdk: {
       integrations: expect.arrayContaining([
         'InboundFilters',

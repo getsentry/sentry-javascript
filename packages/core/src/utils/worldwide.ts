@@ -54,8 +54,6 @@ export type InternalGlobal = {
    */
   _sentryModuleMetadata?: Record<string, any>;
   _sentryEsmLoaderHookRegistered?: boolean;
-  _sentryInjectLoaderHookRegister?: () => void;
-  _sentryInjectLoaderHookRegistered?: boolean;
 } & Carrier;
 
 /** Get's the global object for the current JavaScript runtime */

@@ -20,11 +20,11 @@ sentryTest('manual Anthropic instrumentation sends gen_ai transactions', async (
   const eventData = envelopeRequestParser(req);
 
   // Verify it's a gen_ai transaction
-  expect(eventData.transaction).toBe('messages claude-3-haiku-20240307');
-  expect(eventData.contexts?.trace?.op).toBe('gen_ai.messages');
+  expect(eventData.transaction).toBe('chat claude-3-haiku-20240307');
+  expect(eventData.contexts?.trace?.op).toBe('gen_ai.chat');
   expect(eventData.contexts?.trace?.origin).toBe('auto.ai.anthropic');
   expect(eventData.contexts?.trace?.data).toMatchObject({
-    'gen_ai.operation.name': 'messages',
+    'gen_ai.operation.name': 'chat',
     'gen_ai.system': 'anthropic',
     'gen_ai.request.model': 'claude-3-haiku-20240307',
     'gen_ai.request.temperature': 0.7,

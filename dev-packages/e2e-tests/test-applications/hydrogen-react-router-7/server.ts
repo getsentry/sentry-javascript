@@ -10,6 +10,10 @@ import { type AppLoadContext, createRequestHandler, getStorefrontHeaders } from 
 import { CART_QUERY_FRAGMENT } from '~/lib/fragments';
 import { AppSession } from '~/lib/session';
 import { wrapRequestHandler } from '@sentry/cloudflare';
+// Virtual entry point for the app
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import * as serverBuild from 'virtual:react-router/server-build';
 
 /**
  * Export a fetch handler in module format.
@@ -96,8 +100,7 @@ export default {
            * Hydrogen's Storefront client to the loader context.
            */
           const handleRequest = createRequestHandler({
-            // @ts-ignore
-            build: await import('virtual:react-router/server-build'),
+            build: serverBuild,
             mode: process.env.NODE_ENV,
             getLoadContext: (): AppLoadContext => ({
               session,

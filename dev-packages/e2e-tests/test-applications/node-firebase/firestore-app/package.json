@@ -9,7 +9,7 @@
   "dependencies": {
     "@firebase/app": "^0.13.1",
     "@sentry/node": "latest || *",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "firebase": "^12.0.0"
   },
   "devDependencies": {

@@ -1,4 +1,16 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -18,10 +30,10 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       const createAgentSpan = transactionEvent.spans.find((span: any) => span.op === 'gen_ai.create_agent');
       expect(createAgentSpan).toMatchObject({
         data: {
-          'gen_ai.operation.name': 'create_agent',
-          'sentry.op': 'gen_ai.create_agent',
-          'sentry.origin': 'auto.ai.langgraph',
-          'gen_ai.agent.name': 'weather_assistant',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
         },
         description: 'create_agent weather_assistant',
         op: 'gen_ai.create_agent',
@@ -32,16 +44,16 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       const invokeAgentSpan = transactionEvent.spans.find((span: any) => span.op === 'gen_ai.invoke_agent');
       expect(invokeAgentSpan).toMatchObject({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'invoke_agent',
-          'sentry.op': 'gen_ai.invoke_agent',
-          'sentry.origin': 'auto.ai.langgraph',
-          'gen_ai.agent.name': 'weather_assistant',
-          'gen_ai.pipeline.name': 'weather_assistant',
-          'gen_ai.request.messages': '[{"role":"user","content":"What is the weather in SF?"}]',
-          'gen_ai.response.model': 'mock-model',
-          'gen_ai.usage.input_tokens': 20,
-          'gen_ai.usage.output_tokens': 10,
-          'gen_ai.usage.total_tokens': 30,
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in SF?"}]',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 20,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
         }),
         description: 'invoke_agent weather_assistant',
         op: 'gen_ai.invoke_agent',
@@ -49,8 +61,8 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       });
 
       // Verify tools are captured
-      if (invokeAgentSpan.data['gen_ai.request.available_tools']) {
-        expect(invokeAgentSpan.data['gen_ai.request.available_tools']).toMatch(/get_weather/);
+      if (invokeAgentSpan.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]) {
+        expect(invokeAgentSpan.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toMatch(/get_weather/);
       }
     })
     .start(signal);

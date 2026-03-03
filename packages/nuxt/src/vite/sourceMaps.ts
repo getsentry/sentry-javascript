@@ -1,8 +1,10 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
-import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
+import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import { createSentryViteConfigPlugin } from './sentryVitePlugin';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
@@ -15,7 +17,11 @@ export type SourceMapSetting = boolean | 'hidden' | 'inline';
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
-export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
+export function setupSourceMaps(
+  moduleOptions: SentryNuxtModuleOptions,
+  nuxt: Nuxt,
+  addVitePlugin: (plugin: Plugin | (() => Plugin), options?: { dev?: boolean; build?: boolean }) => void,
+): void {
   // TODO(v11): remove deprecated options (also from SentryNuxtModuleOptions type)
 
   const isDebug = moduleOptions.debug;
@@ -32,74 +38,62 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
           (sourceMapsUploadOptions.enabled ?? true);
 
   // In case we overwrite the source map settings, we default to deleting the files
-  let shouldDeleteFilesFallback = { client: true, server: true };
+  const shouldDeleteFilesFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
-    if (sourceMapsEnabled && !nuxt.options.dev) {
+    if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
       // Changing this setting will propagate:
       // - for client to viteConfig.build.sourceMap
       // - for server to viteConfig.build.sourceMap and nitro.sourceMap
       // On server, nitro.rollupConfig.output.sourcemap remains unaffected from this change.
 
-      // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will eventually overwrite with 'hidden'
+      // ONLY THIS nuxt.sourcemap.(server/client) setting is the one Sentry will overwrite with 'hidden', if needed.
       const previousSourceMapSettings = changeNuxtSourceMapSettings(nuxt, moduleOptions);
 
-      shouldDeleteFilesFallback = {
-        client: previousSourceMapSettings.client === 'unset',
-        server: previousSourceMapSettings.server === 'unset',
-      };
+      // Mutate in place so the Vite plugin (which captured this object at registration time) sees the updated values
+      shouldDeleteFilesFallback.client = previousSourceMapSettings.client === 'unset';
+      shouldDeleteFilesFallback.server = previousSourceMapSettings.server === 'unset';
 
-      if (
-        isDebug &&
-        !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
-        // eslint-disable-next-line deprecation/deprecation
-        !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload &&
-        (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)
-      ) {
-        // eslint-disable-next-line no-console
-        console.log(
-          "[Sentry] As Sentry enabled `'hidden'` source maps, source maps will be automatically deleted after uploading them to Sentry.",
-        );
-      }
-    }
-  });
+      if (isDebug && (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)) {
+        const enabledDeleteFallbacks =
+          shouldDeleteFilesFallback.client && shouldDeleteFilesFallback.server
+            ? 'client-side and server-side'
+            : shouldDeleteFilesFallback.server
+              ? 'server-side'
+              : 'client-side';
 
-  nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
-    if (sourceMapsEnabled && viteConfig.mode !== 'development') {
-      const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
-      const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
-
-      viteConfig.build = viteConfig.build || {};
-      const viteSourceMap = viteConfig.build.sourcemap;
-
-      // Vite source map options are the same as the Nuxt source map config options (unless overwritten)
-      validateDifferentSourceMapSettings({
-        nuxtSettingKey: `sourcemap.${runtime}`,
-        nuxtSettingValue: nuxtSourceMapSetting,
-        otherSettingKey: 'viteConfig.build.sourcemap',
-        otherSettingValue: viteSourceMap,
-      });
-
-      if (isDebug) {
-        if (!runtime) {
+        if (
+          !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
+          // eslint-disable-next-line deprecation/deprecation
+          !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
+        ) {
           // eslint-disable-next-line no-console
-          console.log("[Sentry] Cannot detect runtime (client/server) inside hook 'vite:extendConfig'.");
+          console.log(
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be automatically deleted after uploading them to Sentry.`,
+          );
         } else {
           // eslint-disable-next-line no-console
-          console.log(`[Sentry] Adding Sentry Vite plugin to the ${runtime} runtime.`);
+          console.log(
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be deleted according to your \`sourcemaps.filesToDeleteAfterUpload\` configuration. To use automatic deletion instead, leave \`filesToDeleteAfterUpload\` empty.`,
+          );
         }
       }
-
-      // Add Sentry plugin
-      // Vite plugin is added on the client and server side (hook runs twice)
-      // Nuxt client source map is 'false' by default. Warning about this will be shown already in an earlier step, and it's also documented that `nuxt.sourcemap.client` needs to be enabled.
-      viteConfig.plugins = viteConfig.plugins || [];
-      viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)));
     }
   });
 
+  addVitePlugin(
+    createSentryViteConfigPlugin({
+      nuxt,
+      moduleOptions,
+      sourceMapsEnabled,
+      shouldDeleteFilesFallback,
+    }),
+    // Only add source map plugin during build
+    { dev: false, build: true },
+  );
+
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
-    if (sourceMapsEnabled && !nitroConfig.dev) {
+    if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
       if (!nitroConfig.rollupConfig) {
         nitroConfig.rollupConfig = {};
       }
@@ -367,7 +361,13 @@ export function validateNitroSourceMapSettings(
   }
 }
 
-function validateDifferentSourceMapSettings({
+/**
+ * Validates that source map settings are consistent between Nuxt and Vite/Nitro configurations.
+ * Logs a warning if conflicting settings are detected.
+ *
+ * @internal Only exported for testing.
+ */
+export function validateDifferentSourceMapSettings({
   nuxtSettingKey,
   nuxtSettingValue,
   otherSettingKey,

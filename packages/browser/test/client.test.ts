@@ -148,7 +148,7 @@ describe('applyDefaultOptions', () => {
 
 describe('SDK metadata', () => {
   describe('sdk.settings', () => {
-    it('sets infer_ipto "never" by default', () => {
+    it('sets infer_ip to "never" by default', () => {
       const options = getDefaultBrowserClientOptions({});
       const client = new BrowserClient(options);
 
@@ -232,6 +232,31 @@ describe('SDK metadata', () => {
       const client = new BrowserClient(options);
 
       expect(client.getOptions()._metadata?.sdk?.name).toBe('sentry.javascript.angular');
+    });
+
+    it('preserves passed-in partial SDK metadata', () => {
+      const options = getDefaultBrowserClientOptions({
+        _metadata: {
+          sdk: {
+            settings: {
+              infer_ip: 'auto',
+            },
+          },
+        },
+        // Usually, this would cause infer_ip to be set to 'never'
+        // but we're passing it in explicitly, so it should be preserved
+        sendDefaultPii: false,
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk).toEqual({
+        name: 'sentry.javascript.browser',
+        version: expect.any(String),
+        packages: [{ name: 'npm:@sentry/browser', version: expect.any(String) }],
+        settings: {
+          infer_ip: 'auto',
+        },
+      });
     });
   });
 });

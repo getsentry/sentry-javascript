@@ -9,6 +9,7 @@ import {
   getLocationHref,
   isPrimitive,
   isString,
+  stripDataUrlContent,
   UNKNOWN_FUNCTION,
 } from '@sentry/core';
 import type { BrowserClient } from '../client';
@@ -208,14 +209,13 @@ function getFilenameFromUrl(url: string | undefined): string | undefined {
     return undefined;
   }
 
-  // stack frame urls can be data urls, for example when initializing a Worker with a base64 encoded script
-  // in this case we just show the data prefix and mime type to avoid too long raw data urls
+  // Strip data URL content to avoid long base64 strings in stack frames
+  // (e.g. when initializing a Worker with a base64 encoded script)
+  // Don't include data prefix for filenames as it's not useful for stack traces
+  // Wrap with < > to indicate it's a placeholder
   if (url.startsWith('data:')) {
-    const match = url.match(/^data:([^;]+)/);
-    const mimeType = match ? match[1] : 'text/javascript';
-    const isBase64 = url.includes('base64,');
-    return `<data:${mimeType}${isBase64 ? ',base64' : ''}>`;
+    return `<${stripDataUrlContent(url, false)}>`;
   }
 
-  return url; // it's fine to not truncate it as it's not put in a regex (https://codeql.github.com/codeql-query-help/javascript/js-polynomial-redos)
+  return url;
 }

@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { context, createContextKey } from '@opentelemetry/api';
+import { context } from '@opentelemetry/api';
 import {
   applySdkMetadata,
   type EventProcessor,
@@ -12,7 +12,6 @@ import {
   getRootSpan,
   GLOBAL_OBJ,
   registerSpanErrorInstrumentation,
-  type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -20,6 +19,7 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -28,7 +28,7 @@ import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attribu
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
-import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -41,32 +41,6 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
 
 export type EdgeOptions = VercelEdgeOptions;
-
-type CurrentScopes = {
-  scope: Scope;
-  isolationScope: Scope;
-};
-
-// This key must match `@sentry/opentelemetry`'s `SENTRY_SCOPES_CONTEXT_KEY`.
-// We duplicate it here so the Edge bundle does not need to import the full `@sentry/opentelemetry` package.
-const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
-
-type ContextWithGetValue = {
-  getValue(key: unknown): unknown;
-};
-
-function getScopesFromContext(otelContext: unknown): CurrentScopes | undefined {
-  if (!otelContext || typeof otelContext !== 'object') {
-    return undefined;
-  }
-
-  const maybeContext = otelContext as Partial<ContextWithGetValue>;
-  if (typeof maybeContext.getValue !== 'function') {
-    return undefined;
-  }
-
-  return maybeContext.getValue(SENTRY_SCOPES_CONTEXT_KEY) as CurrentScopes | undefined;
-}
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
@@ -99,13 +73,24 @@ export function init(options: VercelEdgeOptions = {}): void {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  const opts = {
+  // Detect if running on OpenNext/Cloudflare
+  const isRunningOnCloudflare = isCloudflareWaitUntilAvailable();
+
+  const opts: VercelEdgeOptions = {
     defaultIntegrations: customDefaultIntegrations,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
+    // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
+    ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };
 
-  applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
+  // Use appropriate SDK metadata based on the runtime environment
+  if (isRunningOnCloudflare) {
+    applySdkMetadata(opts, 'nextjs', ['nextjs', 'cloudflare']);
+  } else {
+    applySdkMetadata(opts, 'nextjs', ['nextjs', 'vercel-edge']);
+  }
 
   const client = vercelEdgeInit(opts);
 

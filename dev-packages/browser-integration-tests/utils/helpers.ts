@@ -8,7 +8,7 @@ import type {
   Event as SentryEvent,
   EventEnvelope,
   EventEnvelopeHeaders,
-  SessionContext,
+  SerializedSession,
   TransactionEvent,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
@@ -283,7 +283,10 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
   });
 }
 
-export async function waitForSession(page: Page): Promise<SessionContext> {
+export async function waitForSession(
+  page: Page,
+  callback?: (session: SerializedSession) => boolean,
+): Promise<SerializedSession> {
   const req = await page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -291,7 +294,11 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
     }
 
     try {
-      const event = envelopeRequestParser<SessionContext>(req);
+      const event = envelopeRequestParser<SerializedSession>(req);
+
+      if (callback) {
+        return callback(event);
+      }
 
       return typeof event.init === 'boolean' && event.started !== undefined;
     } catch {
@@ -299,7 +306,7 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
     }
   });
 
-  return envelopeRequestParser<SessionContext>(req);
+  return envelopeRequestParser<SerializedSession>(req);
 }
 
 /**
@@ -312,6 +319,30 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
 export function shouldSkipTracingTest(): boolean {
   const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test metrics tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain metrics
+ *
+ * @returns `true` if we should skip the metrics test
+ */
+export function shouldSkipMetricsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('metrics') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test logs tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain logs
+ *
+ * @returns `true` if we should skip the logs test
+ */
+export function shouldSkipLogsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('logs') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**

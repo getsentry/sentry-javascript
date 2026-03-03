@@ -4,12 +4,12 @@ import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   properFullEnvelopeRequestParser,
-  testingCdnBundle,
+  shouldSkipLogsTest,
 } from '../../../../utils/helpers';
 
 sentryTest('should capture console object calls', async ({ getLocalTestUrl, page }) => {
-  // Only run this for npm package exports
-  sentryTest.skip(testingCdnBundle());
+  // Only run this for npm package exports and CDN bundles with logs
+  sentryTest.skip(shouldSkipLogsTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

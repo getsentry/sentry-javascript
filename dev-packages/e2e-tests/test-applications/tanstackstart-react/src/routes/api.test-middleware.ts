@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { wrappedServerRouteRequestMiddleware } from '../middleware';
+import { serverRouteRequestMiddleware } from '../middleware';
 
 export const Route = createFileRoute('/api/test-middleware')({
   server: {
-    middleware: [wrappedServerRouteRequestMiddleware],
+    middleware: [serverRouteRequestMiddleware],
     handlers: {
       GET: async () => {
         return { message: 'Server route middleware test' };

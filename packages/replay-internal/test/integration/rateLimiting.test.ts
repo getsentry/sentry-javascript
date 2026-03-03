@@ -113,4 +113,42 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay.session).toBeDefined();
     expect(replay.isEnabled()).toBe(true);
   });
+
+  it('records dropped event with ratelimit_backoff reason when rate limited', async () => {
+    const client = getClient()!;
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    mockTransportSend.mockImplementationOnce(() => {
+      return Promise.resolve({ statusCode: 429, headers: { 'retry-after': '10' } } as TransportMakeRequestResponse);
+    });
+
+    replay.start();
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(replay.isEnabled()).toBe(false);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('ratelimit_backoff', 'replay');
+
+    recordDroppedEventSpy.mockRestore();
+  });
+
+  it('records dropped event with send_error reason when transport fails', async () => {
+    const client = getClient()!;
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    mockTransportSend.mockImplementation(() => {
+      return Promise.reject(new Error('Network error'));
+    });
+
+    replay.start();
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    await advanceTimers(5000);
+    await advanceTimers(10000);
+    await advanceTimers(30000);
+
+    expect(replay.isEnabled()).toBe(false);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('send_error', 'replay');
+
+    recordDroppedEventSpy.mockRestore();
+  });
 });

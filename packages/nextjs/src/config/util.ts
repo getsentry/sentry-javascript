@@ -1,6 +1,7 @@
 import { parseSemver } from '@sentry/core';
 import * as fs from 'fs';
 import { createRequire } from 'module';
+import * as path from 'path';
 
 /**
  * Returns the version of Next.js installed in the project, or undefined if it cannot be determined.
@@ -64,6 +65,27 @@ export function supportsProductionCompileHook(version: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Checks if the current Next.js version supports the `condition` field in Turbopack rules.
+ * This field was introduced in Next.js 16.
+ *
+ * @param version - version string to check.
+ * @returns true if Next.js version is 16 or higher
+ */
+export function supportsTurbopackRuleCondition(version: string): boolean {
+  if (!version) {
+    return false;
+  }
+
+  const { major } = parseSemver(version);
+
+  if (major === undefined) {
+    return false;
+  }
+
+  return major >= 16;
 }
 
 /**
@@ -179,5 +201,26 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
     return 'turbopack';
   } else {
     return 'webpack';
+  }
+}
+
+/**
+ * Extract modules from project directory's package.json
+ */
+export function getPackageModules(projectDir: string): Record<string, string> {
+  try {
+    const packageJson = path.join(projectDir, 'package.json');
+    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
+    const packageJsonObject = JSON.parse(packageJsonContent) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+
+    return {
+      ...packageJsonObject.dependencies,
+      ...packageJsonObject.devDependencies,
+    };
+  } catch {
+    return {};
   }
 }

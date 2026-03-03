@@ -263,3 +263,39 @@ export function getSanitizedUrlString(url: PartialURL): string {
 
   return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
 }
+
+/**
+ * Strips the content from a data URL, returning a placeholder with the MIME type.
+ *
+ * Data URLs can be very long (e.g. base64 encoded scripts for Web Workers),
+ * with little valuable information, often leading to envelopes getting dropped due
+ * to size limit violations. Therefore, we strip data URLs and replace them with a
+ * placeholder.
+ *
+ * @param url - The URL to process
+ * @param includeDataPrefix - If true, includes the first 10 characters of the data stream
+ *                            for debugging (e.g., to identify magic bytes like WASM's AGFzbQ).
+ *                            Defaults to true.
+ * @returns For data URLs, returns a short format like `data:text/javascript;base64,SGVsbG8gV2... [truncated]`.
+ *          For non-data URLs, returns the original URL unchanged.
+ */
+export function stripDataUrlContent(url: string, includeDataPrefix: boolean = true): string {
+  if (url.startsWith('data:')) {
+    // Match the MIME type (everything after 'data:' until the first ';' or ',')
+    const match = url.match(/^data:([^;,]+)/);
+    const mimeType = match ? match[1] : 'text/plain';
+    const isBase64 = url.includes(';base64,');
+
+    // Find where the actual data starts (after the comma)
+    const dataStart = url.indexOf(',');
+    let dataPrefix = '';
+    if (includeDataPrefix && dataStart !== -1) {
+      const data = url.slice(dataStart + 1);
+      // Include first 10 chars of data to help identify content (e.g., magic bytes)
+      dataPrefix = data.length > 10 ? `${data.slice(0, 10)}... [truncated]` : data;
+    }
+
+    return `data:${mimeType}${isBase64 ? ',base64' : ''}${dataPrefix ? `,${dataPrefix}` : ''}`;
+  }
+  return url;
+}

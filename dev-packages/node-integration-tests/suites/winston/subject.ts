@@ -9,6 +9,7 @@ Sentry.init({
   environment: 'test',
   enableLogs: true,
   transport: loggingTransport,
+  debug: true,
 });
 
 async function run(): Promise<void> {
@@ -62,6 +63,81 @@ async function run(): Promise<void> {
       foo: 'bar',
       number: 42,
     });
+  }
+
+  if (process.env.WITH_FILTER === 'true') {
+    const FilteredSentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      levels: ['error'],
+    });
+    const filteredLogger = winston.createLogger({
+      transports: [new FilteredSentryWinstonTransport()],
+    });
+
+    filteredLogger.info('Ignored message');
+    filteredLogger.error('Test error message');
+  }
+
+  // If unmapped custom level is requested (tests debug line for unknown levels)
+  if (process.env.UNMAPPED_CUSTOM_LEVEL === 'true') {
+    const customLevels = {
+      levels: {
+        myUnknownLevel: 0,
+        error: 1,
+      },
+    };
+
+    // Create transport WITHOUT customLevelMap for myUnknownLevel
+    // myUnknownLevel will default to 'info', but we only capture 'error'
+    const UnmappedSentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      levels: ['error'],
+    });
+
+    const unmappedLogger = winston.createLogger({
+      levels: customLevels.levels,
+      level: 'error',
+      transports: [new UnmappedSentryWinstonTransport()],
+    });
+
+    // This should NOT be captured (unknown level defaults to 'info', which is not in levels)
+    // @ts-ignore - custom levels are not part of the winston logger
+    unmappedLogger.myUnknownLevel('This unknown level message should be skipped');
+    // This SHOULD be captured
+    unmappedLogger.error('This error message should be captured');
+  }
+
+  // If custom level mapping is requested
+  if (process.env.CUSTOM_LEVEL_MAPPING === 'true') {
+    const customLevels = {
+      levels: {
+        customCritical: 0,
+        customWarning: 1,
+        customNotice: 2,
+      },
+    };
+
+    const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      customLevelMap: {
+        customCritical: 'fatal',
+        customWarning: 'warn',
+        customNotice: 'info',
+      },
+    });
+
+    const mappedLogger = winston.createLogger({
+      levels: customLevels.levels,
+      // https://github.com/winstonjs/winston/issues/1491
+      // when custom levels are set with a transport,
+      // the level must be set on the logger
+      level: 'customNotice',
+      transports: [new SentryWinstonTransport()],
+    });
+
+    // @ts-ignore - custom levels are not part of the winston logger
+    mappedLogger.customCritical('This is a critical message');
+    // @ts-ignore - custom levels are not part of the winston logger
+    mappedLogger.customWarning('This is a warning message');
+    // @ts-ignore - custom levels are not part of the winston logger
+    mappedLogger.customNotice('This is a notice message');
   }
 
   await Sentry.flush();

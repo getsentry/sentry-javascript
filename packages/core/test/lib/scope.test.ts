@@ -10,6 +10,7 @@ import {
 import { Scope } from '../../src/scope';
 import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
 import type { Event } from '../../src/types-hoist/event';
+import { uuid4 } from '../../src/utils/misc';
 import { applyScopeDataToEvent } from '../../src/utils/scopeData';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { clearGlobalScope } from '../testutils';
@@ -1008,6 +1009,111 @@ describe('Scope', () => {
         expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
         scope,
       );
+    });
+
+    it('should return event_id from event object when provided', () => {
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const customEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: customEventId });
+
+      expect(eventId).toBe(customEventId);
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: customEventId }),
+        expect.objectContaining({ event_id: customEventId }),
+        scope,
+      );
+    });
+
+    it('should prefer event.event_id over hint.event_id', () => {
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const eventEventId = uuid4();
+      const hintEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: eventEventId }, { event_id: hintEventId });
+
+      expect(eventId).toBe(eventEventId);
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ event_id: eventEventId }),
+        expect.objectContaining({ event_id: eventEventId }),
+        scope,
+      );
+    });
+
+    it('should return event_id from event object when no client is configured', () => {
+      const scope = new Scope();
+
+      const customEventId = uuid4();
+      const eventId = scope.captureEvent({ event_id: customEventId });
+
+      expect(eventId).toBe(customEventId);
+    });
+  });
+
+  describe('setConversationId() / getScopeData()', () => {
+    test('sets and gets conversation ID via getScopeData', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_abc123');
+      expect(scope.getScopeData().conversationId).toEqual('conv_abc123');
+    });
+
+    test('unsets conversation ID with null or undefined', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_abc123');
+      scope.setConversationId(null);
+      expect(scope.getScopeData().conversationId).toBeUndefined();
+
+      scope.setConversationId('conv_abc123');
+      scope.setConversationId(undefined);
+      expect(scope.getScopeData().conversationId).toBeUndefined();
+    });
+
+    test('clones conversation ID to new scope', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_clone123');
+      const clonedScope = scope.clone();
+      expect(clonedScope.getScopeData().conversationId).toEqual('conv_clone123');
+    });
+
+    test('notifies scope listeners when conversation ID is set', () => {
+      const scope = new Scope();
+      const listener = vi.fn();
+      scope.addScopeListener(listener);
+      scope.setConversationId('conv_listener');
+      expect(listener).toHaveBeenCalledWith(scope);
+    });
+
+    test('clears conversation ID when scope is cleared', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_to_clear');
+      expect(scope.getScopeData().conversationId).toEqual('conv_to_clear');
+      scope.clear();
+      expect(scope.getScopeData().conversationId).toBeUndefined();
+    });
+
+    test('updates conversation ID when scope is updated with ScopeContext', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_old');
+      scope.update({ conversationId: 'conv_updated' });
+      expect(scope.getScopeData().conversationId).toEqual('conv_updated');
+    });
+
+    test('updates conversation ID when scope is updated with another Scope', () => {
+      const scope1 = new Scope();
+      const scope2 = new Scope();
+      scope2.setConversationId('conv_from_scope2');
+      scope1.update(scope2);
+      expect(scope1.getScopeData().conversationId).toEqual('conv_from_scope2');
     });
   });
 

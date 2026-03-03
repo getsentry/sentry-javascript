@@ -178,9 +178,16 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
     return undefined;
   }
 
+  // Normalize trailing slashes to handle `trailingSlash: true` in Next.js config.
+  // When trailingSlash is enabled, all URLs get a trailing slash appended (e.g. '/about' becomes '/about/'),
+  // but route manifests store paths without trailing slashes. Without normalization, static routes fail
+  // exact-match checks and dynamic route regexes don't match, causing all routes to fall through to
+  // catch-all patterns. See: https://github.com/getsentry/sentry-javascript/issues/19241
+  const normalizedRoute = route.length > 1 && route.endsWith('/') ? route.slice(0, -1) : route;
+
   // Check route result cache after manifest validation
-  if (routeResultCache.has(route)) {
-    return routeResultCache.get(route);
+  if (routeResultCache.has(normalizedRoute)) {
+    return routeResultCache.get(normalizedRoute);
   }
 
   const { staticRoutes, dynamicRoutes } = manifest;
@@ -188,12 +195,12 @@ export const maybeParameterizeRoute = (route: string): string | undefined => {
     return undefined;
   }
 
-  const matches = findMatchingRoutes(route, staticRoutes, dynamicRoutes);
+  const matches = findMatchingRoutes(normalizedRoute, staticRoutes, dynamicRoutes);
 
   // We can always do the `sort()` call, it will short-circuit when it has one array item
   const result = matches.sort((a, b) => getRouteSpecificity(a) - getRouteSpecificity(b))[0];
 
-  routeResultCache.set(route, result);
+  routeResultCache.set(normalizedRoute, result);
 
   return result;
 };

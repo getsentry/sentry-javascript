@@ -18,14 +18,14 @@ describe('openai-utils', () => {
       expect(getOperationName('some.path.chat.completions.method')).toBe('chat');
     });
 
-    it('should return responses for responses methods', () => {
-      expect(getOperationName('responses.create')).toBe('responses');
-      expect(getOperationName('some.path.responses.method')).toBe('responses');
+    it('should return chat for responses methods', () => {
+      expect(getOperationName('responses.create')).toBe('chat');
+      expect(getOperationName('some.path.responses.method')).toBe('chat');
     });
 
-    it('should return conversations for conversations methods', () => {
-      expect(getOperationName('conversations.create')).toBe('conversations');
-      expect(getOperationName('some.path.conversations.method')).toBe('conversations');
+    it('should return chat for conversations methods', () => {
+      expect(getOperationName('conversations.create')).toBe('chat');
+      expect(getOperationName('some.path.conversations.method')).toBe('chat');
     });
 
     it('should return the last part of path for unknown methods', () => {
@@ -41,7 +41,7 @@ describe('openai-utils', () => {
   describe('getSpanOperation', () => {
     it('should prefix operation with gen_ai', () => {
       expect(getSpanOperation('chat.completions.create')).toBe('gen_ai.chat');
-      expect(getSpanOperation('responses.create')).toBe('gen_ai.responses');
+      expect(getSpanOperation('responses.create')).toBe('gen_ai.chat');
       expect(getSpanOperation('some.custom.operation')).toBe('gen_ai.operation');
     });
   });

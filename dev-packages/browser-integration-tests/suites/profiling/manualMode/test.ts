@@ -48,7 +48,7 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
   const envelopeItemHeader = profileChunkEnvelopeItem[0];
   const envelopeItemPayload1 = profileChunkEnvelopeItem[1];
 
-  expect(envelopeItemHeader).toHaveProperty('type', 'profile_chunk');
+  expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
   expect(envelopeItemPayload1.profile).toBeDefined();
 
   const profilerId1 = envelopeItemPayload1.profiler_id;
@@ -71,7 +71,7 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
   const envelopeItemHeader2 = profileChunkEnvelopeItem2[0];
   const envelopeItemPayload2 = profileChunkEnvelopeItem2[1];
 
-  expect(envelopeItemHeader2).toHaveProperty('type', 'profile_chunk');
+  expect(envelopeItemHeader2).toEqual({ type: 'profile_chunk', platform: 'javascript' });
   expect(envelopeItemPayload2.profile).toBeDefined();
 
   expect(envelopeItemPayload2.profiler_id).toBe(profilerId1); // same profiler id for the whole session

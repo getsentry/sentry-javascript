@@ -1,8 +1,35 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
-import { formatConsoleArgs } from '../logs/utils';
+import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
+import { isPlainObject } from '../utils/is';
+import { normalize } from '../utils/normalize';
+
+/**
+ * Result of extracting structured attributes from console arguments.
+ */
+interface ExtractAttributesResult {
+  /**
+   * The log message to use for the log entry, typically constructed from the console arguments.
+   */
+  message?: string;
+
+  /**
+   * The parameterized template string which is added as `sentry.message.template` attribute if applicable.
+   */
+  messageTemplate?: string;
+
+  /**
+   * Remaining arguments to process as attributes with keys like `sentry.message.parameter.0`, `sentry.message.parameter.1`, etc.
+   */
+  messageParameters?: unknown[];
+
+  /**
+   * Additional attributes to add to the log.
+   */
+  attributes?: Record<string, unknown>;
+}
 
 /**
  * Options for the Sentry Consola reporter.
@@ -61,8 +88,9 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
-   * Allows additional custom properties to be set on the log object.
-   * These properties will be captured as log attributes with a 'consola.' prefix.
+   * Allows additional custom properties to be set on the log object. These properties will be captured as log attributes.
+   *
+   * Additional properties are set when passing a single object with a `message` (`consola.[type]({ message: '', ... })`) or if the reporter is called directly
    *
    * @example
    * ```ts
@@ -73,7 +101,7 @@ export interface ConsolaLogObject {
    *   userId: 123,
    *   sessionId: 'abc-123'
    * });
-   * // Will create attributes: consola.userId and consola.sessionId
+   * // Will create attributes: `userId` and `sessionId`
    * ```
    */
   [key: string]: unknown;
@@ -123,12 +151,19 @@ export interface ConsolaLogObject {
   /**
    * The raw arguments passed to the log method.
    *
-   * When `message` is not provided, these args are typically formatted into the final message.
+   * These args are typically formatted into the final `message`. In Consola reporters, `message` is not provided. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    *
    * @example
    * ```ts
    * consola.info('Hello', 'world', { user: 'john' });
    * // args = ['Hello', 'world', { user: 'john' }]
+   * ```
+   *
+   * @example
+   * ```ts
+   * // `message` is a reserved property in Consola
+   * consola.log({ message: 'Hello' });
+   * // args = ['Hello']
    * ```
    */
   args?: unknown[];
@@ -145,6 +180,10 @@ export interface ConsolaLogObject {
    *
    * When provided, this is the final formatted message. When not provided,
    * the message should be constructed from the `args` array.
+   *
+   * Note: In reporters, `message` is typically undefined. It is primarily for
+   * `consola.[type]({ message: 'xxx' })` usage and is normalized into `args` before
+   * reporters receive the log object. See: https://github.com/unjs/consola/issues/406#issuecomment-3684792551
    */
   message?: string;
 }
@@ -187,8 +226,9 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
   return {
     log(logObj: ConsolaLogObject) {
+      // We need to exclude certain known properties from being added as additional attributes
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { type, level, message: consolaMessage, args, tag, date: _date, ...attributes } = logObj;
+      const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
 
       // Get client - use provided client or current client
       const client = providedClient || getClient();
@@ -206,17 +246,13 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
-      // Format the log message using the same approach as consola's basic reporter
-      const messageParts = [];
-      if (consolaMessage) {
-        messageParts.push(consolaMessage);
-      }
-      if (args && args.length > 0) {
-        messageParts.push(formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth));
-      }
-      const message = messageParts.join(' ');
+      const attributes: Record<string, unknown> = {};
 
       // Build attributes
+      for (const [key, value] of Object.entries(rest)) {
+        attributes[key] = normalize(value, normalizeDepth, normalizeMaxBreadth);
+      }
+
       attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {
@@ -232,9 +268,23 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
+      const extractionResult = processExtractedAttributes(
+        defaultExtractAttributes(args, normalizeDepth, normalizeMaxBreadth),
+        normalizeDepth,
+        normalizeMaxBreadth,
+      );
+
+      if (extractionResult?.attributes) {
+        Object.assign(attributes, extractionResult.attributes);
+      }
+
       _INTERNAL_captureLog({
         level: logSeverityLevel,
-        message,
+        message:
+          extractionResult?.message ||
+          consolaMessage ||
+          (args && formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth)) ||
+          '',
         attributes,
       });
     },
@@ -309,4 +359,82 @@ function getLogSeverityLevel(type?: string, level?: number | null): LogSeverityL
 
   // Default fallback
   return 'info';
+}
+
+/**
+ * Extracts structured attributes from console arguments. If the first argument is a plain object, its properties are extracted as attributes.
+ */
+function defaultExtractAttributes(
+  args: unknown[] | undefined,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): ExtractAttributesResult {
+  if (!args?.length) {
+    return { message: '' };
+  }
+
+  // Message looks like how consola logs the message to the console (all args stringified and joined)
+  const message = formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth);
+
+  const firstArg = args[0];
+
+  if (isPlainObject(firstArg)) {
+    // Remaining args start from index 2 i f we used second arg as message, otherwise from index 1
+    const remainingArgsStartIndex = typeof args[1] === 'string' ? 2 : 1;
+    const remainingArgs = args.slice(remainingArgsStartIndex);
+
+    return {
+      message,
+      // Object content from first arg is added as attributes
+      attributes: firstArg,
+      // Add remaining args as message parameters
+      messageParameters: remainingArgs,
+    };
+  } else {
+    const followingArgs = args.slice(1);
+
+    const shouldAddTemplateAttr =
+      followingArgs.length > 0 && typeof firstArg === 'string' && !hasConsoleSubstitutions(firstArg);
+
+    return {
+      message,
+      messageTemplate: shouldAddTemplateAttr ? firstArg : undefined,
+      messageParameters: shouldAddTemplateAttr ? followingArgs : undefined,
+    };
+  }
+}
+
+/**
+ * Processes extracted attributes by normalizing them and preparing message parameter attributes if a template is present.
+ */
+function processExtractedAttributes(
+  extractionResult: ExtractAttributesResult,
+  normalizeDepth: number,
+  normalizeMaxBreadth: number,
+): { message: string | undefined; attributes: Record<string, unknown> } {
+  const { message, attributes, messageTemplate, messageParameters } = extractionResult;
+
+  const messageParamAttributes: Record<string, unknown> = {};
+
+  if (messageTemplate && messageParameters) {
+    const templateAttrs = createConsoleTemplateAttributes(messageTemplate, messageParameters);
+
+    for (const [key, value] of Object.entries(templateAttrs)) {
+      messageParamAttributes[key] = key.startsWith('sentry.message.parameter.')
+        ? normalize(value, normalizeDepth, normalizeMaxBreadth)
+        : value;
+    }
+  } else if (messageParameters && messageParameters.length > 0) {
+    messageParameters.forEach((arg, index) => {
+      messageParamAttributes[`sentry.message.parameter.${index}`] = normalize(arg, normalizeDepth, normalizeMaxBreadth);
+    });
+  }
+
+  return {
+    message: message,
+    attributes: {
+      ...normalize(attributes, normalizeDepth, normalizeMaxBreadth),
+      ...messageParamAttributes,
+    },
+  };
 }

@@ -28,7 +28,7 @@ describe('logger public API', () => {
                   },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',
@@ -65,7 +65,7 @@ describe('logger public API', () => {
                   },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',
@@ -102,7 +102,7 @@ describe('logger public API', () => {
                   },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',

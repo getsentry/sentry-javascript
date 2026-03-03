@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
+  conversationIdIntegration,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -30,6 +31,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
     honoIntegration(),

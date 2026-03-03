@@ -67,6 +67,12 @@ async function run() {
     } catch {
       // Error is expected and handled
     }
+
+    // Third test: embeddings API with multiple inputs
+    await client.embeddings.create({
+      input: ['First input text', 'Second input text', 'Third input text'],
+      model: 'text-embedding-3-small',
+    });
   });
 
   server.close();

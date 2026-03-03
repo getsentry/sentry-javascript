@@ -316,7 +316,7 @@ test.describe('performance events', () => {
             'sentry.origin': 'auto.navigation.sveltekit',
             'sentry.op': 'navigation',
             'sentry.source': 'route',
-            'sentry.sveltekit.navigation.type': 'goto',
+            'sentry.sveltekit.navigation.type': 'link',
             'sentry.sveltekit.navigation.from': '/',
             'sentry.sveltekit.navigation.to': '/redirect2',
             'sentry.sample_rate': 1,
@@ -337,7 +337,7 @@ test.describe('performance events', () => {
         'sentry.origin': 'auto.ui.sveltekit',
         'sentry.sveltekit.navigation.from': '/',
         'sentry.sveltekit.navigation.to': '/redirect2',
-        'sentry.sveltekit.navigation.type': 'goto',
+        'sentry.sveltekit.navigation.type': 'link',
       },
     });
 
@@ -353,7 +353,7 @@ test.describe('performance events', () => {
             'sentry.origin': 'auto.navigation.sveltekit',
             'sentry.op': 'navigation',
             'sentry.source': 'route',
-            'sentry.sveltekit.navigation.type': 'goto',
+            'sentry.sveltekit.navigation.type': 'link',
             'sentry.sveltekit.navigation.from': '/',
             'sentry.sveltekit.navigation.to': '/users/[id]',
             'sentry.sample_rate': 1,
@@ -374,7 +374,7 @@ test.describe('performance events', () => {
         'sentry.origin': 'auto.ui.sveltekit',
         'sentry.sveltekit.navigation.from': '/',
         'sentry.sveltekit.navigation.to': '/users/[id]',
-        'sentry.sveltekit.navigation.type': 'goto',
+        'sentry.sveltekit.navigation.type': 'link',
       },
     });
   });

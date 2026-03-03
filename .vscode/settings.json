@@ -11,10 +11,10 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/**.yml"
@@ -25,8 +25,8 @@
     }
   ],
   "deno.enablePaths": ["packages/deno/test"],
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   }
 }
