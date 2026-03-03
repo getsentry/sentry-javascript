@@ -48,7 +48,7 @@
     "@opentelemetry/core": "^2.5.1",
     "@opentelemetry/instrumentation": "^0.211.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.57.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@sentry/core": "10.42.0",
     "@sentry/node": "10.42.0"
   },

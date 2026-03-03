@@ -93,7 +93,7 @@
     "@opentelemetry/instrumentation-undici": "0.21.0",
     "@opentelemetry/resources": "^2.5.1",
     "@opentelemetry/sdk-trace-base": "^2.5.1",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/instrumentation": "7.2.0",
     "@fastify/otel": "0.16.0",
     "@sentry/core": "10.42.0",
