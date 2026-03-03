@@ -6,7 +6,7 @@ Sentry.startSpan({ name: 'test-span', op: 'test' }, () => {
   const inactiveSpan = Sentry.startInactiveSpan({ name: 'test-inactive-span' });
   inactiveSpan.end();
 
-  Sentry.startSpanManual({ name: 'test-manual-span' }, (span) => {
+  Sentry.startSpanManual({ name: 'test-manual-span' }, span => {
     // noop
     span.end();
   });
