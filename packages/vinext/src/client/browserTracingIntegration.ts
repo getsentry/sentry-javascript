@@ -97,9 +97,7 @@ function startNavigationSpan(client: Client, trigger: string): void {
  */
 function getRouteFromWindow(): string | undefined {
   try {
-    const nextData = (GLOBAL_OBJ as unknown as Record<string, unknown>).__NEXT_DATA__ as
-      | { page?: string }
-      | undefined;
+    const nextData = (GLOBAL_OBJ as unknown as Record<string, unknown>).__NEXT_DATA__ as { page?: string } | undefined;
     if (nextData?.page && nextData.page !== '/') {
       return nextData.page;
     }

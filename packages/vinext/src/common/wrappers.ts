@@ -20,7 +20,7 @@ export function wrapRouteHandlerWithSentry<T extends (...args: unknown[]) => unk
   method: string,
   parameterizedRoute: string,
 ): T {
-  return (async function sentryWrappedRouteHandler(this: unknown, ...args: unknown[]) {
+  return async function sentryWrappedRouteHandler(this: unknown, ...args: unknown[]) {
     return withIsolationScope(async isolationScope => {
       isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
 
@@ -49,7 +49,7 @@ export function wrapRouteHandlerWithSentry<T extends (...args: unknown[]) => unk
         },
       );
     });
-  }) as unknown as T;
+  } as unknown as T;
 }
 
 /**
@@ -61,7 +61,7 @@ export function wrapServerComponentWithSentry<T extends (...args: unknown[]) => 
 ): T {
   const { componentRoute, componentType } = context;
 
-  return (async function sentryWrappedServerComponent(this: unknown, ...args: unknown[]) {
+  return async function sentryWrappedServerComponent(this: unknown, ...args: unknown[]) {
     return withIsolationScope(async isolationScope => {
       isolationScope.setTransactionName(componentRoute);
 
@@ -90,14 +90,14 @@ export function wrapServerComponentWithSentry<T extends (...args: unknown[]) => 
         },
       );
     });
-  }) as unknown as T;
+  } as unknown as T;
 }
 
 /**
  * Wraps a vinext middleware function with Sentry instrumentation.
  */
 export function wrapMiddlewareWithSentry<T extends (...args: unknown[]) => unknown>(middleware: T): T {
-  return (async function sentryWrappedMiddleware(this: unknown, ...args: unknown[]) {
+  return async function sentryWrappedMiddleware(this: unknown, ...args: unknown[]) {
     return withIsolationScope(async isolationScope => {
       // Try to extract the path from the first argument (Request object)
       const request = args[0] as { url?: string; method?: string } | undefined;
@@ -142,7 +142,7 @@ export function wrapMiddlewareWithSentry<T extends (...args: unknown[]) => unkno
         },
       );
     });
-  }) as unknown as T;
+  } as unknown as T;
 }
 
 /**
@@ -152,7 +152,7 @@ export function wrapApiHandlerWithSentry<T extends (...args: unknown[]) => unkno
   handler: T,
   parameterizedRoute: string,
 ): T {
-  return (async function sentryWrappedApiHandler(this: unknown, ...args: unknown[]) {
+  return async function sentryWrappedApiHandler(this: unknown, ...args: unknown[]) {
     return withIsolationScope(async isolationScope => {
       // Try to extract the method from the first argument (IncomingMessage)
       const req = args[0] as { method?: string } | undefined;
@@ -185,5 +185,5 @@ export function wrapApiHandlerWithSentry<T extends (...args: unknown[]) => unkno
         },
       );
     });
-  }) as unknown as T;
+  } as unknown as T;
 }
