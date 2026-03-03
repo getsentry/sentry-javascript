@@ -92,6 +92,9 @@ function sdkAlreadyInitialized(): boolean {
 
 export { captureRequestError } from './captureRequestError';
 
+export { sentryVinext } from '../vite';
+export type { SentryVinextPluginOptions } from '../vite';
+
 export * from '../common';
 
 export * from '@sentry/node';

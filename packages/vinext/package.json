@@ -36,6 +36,11 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       }
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "publishConfig": {
