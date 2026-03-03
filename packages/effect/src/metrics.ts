@@ -73,7 +73,13 @@ function sendDeltaMetricToSentry(pair: MetricPair.MetricPair.Untyped): void {
   }
 }
 
-function flushMetricsToSentry(): void {
+/**
+ * Flushes all Effect metrics to Sentry.
+ * This is called periodically by the SentryEffectMetricsLayer.
+ * Exported for testing purposes.
+ * @internal
+ */
+export function flushMetricsToSentry(): void {
   const snapshot = Metric.unsafeSnapshot();
 
   snapshot.forEach(pair => {

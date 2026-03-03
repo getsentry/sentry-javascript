@@ -3269,6 +3269,11 @@
   dependencies:
     "@edge-runtime/primitives" "6.0.0"
 
+"@effect/vitest@^0.23.9":
+  version "0.23.13"
+  resolved "https://registry.yarnpkg.com/@effect/vitest/-/vitest-0.23.13.tgz#17edf9d8e3443f080ff8fe93bd37b023612a07a4"
+  integrity sha512-F3x2phMXuVzqWexdcYp8v0z1qQHkKxp2UaHNbqZaEjPEp8FBz/iMwbi6iS/oIWzLfGF8XqdP8BGJptvGIJONNw==
+
 "@ember-data/rfc395-data@^0.0.4":
   version "0.0.4"
   resolved "https://registry.yarnpkg.com/@ember-data/rfc395-data/-/rfc395-data-0.0.4.tgz#ecb86efdf5d7733a76ff14ea651a1b0ed1f8a843"

@@ -6,7 +6,15 @@ import * as LogLevel from 'effect/LogLevel';
  * Effect Logger that sends logs to Sentry.
  */
 export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
-  const msg = typeof message === 'string' ? message : JSON.stringify(message);
+  let msg: string;
+  if (typeof message === 'string') {
+    msg = message;
+  } else if (Array.isArray(message) && message.length === 1) {
+    const firstElement = message[0];
+    msg = typeof firstElement === 'string' ? firstElement : JSON.stringify(firstElement);
+  } else {
+    msg = JSON.stringify(message);
+  }
 
   if (LogLevel.greaterThanEqual(logLevel, LogLevel.Error)) {
     sentryLogger.error(msg);
