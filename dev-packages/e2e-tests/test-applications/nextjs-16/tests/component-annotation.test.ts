@@ -22,12 +22,11 @@ test('React component annotation adds data-sentry-component attributes (Turbopac
   expect(errorEvent.exception?.values?.[0]?.value).toBe('component-annotation-test');
 
   // In production, TEST_ENV=production is shared by both turbopack and webpack variants.
-  // The component annotation loader only runs in Turbopack builds, so only assert
-  // DOM attributes and breadcrumb component names when the build is actually turbopack.
-  const annotatedEl = page.locator('[data-sentry-component="ComponentAnnotationTestPage"]');
-  const isAnnotated = (await annotatedEl.count()) > 0;
-
-  if (isAnnotated) {
+  // The component annotation loader only runs in Turbopack builds, so use the independent
+  // turbopack tag (set by the SDK based on build metadata) to gate assertions rather than
+  // checking the feature's own output, which would silently pass on regression.
+  if (errorEvent.tags?.turbopack) {
+    const annotatedEl = page.locator('[data-sentry-component="ComponentAnnotationTestPage"]');
     await expect(annotatedEl).toBeVisible();
 
     const clickBreadcrumb = errorEvent.breadcrumbs?.find(bc => bc.category === 'ui.click');
