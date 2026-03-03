@@ -14,6 +14,7 @@ import {
 import type { DataRouter, RouterState } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
+import { resolveNavigateArg } from './utils';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -59,7 +60,7 @@ export function instrumentHydratedRouter(): void {
         router.navigate = function sentryPatchedNavigate(...args) {
           // Skip if instrumentation API is enabled (it handles navigation spans itself)
           if (!isClientInstrumentationApiUsed()) {
-            maybeCreateNavigationTransaction(String(args[0]) || '<unknown route>', 'url');
+            maybeCreateNavigationTransaction(resolveNavigateArg(args[0]) || '<unknown route>', 'url');
           }
           return originalNav(...args);
         };
