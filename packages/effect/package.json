@@ -12,26 +12,44 @@
   "files": [
     "/build"
   ],
-  "main": "build/cjs/index.js",
-  "module": "build/esm/index.js",
-  "types": "build/types/index.d.ts",
+  "main": "build/cjs/index.server.js",
+  "module": "build/esm/index.server.js",
+  "browser": "build/esm/index.client.js",
+  "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "types": "./build/types/index.d.ts",
-        "default": "./build/esm/index.js"
+      "types": "./build/types/index.types.d.ts",
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
       },
-      "require": {
-        "types": "./build/types/index.d.ts",
-        "default": "./build/cjs/index.js"
+      "node": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
       }
+    },
+    "./server": {
+      "types": "./build/types/index.server.d.ts",
+      "import": "./build/esm/index.server.js",
+      "require": "./build/cjs/index.server.js"
+    },
+    "./client": {
+      "types": "./build/types/index.client.d.ts",
+      "import": "./build/esm/index.client.js",
+      "require": "./build/cjs/index.client.js"
     }
   },
   "typesVersions": {
     "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
+      "build/types/index.types.d.ts": [
+        "build/types-ts3.8/index.types.d.ts"
+      ],
+      "build/types/index.server.d.ts": [
+        "build/types-ts3.8/index.server.d.ts"
+      ],
+      "build/types/index.client.d.ts": [
+        "build/types-ts3.8/index.client.d.ts"
       ]
     }
   },
@@ -39,7 +57,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.41.0"
+    "@sentry/browser": "10.41.0",
+    "@sentry/core": "10.41.0",
+    "@sentry/node-core": "10.41.0"
   },
   "peerDependencies": {
     "effect": "^3.0.0"

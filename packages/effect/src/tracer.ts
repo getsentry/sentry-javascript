@@ -69,11 +69,6 @@ function isSentrySpan(span: EffectTracer.AnySpan): span is SentrySpanLike {
   return SENTRY_SPAN_SYMBOL in span;
 }
 
-function isHttpServerSpan(span: Span): boolean {
-  const op = spanToJSON(span).op;
-  return op === 'http.server';
-}
-
 class SentrySpanWrapper implements SentrySpanLike {
   public readonly [SENTRY_SPAN_SYMBOL]: true;
   public readonly _tag: 'Span';

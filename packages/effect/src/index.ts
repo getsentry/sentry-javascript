@@ -22,8 +22,6 @@ export type {
   Span,
 } from '@sentry/core';
 
-export type { EffectOptions, EffectClientOptions } from './client';
-
 export {
   addEventProcessor,
   addBreadcrumb,
@@ -88,6 +86,9 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
-export { EffectClient } from './client';
-export { effectLayer } from './layer';
-export type { EffectLayerOptions } from './layer';
+export { effectLayer } from './server/index';
+export type { EffectServerLayerOptions as EffectLayerOptions } from './server/index';
+
+export { SentryEffectLogger } from './logger';
+export { SentryEffectMetricsLayer } from './metrics';
+export { SentryEffectTracerLayer } from './tracer';
