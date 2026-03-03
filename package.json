@@ -22,7 +22,7 @@
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:oxfmt fix:oxlint",
-    "fix:oxlint": "oxlint packages/ --fix",
+    "fix:oxlint": "oxlint . --fix",
     "fix:oxfmt": "oxfmt . --write",
     "format:check": "oxfmt . --check",
     "format": "oxfmt . --write",
