@@ -12,14 +12,14 @@ import {
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, getSpansFromEnvelope, waitForStreamdSpanEnvelope } from '../../../../utils/spanUtils';
+import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest(
   'creates a pageload streamed span envelope with url as pageload span name source',
   async ({ getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest());
 
-    const spanEnvelopePromise = waitForStreamdSpanEnvelope(
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
       page,
       env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'pageload'),
     );

@@ -11,7 +11,7 @@ import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest
 import {
   getSpanOp,
   getSpansFromEnvelope,
-  waitForStreamdSpanEnvelope,
+  waitForStreamedSpanEnvelope,
   waitForStreamedSpan,
 } from '../../../../utils/spanUtils';
 
@@ -19,7 +19,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
   sentryTest.skip(shouldSkipTracingTest());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
-  const navigationSpanEnvelopePromise = waitForStreamdSpanEnvelope(
+  const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
     page,
     env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'navigation'),
   );

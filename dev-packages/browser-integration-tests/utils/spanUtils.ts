@@ -6,7 +6,7 @@ import { properFullEnvelopeParser } from './helpers';
  * Wait for a full span v2 envelope
  * Useful for testing the entire envelope shape
  */
-export async function waitForStreamdSpanEnvelope(
+export async function waitForStreamedSpanEnvelope(
   page: Page,
   callback?: (spanEnvelope: StreamedSpanEnvelope) => boolean,
 ): Promise<StreamedSpanEnvelope> {
@@ -47,11 +47,11 @@ export async function waitForStreamdSpanEnvelope(
  * @param page
  * @param callback - Callback being called with all spans
  */
-export async function waitForStreamdSpans(
+export async function waitForStreamedSpans(
   page: Page,
   callback?: (spans: SerializedStreamedSpan[]) => boolean,
 ): Promise<SerializedStreamedSpan[]> {
-  const spanEnvelope = await waitForStreamdSpanEnvelope(page, envelope => {
+  const spanEnvelope = await waitForStreamedSpanEnvelope(page, envelope => {
     if (callback) {
       return callback(envelope[1][0][1].items);
     }
@@ -64,7 +64,7 @@ export async function waitForStreamedSpan(
   page: Page,
   callback: (span: SerializedStreamedSpan) => boolean,
 ): Promise<SerializedStreamedSpan> {
-  const spanEnvelope = await waitForStreamdSpanEnvelope(page, envelope => {
+  const spanEnvelope = await waitForStreamedSpanEnvelope(page, envelope => {
     if (callback) {
       const spans = envelope[1][0][1].items;
       return spans.some(span => callback(span));

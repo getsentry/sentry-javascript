@@ -12,14 +12,14 @@ import {
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { waitForStreamdSpanEnvelope } from '../../../../utils/spanUtils';
+import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
   async ({ getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest());
 
-    const spanEnvelopePromise = waitForStreamdSpanEnvelope(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
