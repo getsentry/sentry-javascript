@@ -39,3 +39,10 @@ integrity = "sha256-IMo0XcsfNtduSQzNZLsrXD/Qg0aE6loetoM0qIqYatA="
 [skills.upgrade-otel]
 source = "path:.agents/skills/upgrade-otel"
 integrity = "sha256-PnfUymsVK2zWTGNPOvL2XkIXLWta0RpVTVDcvQC5q8w="
+
+[skills.skill-scanner]
+source = "getsentry/skills"
+resolved_url = "https://github.com/getsentry/skills.git"
+resolved_path = ".agents/skills/skill-scanner"
+commit = "b68ac5ce82c981ac3235dd6f2037c1109baaf0f2"
+integrity = "sha256-IleKDxGpne+9g/048+q4wBv7MkfZPIYFX78TnLjeGyQ="
