@@ -4,6 +4,7 @@ import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
+import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
@@ -14,7 +15,7 @@ import type { BaseTransportOptions, Transport } from './types-hoist/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
 import { uuid4 } from './utils/misc';
-import type { PromiseBuffer } from './utils/promisebuffer';
+import { makePromiseBuffer } from './utils/promisebuffer';
 import { resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
 
@@ -176,7 +177,7 @@ export class ServerRuntimeClient<
     this._integrations = {};
     this._outcomes = {};
     (this as unknown as { _transport?: Transport })._transport = undefined;
-    (this as unknown as { _promiseBuffer?: PromiseBuffer<unknown> })._promiseBuffer = undefined;
+    this._promiseBuffer = makePromiseBuffer(DEFAULT_TRANSPORT_BUFFER_SIZE);
   }
 
   /**
