@@ -133,7 +133,7 @@
     "nx": "22.5.0",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.50.0",
-    "oxlint-tsgolint": "^0.14.2",
+    "oxlint-tsgolint": "^0.16.0",
     "rimraf": "^5.0.10",
     "rollup": "^4.59.0",
     "rollup-plugin-cleanup": "^3.2.1",
