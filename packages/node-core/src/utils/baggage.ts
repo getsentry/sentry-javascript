@@ -1,4 +1,20 @@
-import { objectToBaggageHeader, parseBaggageHeader } from '@sentry/core';
+import { objectToBaggageHeader, parseBaggageHeader, SENTRY_BAGGAGE_KEY_PREFIX } from '@sentry/core';
+
+/**
+ * To check if a baggage header contains any Sentry baggage values.
+ *
+ * @param baggageHeader The baggage header to check
+ * @returns true if the baggage header contains any keys with the 'sentry-' prefix
+ */
+export function hasSentryBaggageValues(baggageHeader: string | string[] | undefined): boolean {
+  if (!baggageHeader) {
+    return false;
+  }
+
+  const baggageString = Array.isArray(baggageHeader) ? baggageHeader.join(',') : baggageHeader;
+
+  return baggageString.split(',').some(entry => entry.trim().startsWith(SENTRY_BAGGAGE_KEY_PREFIX));
+}
 
 /**
  * Merge two baggage headers into one, where the existing one takes precedence.
