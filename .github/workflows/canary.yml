@@ -114,6 +114,9 @@ jobs:
           - test-application: 'nestjs-11'
             build-command: 'test:build-latest'
             label: 'nestjs-11 (latest)'
+          - test-application: 'nestjs-websockets'
+            build-command: 'test:build-latest'
+            label: 'nestjs-websockets (latest)'
 
     steps:
       - name: Check out current commit

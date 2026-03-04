@@ -7,6 +7,7 @@
     "start": "nest start",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/websockets@latest @nestjs/platform-socket.io@latest && pnpm add -D @nestjs/cli@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
