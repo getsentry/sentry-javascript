@@ -143,7 +143,9 @@ describe('Hono Cloudflare Middleware', () => {
       const app = new Hono();
       sentry(app, { integrations: input });
 
-      const integrationsFn = getIntegrationsResult() as (defaults: SentryCore.Integration[]) => SentryCore.Integration[];
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
       expect(integrationsFn([])).toEqual(expected);
     });
 
@@ -151,10 +153,29 @@ describe('Hono Cloudflare Middleware', () => {
       const app = new Hono();
       sentry(app, { integrations: [otherIntegration] });
 
-      const integrationsFn = getIntegrationsResult() as (defaults: SentryCore.Integration[]) => SentryCore.Integration[];
-      // Simulates getIntegrationsToSetup: defaults (from Cloudflare) include Hono; result must exclude it
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      // Defaults (from Cloudflare) include Hono; result must exclude it and deduplicate (user + defaults overlap)
       const defaultsWithHono = [honoIntegration, otherIntegration];
-      expect(integrationsFn(defaultsWithHono)).toEqual([otherIntegration, otherIntegration]);
+      expect(integrationsFn(defaultsWithHono)).toEqual([otherIntegration]);
+    });
+
+    it('deduplicates when user integrations overlap with defaults (by name)', () => {
+      const app = new Hono();
+      const duplicateIntegration = { name: 'Other' } as SentryCore.Integration;
+      sentry(app, { integrations: [duplicateIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      const defaultsWithOverlap = [
+        honoIntegration,
+        otherIntegration, // same name as duplicateIntegration
+      ];
+      const result = integrationsFn(defaultsWithOverlap);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.name).toBe('Other');
     });
 
     it('filters Hono integration out of a function result', () => {
