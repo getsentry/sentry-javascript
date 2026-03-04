@@ -40,7 +40,6 @@ sentryTest(
     expect(pageloadSpan).toBeDefined();
     expect(requestSpans).toHaveLength(3);
 
-    await page.pause();
     requestSpans?.forEach((span, index) =>
       expect(span).toMatchObject({
         name: `GET http://sentry-test-site.example/${index}`,
