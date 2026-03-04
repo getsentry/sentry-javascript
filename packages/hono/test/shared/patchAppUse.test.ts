@@ -71,7 +71,7 @@ describe('patchAppUse (middleware spans)', () => {
       const app = new Hono();
       patchAppUse(app);
 
-      app.use(async (_c: unknown, next: () => Promise<void>) => await next());
+      app.use(async (_c: unknown, next: () => Promise<void>) => next());
 
       await app.fetch(new Request('http://localhost/'));
 
@@ -85,7 +85,7 @@ describe('patchAppUse (middleware spans)', () => {
     const app = new Hono();
     patchAppUse(app);
 
-    const handler = async (_c: unknown, next: () => Promise<void>) => await next();
+    const handler = async (_c: unknown, next: () => Promise<void>) => next();
     app.use('/api', handler);
     app.get('/api', () => new Response('ok'));
 
