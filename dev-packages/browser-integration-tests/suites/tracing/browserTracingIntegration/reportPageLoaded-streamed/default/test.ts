@@ -7,13 +7,13 @@ import {
 } from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   'waits for Sentry.reportPageLoaded() to be called when `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

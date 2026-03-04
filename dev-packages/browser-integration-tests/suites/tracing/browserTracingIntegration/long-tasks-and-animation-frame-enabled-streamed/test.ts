@@ -3,14 +3,14 @@ import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest(
   'captures long animation frame span for top-level script.',
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium' || testingCdnBundle());
 
     // Long animation frame should take priority over long tasks
 
@@ -64,7 +64,7 @@ sentryTest(
 
 sentryTest('captures long animation frame span for event listener.', async ({ browserName, getLocalTestUrl, page }) => {
   // Long animation frames only work on chrome
-  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium' || testingCdnBundle());
 
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 

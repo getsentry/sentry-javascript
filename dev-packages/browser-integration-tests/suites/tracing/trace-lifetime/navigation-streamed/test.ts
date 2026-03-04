@@ -7,11 +7,12 @@ import {
   getFirstSentryEnvelopeRequest,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
+  testingCdnBundle,
 } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest('creates a new trace and sample_rand on each navigation', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -75,7 +76,7 @@ sentryTest('creates a new trace and sample_rand on each navigation', async ({ ge
 });
 
 sentryTest('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -137,7 +138,7 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
 });
 
 sentryTest('error during navigation has new navigation traceId', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -187,7 +188,7 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 sentryTest(
   'outgoing fetch request during navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -231,7 +232,7 @@ sentryTest(
 sentryTest(
   'outgoing XHR request during navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -275,7 +276,7 @@ sentryTest(
 sentryTest(
   'user feedback event after navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || shouldSkipFeedbackTest());
+    sentryTest.skip(shouldSkipTracingTest() || shouldSkipFeedbackTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 

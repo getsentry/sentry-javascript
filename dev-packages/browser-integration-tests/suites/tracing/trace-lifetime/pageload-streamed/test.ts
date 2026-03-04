@@ -7,11 +7,12 @@ import {
   getFirstSentryEnvelopeRequest,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
+  testingCdnBundle,
 } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest('creates a new trace for a navigation after the initial pageload', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
   const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
@@ -40,7 +41,7 @@ sentryTest('creates a new trace for a navigation after the initial pageload', as
 });
 
 sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
@@ -82,7 +83,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
 });
 
 sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -125,7 +126,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
 sentryTest(
   'outgoing fetch request during pageload has pageload traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -164,7 +165,7 @@ sentryTest(
 sentryTest(
   'outgoing XHR request during pageload has pageload traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -201,7 +202,7 @@ sentryTest(
 );
 
 sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest() || shouldSkipFeedbackTest());
+  sentryTest.skip(shouldSkipTracingTest() || shouldSkipFeedbackTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 

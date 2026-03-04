@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest(
   'nested calls to setActiveSpanInBrowser still parent to root span by default',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const checkoutSpansPromise = waitForStreamedSpans(page, spans =>
       spans.some(s => s.name === 'checkout-flow' && s.is_segment),

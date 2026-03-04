@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest("navigation spans link back to previous trace's root span", async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -71,7 +71,7 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
 });
 
 sentryTest("doesn't link between hard page reloads by default", async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

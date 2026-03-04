@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
-import { shouldSkipTracingTest, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
 
 const metaTagSampleRand = 0.051121;
@@ -13,7 +13,7 @@ const metaTagSampleRate = 0.2;
 
 sentryTest.describe('When `consistentTraceSampling` is `true` and page contains <meta> tags', () => {
   sentryTest('Continues sampling decision across all traces from meta tag', async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -96,7 +96,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'Propagates continued <meta> tag sampling decision to outgoing requests',
     async ({ page, getLocalTestUrl }) => {
-      sentryTest.skip(shouldSkipTracingTest());
+      sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 

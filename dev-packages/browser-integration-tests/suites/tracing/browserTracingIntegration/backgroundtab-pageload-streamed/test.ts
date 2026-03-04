@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('finishes streamed pageload span when the page goes background', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest());
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
   const url = await getLocalTestUrl({ testDir: __dirname });
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 

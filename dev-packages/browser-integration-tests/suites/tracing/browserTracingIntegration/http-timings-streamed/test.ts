@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 /**
@@ -16,7 +16,7 @@ sentryTest(
   async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
-    sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName));
+    sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName) || testingCdnBundle());
 
     await page.route('http://sentry-test-site.example/*', async route => {
       const request = route.request();

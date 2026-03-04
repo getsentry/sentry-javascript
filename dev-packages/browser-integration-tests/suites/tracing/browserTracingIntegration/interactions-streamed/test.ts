@@ -11,13 +11,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest('captures streamed interaction span tree. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
-  sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName));
+  sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName) || testingCdnBundle());
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const interactionSpansPromise = waitForStreamedSpans(page, spans =>

@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { extractTraceparentData, parseBaggageHeader, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
-import { shouldSkipTracingTest, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
 
 sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   sentryTest('continues sampling decision from initial pageload span', async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -80,7 +80,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   });
 
   sentryTest('Propagates continued sampling decision to outgoing requests', async ({ page, getLocalTestUrl }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

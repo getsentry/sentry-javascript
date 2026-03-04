@@ -6,6 +6,7 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
+  testingCdnBundle,
   waitForClientReportRequest,
   waitForTracingHeadersOnUrl,
 } from '../../../../../../utils/helpers';
@@ -20,7 +21,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'meta tag decision has precedence over sampling decision from previous trace in session storage',
     async ({ getLocalTestUrl, page }) => {
-      sentryTest.skip(shouldSkipTracingTest());
+      sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest(
   "doesn't capture long task spans starting before a navigation in the navigation transaction",
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long tasks only work on chrome
-    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium' || testingCdnBundle());
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/path/to/script.js', route => route.fulfill({ path: `${__dirname}/assets/script.js` }));

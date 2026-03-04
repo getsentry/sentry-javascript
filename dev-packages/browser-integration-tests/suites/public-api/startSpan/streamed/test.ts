@@ -11,13 +11,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest());
+    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
     const spanEnvelopePromise = waitForStreamedSpanEnvelope(page);
 
