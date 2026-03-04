@@ -10,9 +10,6 @@ import type { Hono, MiddlewareHandler } from 'hono';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
-// Module-level counter for anonymous middleware span names
-let MIDDLEWARE_IDX = 0;
-
 /**
  * Patches `app.use` so that every middleware registered through it is automatically
  * wrapped in a Sentry span. Supports both forms: `app.use(...handlers)` and `app.use(path, ...handlers)`.
@@ -22,16 +19,12 @@ export function patchAppUse(app: Hono): void {
     apply(target: typeof app.use, thisArg: typeof app, args: Parameters<typeof app.use>): ReturnType<typeof app.use> {
       const [first, ...rest] = args as [unknown, ...MiddlewareHandler[]];
 
-      const getSpanName = (handler: MiddlewareHandler): string => handler.name || `<anonymous.${MIDDLEWARE_IDX++}>`;
-
       if (typeof first === 'string') {
-        const wrappedHandlers = rest.map(handler => wrapMiddlewareWithSpan(handler, getSpanName(handler)));
+        const wrappedHandlers = rest.map(handler => wrapMiddlewareWithSpan(handler));
         return Reflect.apply(target, thisArg, [first, ...wrappedHandlers]);
       }
 
-      const allHandlers = [first as MiddlewareHandler, ...rest].map(handler =>
-        wrapMiddlewareWithSpan(handler, getSpanName(handler)),
-      );
+      const allHandlers = [first as MiddlewareHandler, ...rest].map(handler => wrapMiddlewareWithSpan(handler));
       return Reflect.apply(target, thisArg, allHandlers);
     },
   });
@@ -42,10 +35,10 @@ export function patchAppUse(app: Hono): void {
  * Uses startInactiveSpan so that all middleware spans are siblings under the request/transaction
  * (onion order: A → B → handler → B → A does not nest B under A in the trace).
  */
-function wrapMiddlewareWithSpan(handler: MiddlewareHandler, spanName: string): MiddlewareHandler {
+function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
   return async function sentryTracedMiddleware(context, next) {
     const span = startInactiveSpan({
-      name: spanName,
+      name: handler.name || '<anonymous>',
       op: 'middleware.hono',
       onlyIfParent: true,
       attributes: {

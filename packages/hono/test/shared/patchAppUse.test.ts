@@ -77,7 +77,7 @@ describe('patchAppUse (middleware spans)', () => {
 
       expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
       const name = startInactiveSpanMock.mock.calls[0][0].name;
-      expect(name).toMatch(/^<anonymous\.\d+>$/);
+      expect(name).toMatch('<anonymous>');
     });
   });
 
@@ -112,9 +112,6 @@ describe('patchAppUse (middleware spans)', () => {
   });
 
   it('creates sibling spans for multiple middlewares (onion order, not parent-child)', async () => {
-    vi.resetModules(); // resets the module-level counter variable
-    const { patchAppUse } = await import('../../src/shared/patchAppUse');
-
     const app = new Hono();
     patchAppUse(app);
 
@@ -132,9 +129,9 @@ describe('patchAppUse (middleware spans)', () => {
     const [firstCall, secondCall, thirdCall] = startInactiveSpanMock.mock.calls;
     expect(firstCall[0]).toMatchObject({ op: 'middleware.hono' });
     expect(secondCall[0]).toMatchObject({ op: 'middleware.hono' });
-    expect(firstCall[0].name).toMatch('<anonymous.0>');
+    expect(firstCall[0].name).toMatch('<anonymous>');
     expect(secondCall[0].name).toBe('namedMiddleware');
-    expect(thirdCall[0].name).toBe('<anonymous.1>');
+    expect(thirdCall[0].name).toBe('<anonymous>');
     expect(firstCall[0].name).not.toBe(secondCall[0].name);
   });
 
