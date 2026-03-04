@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
-sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }

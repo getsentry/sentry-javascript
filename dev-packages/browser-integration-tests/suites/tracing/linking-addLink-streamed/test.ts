@@ -3,7 +3,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
 import { waitForStreamedSpan, waitForStreamedSpans } from '../../../utils/spanUtils';
 
-sentryTest('should link spans with addLink() in trace context', async ({ getLocalTestUrl, page }) => {
+sentryTest('links spans with addLink() in trace context', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -30,7 +30,7 @@ sentryTest('should link spans with addLink() in trace context', async ({ getLoca
   });
 });
 
-sentryTest('should link spans with addLink() in nested startSpan() calls', async ({ getLocalTestUrl, page }) => {
+sentryTest('links spans with addLink() in nested startSpan() calls', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
