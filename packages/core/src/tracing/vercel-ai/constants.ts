@@ -25,3 +25,9 @@ export const GENERATE_CONTENT_OPS = new Set([
 export const EMBEDDINGS_OPS = new Set(['ai.embed.doEmbed', 'ai.embedMany.doEmbed']);
 
 export const RERANK_OPS = new Set(['ai.rerank.doRerank']);
+
+export const DO_SPAN_NAME_PREFIX: Record<string, string> = {
+  'ai.embed.doEmbed': 'embed',
+  'ai.embedMany.doEmbed': 'embed_many',
+  'ai.rerank.doRerank': 'rerank',
+};
