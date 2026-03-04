@@ -85,7 +85,7 @@ export async function waitForStreamedSpan(
  * @param callback to check for a matching span.
  *
  * Important: This function only observes requests and does not block the test when it ends. Use this primarily to
- * throw errors if you encounter unwanted spans. You most likely want to use {@link waitForV2Span} instead!
+ * throw errors if you encounter unwanted spans. You most likely want to use {@link waitForStreamedSpan} or {@link waitForStreamedSpans} instead!
  */
 export async function observeStreamedSpan(
   page: Page,

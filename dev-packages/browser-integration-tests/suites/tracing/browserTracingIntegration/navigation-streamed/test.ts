@@ -7,12 +7,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
   getSpanOp,
   getSpansFromEnvelope,
-  waitForStreamedSpanEnvelope,
   waitForStreamedSpan,
+  waitForStreamedSpanEnvelope,
 } from '../../../../utils/spanUtils';
 
 sentryTest('starts a streamed navigation span on page navigation', async ({ getLocalTestUrl, page }) => {
