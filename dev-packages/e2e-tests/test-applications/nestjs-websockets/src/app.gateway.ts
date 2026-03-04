@@ -1,13 +1,8 @@
 import { SubscribeMessage, WebSocketGateway, MessageBody } from '@nestjs/websockets';
 import * as Sentry from '@sentry/nestjs';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway()
 export class AppGateway {
-  @SubscribeMessage('test-message')
-  handleTestMessage(@MessageBody() data: { message: string }) {
-    return { event: 'test-response', data: { message: data.message } };
-  }
-
   @SubscribeMessage('test-exception')
   handleTestException() {
     throw new Error('This is an exception in a WebSocket handler');
