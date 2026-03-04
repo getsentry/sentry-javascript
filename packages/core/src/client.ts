@@ -203,12 +203,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _eventProcessors: EventProcessor[];
 
   /** Holds flushable  */
-  private _outcomes: { [key: string]: number };
+  protected _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Set<Function>>;
+  protected _hooks: Record<string, Set<Function>>;
 
-  private _promiseBuffer: PromiseBuffer<unknown>;
+  protected _promiseBuffer: PromiseBuffer<unknown>;
 
   /**
    * Initializes this client instance.
@@ -1096,6 +1096,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     DEBUG_BUILD && debug.error('Transport disabled');
     return {};
+  }
+
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * Subclasses should override this method to clean up their own resources.
+   * After calling dispose(), the client should not be used anymore.
+   */
+  public dispose(): void {
+    // Base class has no cleanup logic - subclasses implement their own
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */

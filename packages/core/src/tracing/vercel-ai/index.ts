@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
@@ -19,7 +20,13 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanMap } from './constants';
+import {
+  EMBEDDINGS_OPS,
+  GENERATE_CONTENT_OPS,
+  INVOKE_AGENT_OPS,
+  RERANK_OPS,
+  toolCallSpanContextMap,
+} from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -232,12 +239,13 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
-  // Store the span in our global map using the tool call ID
+  // Store the span context in our global map using the tool call ID.
   // This allows us to capture tool errors and link them to the correct span
+  // without retaining the full Span object in memory.
   const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
-    toolCallSpanMap.set(toolCallId, span);
+    toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
