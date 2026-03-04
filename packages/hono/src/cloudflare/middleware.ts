@@ -43,6 +43,8 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
     app,
   );
 
+  patchAppUse(app);
+
   return async (context, next) => {
     requestHandler(context);
 
