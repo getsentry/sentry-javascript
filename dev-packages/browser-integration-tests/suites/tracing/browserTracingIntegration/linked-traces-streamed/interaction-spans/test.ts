@@ -13,9 +13,7 @@ import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 sentryTest(
   'only the first root spans in the trace link back to the previous trace',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

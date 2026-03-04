@@ -13,9 +13,7 @@ import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 sentryTest(
   'waits for Sentry.reportPageLoaded() to be called when `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

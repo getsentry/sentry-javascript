@@ -4,9 +4,7 @@ import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest('sets an inactive span active and adds child spans to it', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const spansPromise = waitForStreamedSpans(page, spans => spans.some(s => s.name === 'checkout-flow' && s.is_segment));
 

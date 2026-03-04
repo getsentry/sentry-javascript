@@ -20,9 +20,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'Continues negative sampling decision from meta tag across all traces and downstream propagations',
     async ({ getLocalTestUrl, page }) => {
-      if (shouldSkipTracingTest()) {
-        sentryTest.skip();
-      }
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 

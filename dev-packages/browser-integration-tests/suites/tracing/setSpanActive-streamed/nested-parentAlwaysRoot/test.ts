@@ -6,9 +6,7 @@ import { waitForStreamedSpans } from '../../../../utils/spanUtils';
 sentryTest(
   'nested calls to setActiveSpanInBrowser with parentSpanIsAlwaysRootSpan=false result in correct parenting',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const checkoutSpansPromise = waitForStreamedSpans(page, spans =>
       spans.some(s => s.name === 'checkout-flow' && s.is_segment),

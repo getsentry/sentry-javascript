@@ -4,11 +4,9 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
-sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('captures long task.', async ({ browserName, getLocalTestUrl, page }) => {
   // Long tasks only work on chrome
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 

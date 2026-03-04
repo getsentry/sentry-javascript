@@ -6,9 +6,7 @@ import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/
 
 sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   sentryTest('continues sampling decision from initial pageload span', async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -82,9 +80,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   });
 
   sentryTest('Propagates continued sampling decision to outgoing requests', async ({ page, getLocalTestUrl }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -5,12 +5,10 @@ import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest(
-  'should not capture long animation frame when flag is disabled.',
+  'does not capture long animation frame when flag is disabled.',
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
     await page.route('**/path/to/script.js', (route: Route) =>
       route.fulfill({ path: `${__dirname}/assets/script.js` }),

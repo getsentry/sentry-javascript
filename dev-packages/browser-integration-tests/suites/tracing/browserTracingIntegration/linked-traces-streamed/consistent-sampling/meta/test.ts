@@ -13,9 +13,7 @@ const metaTagSampleRate = 0.2;
 
 sentryTest.describe('When `consistentTraceSampling` is `true` and page contains <meta> tags', () => {
   sentryTest('Continues sampling decision across all traces from meta tag', async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -98,9 +96,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'Propagates continued <meta> tag sampling decision to outgoing requests',
     async ({ page, getLocalTestUrl }) => {
-      if (shouldSkipTracingTest()) {
-        sentryTest.skip();
-      }
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 

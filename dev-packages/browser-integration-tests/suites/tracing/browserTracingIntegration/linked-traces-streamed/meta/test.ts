@@ -7,9 +7,7 @@ import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 sentryTest(
   "links back to previous trace's local root span if continued from meta tags",
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

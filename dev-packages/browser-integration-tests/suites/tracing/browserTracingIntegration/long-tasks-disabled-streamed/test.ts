@@ -6,9 +6,7 @@ import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest("doesn't capture long task spans when flag is disabled.", async ({ browserName, getLocalTestUrl, page }) => {
   // Long tasks only work on chrome
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 

@@ -12,9 +12,7 @@ import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 sentryTest(
   'starting a navigation span cancels the pageload span even if `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

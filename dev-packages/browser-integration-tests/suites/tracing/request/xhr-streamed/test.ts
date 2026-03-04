@@ -4,9 +4,7 @@ import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 

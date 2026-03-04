@@ -4,9 +4,7 @@ import { shouldSkipTracingTest } from '../../../utils/helpers';
 import { waitForStreamedSpan, waitForStreamedSpans } from '../../../utils/spanUtils';
 
 sentryTest('links spans with addLink() in trace context', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const rootSpan1Promise = waitForStreamedSpan(page, s => s.name === 'rootSpan1' && !!s.is_segment);
   const rootSpan2Promise = waitForStreamedSpan(page, s => s.name === 'rootSpan2' && !!s.is_segment);
@@ -31,9 +29,7 @@ sentryTest('links spans with addLink() in trace context', async ({ getLocalTestU
 });
 
 sentryTest('links spans with addLink() in nested startSpan() calls', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const rootSpan1Promise = waitForStreamedSpan(page, s => s.name === 'rootSpan1' && !!s.is_segment);
   const rootSpan3SpansPromise = waitForStreamedSpans(page, spans =>

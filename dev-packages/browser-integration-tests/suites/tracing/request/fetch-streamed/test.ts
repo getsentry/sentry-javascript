@@ -3,10 +3,8 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
-sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
   await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 

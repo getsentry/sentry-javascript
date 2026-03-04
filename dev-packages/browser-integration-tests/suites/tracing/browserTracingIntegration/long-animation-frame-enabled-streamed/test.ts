@@ -10,9 +10,7 @@ sentryTest(
   'captures long animation frame span for top-level script.',
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
     await page.route('**/path/to/script.js', (route: Route) =>
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
@@ -64,9 +62,7 @@ sentryTest(
 
 sentryTest('captures long animation frame span for event listener.', async ({ browserName, getLocalTestUrl, page }) => {
   // Long animation frames only work on chrome
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 

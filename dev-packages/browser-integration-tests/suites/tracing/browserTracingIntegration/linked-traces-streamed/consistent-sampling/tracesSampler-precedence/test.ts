@@ -18,9 +18,7 @@ import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/
  */
 sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   sentryTest('explicit sampling decisions in `tracesSampler` have precedence', async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

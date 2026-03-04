@@ -7,9 +7,7 @@ sentryTest(
   "doesn't capture long animation frame that starts before a navigation.",
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

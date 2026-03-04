@@ -146,9 +146,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 });
 
 sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
