@@ -21,5 +21,8 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "~5.5.0",
     "vite": "^7.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
