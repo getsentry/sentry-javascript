@@ -3,6 +3,7 @@ import {
   addPluginTemplate,
   addServerPlugin,
   addTemplate,
+  addVitePlugin,
   createResolver,
   defineNuxtModule,
 } from '@nuxt/kit';
@@ -88,7 +89,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (clientConfigFile || serverConfigFile) {
-      setupSourceMaps(moduleOptions, nuxt);
+      setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
 
     addOTelCommonJSImportAlias(nuxt);
