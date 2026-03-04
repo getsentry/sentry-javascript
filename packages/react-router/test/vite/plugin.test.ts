@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeConfigInjectorPlugin } from '../../src/vite/makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
+import { makeServerBuildCapturePlugin } from '../../src/vite/makeServerBuildCapturePlugin';
 import { sentryReactRouter } from '../../src/vite/plugin';
 
 vi.spyOn(console, 'log').mockImplementation(() => {
@@ -14,17 +15,20 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
 vi.mock('../../src/vite/makeCustomSentryVitePlugins');
 vi.mock('../../src/vite/makeEnableSourceMapsPlugin');
 vi.mock('../../src/vite/makeConfigInjectorPlugin');
+vi.mock('../../src/vite/makeServerBuildCapturePlugin');
 
 describe('sentryReactRouter', () => {
   const mockPlugins = [{ name: 'test-plugin' }];
   const mockSourceMapsPlugin = { name: 'source-maps-plugin' };
   const mockConfigInjectorPlugin = { name: 'sentry-config-injector' };
+  const mockServerBuildCapturePlugin = { name: 'sentry-react-router-server-build-capture' };
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(makeCustomSentryVitePlugins).mockResolvedValue(mockPlugins);
     vi.mocked(makeEnableSourceMapsPlugin).mockReturnValue(mockSourceMapsPlugin);
     vi.mocked(makeConfigInjectorPlugin).mockReturnValue(mockConfigInjectorPlugin);
+    vi.mocked(makeServerBuildCapturePlugin).mockReturnValue(mockServerBuildCapturePlugin);
   });
 
   afterEach(() => {
@@ -37,7 +41,7 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
 
@@ -47,7 +51,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin when not in build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -55,7 +59,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin in development build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'build', mode: 'development' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -66,8 +70,14 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockSourceMapsPlugin, ...mockPlugins]);
+    expect(result).toEqual([
+      mockConfigInjectorPlugin,
+      mockServerBuildCapturePlugin,
+      mockSourceMapsPlugin,
+      ...mockPlugins,
+    ]);
     expect(makeConfigInjectorPlugin).toHaveBeenCalledWith({});
+    expect(makeServerBuildCapturePlugin).toHaveBeenCalled();
     expect(makeCustomSentryVitePlugins).toHaveBeenCalledWith({});
     expect(makeEnableSourceMapsPlugin).toHaveBeenCalledWith({});
 

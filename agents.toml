@@ -13,3 +13,35 @@ github_repos = ["getsentry/skills"]
 [[skills]]
 name = "dotagents"
 source = "getsentry/dotagents"
+
+[[skills]]
+name = "add-ai-integration"
+source = "path:.agents/skills/add-ai-integration"
+
+[[skills]]
+name = "add-cdn-bundle"
+source = "path:.agents/skills/add-cdn-bundle"
+
+[[skills]]
+name = "e2e"
+source = "path:.agents/skills/e2e"
+
+[[skills]]
+name = "fix-security-vulnerability"
+source = "path:.agents/skills/fix-security-vulnerability"
+
+[[skills]]
+name = "release"
+source = "path:.agents/skills/release"
+
+[[skills]]
+name = "triage-issue"
+source = "path:.agents/skills/triage-issue"
+
+[[skills]]
+name = "upgrade-dep"
+source = "path:.agents/skills/upgrade-dep"
+
+[[skills]]
+name = "upgrade-otel"
+source = "path:.agents/skills/upgrade-otel"

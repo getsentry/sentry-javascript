@@ -13,11 +13,15 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
+import { resolveNavigateArg } from './utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 // Tracks active numeric navigation span to prevent duplicate spans when popstate fires
 let currentNumericNavigationSpan: Span | undefined;
+
+// Per-request middleware counters, keyed by Request
+const middlewareCountersMap = new WeakMap<object, Record<string, number>>();
 
 const SENTRY_CLIENT_INSTRUMENTATION_FLAG = '__sentryReactRouterClientInstrumentationUsed';
 // Intentionally never reset - once set, instrumentation API handles all navigations for the session.
@@ -161,9 +165,9 @@ export function createSentryClientInstrumentation(
             return;
           }
 
-          // Handle string navigations (e.g., navigate('/about'))
+          // Handle string/object navigations (e.g., navigate('/about') or navigate({ pathname: '/about' }))
           const client = getClient();
-          const toPath = String(info.to);
+          const toPath = resolveNavigateArg(info.to);
           let navigationSpan;
 
           if (client) {
@@ -214,6 +218,8 @@ export function createSentryClientInstrumentation(
     },
 
     route(route: InstrumentableRoute) {
+      const routeId = route.id;
+
       route.instrument({
         async loader(callLoader, info) {
           const urlPath = getPathFromRequest(info.request);
@@ -267,12 +273,24 @@ export function createSentryClientInstrumentation(
           const urlPath = getPathFromRequest(info.request);
           const routePattern = normalizeRoutePath(getPattern(info)) || urlPath;
 
+          let counters = middlewareCountersMap.get(info.request);
+          if (!counters) {
+            counters = {};
+            middlewareCountersMap.set(info.request, counters);
+          }
+
+          const middlewareIndex = counters[routeId] ?? 0;
+          counters[routeId] = middlewareIndex + 1;
+
           await startSpan(
             {
-              name: routePattern,
+              name: `middleware ${routeId}`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.client_middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                'react_router.route.id': routeId,
+                'http.route': routePattern,
+                'react_router.middleware.index': middlewareIndex,
               },
             },
             async span => {

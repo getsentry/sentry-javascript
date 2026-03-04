@@ -724,6 +724,16 @@ export type SentryBuildOptions = {
      * Requires Next.js 16+
      */
     turbopackApplicationKey?: string;
+    /**
+     * Options for React component name annotation in Turbopack builds.
+     * When enabled, JSX elements are annotated with `data-sentry-component`,
+     * `data-sentry-element`, and `data-sentry-source-file` attributes.
+     * Requires Next.js 16+.
+     */
+    turbopackReactComponentAnnotation?: {
+      enabled?: boolean;
+      ignoredComponents?: string[];
+    };
   }>;
 
   /**
