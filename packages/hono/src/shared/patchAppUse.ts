@@ -22,13 +22,15 @@ export function patchAppUse(app: Hono): void {
     apply(target: typeof app.use, thisArg: typeof app, args: Parameters<typeof app.use>): ReturnType<typeof app.use> {
       const [first, ...rest] = args as [unknown, ...MiddlewareHandler[]];
 
+      const getSpanName = (handler: MiddlewareHandler): string => handler.name || `<anonymous.${MIDDLEWARE_IDX++}>`;
+
       if (typeof first === 'string') {
-        const wrappedHandlers = rest.map(handler => wrapMiddlewareWithSpan(handler, MIDDLEWARE_IDX++));
+        const wrappedHandlers = rest.map(handler => wrapMiddlewareWithSpan(handler, getSpanName(handler)));
         return Reflect.apply(target, thisArg, [first, ...wrappedHandlers]);
       }
 
       const allHandlers = [first as MiddlewareHandler, ...rest].map(handler =>
-        wrapMiddlewareWithSpan(handler, MIDDLEWARE_IDX++),
+        wrapMiddlewareWithSpan(handler, getSpanName(handler)),
       );
       return Reflect.apply(target, thisArg, allHandlers);
     },
@@ -40,9 +42,7 @@ export function patchAppUse(app: Hono): void {
  * Uses startInactiveSpan so that all middleware spans are siblings under the request/transaction
  * (onion order: A → B → handler → B → A does not nest B under A in the trace).
  */
-function wrapMiddlewareWithSpan(handler: MiddlewareHandler, index: number): MiddlewareHandler {
-  const spanName = handler.name || `<anonymous.${index}>`;
-
+function wrapMiddlewareWithSpan(handler: MiddlewareHandler, spanName: string): MiddlewareHandler {
   return async function sentryTracedMiddleware(context, next) {
     const span = startInactiveSpan({
       name: spanName,
