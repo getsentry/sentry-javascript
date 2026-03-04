@@ -9,6 +9,7 @@ import {
 } from '@sentry/core';
 import type { Context, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
+import { patchAppUse } from '../shared/patchAppUse';
 
 export interface HonoOptions extends Options<BaseTransportOptions> {
   context?: Context;
@@ -41,6 +42,8 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
     }),
     app,
   );
+
+  patchAppUse(app);
 
   return async (context, next) => {
     requestHandler(context);
