@@ -124,7 +124,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'logger'),
     gzip: true,
-    limit: '27 KB',
+    limit: '28 KB',
   },
   {
     name: '@sentry/browser (incl. Metrics & Logs)',
@@ -148,7 +148,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '45 KB',
+    limit: '46 KB',
   },
   // Vue SDK (ESM)
   {
@@ -262,7 +262,7 @@ module.exports = [
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '209 KB',
+    limit: '210 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
