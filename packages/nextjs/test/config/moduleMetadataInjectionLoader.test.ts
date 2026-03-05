@@ -31,7 +31,8 @@ describe('moduleMetadataInjectionLoader', () => {
 
     expect(result).toContain('_sentryModuleMetadata');
     expect(result).toContain('_sentryBundlerPluginAppKey:my-app');
-    expect(result).toContain('Object.assign');
+    // Wrapped in try-catch IIFE
+    expect(result).toContain('!function(){try{');
   });
 
   it('should inject after "use strict" directive', () => {
@@ -104,16 +105,20 @@ describe('moduleMetadataInjectionLoader', () => {
     expect(result).toContain('_sentryBundlerPluginAppKey:my-app');
   });
 
-  it('should use globalThis and Object.assign merge pattern keyed by stack trace', () => {
+  it('should use try-catch IIFE pattern matching the webpack plugin', () => {
     const loaderThis = createLoaderThis('my-app');
     const userCode = 'const x = 1;';
 
     const result = moduleMetadataInjectionLoader.call(loaderThis, userCode);
 
-    // Should use globalThis to avoid ReferenceError in strict mode
-    expect(result).toContain('globalThis._sentryModuleMetadata = globalThis._sentryModuleMetadata || {}');
+    // Should be wrapped in a try-catch IIFE so injection failures never break the module
+    expect(result).toContain('!function(){try{');
+    expect(result).toContain('}catch(e){}}();');
+    // Should resolve the global object like the webpack plugin does
+    expect(result).toContain('typeof window');
+    expect(result).toContain('typeof globalThis');
     // Should key by stack trace like the webpack plugin does
-    expect(result).toContain('globalThis._sentryModuleMetadata[(new Error).stack]');
+    expect(result).toContain('e._sentryModuleMetadata[(new e.Error).stack]');
     // Should use Object.assign to merge metadata
     expect(result).toContain('Object.assign({}');
   });
