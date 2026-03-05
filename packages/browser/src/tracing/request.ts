@@ -5,6 +5,7 @@ import type {
   ResponseHookInfo,
   SentryWrappedXMLHttpRequest,
   Span,
+  SpanTimeInput,
 } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -238,8 +239,17 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 }
 
 /**
- * Creates a temporary observer to listen to the next fetch/xhr resourcing timings,
- * so that when timings hit their per-browser limit they don't need to be removed.
+ * The maximum time (ms) to wait for PerformanceResourceTiming data before ending the span.
+ * Same approach is used by OTel's browser fetch instrumentation:
+ * See {@link https://github.com/open-telemetry/opentelemetry-js/blob/30f94fe99339287b1e4d3c8bb90172c2523f06f4/experimental/packages/opentelemetry-instrumentation-fetch/src/fetch.ts#L352-L372}
+ */
+const HTTP_TIMING_WAIT_MS = 300;
+
+/**
+ * Intercepts `span.end()` to delay the actual span ending until PerformanceResourceTiming
+ * data is available (or until the timeout elapses), so that timing attributes are always
+ * present on the span even in span-streaming mode where spans are serialised immediately
+ * on end.
  *
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
@@ -250,16 +260,44 @@ function addHTTPTimings(span: Span): void {
     return;
   }
 
+  // Capture a reference to the real end implementation before shadowing it.
+  const originalEnd = span.end.bind(span);
+  let capturedEndTimestamp: SpanTimeInput | undefined;
+  let isEnded = false;
+
+  // Shadow the prototype method with an instance property so that when
+  // instrumentFetchRequest / xhrCallback calls span.end(), we intercept it.
+  span.end = (endTimestamp?: SpanTimeInput) => {
+    capturedEndTimestamp = endTimestamp;
+    // Do not call originalEnd here; finishSpan() handles that once timing data
+    // has arrived (or the timeout fires).
+  };
+
+  const endSpanAndCleanup = (): void => {
+    if (isEnded) {
+      return;
+    }
+    isEnded = true;
+    // In the next tick, clean up the performance observer
+    // We have to wait here because otherwise we clean it up before it is fully done
+    setTimeout(cleanup);
+    originalEnd(capturedEndTimestamp);
+    clearTimeout(fallbackTimeout);
+  };
+
   const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         span.setAttributes(resourceTimingToSpanAttributes(entry));
-        // In the next tick, clean this handler up
-        // We have to wait here because otherwise this cleans itself up before it is fully done
-        setTimeout(cleanup);
+        endSpanAndCleanup();
       }
     });
   });
+
+  // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
+  // PerformanceResourceTiming entry arrives (e.g. cross-origin without
+  // Timing-Allow-Origin, or the browser didn't fire the observer in time).
+  const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
 }
 
 /**
