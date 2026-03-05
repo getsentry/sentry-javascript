@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Captures manually reported error in microservice handler', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-microservices', event => {
@@ -14,11 +14,9 @@ test('Captures manually reported error in microservice handler', async ({ baseUR
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Manually captured microservice error');
 });
 
-// There is no good mechanism to verify that an event was NOT sent to Sentry.
-// The idea here is that we first send a message that triggers an exception which won't be auto-captured,
-// and then send a message that triggers a manually captured error which will be sent to Sentry.
-// If the manually captured error arrives, we can deduce that the first exception was not sent,
-// because both requests go through the same NestJS app and Sentry client, so events are processed in order.
+// To verify that an exception is NOT automatically captured, we trigger it,
+// wait for the transaction from that request to confirm it completed, flush,
+// and then assert no error event was received.
 test('Does not automatically capture exceptions thrown in microservice handler', async ({ baseURL }) => {
   let autoCaptureFired = false;
 
@@ -29,14 +27,13 @@ test('Does not automatically capture exceptions thrown in microservice handler',
     return false;
   });
 
-  const manualCapturePromise = waitForError('nestjs-microservices', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Manually captured microservice error';
+  const transactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-microservice-exception/:id';
   });
 
   await fetch(`${baseURL}/test-microservice-exception/123`);
-  await fetch(`${baseURL}/test-microservice-manual-capture`);
 
-  await manualCapturePromise;
+  await transactionPromise;
 
   await fetch(`${baseURL}/flush`);
 
