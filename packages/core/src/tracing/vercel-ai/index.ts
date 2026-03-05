@@ -1,7 +1,8 @@
+/* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -19,7 +20,14 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanMap } from './constants';
+import {
+  DO_SPAN_NAME_PREFIX,
+  EMBEDDINGS_OPS,
+  GENERATE_CONTENT_OPS,
+  INVOKE_AGENT_OPS,
+  RERANK_OPS,
+  toolCallSpanContextMap,
+} from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -49,10 +57,6 @@ import {
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
-
-function addOriginToSpan(span: Span, origin: SpanOrigin): void {
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
-}
 
 /**
  * Maps Vercel AI SDK operation names to OpenTelemetry semantic convention values
@@ -226,18 +230,19 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 }
 
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
-  addOriginToSpan(span, 'auto.vercelai.otel');
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
   span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
-  // Store the span in our global map using the tool call ID
+  // Store the span context in our global map using the tool call ID.
   // This allows us to capture tool errors and link them to the correct span
+  // without retaining the full Span object in memory.
   const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
-    toolCallSpanMap.set(toolCallId, span);
+    toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
@@ -251,17 +256,14 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
-  addOriginToSpan(span, 'auto.vercelai.otel');
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
   span.setAttribute('ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
 
-  // If a telemetry name is set and the span represents a pipeline, use it as the operation name.
-  // This name can be set at the request level by adding `experimental_telemetry.functionId`.
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
   if (functionId && typeof functionId === 'string') {
-    span.updateName(`${nameWthoutAi} ${functionId}`);
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
@@ -278,31 +280,22 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  // Update span names for .do* spans to include the model ID (only if model ID exists)
+  // For invoke_agent pipeline spans, use 'invoke_agent' as the description
+  // to be consistent with other AI integrations (e.g. LangGraph)
+  if (INVOKE_AGENT_OPS.has(name)) {
+    if (functionId && typeof functionId === 'string') {
+      span.updateName(`invoke_agent ${functionId}`);
+    } else {
+      span.updateName('invoke_agent');
+    }
+    return;
+  }
+
   const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
   if (modelId) {
-    switch (name) {
-      case 'ai.generateText.doGenerate':
-        span.updateName(`generate_text ${modelId}`);
-        break;
-      case 'ai.streamText.doStream':
-        span.updateName(`stream_text ${modelId}`);
-        break;
-      case 'ai.generateObject.doGenerate':
-        span.updateName(`generate_object ${modelId}`);
-        break;
-      case 'ai.streamObject.doStream':
-        span.updateName(`stream_object ${modelId}`);
-        break;
-      case 'ai.embed.doEmbed':
-        span.updateName(`embed ${modelId}`);
-        break;
-      case 'ai.embedMany.doEmbed':
-        span.updateName(`embed_many ${modelId}`);
-        break;
-      case 'ai.rerank.doRerank':
-        span.updateName(`rerank ${modelId}`);
-        break;
+    const doSpanPrefix = GENERATE_CONTENT_OPS.has(name) ? 'generate_content' : DO_SPAN_NAME_PREFIX[name];
+    if (doSpanPrefix) {
+      span.updateName(`${doSpanPrefix} ${modelId}`);
     }
   }
 }

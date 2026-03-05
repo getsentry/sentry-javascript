@@ -95,6 +95,9 @@ targets:
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/hono'
+    includeNames: /^sentry-hono-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/nestjs'
     includeNames: /^sentry-nestjs-\d.*\.tgz$/
 
@@ -197,6 +200,11 @@ targets:
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
       'npm:@sentry/google-cloud-serverless':
         onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/hono':
+        name: 'Sentry Hono SDK'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/hono'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/hono/'
+        onlyIfPresent: /^sentry-hono-\d.*\.tgz$/
       'npm:@sentry/nestjs':
         onlyIfPresent: /^sentry-nestjs-\d.*\.tgz$/
       'npm:@sentry/nextjs':

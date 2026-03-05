@@ -2,7 +2,52 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **feat(nextjs): Add Turbopack support for React component name annotation ([#19XXX](https://github.com/getsentry/sentry-javascript/pull/19XXX))**
+
+  We added experimental support for React component name annotation in Turbopack builds. When enabled, JSX elements
+  are annotated with `data-sentry-component`, `data-sentry-element`, and `data-sentry-source-file` attributes at build
+  time. This enables searching Replays by component name, seeing component names in breadcrumbs, and performance
+  monitoring — previously only available with webpack builds.
+
+  This feature requires Next.js 16+ and is currently behind an experimental flag:
+
+  ```js
+  // next.config.ts
+  import { withSentryConfig } from '@sentry/nextjs';
+
+  export default withSentryConfig(nextConfig, {
+    _experimental: {
+      turbopackReactComponentAnnotation: {
+        enabled: true,
+        ignoredComponents: ['Header', 'Footer'], // optional
+      },
+    },
+  });
+  ```
+
+### Other Changes
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.42.0
+
+- feat(consola): Enhance Consola integration to extract first-param object as searchable attributes ([#19534](https://github.com/getsentry/sentry-javascript/pull/19534))
+- fix(astro): Do not inject withSentry into Cloudflare Pages ([#19558](https://github.com/getsentry/sentry-javascript/pull/19558))
+- fix(core): Do not remove promiseBuffer entirely ([#19592](https://github.com/getsentry/sentry-javascript/pull/19592))
+- fix(deps): Bump fast-xml-parser to 4.5.4 for CVE-2026-25896 ([#19588](https://github.com/getsentry/sentry-javascript/pull/19588))
+- fix(react-router): Set correct transaction name when navigating with object argument ([#19590](https://github.com/getsentry/sentry-javascript/pull/19590))
+- ref(nuxt): Use `addVitePlugin` instead of deprecated `vite:extendConfig` ([#19464](https://github.com/getsentry/sentry-javascript/pull/19464))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(deps-dev): bump @sveltejs/kit from 2.52.2 to 2.53.3 ([#19571](https://github.com/getsentry/sentry-javascript/pull/19571))
+- chore(deps): Bump @sveltejs/kit to 2.53.3 in sveltekit-2-svelte-5 E2E test ([#19594](https://github.com/getsentry/sentry-javascript/pull/19594))
+- ci(deps): bump actions/checkout from 4 to 6 ([#19570](https://github.com/getsentry/sentry-javascript/pull/19570))
+
+</details>
 
 ## 10.41.0
 
