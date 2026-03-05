@@ -74,6 +74,7 @@ describe.each([
       dsn: TEST_DSN,
       transport: getMockTransport(),
       enableLogs: true,
+      enableMetrics: true,
     });
 
     expect(layer).toBeDefined();
