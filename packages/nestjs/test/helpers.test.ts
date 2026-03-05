@@ -15,6 +15,14 @@ describe('isExpectedError', () => {
     expect(isExpectedError(rpcLike)).toBe(true);
   });
 
+  it('should return true for WsException-like objects without initMessage', () => {
+    const wsLike = {
+      getError: () => 'some error',
+      constructor: { name: 'WsException' },
+    };
+    expect(isExpectedError(wsLike)).toBe(true);
+  });
+
   it('should return false for plain Error', () => {
     expect(isExpectedError(new Error('test'))).toBe(false);
   });
