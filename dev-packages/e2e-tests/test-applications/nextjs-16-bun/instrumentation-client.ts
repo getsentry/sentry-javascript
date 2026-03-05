@@ -6,6 +6,12 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
+  integrations: [
+    Sentry.thirdPartyErrorFilterIntegration({
+      filterKeys: ['nextjs-16-bun-e2e'],
+      behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+    }),
+  ],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
