@@ -260,6 +260,11 @@ function addHTTPTimings(span: Span, client: Client): void {
     return;
   }
 
+  // Clean up the performance observer and other resources
+  // We have to wait here because otherwise this cleans itself up before it is fully done.
+  // Default (non-streaming): just deregister the observer.
+  let onEntryFound = (): void => void setTimeout(cleanup);
+
   // For streamed spans, we have to artificially delay the ending of the span until we
   // either receive the timing data, or HTTP_TIMING_WAIT_MS elapses.
   if (hasSpanStreamingEnabled(client)) {
@@ -276,36 +281,24 @@ function addHTTPTimings(span: Span, client: Client): void {
         return;
       }
       isEnded = true;
-      // In the next tick, clean up the performance observer
-      // We have to wait here because otherwise we clean it up before it is fully done
       setTimeout(cleanup);
       originalEnd(capturedEndTimestamp);
       clearTimeout(fallbackTimeout);
     };
 
-    const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
-      entries.forEach(entry => {
-        if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
-          span.setAttributes(resourceTimingToSpanAttributes(entry));
-          endSpanAndCleanup();
-        }
-      });
-    });
+    onEntryFound = endSpanAndCleanup;
 
     // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
     // PerformanceResourceTiming entry arrives (e.g. cross-origin without
     // Timing-Allow-Origin, or the browser didn't fire the observer in time).
     const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
-    return;
   }
 
   const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         span.setAttributes(resourceTimingToSpanAttributes(entry));
-        // In the next tick, clean this handler up
-        // We have to wait here because otherwise this cleans itself up before it is fully done
-        setTimeout(cleanup);
+        onEntryFound();
       }
     });
   });
