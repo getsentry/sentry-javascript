@@ -14,6 +14,8 @@ export type EffectClientLayerOptions = BrowserOptions;
  *
  * This layer provides Effect applications with full Sentry instrumentation including:
  * - Effect spans traced as Sentry spans
+ * - Effect logs forwarded to Sentry (when `enableLogs` is set)
+ * - Effect metrics sent to Sentry (when `enableMetrics` is set)
  *
  * @example
  * ```typescript
