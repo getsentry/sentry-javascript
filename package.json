@@ -61,6 +61,7 @@
     "packages/core",
     "packages/cloudflare",
     "packages/deno",
+    "packages/effect",
     "packages/ember",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
