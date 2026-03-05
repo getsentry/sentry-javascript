@@ -46,5 +46,4 @@ export class MicroserviceController {
   testPipe(data: { value: number }): { result: number } {
     return { result: data.value };
   }
-
 }

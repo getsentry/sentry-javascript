@@ -45,3 +45,7 @@ source = "path:.agents/skills/upgrade-dep"
 [[skills]]
 name = "upgrade-otel"
 source = "path:.agents/skills/upgrade-otel"
+
+[[skills]]
+name = "skill-scanner"
+source = "getsentry/skills"

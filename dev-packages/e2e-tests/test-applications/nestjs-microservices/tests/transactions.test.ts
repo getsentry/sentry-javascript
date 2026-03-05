@@ -83,4 +83,3 @@ test('Microservice pipe is emitted as a standalone transaction instead of being 
   const pipeTransaction = await pipeTransactionPromise;
   expect(pipeTransaction).toBeDefined();
 });
-
