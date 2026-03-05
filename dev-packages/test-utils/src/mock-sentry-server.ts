@@ -53,7 +53,12 @@ function parseMultipartParts(body: Buffer, boundary: string): { headers: string;
 /**
  * Extract and inspect a single multipart chunk: decompress, unzip, read manifest.
  */
-function extractChunkPart(partContent: Buffer, outputDir: string, chunkIndex: number, partIndex: number): ChunkFileRecord {
+function extractChunkPart(
+  partContent: Buffer,
+  outputDir: string,
+  chunkIndex: number,
+  partIndex: number,
+): ChunkFileRecord {
   const bundleDir = path.join(outputDir, `bundle_${chunkIndex}_${partIndex}`);
 
   // Try to decompress (sentry-cli gzips chunks)
@@ -125,12 +130,7 @@ function processChunkUpload(
 /**
  * Send the appropriate mock response based on the request URL.
  */
-function sendResponse(
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  port: number,
-  org: string,
-): void {
+function sendResponse(req: http.IncomingMessage, res: http.ServerResponse, port: number, org: string): void {
   const url = req.url || '';
 
   if (url.includes('/artifactbundle/assemble/')) {
