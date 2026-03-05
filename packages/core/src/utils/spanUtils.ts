@@ -332,15 +332,12 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
  * Convert the various statuses to the simple onces expected by Sentry for steamed spans ('ok' is default).
  */
 export function getSimpleStatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
-  if (
-    !status ||
+  return !status ||
     status.code === SPAN_STATUS_OK ||
     status.code === SPAN_STATUS_UNSET ||
     status.message === 'cancelled'
-  ) {
-    return 'ok';
-  }
-  return 'error';
+    ? 'ok'
+    : 'error';
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
