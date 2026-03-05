@@ -128,7 +128,8 @@
         ],
         "outputs": [
           "{projectRoot}/build/aws"
-        ]
+        ],
+        "cache": true
       }
     }
   }
