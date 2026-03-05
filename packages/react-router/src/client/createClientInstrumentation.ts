@@ -13,6 +13,7 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
+import { resolveNavigateArg } from './utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -164,9 +165,9 @@ export function createSentryClientInstrumentation(
             return;
           }
 
-          // Handle string navigations (e.g., navigate('/about'))
+          // Handle string/object navigations (e.g., navigate('/about') or navigate({ pathname: '/about' }))
           const client = getClient();
-          const toPath = String(info.to);
+          const toPath = resolveNavigateArg(info.to);
           let navigationSpan;
 
           if (client) {

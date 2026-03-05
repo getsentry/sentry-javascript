@@ -1,9 +1,8 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { Span } from '@sentry/core';
 import {
-  _INTERNAL_cleanupToolCallSpan,
-  _INTERNAL_getSpanForToolCallId,
+  _INTERNAL_cleanupToolCallSpanContext,
+  _INTERNAL_getSpanContextForToolCallId,
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
@@ -71,10 +70,12 @@ function isToolError(obj: unknown): obj is ToolError {
 }
 
 /**
- * Check for tool errors in the result and capture them
- * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
+ * Process tool call results: capture tool errors and clean up span context mappings.
+ *
+ * Error checking runs first (needs span context for linking), then cleanup removes all entries.
+ * Tool errors are not rejected in Vercel AI V5 — they appear as metadata in the result content.
  */
-function checkResultForToolErrors(result: unknown): void {
+export function processToolCallResults(result: unknown): void {
   if (typeof result !== 'object' || result === null || !('content' in result)) {
     return;
   }
@@ -84,53 +85,68 @@ function checkResultForToolErrors(result: unknown): void {
     return;
   }
 
-  for (const item of resultObj.content) {
-    if (isToolError(item)) {
-      // Try to get the span associated with this tool call ID
-      const associatedSpan = _INTERNAL_getSpanForToolCallId(item.toolCallId) as Span;
+  captureToolErrors(resultObj.content);
+  cleanupToolCallSpanContexts(resultObj.content);
+}
 
-      if (associatedSpan) {
-        // We have the span, so link the error using span and trace IDs from the span
-        const spanContext = associatedSpan.spanContext();
+function captureToolErrors(content: Array<object>): void {
+  for (const item of content) {
+    if (!isToolError(item)) {
+      continue;
+    }
 
-        withScope(scope => {
-          // Set the span and trace context for proper linking
-          scope.setContext('trace', {
-            trace_id: spanContext.traceId,
-            span_id: spanContext.spanId,
-          });
+    // Try to get the span context associated with this tool call ID
+    const spanContext = _INTERNAL_getSpanContextForToolCallId(item.toolCallId);
 
-          scope.setTag('vercel.ai.tool.name', item.toolName);
-          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-
-          scope.setLevel('error');
-
-          captureException(item.error, {
-            mechanism: {
-              type: 'auto.vercelai.otel',
-              handled: false,
-            },
-          });
+    if (spanContext) {
+      // We have the span context, so link the error using span and trace IDs
+      withScope(scope => {
+        scope.setContext('trace', {
+          trace_id: spanContext.traceId,
+          span_id: spanContext.spanId,
         });
 
-        // Clean up the span mapping since we've processed this tool error
-        // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
-        _INTERNAL_cleanupToolCallSpan(item.toolCallId);
-      } else {
-        // Fallback: capture without span linking
-        withScope(scope => {
-          scope.setTag('vercel.ai.tool.name', item.toolName);
-          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-          scope.setLevel('error');
+        scope.setTag('vercel.ai.tool.name', item.toolName);
+        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+        scope.setLevel('error');
 
-          captureException(item.error, {
-            mechanism: {
-              type: 'auto.vercelai.otel',
-              handled: false,
-            },
-          });
+        captureException(item.error, {
+          mechanism: {
+            type: 'auto.vercelai.otel',
+            handled: false,
+          },
         });
-      }
+      });
+    } else {
+      // Fallback: capture without span linking
+      withScope(scope => {
+        scope.setTag('vercel.ai.tool.name', item.toolName);
+        scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+        scope.setLevel('error');
+
+        captureException(item.error, {
+          mechanism: {
+            type: 'auto.vercelai.otel',
+            handled: false,
+          },
+        });
+      });
+    }
+  }
+}
+
+/**
+ * Remove span context entries for all completed tool calls in the content array.
+ */
+export function cleanupToolCallSpanContexts(content: Array<object>): void {
+  for (const item of content) {
+    if (
+      typeof item === 'object' &&
+      item !== null &&
+      'toolCallId' in item &&
+      typeof (item as Record<string, unknown>).toolCallId === 'string'
+    ) {
+      _INTERNAL_cleanupToolCallSpanContext((item as Record<string, unknown>).toolCallId as string);
     }
   }
 }
@@ -252,7 +268,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
             },
             () => {},
             result => {
-              checkResultForToolErrors(result);
+              processToolCallResults(result);
             },
           );
         },

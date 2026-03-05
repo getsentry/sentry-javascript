@@ -1,6 +1,5 @@
 import {
   captureException,
-  flush,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -9,6 +8,7 @@ import {
 } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { getHonoIntegration } from './integrations/hono';
 import { getFinalOptions } from './options';
@@ -113,7 +113,7 @@ export function withSentry<
                   captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  waitUntil(flushAndDispose(client));
                 }
               },
             );
@@ -157,7 +157,7 @@ export function withSentry<
                   captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.email' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  waitUntil(flushAndDispose(client));
                 }
               },
             );
@@ -209,7 +209,7 @@ export function withSentry<
                   captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.queue' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  waitUntil(flushAndDispose(client));
                 }
               },
             );
@@ -243,7 +243,7 @@ export function withSentry<
               captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.tail' } });
               throw e;
             } finally {
-              waitUntil(flush(2000));
+              waitUntil(flushAndDispose(client));
             }
           });
         },
