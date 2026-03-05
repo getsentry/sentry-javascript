@@ -69,9 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - test-application: 'angular-20'
+          - test-application: 'angular-21'
             build-command: 'test:build-canary'
-            label: 'angular-20 (next)'
+            label: 'angular-21 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
