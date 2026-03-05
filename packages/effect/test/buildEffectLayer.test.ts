@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
+import { logger as sentryLogger } from '@sentry/core';
 import { Effect, Layer } from 'effect';
 import { empty as emptyLayer } from 'effect/Layer';
 import { buildEffectLayer } from '../src/utils/buildEffectLayer';
@@ -33,11 +34,57 @@ describe('buildEffectLayer', () => {
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
+    it('returns a valid layer with enableLogs: false', () => {
+      const layer = buildEffectLayer({ enableLogs: false }, mockClient);
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
+
+    it('returns a valid layer with enableLogs: true', () => {
+      const layer = buildEffectLayer({ enableLogs: true }, mockClient);
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
+
+    it('returns a valid layer with all features enabled', () => {
+      const layer = buildEffectLayer({ enableLogs: true }, mockClient);
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
+
     it.effect('layer can be provided to an Effect program', () =>
       Effect.gen(function* () {
         const result = yield* Effect.succeed('test-result');
         expect(result).toBe('test-result');
       }).pipe(Effect.provide(buildEffectLayer({}, mockClient))),
+    );
+
+    it.effect('layer with logs enabled routes Effect logs to Sentry logger', () =>
+      Effect.gen(function* () {
+        const infoSpy = vi.spyOn(sentryLogger, 'info');
+        yield* Effect.log('test log message');
+        expect(infoSpy).toHaveBeenCalledWith('test log message');
+        infoSpy.mockRestore();
+      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true }, mockClient))),
+    );
+
+    it.effect('layer with logs disabled routes Effect does not log to Sentry logger', () =>
+      Effect.gen(function* () {
+        const infoSpy = vi.spyOn(sentryLogger, 'info');
+        yield* Effect.log('test log message');
+        expect(infoSpy).not.toHaveBeenCalled();
+        infoSpy.mockRestore();
+      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: false }, mockClient))),
+    );
+
+    it.effect('layer with all features enabled can be provided to an Effect program', () =>
+      Effect.gen(function* () {
+        const result = yield* Effect.succeed('all-features');
+        expect(result).toBe('all-features');
+      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true }, mockClient))),
     );
 
     it.effect('layer enables tracing for Effect spans via Sentry tracer', () =>
@@ -53,5 +100,23 @@ describe('buildEffectLayer', () => {
         startInactiveSpanSpy.mockRestore();
       }).pipe(Effect.provide(buildEffectLayer({}, mockClient))),
     );
+  });
+
+  describe('with additional options', () => {
+    const mockClient = { mock: true };
+
+    it('accepts options with additional properties', () => {
+      const layer = buildEffectLayer(
+        {
+          enableLogs: true,
+          dsn: 'https://test@sentry.io/123',
+          debug: true,
+        } as { enableLogs?: boolean; dsn?: string; debug?: boolean },
+        mockClient,
+      );
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
   });
 });
