@@ -16,6 +16,7 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^18.19.1",
     "@types/react": "^19",
