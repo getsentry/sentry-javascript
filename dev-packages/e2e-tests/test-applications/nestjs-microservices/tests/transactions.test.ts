@@ -22,11 +22,13 @@ test('Sends an HTTP transaction', async ({ baseURL }) => {
   );
 });
 
-// Trace context does not propagate over NestJS TCP transport.
-// The manual span created inside the microservice handler is orphaned, not a child of the HTTP transaction.
-// This test documents this gap — if trace propagation is ever fixed, test.fail() will alert us.
-test.fail('Microservice spans are captured as children of the HTTP transaction', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
+// Trace context does not propagate over NestJS TCP transport, so RPC spans are disconnected from
+// the HTTP transaction. Instead of appearing as child spans of the HTTP transaction, auto-instrumented
+// NestJS guard/interceptor/pipe spans become separate standalone transactions.
+// This documents the current (broken) behavior — ideally these should be connected to the HTTP trace.
+
+test('Microservice spans are not connected to the HTTP transaction', async ({ baseURL }) => {
+  const httpTransactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-microservice-sum'
@@ -36,19 +38,48 @@ test.fail('Microservice spans are captured as children of the HTTP transaction',
   const response = await fetch(`${baseURL}/test-microservice-sum`);
   expect(response.status).toBe(200);
 
-  const body = await response.json();
-  expect(body.result).toBe(6);
+  const httpTransaction = await httpTransactionPromise;
 
-  const transactionEvent = await transactionEventPromise;
+  // The microservice span should be part of this transaction but isn't due to missing trace propagation
+  const microserviceSpan = httpTransaction.spans?.find(span => span.description === 'microservice-sum-operation');
+  expect(microserviceSpan).toBeUndefined();
+});
 
-  expect(transactionEvent.contexts?.trace).toEqual(
-    expect.objectContaining({
-      op: 'http.server',
-      status: 'ok',
-    }),
-  );
+test('Microservice guard is emitted as a standalone transaction instead of being part of the HTTP trace', async ({
+  baseURL,
+}) => {
+  const guardTransactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
+    return transactionEvent?.transaction === 'ExampleGuard';
+  });
 
-  const microserviceSpan = transactionEvent.spans?.find(span => span.description === 'microservice-sum-operation');
-  expect(microserviceSpan).toBeDefined();
-  expect(microserviceSpan.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+  await fetch(`${baseURL}/test-microservice-guard`);
+
+  const guardTransaction = await guardTransactionPromise;
+  expect(guardTransaction).toBeDefined();
+});
+
+test('Microservice interceptor is emitted as a standalone transaction instead of being part of the HTTP trace', async ({
+  baseURL,
+}) => {
+  const interceptorTransactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
+    return transactionEvent?.transaction === 'ExampleInterceptor';
+  });
+
+  await fetch(`${baseURL}/test-microservice-interceptor`);
+
+  const interceptorTransaction = await interceptorTransactionPromise;
+  expect(interceptorTransaction).toBeDefined();
+});
+
+test('Microservice pipe is emitted as a standalone transaction instead of being part of the HTTP trace', async ({
+  baseURL,
+}) => {
+  const pipeTransactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
+    return transactionEvent?.transaction === 'ExamplePipe';
+  });
+
+  await fetch(`${baseURL}/test-microservice-pipe`);
+
+  const pipeTransaction = await pipeTransactionPromise;
+  expect(pipeTransaction).toBeDefined();
 });
