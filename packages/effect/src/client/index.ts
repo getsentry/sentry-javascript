@@ -1,5 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
-import * as EffectLayer from 'effect/Layer';
+import * as Sentry from '@sentry/browser';
+import type * as EffectLayer from 'effect/Layer';
+import { suspend as suspendLayer } from 'effect/Layer';
+import { buildEffectLayer } from '../utils/buildEffectLayer';
 
 /**
  * Options for the Sentry Effect client layer.
@@ -7,7 +10,10 @@ import * as EffectLayer from 'effect/Layer';
 export type EffectClientLayerOptions = BrowserOptions;
 
 /**
- * Creates an empty Effect Layer
+ * Creates an Effect Layer that initializes Sentry for browser clients.
+ *
+ * This layer provides Effect applications with full Sentry instrumentation including:
+ * - Effect spans traced as Sentry spans
  *
  * @example
  * ```typescript
@@ -25,6 +31,6 @@ export type EffectClientLayerOptions = BrowserOptions;
  * Effect.runPromise(Effect.provide(myEffect, ApiClientWithSentry));
  * ```
  */
-export function effectLayer(_: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
-  return EffectLayer.empty;
+export function effectLayer(options: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
+  return suspendLayer(() => buildEffectLayer(options, Sentry.init(options)));
 }
