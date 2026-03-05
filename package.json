@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:bundle",
+    "build": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:bundle build:layer",
     "build:bundle": "nx run-many -t build:bundle",
     "build:dev": "nx run-many -t build:types build:transpile",
     "build:dev:filter": "nx run-many -t build:dev -p",
