@@ -1,6 +1,6 @@
+import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as assert from 'assert/strict';
 
 export interface ManifestFile {
   type: 'minified_source' | 'source_map';
@@ -133,7 +133,7 @@ export function assertDebugIdPairs(manifests: ArtifactBundleData[]): DebugIdPair
     'Expected at least one JS/sourcemap pair with matching debug IDs in the uploaded artifact bundles',
   );
 
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const uuidRegex = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
   for (const pair of debugIdPairs) {
     assert.match(pair.debugId, uuidRegex, `Expected debug ID to be a valid UUID, got: ${pair.debugId}`);
   }
@@ -207,16 +207,18 @@ export function assertSourcemapMappings(manifests: ArtifactBundleData[]): void {
 /**
  * Assert a sourcemap references source files matching a pattern.
  */
-export function assertSourcemapSources(manifests: ArtifactBundleData[], sourcePattern: string | RegExp): void {
-  const regex = typeof sourcePattern === 'string' ? new RegExp(sourcePattern) : sourcePattern;
+export function assertSourcemapSources(manifests: ArtifactBundleData[], sourcePattern: RegExp): void {
+  const regex = sourcePattern;
   let found = false;
 
   forEachSourcemap(manifests, ({ url, sourcemap }) => {
     if (sourcemap.sources?.some(s => regex.test(s))) {
       found = true;
 
+      // eslint-disable-next-line no-console
       console.log(`Sourcemap ${url} references app sources:`);
       for (const src of sourcemap.sources.filter(s => regex.test(s))) {
+        // eslint-disable-next-line no-console
         console.log(`  - ${src}`);
       }
 
