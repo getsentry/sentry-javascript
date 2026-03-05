@@ -17,6 +17,9 @@ vi.mock('path', async () => {
       if (lastArg === 'moduleMetadataInjectionLoader.js') {
         return '/mocked/path/to/moduleMetadataInjectionLoader.js';
       }
+      if (lastArg === 'componentAnnotationLoader.js') {
+        return '/mocked/path/to/componentAnnotationLoader.js';
+      }
       return '/mocked/path/to/valueInjectionLoader.js';
     }),
   };
@@ -1077,6 +1080,182 @@ describe('moduleMetadataInjection with applicationKey', () => {
         },
       ],
     });
+  });
+});
+
+describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
+  it('should add component annotation loader rule when enabled and Next.js >= 16', () => {
+    const pathResolveSpy = vi.spyOn(path, 'resolve');
+    pathResolveSpy.mockImplementation((...args: string[]) => {
+      const lastArg = args[args.length - 1];
+      if (lastArg === 'componentAnnotationLoader.js') {
+        return '/mocked/path/to/componentAnnotationLoader.js';
+      }
+      if (lastArg === 'moduleMetadataInjectionLoader.js') {
+        return '/mocked/path/to/moduleMetadataInjectionLoader.js';
+      }
+      return '/mocked/path/to/valueInjectionLoader.js';
+    });
+
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: true },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toEqual({
+      condition: { not: 'foreign' },
+      loaders: [
+        {
+          loader: '/mocked/path/to/componentAnnotationLoader.js',
+          options: {
+            ignoredComponents: [],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should NOT add component annotation rule when enabled is false', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: false },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  it('should NOT add component annotation rule when not set', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  it('should NOT add component annotation rule when Next.js < 16', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: true },
+        },
+      },
+      nextJsVersion: '15.4.1',
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  it('should NOT add component annotation rule when nextJsVersion is undefined', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackReactComponentAnnotation: { enabled: true },
+        },
+      },
+      nextJsVersion: undefined,
+    });
+
+    expect(result.rules!['*.{tsx,jsx}']).toBeUndefined();
+  });
+
+  it('should pass ignoredComponents to loader options', () => {
+    const pathResolveSpy = vi.spyOn(path, 'resolve');
+    pathResolveSpy.mockImplementation((...args: string[]) => {
+      const lastArg = args[args.length - 1];
+      if (lastArg === 'componentAnnotationLoader.js') {
+        return '/mocked/path/to/componentAnnotationLoader.js';
+      }
+      if (lastArg === 'moduleMetadataInjectionLoader.js') {
+        return '/mocked/path/to/moduleMetadataInjectionLoader.js';
+      }
+      return '/mocked/path/to/valueInjectionLoader.js';
+    });
+
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackReactComponentAnnotation: {
+            enabled: true,
+            ignoredComponents: ['Header', 'Footer'],
+          },
+        },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    const rule = result.rules!['*.{tsx,jsx}'] as {
+      condition: unknown;
+      loaders: Array<{ loader: string; options: { ignoredComponents: string[] } }>;
+    };
+    expect(rule.loaders[0]!.options.ignoredComponents).toEqual(['Header', 'Footer']);
+  });
+
+  it('should coexist with value injection and module metadata rules', () => {
+    const pathResolveSpy = vi.spyOn(path, 'resolve');
+    pathResolveSpy.mockImplementation((...args: string[]) => {
+      const lastArg = args[args.length - 1];
+      if (lastArg === 'componentAnnotationLoader.js') {
+        return '/mocked/path/to/componentAnnotationLoader.js';
+      }
+      if (lastArg === 'moduleMetadataInjectionLoader.js') {
+        return '/mocked/path/to/moduleMetadataInjectionLoader.js';
+      }
+      return '/mocked/path/to/valueInjectionLoader.js';
+    });
+
+    const userNextConfig: NextConfigObject = {};
+    const mockRouteManifest: RouteManifest = {
+      dynamicRoutes: [],
+      staticRoutes: [{ path: '/', regex: '/' }],
+      isrRoutes: [],
+    };
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        _experimental: {
+          turbopackApplicationKey: 'my-app',
+          turbopackReactComponentAnnotation: { enabled: true },
+        },
+      },
+      routeManifest: mockRouteManifest,
+      nextJsVersion: '16.0.0',
+    });
+
+    // Value injection rules should be present
+    expect(result.rules!['**/instrumentation-client.*']).toBeDefined();
+    expect(result.rules!['**/instrumentation.*']).toBeDefined();
+    // Module metadata loader should be present
+    expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toBeDefined();
+    // Component annotation loader should be present
+    expect(result.rules!['*.{tsx,jsx}']).toBeDefined();
   });
 });
 

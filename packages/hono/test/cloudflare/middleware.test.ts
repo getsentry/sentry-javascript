@@ -125,4 +125,102 @@ describe('Hono Cloudflare Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
   });
+
+  describe('filters Hono integration from user-provided integrations', () => {
+    const honoIntegration = { name: 'Hono' } as SentryCore.Integration;
+    const otherIntegration = { name: 'Other' } as SentryCore.Integration;
+
+    const getIntegrationsResult = () => {
+      const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+      return optionsCallback().integrations;
+    };
+
+    it.each([
+      ['filters Hono integration out', [honoIntegration, otherIntegration], [otherIntegration]],
+      ['keeps non-Hono integrations', [otherIntegration], [otherIntegration]],
+      ['returns empty array when only Hono integration provided', [honoIntegration], []],
+    ])('%s (array)', (_name, input, expected) => {
+      const app = new Hono();
+      sentry(app, { integrations: input });
+
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual(expected);
+    });
+
+    it('filters Hono from defaults when user provides an array', () => {
+      const app = new Hono();
+      sentry(app, { integrations: [otherIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      // Defaults (from Cloudflare) include Hono; result must exclude it and deduplicate (user + defaults overlap)
+      const defaultsWithHono = [honoIntegration, otherIntegration];
+      expect(integrationsFn(defaultsWithHono)).toEqual([otherIntegration]);
+    });
+
+    it('deduplicates when user integrations overlap with defaults (by name)', () => {
+      const app = new Hono();
+      const duplicateIntegration = { name: 'Other' } as SentryCore.Integration;
+      sentry(app, { integrations: [duplicateIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      const defaultsWithOverlap = [
+        honoIntegration,
+        otherIntegration, // same name as duplicateIntegration
+      ];
+      const result = integrationsFn(defaultsWithOverlap);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.name).toBe('Other');
+    });
+
+    it('filters Hono integration out of a function result', () => {
+      const app = new Hono();
+      sentry(app, { integrations: () => [honoIntegration, otherIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual([otherIntegration]);
+    });
+
+    it('passes defaults through to the user-provided integrations function', () => {
+      const app = new Hono();
+      const userFn = vi.fn((_defaults: SentryCore.Integration[]) => [otherIntegration]);
+      const defaults = [{ name: 'Default' } as SentryCore.Integration];
+
+      sentry(app, { integrations: userFn });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      integrationsFn(defaults);
+
+      expect(userFn).toHaveBeenCalledWith(defaults);
+    });
+
+    it('filters Hono integration returned by the user-provided integrations function', () => {
+      const app = new Hono();
+      sentry(app, { integrations: (_defaults: SentryCore.Integration[]) => [honoIntegration] });
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([])).toEqual([]);
+    });
+
+    it('filters Hono integration from defaults when integrations is undefined', () => {
+      const app = new Hono();
+      sentry(app, {});
+
+      const integrationsFn = getIntegrationsResult() as unknown as (
+        defaults: SentryCore.Integration[],
+      ) => SentryCore.Integration[];
+      expect(integrationsFn([honoIntegration, otherIntegration])).toEqual([otherIntegration]);
+    });
+  });
 });

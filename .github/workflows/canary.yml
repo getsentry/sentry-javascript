@@ -117,6 +117,9 @@ jobs:
           - test-application: 'nestjs-websockets'
             build-command: 'test:build-latest'
             label: 'nestjs-websockets (latest)'
+          - test-application: 'nestjs-microservices'
+            build-command: 'test:build-latest'
+            label: 'nestjs-microservices (latest)'
 
     steps:
       - name: Check out current commit

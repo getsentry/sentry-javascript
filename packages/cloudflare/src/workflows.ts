@@ -20,6 +20,7 @@ import type {
 } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
@@ -186,7 +187,7 @@ export function instrumentWorkflowWithSentry<
                       new WrappedWorkflowStep(event.instanceId, context, options, step),
                     );
                   } finally {
-                    context.waitUntil(flush(2000));
+                    context.waitUntil(flushAndDispose(client));
                   }
                 });
               });
