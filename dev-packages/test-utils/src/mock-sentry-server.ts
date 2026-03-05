@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import type { RequestRecord } from './sourcemap-upload-assertions';
 
 export interface MockSentryServerOptions {
@@ -115,7 +115,7 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
             // Extract the zip to inspect contents
             try {
               fs.mkdirSync(bundleDir, { recursive: true });
-              execSync(`unzip -q -o "${zipFile}" -d "${bundleDir}" 2>/dev/null`);
+              execFileSync('unzip', ['-q', '-o', zipFile, '-d', bundleDir], { stdio: 'ignore' });
 
               // Read manifest.json if present
               const manifestPath = path.join(bundleDir, 'manifest.json');
