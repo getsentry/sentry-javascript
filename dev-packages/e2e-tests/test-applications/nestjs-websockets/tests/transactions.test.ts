@@ -53,6 +53,12 @@ test('WebSocket handler with guard includes guard span and nested manual span', 
     const tx = await txPromise;
 
     expect(tx.transaction).toBe('ExampleGuard');
+    expect(tx.contexts?.trace).toEqual(
+      expect.objectContaining({
+        op: 'middleware.nestjs',
+        origin: 'auto.middleware.nestjs',
+      }),
+    );
 
     expect(tx.spans).toEqual(
       expect.arrayContaining([
@@ -84,6 +90,12 @@ test('WebSocket handler with interceptor includes interceptor span, after-route 
     const tx = await txPromise;
 
     expect(tx.transaction).toBe('ExampleInterceptor');
+    expect(tx.contexts?.trace).toEqual(
+      expect.objectContaining({
+        op: 'middleware.nestjs',
+        origin: 'auto.middleware.nestjs',
+      }),
+    );
 
     const rootSpanId = tx.contexts?.trace?.span_id;
 
