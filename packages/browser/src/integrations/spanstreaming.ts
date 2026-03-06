@@ -6,6 +6,7 @@ import {
   hasSpanStreamingEnabled,
   isStreamedBeforeSendSpanCallback,
   SpanBuffer,
+  spanIsSampled,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -44,7 +45,15 @@ export const spanStreamingIntegration = defineIntegration(() => {
 
       const buffer = new SpanBuffer(client);
 
-      client.on('afterSpanEnd', span => buffer.add(captureSpan(span, client)));
+      client.on('afterSpanEnd', span => {
+        // Negatively sampled spans must not be captured.
+        // This happens because OTel and we create non-recording spans for negatively sampled spans
+        // that go through the same life cycle as recording spans.
+        if (!spanIsSampled(span)) {
+          return;
+        }
+        buffer.add(captureSpan(span, client));
+      });
 
       // In addition to capturing the span, we also flush the trace when the segment
       // span ends to ensure things are sent timely. We never know when the browser
