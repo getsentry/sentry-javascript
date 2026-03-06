@@ -28,6 +28,21 @@ export class AppController {
     return firstValueFrom(this.client.send({ cmd: 'manual-capture' }, {}));
   }
 
+  @Get('test-microservice-guard')
+  async testMicroserviceGuard() {
+    return firstValueFrom(this.client.send({ cmd: 'test-guard' }, {}));
+  }
+
+  @Get('test-microservice-interceptor')
+  async testMicroserviceInterceptor() {
+    return firstValueFrom(this.client.send({ cmd: 'test-interceptor' }, {}));
+  }
+
+  @Get('test-microservice-pipe')
+  async testMicroservicePipe() {
+    return firstValueFrom(this.client.send({ cmd: 'test-pipe' }, { value: 123 }));
+  }
+
   @Get('flush')
   async flush() {
     await flush();

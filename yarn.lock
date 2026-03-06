@@ -7549,7 +7549,12 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-5.1.0.tgz#59a9f203d07f4f17876c9a70ca6604ae28f4ebb0"
   integrity sha512-deEZGTxPMiVNcHXzYMcKEp2uGGU3Q+055nVH6vPHnzuxGoRNZRe2YZ5B1yP9gFD+LJGku8dJ4y3bs1iJrLGPtQ==
 
-"@sentry/bundler-plugin-core@5.1.0", "@sentry/bundler-plugin-core@^5.1.0":
+"@sentry/babel-plugin-component-annotate@5.1.1":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-5.1.1.tgz#9eeef63099011155691a5ee59b0f796c141e8f85"
+  integrity sha512-x2wEpBHwsTyTF2rWsLKJlzrRF1TTIGOfX+ngdE+Yd5DBkoS58HwQv824QOviPGQRla4/ypISqAXzjdDPL/zalg==
+
+"@sentry/bundler-plugin-core@5.1.0":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-5.1.0.tgz#01bef91543eb42cd370288573291b9a02b240e84"
   integrity sha512-/GDzz+UbT7fO3AbvquHDWuqYXWKv2tzCQZddzMYNv36P9wpof5SFELGG6HnfqFb5l2PeHNrVTtp2rrPBQO/OXw==
@@ -7561,6 +7566,19 @@
     find-up "^5.0.0"
     glob "^13.0.6"
     magic-string "0.30.8"
+
+"@sentry/bundler-plugin-core@5.1.1", "@sentry/bundler-plugin-core@^5.1.0":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-5.1.1.tgz#d02cd1f70878936f22efb02765b01dcbf04d8483"
+  integrity sha512-F+itpwR9DyQR7gEkrXd2tigREPTvtF5lC8qu6e4anxXYRTui1+dVR0fXNwjpyAZMhIesLfXRN7WY7ggdj7hi0Q==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "5.1.1"
+    "@sentry/cli" "^2.58.5"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^13.0.6"
+    magic-string "~0.30.8"
 
 "@sentry/cli-darwin@2.58.5":
   version "2.58.5"
@@ -7622,13 +7640,21 @@
     "@sentry/cli-win32-i686" "2.58.5"
     "@sentry/cli-win32-x64" "2.58.5"
 
-"@sentry/rollup-plugin@5.1.0", "@sentry/rollup-plugin@^5.1.0":
+"@sentry/rollup-plugin@5.1.0":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-5.1.0.tgz#16109d796dc3ed49dfeda53c804792b9e4d0fd36"
   integrity sha512-4U0rZVNM6/2CazVeb3ZlwPcl+R6W+5PbXvuTf3Wf+IRVU5BfpRs2cPgXgKVdorZLskG1Ot38PHk7H3f51qqUSg==
   dependencies:
     "@sentry/bundler-plugin-core" "5.1.0"
     magic-string "0.30.8"
+
+"@sentry/rollup-plugin@^5.1.1":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-5.1.1.tgz#0504fc89736fef515a7e52c03634f0aafb634118"
+  integrity sha512-1d5NkdRR6aKWBP7czkY8sFFWiKnfmfRpQOj+m9bJTsyTjbMiEQJst6315w5pCVlRItPhBqpAraqAhutZFgvyVg==
+  dependencies:
+    "@sentry/bundler-plugin-core" "5.1.1"
+    magic-string "~0.30.8"
 
 "@sentry/vite-plugin@^5.1.0":
   version "5.1.0"
@@ -21019,7 +21045,7 @@ magic-string@^0.26.0, magic-string@^0.26.7:
   dependencies:
     sourcemap-codec "^1.4.8"
 
-magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.21, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@^0.30.8, magic-string@~0.30.0:
+magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.21, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@^0.30.8, magic-string@~0.30.0, magic-string@~0.30.8:
   version "0.30.21"
   resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.30.21.tgz#56763ec09a0fa8091df27879fd94d19078c00d91"
   integrity sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==
@@ -26629,10 +26655,10 @@ sass@^1.49.9:
     immutable "^4.0.0"
     source-map-js ">=0.6.2 <2.0.0"
 
-sax@^1.2.4, sax@^1.4.1:
-  version "1.4.4"
-  resolved "https://registry.yarnpkg.com/sax/-/sax-1.4.4.tgz#f29c2bba80ce5b86f4343b4c2be9f2b96627cf8b"
-  integrity sha512-1n3r/tGXO6b6VXMdFT54SHzT9ytu9yr7TaELowdYpMqY/Ao7EnlQGmAQ1+RatX7Tkkdm6hONI2owqNx2aZj5Sw==
+sax@^1.2.4, sax@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/sax/-/sax-1.5.0.tgz#b5549b671069b7aa392df55ec7574cf411179eb8"
+  integrity sha512-21IYA3Q5cQf089Z6tgaUTr7lDAyzoTPx5HRtbhsME8Udispad8dC/+sziTNugOEx54ilvatQ9YCzl4KQLPcRHA==
 
 sax@~1.2.4:
   version "1.2.4"
@@ -28096,6 +28122,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
@@ -28191,9 +28218,9 @@ svelte@^4.2.8:
     periscopic "^3.1.0"
 
 svgo@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/svgo/-/svgo-4.0.0.tgz#17e0fa2eaccf429e0ec0d2179169abde9ba8ad3d"
-  integrity sha512-VvrHQ+9uniE+Mvx3+C9IEe/lWasXCU0nXMY2kZeLrHNICuRiC8uMPyM14UEaMOFA5mhyQqEkB02VoQ16n3DLaw==
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/svgo/-/svgo-4.0.1.tgz"
+  integrity sha512-XDpWUOPC6FEibaLzjfe0ucaV0YrOjYotGJO1WpF0Zd+n6ZGEQUsSugaoLq9QkEZtAfQIxT42UChcssDVPP3+/w==
   dependencies:
     commander "^11.1.0"
     css-select "^5.1.0"
@@ -28201,7 +28228,7 @@ svgo@^4.0.0:
     css-what "^6.1.0"
     csso "^5.0.5"
     picocolors "^1.1.1"
-    sax "^1.4.1"
+    sax "^1.5.0"
 
 swr@^2.2.5:
   version "2.2.5"
