@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { debug } from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, spanStreamingIntegration } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
@@ -24,6 +24,10 @@ vi.mock('@sentry/core', async () => {
 });
 
 describe('spanStreamingIntegration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('has the correct hooks', () => {
     const integration = spanStreamingIntegration();
     expect(integration.name).toBe('SpanStreaming');
@@ -106,12 +110,13 @@ describe('spanStreamingIntegration', () => {
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
+      tracesSampleRate: 1,
     });
 
     SentryCore.setCurrentClient(client);
     client.init();
 
-    const span = new SentryCore.SentrySpan({ name: 'test' });
+    const span = new SentryCore.SentrySpan({ name: 'test', sampled: true });
     client.emit('afterSpanEnd', span);
 
     expect(mockSpanBufferInstance.add).toHaveBeenCalledWith({
@@ -146,6 +151,24 @@ describe('spanStreamingIntegration', () => {
         },
       },
     });
+  });
+
+  it('does not enqueue a span into the buffer when the span is not sampled', () => {
+    const client = new BrowserClient({
+      ...getDefaultBrowserClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      tracesSampleRate: 1,
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    const span = new SentryCore.SentrySpan({ name: 'test', sampled: false });
+    client.emit('afterSpanEnd', span);
+
+    expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
+    expect(mockSpanBufferInstance.flush).not.toHaveBeenCalled();
   });
 
   it('flushes the trace when the segment span ends', () => {
