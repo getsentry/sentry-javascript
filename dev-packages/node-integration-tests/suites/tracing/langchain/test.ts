@@ -169,6 +169,23 @@ describe('LangChain integration', () => {
         .start()
         .completed();
     });
+
+    test('does not create duplicate spans from double module patching', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: event => {
+            const spans = event.spans || [];
+            const genAiChatSpans = spans.filter(span => span.op === 'gen_ai.chat');
+            // The scenario makes 3 LangChain calls (2 successful + 1 error).
+            // Without the dedup guard, the file-level and module-level hooks
+            // both patch the same prototype, producing 6 spans instead of 3.
+            expect(genAiChatSpans).toHaveLength(3);
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
