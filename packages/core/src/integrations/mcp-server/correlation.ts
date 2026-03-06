@@ -70,7 +70,7 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
   spanMap.set(requestId, {
     span,
     method,
-    // eslint-disable-next-line @sentry-internal/sdk/no-unsafe-random-apis
+    // oxlint-disable-next-line sdk/no-unsafe-random-apis
     startTime: Date.now(),
   });
 }

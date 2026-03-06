@@ -20,7 +20,7 @@ Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
 | `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
 | `yarn build:bundle`                   | Browser bundles only          |
 | `yarn test`                           | All unit tests                |
-| `yarn lint`                           | ESLint + Oxfmt                |
+| `yarn lint`                           | Oxlint + Oxfmt                |
 | `yarn fix`                            | Auto-fix lint + format        |
 | `yarn format`                         | Auto-fix formatting (Oxfmt)   |
 
