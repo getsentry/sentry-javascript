@@ -1,4 +1,4 @@
-name: 'Reusable: Get Metadata'
+name: 'Get Metadata'
 on:
   workflow_call:
     inputs:
