@@ -1,6 +1,9 @@
-import { Controller } from '@nestjs/common';
+import { Controller, UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import * as Sentry from '@sentry/nestjs';
+import { ExampleGuard } from './example.guard';
+import { ExampleInterceptor } from './example.interceptor';
+import { ExamplePipe } from './example.pipe';
 
 @Controller()
 export class MicroserviceController {
@@ -24,5 +27,23 @@ export class MicroserviceController {
       Sentry.captureException(e);
     }
     return { success: true };
+  }
+
+  @UseGuards(ExampleGuard)
+  @MessagePattern({ cmd: 'test-guard' })
+  testGuard(): { result: string } {
+    return { result: 'guard-handled' };
+  }
+
+  @UseInterceptors(ExampleInterceptor)
+  @MessagePattern({ cmd: 'test-interceptor' })
+  testInterceptor(): { result: string } {
+    return { result: 'interceptor-handled' };
+  }
+
+  @UsePipes(ExamplePipe)
+  @MessagePattern({ cmd: 'test-pipe' })
+  testPipe(data: { value: number }): { result: number } {
+    return { result: data.value };
   }
 }
