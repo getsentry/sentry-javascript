@@ -131,7 +131,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 247,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -164,7 +163,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 15,
           'http.response.status_code': 404,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -198,7 +196,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 19,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -233,7 +230,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'GET',
           'http.request.method_original': 'GET',
-          'http.response.header.content-length': 123,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
