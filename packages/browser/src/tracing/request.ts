@@ -264,7 +264,7 @@ function addHTTPTimings(span: Span, client: Client): void {
   // Clean up the performance observer and other resources
   // We have to wait here because otherwise this cleans itself up before it is fully done.
   // Default (non-streaming): just deregister the observer.
-  let onEntryFound = (): void => void setTimeout(cleanup);
+  let onEntryFound = (): void => void setTimeout(unsubscribePerformanceObsever);
 
   // For streamed spans, we have to artificially delay the ending of the span until we
   // either receive the timing data, or HTTP_TIMING_WAIT_MS elapses.
@@ -280,7 +280,7 @@ function addHTTPTimings(span: Span, client: Client): void {
           return;
         }
         isEnded = true;
-        setTimeout(cleanup);
+        setTimeout(unsubscribePerformanceObsever);
         originalEnd(capturedEndTimestamp);
         clearTimeout(fallbackTimeout);
       };
@@ -294,7 +294,7 @@ function addHTTPTimings(span: Span, client: Client): void {
     };
   }
 
-  const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
+  const unsubscribePerformanceObsever = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         span.setAttributes(resourceTimingToSpanAttributes(entry));
