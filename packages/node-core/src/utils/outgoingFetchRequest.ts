@@ -9,7 +9,7 @@ import {
   shouldPropagateTraceForUrl,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
-import { mergeBaggageHeaders } from './baggage';
+import { hasSentryBaggageValues, mergeBaggageHeaders } from './baggage';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
@@ -64,11 +64,14 @@ export function addTracePropagationHeadersToFetchRequest(
     const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
     if (baggage && existingBaggagePos === -1) {
       requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
-    } else if (baggage) {
+    } else if (baggage && existingBaggagePos !== -1) {
       const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        requestHeaders[existingBaggagePos + 1] = merged;
+      // if existing baggage already has Sentry values, just skip it
+      if (!hasSentryBaggageValues(existingBaggage)) {
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          requestHeaders[existingBaggagePos + 1] = merged;
+        }
       }
     }
   } else {
@@ -85,10 +88,12 @@ export function addTracePropagationHeadersToFetchRequest(
     const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
     if (baggage && !existingBaggage) {
       request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
-    } else if (baggage) {
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
+    } else if (baggage && existingBaggage) {
+      if (!hasSentryBaggageValues(existingBaggage)) {
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
+        }
       }
     }
   }

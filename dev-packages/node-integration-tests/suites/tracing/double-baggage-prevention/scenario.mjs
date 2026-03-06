@@ -1,5 +1,5 @@
-import http from 'http';
 import * as Sentry from '@sentry/node';
+import http from 'http';
 
 let capturedHeaders = {};
 const targetServer = http.createServer((req, res) => {
@@ -17,19 +17,16 @@ targetServer.listen(0, async () => {
 
   try {
     // Step 1: fetch with manual getTraceData() headers
-    console.log('[TEST 1] Fetch with manual getTraceData() headers');
     capturedHeaders = {};
     await fetch(targetUrl, { headers: { ...Sentry.getTraceData() } });
     const fetchHeaders1 = { ...capturedHeaders };
 
     // Step 2: fetch without manual headers
-    console.log('[TEST 2] Fetch without manual headers');
     capturedHeaders = {};
     await fetch(targetUrl);
     const fetchHeaders2 = { ...capturedHeaders };
 
     // Step 3: http.request with manual getTraceData() headers
-    console.log('[TEST 3] HTTP request with manual getTraceData() headers');
     capturedHeaders = {};
     await new Promise((resolve, reject) => {
       const traceData = Sentry.getTraceData();
@@ -42,7 +39,7 @@ targetServer.listen(0, async () => {
           headers: traceData,
         },
         res => {
-          res.on('data', () => {});
+          res.on('data', () => { });
           res.on('end', () => resolve());
         },
       );
@@ -52,7 +49,6 @@ targetServer.listen(0, async () => {
     const httpHeaders = { ...capturedHeaders };
 
     // Step 4: fetch with custom + manual sentry baggage
-    console.log('[TEST 4] Fetch with custom baggage + manual sentry baggage');
     capturedHeaders = {};
     const traceData = Sentry.getTraceData();
     await fetch(targetUrl, {
@@ -91,9 +87,8 @@ targetServer.listen(0, async () => {
       },
     };
 
-    console.log('RESULTS:', JSON.stringify(results));
   } catch (error) {
-    console.error('Test error:', error);
+    throw error;
   } finally {
     targetServer.close();
   }
