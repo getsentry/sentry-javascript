@@ -102,27 +102,26 @@ export class SpanBuffer {
    */
   public add(spanJSON: SerializedStreamedSpanWithSegmentSpan): void {
     const traceId = spanJSON.trace_id;
-    const existingBucket = this._traceBuckets.get(traceId);
+    let bucket = this._traceBuckets.get(traceId);
 
-    if (existingBucket) {
-      existingBucket.spans.add(spanJSON);
-      existingBucket.size += estimateSerializedSpanSizeInBytes(spanJSON);
+    if (!bucket) {
+      bucket = {
+        spans: new Set(),
+        size: 0,
+        timeout: safeUnref(
+          setTimeout(() => {
+            this.flush(traceId);
+          }, this._flushInterval),
+        ),
+      };
+      this._traceBuckets.set(traceId, bucket);
+    }
 
-      if (existingBucket.spans.size >= this._maxSpanLimit || existingBucket.size >= this._maxTraceWeight) {
-        this.flush(traceId);
-      }
-    } else {
-      const size = estimateSerializedSpanSizeInBytes(spanJSON);
-      const timeout = safeUnref(
-        setTimeout(() => {
-          this.flush(traceId);
-        }, this._flushInterval),
-      );
-      this._traceBuckets.set(traceId, { spans: new Set([spanJSON]), size, timeout });
+    bucket.spans.add(spanJSON);
+    bucket.size += estimateSerializedSpanSizeInBytes(spanJSON);
 
-      if (size >= this._maxTraceWeight) {
-        this.flush(traceId);
-      }
+    if (bucket.spans.size >= this._maxSpanLimit || bucket.size >= this._maxTraceWeight) {
+      this.flush(traceId);
     }
   }
 
