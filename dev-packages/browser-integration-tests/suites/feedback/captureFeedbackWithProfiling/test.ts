@@ -43,6 +43,7 @@ sentryTest(
     const pageLoadEvent = envelopeRequestParser(await pageloadRequestPromise);
 
     // Submit feedback after idle span ended — no active span
+    await page.getByText('Report a Bug').waitFor({ state: 'visible' });
     await page.getByText('Report a Bug').click();
     await page.locator('[name="name"]').fill('Jane Doe');
     await page.locator('[name="email"]').fill('janedoe@example.org');
