@@ -58,10 +58,9 @@ export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
 export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
 export {
-  _INTERNAL_skipAiProviderWrapping,
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  _INTERNAL_clearAiProviderSkips,
-} from './utils/ai/providerSkip';
+  _INTERNAL_isAiProviderSpanSuppressed,
+  _INTERNAL_withSuppressedAiProviderSpans,
+} from './tracing/ai/suppression';
 export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';

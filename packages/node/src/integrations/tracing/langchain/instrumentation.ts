@@ -7,6 +7,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { LangChainOptions } from '@sentry/core';
 import {
+  _INTERNAL_withSuppressedAiProviderSpans,
   createLangChainCallbackHandler,
   getClient,
   SDK_VERSION,
@@ -83,7 +84,10 @@ function wrapRunnableMethod(
       options.callbacks = augmentedCallbacks;
 
       // Call original method with augmented options
-      return Reflect.apply(target, thisArg, args);
+      // Suppress AI provider spans (e.g. OpenAI) to prevent duplicates
+      return _INTERNAL_withSuppressedAiProviderSpans(() => {
+        return Reflect.apply(target, thisArg, args);
+      });
     },
   }) as (...args: unknown[]) => unknown;
 }
