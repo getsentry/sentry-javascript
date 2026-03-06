@@ -8,7 +8,7 @@ import type { Log, SerializedLog } from '../types-hoist/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { getSequenceAttribute } from '../utils/sequence';
+import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';

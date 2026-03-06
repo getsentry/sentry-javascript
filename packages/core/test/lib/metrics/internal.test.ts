@@ -7,7 +7,7 @@ import {
 } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types-hoist/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
-import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/sequence';
+import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';

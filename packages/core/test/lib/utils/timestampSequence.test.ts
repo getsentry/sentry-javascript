@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { _INTERNAL_resetSequenceNumber, getSequenceAttribute } from '../../../src/utils/sequence';
+import { _INTERNAL_resetSequenceNumber, getSequenceAttribute } from '../../../src/utils/timestampSequence';
 
 describe('getSequenceAttribute', () => {
   beforeEach(() => {

@@ -7,7 +7,7 @@ import {
 } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
-import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/sequence';
+import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import * as timeModule from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
