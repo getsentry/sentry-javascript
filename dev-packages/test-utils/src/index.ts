@@ -12,3 +12,7 @@ export {
 
 export { getPlaywrightConfig } from './playwright-config';
 export { createBasicSentryServer, createTestServer } from './server';
+
+export { startMockSentryServer } from './mock-sentry-server';
+export type { MockSentryServerOptions, MockSentryServer } from './mock-sentry-server';
+export * from './sourcemap-upload-assertions';
