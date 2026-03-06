@@ -7,12 +7,8 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { LangChainOptions } from '@sentry/core';
 import {
-  _INTERNAL_skipAiProviderWrapping,
-  ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
   getClient,
-  GOOGLE_GENAI_INTEGRATION_NAME,
-  OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
 } from '@sentry/core';
 
@@ -170,14 +166,6 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
-    // Skip AI provider wrapping now that LangChain is actually being used
-    // This prevents duplicate spans from Anthropic/OpenAI/GoogleGenAI standalone integrations
-    _INTERNAL_skipAiProviderWrapping([
-      OPENAI_INTEGRATION_NAME,
-      ANTHROPIC_AI_INTEGRATION_NAME,
-      GOOGLE_GENAI_INTEGRATION_NAME,
-    ]);
-
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
