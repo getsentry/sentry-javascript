@@ -1,6 +1,5 @@
 import { logger as sentryLogger } from '@sentry/core';
 import * as Logger from 'effect/Logger';
-import * as LogLevel from 'effect/LogLevel';
 
 /**
  * Effect Logger that sends logs to Sentry.
@@ -16,15 +15,29 @@ export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
     msg = JSON.stringify(message);
   }
 
-  if (LogLevel.greaterThanEqual(logLevel, LogLevel.Error)) {
-    sentryLogger.error(msg);
-  } else if (LogLevel.greaterThanEqual(logLevel, LogLevel.Warning)) {
-    sentryLogger.warn(msg);
-  } else if (LogLevel.greaterThanEqual(logLevel, LogLevel.Info)) {
-    sentryLogger.info(msg);
-  } else if (LogLevel.greaterThanEqual(logLevel, LogLevel.Debug)) {
-    sentryLogger.debug(msg);
-  } else {
-    sentryLogger.trace(msg);
+  switch (logLevel._tag) {
+    case 'Fatal':
+      sentryLogger.fatal(msg);
+      break;
+    case 'Error':
+      sentryLogger.error(msg);
+      break;
+    case 'Warning':
+      sentryLogger.warn(msg);
+      break;
+    case 'Info':
+      sentryLogger.info(msg);
+      break;
+    case 'Debug':
+      sentryLogger.debug(msg);
+      break;
+    case 'Trace':
+      sentryLogger.trace(msg);
+      break;
+    case 'All':
+    case 'None':
+      break;
+    default:
+      logLevel satisfies never;
   }
 });

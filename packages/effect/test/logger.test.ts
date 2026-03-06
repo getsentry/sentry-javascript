@@ -15,6 +15,7 @@ vi.mock('@sentry/core', async importOriginal => {
       info: vi.fn(),
       debug: vi.fn(),
       trace: vi.fn(),
+      fatal: vi.fn(),
     },
   };
 });
@@ -27,6 +28,13 @@ describe('SentryEffectLogger', () => {
   const loggerLayer = Layer.mergeAll(
     Logger.replace(Logger.defaultLogger, SentryEffectLogger),
     Logger.minimumLogLevel(LogLevel.All),
+  );
+
+  it.effect('forwards fatal logs to Sentry', () =>
+    Effect.gen(function* () {
+      yield* Effect.logFatal('This is a fatal message');
+      expect(sentryCore.logger.fatal).toHaveBeenCalledWith('This is a fatal message');
+    }).pipe(Effect.provide(loggerLayer)),
   );
 
   it.effect('forwards error logs to Sentry', () =>
