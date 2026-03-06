@@ -4,7 +4,7 @@ import { io, type Socket } from 'socket.io-client';
 
 function connectSocket(baseURL: string): Promise<Socket> {
   const socket = io(baseURL);
-  return new Promise<Socket>(resolve => socket.on('connect', resolve)).then(() => socket);
+  return new Promise<Socket>(resolve => socket.on('connect', () => resolve(socket)));
 }
 
 test('Sends an HTTP transaction', async ({ baseURL }) => {
@@ -31,6 +31,7 @@ test('WebSocket handler with manual Sentry.startSpan() sends a transaction', asy
   const socket = await connectSocket(baseURL!);
   try {
     socket.emit('test-manual-span', {});
+    await fetch(`${baseURL}/flush`);
 
     const tx = await txPromise;
     expect(tx.transaction).toBe('test-ws-manual-span');
@@ -47,6 +48,7 @@ test('WebSocket handler with guard includes guard span and nested manual span', 
   const socket = await connectSocket(baseURL!);
   try {
     socket.emit('test-guard-instrumentation', {});
+    await fetch(`${baseURL}/flush`);
 
     const tx = await txPromise;
 
@@ -77,6 +79,7 @@ test('WebSocket handler with interceptor includes interceptor span, after-route 
   const socket = await connectSocket(baseURL!);
   try {
     socket.emit('test-interceptor-instrumentation', {});
+    await fetch(`${baseURL}/flush`);
 
     const tx = await txPromise;
 
@@ -124,6 +127,7 @@ test('WebSocket handler with pipe includes pipe span', async ({ baseURL }) => {
   const socket = await connectSocket(baseURL!);
   try {
     socket.emit('test-pipe-instrumentation', '123');
+    await fetch(`${baseURL}/flush`);
 
     const tx = await txPromise;
 
