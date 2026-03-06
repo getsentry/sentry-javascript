@@ -39,8 +39,8 @@ sentryTest(
 
     await page.goto(url);
 
-    // Wait for the idle span to finish
-    await pageloadRequestPromise;
+    // Wait for the idle page load span to finish
+    const pageLoadEvent = envelopeRequestParser(await pageloadRequestPromise);
 
     // Submit feedback after idle span ended — no active span
     await page.getByText('Report a Bug').click();
@@ -51,10 +51,14 @@ sentryTest(
 
     const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
 
-    // BUG: With profiling enabled and no active span, attachProfiledThreadToEvent
-    // creates a partial trace context { data: { thread.id, thread.name } } that
-    // overwrites the real trace context (with trace_id/span_id) via spread in _prepareEvent.
     expect(feedbackEvent.contexts?.trace?.trace_id).toMatch(/\w{32}/);
     expect(feedbackEvent.contexts?.trace?.span_id).toMatch(/\w{16}/);
+
+    // contexts.trace.data must include thread.id to identify which thread is associated with the transaction
+    expect(pageLoadEvent.contexts?.trace?.data?.['thread.id']).toBe('0');
+    expect(pageLoadEvent.contexts?.trace?.data?.['thread.name']).toBe('main');
+
+    // fixme: figure out why profiler_id is set on feedback and not on pageload transaction
+    expect(feedbackEvent.contexts?.profile?.profiler_id).toMatch(/^[a-f\d]{32}$/);
   },
 );
