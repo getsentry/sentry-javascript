@@ -1,8 +1,10 @@
 import type { BrowserOptions } from '@sentry/browser';
-import * as Sentry from '@sentry/browser';
 import type * as EffectLayer from 'effect/Layer';
 import { suspend as suspendLayer } from 'effect/Layer';
 import { buildEffectLayer } from '../utils/buildEffectLayer';
+import { init } from './sdk';
+
+export { init } from './sdk';
 
 /**
  * Options for the Sentry Effect client layer.
@@ -32,5 +34,5 @@ export type EffectClientLayerOptions = BrowserOptions;
  * ```
  */
 export function effectLayer(options: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
-  return suspendLayer(() => buildEffectLayer(options, Sentry.init(options)));
+  return suspendLayer(() => buildEffectLayer(options, init(options)));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest';
-import { getCurrentScope, getIsolationScope } from '@sentry/core';
+import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
 import { Effect, Layer } from 'effect';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as sentryClient from '../src/index.client';
@@ -15,9 +15,9 @@ function getMockTransport() {
 }
 
 describe.each([
-  ['client', sentryClient.effectLayer],
-  ['server', sentryServer.effectLayer],
-])('effectLayer ($name)', (name, effectLayer) => {
+  [{ subSdkName: 'browser', effectLayer: sentryClient.effectLayer }],
+  [{ subSdkName: 'node-light', effectLayer: sentryServer.effectLayer }],
+])('effectLayer ($subSdkName)', ({ subSdkName, effectLayer }) => {
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -36,6 +36,28 @@ describe.each([
     expect(layer).toBeDefined();
     expect(Layer.isLayer(layer)).toBe(true);
   });
+
+  it.effect('applies SDK metadata', () =>
+    Effect.gen(function* () {
+      yield* Effect.void;
+
+      const client = getClient();
+      const metadata = client?.getOptions()._metadata?.sdk;
+
+      expect(metadata?.name).toBe('sentry.javascript.effect');
+      expect(metadata?.packages).toEqual([
+        { name: 'npm:@sentry/effect', version: SDK_VERSION },
+        { name: `npm:@sentry/${subSdkName}`, version: SDK_VERSION },
+      ]);
+    }).pipe(
+      Effect.provide(
+        effectLayer({
+          dsn: TEST_DSN,
+          transport: getMockTransport(),
+        }),
+      ),
+    ),
+  );
 
   it.effect('layer can be provided to an Effect program', () =>
     Effect.gen(function* () {

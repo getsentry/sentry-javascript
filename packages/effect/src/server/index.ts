@@ -1,7 +1,9 @@
-import type { NodeOptions } from '@sentry/node-core';
-import * as Sentry from '@sentry/node-core/light';
+import type { NodeOptions } from '@sentry/node-core/light';
 import type * as EffectLayer from 'effect/Layer';
 import { buildEffectLayer } from '../utils/buildEffectLayer';
+import { init } from './sdk';
+
+export { init } from './sdk';
 
 /**
  * Options for the Sentry Effect server layer.
@@ -33,5 +35,5 @@ export type EffectServerLayerOptions = NodeOptions;
  * ```
  */
 export function effectLayer(options: EffectServerLayerOptions): EffectLayer.Layer<never, never, never> {
-  return buildEffectLayer(options, Sentry.init(options));
+  return buildEffectLayer(options, init(options));
 }
