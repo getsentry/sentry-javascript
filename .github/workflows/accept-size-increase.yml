@@ -1,0 +1,92 @@
+name: 'Automation: Accept Bundlesize Increase'
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: accept-size-increase-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  bump-size-limits:
+    if: github.event.label.name == 'Accept Bundlesize Increase'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+
+      - name: Install dependencies
+        run: yarn install --ignore-engines --frozen-lockfile
+
+      - name: Find latest CI run for this PR
+        id: find-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_JSON=$(gh run list \
+            --workflow "CI: Build & Test" \
+            --branch "${{ github.head_ref }}" \
+            --status completed \
+            --limit 1 \
+            --json databaseId,headSha)
+          RUN_ID=$(echo "$RUN_JSON" | jq -r '.[0].databaseId')
+          RUN_SHA=$(echo "$RUN_JSON" | jq -r '.[0].headSha')
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "::error::No completed CI run found. Wait for CI to finish, then re-add the label."
+            exit 1
+          fi
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "$RUN_SHA" != "$HEAD_SHA" ]; then
+            echo "::error::CI run ($RUN_SHA) does not match current HEAD ($HEAD_SHA). Wait for the latest CI run to complete, then re-add the label."
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-output
+          run-id: ${{ steps.find-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run size-limit and bump failing entries
+        id: bump
+        run: node scripts/bump-size-limits.mjs
+
+      - name: Format
+        run: yarn format
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .size-limit.js
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: Bump size limits"
+          git push
+
+      - name: Comment on PR
+        if: steps.bump.outputs.summary != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "${{ steps.bump.outputs.summary }}"
+
+      - name: Remove label
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit "${{ github.event.pull_request.number }}" \
+            --remove-label "Accept Bundlesize Increase"

@@ -182,24 +182,25 @@ async function run() {
 
     if (status > 0) {
       try {
-        const results = limit.parseResults(output);
-        const failedResults = results
-          .filter(result => result.passed || false)
-          .map(result => ({
-            name: result.name,
-            size: +result.size,
-            sizeLimit: +result.sizeLimit,
-          }));
+        const results = JSON.parse(output);
+        const failedResults = results.filter(result => !result.passed);
 
         if (failedResults.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('Exceeded size-limits:', failedResults);
+          const lines = failedResults.map(r => {
+            const size = (r.size / 1024).toFixed(1);
+            const max = (r.sizeLimit / 1024).toFixed(1);
+            const over = ((r.size - r.sizeLimit) / 1024).toFixed(1);
+            return `  ${r.name}: ${size} KB (limit: ${max} KB, +${over} KB over)`;
+          });
+          core.error(`Size limit exceeded:\n${lines.join('\n')}`);
         }
       } catch {
         // noop
       }
 
-      setFailed('Size limit has been exceeded.');
+      setFailed(
+        'Size limit has been exceeded. To accept this increase, add the "Accept Bundlesize Increase" label to this PR or update `.size-limit.js` manually.',
+      );
     }
   } catch (error) {
     core.error(error);
