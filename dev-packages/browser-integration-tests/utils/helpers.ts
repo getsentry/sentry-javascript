@@ -62,7 +62,7 @@ export const eventAndTraceHeaderRequestParser = (request: Request | null): Event
   return getEventAndTraceHeader(envelope);
 };
 
-const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
+export const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 

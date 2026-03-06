@@ -467,6 +467,7 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SerializedStreamedSpan,
   StreamedSpanJSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
