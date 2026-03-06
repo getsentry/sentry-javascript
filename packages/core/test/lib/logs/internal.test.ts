@@ -3,8 +3,8 @@ import { fmt, Scope } from '../../../src';
 import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_getLogBuffer } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
-import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import * as timeModule from '../../../src/utils/time';
+import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';

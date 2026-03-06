@@ -9,9 +9,9 @@ import type { Metric, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
+import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
