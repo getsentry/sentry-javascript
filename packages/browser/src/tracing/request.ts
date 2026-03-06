@@ -28,6 +28,7 @@ import {
   stringMatchesSomePattern,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
+  timestampInSeconds,
 } from '@sentry/core';
 import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
@@ -269,11 +270,10 @@ function addHTTPTimings(span: Span, client: Client): void {
   // either receive the timing data, or HTTP_TIMING_WAIT_MS elapses.
   if (hasSpanStreamingEnabled(client)) {
     const originalEnd = span.end.bind(span);
-    let capturedEndTimestamp: SpanTimeInput | undefined;
-    let isEnded = false;
 
     span.end = (endTimestamp?: SpanTimeInput) => {
-      capturedEndTimestamp = endTimestamp;
+      const capturedEndTimestamp = endTimestamp || timestampInSeconds();
+      let isEnded = false;
 
       const endSpanAndCleanup = (): void => {
         if (isEnded) {
