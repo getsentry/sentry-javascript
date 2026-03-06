@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fmt, Scope } from '../../../src';
-import {
-  _INTERNAL_captureLog,
-  _INTERNAL_flushLogsBuffer,
-  _INTERNAL_getLogBuffer,
-} from '../../../src/logs/internal';
+import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_getLogBuffer } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';

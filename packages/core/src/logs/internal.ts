@@ -220,4 +220,3 @@ function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
   // The reference to the Client <> LogBuffer map is stored on the carrier to ensure it's always the same
   return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
 }
-
