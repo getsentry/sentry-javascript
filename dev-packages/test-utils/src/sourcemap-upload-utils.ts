@@ -52,10 +52,10 @@ export interface ArtifactBundleData {
 }
 
 export interface ParsedSourcemap {
+  [key: string]: unknown;
   version?: number;
   sources?: string[];
   mappings?: string;
-  [key: string]: unknown;
 }
 
 export interface SourcemapEntry {
