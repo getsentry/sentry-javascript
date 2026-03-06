@@ -1170,6 +1170,8 @@ describe('_INTERNAL_captureLog', () => {
 
   describe('sentry.timestamp.sequence', () => {
     it('increments the sequence number across consecutive logs', () => {
+      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1183,9 +1185,13 @@ describe('_INTERNAL_captureLog', () => {
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
+
+      vi.restoreAllMocks();
     });
 
     it('does not increment the sequence number for dropped logs', () => {
+      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+
       const beforeSendLog = vi.fn().mockImplementation(log => {
         if (log.message === 'drop me') {
           return null;
@@ -1206,6 +1212,8 @@ describe('_INTERNAL_captureLog', () => {
       expect(buffer).toHaveLength(2);
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
+
+      vi.restoreAllMocks();
     });
 
     it('produces monotonically increasing sequence numbers within the same millisecond', () => {

@@ -33,6 +33,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -44,6 +45,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -55,6 +57,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -66,6 +69,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -77,6 +81,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -88,6 +93,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -99,6 +105,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'trace', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
@@ -115,6 +122,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'debug', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
@@ -131,6 +139,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'info', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
@@ -147,6 +156,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'warn', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
@@ -163,6 +173,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'error', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
@@ -179,6 +190,7 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'test %s %s %s %s', type: 'string' },
             'sentry.message.parameter.0': { value: 'fatal', type: 'string' },
             'sentry.message.parameter.1': { value: 'stringArg', type: 'string' },
