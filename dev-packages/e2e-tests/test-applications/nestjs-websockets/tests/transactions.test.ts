@@ -35,6 +35,11 @@ test('WebSocket handler with manual Sentry.startSpan() sends a transaction', asy
 
     const tx = await txPromise;
     expect(tx.transaction).toBe('test-ws-manual-span');
+    expect(tx.contexts?.trace).toEqual(
+      expect.objectContaining({
+        origin: 'manual',
+      }),
+    );
   } finally {
     socket.disconnect();
   }
