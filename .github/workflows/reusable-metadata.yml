@@ -1,0 +1,89 @@
+name: 'Reusable: Get Metadata'
+on:
+  workflow_call:
+    inputs:
+      head_commit:
+        description: 'The commit SHA to check out and test'
+        type: string
+        required: true
+    outputs:
+      commit_label:
+        description: 'Short SHA + commit message for display'
+        value: ${{ jobs.get_metadata.outputs.commit_label }}
+      is_base_branch:
+        description: 'Whether the ref is develop, v9, or v8'
+        value: ${{ jobs.get_metadata.outputs.is_base_branch }}
+      is_release:
+        description: 'Whether the ref is a release branch'
+        value: ${{ jobs.get_metadata.outputs.is_release }}
+      changed_ci:
+        description: 'Whether .github/** files changed'
+        value: ${{ jobs.get_metadata.outputs.changed_ci }}
+      changed_any_code:
+        description: 'Whether any non-markdown files changed'
+        value: ${{ jobs.get_metadata.outputs.changed_any_code }}
+      is_gitflow_sync:
+        description: 'Whether this is a gitflow sync (master merge)'
+        value: ${{ jobs.get_metadata.outputs.is_gitflow_sync }}
+      has_gitflow_label:
+        description: 'Whether the PR has the Gitflow label'
+        value: ${{ jobs.get_metadata.outputs.has_gitflow_label }}
+      force_skip_cache:
+        description: 'Whether to skip caching (schedule or ci-skip-cache label)'
+        value: ${{ jobs.get_metadata.outputs.force_skip_cache }}
+
+jobs:
+  get_metadata:
+    name: Get Metadata
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.head_commit }}
+          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
+          # also its parents, so that we can pull the commit message from the head commit of the PR
+          fetch-depth: 2
+
+      - name: Get metadata
+        id: get_metadata
+        # We need to try a number of different options for finding the head commit, because each kind of trigger event
+        # stores it in a different location
+        run: |
+          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }})
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+
+      # Most changed packages are determined in job_build via Nx
+      - name: Determine changed packages
+        uses: dorny/paths-filter@v3.0.1
+        id: changed
+        with:
+          filters: |
+            workflow:
+              - '.github/**'
+            any_code:
+              - '!**/*.md'
+
+      - name: Get PR labels
+        id: pr-labels
+        uses: mydea/pr-labels-action@fn/bump-node20
+
+    outputs:
+      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      # Note: These next three have to be checked as strings ('true'/'false')!
+      is_base_branch:
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
+      is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
+      changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
+      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+
+      # When merging into master, or from master
+      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
+      has_gitflow_label:
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
+      force_skip_cache:
+        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
+        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
