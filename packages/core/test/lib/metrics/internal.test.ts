@@ -12,7 +12,8 @@ import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-const SEQUENCE_ATTR = { 'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' } };
+// Sequence 0 is omitted to save bytes, so for single-metric tests the attribute is absent.
+const SEQUENCE_ATTR = {};
 
 describe('_INTERNAL_captureMetric', () => {
   beforeEach(() => {
@@ -539,7 +540,6 @@ describe('_INTERNAL_captureMetric', () => {
         _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
         const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
-        expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
         expect(metricAttributes).not.toHaveProperty('sentry.replay_id');
       });
     });
@@ -1090,7 +1090,7 @@ describe('_INTERNAL_captureMetric', () => {
       _INTERNAL_captureMetric({ type: 'counter', name: 'third', value: 3 }, { scope });
 
       const buffer = _INTERNAL_getMetricBuffer(client);
-      expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
+      expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toBeUndefined();
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
     });
@@ -1112,7 +1112,7 @@ describe('_INTERNAL_captureMetric', () => {
       _INTERNAL_captureMetric({ type: 'counter', name: 'after reset', value: 2 }, { scope: scope2 });
 
       const buffer2 = _INTERNAL_getMetricBuffer(client2);
-      expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
+      expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toBeUndefined();
     });
   });
 });

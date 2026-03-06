@@ -26,10 +26,6 @@ describe('logger public API', () => {
                     type: 'string',
                     value: expect.any(String),
                   },
-                  'sentry.timestamp.sequence': {
-                    type: 'integer',
-                    value: expect.any(Number),
-                  },
                   'server.address': {
                     type: 'string',
                     value: expect.any(String),
@@ -67,10 +63,6 @@ describe('logger public API', () => {
                     type: 'string',
                     value: expect.any(String),
                   },
-                  'sentry.timestamp.sequence': {
-                    type: 'integer',
-                    value: expect.any(Number),
-                  },
                   'server.address': {
                     type: 'string',
                     value: expect.any(String),
@@ -107,10 +99,6 @@ describe('logger public API', () => {
                   'sentry.sdk.version': {
                     type: 'string',
                     value: expect.any(String),
-                  },
-                  'sentry.timestamp.sequence': {
-                    type: 'integer',
-                    value: expect.any(Number),
                   },
                   'server.address': {
                     type: 'string',

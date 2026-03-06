@@ -36,10 +36,6 @@ it('should add server.address attribute to metrics when serverName is set', asyn
               type: 'string',
               value: expect.any(String),
             },
-            'sentry.timestamp.sequence': {
-              type: 'integer',
-              value: expect.any(Number),
-            },
             'server.address': {
               type: 'string',
               value: 'mi-servidor.com',

@@ -6,19 +6,17 @@ describe('getSequenceAttribute', () => {
     _INTERNAL_resetSequenceNumber();
   });
 
-  it('returns the correct attribute key', () => {
+  it('returns undefined for the first call (sequence 0)', () => {
     const attr = getSequenceAttribute(1000.001);
-    expect(attr.key).toBe('sentry.timestamp.sequence');
+    expect(attr).toBeUndefined();
   });
 
-  it('returns an integer type attribute', () => {
+  it('returns the correct attribute key and integer type for sequence > 0', () => {
+    getSequenceAttribute(1000.001);
     const attr = getSequenceAttribute(1000.001);
-    expect(attr.value.type).toBe('integer');
-  });
-
-  it('starts at 0', () => {
-    const attr = getSequenceAttribute(1000.001);
-    expect(attr.value.value).toBe(0);
+    expect(attr).toBeDefined();
+    expect(attr!.key).toBe('sentry.timestamp.sequence');
+    expect(attr!.value.type).toBe('integer');
   });
 
   it('increments by 1 for each call within the same millisecond', () => {
@@ -26,34 +24,34 @@ describe('getSequenceAttribute', () => {
     const second = getSequenceAttribute(1000.001);
     const third = getSequenceAttribute(1000.001);
 
-    expect(first.value.value).toBe(0);
-    expect(second.value.value).toBe(1);
-    expect(third.value.value).toBe(2);
+    expect(first).toBeUndefined();
+    expect(second!.value.value).toBe(1);
+    expect(third!.value.value).toBe(2);
   });
 
-  it('resets to 0 when the integer millisecond changes', () => {
+  it('resets to 0 (undefined) when the integer millisecond changes', () => {
     // Same millisecond (1000001ms)
-    expect(getSequenceAttribute(1000.001).value.value).toBe(0);
-    expect(getSequenceAttribute(1000.001).value.value).toBe(1);
+    expect(getSequenceAttribute(1000.001)).toBeUndefined();
+    expect(getSequenceAttribute(1000.001)!.value.value).toBe(1);
 
-    // Different millisecond (1000002ms)
-    expect(getSequenceAttribute(1000.002).value.value).toBe(0);
-    expect(getSequenceAttribute(1000.002).value.value).toBe(1);
+    // Different millisecond (1000002ms) - resets
+    expect(getSequenceAttribute(1000.002)).toBeUndefined();
+    expect(getSequenceAttribute(1000.002)!.value.value).toBe(1);
   });
 
   it('does not reset when the fractional part changes but integer millisecond stays the same', () => {
     // 1000001.0ms and 1000001.9ms both floor to 1000001ms
-    expect(getSequenceAttribute(1000.001).value.value).toBe(0);
-    expect(getSequenceAttribute(1000.0019).value.value).toBe(1);
+    expect(getSequenceAttribute(1000.001)).toBeUndefined();
+    expect(getSequenceAttribute(1000.0019)!.value.value).toBe(1);
   });
 
   it('resets via _INTERNAL_resetSequenceNumber', () => {
-    expect(getSequenceAttribute(1000.001).value.value).toBe(0);
-    expect(getSequenceAttribute(1000.001).value.value).toBe(1);
+    expect(getSequenceAttribute(1000.001)).toBeUndefined();
+    expect(getSequenceAttribute(1000.001)!.value.value).toBe(1);
 
     _INTERNAL_resetSequenceNumber();
 
-    expect(getSequenceAttribute(1000.001).value.value).toBe(0);
+    expect(getSequenceAttribute(1000.001)).toBeUndefined();
   });
 
   it('resets to 0 after _INTERNAL_resetSequenceNumber even with same timestamp', () => {
@@ -62,9 +60,9 @@ describe('getSequenceAttribute', () => {
 
     _INTERNAL_resetSequenceNumber();
 
-    // After reset, _previousTimestampMs is undefined, so it should start at 0
+    // After reset, _previousTimestampMs is undefined, so it should start at 0 (undefined)
     const attr = getSequenceAttribute(1000.001);
-    expect(attr.value.value).toBe(0);
+    expect(attr).toBeUndefined();
   });
 
   it('shares sequence across interleaved calls (monotonically increasing within same ms)', () => {
@@ -73,8 +71,8 @@ describe('getSequenceAttribute', () => {
     const metricSeq = getSequenceAttribute(1000.001);
     const logSeq2 = getSequenceAttribute(1000.001);
 
-    expect(logSeq.value.value).toBe(0);
-    expect(metricSeq.value.value).toBe(1);
-    expect(logSeq2.value.value).toBe(2);
+    expect(logSeq).toBeUndefined();
+    expect(metricSeq!.value.value).toBe(1);
+    expect(logSeq2!.value.value).toBe(2);
   });
 });

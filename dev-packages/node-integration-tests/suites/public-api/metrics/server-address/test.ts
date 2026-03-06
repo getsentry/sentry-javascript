@@ -24,7 +24,6 @@ describe('metrics server.address', () => {
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-                'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
               },
             },
           ],

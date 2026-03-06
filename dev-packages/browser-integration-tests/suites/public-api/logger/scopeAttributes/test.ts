@@ -32,7 +32,6 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             log_attr: { value: 'log_attr_1', type: 'string' },
           },
         },
@@ -45,7 +44,6 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             global_scope_attr: { value: true, type: 'boolean' },
             log_attr: { value: 'log_attr_2', type: 'string' },
           },
@@ -59,7 +57,6 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
             log_attr: { value: 'log_attr_3', type: 'string' },
@@ -74,7 +71,6 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
             scope_attr: { value: 200, unit: 'millisecond', type: 'integer' },
@@ -90,7 +86,6 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
             scope_2_attr: { value: 300, unit: 'millisecond', type: 'integer' },
