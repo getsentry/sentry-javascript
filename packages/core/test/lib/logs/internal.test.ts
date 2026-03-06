@@ -4,17 +4,18 @@ import {
   _INTERNAL_captureLog,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
-  _INTERNAL_resetLogSequenceNumber,
 } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
+import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/sequence';
+import * as timeModule from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('_INTERNAL_captureLog', () => {
   beforeEach(() => {
-    _INTERNAL_resetLogSequenceNumber();
+    _INTERNAL_resetSequenceNumber();
   });
   it('captures and sends logs', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
@@ -32,7 +33,7 @@ describe('_INTERNAL_captureLog', () => {
         trace_id: expect.any(String),
         severity_number: 9,
         attributes: {
-          'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+          'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
         },
       }),
     );
@@ -96,7 +97,7 @@ describe('_INTERNAL_captureLog', () => {
         value: 'test',
         type: 'string',
       },
-      'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+      'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
   });
 
@@ -128,7 +129,7 @@ describe('_INTERNAL_captureLog', () => {
         value: '7.0.0',
         type: 'string',
       },
-      'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+      'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
   });
 
@@ -180,7 +181,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'auth',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -232,7 +233,7 @@ describe('_INTERNAL_captureLog', () => {
           type: 'boolean',
           value: true,
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
   });
@@ -292,7 +293,7 @@ describe('_INTERNAL_captureLog', () => {
         value: 'Sentry',
         type: 'string',
       },
-      'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+      'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
   });
 
@@ -306,7 +307,7 @@ describe('_INTERNAL_captureLog', () => {
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
-      'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+      'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
   });
 
@@ -370,7 +371,7 @@ describe('_INTERNAL_captureLog', () => {
             unit: 'gigabytes',
             type: 'integer',
           },
-          'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+          'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
         },
       }),
     );
@@ -456,7 +457,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'sampled-replay-id',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -483,7 +484,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -518,7 +519,7 @@ describe('_INTERNAL_captureLog', () => {
           value: true,
           type: 'boolean',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -535,7 +536,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -589,7 +590,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'test-replay-id',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -615,7 +616,7 @@ describe('_INTERNAL_captureLog', () => {
 
         const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
         expect(logAttributes).toEqual({
-          'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+          'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
         });
         expect(logAttributes).not.toHaveProperty('sentry.replay_id');
       });
@@ -650,7 +651,7 @@ describe('_INTERNAL_captureLog', () => {
           value: true,
           type: 'boolean',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -679,7 +680,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'session-replay-id',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
       expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
     });
@@ -709,7 +710,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'stopped-replay-id',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
       expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
     });
@@ -736,7 +737,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
       expect(logAttributes).not.toHaveProperty('sentry.replay_id');
       expect(logAttributes).not.toHaveProperty('sentry.internal.replay_is_buffering');
@@ -755,7 +756,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
       expect(logAttributes).not.toHaveProperty('sentry.replay_id');
       expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
@@ -815,7 +816,7 @@ describe('_INTERNAL_captureLog', () => {
           value: true,
           type: 'boolean',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
   });
@@ -851,7 +852,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'testuser',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -877,7 +878,7 @@ describe('_INTERNAL_captureLog', () => {
           value: '123',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -908,7 +909,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'testuser',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -927,7 +928,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -982,7 +983,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'test',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -1013,7 +1014,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'user@example.com',
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -1057,7 +1058,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'user@example.com', // Only added because user.email wasn't already present
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
 
@@ -1106,7 +1107,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'scope-user', // Added from scope because not present
           type: 'string',
         },
-        'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+        'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
     });
   });
@@ -1167,11 +1168,11 @@ describe('_INTERNAL_captureLog', () => {
         value: '7.0.0',
         type: 'string',
       },
-      'sentry.log.sequence': { value: expect.any(Number), type: 'integer' },
+      'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
   });
 
-  describe('sentry.log.sequence', () => {
+  describe('sentry.timestamp.sequence', () => {
     it('increments the sequence number across consecutive logs', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
@@ -1183,9 +1184,9 @@ describe('_INTERNAL_captureLog', () => {
       _INTERNAL_captureLog({ level: 'info', message: 'third' }, scope);
 
       const buffer = _INTERNAL_getLogBuffer(client);
-      expect(buffer?.[0]?.attributes?.['sentry.log.sequence']).toEqual({ value: 0, type: 'integer' });
-      expect(buffer?.[1]?.attributes?.['sentry.log.sequence']).toEqual({ value: 1, type: 'integer' });
-      expect(buffer?.[2]?.attributes?.['sentry.log.sequence']).toEqual({ value: 2, type: 'integer' });
+      expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
+      expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
+      expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
     });
 
     it('does not increment the sequence number for dropped logs', () => {
@@ -1207,11 +1208,13 @@ describe('_INTERNAL_captureLog', () => {
 
       const buffer = _INTERNAL_getLogBuffer(client);
       expect(buffer).toHaveLength(2);
-      expect(buffer?.[0]?.attributes?.['sentry.log.sequence']).toEqual({ value: 0, type: 'integer' });
-      expect(buffer?.[1]?.attributes?.['sentry.log.sequence']).toEqual({ value: 1, type: 'integer' });
+      expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
+      expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
     });
 
-    it('produces strictly monotonically increasing sequence numbers', () => {
+    it('produces monotonically increasing sequence numbers within the same millisecond', () => {
+      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1000.001);
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1226,13 +1229,15 @@ describe('_INTERNAL_captureLog', () => {
       expect(buffer).toHaveLength(count);
 
       for (let i = 1; i < count; i++) {
-        const prev = (buffer[i - 1]?.attributes?.['sentry.log.sequence'] as { value: number }).value;
-        const curr = (buffer[i]?.attributes?.['sentry.log.sequence'] as { value: number }).value;
+        const prev = (buffer[i - 1]?.attributes?.['sentry.timestamp.sequence'] as { value: number }).value;
+        const curr = (buffer[i]?.attributes?.['sentry.timestamp.sequence'] as { value: number }).value;
         expect(curr).toBe(prev + 1);
       }
+
+      vi.restoreAllMocks();
     });
 
-    it('resets the sequence number via _INTERNAL_resetLogSequenceNumber', () => {
+    it('resets the sequence number via _INTERNAL_resetSequenceNumber', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1240,7 +1245,7 @@ describe('_INTERNAL_captureLog', () => {
 
       _INTERNAL_captureLog({ level: 'info', message: 'first' }, scope);
 
-      _INTERNAL_resetLogSequenceNumber();
+      _INTERNAL_resetSequenceNumber();
 
       const client2 = new TestClient(options);
       const scope2 = new Scope();
@@ -1249,7 +1254,7 @@ describe('_INTERNAL_captureLog', () => {
       _INTERNAL_captureLog({ level: 'info', message: 'after reset' }, scope2);
 
       const buffer2 = _INTERNAL_getLogBuffer(client2);
-      expect(buffer2?.[0]?.attributes?.['sentry.log.sequence']).toEqual({ value: 0, type: 'integer' });
+      expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
     });
   });
 });

@@ -8,6 +8,7 @@ import type { Log, SerializedLog } from '../types-hoist/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
+import { getSequenceAttribute } from '../utils/sequence';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -15,9 +16,6 @@ import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
-const LOG_SEQUENCE_ATTR_KEY = 'sentry.log.sequence';
-
-let _logSequenceNumber = 0;
 
 /**
  * Sets a log attribute if the value exists and the attribute key is not already present.
@@ -157,8 +155,11 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
+  const timestamp = timestampInSeconds();
+  const sequenceAttr = getSequenceAttribute(timestamp);
+
   const serializedLog: SerializedLog = {
-    timestamp: timestampInSeconds(),
+    timestamp,
     level,
     body: message,
     trace_id: traceContext?.trace_id,
@@ -166,7 +167,7 @@ export function _INTERNAL_captureLog(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
-      [LOG_SEQUENCE_ATTR_KEY]: { value: _logSequenceNumber++, type: 'integer' },
+      [sequenceAttr.key]: sequenceAttr.value,
     },
   };
 
@@ -220,9 +221,3 @@ function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
   return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
 }
 
-/**
- * Resets the log sequence number. Only exported for testing purposes.
- */
-export function _INTERNAL_resetLogSequenceNumber(): void {
-  _logSequenceNumber = 0;
-}

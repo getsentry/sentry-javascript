@@ -9,6 +9,7 @@ import type { Metric, SerializedMetric } from '../types-hoist/metric';
 import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
+import { getSequenceAttribute } from '../utils/sequence';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -135,8 +136,11 @@ function _buildSerializedMetric(
   const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
   const spanId = span ? span.spanContext().spanId : undefined;
 
+  const timestamp = timestampInSeconds();
+  const sequenceAttr = getSequenceAttribute(timestamp);
+
   return {
-    timestamp: timestampInSeconds(),
+    timestamp,
     trace_id: traceId ?? '',
     span_id: spanId,
     name: metric.name,
@@ -146,6 +150,7 @@ function _buildSerializedMetric(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(metric.attributes, 'skip-undefined'),
+      [sequenceAttr.key]: sequenceAttr.value,
     },
   };
 }
