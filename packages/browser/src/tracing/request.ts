@@ -274,24 +274,24 @@ function addHTTPTimings(span: Span, client: Client): void {
 
     span.end = (endTimestamp?: SpanTimeInput) => {
       capturedEndTimestamp = endTimestamp;
+
+      const endSpanAndCleanup = (): void => {
+        if (isEnded) {
+          return;
+        }
+        isEnded = true;
+        setTimeout(cleanup);
+        originalEnd(capturedEndTimestamp);
+        clearTimeout(fallbackTimeout);
+      };
+
+      onEntryFound = endSpanAndCleanup;
+
+      // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
+      // PerformanceResourceTiming entry arrives (e.g. cross-origin without
+      // Timing-Allow-Origin, or the browser didn't fire the observer in time).
+      const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
     };
-
-    const endSpanAndCleanup = (): void => {
-      if (isEnded) {
-        return;
-      }
-      isEnded = true;
-      setTimeout(cleanup);
-      originalEnd(capturedEndTimestamp);
-      clearTimeout(fallbackTimeout);
-    };
-
-    onEntryFound = endSpanAndCleanup;
-
-    // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
-    // PerformanceResourceTiming entry arrives (e.g. cross-origin without
-    // Timing-Allow-Origin, or the browser didn't fire the observer in time).
-    const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
   }
 
   const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
