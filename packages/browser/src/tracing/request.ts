@@ -272,7 +272,7 @@ function addHTTPTimings(span: Span, client: Client): void {
     const originalEnd = span.end.bind(span);
 
     span.end = (endTimestamp?: SpanTimeInput) => {
-      const capturedEndTimestamp = endTimestamp || timestampInSeconds();
+      const capturedEndTimestamp = endTimestamp ?? timestampInSeconds();
       let isEnded = false;
 
       const endSpanAndCleanup = (): void => {
