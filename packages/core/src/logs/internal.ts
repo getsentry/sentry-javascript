@@ -167,7 +167,7 @@ export function _INTERNAL_captureLog(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
-      ...(sequenceAttr && { [sequenceAttr.key]: sequenceAttr.value }),
+      [sequenceAttr.key]: sequenceAttr.value,
     },
   };
 

@@ -12,12 +12,10 @@ let _previousTimestampMs: number | undefined;
  *
  * @param timestampInSeconds - The timestamp of the telemetry item in seconds.
  */
-export function getSequenceAttribute(timestampInSeconds: number):
-  | {
-      key: string;
-      value: { value: number; type: 'integer' };
-    }
-  | undefined {
+export function getSequenceAttribute(timestampInSeconds: number): {
+  key: string;
+  value: { value: number; type: 'integer' };
+} {
   const nowMs = Math.floor(timestampInSeconds * 1000);
 
   if (_previousTimestampMs !== undefined && nowMs !== _previousTimestampMs) {
@@ -27,12 +25,6 @@ export function getSequenceAttribute(timestampInSeconds: number):
   const value = _sequenceNumber;
   _sequenceNumber++;
   _previousTimestampMs = nowMs;
-
-  // We skip sending 0 sequences to save some bytes
-  // sequence number is only needed for multiple equal timestamps in a row
-  if (value === 0) {
-    return undefined;
-  }
 
   return {
     key: SEQUENCE_ATTR_KEY,

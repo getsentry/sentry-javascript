@@ -1,16 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Scope } from '../../../src';
 import { _INTERNAL_getMetricBuffer } from '../../../src/metrics/internal';
 import { count, distribution, gauge } from '../../../src/metrics/public-api';
-import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('Metrics Public API', () => {
-  beforeEach(() => {
-    _INTERNAL_resetSequenceNumber();
-  });
   describe('count', () => {
     it('captures a counter metric with default value of 1', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -80,6 +76,10 @@ describe('Metrics Public API', () => {
             method: {
               value: 'GET',
               type: 'string',
+            },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
             },
             status: {
               value: 200,
@@ -198,6 +198,10 @@ describe('Metrics Public API', () => {
               value: 'websocket',
               type: 'string',
             },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
+            },
           },
         }),
       );
@@ -287,6 +291,10 @@ describe('Metrics Public API', () => {
             type: {
               value: 'async',
               type: 'string',
+            },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
             },
           },
         }),

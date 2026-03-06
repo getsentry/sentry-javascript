@@ -150,7 +150,7 @@ function _buildSerializedMetric(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(metric.attributes, 'skip-undefined'),
-      ...(sequenceAttr && { [sequenceAttr.key]: sequenceAttr.value }),
+      [sequenceAttr.key]: sequenceAttr.value,
     },
   };
 }
