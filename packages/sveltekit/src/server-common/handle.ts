@@ -128,7 +128,6 @@ async function instrumentHandle(
   // to avoid doing the dynamic import on every request
   if (options.injectFetchProxyScript == null) {
     try {
-      // @ts-expect-error - the dynamic import is fine here
       const { VERSION } = await import('@sveltejs/kit');
       options.injectFetchProxyScript = isFetchProxyRequired(VERSION);
     } catch {

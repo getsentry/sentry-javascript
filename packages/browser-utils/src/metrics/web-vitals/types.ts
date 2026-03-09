@@ -58,7 +58,7 @@ declare global {
   // https://wicg.github.io/event-timing/#sec-performance-event-timing
   interface PerformanceEventTiming extends PerformanceEntry {
     duration: DOMHighResTimeStamp;
-    interactionId: number;
+    readonly interactionId: number;
   }
 
   // https://wicg.github.io/layout-instability/#sec-layout-shift-attribution

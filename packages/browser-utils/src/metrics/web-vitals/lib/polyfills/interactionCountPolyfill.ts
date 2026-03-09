@@ -18,7 +18,7 @@ import { observe } from '../observe';
 
 declare global {
   interface Performance {
-    interactionCount: number;
+    readonly interactionCount: number;
   }
 }
 

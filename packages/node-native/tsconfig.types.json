@@ -5,6 +5,7 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "build/types",
+    "rootDir": "./src",
     "types": ["node"]
   },
   "files": ["src/index.ts"]
