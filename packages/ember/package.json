@@ -23,7 +23,7 @@
     "lint:hbs": "ember-template-lint .",
     "lint:js": "oxlint .",
     "lint:ts": "tsc",
-    "fix": "oxlint . --fix",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "start": "ember serve",
     "test": "ember b --prod && ember test",
     "prepack": "ember ts:precompile",
