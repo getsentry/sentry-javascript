@@ -1222,7 +1222,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this.emit('postprocessEvent', evt, hint);
 
       evt.contexts = {
-        trace: getTraceContextFromScope(currentScope),
+        trace: { ...evt.contexts?.trace, ...getTraceContextFromScope(currentScope) },
         ...evt.contexts,
       };
 
