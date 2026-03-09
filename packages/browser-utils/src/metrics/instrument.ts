@@ -103,6 +103,12 @@ interface Metric {
     | 'prerender'
     | 'restore'
     | 'soft-navigation';
+
+  /**
+   * The navigationId the metric belongs to. Relevant for soft navigations
+   * where multiple navigations can occur within a single page lifecycle.
+   */
+  navigationId: string;
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
