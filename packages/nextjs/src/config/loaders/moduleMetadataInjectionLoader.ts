@@ -26,14 +26,18 @@ export default function moduleMetadataInjectionLoader(
   this.cacheable(false);
 
   // The snippet mirrors what @sentry/webpack-plugin injects for moduleMetadata.
-  // We access _sentryModuleMetadata via globalThis (not as a bare variable) to avoid
-  // ReferenceError in strict mode. Each module is keyed by its Error stack trace so that
-  // the SDK can map filenames to metadata at runtime.
+  // It is wrapped in a try-catch IIFE (matching the webpack plugin's CodeInjection pattern)
+  // so that injection failures in node_modules or unusual environments never break the module.
+  // The IIFE resolves the global object and stores metadata keyed by (new Error).stack
+  // so the SDK can map chunk filenames to metadata at runtime.
   // Not putting any newlines in the generated code will decrease the likelihood of sourcemaps breaking.
   const metadata = JSON.stringify({ [`_sentryBundlerPluginAppKey:${applicationKey}`]: true });
   const injectedCode =
-    ';globalThis._sentryModuleMetadata = globalThis._sentryModuleMetadata || {};' +
-    `globalThis._sentryModuleMetadata[(new Error).stack] = Object.assign({}, globalThis._sentryModuleMetadata[(new Error).stack], ${metadata});`;
+    ';!function(){try{' +
+    'var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};' +
+    'e._sentryModuleMetadata=e._sentryModuleMetadata||{},' +
+    `e._sentryModuleMetadata[(new e.Error).stack]=Object.assign({},e._sentryModuleMetadata[(new e.Error).stack],${metadata});` +
+    '}catch(e){}}();';
 
   return userCode.replace(SKIP_COMMENT_AND_DIRECTIVE_REGEX, match => {
     return match + injectedCode;
