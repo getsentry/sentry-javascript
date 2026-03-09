@@ -7,7 +7,8 @@ agents = ["claude", "cursor"]
 [trust]
 github_orgs = ["getsentry"]
 
-github_repos = ["getsentry/skills"]
+github_repos = ["getsentry/skills", "anthropics/skills"
+]
 
 
 [[skills]]
@@ -49,3 +50,7 @@ source = "path:.agents/skills/upgrade-otel"
 [[skills]]
 name = "skill-scanner"
 source = "getsentry/skills"
+
+[[skills]]
+name = "skill-creator"
+source = "anthropics/skills"
