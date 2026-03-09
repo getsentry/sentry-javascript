@@ -1,3 +1,4 @@
+/* oxlint-disable no-console */
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 
