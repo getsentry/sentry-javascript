@@ -136,6 +136,7 @@ function getOptionsWithDefaults(options?: GraphqlOptions): GraphqlOptions {
 // copy from packages/opentelemetry/utils
 function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
   if (Array.isArray(attr)) {
+    // oxlint-disable-next-line typescript/require-array-sort-compare
     const sorted = attr.slice().sort();
 
     // Up to 5 items, we just add all of them

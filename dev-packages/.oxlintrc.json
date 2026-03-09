@@ -6,6 +6,7 @@
     "max-lines": "off",
     "no-unused-expressions": "off",
     "typescript/require-array-sort-compare": "off",
-    "typescript/no-misused-spread": "off"
+    "typescript/no-misused-spread": "off",
+    "typescript/no-base-to-string": "off"
   }
 }

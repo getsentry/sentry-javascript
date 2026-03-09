@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "jsdoc", "jest", "vitest"],
+  "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "jsPlugins": [
     {
       "name": "sdk",
@@ -9,7 +9,10 @@
   ],
   "categories": {},
   "rules": {
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    "no-unused-vars": [
+      "warn",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
+    ],
 
     // === Base rules from eslint-config-sdk/base.js ===
     "no-console": "error",
@@ -116,7 +119,8 @@
         "complexity": "off",
         "typescript/prefer-optional-chain": "off",
         "typescript/no-misused-spread": "off",
-        "typescript/require-array-sort-compare": "off"
+        "typescript/require-array-sort-compare": "off",
+        "typescript/no-base-to-string": "off"
       }
     },
     {
