@@ -4,6 +4,8 @@
   "rules": {
     "typescript/no-explicit-any": "off",
     "max-lines": "off",
-    "no-unused-expressions": "off"
+    "no-unused-expressions": "off",
+    "typescript/require-array-sort-compare": "off",
+    "typescript/no-misused-spread": "off"
   }
 }

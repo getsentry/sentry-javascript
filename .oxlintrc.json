@@ -67,7 +67,11 @@
         "typescript/unbound-method": "error",
         "typescript/no-explicit-any": "error",
         "typescript/no-empty-function": "off",
-        "typescript/prefer-optional-chain": ["error"]
+        "typescript/prefer-optional-chain": ["error"],
+        "typescript/no-redundant-type-constituents": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/await-thenable": "off",
+        "typescript/no-base-to-string": "warn"
       }
     },
     {
@@ -108,7 +112,9 @@
         "typescript/unbound-method": "off",
         "max-lines": "off",
         "complexity": "off",
-        "typescript/prefer-optional-chain": "off"
+        "typescript/prefer-optional-chain": "off",
+        "typescript/no-misused-spread": "off",
+        "typescript/require-array-sort-compare": "off"
       }
     },
     {
