@@ -70,7 +70,7 @@ describe('SpanBuffer', () => {
     expect(sentEnvelopes[1]?.[1]?.[0]?.[1]?.items[0]?.trace_id).toBe('trace456');
   });
 
-  it('drains on interval', () => {
+  it('flushes trace after per-trace timeout', () => {
     const buffer = new SpanBuffer(client, { flushInterval: 1000 });
 
     const segmentSpan1 = new SentrySpan({ name: 'segment', sampled: true });
@@ -106,7 +106,7 @@ describe('SpanBuffer', () => {
 
     expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
 
-    // since the buffer is now empty, it should not send anything anymore
+    // the trace bucket was removed after flushing, so no timeout remains and no further sends occur
     vi.advanceTimersByTime(1000);
     expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
   });
