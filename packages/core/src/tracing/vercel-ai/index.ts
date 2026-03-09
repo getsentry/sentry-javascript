@@ -7,6 +7,7 @@ import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -44,6 +45,7 @@ import {
   AI_OPERATION_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_FINISH_REASON_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
   AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
@@ -175,6 +177,83 @@ function findToolDescription(spans: SpanJSON[], toolName: string): string | unde
   }
   return undefined;
 }
+
+/**
+ * Tool call structure from Vercel AI SDK
+ * Note: Vercel AI uses 'input' for arguments in ai.response.toolCalls
+ */
+interface VercelToolCall {
+  toolCallId: string;
+  toolName: string;
+  input: Record<string, unknown>;
+}
+
+/**
+ * Build gen_ai.output.messages from ai.response.text and/or ai.response.toolCalls
+ *
+ * Format follows OpenTelemetry semantic conventions:
+ * [{"role": "assistant", "parts": [...], "finish_reason": "stop"}]
+ *
+ * Parts can be:
+ * - {"type": "text", "content": "..."}
+ * - {"type": "tool_call", "id": "...", "name": "...", "arguments": "..."}
+ */
+function buildOutputMessages(attributes: Record<string, unknown>): void {
+  const responseText = attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+  const responseToolCalls = attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+  const finishReason = attributes[AI_RESPONSE_FINISH_REASON_ATTRIBUTE];
+
+  // Skip if neither text nor tool calls are present
+  if (responseText == null && responseToolCalls == null) {
+    return;
+  }
+
+  const parts: Array<Record<string, unknown>> = [];
+
+  // Add text part if present
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({
+      type: 'text',
+      content: responseText,
+    });
+  }
+
+  // Add tool call parts if present
+  if (responseToolCalls != null) {
+    try {
+      // Tool calls can be a string (JSON) or already parsed array
+      const toolCalls: VercelToolCall[] =
+        typeof responseToolCalls === 'string' ? JSON.parse(responseToolCalls) : responseToolCalls;
+
+      if (Array.isArray(toolCalls)) {
+        for (const toolCall of toolCalls) {
+          // Vercel AI SDK uses 'input' for tool call arguments
+          const args = toolCall.input;
+          parts.push({
+            type: 'tool_call',
+            id: toolCall.toolCallId,
+            name: toolCall.toolName,
+            arguments: typeof args === 'string' ? args : JSON.stringify(args),
+          });
+        }
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+
+  // Only set if we have parts
+  if (parts.length > 0) {
+    const outputMessage = {
+      role: 'assistant',
+      parts,
+      finish_reason: typeof finishReason === 'string' ? finishReason : 'stop',
+    };
+
+    attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] = JSON.stringify([outputMessage]);
+  }
+}
+
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
@@ -229,6 +308,10 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     delete attributes[OPERATION_NAME_ATTRIBUTE];
   }
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
+
+  // Build gen_ai.output.messages from response text and/or tool calls
+  buildOutputMessages(attributes);
+
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');

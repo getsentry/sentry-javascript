@@ -127,6 +127,14 @@ export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.
 export const GEN_AI_INPUT_MESSAGES_ATTRIBUTE = 'gen_ai.input.messages';
 
 /**
+ * The model's response messages including text and tool calls
+ * Only recorded when recordOutputs is enabled
+ * Format: stringified array of message objects with role, parts, and finish_reason
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-output-messages
+ */
+export const GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE = 'gen_ai.output.messages';
+
+/**
  * The system instructions extracted from system messages
  * Only recorded when recordInputs is enabled
  * According to OpenTelemetry spec: https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-system-instructions
