@@ -15,6 +15,7 @@ import {
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -204,6 +205,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: 'Get the current weather for a location',
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
           [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
@@ -220,7 +222,7 @@ describe('Vercel AI integration', () => {
   };
 
   const EXPECTED_AVAILABLE_TOOLS_JSON =
-    '[{"type":"function","name":"getWeather","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}]';
+    '[{"type":"function","name":"getWeather","description":"Get the current weather for a location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}]';
 
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
@@ -447,6 +449,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: 'Get the current weather for a location',
           [GEN_AI_TOOL_INPUT_ATTRIBUTE]: expect.any(String),
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
           [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: expect.any(String),

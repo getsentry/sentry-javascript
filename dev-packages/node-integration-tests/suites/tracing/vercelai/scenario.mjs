@@ -51,6 +51,7 @@ async function run() {
       }),
       tools: {
         getWeather: {
+          description: 'Get the current weather for a location',
           parameters: z.object({ location: z.string() }),
           execute: async args => {
             return `Weather in ${args.location}: Sunny, 72°F`;

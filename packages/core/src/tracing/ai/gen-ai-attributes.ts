@@ -269,6 +269,12 @@ export const GEN_AI_TOOL_INPUT_ATTRIBUTE = 'gen_ai.tool.input';
  */
 export const GEN_AI_TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.output';
 
+/**
+ * The description of the tool being used
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-description
+ */
+export const GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE = 'gen_ai.tool.description';
+
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================

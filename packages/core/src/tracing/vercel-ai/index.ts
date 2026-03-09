@@ -7,9 +7,11 @@ import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -124,13 +126,21 @@ function vercelAiEventProcessor(event: Event): Event {
       accumulateTokensForParent(span, tokenAccumulator);
     }
 
-    // Second pass: apply accumulated token data to parent spans
+    // Second pass: apply tool descriptions and accumulated tokens
     for (const span of event.spans) {
-      if (span.op !== 'gen_ai.invoke_agent') {
-        continue;
+      if (span.op === 'gen_ai.execute_tool') {
+        const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
+        if (typeof toolName === 'string') {
+          const description = findToolDescription(event.spans, toolName);
+          if (description) {
+            span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
+          }
+        }
       }
 
-      applyAccumulatedTokens(span, tokenAccumulator);
+      if (span.op === 'gen_ai.invoke_agent') {
+        applyAccumulatedTokens(span, tokenAccumulator);
+      }
     }
 
     // Also apply to root when it is the invoke_agent pipeline
@@ -141,6 +151,29 @@ function vercelAiEventProcessor(event: Event): Event {
   }
 
   return event;
+}
+
+/**
+ * Finds a tool description by scanning spans for gen_ai.request.available_tools
+ * (already processed from ai.prompt.tools in the first pass).
+ */
+function findToolDescription(spans: SpanJSON[], toolName: string): string | undefined {
+  for (const span of spans) {
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
+    if (typeof availableTools !== 'string') {
+      continue;
+    }
+    try {
+      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
+      const tool = tools.find(t => t.name === toolName);
+      if (tool?.description) {
+        return tool.description;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return undefined;
 }
 /**
  * Post-process spans emitted by the Vercel AI SDK.
