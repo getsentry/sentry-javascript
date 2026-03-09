@@ -27,14 +27,14 @@ path = "plugins/sentry-skills/skills/find-bugs"
 
 **Source formats:**
 
-| Format | Example | Resolves to |
-|--------|---------|-------------|
-| GitHub shorthand | `getsentry/skills` | `https://github.com/getsentry/skills.git` |
-| GitHub pinned | `getsentry/skills@v1.0.0` | Same, checked out at `v1.0.0` |
-| GitHub HTTPS | `https://github.com/owner/repo` | URL used directly |
-| GitHub SSH | `git@github.com:owner/repo.git` | SSH clone |
-| Git URL | `git:https://git.corp.dev/team/skills` | Any non-GitHub git remote |
-| Local | `path:./my-skills/custom` | Relative to project root |
+| Format           | Example                                | Resolves to                               |
+| ---------------- | -------------------------------------- | ----------------------------------------- |
+| GitHub shorthand | `getsentry/skills`                     | `https://github.com/getsentry/skills.git` |
+| GitHub pinned    | `getsentry/skills@v1.0.0`              | Same, checked out at `v1.0.0`             |
+| GitHub HTTPS     | `https://github.com/owner/repo`        | URL used directly                         |
+| GitHub SSH       | `git@github.com:owner/repo.git`        | SSH clone                                 |
+| Git URL          | `git:https://git.corp.dev/team/skills` | Any non-GitHub git remote                 |
+| Local            | `path:./my-skills/custom`              | Relative to project root                  |
 
 **Skill name rules:** Must start with alphanumeric, contain only `[a-zA-Z0-9._-]`.
 
@@ -96,6 +96,7 @@ headers = { Authorization = "Bearer token" }
 ```
 
 MCP configs are written per-agent in the appropriate format:
+
 - Claude: `.mcp.json` (JSON)
 - Cursor: `.cursor/mcp.json` (JSON)
 - Codex: `.codex/config.toml` (TOML, shared with other Codex config)
@@ -116,12 +117,14 @@ command = "my-lint-check"
 **Supported events:** `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Stop`
 
 Hook configs are written per-agent:
+
 - Claude: `.claude/settings.json` (merged into existing file)
 - Cursor: `.cursor/hooks.json` (dedicated file, events mapped to Cursor equivalents)
 - VS Code: `.claude/settings.json` (same file as Claude)
 - Codex/OpenCode: not supported (warnings emitted during install/sync)
 
 **Cursor event mapping:**
+
 - `PreToolUse` -> `beforeShellExecution` + `beforeMCPExecution`
 - `PostToolUse` -> `afterFileEdit`
 - `UserPromptSubmit` -> `beforeSubmitPrompt`
@@ -136,6 +139,7 @@ agents = ["claude", "cursor", "codex", "vscode", "opencode"]
 ```
 
 Each agent gets:
+
 - A `<agent-dir>/skills/` symlink pointing to `.agents/skills/` (Claude, Cursor)
 - Or native discovery from `.agents/skills/` (Codex, VS Code, OpenCode)
 - MCP server configs in the agent's config file
@@ -176,13 +180,16 @@ When `gitignore = false`, no gitignore is created -- skills are checked into the
 ## Troubleshooting
 
 **Skills not installing:**
+
 - Check `agents.toml` syntax with `dotagents list`
 - Verify source is accessible (`git clone` the URL manually)
 - Check trust config if using restricted mode
 
 **Symlinks broken:**
+
 - Run `dotagents sync` to repair
 
 **Integrity mismatch:**
+
 - Skill was modified locally -- run `dotagents install --force` to restore
 - Or run `dotagents sync` to detect and report issues

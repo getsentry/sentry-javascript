@@ -13,11 +13,11 @@ If `dotagents` is not available as a direct command, use `npx @sentry/dotagents`
 
 Read the relevant reference when the task requires deeper detail:
 
-| Document | Read When |
-|----------|-----------|
-| [references/cli-reference.md](references/cli-reference.md) | Full command options, flags, examples |
+| Document                                                   | Read When                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [references/cli-reference.md](references/cli-reference.md) | Full command options, flags, examples                                     |
 | [references/configuration.md](references/configuration.md) | Editing agents.toml, source formats, trust, MCP, hooks, wildcards, scopes |
-| [references/config-schema.md](references/config-schema.md) | Exact field names, types, and defaults |
+| [references/config-schema.md](references/config-schema.md) | Exact field names, types, and defaults                                    |
 
 ## Quick Start
 
@@ -46,16 +46,16 @@ dotagents list
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `dotagents init` | Initialize `agents.toml` and `.agents/` directory |
-| `dotagents install` | Install all skills from `agents.toml` |
-| `dotagents add <specifier>` | Add a skill dependency |
-| `dotagents remove <name>` | Remove a skill |
-| `dotagents update [name]` | Update skills to latest versions |
-| `dotagents sync` | Reconcile state (adopt orphans, repair symlinks, verify integrity) |
-| `dotagents list` | Show installed skills and their status |
-| `dotagents mcp` | Add, remove, or list MCP server declarations |
+| Command                     | Description                                                        |
+| --------------------------- | ------------------------------------------------------------------ |
+| `dotagents init`            | Initialize `agents.toml` and `.agents/` directory                  |
+| `dotagents install`         | Install all skills from `agents.toml`                              |
+| `dotagents add <specifier>` | Add a skill dependency                                             |
+| `dotagents remove <name>`   | Remove a skill                                                     |
+| `dotagents update [name]`   | Update skills to latest versions                                   |
+| `dotagents sync`            | Reconcile state (adopt orphans, repair symlinks, verify integrity) |
+| `dotagents list`            | Show installed skills and their status                             |
+| `dotagents mcp`             | Add, remove, or list MCP server declarations                       |
 
 All commands accept `--user` to operate on user scope (`~/.agents/`) instead of the current project.
 
@@ -63,14 +63,14 @@ For full options and flags, read [references/cli-reference.md](references/cli-re
 
 ## Source Formats
 
-| Format | Example | Description |
-|--------|---------|-------------|
-| GitHub shorthand | `getsentry/skills` | Owner/repo (resolves to GitHub HTTPS) |
-| GitHub pinned | `getsentry/warden@v1.0.0` | With tag, branch, or commit |
-| GitHub SSH | `git@github.com:owner/repo.git` | SSH clone URL |
-| GitHub HTTPS | `https://github.com/owner/repo` | Full HTTPS URL |
-| Git URL | `git:https://git.corp.dev/team/skills` | Any non-GitHub git remote |
-| Local path | `path:./my-skills/custom` | Relative to project root |
+| Format           | Example                                | Description                           |
+| ---------------- | -------------------------------------- | ------------------------------------- |
+| GitHub shorthand | `getsentry/skills`                     | Owner/repo (resolves to GitHub HTTPS) |
+| GitHub pinned    | `getsentry/warden@v1.0.0`              | With tag, branch, or commit           |
+| GitHub SSH       | `git@github.com:owner/repo.git`        | SSH clone URL                         |
+| GitHub HTTPS     | `https://github.com/owner/repo`        | Full HTTPS URL                        |
+| Git URL          | `git:https://git.corp.dev/team/skills` | Any non-GitHub git remote             |
+| Local path       | `path:./my-skills/custom`              | Relative to project root              |
 
 ## Key Concepts
 
