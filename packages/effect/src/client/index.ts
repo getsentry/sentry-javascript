@@ -36,5 +36,5 @@ export type EffectClientLayerOptions = BrowserOptions;
  * ```
  */
 export function effectLayer(options: EffectClientLayerOptions): EffectLayer.Layer<never, never, never> {
-  return suspendLayer(() => buildEffectLayer(options, init(options)));
+  return suspendLayer(() => buildEffectLayer(init(options)));
 }

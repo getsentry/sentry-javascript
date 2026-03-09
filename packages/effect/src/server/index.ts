@@ -37,5 +37,5 @@ export type EffectServerLayerOptions = NodeOptions;
  * ```
  */
 export function effectLayer(options: EffectServerLayerOptions): EffectLayer.Layer<never, never, never> {
-  return buildEffectLayer(options, init(options));
+  return buildEffectLayer(init(options));
 }
