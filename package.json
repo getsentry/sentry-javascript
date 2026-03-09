@@ -43,6 +43,7 @@
     "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
     "test:ci:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts",
     "test:ci:bun": "nx run-many -t test -p @sentry/bun",
+    "test:size-limit": "yarn size-limit --json",
     "yalc:publish": "nx run-many -t yalc:publish"
   },
   "volta": {
