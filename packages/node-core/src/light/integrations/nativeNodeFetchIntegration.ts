@@ -20,6 +20,16 @@ export interface NativeNodeFetchIntegrationOptions {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled).
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture breadcrumbs or inject headers for outgoing fetch requests to URLs
    * where the given callback returns `true`.
    *
@@ -31,6 +41,7 @@ export interface NativeNodeFetchIntegrationOptions {
 const _nativeNodeFetchIntegration = ((options: NativeNodeFetchIntegrationOptions = {}) => {
   const _options = {
     breadcrumbs: options.breadcrumbs ?? true,
+    tracePropagation: options.tracePropagation ?? true,
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
   };
 
@@ -69,7 +80,7 @@ export const nativeNodeFetchIntegration = _nativeNodeFetchIntegration as (
 
 function onUndiciRequestCreated(
   request: UndiciRequest,
-  options: { ignoreOutgoingRequests?: (url: string) => boolean },
+  options: { tracePropagation: boolean; ignoreOutgoingRequests?: (url: string) => boolean },
   propagationDecisionMap: LRUMap<string, boolean>,
   ignoreOutgoingRequestsMap: WeakMap<UndiciRequest, boolean>,
 ): void {
@@ -80,7 +91,9 @@ function onUndiciRequestCreated(
     return;
   }
 
-  addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
+  if (options.tracePropagation) {
+    addTracePropagationHeadersToFetchRequest(request, propagationDecisionMap);
+  }
 }
 
 function onUndiciResponseHeaders(

@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": ["gatsby-node.d.ts", "setup/globalSetup.ts"]
+}

@@ -1,5 +1,9 @@
-import { describe, expect, test } from 'vitest';
-import { determineRecordingSettings } from '../../../../src/integrations/tracing/vercelai/instrumentation';
+import { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_toolCallSpanContextMap } from '@sentry/core';
+import { beforeEach, describe, expect, test } from 'vitest';
+import {
+  cleanupToolCallSpanContexts,
+  determineRecordingSettings,
+} from '../../../../src/integrations/tracing/vercelai/instrumentation';
 
 describe('determineRecordingSettings', () => {
   test('should use integration recording options when provided (recordInputs: true, recordOutputs: false)', () => {
@@ -210,5 +214,52 @@ describe('determineRecordingSettings', () => {
       recordInputs: true,
       recordOutputs: true,
     });
+  });
+});
+
+describe('cleanupToolCallSpanContexts', () => {
+  beforeEach(() => {
+    _INTERNAL_toolCallSpanContextMap.clear();
+  });
+
+  test('cleans up span context for tool-result items', () => {
+    _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
+    _INTERNAL_toolCallSpanContextMap.set('tool-2', { traceId: 't2', spanId: 's2' });
+
+    cleanupToolCallSpanContexts([{ type: 'tool-result', toolCallId: 'tool-1', toolName: 'bash' }]);
+
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toBeUndefined();
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-2')).toEqual({ traceId: 't2', spanId: 's2' });
+  });
+
+  test('cleans up span context for tool-error items', () => {
+    _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
+
+    cleanupToolCallSpanContexts([
+      { type: 'tool-error', toolCallId: 'tool-1', toolName: 'bash', error: new Error('fail') },
+    ]);
+
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toBeUndefined();
+  });
+
+  test('cleans up mixed tool-result and tool-error in same content array', () => {
+    _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
+    _INTERNAL_toolCallSpanContextMap.set('tool-2', { traceId: 't2', spanId: 's2' });
+
+    cleanupToolCallSpanContexts([
+      { type: 'tool-result', toolCallId: 'tool-1', toolName: 'bash' },
+      { type: 'tool-error', toolCallId: 'tool-2', toolName: 'bash', error: new Error('fail') },
+    ]);
+
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toBeUndefined();
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-2')).toBeUndefined();
+  });
+
+  test('ignores items without toolCallId', () => {
+    _INTERNAL_toolCallSpanContextMap.set('tool-1', { traceId: 't1', spanId: 's1' });
+
+    cleanupToolCallSpanContexts([{ type: 'text', text: 'hello' } as unknown as object]);
+
+    expect(_INTERNAL_getSpanContextForToolCallId('tool-1')).toEqual({ traceId: 't1', spanId: 's1' });
   });
 });
