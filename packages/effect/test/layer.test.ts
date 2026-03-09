@@ -59,6 +59,26 @@ describe.each([
     ),
   );
 
+  it('creates layer with logs enabled', () => {
+    const layer = effectLayer({
+      dsn: TEST_DSN,
+      transport: getMockTransport(),
+      enableLogs: true,
+    });
+
+    expect(layer).toBeDefined();
+  });
+
+  it('creates layer with all features enabled', () => {
+    const layer = effectLayer({
+      dsn: TEST_DSN,
+      transport: getMockTransport(),
+      enableLogs: true,
+    });
+
+    expect(layer).toBeDefined();
+  });
+
   it.effect('layer can be provided to an Effect program', () =>
     Effect.gen(function* () {
       const result = yield* Effect.succeed('test-result');
