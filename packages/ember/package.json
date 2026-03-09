@@ -21,7 +21,7 @@
     "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try instance-initializers index.d.ts runloop.d.ts types.d.ts",
     "lint": "run-p lint:js lint:hbs lint:ts",
     "lint:hbs": "ember-template-lint .",
-    "lint:js": "oxlint .",
+    "lint:js": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:ts": "tsc",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "start": "ember serve",
