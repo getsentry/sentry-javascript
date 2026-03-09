@@ -75,13 +75,23 @@ let _softNavMeasurements: Map<string, Measurements> = new Map();
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
-function _getSoftNavMeasurements(navigationId: string): Measurements {
-  let measurements = _softNavMeasurements.get(navigationId);
+function _setMeasurement(
+  metric: { navigationType: string; navigationId: string },
+  name: string,
+  value: number,
+  unit: string,
+): void {
+  if (metric.navigationType !== 'soft-navigation') {
+    _measurements[name] = { value, unit };
+    return;
+  }
+
+  let measurements = _softNavMeasurements.get(metric.navigationId);
   if (!measurements) {
     measurements = {};
-    _softNavMeasurements.set(navigationId, measurements);
+    _softNavMeasurements.set(metric.navigationId, measurements);
   }
-  return measurements;
+  measurements[name] = { value, unit };
 }
 
 /**
@@ -308,11 +318,7 @@ function _trackCLS(reportSoftNavs?: boolean): () => void {
     if (!entry) {
       return;
     }
-    if (metric.navigationType === 'soft-navigation') {
-      _getSoftNavMeasurements(metric.navigationId)['cls'] = { value: metric.value, unit: '' };
-    } else {
-      _measurements['cls'] = { value: metric.value, unit: '' };
-    }
+    _setMeasurement(metric, 'cls', metric.value, '');
     _clsEntry = entry;
   }, true, reportSoftNavs);
 }
@@ -324,12 +330,7 @@ function _trackLCP(reportSoftNavs?: boolean): () => void {
     if (!entry) {
       return;
     }
-
-    if (metric.navigationType === 'soft-navigation') {
-      _getSoftNavMeasurements(metric.navigationId)['lcp'] = { value: metric.value, unit: 'millisecond' };
-    } else {
-      _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-    }
+    _setMeasurement(metric, 'lcp', metric.value, 'millisecond');
     _lcpEntry = entry as LargestContentfulPaint;
   }, true, reportSoftNavs);
 }
@@ -340,12 +341,7 @@ function _trackTtfb(reportSoftNavs?: boolean): () => void {
     if (!entry) {
       return;
     }
-
-    if (metric.navigationType === 'soft-navigation') {
-      _getSoftNavMeasurements(metric.navigationId)['ttfb'] = { value: metric.value, unit: 'millisecond' };
-    } else {
-      _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
-    }
+    _setMeasurement(metric, 'ttfb', metric.value, 'millisecond');
   }, reportSoftNavs);
 }
 
