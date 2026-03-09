@@ -171,7 +171,8 @@ describe('spanStreamingIntegration', () => {
     expect(mockSpanBufferInstance.flush).not.toHaveBeenCalled();
   });
 
-  it('flushes the trace when the segment span ends', () => {
+  it('flushes the trace when the segment span ends after a delay for close to finished child spans', () => {
+    vi.useFakeTimers();
     const client = new BrowserClient({
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
@@ -185,6 +186,10 @@ describe('spanStreamingIntegration', () => {
     const span = new SentryCore.SentrySpan({ name: 'test' });
     client.emit('afterSegmentSpanEnd', span);
 
+    vi.advanceTimersByTime(500);
+
     expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith(span.spanContext().traceId);
+
+    vi.useRealTimers();
   });
 });

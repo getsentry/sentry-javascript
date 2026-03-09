@@ -11,18 +11,14 @@ sentryTest(
     const checkoutSpansPromise = waitForStreamedSpans(page, spans =>
       spans.some(s => s.name === 'checkout-flow' && s.is_segment),
     );
-    const postCheckoutSpansPromise = waitForStreamedSpans(page, spans =>
-      spans.some(s => s.name === 'post-checkout' && s.is_segment),
-    );
 
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const checkoutSpans = await checkoutSpansPromise;
-    const postCheckoutSpans = await postCheckoutSpansPromise;
 
     const checkoutSpan = checkoutSpans.find(s => s.name === 'checkout-flow');
-    const postCheckoutSpan = postCheckoutSpans.find(s => s.name === 'post-checkout');
+    const postCheckoutSpan = checkoutSpans.find(s => s.name === 'post-checkout');
 
     const checkoutSpanId = checkoutSpan?.span_id;
     const postCheckoutSpanId = postCheckoutSpan?.span_id;
@@ -30,8 +26,7 @@ sentryTest(
     expect(checkoutSpanId).toMatch(/[a-f\d]{16}/);
     expect(postCheckoutSpanId).toMatch(/[a-f\d]{16}/);
 
-    expect(checkoutSpans.filter(s => !s.is_segment)).toHaveLength(4);
-    expect(postCheckoutSpans.filter(s => !s.is_segment)).toHaveLength(1);
+    expect(checkoutSpans.filter(s => !s.is_segment)).toHaveLength(5);
 
     const checkoutStep1 = checkoutSpans.find(s => s.name === 'checkout-step-1');
     const checkoutStep2 = checkoutSpans.find(s => s.name === 'checkout-step-2');
@@ -51,7 +46,7 @@ sentryTest(
     // root span due to this being default behaviour in browser environments
     expect(checkoutStep21?.parent_span_id).toBe(checkoutSpanId);
 
-    const postCheckoutStep1 = postCheckoutSpans.find(s => s.name === 'post-checkout-1');
+    const postCheckoutStep1 = checkoutSpans.find(s => s.name === 'post-checkout-1');
     expect(postCheckoutStep1).toBeDefined();
     expect(postCheckoutStep1?.parent_span_id).toBe(postCheckoutSpanId);
   },

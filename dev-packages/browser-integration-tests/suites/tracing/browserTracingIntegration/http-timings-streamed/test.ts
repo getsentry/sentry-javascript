@@ -3,16 +3,8 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
-/**
- * This test details a limitation of span streaming in comparison to transaction-based tracing:
- * We can no longer attach http PerformanceResourceTiming attributes to http.client spans in
- * span streaming mode. The reason is that we track `http.client` spans in real time but only
- * get the detailed timing information after the span already ended.
- * We can probably fix this (somehat at least) but will do so in a follow-up PR.
- * @see https://github.com/getsentry/sentry-javascript/issues/19613
- */
 sentryTest(
-  "[limitation] doesn't add http timing to http.client spans in span streaming mode",
+  'adds http timing to http.client spans in span streaming mode',
   async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
@@ -49,7 +41,7 @@ sentryTest(
         end_timestamp: expect.any(Number),
         trace_id: pageloadSpan?.trace_id,
         status: 'ok',
-        attributes: expect.not.objectContaining({
+        attributes: expect.objectContaining({
           'http.request.redirect_start': expect.any(Object),
           'http.request.redirect_end': expect.any(Object),
           'http.request.worker_start': expect.any(Object),

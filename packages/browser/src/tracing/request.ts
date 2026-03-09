@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type {
   Client,
   HandlerDataXhr,
@@ -5,6 +6,7 @@ import type {
   ResponseHookInfo,
   SentryWrappedXMLHttpRequest,
   Span,
+  SpanTimeInput,
 } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
@@ -14,6 +16,7 @@ import {
   getLocationHref,
   getTraceData,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
   instrumentFetchRequest,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -25,6 +28,7 @@ import {
   stringMatchesSomePattern,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
+  timestampInSeconds,
 } from '@sentry/core';
 import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
@@ -205,7 +209,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         });
 
         if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan);
+          addHTTPTimings(createdSpan, client);
         }
 
         onRequestSpanStart?.(createdSpan, { headers: handlerData.headers });
@@ -226,7 +230,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 
       if (createdSpan) {
         if (enableHTTPTimings) {
-          addHTTPTimings(createdSpan);
+          addHTTPTimings(createdSpan, client);
         }
 
         onRequestSpanStart?.(createdSpan, {
@@ -238,25 +242,63 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 }
 
 /**
+ * The maximum time (ms) to wait for PerformanceResourceTiming data before ending the span.
+ * Same approach is used by OTel's browser fetch instrumentation:
+ * See {@link https://github.com/open-telemetry/opentelemetry-js/blob/30f94fe99339287b1e4d3c8bb90172c2523f06f4/experimental/packages/opentelemetry-instrumentation-fetch/src/fetch.ts#L352-L372}
+ */
+const HTTP_TIMING_WAIT_MS = 300;
+
+/**
  * Creates a temporary observer to listen to the next fetch/xhr resourcing timings,
  * so that when timings hit their per-browser limit they don't need to be removed.
  *
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
-function addHTTPTimings(span: Span): void {
+function addHTTPTimings(span: Span, client: Client): void {
   const { url } = spanToJSON(span).data;
 
   if (!url || typeof url !== 'string') {
     return;
   }
 
-  const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
+  // Clean up the performance observer and other resources
+  // We have to wait here because otherwise this cleans itself up before it is fully done.
+  // Default (non-streaming): just deregister the observer.
+  let onEntryFound = (): void => void setTimeout(unsubscribePerformanceObsever);
+
+  // For streamed spans, we have to artificially delay the ending of the span until we
+  // either receive the timing data, or HTTP_TIMING_WAIT_MS elapses.
+  if (hasSpanStreamingEnabled(client)) {
+    const originalEnd = span.end.bind(span);
+
+    span.end = (endTimestamp?: SpanTimeInput) => {
+      const capturedEndTimestamp = endTimestamp ?? timestampInSeconds();
+      let isEnded = false;
+
+      const endSpanAndCleanup = (): void => {
+        if (isEnded) {
+          return;
+        }
+        isEnded = true;
+        setTimeout(unsubscribePerformanceObsever);
+        originalEnd(capturedEndTimestamp);
+        clearTimeout(fallbackTimeout);
+      };
+
+      onEntryFound = endSpanAndCleanup;
+
+      // Fallback: always end the span after HTTP_TIMING_WAIT_MS even if no
+      // PerformanceResourceTiming entry arrives (e.g. cross-origin without
+      // Timing-Allow-Origin, or the browser didn't fire the observer in time).
+      const fallbackTimeout = setTimeout(endSpanAndCleanup, HTTP_TIMING_WAIT_MS);
+    };
+  }
+
+  const unsubscribePerformanceObsever = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         span.setAttributes(resourceTimingToSpanAttributes(entry));
-        // In the next tick, clean this handler up
-        // We have to wait here because otherwise this cleans itself up before it is fully done
-        setTimeout(cleanup);
+        onEntryFound();
       }
     });
   });
