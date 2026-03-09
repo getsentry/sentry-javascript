@@ -49,6 +49,7 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
               return withMonitor(
                 monitorSlug,
                 async () => {
+                  // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
                   await callback?.();
                 },
                 {
