@@ -89,8 +89,11 @@ sentryTest('attaches thread data to child spans (trace mode)', async ({ page, ge
 
   const profilerId = rootSpan?.contexts?.profile?.profiler_id as string | undefined;
   expect(typeof profilerId).toBe('string');
-
   expect(profilerId).toMatch(/^[a-f\d]{32}$/);
+
+  // contexts.trace.data must include thread.id to identify which thread is associated with the transaction
+  expect(rootSpan?.contexts?.trace?.data?.['thread.id']).toBe('0');
+  expect(rootSpan?.contexts?.trace?.data?.['thread.name']).toBe('main');
 
   const spans = (rootSpan?.spans ?? []) as Array<{ data?: Record<string, unknown> }>;
   expect(spans.length).toBeGreaterThan(0);

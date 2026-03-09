@@ -7,8 +7,8 @@
   },
   "private": true,
   "scripts": {
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix",
+    "lint": "oxlint .",
+    "fix": "oxlint . --fix",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
   },
@@ -16,7 +16,7 @@
     "@langchain/langgraph": "^1.0.1",
     "@sentry/cloudflare": "10.42.0",
     "@sentry/hono": "10.42.0",
-    "hono": "^4.11.10"
+    "hono": "^4.12.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250922.0",

@@ -11,5 +11,8 @@ export default withSentryConfig(nextConfig, {
   _experimental: {
     vercelCronsMonitoring: true,
     turbopackApplicationKey: 'nextjs-16-e2e',
+    turbopackReactComponentAnnotation: {
+      enabled: true,
+    },
   },
 });

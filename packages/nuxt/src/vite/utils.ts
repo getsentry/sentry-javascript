@@ -67,7 +67,7 @@ export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
  * Only exported for testing.
  */
 export function removeSentryQueryFromPath(url: string): string {
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const regex = new RegExp(`\\${SENTRY_WRAPPED_ENTRY}.*?\\${QUERY_END_INDICATOR}`);
   return url.replace(regex, '');
 }
@@ -80,11 +80,11 @@ export function removeSentryQueryFromPath(url: string): string {
  */
 export function extractFunctionReexportQueryParameters(query: string): { wrap: string[]; reexport: string[] } {
   // Regex matches the comma-separated params between the functions query
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const wrapRegex = new RegExp(
     `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
   );
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR})`);
 
   const wrapMatch = query.match(wrapRegex);

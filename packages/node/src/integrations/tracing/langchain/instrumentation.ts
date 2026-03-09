@@ -228,6 +228,12 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     // Patch directly on chatModelClass.prototype
     const targetProto = chatModelClass.prototype as Record<string, unknown>;
 
+    // Skip if already patched (both file-level and module-level hooks resolve to the same prototype)
+    if (targetProto.__sentry_patched__) {
+      return;
+    }
+    targetProto.__sentry_patched__ = true;
+
     // Patch the methods (invoke, stream, batch)
     // All chat model instances will inherit these patched methods
     const methodsToPatch = ['invoke', 'stream', 'batch'] as const;

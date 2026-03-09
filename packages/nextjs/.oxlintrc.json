@@ -1,0 +1,31 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "rules": {
+    "sdk/no-unsafe-random-apis": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/config/templates/**/*.ts"],
+      "rules": {
+        "import/no-extraneous-dependencies": "off"
+      }
+    },
+    {
+      "files": ["src/config/polyfills/perf_hooks.js"],
+      "globals": {
+        "globalThis": "readonly"
+      }
+    },
+    {
+      "files": ["test/**/*.ts", "test/**/*.tsx"],
+      "rules": {
+        "sdk/no-unsafe-random-apis": "off"
+      }
+    }
+  ]
+}
