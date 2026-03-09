@@ -19,6 +19,14 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
+      },
+      "worker": {
+        "import": "./build/esm/index.server.js",
+        "require": "./build/cjs/index.server.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
