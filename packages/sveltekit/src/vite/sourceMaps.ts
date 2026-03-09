@@ -213,7 +213,7 @@ export async function makeCustomSentryVitePlugins(
         // We need to remove the query string from the source map files that our auto-instrument plugin added
         // to proxy the load functions during building.
         const mapFile = `${file}.map`;
-        if (fs.existsSync(mapFile)) {
+        try {
           const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
           const cleanedMapContent = mapContent.replace(
             // oxlint-disable-next-line sdk/no-regexp-constructor -- no user input + escaped anyway
@@ -221,6 +221,8 @@ export async function makeCustomSentryVitePlugins(
             '',
           );
           await fs.promises.writeFile(mapFile, cleanedMapContent);
+        } catch {
+          // Map file doesn't exist, nothing to clean
         }
       }
 
