@@ -75,7 +75,7 @@
         "typescript/prefer-optional-chain": ["error"],
         "typescript/no-redundant-type-constituents": "off",
         "typescript/restrict-template-expressions": "off",
-        "typescript/await-thenable": "off",
+        "typescript/await-thenable": "warn",
         "typescript/no-base-to-string": "warn"
       }
     },
@@ -120,7 +120,8 @@
         "typescript/prefer-optional-chain": "off",
         "typescript/no-misused-spread": "off",
         "typescript/require-array-sort-compare": "off",
-        "typescript/no-base-to-string": "off"
+        "typescript/no-base-to-string": "off",
+        "typescript/await-thenable": "off"
       }
     },
     {

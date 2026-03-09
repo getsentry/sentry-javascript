@@ -7,6 +7,7 @@
     "no-unused-expressions": "off",
     "typescript/require-array-sort-compare": "off",
     "typescript/no-misused-spread": "off",
-    "typescript/no-base-to-string": "off"
+    "typescript/no-base-to-string": "off",
+    "typescript/await-thenable": "off"
   }
 }
