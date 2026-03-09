@@ -66,7 +66,7 @@ export async function streamResponse(span: Span, res: Response): Promise<Respons
         headers: res.headers,
       },
     );
-  } catch (e) {
+  } catch (_e) {
     // tee() failed - handle without streaming
     span.end();
     return res;

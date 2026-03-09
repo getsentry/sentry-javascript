@@ -26,7 +26,7 @@ const mockStep: WorkflowStep = {
             } else {
               return await (maybeCallback ? maybeCallback() : Promise.resolve());
             }
-          } catch (error) {
+          } catch (_error) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }

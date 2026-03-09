@@ -614,7 +614,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
   // as we risk breaking the user's application, so just disable profiling and log an error.
   try {
     return new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
-  } catch (e) {
+  } catch (_e) {
     if (DEBUG_BUILD) {
       debug.log(
         "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",

@@ -21,7 +21,7 @@ export function replaceExports(
   // Replace the named export - handle read-only properties
   try {
     exports[exportName] = wrappedConstructor;
-  } catch (error) {
+  } catch (_error) {
     // If direct assignment fails, override the property descriptor
     Object.defineProperty(exports, exportName, {
       value: wrappedConstructor,
@@ -35,7 +35,7 @@ export function replaceExports(
   if (exports.default === original) {
     try {
       exports.default = wrappedConstructor;
-    } catch (error) {
+    } catch (_error) {
       Object.defineProperty(exports, 'default', {
         value: wrappedConstructor,
         writable: true,

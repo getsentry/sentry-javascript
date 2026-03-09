@@ -103,7 +103,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
     // The OpenAI property might have only a getter, so use defineProperty
     try {
       exports[exportKey] = WrappedOpenAI;
-    } catch (error) {
+    } catch (_error) {
       // If direct assignment fails, override the property descriptor
       Object.defineProperty(exports, exportKey, {
         value: WrappedOpenAI,
@@ -119,7 +119,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
     if (exports.default === Original) {
       try {
         exports.default = WrappedOpenAI;
-      } catch (error) {
+      } catch (_error) {
         // If direct assignment fails, override the property descriptor
         Object.defineProperty(exports, 'default', {
           value: WrappedOpenAI,

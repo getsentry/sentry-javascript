@@ -157,7 +157,7 @@ export function hoistNonReactStatics<
           try {
             // Avoid failures from read-only properties
             defineProperty(targetComponent, key, descriptor);
-          } catch (e) {
+          } catch (_e) {
             // Silently ignore errors
           }
         }
