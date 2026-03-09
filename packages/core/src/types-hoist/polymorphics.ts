@@ -13,19 +13,12 @@ export interface PolymorphicEvent {
 }
 
 /** A `Request` type compatible with Node, Express, browser, etc., because everything is optional */
-export type PolymorphicRequest = BaseRequest &
-  BrowserRequest &
-  NodeRequest &
-  ExpressRequest &
-  KoaRequest &
-  NextjsRequest;
+export type PolymorphicRequest = BaseRequest & NodeRequest & ExpressRequest & KoaRequest & NextjsRequest;
 
 type BaseRequest = {
   method?: string;
   url?: string;
 };
-
-type BrowserRequest = BaseRequest;
 
 type NodeRequest = BaseRequest & {
   headers?: {
