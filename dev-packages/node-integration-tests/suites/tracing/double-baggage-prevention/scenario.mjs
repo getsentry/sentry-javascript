@@ -87,8 +87,8 @@ targetServer.listen(0, async () => {
       },
     };
 
-  } catch (error) {
-    throw error;
+    process.stdout.write(`RESULTS: ${JSON.stringify(results)}\n`);
+
   } finally {
     targetServer.close();
   }
