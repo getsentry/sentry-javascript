@@ -58,6 +58,17 @@ interface HttpOptions {
   sessionFlushingDelayMS?: number;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
+   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's HttpInstrumentation.
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    *
@@ -246,7 +257,8 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       const sentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
-        propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
+        propagateTraceInOutgoingRequests:
+          typeof options.tracePropagation === 'boolean' ? options.tracePropagation : !useOtelHttpInstrumentation,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
       } satisfies SentryHttpInstrumentationOptions;
 
