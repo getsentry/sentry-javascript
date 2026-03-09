@@ -144,38 +144,39 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   assertEquals(otelSpan?.data?.['sentry.origin'], 'manual');
 });
 
-Deno.test('should be compatible with native Deno OpenTelemetry', async () => {
+Deno.test('should override pre-existing OTel provider with Sentry provider', async () => {
   resetSdk();
 
-  const providerBefore = trace.getTracerProvider();
+  // Simulate a pre-existing OTel registration (e.g. from Supabase Edge Runtime)
+  const fakeProvider = { getTracer: () => ({}) };
+  trace.setGlobalTracerProvider(fakeProvider as any);
+
+  const transactionEvents: any[] = [];
 
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: () => null,
+    beforeSendTransaction: event => {
+      transactionEvents.push(event);
+      return null;
+    },
   }) as DenoClient;
 
+  // Sentry should have overridden the pre-existing provider via trace.disable()
   const providerAfter = trace.getTracerProvider();
-  assertEquals(providerBefore, providerAfter);
+  assertNotEquals(providerAfter, fakeProvider);
 
+  // Verify Sentry's tracer actually captures spans
   const tracer = trace.getTracer('compat-test');
   const span = tracer.startSpan('test-span');
   span.setAttributes({ 'test.compatibility': true });
   span.end();
 
-  tracer.startActiveSpan('active-span', activeSpan => {
-    activeSpan.end();
-  });
-
-  const otelSpan = tracer.startSpan('post-init-span');
-  otelSpan.end();
-
-  startSpan({ name: 'sentry-span' }, () => {
-    const nestedOtelSpan = tracer.startSpan('nested-otel-span');
-    nestedOtelSpan.end();
-  });
-
   await client.flush();
+
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.transaction, 'test-span');
+  assertEquals(transactionEvents[0]?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
 });
 
 // Test that name parameter takes precedence over options.name for both startSpan and startActiveSpan
@@ -238,7 +239,7 @@ Deno.test('name parameter should take precedence over options.name in startActiv
   assertEquals(transactionEvent?.transaction, 'prisma:client:operation');
 });
 
-Deno.test('should verify native Deno OpenTelemetry works when enabled', async () => {
+Deno.test('should override native Deno OpenTelemetry when enabled', async () => {
   resetSdk();
 
   // Set environment variable to enable native OTel
@@ -246,34 +247,29 @@ Deno.test('should verify native Deno OpenTelemetry works when enabled', async ()
   Deno.env.set('OTEL_DENO', 'true');
 
   try {
+    const transactionEvents: any[] = [];
+
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
-      beforeSendTransaction: () => null,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
     }) as DenoClient;
 
-    const provider = trace.getTracerProvider();
+    // Sentry's trace.disable() + setGlobalTracerProvider should have overridden
+    // any native Deno OTel provider, so spans go through Sentry's tracer.
     const tracer = trace.getTracer('native-verification');
     const span = tracer.startSpan('verification-span');
-
-    if (provider.constructor.name === 'Function') {
-      // Native OTel is active
-      assertNotEquals(span.constructor.name, 'NonRecordingSpan');
-
-      let contextWorks = false;
-      tracer.startActiveSpan('parent-span', parentSpan => {
-        if (trace.getActiveSpan() === parentSpan) {
-          contextWorks = true;
-        }
-        parentSpan.end();
-      });
-      assertEquals(contextWorks, true);
-    }
-
     span.setAttributes({ 'test.native_otel': true });
     span.end();
 
     await client.flush();
+
+    assertEquals(transactionEvents.length, 1);
+    assertEquals(transactionEvents[0]?.transaction, 'verification-span');
+    assertEquals(transactionEvents[0]?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
   } finally {
     // Restore original environment
     if (originalValue === undefined) {
