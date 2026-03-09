@@ -24,8 +24,8 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+export declare function close(timeout?: number): PromiseLike<boolean>;
+export declare function flush(timeout?: number): PromiseLike<boolean>;
 
 export declare const Span: clientSdk.Span;
 

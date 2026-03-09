@@ -100,7 +100,7 @@ class AsyncSession implements DebugSession {
     //
   }
 
-  public static async create(orDefault?: DebugSession | undefined): Promise<DebugSession> {
+  public static async create(orDefault?: DebugSession): Promise<DebugSession> {
     if (orDefault) {
       return orDefault;
     }

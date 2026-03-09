@@ -85,7 +85,7 @@ export class SentryNonRecordingSpan implements Span {
    * @hidden
    * @internal
    */
-  public recordException(_exception: unknown, _time?: number | undefined): void {
+  public recordException(_exception: unknown, _time?: number): void {
     // noop
   }
 }
