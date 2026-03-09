@@ -5,11 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { AnthropicAiClient, AnthropicAiOptions } from '@sentry/core';
-import {
-  getClient,
-  instrumentAnthropicAiClient,
-  SDK_VERSION,
-} from '@sentry/core';
+import { getClient, instrumentAnthropicAiClient, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.19.2 <1.0.0'];
 

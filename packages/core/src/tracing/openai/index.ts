@@ -7,7 +7,6 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { debug } from '../../utils/debug-logger';
 import { isThenable } from '../../utils/is';
-import { _INTERNAL_isAiProviderSpanSuppressed } from '../ai/suppression';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -20,6 +19,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
+import { _INTERNAL_isAiProviderSpanSuppressed } from '../ai/suppression';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {

@@ -5,11 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import {
-  getClient,
-  instrumentOpenAiClient,
-  SDK_VERSION,
-} from '@sentry/core';
+import { getClient, instrumentOpenAiClient, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <7'];
 
