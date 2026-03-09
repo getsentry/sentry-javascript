@@ -25,7 +25,7 @@ export function buildEffectLayer<T extends EffectLayerBaseOptions>(
     return emptyLayer;
   }
 
-  const { enableLogs = false, enableMetrics = false } = options;
+  const { enableLogs = false, enableMetrics = true } = options;
   let layer: EffectLayer.Layer<never, never, never> = SentryEffectTracerLayer;
 
   if (enableLogs) {
