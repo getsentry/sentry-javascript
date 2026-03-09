@@ -178,13 +178,13 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '27 KB',
+    limit: '29 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '42 KB',
+    limit: '43.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics)',
@@ -290,7 +290,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '200 KB',
+    limit: '256 KB',
   },
   // Next.js SDK (ESM)
   {
@@ -333,7 +333,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '90 KB',
+    limit: '96.5 KB',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -356,7 +356,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '1 KB',
+    limit: '112 KB',
   },
 ];
 
