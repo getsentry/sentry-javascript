@@ -43,6 +43,10 @@ name = "upgrade-dep"
 source = "path:.agents/skills/upgrade-dep"
 
 [[skills]]
+name = "bump-size-limit"
+source = "path:.agents/skills/bump-size-limit"
+
+[[skills]]
 name = "upgrade-otel"
 source = "path:.agents/skills/upgrade-otel"
 
