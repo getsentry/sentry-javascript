@@ -77,6 +77,7 @@ let _clsEntry: LayoutShift | undefined;
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
   recordLcpStandaloneSpans: boolean;
+  reportSoftNavs: boolean;
   client: Client;
 }
 
@@ -89,6 +90,7 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({
   recordClsStandaloneSpans,
   recordLcpStandaloneSpans,
+  reportSoftNavs,
   client,
 }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
@@ -97,9 +99,13 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
-    const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
+    const lcpCleanupCallback = recordLcpStandaloneSpans
+      ? trackLcpAsStandaloneSpan(client)
+      : _trackLCP(reportSoftNavs);
+    const ttfbCleanupCallback = _trackTtfb(reportSoftNavs);
+    const clsCleanupCallback = recordClsStandaloneSpans
+      ? trackClsAsStandaloneSpan(client)
+      : _trackCLS(reportSoftNavs);
 
     return (): void => {
       lcpCleanupCallback?.();
@@ -245,7 +251,7 @@ export { registerInpInteractionListener, startTrackingINP } from './inp';
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
  * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
  */
-function _trackCLS(): () => void {
+function _trackCLS(reportSoftNavs?: boolean): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
@@ -253,11 +259,11 @@ function _trackCLS(): () => void {
     }
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry;
-  }, true);
+  }, true, reportSoftNavs);
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): () => void {
+function _trackLCP(reportSoftNavs?: boolean): () => void {
   return addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
@@ -266,10 +272,10 @@ function _trackLCP(): () => void {
 
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
-  }, true);
+  }, true, reportSoftNavs);
 }
 
-function _trackTtfb(): () => void {
+function _trackTtfb(reportSoftNavs?: boolean): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
@@ -277,7 +283,7 @@ function _trackTtfb(): () => void {
     }
 
     _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
-  });
+  }, reportSoftNavs);
 }
 
 interface AddPerformanceEntriesOptions {

@@ -284,6 +284,7 @@ export interface BrowserTracingOptions {
     enableInteractions: boolean;
     enableStandaloneClsSpans: boolean;
     enableStandaloneLcpSpans: boolean;
+    enableSoftNavWebVitals: boolean;
   }>;
 
   /**
@@ -358,7 +359,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans, enableSoftNavWebVitals },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -489,11 +490,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       _collectWebVitals = startTrackingWebVitals({
         recordClsStandaloneSpans: enableStandaloneClsSpans || false,
         recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+        reportSoftNavs: enableSoftNavWebVitals || false,
         client,
       });
 
       if (enableInp) {
-        startTrackingINP();
+        startTrackingINP(enableSoftNavWebVitals);
       }
 
       if (enableElementTiming) {

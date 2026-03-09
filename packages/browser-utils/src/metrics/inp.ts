@@ -41,10 +41,10 @@ const MAX_PLAUSIBLE_INP_DURATION = 60;
 /**
  * Start tracking INP webvital events.
  */
-export function startTrackingINP(): () => void {
+export function startTrackingINP(reportSoftNavs?: boolean): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
-    const inpCallback = _trackINP();
+    const inpCallback = _trackINP(reportSoftNavs);
 
     return (): void => {
       inpCallback();
@@ -86,8 +86,8 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 /** Starts tracking the Interaction to Next Paint on the current page. #
  * exported only for testing
  */
-export function _trackINP(): () => void {
-  return addInpInstrumentationHandler(_onInp);
+export function _trackINP(reportSoftNavs?: boolean): () => void {
+  return addInpInstrumentationHandler(_onInp, reportSoftNavs);
 }
 
 /**
