@@ -24,6 +24,7 @@
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
     "check": "run-s format:check lint",
+    "fix": "run-s format lint:fix",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint:es-compatibility": "nx run-many -t lint:es-compatibility",
