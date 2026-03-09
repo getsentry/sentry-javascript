@@ -230,10 +230,54 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
 }
 
 /**
+ * Truncate a message with `content: [...]` array format (Vercel AI SDK, OpenAI multimodal).
+ * Content arrays contain parts like `{ type: "text", text: "..." }`.
+ *
+ * @param message - Message with content array property
+ * @param maxBytes - Maximum byte limit
+ * @returns Array with truncated message, or empty array if it doesn't fit
+ */
+function truncateContentArrayMessage(message: ContentArrayMessage, maxBytes: number): unknown[] {
+  const { content } = message;
+
+  // Find the first text part to truncate
+  const textPartIndex = content.findIndex(
+    part => part && typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part,
+  );
+
+  if (textPartIndex === -1) {
+    // No text part found, cannot truncate safely
+    return [];
+  }
+
+  const textPart = content[textPartIndex] as { type: string; text: string };
+
+  // Calculate overhead (message structure with empty text)
+  const emptyContent = content.map((part, i) =>
+    i === textPartIndex ? { ...textPart, text: '' } : part,
+  );
+  const emptyMessage = { ...message, content: emptyContent };
+  const overhead = jsonBytes(emptyMessage);
+  const availableForText = maxBytes - overhead;
+
+  if (availableForText <= 0) {
+    return [];
+  }
+
+  const truncatedText = truncateTextByBytes(textPart.text, availableForText);
+  const truncatedContent = content.map((part, i) =>
+    i === textPartIndex ? { ...textPart, text: truncatedText } : part,
+  );
+
+  return [{ ...message, content: truncatedContent }];
+}
+
+/**
  * Truncate a single message to fit within maxBytes.
  *
- * Supports two message formats:
+ * Supports three message formats:
  * - OpenAI/Anthropic: `{ ..., content: string }`
+ * - Vercel AI/OpenAI multimodal: `{ ..., content: Array<{type, text?, ...}> }`
  * - Google GenAI: `{ ..., parts: Array<string | {text: string} | non-text> }`
  *
  * @param message - The message to truncate
@@ -255,6 +299,10 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
+  }
+
+  if (isContentArrayMessage(message)) {
+    return truncateContentArrayMessage(message, maxBytes);
   }
 
   if (isPartsMessage(message)) {
