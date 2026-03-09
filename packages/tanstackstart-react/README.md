@@ -12,9 +12,7 @@
 
 > NOTICE: This package is in alpha state and may be subject to breaking changes.
 
-## Getting Started
-
-This SDK does not have docs yet. Stay tuned.
+> See the [Official Sentry TanStack Start SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/) to get started.
 
 ## Compatibility
 
@@ -45,8 +43,7 @@ Sentry.captureMessage('Hello, world!');
 
 ## Links
 
-<!-- - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/) -->
-
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/)
 - [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_tanstackstartreact)
 - [Sentry Discord Server](https://discord.gg/Ww9hbqr)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)

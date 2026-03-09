@@ -72,7 +72,7 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   }
 
   const output = [];
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
+  // eslint-disable-next-line typescript/prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     try {

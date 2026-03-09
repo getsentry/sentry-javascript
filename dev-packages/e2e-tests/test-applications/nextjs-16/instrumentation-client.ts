@@ -10,7 +10,7 @@ Sentry.init({
   integrations: [
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['nextjs-16-e2e'],
-      behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+      behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
   ],
   // Verify Log type is available

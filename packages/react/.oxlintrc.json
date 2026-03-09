@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "plugins": ["react"],
+  "env": {
+    "browser": true
+  },
+  "overrides": [
+    {
+      "files": ["test/**"],
+      "rules": {
+        "react/prop-types": "off"
+      }
+    }
+  ]
+}

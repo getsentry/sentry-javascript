@@ -61,6 +61,16 @@ export interface HttpIntegrationOptions {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled).
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture breadcrumbs or propagate trace headers for outgoing HTTP requests to URLs
    * where the given callback returns `true`.
    *
@@ -75,6 +85,7 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
     maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
     ignoreRequestBody: options.ignoreRequestBody,
     breadcrumbs: options.breadcrumbs ?? true,
+    tracePropagation: options.tracePropagation ?? true,
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
   };
 
@@ -212,7 +223,7 @@ function instrumentServer(
 
 function onOutgoingRequestCreated(
   request: ClientRequest,
-  options: { ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean },
+  options: { tracePropagation: boolean; ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean },
   propagationDecisionMap: LRUMap<string, boolean>,
   ignoreOutgoingRequestsMap: WeakMap<ClientRequest, boolean>,
 ): void {
@@ -223,7 +234,9 @@ function onOutgoingRequestCreated(
     return;
   }
 
-  addTracePropagationHeadersToOutgoingRequest(request, propagationDecisionMap);
+  if (options.tracePropagation) {
+    addTracePropagationHeadersToOutgoingRequest(request, propagationDecisionMap);
+  }
 }
 
 function onOutgoingRequestFinish(

@@ -69,9 +69,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - test-application: 'angular-20'
+          - test-application: 'angular-21'
             build-command: 'test:build-canary'
-            label: 'angular-20 (next)'
+            label: 'angular-21 (next)'
           - test-application: 'create-react-app'
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
@@ -114,6 +114,9 @@ jobs:
           - test-application: 'nestjs-11'
             build-command: 'test:build-latest'
             label: 'nestjs-11 (latest)'
+          - test-application: 'nestjs-websockets'
+            build-command: 'test:build-latest'
+            label: 'nestjs-websockets (latest)'
           - test-application: 'nestjs-microservices'
             build-command: 'test:build-latest'
             label: 'nestjs-microservices (latest)'
@@ -127,7 +130,6 @@ jobs:
         with:
           version: 9.15.9
       - name: Set up Node
-        if: matrix.test-application != 'angular-20'
         uses: actions/setup-node@v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
