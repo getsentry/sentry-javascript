@@ -16,10 +16,17 @@ jobs:
       pull-requests: write
       actions: read
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v6
         with:
@@ -79,9 +86,11 @@ jobs:
         if: steps.bump.outputs.summary != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUMMARY: ${{ steps.bump.outputs.summary }}
         run: |
+          echo "$SUMMARY" > /tmp/pr-comment.md
           gh pr comment "${{ github.event.pull_request.number }}" \
-            --body "${{ steps.bump.outputs.summary }}"
+            --body-file /tmp/pr-comment.md
 
       - name: Remove label
         if: always()
