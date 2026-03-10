@@ -38,6 +38,7 @@ describe('Nest', () => {
       } as OnEventTarget;
       vi.spyOn(core, 'startSpan');
       vi.spyOn(core, 'captureException');
+      vi.spyOn(core, 'withIsolationScope');
     });
 
     afterEach(() => {
@@ -75,6 +76,7 @@ describe('Nest', () => {
 
         await descriptor.value();
 
+        expect(core.withIsolationScope).toHaveBeenCalled();
         expect(core.startSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'event test.event',
@@ -90,6 +92,7 @@ describe('Nest', () => {
 
         await descriptor.value();
 
+        expect(core.withIsolationScope).toHaveBeenCalled();
         expect(core.startSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'event Symbol(test.event)',
@@ -105,6 +108,7 @@ describe('Nest', () => {
 
         await descriptor.value();
 
+        expect(core.withIsolationScope).toHaveBeenCalled();
         expect(core.startSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'event test.event1,test.event2',
@@ -120,6 +124,7 @@ describe('Nest', () => {
 
         await descriptor.value();
 
+        expect(core.withIsolationScope).toHaveBeenCalled();
         expect(core.startSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'event Symbol(test.event1),Symbol(test.event2)',
@@ -135,6 +140,7 @@ describe('Nest', () => {
 
         await descriptor.value();
 
+        expect(core.withIsolationScope).toHaveBeenCalled();
         expect(core.startSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'event Symbol(test.event1),test.event2,Symbol(test.event3)',
