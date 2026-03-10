@@ -1,15 +1,14 @@
+import * as assert from 'assert/strict';
 import {
-  loadSourcemapUploadRecords,
-  assertSourcemapUploadRequests,
-  getArtifactBundleManifests,
-  assertDebugIdPairs,
-  assertSourcemapMappings,
-  assertSourcemapSources,
-  assertArtifactBundleAssembly,
-  getSourcemapUploadSummary,
+  loadMockServerResults,
+  getArtifactBundles,
+  getDebugIdPairs,
+  getSourcemaps,
+  getChunkUploadPosts,
+  getAssembleRequests,
 } from '@sentry-internal/test-utils';
 
-const requests = loadSourcemapUploadRecords();
+const requests = loadMockServerResults();
 
 console.log(`Captured ${requests.length} requests to mock Sentry server:\n`);
 for (const req of requests) {
@@ -17,27 +16,59 @@ for (const req of requests) {
 }
 console.log('');
 
-assertSourcemapUploadRequests(requests, 'fake-auth-token');
+// Auth token is present
+const authenticated = requests.filter(r => r.authorization.includes('fake-auth-token'));
+assert.ok(authenticated.length > 0, 'Expected requests with the configured auth token');
 
-const manifests = getArtifactBundleManifests(requests);
-console.log(`Found ${manifests.length} artifact bundle manifest(s):\n`);
+// Chunk uploads happened
+const chunkPosts = getChunkUploadPosts(requests);
+assert.ok(chunkPosts.length > 0, 'Expected at least one chunk upload POST');
+assert.ok(
+  chunkPosts.some(r => r.bodySize > 0),
+  'Expected at least one chunk upload with a non-empty body',
+);
 
-const debugIdPairs = assertDebugIdPairs(manifests);
-console.log(`Found ${debugIdPairs.length} JS/sourcemap pairs with debug IDs:`);
+// Release endpoint was called
+assert.ok(
+  requests.some(r => r.url?.includes('/releases/')),
+  'Expected at least one request to releases endpoint',
+);
+
+// Artifact bundles have manifests
+const bundles = getArtifactBundles(requests);
+assert.ok(bundles.length > 0, 'Expected at least one artifact bundle with a manifest');
+console.log(`Found ${bundles.length} artifact bundle(s)\n`);
+
+// Debug ID pairs exist and are valid UUIDs
+const debugIdPairs = getDebugIdPairs(bundles);
+assert.ok(debugIdPairs.length > 0, 'Expected at least one JS/sourcemap pair with matching debug IDs');
+
+const uuidRegex = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 for (const pair of debugIdPairs) {
+  assert.match(pair.debugId, uuidRegex, `Invalid debug ID: ${pair.debugId}`);
   console.log(`  ${pair.debugId}  ${pair.jsUrl}`);
 }
 console.log('');
 
-assertSourcemapMappings(manifests);
-assertSourcemapSources(manifests, /client-page|page\.tsx/);
-assertArtifactBundleAssembly(requests, 'test-project');
+// Sourcemaps have real content
+const sourcemaps = getSourcemaps(bundles);
+assert.ok(
+  sourcemaps.some(s => s.sourcemap.mappings && s.sourcemap.mappings.length > 0),
+  'Expected at least one sourcemap with non-empty mappings',
+);
 
-const summary = getSourcemapUploadSummary(requests, manifests, debugIdPairs);
+// At least one sourcemap references app source files
+assert.ok(
+  sourcemaps.some(s => s.sourcemap.sources?.some(src => /client-page|page\.tsx/.test(src))),
+  'Expected at least one sourcemap referencing app source files',
+);
 
-console.log('\nAll sourcemap upload assertions passed!');
-console.log(`  - ${summary.totalRequests} total requests captured`);
-console.log(`  - ${summary.chunkUploadPosts} chunk upload POST requests`);
-console.log(`  - ${summary.artifactBundles} artifact bundles with manifests`);
-console.log(`  - ${summary.debugIdPairs} JS/sourcemap pairs with debug IDs`);
-console.log(`  - ${summary.assembleRequests} artifact bundle assemble requests`);
+// Assemble requests reference the correct project
+const assembleReqs = getAssembleRequests(requests);
+assert.ok(assembleReqs.length > 0, 'Expected at least one assemble request');
+for (const req of assembleReqs) {
+  assert.ok(req.assembleBody?.projects?.includes('test-project'), 'Expected assemble request to include test-project');
+  assert.ok((req.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
+}
+
+console.log('All sourcemap upload assertions passed!');
