@@ -3,7 +3,11 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from schedule cron';
+    return (
+      !event.type &&
+      event.exception?.values?.[0]?.value === 'Test error from schedule cron' &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.cron'
+    );
   });
 
   const errorEvent = await errorEventPromise;
@@ -20,7 +24,11 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
 
 test('Sends exceptions to Sentry on error in @Interval decorated method', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from schedule interval';
+    return (
+      !event.type &&
+      event.exception?.values?.[0]?.value === 'Test error from schedule interval' &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.interval'
+    );
   });
 
   const errorEvent = await errorEventPromise;
@@ -46,7 +54,7 @@ test('Sends exceptions to Sentry on error in @Timeout decorated method', async (
 
   // Trigger the @Timeout-decorated method via HTTP endpoint since @Timeout
   // fires once and timing is unreliable across test runs.
-  fetch(`${baseURL}/trigger-schedule-timeout-error`).catch(() => {
+  await fetch(`${baseURL}/trigger-schedule-timeout-error`).catch(() => {
     // Expected to fail since the handler throws
   });
 

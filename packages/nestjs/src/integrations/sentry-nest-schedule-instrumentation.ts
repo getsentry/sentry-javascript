@@ -160,6 +160,8 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
           Object.defineProperty(descriptor.value, 'name', {
             value: handlerName,
             configurable: true,
+            enumerable: true,
+            writable: true,
           });
 
           // Apply the original decorator

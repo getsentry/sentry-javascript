@@ -8,7 +8,7 @@ export class ScheduleService {
 
   // --- @Cron error test (auto-instrumentation, no @SentryCron) ---
   @Cron('*/5 * * * * *', { name: 'test-schedule-cron-error' })
-  async handleCronError() {
+  handleCronError() {
     throw new Error('Test error from schedule cron');
   }
 

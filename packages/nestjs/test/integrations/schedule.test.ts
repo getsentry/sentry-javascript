@@ -46,7 +46,9 @@ describe('ScheduleInstrumentation', () => {
     let mockDecorator: vi.Mock;
 
     beforeEach(() => {
-      originalHandler = vi.fn().mockReturnValue('result');
+      originalHandler = vi.fn(function testHandler() {
+        return 'result';
+      });
       descriptor = {
         value: originalHandler,
       };
@@ -133,7 +135,7 @@ describe('ScheduleInstrumentation', () => {
       const decorated = wrappedDecorator('test-arg');
       decorated(mockTarget, 'testMethod', descriptor);
 
-      expect(descriptor.value.name).toBe('spy');
+      expect(descriptor.value.name).toBe('testHandler');
     });
   });
 });
