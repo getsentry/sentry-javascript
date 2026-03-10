@@ -10,9 +10,12 @@ import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
   GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
@@ -71,6 +74,61 @@ export function applyAccumulatedTokens(
   }
   if (accumulated.inputTokens > 0 || accumulated.outputTokens > 0) {
     spanOrTrace.data['gen_ai.usage.total_tokens'] = accumulated.inputTokens + accumulated.outputTokens;
+  }
+}
+
+/**
+ * Builds a map of tool name -> description from all spans with available_tools.
+ * This avoids O(n²) iteration and repeated JSON parsing.
+ */
+function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
+  const toolDescriptions = new Map<string, string>();
+
+  for (const span of spans) {
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
+    if (typeof availableTools !== 'string') {
+      continue;
+    }
+    try {
+      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
+      for (const tool of tools) {
+        if (tool.name && tool.description && !toolDescriptions.has(tool.name)) {
+          toolDescriptions.set(tool.name, tool.description);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return toolDescriptions;
+}
+
+/**
+ * Applies tool descriptions and accumulated tokens to spans in a single pass.
+ *
+ * - For `gen_ai.execute_tool` spans: looks up tool description from
+ *   `gen_ai.request.available_tools` on sibling spans
+ * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
+ */
+export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {
+  // Build lookup map once to avoid O(n²) iteration and repeated JSON parsing
+  const toolDescriptions = buildToolDescriptionMap(spans);
+
+  for (const span of spans) {
+    if (span.op === 'gen_ai.execute_tool') {
+      const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      if (typeof toolName === 'string') {
+        const description = toolDescriptions.get(toolName);
+        if (description) {
+          span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
+        }
+      }
+    }
+
+    if (span.op === 'gen_ai.invoke_agent') {
+      applyAccumulatedTokens(span, tokenAccumulator);
+    }
   }
 }
 

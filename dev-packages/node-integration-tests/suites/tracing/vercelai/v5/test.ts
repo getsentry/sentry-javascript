@@ -357,7 +357,7 @@ describe('Vercel AI integration (V5)', () => {
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool-calls"}]',
+            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
           'vercel.ai.response.finishReason': 'tool-calls',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
@@ -384,7 +384,7 @@ describe('Vercel AI integration (V5)', () => {
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool-calls"}]',
+            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
           'vercel.ai.prompt.toolChoice': expect.any(String),
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
           'vercel.ai.response.finishReason': 'tool-calls',

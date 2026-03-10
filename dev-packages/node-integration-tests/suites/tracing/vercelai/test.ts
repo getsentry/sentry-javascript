@@ -381,7 +381,7 @@ describe('Vercel AI integration', () => {
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather"}],"finish_reason":"tool-calls"}]',
+            '[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{ \\"location\\": \\"San Francisco\\" }"}],"finish_reason":"tool_call"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
@@ -416,7 +416,7 @@ describe('Vercel AI integration', () => {
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather"}],"finish_reason":"tool-calls"}]',
+            '[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{ \\"location\\": \\"San Francisco\\" }"}],"finish_reason":"tool_call"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),

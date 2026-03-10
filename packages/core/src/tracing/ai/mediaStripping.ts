@@ -117,6 +117,7 @@ function hasMediaTypeData(part: NonNullable<unknown>): part is { media_type: str
 
 /**
  * Check for Vercel AI SDK file format: { type: "file", mediaType: "...", data: "..." }
+ * Only matches base64/binary data, not HTTP/HTTPS URLs (which should be preserved).
  */
 function hasVercelFileData(part: NonNullable<unknown>): part is { type: 'file'; mediaType: string; data: string } {
   return (
@@ -125,21 +126,27 @@ function hasVercelFileData(part: NonNullable<unknown>): part is { type: 'file'; 
     'mediaType' in part &&
     typeof part.mediaType === 'string' &&
     'data' in part &&
-    typeof part.data === 'string'
+    typeof part.data === 'string' &&
+    // Only strip base64/binary data, not HTTP/HTTPS URLs which should be preserved as references
+    !part.data.startsWith('http://') &&
+    !part.data.startsWith('https://')
   );
 }
 
 /**
- * Check for Vercel AI SDK image format: { type: "image", image: "base64...", mimeType: "..." }
+ * Check for Vercel AI SDK image format: { type: "image", image: "base64...", mimeType?: "..." }
+ * Only matches base64/data URIs, not HTTP/HTTPS URLs (which should be preserved).
+ * Note: mimeType is optional in Vercel AI SDK image parts.
  */
-function hasVercelImageData(part: NonNullable<unknown>): part is { type: 'image'; image: string; mimeType: string } {
+function hasVercelImageData(part: NonNullable<unknown>): part is { type: 'image'; image: string; mimeType?: string } {
   return (
     'type' in part &&
     part.type === 'image' &&
     'image' in part &&
     typeof part.image === 'string' &&
-    'mimeType' in part &&
-    typeof part.mimeType === 'string'
+    // Only strip base64/data URIs, not HTTP/HTTPS URLs which should be preserved as references
+    !part.image.startsWith('http://') &&
+    !part.image.startsWith('https://')
   );
 }
 

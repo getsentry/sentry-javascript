@@ -8,11 +8,9 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
-  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -35,6 +33,7 @@ import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
+  applyToolDescriptionsAndTokens,
   convertAvailableToolsToJsonString,
   getSpanOpFromName,
   requestMessagesFromPrompt,
@@ -129,21 +128,7 @@ function vercelAiEventProcessor(event: Event): Event {
     }
 
     // Second pass: apply tool descriptions and accumulated tokens
-    for (const span of event.spans) {
-      if (span.op === 'gen_ai.execute_tool') {
-        const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
-        if (typeof toolName === 'string') {
-          const description = findToolDescription(event.spans, toolName);
-          if (description) {
-            span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
-          }
-        }
-      }
-
-      if (span.op === 'gen_ai.invoke_agent') {
-        applyAccumulatedTokens(span, tokenAccumulator);
-      }
-    }
+    applyToolDescriptionsAndTokens(event.spans, tokenAccumulator);
 
     // Also apply to root when it is the invoke_agent pipeline
     const trace = event.contexts?.trace;
@@ -156,36 +141,40 @@ function vercelAiEventProcessor(event: Event): Event {
 }
 
 /**
- * Finds a tool description by scanning spans for gen_ai.request.available_tools
- * (already processed from ai.prompt.tools in the first pass).
- */
-function findToolDescription(spans: SpanJSON[], toolName: string): string | undefined {
-  for (const span of spans) {
-    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
-    if (typeof availableTools !== 'string') {
-      continue;
-    }
-    try {
-      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
-      const tool = tools.find(t => t.name === toolName);
-      if (tool?.description) {
-        return tool.description;
-      }
-    } catch {
-      // ignore
-    }
-  }
-  return undefined;
-}
-
-/**
  * Tool call structure from Vercel AI SDK
- * Note: Vercel AI uses 'input' for arguments in ai.response.toolCalls
+ * Note: V5/V6 use 'input' for arguments, V4 and earlier use 'args'
  */
 interface VercelToolCall {
   toolCallId: string;
   toolName: string;
-  input: Record<string, unknown>;
+  input?: Record<string, unknown> | string; // V5/V6
+  args?: string; // V4 and earlier
+}
+
+/**
+ * Normalize finish reason to match OpenTelemetry semantic conventions.
+ * Valid values: "stop", "length", "content_filter", "tool_call", "error"
+ *
+ * Vercel AI SDK uses "tool-calls" (plural, with hyphen) which we map to "tool_call".
+ */
+function normalizeFinishReason(finishReason: unknown): string {
+  if (typeof finishReason !== 'string') {
+    return 'stop';
+  }
+
+  // Map Vercel AI SDK finish reasons to OpenTelemetry semantic convention values
+  switch (finishReason) {
+    case 'tool-calls':
+      return 'tool_call';
+    case 'stop':
+    case 'length':
+    case 'content_filter':
+    case 'error':
+      return finishReason;
+    default:
+      // For unknown values, return as-is (schema allows arbitrary strings)
+      return finishReason;
+  }
 }
 
 /**
@@ -227,30 +216,40 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
 
       if (Array.isArray(toolCalls)) {
         for (const toolCall of toolCalls) {
-          // Vercel AI SDK uses 'input' for tool call arguments
-          const args = toolCall.input;
+          // V5/V6 use 'input', V4 and earlier use 'args'
+          const args = toolCall.input ?? toolCall.args;
           parts.push({
             type: 'tool_call',
             id: toolCall.toolCallId,
             name: toolCall.toolName,
-            arguments: typeof args === 'string' ? args : JSON.stringify(args),
+            // Handle undefined args: JSON.stringify(undefined) returns undefined, not a string,
+            // which would cause the property to be omitted from the final JSON output
+            arguments: typeof args === 'string' ? args : JSON.stringify(args ?? {}),
           });
         }
+        // Only delete tool calls attribute if we successfully processed them
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
       }
     } catch {
-      // Ignore parsing errors
+      // Ignore parsing errors - tool calls attribute is preserved
     }
   }
 
-  // Only set if we have parts
+  // Only set output messages and delete text attribute if we have parts
   if (parts.length > 0) {
     const outputMessage = {
       role: 'assistant',
       parts,
-      finish_reason: typeof finishReason === 'string' ? finishReason : 'stop',
+      finish_reason: normalizeFinishReason(finishReason),
     };
 
     attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] = JSON.stringify([outputMessage]);
+
+    // Remove the text attribute since it's now captured in gen_ai.output.messages
+    // Note: tool calls attribute is deleted above only if successfully parsed
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
   }
 }
 
@@ -310,13 +309,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
 
   // Build gen_ai.output.messages from response text and/or tool calls
+  // Note: buildOutputMessages also removes the source attributes when output is successfully generated
   buildOutputMessages(attributes);
-
-  // Remove the source attributes since they're now captured in gen_ai.output.messages
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-  delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-  delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
 
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');

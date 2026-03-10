@@ -123,6 +123,20 @@ function withPartText(part: TextPart | MediaPart, text: string): TextPart {
 }
 
 /**
+ * Check if a content array part is a text part ({ type: "text", text: "..." }).
+ */
+function isTextContentPart(part: unknown): part is { type: 'text'; text: string } {
+  return (
+    part !== null &&
+    typeof part === 'object' &&
+    'type' in part &&
+    part.type === 'text' &&
+    'text' in part &&
+    typeof part.text === 'string'
+  );
+}
+
+/**
  * Check if a message has the OpenAI/Anthropic content format.
  */
 function isContentMessage(message: unknown): message is ContentMessage {
@@ -232,6 +246,7 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
 /**
  * Truncate a message with `content: [...]` array format (Vercel AI SDK, OpenAI multimodal).
  * Content arrays contain parts like `{ type: "text", text: "..." }`.
+ * Keeps as many complete parts as possible, only truncating text parts if needed.
  *
  * @param message - Message with content array property
  * @param maxBytes - Maximum byte limit
@@ -240,34 +255,49 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
 function truncateContentArrayMessage(message: ContentArrayMessage, maxBytes: number): unknown[] {
   const { content } = message;
 
-  // Find the first text part to truncate
-  const textPartIndex = content.findIndex(
-    part => part && typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part,
-  );
+  // Calculate overhead by creating empty text parts (non-text parts keep their size)
+  const emptyContent = content.map(part => (isTextContentPart(part) ? { ...part, text: '' } : part));
+  const overhead = jsonBytes({ ...message, content: emptyContent });
+  let remainingBytes = maxBytes - overhead;
 
-  if (textPartIndex === -1) {
-    // No text part found, cannot truncate safely
+  if (remainingBytes <= 0) {
     return [];
   }
 
-  const textPart = content[textPartIndex] as { type: string; text: string };
+  // Include parts until we run out of space
+  const includedParts: ContentArrayMessage['content'] = [];
 
-  // Calculate overhead (message structure with empty text)
-  const emptyContent = content.map((part, i) => (i === textPartIndex ? { ...textPart, text: '' } : part));
-  const emptyMessage = { ...message, content: emptyContent };
-  const overhead = jsonBytes(emptyMessage);
-  const availableForText = maxBytes - overhead;
+  for (const part of content) {
+    if (isTextContentPart(part)) {
+      // Text part: check if it fits, truncate if needed
+      const textSize = utf8Bytes(part.text);
 
-  if (availableForText <= 0) {
+      if (textSize <= remainingBytes) {
+        // Text fits: include it as-is
+        includedParts.push(part);
+        remainingBytes -= textSize;
+      } else if (includedParts.length === 0) {
+        // First part doesn't fit: truncate it
+        const truncated = truncateTextByBytes(part.text, remainingBytes);
+        if (truncated) {
+          includedParts.push({ ...part, text: truncated });
+        }
+        break;
+      } else {
+        // Subsequent text part doesn't fit: stop here
+        break;
+      }
+    } else {
+      // Non-text part (image, etc.): size is already in overhead, include it
+      includedParts.push(part);
+    }
+  }
+
+  if (includedParts.length === 0) {
     return [];
   }
 
-  const truncatedText = truncateTextByBytes(textPart.text, availableForText);
-  const truncatedContent = content.map((part, i) =>
-    i === textPartIndex ? { ...textPart, text: truncatedText } : part,
-  );
-
-  return [{ ...message, content: truncatedContent }];
+  return [{ ...message, content: includedParts }];
 }
 
 /**
