@@ -3,7 +3,7 @@ import type { DsnComponents, DsnLike } from './types-hoist/dsn';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import { dsnToString, makeDsn } from './utils/dsn';
 
-const SENTRY_API_VERSION = '7';
+export const SENTRY_API_VERSION = '7';
 
 /** Returns the prefix to construct Sentry ingestion API endpoints. */
 function getBaseApiEndpoint(dsn: DsnComponents): string {

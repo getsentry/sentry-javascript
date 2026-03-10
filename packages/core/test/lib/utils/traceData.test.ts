@@ -6,6 +6,7 @@ import {
   getIsolationScope,
   getMainCarrier,
   getTraceData,
+  registerExternalPropagationContext,
   Scope,
   SentrySpan,
   setAsyncContextStrategy,
@@ -346,5 +347,48 @@ describe('getTraceData', () => {
 
     expect(traceData.traceparent).toBeDefined();
     expect(traceData.traceparent).toMatch(/00-12345678901234567890123456789099-[0-9a-f]{16}-00/);
+  });
+
+  it('returns empty object when no span and external propagation context is registered', () => {
+    setupClient();
+
+    registerExternalPropagationContext(() => ({
+      traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1',
+      spanId: 'bbbbbbbbbbbbbb01',
+    }));
+
+    const traceData = getTraceData();
+    expect(traceData).toEqual({});
+
+    // Clean up
+    registerExternalPropagationContext(() => undefined);
+  });
+
+  it('still returns trace data from span even when external propagation context is registered', () => {
+    setupClient();
+
+    registerExternalPropagationContext(() => ({
+      traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1',
+      spanId: 'bbbbbbbbbbbbbb01',
+    }));
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    withActiveSpan(span, () => {
+      const data = getTraceData();
+
+      expect(data).toEqual({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage:
+          'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
+      });
+    });
+
+    // Clean up
+    registerExternalPropagationContext(() => undefined);
   });
 });
