@@ -16,7 +16,7 @@ type PartialURL = {
 };
 
 interface URLwithCanParse extends URL {
-  canParse: (url: string, base?: string | URL) => boolean;
+  canParse: (url: string, base?: string | URL | undefined) => boolean;
 }
 
 // A subset of the URL object that is valid for relative URLs
@@ -60,7 +60,7 @@ export function isURLObjectRelative(url: URLObject): url is RelativeURL {
  * @param url - The URL to parse
  * @returns The parsed URL object or undefined if the URL is invalid
  */
-export function parseStringToURLObject(url: string, urlBase?: string | URL): URLObject | undefined {
+export function parseStringToURLObject(url: string, urlBase?: string | URL | undefined): URLObject | undefined {
   const isRelative = url.indexOf('://') <= 0 && url.indexOf('//') !== 0;
   const base = urlBase ?? (isRelative ? DEFAULT_BASE_URL : undefined);
   try {

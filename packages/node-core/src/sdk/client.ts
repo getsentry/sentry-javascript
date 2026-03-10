@@ -101,7 +101,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
   /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
-  public async close(timeout?: number): PromiseLike<boolean> {
+  public async close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval) {
       clearInterval(this._clientReportInterval);
     }

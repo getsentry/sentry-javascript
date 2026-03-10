@@ -20,7 +20,9 @@ declare const __SENTRY_TRACING__: boolean | undefined;
  * @param maybeOptions An SDK options object to be passed to this function.
  * If this option is not provided, the function will use the current client's options.
  */
-export function hasSpansEnabled(maybeOptions?: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'>): boolean {
+export function hasSpansEnabled(
+  maybeOptions?: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'> | undefined,
+): boolean {
   if (typeof __SENTRY_TRACING__ === 'boolean' && !__SENTRY_TRACING__) {
     return false;
   }

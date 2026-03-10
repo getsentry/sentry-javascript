@@ -637,7 +637,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Receives an Event & EventHint as arguments.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
 
   /**
    * Register a callback for before sending a session or session aggregrates..
@@ -652,7 +652,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Receives an Event & EventHint as arguments.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
 
   /**
    * Register a callback for postprocessing an event,
@@ -660,7 +660,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Receives an Event & EventHint as arguments.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'postprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
+  public on(hook: 'postprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): () => void;
 
   /**
    * Register a callback for when an event has been sent.
@@ -1321,7 +1321,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
-        const isInternalException = (hint.data as { __sentry__?: boolean })?.__sentry__ === true;
+        const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
         if (isInternalException) {
           return prepared;
         }

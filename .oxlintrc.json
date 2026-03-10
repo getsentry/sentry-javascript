@@ -43,6 +43,7 @@
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
+    "typescript/no-duplicate-type-constituents": "off",
 
     // === Custom SDK rules (via JS plugin) ===
     "sdk/no-eq-empty": "error"
