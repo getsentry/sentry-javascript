@@ -9,7 +9,6 @@ import {
   _INTERNAL_flushLogsBuffer,
   applySdkMetadata,
   debug,
-  hasSpanStreamingEnabled,
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
