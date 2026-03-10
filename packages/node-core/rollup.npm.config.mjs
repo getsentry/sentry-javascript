@@ -19,7 +19,7 @@ export default [
   localVariablesWorkerConfig,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/index.ts', 'src/init.ts', 'src/light/index.ts'],
+      entrypoints: ['src/index.ts', 'src/init.ts', 'src/light/index.ts', 'src/light/integrations/otlp.ts'],
       packageSpecificConfig: {
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn

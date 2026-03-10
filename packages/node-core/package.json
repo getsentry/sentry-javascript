@@ -54,6 +54,16 @@
       "require": {
         "default": "./build/cjs/init.js"
       }
+    },
+    "./light/otlp": {
+      "import": {
+        "types": "./build/types/light/integrations/otlp.d.ts",
+        "default": "./build/esm/light/integrations/otlp.js"
+      },
+      "require": {
+        "types": "./build/types/light/integrations/otlp.d.ts",
+        "default": "./build/cjs/light/integrations/otlp.js"
+      }
     }
   },
   "typesVersions": {
@@ -73,7 +83,8 @@
     "@opentelemetry/instrumentation": ">=0.57.1 <1",
     "@opentelemetry/resources": "^1.30.1 || ^2.1.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1 || ^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0"
+    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/exporter-trace-otlp-http": ">=0.57.0 <1"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
@@ -96,6 +107,9 @@
     },
     "@opentelemetry/semantic-conventions": {
       "optional": true
+    },
+    "@opentelemetry/exporter-trace-otlp-http": {
+      "optional": true
     }
   },
   "dependencies": {
@@ -111,6 +125,7 @@
     "@opentelemetry/resources": "^2.5.1",
     "@opentelemetry/sdk-trace-base": "^2.5.1",
     "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.211.0",
     "@types/node": "^18.19.1"
   },
   "scripts": {
