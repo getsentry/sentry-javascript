@@ -45,10 +45,10 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^2.5.1",
+    "@opentelemetry/core": "^2.6.0",
     "@opentelemetry/instrumentation": "^0.211.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.57.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@sentry/core": "10.43.0",
     "@sentry/node": "10.43.0"
   },
