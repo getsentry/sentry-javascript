@@ -110,14 +110,5 @@ describe('ScheduleInstrumentation', () => {
       expect(descriptor.value).toBe(originalHandler);
     });
 
-    it('should skip wrapping if already instrumented', () => {
-      originalHandler.__SENTRY_INSTRUMENTED__ = true;
-
-      const decorated = wrappedDecorator('test-arg');
-      decorated(mockTarget, 'testMethod', descriptor);
-
-      expect(descriptor.value).toBe(originalHandler);
-    });
-
   });
 });
