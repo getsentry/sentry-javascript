@@ -20,6 +20,7 @@ export function addNetworkBreadcrumb(
   }
 
   replay.addUpdate(() => {
+    // oxlint-disable-next-line typescript/no-floating-promises
     createPerformanceSpans(replay, [result]);
     // Returning true will cause `addUpdate` to not flush
     // We do not want network requests to cause a flush. This will prevent

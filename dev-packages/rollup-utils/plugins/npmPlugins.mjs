@@ -7,9 +7,6 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';

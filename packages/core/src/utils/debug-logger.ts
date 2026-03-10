@@ -85,10 +85,6 @@ function log(...args: Parameters<typeof console.log>): void {
   _maybeLog('log', ...args);
 }
 
-function info(...args: Parameters<typeof console.info>): void {
-  _maybeLog('info', ...args);
-}
-
 function warn(...args: Parameters<typeof console.warn>): void {
   _maybeLog('warn', ...args);
 }

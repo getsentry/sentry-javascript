@@ -63,7 +63,7 @@ describe('GCPFunction', () => {
 
       try {
         fn(req, res);
-      } catch (error) {
+      } catch {
         res.end();
       }
     });

@@ -127,7 +127,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
   return {
     push: async (env: Envelope) => {
       try {
-        const serialized = await serializeEnvelope(env);
+        const serialized = serializeEnvelope(env);
         await push(getStore(), serialized, options.maxQueueSize || 30);
       } catch {
         //
@@ -135,7 +135,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
     },
     unshift: async (env: Envelope) => {
       try {
-        const serialized = await serializeEnvelope(env);
+        const serialized = serializeEnvelope(env);
         await unshift(getStore(), serialized, options.maxQueueSize || 30);
       } catch {
         //

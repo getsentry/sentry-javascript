@@ -30,7 +30,7 @@ describe('Compressor', () => {
     const compressor = new Compressor();
 
     // @ts-expect-error ignoring type for test
-    expect(() => void compressor.addEvent(undefined)).toThrow();
+    expect(() => compressor.addEvent(undefined)).toThrow();
 
     const compressed = compressor.finish();
 

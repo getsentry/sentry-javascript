@@ -102,7 +102,7 @@ async function run() {
           },
         ],
       });
-    } catch (error) {
+    } catch {
       // Expected error
     }
   });

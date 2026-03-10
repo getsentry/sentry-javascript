@@ -92,7 +92,7 @@ function getManifest(): RouteManifest | null {
     cachedManifest = manifest;
     cachedManifestString = currentManifestString;
     return manifest;
-  } catch (error) {
+  } catch {
     DEBUG_BUILD && debug.warn('Could not extract route manifest');
     return null;
   }

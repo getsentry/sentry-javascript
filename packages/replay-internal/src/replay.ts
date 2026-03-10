@@ -748,8 +748,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (
       this._lastActivity &&
       isExpired(this._lastActivity, this.timeouts.sessionIdlePause) &&
-      this.session &&
-      this.session.sampled === 'session'
+      this.session?.sampled === 'session'
     ) {
       // Pause recording only for session-based replays. Otherwise, resuming
       // will create a new replay and will conflict with users who only choose

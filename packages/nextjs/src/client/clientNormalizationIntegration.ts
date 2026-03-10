@@ -18,7 +18,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
       iteratee: frame => {
         if (experimentalThirdPartyOriginStackFrames) {
           // Not sure why but access to global WINDOW from @sentry/Browser causes hideous ci errors
-          // eslint-disable-next-line no-restricted-globals
+          // oxlint-disable-next-line typescript/prefer-optional-chain no-restricted-globals
           const windowOrigin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
           // A filename starting with the local origin and not ending with JS is most likely JS in HTML which we do not want to rewrite
           if (frame.filename?.startsWith(windowOrigin) && !frame.filename.endsWith('.js')) {
