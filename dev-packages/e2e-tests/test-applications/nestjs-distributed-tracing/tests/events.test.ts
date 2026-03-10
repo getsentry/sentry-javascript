@@ -86,7 +86,10 @@ test('Multiple OnEvent decorators', async () => {
 
   expect(firstTx).toBeDefined();
   expect(secondTx).toBeDefined();
-  // With isolation scope forking, tags set in event handlers should NOT leak onto the root HTTP transaction
+
+  // Tags should be on the event handler transactions, not the root HTTP transaction
+  expect(firstTx.tags?.['test-first'] || firstTx.tags?.['test-second']).toBe(true);
+  expect(secondTx.tags?.['test-first'] || secondTx.tags?.['test-second']).toBe(true);
   expect(rootTx.tags?.['test-first']).toBeUndefined();
   expect(rootTx.tags?.['test-second']).toBeUndefined();
 });
