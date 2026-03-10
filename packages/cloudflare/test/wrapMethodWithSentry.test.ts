@@ -20,7 +20,7 @@ vi.mock('../src/sdk', () => ({
 
 // Mock sentry/core functions
 vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal<typeof import('@sentry/core')>();
+  const actual = await importOriginal<object>();
   return {
     ...actual,
     getClient: vi.fn(),
