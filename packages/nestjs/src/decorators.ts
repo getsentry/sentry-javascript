@@ -1,10 +1,5 @@
 import type { MonitorConfig } from '@sentry/core';
-import {
-  captureException,
-  isThenable,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
 import { isExpectedError } from './helpers';
@@ -20,20 +15,7 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
       return Sentry.withMonitor(
         monitorSlug,
         () => {
-          let result;
-          try {
-            result = originalMethod.apply(this, args);
-          } catch (e) {
-            captureException(e, { mechanism: { handled: false, type: 'auto.cron.nestjs' } });
-            throw e;
-          }
-          if (isThenable(result)) {
-            return result.then(undefined, e => {
-              captureException(e, { mechanism: { handled: false, type: 'auto.cron.nestjs.async' } });
-              throw e;
-            });
-          }
-          return result;
+          return originalMethod.apply(this, args);
         },
         monitorConfig,
       );
