@@ -32,23 +32,12 @@
     "import/namespace": "off",
     "import/no-unresolved": "off",
 
-    // === Jest/Vitest rules ===
-    "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error",
-
     // === Rules turned off (not enforced in ESLint or causing false positives) ===
     "no-control-regex": "off",
     "jsdoc/check-tag-names": "off",
     "jsdoc/require-yields": "off",
     "no-useless-rename": "off",
     "no-constant-binary-expression": "off",
-    "jest/no-conditional-expect": "off",
-    "jest/expect-expect": "off",
-    "jest/no-standalone-expect": "off",
-    "jest/require-to-throw-message": "off",
-    "jest/valid-title": "off",
-    "jest/no-export": "off",
-    "jest/valid-describe-callback": "off",
     "vitest/hoisted-apis-on-top": "off",
     "vitest/no-conditional-tests": "off",
     "no-unsafe-optional-chaining": "off",
