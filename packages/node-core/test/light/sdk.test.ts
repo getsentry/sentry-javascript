@@ -106,6 +106,20 @@ describe('Light Mode | SDK', () => {
 
       expect(integrationNames).toContain('NodeFetch');
     });
+
+    it('includes spanStreaming integration when traceLifecycle is "stream"', () => {
+      const integrations = Sentry.getDefaultIntegrations({ traceLifecycle: 'stream' });
+      const integrationNames = integrations.map(i => i.name);
+
+      expect(integrationNames).toContain('SpanStreaming');
+    });
+
+    it("doesn't include spanStreaming integration when traceLifecycle is not 'stream'", () => {
+      const integrations = Sentry.getDefaultIntegrations();
+      const integrationNames = integrations.map(i => i.name);
+
+      expect(integrationNames).not.toContain('SpanStreaming');
+    });
   });
 
   describe('isInitialized', () => {

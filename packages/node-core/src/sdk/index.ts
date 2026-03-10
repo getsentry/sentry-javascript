@@ -47,7 +47,7 @@ import { initializeEsmLoader } from './esmLoader';
 /**
  * Get default integrations for the Node-Core SDK.
  */
-export function getDefaultIntegrations(): Integration[] {
+export function getDefaultIntegrations(options?: Options): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
@@ -72,6 +72,7 @@ export function getDefaultIntegrations(): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
+    ...(options?.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
@@ -125,10 +126,6 @@ function _init(
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
       }),
     );
-  }
-
-  if (options.traceLifecycle === 'stream' && !options.integrations.some(({ name }) => name === 'SpanStreaming')) {
-    options.integrations.push(spanStreamingIntegration());
   }
 
   applySdkMetadata(options, 'node-core');

@@ -39,7 +39,7 @@ import { nativeNodeFetchIntegration } from './integrations/nativeNodeFetchIntegr
 /**
  * Get default integrations for the Light Node-Core SDK.
  */
-export function getDefaultIntegrations(): Integration[] {
+export function getDefaultIntegrations(options?: Options): Integration[] {
   return [
     // Common
     eventFiltersIntegration(),
@@ -61,6 +61,7 @@ export function getDefaultIntegrations(): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
+    ...(options?.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
@@ -111,10 +112,6 @@ function _init(
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
       }),
     );
-  }
-
-  if (options.traceLifecycle === 'stream' && !options.integrations.some(({ name }) => name === 'SpanStreaming')) {
-    options.integrations.push(spanStreamingIntegration());
   }
 
   applySdkMetadata(options, 'node-light', ['node-core']);

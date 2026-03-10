@@ -1,5 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata, hasSpansEnabled } from '@sentry/core';
+import { applySdkMetadata, hasSpansEnabled, spanStreamingIntegration } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import {
   getDefaultIntegrations as getNodeCoreDefaultIntegrations,
@@ -33,6 +33,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    ...(options.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
