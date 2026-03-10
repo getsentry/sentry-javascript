@@ -61,8 +61,6 @@
   });
   ```
 
-````
-
 ### Other Changes
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
@@ -3799,4 +3797,3 @@ A full list of changes in the `5.x` release of the SDK can be found in the [5.x 
 ## 4.x
 
 A full list of changes in the `4.x` release of the SDK can be found in the [4.x Changelog](./docs/changelog/v4.md).
-````

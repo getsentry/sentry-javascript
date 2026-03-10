@@ -1,7 +1,7 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope, hasExternalPropagationContext } from '../currentScopes';
+import { getClient, getCurrentScope, getExternalPropagationContext } from '../currentScopes';
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
@@ -49,7 +49,7 @@ export function getTraceData(
 
   // When no active span and external propagation context is registered (e.g. OTLP integration),
   // return empty to let the OTel propagator handle outgoing request propagation.
-  if (!span && hasExternalPropagationContext()) {
+  if (!span && getExternalPropagationContext()) {
     return {};
   }
 
