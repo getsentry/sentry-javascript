@@ -59,7 +59,6 @@ const buildClientIntegrations = (options: SentryOptions): string => {
     integrations.push('Sentry.browserTracingIntegration()');
   }
 
-  /* oxlint-disable typescript/prefer-optional-chain */
   if (
     options.replaysSessionSampleRate == null ||
     options.replaysSessionSampleRate ||
@@ -68,7 +67,6 @@ const buildClientIntegrations = (options: SentryOptions): string => {
   ) {
     integrations.push('Sentry.replayIntegration()');
   }
-  /* oxlint-enable typescript/prefer-optional-chain */
 
   return integrations.join(', ');
 };

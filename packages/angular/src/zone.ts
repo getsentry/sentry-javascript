@@ -7,7 +7,7 @@ declare const Zone: any;
 // In Angular 17 and future versions, zoneless support is forthcoming.
 // Therefore, it's advisable to safely check whether the `run` function is
 // available in the `<root>` context.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access typescript/prefer-optional-chain
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 const isNgZoneEnabled = typeof Zone !== 'undefined' && Zone.root?.run;
 
 /**
