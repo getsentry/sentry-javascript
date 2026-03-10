@@ -19,6 +19,10 @@ const commonAttributes: SerializedLog['attributes'] = {
     type: 'string',
     value: expect.any(String),
   },
+  'sentry.timestamp.sequence': {
+    type: 'integer',
+    value: expect.any(Number),
+  },
   'server.address': {
     type: 'string',
     value: expect.any(String),
