@@ -109,6 +109,5 @@ describe('ScheduleInstrumentation', () => {
 
       expect(descriptor.value).toBe(originalHandler);
     });
-
   });
 });
