@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
 import { join } from 'path';
 
@@ -63,11 +63,15 @@ function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
 
 function fixDenoJson(cwd: string): void {
   const denoJsonPath = join(cwd, 'deno.json');
-  if (!existsSync(denoJsonPath)) {
+
+  let raw: string;
+  try {
+    raw = readFileSync(denoJsonPath, 'utf8');
+  } catch {
     return;
   }
 
-  const denoJson = JSON.parse(readFileSync(denoJsonPath, 'utf8')) as {
+  const denoJson = JSON.parse(raw) as {
     imports?: Record<string, string>;
   };
 
