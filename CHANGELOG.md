@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.43.0
+
 ### Important Changes
 
-- **feat(nextjs): Add Turbopack support for React component name annotation ([#19XXX](https://github.com/getsentry/sentry-javascript/pull/19XXX))**
+- **feat(nextjs): Add Turbopack support for React component name annotation ([#19604](https://github.com/getsentry/sentry-javascript/pull/19604))**
 
   We added experimental support for React component name annotation in Turbopack builds. When enabled, JSX elements
   are annotated with `data-sentry-component`, `data-sentry-element`, and `data-sentry-source-file` attributes at build
@@ -27,9 +31,49 @@
   });
   ```
 
+- **feat(hono): Instrument middlewares `app.use()` ([#19611](https://github.com/getsentry/sentry-javascript/pull/19611))**
+
+  Hono middleware registered via `app.use()` is now automatically instrumented, creating spans for each middleware invocation.
+
 ### Other Changes
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- feat(node-core,node): Add `tracePropagation` option to http and fetch integrations ([#19712](https://github.com/getsentry/sentry-javascript/pull/19712))
+- feat(hono): Use parametrized names for errors ([#19577](https://github.com/getsentry/sentry-javascript/pull/19577))
+- fix(browser): Fix missing traces for user feedback ([#19660](https://github.com/getsentry/sentry-javascript/pull/19660))
+- fix(cloudflare): Use correct Proxy receiver in `instrumentDurableObjectStorage` ([#19662](https://github.com/getsentry/sentry-javascript/pull/19662))
+- fix(core): Standardize Vercel AI span descriptions to align with GenAI semantic conventions ([#19624](https://github.com/getsentry/sentry-javascript/pull/19624))
+- fix(deps): Bump hono to 4.12.5 to fix multiple vulnerabilities ([#19653](https://github.com/getsentry/sentry-javascript/pull/19653))
+- fix(deps): Bump svgo to 4.0.1 to fix DoS via entity expansion ([#19651](https://github.com/getsentry/sentry-javascript/pull/19651))
+- fix(deps): Bump tar to 7.5.10 to fix hardlink path traversal ([#19650](https://github.com/getsentry/sentry-javascript/pull/19650))
+- fix(nextjs): Align Turbopack module metadata injection with webpack behavior ([#19645](https://github.com/getsentry/sentry-javascript/pull/19645))
+- fix(node): Prevent duplicate LangChain spans from double module patching ([#19684](https://github.com/getsentry/sentry-javascript/pull/19684))
+- fix(node-core,vercel-edge): Use HEROKU_BUILD_COMMIT env var for default release ([#19617](https://github.com/getsentry/sentry-javascript/pull/19617))
+- fix(sveltekit): Fix file system race condition in source map cleaning ([#19714](https://github.com/getsentry/sentry-javascript/pull/19714))
+- fix(tanstackstart-react): Add workerd and worker export conditions ([#19461](https://github.com/getsentry/sentry-javascript/pull/19461))
+- fix(vercel-ai): Prevent tool call span map memory leak ([#19328](https://github.com/getsentry/sentry-javascript/pull/19328))
+- feat(deps): Bump @sentry/rollup-plugin from 5.1.0 to 5.1.1 ([#19658](https://github.com/getsentry/sentry-javascript/pull/19658))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Migrate to oxlint ([#19134](https://github.com/getsentry/sentry-javascript/pull/19134))
+- chore(aws-serverless): Don't build layer in `build:dev` command ([#19586](https://github.com/getsentry/sentry-javascript/pull/19586))
+- chore(ci): Allow triage action to run on issues from external users ([#19701](https://github.com/getsentry/sentry-javascript/pull/19701))
+- chore(deps): Bump immutable from 4.0.0 to 4.3.8 ([#19637](https://github.com/getsentry/sentry-javascript/pull/19637))
+- chore(e2e): Expand microservices E2E application with auto-tracing tests ([#19652](https://github.com/getsentry/sentry-javascript/pull/19652))
+- chore(hono): Prepare readme and add craft entry ([#19583](https://github.com/getsentry/sentry-javascript/pull/19583))
+- chore(sourcemaps): Make sourcemaps e2e test more generic ([#19678](https://github.com/getsentry/sentry-javascript/pull/19678))
+- chore(tanstackstart-react): Add link to docs in README ([#19697](https://github.com/getsentry/sentry-javascript/pull/19697))
+- feat(deps): Bump @hono/node-server from 1.19.4 to 1.19.10 ([#19634](https://github.com/getsentry/sentry-javascript/pull/19634))
+- feat(deps): Bump underscore from 1.12.1 to 1.13.8 ([#19616](https://github.com/getsentry/sentry-javascript/pull/19616))
+- test(angular): Fix failing canary test ([#19639](https://github.com/getsentry/sentry-javascript/pull/19639))
+- test(nextjs): Add sourcemaps test for nextjs turbopack ([#19647](https://github.com/getsentry/sentry-javascript/pull/19647))
+- tests(e2e): Add microservices e2e for nestjs ([#19642](https://github.com/getsentry/sentry-javascript/pull/19642))
+- tests(e2e): Add websockets e2e for nestjs ([#19630](https://github.com/getsentry/sentry-javascript/pull/19630))
+
+</details>
+
+Work in this release was contributed by @dmmulroy, @lithdew, and @smorimoto. Thank you for your contributions!
 
 ## 10.42.0
 
