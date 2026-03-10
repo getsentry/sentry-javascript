@@ -1,31 +1,39 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isInstrumented } from '../src/instrument';
+import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
 
-// Mock the SDK init to avoid actual SDK initialization
-vi.mock('../src/sdk', () => ({
-  init: vi.fn(() => ({
+function createMockClient(hasTransport: boolean = true) {
+  return {
     getOptions: () => ({}),
     on: vi.fn(),
     dispose: vi.fn(),
-  })),
+    getTransport: vi.fn().mockReturnValue(hasTransport ? { send: vi.fn() } : undefined),
+  };
+}
+
+// Mock the SDK init to avoid actual SDK initialization
+vi.mock('../src/sdk', () => ({
+  init: vi.fn(() => createMockClient(true)),
 }));
 
 // Mock sentry/core functions
 vi.mock('@sentry/core', async importOriginal => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('@sentry/core')>();
   return {
     ...actual,
     getClient: vi.fn(),
-    withIsolationScope: vi.fn((callback: (scope: any) => any) => callback(createMockScope())),
-    withScope: vi.fn((callback: (scope: any) => any) => callback(createMockScope())),
+    withIsolationScope: vi.fn((callback: (scope: unknown) => unknown) => callback(createMockScope())),
+    withScope: vi.fn((callback: (scope: unknown) => unknown) => callback(createMockScope())),
     startSpan: vi.fn((opts, callback) => callback(createMockSpan())),
     captureException: vi.fn(),
     flush: vi.fn().mockResolvedValue(true),
     getActiveSpan: vi.fn(),
   };
 });
+
+const mockedWithIsolationScope = vi.mocked(sentryCore.withIsolationScope);
 
 function createMockScope() {
   return {
@@ -305,6 +313,92 @@ describe('wrapMethodWithSentry', () => {
       await wrapped.call(thisArg);
 
       expect(handler.mock.instances[0]).toBe(thisArg);
+    });
+  });
+
+  describe('client re-initialization', () => {
+    it('creates a new client when scope has no client', async () => {
+      const scope = new sentryCore.Scope();
+
+      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+
+      const spyClient = vi.spyOn(scope, 'setClient');
+      const handler = vi.fn().mockResolvedValue('result');
+      const options = {
+        options: { dsn: 'https://test@sentry.io/123' },
+        context: createMockContext(),
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+
+      await wrapped();
+
+      expect(sdk.init).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dsn: 'https://test@sentry.io/123',
+        }),
+      );
+      expect(spyClient).toHaveBeenCalled();
+    });
+
+    it('creates a new client when existing client has no transport (disposed)', async () => {
+      const disposedClient = {
+        getOptions: () => ({}),
+        on: vi.fn(),
+        dispose: vi.fn(),
+        getTransport: vi.fn().mockReturnValue(undefined),
+      } as unknown as sentryCore.Client;
+
+      const scope = new sentryCore.Scope();
+
+      scope.setClient(disposedClient);
+      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+
+      const spyClient = vi.spyOn(scope, 'setClient');
+      const handler = vi.fn().mockResolvedValue('result');
+      const options = {
+        options: { dsn: 'https://test@sentry.io/123' },
+        context: createMockContext(),
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+      await wrapped();
+
+      expect(sdk.init).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dsn: 'https://test@sentry.io/123',
+        }),
+      );
+      expect(spyClient).toHaveBeenCalled();
+    });
+
+    it('does not create a new client when existing client has valid transport', async () => {
+      const validClient = {
+        getOptions: () => ({}),
+        on: vi.fn(),
+        dispose: vi.fn(),
+        getTransport: vi.fn().mockReturnValue({ send: vi.fn() }),
+      } as unknown as sentryCore.Client;
+
+      const scope = new sentryCore.Scope();
+
+      scope.setClient(validClient);
+      mockedWithIsolationScope.mockImplementation(vi.fn(callback => callback(scope)));
+      vi.mocked(sdk.init).mockClear();
+
+      const spyClient = vi.spyOn(scope, 'setClient');
+      const handler = vi.fn().mockResolvedValue('result');
+      const options = {
+        options: { dsn: 'https://test@sentry.io/123' },
+        context: createMockContext(),
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler);
+
+      await wrapped();
+
+      expect(sdk.init).not.toHaveBeenCalled();
+      expect(spyClient).not.toHaveBeenCalled();
     });
   });
 });
