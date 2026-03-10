@@ -312,8 +312,12 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   // Build gen_ai.output.messages from response text and/or tool calls
   buildOutputMessages(attributes);
 
-  renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
-  renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+  // Remove the source attributes since they're now captured in gen_ai.output.messages
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 

@@ -253,9 +253,7 @@ function truncateContentArrayMessage(message: ContentArrayMessage, maxBytes: num
   const textPart = content[textPartIndex] as { type: string; text: string };
 
   // Calculate overhead (message structure with empty text)
-  const emptyContent = content.map((part, i) =>
-    i === textPartIndex ? { ...textPart, text: '' } : part,
-  );
+  const emptyContent = content.map((part, i) => (i === textPartIndex ? { ...textPart, text: '' } : part));
   const emptyMessage = { ...message, content: emptyContent };
   const overhead = jsonBytes(emptyMessage);
   const availableForText = maxBytes - overhead;
