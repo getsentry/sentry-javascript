@@ -262,7 +262,7 @@ function isCacheHit(key: string, value: unknown): boolean {
     }
 
     return validateCacheEntry(key, JSON.parse(String(value)) as CacheEntry);
-  } catch (_error) {
+  } catch {
     // this is a best effort, so we return false if we can't validate the cache entry
     return false;
   }

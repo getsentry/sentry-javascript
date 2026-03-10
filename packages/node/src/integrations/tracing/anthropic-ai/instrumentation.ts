@@ -89,7 +89,7 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     // The Anthropic property might have only a getter, so use defineProperty
     try {
       exports.Anthropic = WrappedAnthropic;
-    } catch (_error) {
+    } catch {
       // If direct assignment fails, override the property descriptor
       Object.defineProperty(exports, 'Anthropic', {
         value: WrappedAnthropic,
@@ -105,7 +105,7 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     if (exports.default === Original) {
       try {
         exports.default = WrappedAnthropic;
-      } catch (_error) {
+      } catch {
         // If direct assignment fails, override the property descriptor
         Object.defineProperty(exports, 'default', {
           value: WrappedAnthropic,
