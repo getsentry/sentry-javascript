@@ -135,6 +135,7 @@ export {
   createSentryWinstonTransport,
   vercelAIIntegration,
   metrics,
+  spanStreamingIntegration,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
