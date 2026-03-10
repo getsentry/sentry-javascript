@@ -1,0 +1,24 @@
+{
+  "name": "astro-6",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "start": "node ./dist/server/entry.mjs",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/astro": "latest || *",
+    "astro": "^6.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
