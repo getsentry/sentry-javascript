@@ -110,6 +110,7 @@ export class AppController {
   async triggerScheduleTimeoutError() {
     // Manually calls the @Timeout-decorated method to test instrumentation
     // without relying on NestJS scheduler timing.
+    // Without this, it's hard to get the timing right for the test.
     await this.scheduleService.handleTimeoutError();
     return { message: 'triggered' };
   }
