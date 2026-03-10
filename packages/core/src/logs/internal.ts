@@ -10,6 +10,7 @@ import { isParameterizedString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
+import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
@@ -154,8 +155,11 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
+  const timestamp = timestampInSeconds();
+  const sequenceAttr = getSequenceAttribute(timestamp);
+
   const serializedLog: SerializedLog = {
-    timestamp: timestampInSeconds(),
+    timestamp,
     level,
     body: message,
     trace_id: traceContext?.trace_id,
@@ -163,6 +167,7 @@ export function _INTERNAL_captureLog(
     attributes: {
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
+      [sequenceAttr.key]: sequenceAttr.value,
     },
   };
 

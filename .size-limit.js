@@ -124,7 +124,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'logger'),
     gzip: true,
-    limit: '27 KB',
+    limit: '28 KB',
   },
   {
     name: '@sentry/browser (incl. Metrics & Logs)',
@@ -262,7 +262,7 @@ module.exports = [
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '209 KB',
+    limit: '210 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
