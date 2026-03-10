@@ -86,6 +86,7 @@ test('Multiple OnEvent decorators', async () => {
 
   expect(firstTx).toBeDefined();
   expect(secondTx).toBeDefined();
-  // assert that the correct payloads were added
-  expect(rootTx.tags).toMatchObject({ 'test-first': true, 'test-second': true });
+  // With isolation scope forking, tags set in event handlers should NOT leak onto the root HTTP transaction
+  expect(rootTx.tags?.['test-first']).toBeUndefined();
+  expect(rootTx.tags?.['test-second']).toBeUndefined();
 });
