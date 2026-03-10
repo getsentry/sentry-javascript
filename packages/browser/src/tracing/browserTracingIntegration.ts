@@ -54,6 +54,22 @@ import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
+/**
+ * We don't want to start a bunch of idle timers and PerformanceObservers
+ * for web crawlers, as they may prevent the page from being seen as "idle"
+ * by the crawler's rendering engine (e.g. Googlebot's headless Chromium).
+ */
+const BOT_USER_AGENT_RE =
+  /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
+
+function _isBotUserAgent(): boolean {
+  const nav = WINDOW.navigator as Navigator | undefined;
+  if (!nav?.userAgent) {
+    return false;
+  }
+  return BOT_USER_AGENT_RE.test(nav.userAgent);
+}
+
 interface RouteInfo {
   name: string | undefined;
   source: TransactionSource | undefined;
@@ -384,6 +400,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ...options,
   };
 
+  const _isBot = _isBotUserAgent();
+
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
@@ -484,6 +502,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
     setup(client) {
+      if (_isBot) {
+        DEBUG_BUILD && debug.log('[Tracing] Skipping browserTracingIntegration setup for bot user agent.');
+        return;
+      }
+
       registerSpanErrorInstrumentation();
 
       _collectWebVitals = startTrackingWebVitals({
@@ -630,6 +653,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     },
 
     afterAllSetup(client) {
+      if (_isBot) {
+        return;
+      }
+
       let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {

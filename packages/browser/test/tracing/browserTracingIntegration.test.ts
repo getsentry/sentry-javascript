@@ -86,6 +86,68 @@ describe('browserTracingIntegration', () => {
     Object.defineProperty(WINDOW, 'history', { value: originalGlobalHistory });
   });
 
+  describe('bot user agent detection', () => {
+    let originalNavigator: Navigator;
+
+    beforeEach(() => {
+      originalNavigator = WINDOW.navigator;
+    });
+
+    afterEach(() => {
+      Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
+    });
+
+    function setUserAgent(ua: string): void {
+      Object.defineProperty(WINDOW, 'navigator', {
+        value: { userAgent: ua },
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    it.each([
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/W.X.Y.Z Safari/537.36',
+      'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)',
+      'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+      'LinkedInBot/1.0 (compatible; Mozilla/5.0)',
+      'Twitterbot/1.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15 (Applebot/0.1)',
+      'Mozilla/5.0 (compatible; Google-InspectionTool/1.0)',
+    ])('skips tracing setup for bot user agent: %s', ua => {
+      setUserAgent(ua);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(getActiveSpan()).toBeUndefined();
+    });
+
+    it('does not skip tracing setup for normal user agents', () => {
+      setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      );
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(getActiveSpan()).toBeDefined();
+    });
+  });
+
   it('works with tracing enabled', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({

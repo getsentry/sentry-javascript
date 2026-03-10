@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { captureException, SDK_VERSION, startSpan } from '@sentry/core';
+import { captureException, SDK_VERSION, startSpan, withIsolationScope } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
 import type { OnEventTarget } from './types';
 
@@ -110,21 +110,23 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
               }
             }
 
-            return startSpan(getEventSpanOptions(eventName), async () => {
-              try {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                const result = await originalHandler.apply(this, args);
-                return result;
-              } catch (error) {
-                // exceptions from event handlers are not caught by global error filter
-                captureException(error, {
-                  mechanism: {
-                    handled: false,
-                    type: 'auto.event.nestjs',
-                  },
-                });
-                throw error;
-              }
+            return withIsolationScope(() => {
+              return startSpan(getEventSpanOptions(eventName), async () => {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  const result = await originalHandler.apply(this, args);
+                  return result;
+                } catch (error) {
+                  // exceptions from event handlers are not caught by global error filter
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                      type: 'auto.event.nestjs',
+                    },
+                  });
+                  throw error;
+                }
+              });
             });
           };
 
