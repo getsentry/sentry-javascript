@@ -1,6 +1,7 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import type { LegacyCSPReport } from './types-hoist/csp';
 import type { DsnComponents } from './types-hoist/dsn';
 import type {
@@ -152,7 +153,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
-        const processedSpan = beforeSendSpan(spanJson);
+        const processedSpan = !isStreamedBeforeSendSpanCallback(beforeSendSpan) ? beforeSendSpan(spanJson) : spanJson;
 
         if (!processedSpan) {
           showSpanDropWarning();

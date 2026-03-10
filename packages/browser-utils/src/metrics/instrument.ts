@@ -95,7 +95,20 @@ interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender' | 'restore';
+  navigationType:
+    | 'navigate'
+    | 'reload'
+    | 'back-forward'
+    | 'back-forward-cache'
+    | 'prerender'
+    | 'restore'
+    | 'soft-navigation';
+
+  /**
+   * The navigationId the metric belongs to. Relevant for soft navigations
+   * where multiple navigations can occur within a single page lifecycle.
+   */
+  navigationId: string;
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
@@ -125,8 +138,9 @@ let _previousInp: Metric | undefined;
 export function addClsInstrumentationHandler(
   callback: (data: { metric: Metric }) => void,
   stopOnCallback = false,
+  reportSoftNavs?: boolean,
 ): CleanupHandlerCallback {
-  return addMetricObserver('cls', callback, instrumentCls, _previousCls, stopOnCallback);
+  return addMetricObserver('cls', callback, () => instrumentCls(reportSoftNavs), _previousCls, stopOnCallback);
 }
 
 /**
@@ -139,15 +153,19 @@ export function addClsInstrumentationHandler(
 export function addLcpInstrumentationHandler(
   callback: (data: { metric: Metric }) => void,
   stopOnCallback = false,
+  reportSoftNavs?: boolean,
 ): CleanupHandlerCallback {
-  return addMetricObserver('lcp', callback, instrumentLcp, _previousLcp, stopOnCallback);
+  return addMetricObserver('lcp', callback, () => instrumentLcp(reportSoftNavs), _previousLcp, stopOnCallback);
 }
 
 /**
  * Add a callback that will be triggered when a TTFD metric is available.
  */
-export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
-  return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
+export function addTtfbInstrumentationHandler(
+  callback: (data: { metric: Metric }) => void,
+  reportSoftNavs?: boolean,
+): CleanupHandlerCallback {
+  return addMetricObserver('ttfb', callback, () => instrumentTtfb(reportSoftNavs), _previousTtfb);
 }
 
 export type InstrumentationHandlerCallback = (data: {
@@ -160,8 +178,11 @@ export type InstrumentationHandlerCallback = (data: {
  * Add a callback that will be triggered when a INP metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
  */
-export function addInpInstrumentationHandler(callback: InstrumentationHandlerCallback): CleanupHandlerCallback {
-  return addMetricObserver('inp', callback, instrumentInp, _previousInp);
+export function addInpInstrumentationHandler(
+  callback: InstrumentationHandlerCallback,
+  reportSoftNavs?: boolean,
+): CleanupHandlerCallback {
+  return addMetricObserver('inp', callback, () => instrumentInp(reportSoftNavs), _previousInp);
 }
 
 export function addPerformanceInstrumentationHandler(
@@ -213,7 +234,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   }
 }
 
-function instrumentCls(): StopListening {
+function instrumentCls(reportSoftNavs?: boolean): StopListening {
   return onCLS(
     metric => {
       triggerHandlers('cls', {
@@ -223,11 +244,11 @@ function instrumentCls(): StopListening {
     },
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: true, reportSoftNavs },
   );
 }
 
-function instrumentLcp(): StopListening {
+function instrumentLcp(reportSoftNavs?: boolean): StopListening {
   return onLCP(
     metric => {
       triggerHandlers('lcp', {
@@ -237,26 +258,26 @@ function instrumentLcp(): StopListening {
     },
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: true, reportSoftNavs },
   );
 }
 
-function instrumentTtfb(): StopListening {
+function instrumentTtfb(reportSoftNavs?: boolean): StopListening {
   return onTTFB(metric => {
     triggerHandlers('ttfb', {
       metric,
     });
     _previousTtfb = metric;
-  });
+  }, { reportSoftNavs });
 }
 
-function instrumentInp(): void {
+function instrumentInp(reportSoftNavs?: boolean): void {
   return onINP(metric => {
     triggerHandlers('inp', {
       metric,
     });
     _previousInp = metric;
-  });
+  }, { reportSoftNavs });
 }
 
 function addMetricObserver(

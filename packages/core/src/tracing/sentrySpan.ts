@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -21,6 +22,7 @@ import type {
   SpanJSON,
   SpanOrigin,
   SpanTimeInput,
+  StreamedSpanJSON,
 } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
@@ -29,8 +31,10 @@ import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   convertSpanLinksForEnvelope,
   getRootSpan,
+  getSimpleStatusMessage,
   getSpanDescendants,
   getStatusMessage,
+  getStreamedSpanLinks,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
@@ -41,6 +45,7 @@ import { timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
+import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { getCapturedScopesOnSpan } from './utils';
 
 const MAX_SPAN_COUNT = 1000;
@@ -241,6 +246,30 @@ export class SentrySpan implements Span {
     };
   }
 
+  /**
+   * Get {@link StreamedSpanJSON} representation of this span.
+   *
+   * @hidden
+   * @internal This method is purely for internal purposes and should not be used outside
+   * of SDK code. If you need to get a JSON representation of a span,
+   * use `spanToStreamedSpanJSON(span)` instead.
+   */
+  public getStreamedSpanJSON(): StreamedSpanJSON {
+    return {
+      name: this._name ?? '',
+      span_id: this._spanId,
+      trace_id: this._traceId,
+      parent_span_id: this._parentSpanId,
+      start_timestamp: this._startTime,
+      // just in case _endTime is not set, we use the start time (i.e. duration 0)
+      end_timestamp: this._endTime ?? this._startTime,
+      is_segment: this._isStandaloneSpan || this === getRootSpan(this),
+      status: getSimpleStatusMessage(this._status),
+      attributes: this._attributes,
+      links: getStreamedSpanLinks(this._links),
+    };
+  }
+
   /** @inheritdoc */
   public isRecording(): boolean {
     return !this._endTime && !!this._sampled;
@@ -287,6 +316,14 @@ export class SentrySpan implements Span {
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
+      // Guarding sending standalone v1 spans as v2 streamed spans for now.
+      // Otherwise they'd be sent once as v1 spans and again as streamed spans.
+      // We'll migrate CLS and LCP spans to streamed spans in a later PR and
+      // INP spans in the next major of the SDK. At that point, we can fully remove
+      // standalone v1 spans <3
+      if (!this._isStandaloneSpan) {
+        client.emit('afterSpanEnd', this);
+      }
     }
 
     // A segment span is basically the root span of a local span tree.
@@ -309,6 +346,10 @@ export class SentrySpan implements Span {
           client.recordDroppedEvent('sample_rate', 'span');
         }
       }
+      return;
+    } else if (client && hasSpanStreamingEnabled(client)) {
+      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+      client.emit('afterSegmentSpanEnd', this);
       return;
     }
 

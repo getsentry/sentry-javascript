@@ -71,12 +71,74 @@ const MAX_INT_AS_BYTES = 2147483647;
 let _performanceCursor: number = 0;
 
 let _measurements: Measurements = {};
+let _softNavMeasurements: Map<string, Measurements> = new Map();
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+
+function _setMeasurement(
+  metric: { navigationType: string; navigationId: string },
+  name: string,
+  value: number,
+  unit: string,
+): void {
+  if (metric.navigationType !== 'soft-navigation') {
+    _measurements[name] = { value, unit };
+    return;
+  }
+
+  let measurements = _softNavMeasurements.get(metric.navigationId);
+  if (!measurements) {
+    measurements = {};
+    _softNavMeasurements.set(metric.navigationId, measurements);
+  }
+  measurements[name] = { value, unit };
+}
+
+/**
+ * Find the navigationId of a soft-navigation performance entry whose start time
+ * falls within the given span time window.
+ */
+function _findMatchingSoftNavId(
+  spanStartTime: number,
+  spanEndTime: number,
+  timeOrigin: number,
+): string | undefined {
+  try {
+    const softNavEntries = performance.getEntriesByType('soft-navigation');
+    for (const entry of softNavEntries) {
+      const entryTime = timeOrigin + msToSec(entry.startTime);
+      if (entryTime >= spanStartTime && entryTime <= spanEndTime) {
+        // The entry is a SoftNavigationEntry with a navigationId property
+        return (entry as PerformanceEntry & { navigationId?: string }).navigationId;
+      }
+    }
+  } catch {
+    // soft-navigation entry type not supported
+  }
+  return undefined;
+}
+
+/**
+ * Get the start time (in seconds) of a soft-navigation entry by its navigationId.
+ */
+function _getSoftNavEntryTime(navigationId: string, timeOrigin: number): number | undefined {
+  try {
+    const softNavEntries = performance.getEntriesByType('soft-navigation');
+    for (const entry of softNavEntries) {
+      if ((entry as PerformanceEntry & { navigationId?: string }).navigationId === navigationId) {
+        return timeOrigin + msToSec(entry.startTime);
+      }
+    }
+  } catch {
+    // soft-navigation entry type not supported
+  }
+  return undefined;
+}
 
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
   recordLcpStandaloneSpans: boolean;
+  reportSoftNavs: boolean;
   client: Client;
 }
 
@@ -89,6 +151,7 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({
   recordClsStandaloneSpans,
   recordLcpStandaloneSpans,
+  reportSoftNavs,
   client,
 }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
@@ -97,9 +160,13 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
-    const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
+    const lcpCleanupCallback = recordLcpStandaloneSpans
+      ? trackLcpAsStandaloneSpan(client)
+      : _trackLCP(reportSoftNavs);
+    const ttfbCleanupCallback = _trackTtfb(reportSoftNavs);
+    const clsCleanupCallback = recordClsStandaloneSpans
+      ? trackClsAsStandaloneSpan(client)
+      : _trackCLS(reportSoftNavs);
 
     return (): void => {
       lcpCleanupCallback?.();
@@ -245,39 +312,37 @@ export { registerInpInteractionListener, startTrackingINP } from './inp';
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
  * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
  */
-function _trackCLS(): () => void {
+function _trackCLS(reportSoftNavs?: boolean): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
-    _measurements['cls'] = { value: metric.value, unit: '' };
+    _setMeasurement(metric, 'cls', metric.value, '');
     _clsEntry = entry;
-  }, true);
+  }, true, reportSoftNavs);
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): () => void {
+function _trackLCP(reportSoftNavs?: boolean): () => void {
   return addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }
-
-    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+    _setMeasurement(metric, 'lcp', metric.value, 'millisecond');
     _lcpEntry = entry as LargestContentfulPaint;
-  }, true);
+  }, true, reportSoftNavs);
 }
 
-function _trackTtfb(): () => void {
+function _trackTtfb(reportSoftNavs?: boolean): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }
-
-    _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
-  });
+    _setMeasurement(metric, 'ttfb', metric.value, 'millisecond');
+  }, reportSoftNavs);
 }
 
 interface AddPerformanceEntriesOptions {
@@ -418,6 +483,34 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     span.setAttribute('performance.activationStart', getActivationStart());
 
     _setWebVitalAttributes(span, options);
+  }
+
+  // Flush soft navigation web vital measurements onto navigation spans.
+  // We match by finding the soft-navigation performance entry whose start time
+  // falls within the navigation span's time window, then look up measurements
+  // by that entry's navigationId.
+  if (op === 'navigation' && _softNavMeasurements.size > 0) {
+    const spanStartTime = transactionStartTime || 0;
+    const spanEndTime = spanToJSON(span).timestamp || Infinity;
+
+    const matchedNavigationId = _findMatchingSoftNavId(spanStartTime, spanEndTime, timeOrigin);
+    if (matchedNavigationId) {
+      const measurements = _softNavMeasurements.get(matchedNavigationId);
+      if (measurements) {
+        Object.entries(measurements).forEach(([measurementName, measurement]) => {
+          setMeasurement(measurementName, measurement.value, measurement.unit);
+        });
+      }
+    }
+
+    // Clear all entries older than this span to prevent unbounded growth.
+    // Any unmatched entries from before this span's end time will never be flushed.
+    for (const [navigationId] of _softNavMeasurements) {
+      const entryTime = _getSoftNavEntryTime(navigationId, timeOrigin);
+      if (entryTime !== undefined && entryTime <= spanEndTime) {
+        _softNavMeasurements.delete(navigationId);
+      }
+    }
   }
 
   _lcpEntry = undefined;
