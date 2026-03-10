@@ -19,7 +19,9 @@ export class ScheduleService {
   }
 
   // --- @Timeout error test ---
-  @Timeout('test-schedule-timeout-error', 500)
+  // Use a very long delay so this doesn't fire on its own during tests.
+  // The test triggers the method via an HTTP endpoint instead.
+  @Timeout('test-schedule-timeout-error', 60000)
   async handleTimeoutError() {
     throw new Error('Test error from schedule timeout');
   }

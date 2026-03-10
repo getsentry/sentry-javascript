@@ -35,9 +35,19 @@ test('Sends exceptions to Sentry on error in @Interval decorated method', async 
   await fetch(`${baseURL}/kill-test-schedule-interval/test-schedule-interval-error`);
 });
 
-test('Sends exceptions to Sentry on error in @Timeout decorated method', async () => {
+test('Sends exceptions to Sentry on error in @Timeout decorated method', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from schedule timeout';
+    return (
+      !event.type &&
+      event.exception?.values?.[0]?.value === 'Test error from schedule timeout' &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.timeout'
+    );
+  });
+
+  // Trigger the @Timeout-decorated method via HTTP endpoint since @Timeout
+  // fires once and timing is unreliable across test runs.
+  fetch(`${baseURL}/trigger-schedule-timeout-error`).catch(() => {
+    // Expected to fail since the handler throws
   });
 
   const errorEvent = await errorEventPromise;
