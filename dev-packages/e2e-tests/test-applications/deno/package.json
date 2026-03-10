@@ -10,7 +10,8 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/deno": "latest || *"
+    "@sentry/deno": "latest || *",
+    "@opentelemetry/api": "^1.9.0"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

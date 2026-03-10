@@ -1,5 +1,4 @@
 {
-  "nodeModulesDir": "auto",
   "imports": {
     "@sentry/deno": "../../../../packages/deno/build/esm/index.js",
     "@sentry/core": "../../../../packages/core/build/esm/index.js",
