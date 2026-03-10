@@ -18,6 +18,7 @@ export declare function init(options: RemixOptions): Client | undefined;
 export declare const browserTracingIntegration: typeof clientSdk.browserTracingIntegration;
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
+export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;

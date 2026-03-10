@@ -14,6 +14,7 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -124,6 +125,10 @@ function _init(
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
       }),
     );
+  }
+
+  if (options.traceLifecycle === 'stream' && !options.integrations.some(({ name }) => name === 'SpanStreaming')) {
+    options.integrations.push(spanStreamingIntegration());
   }
 
   applySdkMetadata(options, 'node-core');

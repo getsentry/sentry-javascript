@@ -18,6 +18,7 @@ export declare function init(options: Options | clientSdk.BrowserOptions | serve
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
+export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
