@@ -16,6 +16,9 @@ const COMPONENT = '@nestjs/event-emitter';
  * Custom instrumentation for nestjs event-emitter
  *
  * This hooks into the `OnEvent` decorator, which is applied on event handlers.
+ * Wrapped handlers run inside a forked isolation scope to ensure event-scoped data
+ * (breadcrumbs, tags, etc.) does not leak between concurrent event invocations
+ * or into subsequent HTTP requests.
  */
 export class SentryNestEventInstrumentation extends InstrumentationBase {
   public constructor(config: InstrumentationConfig = {}) {
