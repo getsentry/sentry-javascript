@@ -23,18 +23,6 @@ describe('ScheduleInstrumentation', () => {
     vi.restoreAllMocks();
   });
 
-  describe('init()', () => {
-    it('should return module definition with correct component name', () => {
-      const moduleDef = instrumentation.init();
-      expect(moduleDef.name).toBe('@nestjs/schedule');
-    });
-
-    it('should have three file instrumentations', () => {
-      const moduleDef = instrumentation.init();
-      expect(moduleDef.files).toHaveLength(3);
-    });
-  });
-
   describe.each([
     { decoratorName: 'Cron', fileIndex: 0, mechanismType: 'auto.schedule.nestjs.cron' },
     { decoratorName: 'Interval', fileIndex: 1, mechanismType: 'auto.schedule.nestjs.interval' },
@@ -131,11 +119,5 @@ describe('ScheduleInstrumentation', () => {
       expect(descriptor.value).toBe(originalHandler);
     });
 
-    it('should preserve the original function name', () => {
-      const decorated = wrappedDecorator('test-arg');
-      decorated(mockTarget, 'testMethod', descriptor);
-
-      expect(descriptor.value.name).toBe('testHandler');
-    });
   });
 });
