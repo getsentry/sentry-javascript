@@ -9,6 +9,9 @@
     "test:build": "pnpm install",
     "test:assert": "pnpm test"
   },
+  "dependencies": {
+    "@sentry/deno": "latest || *"
+  },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"

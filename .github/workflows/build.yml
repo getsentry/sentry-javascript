@@ -1017,6 +1017,11 @@ jobs:
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Deno
+        if: matrix.test-application == 'deno'
+        uses: denoland/setup-deno@v2.0.3
+        with:
+          deno-version: v2.1.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
