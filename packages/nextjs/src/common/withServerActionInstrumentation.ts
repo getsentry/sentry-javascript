@@ -120,6 +120,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               },
             },
             async span => {
+              // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
               const result = await handleCallbackErrors(callback, error => {
                 if (isNotFoundNavigationError(error)) {
                   // We don't want to report "not-found"s

@@ -42,6 +42,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
         },
       },
       async span => {
+        // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
         const result = await handleCallbackErrors(callback, error => {
           if (!isRedirect(error)) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });

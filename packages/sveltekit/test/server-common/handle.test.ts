@@ -314,7 +314,7 @@ describe('sentryHandle', () => {
     it('send errors to Sentry', async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch (_e) {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
           mechanism: { handled: false, type: 'auto.function.sveltekit.handle' },

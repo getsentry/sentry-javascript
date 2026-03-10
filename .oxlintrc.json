@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "jsdoc", "jest", "vitest"],
+  "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "jsPlugins": [
     {
       "name": "sdk",
@@ -9,6 +9,11 @@
   ],
   "categories": {},
   "rules": {
+    "no-unused-vars": [
+      "warn",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }
+    ],
+
     // === Base rules from eslint-config-sdk/base.js ===
     "no-console": "error",
     "no-alert": "error",
@@ -27,28 +32,18 @@
     "import/namespace": "off",
     "import/no-unresolved": "off",
 
-    // === Jest/Vitest rules ===
-    "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error",
-
     // === Rules turned off (not enforced in ESLint or causing false positives) ===
     "no-control-regex": "off",
     "jsdoc/check-tag-names": "off",
     "jsdoc/require-yields": "off",
     "no-useless-rename": "off",
     "no-constant-binary-expression": "off",
-    "jest/no-conditional-expect": "off",
-    "jest/expect-expect": "off",
-    "jest/no-standalone-expect": "off",
-    "jest/require-to-throw-message": "off",
-    "jest/valid-title": "off",
-    "jest/no-export": "off",
-    "jest/valid-describe-callback": "off",
     "vitest/hoisted-apis-on-top": "off",
     "vitest/no-conditional-tests": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
+    "typescript/no-duplicate-type-constituents": "off",
 
     // === Custom SDK rules (via JS plugin) ===
     "sdk/no-eq-empty": "error"
@@ -61,17 +56,17 @@
         "typescript/consistent-type-imports": "error",
         "typescript/no-unnecessary-type-assertion": "error",
         "typescript/prefer-for-of": "error",
-        // "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
+        "typescript/no-floating-promises": ["error", { "ignoreVoid": true }],
         "typescript/no-dynamic-delete": "error",
-        // "typescript/no-unsafe-member-access": "error",
+        "typescript/no-unsafe-member-access": "error",
         "typescript/unbound-method": "error",
         "typescript/no-explicit-any": "error",
         "typescript/no-empty-function": "off",
-
-        // === FIXME: Rules to turn back as error ===
-        "typescript/prefer-optional-chain": "warn",
-        "typescript/no-floating-promises": "warn",
-        "typescript/no-unsafe-member-access": "warn"
+        "typescript/prefer-optional-chain": ["error"],
+        "typescript/no-redundant-type-constituents": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/await-thenable": "warn",
+        "typescript/no-base-to-string": "warn"
       }
     },
     {
@@ -111,7 +106,12 @@
         "typescript/no-floating-promises": "off",
         "typescript/unbound-method": "off",
         "max-lines": "off",
-        "complexity": "off"
+        "complexity": "off",
+        "typescript/prefer-optional-chain": "off",
+        "typescript/no-misused-spread": "off",
+        "typescript/require-array-sort-compare": "off",
+        "typescript/no-base-to-string": "off",
+        "typescript/await-thenable": "off"
       }
     },
     {

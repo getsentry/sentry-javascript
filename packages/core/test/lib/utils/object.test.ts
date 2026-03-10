@@ -343,6 +343,7 @@ describe('objectify()', () => {
     testOnlyIfNodeVersionAtLeast(10)('bigint', () => {
       // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
       // assignment needs to not even be parsed as code in those versions
+      // oxlint-disable-next-line no-unassigned-vars
       let bigintPrimitive;
       eval('bigintPrimitive = 1231n;');
 
