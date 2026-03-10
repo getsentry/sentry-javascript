@@ -44,14 +44,15 @@ function sendMetricToSentry(pair: MetricPair.MetricPair.Untyped): void {
   }
 }
 
-const previousCounterValues = new Map<string, number>();
-
 function getMetricId(pair: MetricPair.MetricPair.Untyped): string {
   const tags = pair.metricKey.tags.map(t => `${t.key}=${t.value}`).join(',');
   return `${pair.metricKey.name}:${tags}`;
 }
 
-function sendDeltaMetricToSentry(pair: MetricPair.MetricPair.Untyped): void {
+function sendDeltaMetricToSentry(
+  pair: MetricPair.MetricPair.Untyped,
+  previousCounterValues: Map<string, number>,
+): void {
   const { metricKey, metricState } = pair;
   const name = metricKey.name;
   const attributes = labelsToAttributes(metricKey.tags);
@@ -75,34 +76,60 @@ function sendDeltaMetricToSentry(pair: MetricPair.MetricPair.Untyped): void {
 
 /**
  * Flushes all Effect metrics to Sentry.
- * This is called periodically by the SentryEffectMetricsLayer.
- * Exported for testing purposes.
- * @internal
+ * @param previousCounterValues - Map tracking previous counter values for delta calculation
  */
-export function flushMetricsToSentry(): void {
+function flushMetricsToSentry(previousCounterValues: Map<string, number>): void {
   const snapshot = Metric.unsafeSnapshot();
 
-  snapshot.forEach(pair => {
+  snapshot.forEach((pair: MetricPair.MetricPair.Untyped) => {
     if (MetricKeyType.isCounterKey(pair.metricKey.keyType)) {
-      sendDeltaMetricToSentry(pair);
+      sendDeltaMetricToSentry(pair, previousCounterValues);
     } else {
       sendMetricToSentry(pair);
     }
   });
 }
 
-const metricsReporterEffect = Effect.gen(function* () {
+/**
+ * Creates a metrics flusher with its own isolated state for delta tracking.
+ * Useful for testing scenarios where you need to control the lifecycle.
+ * @internal
+ */
+export function createMetricsFlusher(): {
+  flush: () => void;
+  clear: () => void;
+} {
+  const previousCounterValues = new Map<string, number>();
+  return {
+    flush: () => flushMetricsToSentry(previousCounterValues),
+    clear: () => previousCounterValues.clear(),
+  };
+}
+
+function createMetricsReporterEffect(previousCounterValues: Map<string, number>): Effect.Effect<void, never, never> {
   const schedule = Schedule.spaced('10 seconds');
 
-  yield* Effect.repeat(
-    Effect.sync(() => flushMetricsToSentry()),
+  return Effect.repeat(
+    Effect.sync(() => flushMetricsToSentry(previousCounterValues)),
     schedule,
-  );
-}).pipe(Effect.interruptible);
+  ).pipe(Effect.asVoid, Effect.interruptible);
+}
 
 /**
  * Effect Layer that periodically flushes metrics to Sentry.
+ * The layer manages its own state for delta counter calculations,
+ * which is automatically cleaned up when the layer is finalized.
  */
 export const SentryEffectMetricsLayer: Layer.Layer<never, never, never> = scopedDiscard(
-  Effect.forkScoped(metricsReporterEffect),
+  Effect.gen(function* () {
+    const previousCounterValues = new Map<string, number>();
+
+    yield* Effect.acquireRelease(Effect.void, () =>
+      Effect.sync(() => {
+        previousCounterValues.clear();
+      }),
+    );
+
+    yield* Effect.forkScoped(createMetricsReporterEffect(previousCounterValues));
+  }),
 );

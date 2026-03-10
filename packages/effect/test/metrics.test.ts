@@ -2,7 +2,7 @@ import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import { Duration, Effect, Metric, MetricBoundaries, MetricLabel } from 'effect';
 import { afterEach, beforeEach, vi } from 'vitest';
-import { flushMetricsToSentry } from '../src/metrics';
+import { createMetricsFlusher } from '../src/metrics';
 
 describe('SentryEffectMetricsLayer', () => {
   const mockCount = vi.fn();
@@ -140,7 +140,7 @@ describe('SentryEffectMetricsLayer', () => {
   );
 });
 
-describe('flushMetricsToSentry', () => {
+describe('createMetricsFlusher', () => {
   const mockCount = vi.fn();
   const mockGauge = vi.fn();
   const mockDistribution = vi.fn();
@@ -158,12 +158,13 @@ describe('flushMetricsToSentry', () => {
 
   it.effect('sends counter metrics to Sentry', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const counter = Metric.counter('flush_test_counter');
 
       yield* Metric.increment(counter);
       yield* Metric.incrementBy(counter, 4);
 
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_counter', 5, { attributes: {} });
     }),
@@ -171,11 +172,12 @@ describe('flushMetricsToSentry', () => {
 
   it.effect('sends gauge metrics to Sentry', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const gauge = Metric.gauge('flush_test_gauge');
 
       yield* Metric.set(gauge, 42);
 
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_gauge', 42, { attributes: {} });
     }),
@@ -183,6 +185,7 @@ describe('flushMetricsToSentry', () => {
 
   it.effect('sends histogram metrics to Sentry', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const histogram = Metric.histogram(
         'flush_test_histogram',
         MetricBoundaries.linear({ start: 0, width: 10, count: 5 }),
@@ -191,7 +194,7 @@ describe('flushMetricsToSentry', () => {
       yield* Metric.update(histogram, 5);
       yield* Metric.update(histogram, 15);
 
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockDistribution).toHaveBeenCalledWith('flush_test_histogram.sum', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.count', expect.any(Number), { attributes: {} });
@@ -200,15 +203,40 @@ describe('flushMetricsToSentry', () => {
     }),
   );
 
+  it.effect('sends summary metrics to Sentry', () =>
+    Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
+      const summary = Metric.summary({
+        name: 'flush_test_summary',
+        maxAge: '1 minute',
+        maxSize: 100,
+        error: 0.01,
+        quantiles: [0.5, 0.9, 0.99],
+      });
+
+      yield* Metric.update(summary, 10);
+      yield* Metric.update(summary, 20);
+      yield* Metric.update(summary, 30);
+
+      flusher.flush();
+
+      expect(mockDistribution).toHaveBeenCalledWith('flush_test_summary.sum', 60, { attributes: {} });
+      expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.count', 3, { attributes: {} });
+      expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.min', 10, { attributes: {} });
+      expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.max', 30, { attributes: {} });
+    }),
+  );
+
   it.effect('sends frequency metrics to Sentry', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const frequency = Metric.frequency('flush_test_frequency');
 
       yield* Metric.update(frequency, 'apple');
       yield* Metric.update(frequency, 'banana');
       yield* Metric.update(frequency, 'apple');
 
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_frequency', 2, { attributes: { word: 'apple' } });
       expect(mockCount).toHaveBeenCalledWith('flush_test_frequency', 1, { attributes: { word: 'banana' } });
@@ -217,13 +245,14 @@ describe('flushMetricsToSentry', () => {
 
   it.effect('sends metrics with labels as attributes to Sentry', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const gauge = Metric.gauge('flush_test_labeled_gauge').pipe(
         Metric.taggedWithLabels([MetricLabel.make('env', 'production'), MetricLabel.make('region', 'us-east')]),
       );
 
       yield* Metric.set(gauge, 100);
 
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_labeled_gauge', 100, {
         attributes: { env: 'production', region: 'us-east' },
@@ -233,17 +262,60 @@ describe('flushMetricsToSentry', () => {
 
   it.effect('sends counter delta values on subsequent flushes', () =>
     Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
       const counter = Metric.counter('flush_test_delta_counter');
 
       yield* Metric.incrementBy(counter, 10);
-      flushMetricsToSentry();
+      flusher.flush();
 
       mockCount.mockClear();
 
       yield* Metric.incrementBy(counter, 5);
-      flushMetricsToSentry();
+      flusher.flush();
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_delta_counter', 5, { attributes: {} });
     }),
   );
+
+  it.effect('does not send counter when delta is zero', () =>
+    Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
+      const counter = Metric.counter('flush_test_zero_delta');
+
+      yield* Metric.incrementBy(counter, 10);
+      flusher.flush();
+
+      mockCount.mockClear();
+
+      flusher.flush();
+
+      expect(mockCount).not.toHaveBeenCalledWith('flush_test_zero_delta', 0, { attributes: {} });
+    }),
+  );
+
+  it.effect('clear() resets delta tracking state', () =>
+    Effect.gen(function* () {
+      const flusher = createMetricsFlusher();
+      const counter = Metric.counter('flush_test_clear_counter');
+
+      yield* Metric.incrementBy(counter, 10);
+      flusher.flush();
+
+      mockCount.mockClear();
+      flusher.clear();
+
+      flusher.flush();
+
+      expect(mockCount).toHaveBeenCalledWith('flush_test_clear_counter', 10, { attributes: {} });
+    }),
+  );
+
+  it('each flusher has isolated state', () => {
+    const flusher1 = createMetricsFlusher();
+    const flusher2 = createMetricsFlusher();
+
+    expect(flusher1).not.toBe(flusher2);
+    expect(flusher1.flush).not.toBe(flusher2.flush);
+    expect(flusher1.clear).not.toBe(flusher2.clear);
+  });
 });
