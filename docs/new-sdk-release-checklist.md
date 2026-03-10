@@ -84,6 +84,7 @@ order**. Note that you can prepare the PRs at any time but the **merging oder** 
      For new packages, Craft will automatically create the required directory structure and initial manifest in the Sentry Release Registry ([Craft Docs](https://craft.sentry.dev/targets/registry/#creating-new-packages)).
   ```yml
   name: 'Sentry [Package] SDK'
+  sdkName: 'sentry.javascript.[package]'
   packageUrl: 'https://www.npmjs.com/package/@sentry/[package]'
   mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/[package]/'
   onlyIfPresent: /^sentry-[package]-\d.*\.tgz$/
