@@ -121,11 +121,13 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const handlerName = originalHandler.name || propertyKey;
 
-          // Wrap the handler with isolation scope and error capture
+          // Not using async/await here to avoid changing the return type of sync handlers.
+          // This means we need to handle sync and async errors separately.
           descriptor.value = function (...args: unknown[]) {
             return withIsolationScope(() => {
               let result;
               try {
+                // Catches errors from sync handlers
                 result = originalHandler.apply(this, args);
               } catch (error) {
                 captureException(error, {
@@ -137,6 +139,7 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
                 throw error;
               }
 
+              // Catches errors from async handlers (rejected promises bypass try/catch)
               if (isThenable(result)) {
                 return result.then(undefined, (error: unknown) => {
                   captureException(error, {
