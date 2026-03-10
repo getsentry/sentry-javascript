@@ -44,6 +44,28 @@ test('Event emitter', async () => {
   });
 });
 
+test('Event handler breadcrumbs do not leak into subsequent HTTP requests', async () => {
+  // The app emits 'test-isolation.breadcrumb' every 2s via setInterval (outside HTTP context).
+  // The handler adds a breadcrumb. Without isolation scope forking, this breadcrumb leaks
+  // into the default isolation scope and gets cloned into subsequent HTTP requests.
+
+  // Wait for at least one setInterval tick to fire and add the breadcrumb
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  const transactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
+    return transactionEvent.transaction === 'GET /events/test-isolation';
+  });
+
+  await fetch('http://localhost:3050/events/test-isolation');
+
+  const transaction = await transactionPromise;
+
+  const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
+    (b: any) => b.message === 'leaked-breadcrumb-from-event-handler',
+  );
+  expect(leakedBreadcrumb).toBeUndefined();
+});
+
 test('Multiple OnEvent decorators', async () => {
   const firstTxPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return transactionEvent.transaction === 'event multiple.first|multiple.second';
