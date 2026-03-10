@@ -27,7 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
-const ignoreSideEffects = /[\\\/]debug-build\.ts$/;
+const ignoreSideEffects = /[\\/]debug-build\.ts$/;
 
 export function makeBaseNPMConfig(options = {}) {
   const {
