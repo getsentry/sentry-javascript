@@ -4,6 +4,40 @@
 
 ### Important Changes
 
+- **feat(node-core): Add OTLP integration for node-core/light ([#19XXX](https://github.com/getsentry/sentry-javascript/pull/19XXX))**
+
+  Added `otlpIntegration` at `@sentry/node-core/light/otlp` for users who manage
+  their own OpenTelemetry setup and want to send trace data to Sentry without
+  adopting the full `@sentry/node` SDK.
+
+  ```js
+  import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+  import * as Sentry from '@sentry/node-core/light';
+  import { otlpIntegration } from '@sentry/node-core/light/otlp';
+
+  const provider = new NodeTracerProvider();
+  provider.register();
+
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [
+      otlpIntegration({
+        // Export OTel spans to Sentry via OTLP (default: true)
+        setupOtlpTracesExporter: true,
+
+        // Propagate sentry-trace/baggage headers (default: true)
+        setupPropagator: true,
+
+        // Capture span.recordException() as Sentry errors (default: false)
+        captureExceptions: false,
+      }),
+    ],
+  });
+  ```
+
+  The integration links Sentry errors to OTel traces, exports spans to Sentry via OTLP, and propagates
+  sentry-trace/baggage headers for distributed tracing.
+
 - **feat(nextjs): Add Turbopack support for React component name annotation ([#19XXX](https://github.com/getsentry/sentry-javascript/pull/19XXX))**
 
   We added experimental support for React component name annotation in Turbopack builds. When enabled, JSX elements
@@ -26,6 +60,8 @@
     },
   });
   ```
+
+````
 
 ### Other Changes
 
@@ -3763,3 +3799,4 @@ A full list of changes in the `5.x` release of the SDK can be found in the [5.x 
 ## 4.x
 
 A full list of changes in the `4.x` release of the SDK can be found in the [4.x Changelog](./docs/changelog/v4.md).
+````
