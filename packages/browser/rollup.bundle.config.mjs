@@ -56,6 +56,17 @@ builds.push(
   ),
 );
 
+// Soft Navigation origin trial token injector - a self-executing script
+// that registers a third-party origin trial for Chrome's Soft Navigation API.
+const softNavOriginTrialConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/softnav-origin-trial.ts'],
+  licenseTitle: '@sentry/browser - Soft Navigation Origin Trial',
+  outputFileBase: () => 'bundles/softnav-origin-trial',
+});
+
+builds.push(...makeBundleConfigVariants(softNavOriginTrialConfig));
+
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.ts'],
