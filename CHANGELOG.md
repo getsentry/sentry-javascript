@@ -13,7 +13,7 @@
   `auto.function.nestjs.cron`. If you have Sentry queries or alerts that filter on the old mechanism type, update them
   accordingly.
 
-- **fix(astro): Adjust Sentry middleware for Astro 6 ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
+- **feat(astro): Add Astro 6 support ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
 
   This release enables full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
   changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
