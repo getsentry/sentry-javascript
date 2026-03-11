@@ -87,8 +87,7 @@ export class SentryNestBullMQInstrumentation extends InstrumentationBase {
                 return withIsolationScope(() => {
                   return startSpan(getBullMQProcessSpanOptions(queueName), async () => {
                     try {
-                      const result = await originalProcessFn.apply(thisArg, args);
-                      return result;
+                      return await originalProcessFn.apply(thisArg, args);
                     } catch (error) {
                       captureException(error, {
                         mechanism: {
