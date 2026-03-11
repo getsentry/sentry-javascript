@@ -1083,7 +1083,7 @@ describe('_INTERNAL_captureMetric', () => {
     it('increments the sequence number across consecutive metrics', () => {
       // Mock timestampInSeconds to return a fixed value so the sequence number
       // does not reset due to millisecond boundary crossings between calls.
-      vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1234.567);
+      const timestampSpy = vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1234.567);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -1098,6 +1098,8 @@ describe('_INTERNAL_captureMetric', () => {
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
+
+      timestampSpy.mockRestore();
     });
 
     it('resets the sequence number via _INTERNAL_resetSequenceNumber', () => {
