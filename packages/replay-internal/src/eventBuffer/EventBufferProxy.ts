@@ -49,7 +49,6 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
-  // eslint-disable-next-line @typescript-eslint/adjacent-overload-signatures
   public set waitForCheckout(value: boolean) {
     this._used.waitForCheckout = value;
   }

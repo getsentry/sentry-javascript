@@ -160,7 +160,6 @@ export class TraceService implements OnDestroy {
     tap(() => {
       if (this._routingSpan) {
         runOutsideAngular(() => {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this._routingSpan!.end();
         });
         this._routingSpan = null;

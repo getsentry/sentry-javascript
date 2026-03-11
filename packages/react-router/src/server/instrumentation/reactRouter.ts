@@ -36,7 +36,6 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
   /**
    * Initializes the instrumentation by defining the React Router server modules to be patched.
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   protected init(): InstrumentationNodeModuleDefinition {
     const reactRouterServerModule = new InstrumentationNodeModuleDefinition(
       COMPONENT,
@@ -112,7 +111,6 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               // So we force this to be a more sensible name here
               // TODO: try to set derived parameterized route from build here (args[0])
               const spanData = spanToJSON(rootSpan);
-              // eslint-disable-next-line deprecation/deprecation
               const target = spanData.data[SEMATTRS_HTTP_TARGET] || url.pathname;
               updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({

@@ -160,7 +160,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       } else {
         // `componentStack` and `eventId` are guaranteed to be non-null here because `onUnmount` is only called
         // when the error boundary has already encountered an error.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         onUnmount(error, componentStack!, eventId!);
       }
     }
@@ -177,7 +176,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (onReset) {
       // `componentStack` and `eventId` are guaranteed to be non-null here because `onReset` is only called
       // when the error boundary has already encountered an error.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       onReset(error, componentStack!, eventId!);
     }
     this.setState(INITIAL_STATE);

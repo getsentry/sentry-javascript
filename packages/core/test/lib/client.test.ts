@@ -31,7 +31,6 @@ import { makeFakeTransport } from '../mocks/transport';
 import { clearGlobalScope } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-// eslint-disable-next-line no-var
 declare var global: any;
 
 const clientEventFromException = vi.spyOn(TestClient.prototype, 'eventFromException');

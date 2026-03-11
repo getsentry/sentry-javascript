@@ -200,7 +200,6 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
   client.emit('flushLogs');
 
   // sendEnvelope should not throw
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   client.sendEnvelope(envelope);
 }
 

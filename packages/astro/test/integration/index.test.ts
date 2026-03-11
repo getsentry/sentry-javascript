@@ -590,16 +590,13 @@ describe('_getUpdatedSourceMapSettings', () => {
     astroConfig.vite.build.sourcemap = false;
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Source map generation is currently disabled'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('This setting is either a default setting or was explicitly set in your configuration.'),
     );
 
     astroConfig.vite.build.sourcemap = 'hidden';
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Sentry will keep this source map setting'));
   });
 
@@ -608,12 +605,10 @@ describe('_getUpdatedSourceMapSettings', () => {
 
     astroConfig.vite.build.sourcemap = false;
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(logger.warn).toHaveBeenCalledWith('Source map generation is disabled in your Astro configuration.');
 
     astroConfig.vite.build.sourcemap = 'hidden';
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(logger.info).not.toHaveBeenCalled();
   });
 });

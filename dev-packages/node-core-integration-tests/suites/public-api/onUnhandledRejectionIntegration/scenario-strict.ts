@@ -11,5 +11,4 @@ const client = Sentry.init({
 
 setupOtel(client);
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Promise.reject('test rejection');

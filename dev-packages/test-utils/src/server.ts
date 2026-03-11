@@ -41,7 +41,6 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
 type HeaderAssertCallback = (headers: Record<string, string | string[] | undefined>) => void;
 
 /** Creates a test server that can be used to check headers */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createTestServer() {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
   let error: unknown | undefined;

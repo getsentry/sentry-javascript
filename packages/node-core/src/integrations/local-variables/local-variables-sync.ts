@@ -343,7 +343,6 @@ const _localVariablesSyncIntegration = ((
         // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
         // For this reason we only attempt to get local variables for the first 5 frames
         for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
           const localScope = scopeChain.find(scope => scope.type === 'local');

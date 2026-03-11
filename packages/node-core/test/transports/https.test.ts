@@ -47,7 +47,6 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    // eslint-disable-next-line deprecation/deprecation
     res.connection?.end();
   });
 
@@ -170,7 +169,6 @@ describe('makeNewHttpsTransport()', () => {
 
       await transport.send(EVENT_ENVELOPE);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(unsafeHttpsModule.request).toHaveBeenCalledWith(
         expect.objectContaining({
           ca: 'some cert',

@@ -8,5 +8,4 @@ Sentry.init({
   integrations: [Sentry.onUnhandledRejectionIntegration({ mode: 'strict' })],
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Promise.reject('test rejection');

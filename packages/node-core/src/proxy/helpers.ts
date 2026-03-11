@@ -26,7 +26,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* eslint-disable jsdoc/require-jsdoc */
 import * as http from 'node:http';
 import * as https from 'node:https';
 import type { Readable } from 'node:stream';

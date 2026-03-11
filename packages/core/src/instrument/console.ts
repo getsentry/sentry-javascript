@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { ConsoleLevel, HandlerDataConsole } from '../types-hoist/instrument';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils/debug-logger';
 import { fill } from '../utils/object';

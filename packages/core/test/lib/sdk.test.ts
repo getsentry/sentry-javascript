@@ -7,7 +7,6 @@ import { initAndBind, setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
-// eslint-disable-next-line no-var
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';

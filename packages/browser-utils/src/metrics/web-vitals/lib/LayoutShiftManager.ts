@@ -1,4 +1,3 @@
-/* eslint-disable jsdoc/require-jsdoc */
 /*
  * Copyright 2024 Google LLC
  *
@@ -16,7 +15,6 @@
  */
 
 export class LayoutShiftManager {
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _onAfterProcessingUnexpectedShift?: (entry: LayoutShift) => void;
 
   // oxlint-disable-next-line sdk/no-class-field-initializers
@@ -24,7 +22,6 @@ export class LayoutShiftManager {
   // oxlint-disable-next-line sdk/no-class-field-initializers
   _sessionEntries: LayoutShift[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _processEntry(entry: LayoutShift) {
     // Only count layout shifts without recent user input.
     if (entry.hadRecentInput) return;

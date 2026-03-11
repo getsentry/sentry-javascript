@@ -23,7 +23,6 @@ const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
  * Checks if the request URL matches trace propagation targets,
  * then injects sentry-trace, traceparent, and baggage headers.
  */
-// eslint-disable-next-line complexity
 export function addTracePropagationHeadersToFetchRequest(
   request: UndiciRequest,
   propagationDecisionMap: LRUMap<string, boolean>,

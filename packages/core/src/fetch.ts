@@ -57,7 +57,6 @@ export function instrumentFetchRequest(
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-  // eslint-disable-next-line @typescript-eslint/unified-signatures -- needed because the other overload is deprecated
   instrumentFetchRequestOptions: InstrumentFetchRequestOptions,
 ): Span | undefined;
 

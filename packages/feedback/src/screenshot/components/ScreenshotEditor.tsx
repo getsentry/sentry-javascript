@@ -1,6 +1,6 @@
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, h as hType, VNode } from 'preact';
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { h } from 'preact';
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import IconCloseFactory from './IconClose';

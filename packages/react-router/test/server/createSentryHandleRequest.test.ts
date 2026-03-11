@@ -255,7 +255,6 @@ describe('createSentryHandleRequest', () => {
 
     await handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockResponseHeaders.set).toHaveBeenCalledWith('Content-Type', 'text/html');
   });
 

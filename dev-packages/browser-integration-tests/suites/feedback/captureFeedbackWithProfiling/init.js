@@ -1,8 +1,6 @@
 import * as Sentry from '@sentry/browser';
 // Import these separately so that generatePlugin can handle them for CDN scenarios
-// eslint-disable-next-line import/no-duplicates
 import { browserProfilingIntegration } from '@sentry/browser';
-// eslint-disable-next-line import/no-duplicates
 import { feedbackIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;

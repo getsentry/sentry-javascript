@@ -10,7 +10,6 @@ async function main(): Promise<void> {
 
   extension.startSentryTunnel();
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     await extension.next();
   }

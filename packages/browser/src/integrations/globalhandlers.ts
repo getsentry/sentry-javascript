@@ -131,7 +131,7 @@ export function _getUnhandledRejectionError(error: unknown): unknown {
     if ('detail' in (error as CustomEventWithDetail) && 'reason' in (error as CustomEventWithDetail).detail) {
       return (error as CustomEventWithDetail).detail.reason;
     }
-  } catch {} // eslint-disable-line no-empty
+  } catch {}
 
   return error;
 }

@@ -1,5 +1,3 @@
-/* eslint-disable ember/no-classic-classes */
-/* eslint-disable ember/no-classic-components */
 import Component from '@ember/component';
 import { computed } from '@ember/object';
 

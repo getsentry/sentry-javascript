@@ -1,6 +1,4 @@
-// import/export got a false positive, and affects most of our index barrel files
-// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
-/* eslint-disable import/export */
+
 import {
   ATTR_HTTP_ROUTE,
   ATTR_URL_QUERY,
@@ -106,7 +104,6 @@ function getCloudflareRuntimeConfig(): { runtime: { name: string } } | undefined
 }
 
 /** Inits the Sentry NextJS SDK on node. */
-// eslint-disable-next-line complexity
 export function init(options: NodeOptions): NodeClient | undefined {
   prepareSafeIdGeneratorContext();
   if (isBuild()) {
@@ -177,11 +174,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
     // We need to drop these spans.
     if (
-      // eslint-disable-next-line deprecation/deprecation
       (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line deprecation/deprecation
         spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line deprecation/deprecation
         spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
       (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
         spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
@@ -311,9 +305,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
         event.transaction = stripUrlQueryAndFragment(event.transaction);
       }
 
-      // eslint-disable-next-line deprecation/deprecation
       const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
-      // eslint-disable-next-line deprecation/deprecation
       const target = event.contexts?.trace?.data?.[SEMATTRS_HTTP_TARGET];
       const route = event.contexts.trace.data[ATTR_HTTP_ROUTE] || event.contexts.trace.data[ATTR_NEXT_ROUTE];
       const spanName = event.contexts.trace.data[ATTR_NEXT_SPAN_NAME];

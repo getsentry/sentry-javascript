@@ -98,7 +98,6 @@ export function setupOtel(
     resource: defaultResource().merge(
       resourceFromAttributes({
         [ATTR_SERVICE_NAME]: 'node',
-        // eslint-disable-next-line deprecation/deprecation
         [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
         [ATTR_SERVICE_VERSION]: SDK_VERSION,
       }),

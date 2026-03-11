@@ -16,7 +16,6 @@ export function isSentryRequestSpan(span: AbstractSpan): boolean {
   const { attributes } = span;
 
   // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
-  // eslint-disable-next-line deprecation/deprecation
   const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[ATTR_URL_FULL];
 
   if (!httpUrl) {

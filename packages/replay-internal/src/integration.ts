@@ -379,7 +379,6 @@ export class Replay implements Integration {
   private _maybeLoadFromReplayCanvasIntegration(client: Client): void {
     // To save bundle size, we skip checking for stuff here
     // and instead just try-catch everything - as generally this should all be defined
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
     try {
       const canvasIntegration = client.getIntegrationByName('ReplayCanvas') as Integration & {
         getOptions(): ReplayCanvasIntegrationOptions;
@@ -392,7 +391,6 @@ export class Replay implements Integration {
     } catch {
       // ignore errors here
     }
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
   }
 }
 

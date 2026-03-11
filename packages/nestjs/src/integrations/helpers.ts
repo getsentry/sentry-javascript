@@ -27,7 +27,6 @@ export function isPatched(target: InjectableTarget | CatchTarget): boolean {
 /**
  * Returns span options for nest middleware spans.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function getMiddlewareSpanOptions(
   target: InjectableTarget | CatchTarget,
   name: string | undefined = undefined,

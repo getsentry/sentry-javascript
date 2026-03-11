@@ -117,7 +117,6 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
             return decoratorResult(target, propertyKey, descriptor);
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const originalHandler: (...handlerArgs: unknown[]) => unknown = descriptor.value;
           const handlerName = originalHandler.name || propertyKey;
 

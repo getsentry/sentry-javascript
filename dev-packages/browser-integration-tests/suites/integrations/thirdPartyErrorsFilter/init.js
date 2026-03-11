@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/browser';
-// eslint-disable-next-line import/no-duplicates
 import { thirdPartyErrorFilterIntegration } from '@sentry/browser';
-// eslint-disable-next-line import/no-duplicates
 import { captureConsoleIntegration } from '@sentry/browser';
 
 // This is the code the bundler plugin would inject to mark the init bundle as a first party module:

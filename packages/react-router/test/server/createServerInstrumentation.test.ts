@@ -409,7 +409,6 @@ describe('createSentryServerInstrumentation', () => {
     // Simulate counter store that would be created by handler and stored in OTel context
     const counterStore = { counters: {} as Record<string, number> };
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(otelApi.context.active).mockReturnValue({
       getValue: vi.fn(() => counterStore),
       setValue: vi.fn(),

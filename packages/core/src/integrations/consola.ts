@@ -227,7 +227,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
   return {
     log(logObj: ConsolaLogObject) {
       // We need to exclude certain known properties from being added as additional attributes
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { type, level, message: consolaMessage, args, tag, date: _date, ...rest } = logObj;
 
       // Get client - use provided client or current client

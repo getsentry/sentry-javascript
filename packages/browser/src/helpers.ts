@@ -33,7 +33,6 @@ export function ignoreNextOnError(): void {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 type WrappableFunction = Function;
 
 export function wrap<T extends WrappableFunction>(
@@ -161,7 +160,6 @@ export function wrap<T extends WrappableFunction, NonFunction>(
 
   // Restore original function name (not all browsers allow that)
   try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const descriptor = Object.getOwnPropertyDescriptor(sentryWrapped, 'name')!;
     if (descriptor.configurable) {
       Object.defineProperty(sentryWrapped, 'name', {

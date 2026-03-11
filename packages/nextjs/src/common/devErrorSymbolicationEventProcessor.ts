@@ -91,7 +91,6 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         originalStackFrame: (StackFrame & { line1?: number; column1?: number }) | null;
       } | null)[];
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (parsedNextjsVersion.major! > 15 || (parsedNextjsVersion.major === 15 && parsedNextjsVersion.minor! >= 2)) {
         const r = await resolveStackFrames(frames);
         if (r === null) {
@@ -192,7 +191,6 @@ async function resolveStackFrames(
         })
         .map(frame => {
           // https://github.com/vercel/next.js/blob/df0573a478baa8b55478a7963c473dddd59a5e40/packages/next/src/client/components/react-dev-overlay/server/middleware-turbopack.ts#L129
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           frame.file = frame.file!.replace(/^rsc:\/\/React\/[^/]+\//, '').replace(/\?\d+$/, '');
 
           return {
@@ -245,7 +243,6 @@ function parseOriginalCodeFrame(codeFrame: string): {
   const preProcessedLines = codeFrame
     // Remove ASCII control characters that are used for syntax highlighting
     .replace(
-      // eslint-disable-next-line no-control-regex
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, // https://stackoverflow.com/a/29497680
       '',
     )

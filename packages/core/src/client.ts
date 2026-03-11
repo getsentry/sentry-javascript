@@ -205,7 +205,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Holds flushable  */
   protected _outcomes: { [key: string]: number };
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
   protected _hooks: Record<string, Set<Function>>;
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
@@ -246,7 +245,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // Backfill enableLogs option from _experiments.enableLogs
     // TODO(v11): Remove or change default value
-    // eslint-disable-next-line deprecation/deprecation
     this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
 
     // Setup log flushing with weight and timeout tracking
@@ -255,7 +253,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line deprecation/deprecation
     const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
 
     // Setup metric flushing with weight and timeout tracking
@@ -524,7 +521,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.sendEnvelope(env).then(sendResponse => this.emit('afterSendEvent', event, sendResponse));
   }
 
@@ -557,7 +553,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
     // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.sendEnvelope(env);
   }
 
@@ -578,7 +573,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
   }
 
-  /* eslint-disable @typescript-eslint/unified-signatures */
   /**
    * Register a callback for whenever a span is started.
    * Receives the span as argument.
@@ -852,7 +846,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // times results in the callback being called multiple times.
     // @ts-expect-error - The `callback` type is correct and must be a function due to the
     // individual, specific overloads of this function.
-    // eslint-disable-next-line @typescript-eslint/ban-types
     const uniqueCallback: Function = (...args: unknown[]) => callback(...args);
 
     hookCallbacks.add(uniqueCallback);
@@ -1107,8 +1100,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public dispose(): void {
     // Base class has no cleanup logic - subclasses implement their own
   }
-
-  /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
@@ -1455,7 +1446,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
     // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.sendEnvelope(envelope);
   }
 

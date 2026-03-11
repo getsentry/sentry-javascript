@@ -1,4 +1,3 @@
-/* eslint-disable deprecation/deprecation */
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {

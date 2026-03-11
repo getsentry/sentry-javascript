@@ -26,7 +26,6 @@ const _googleCloudHttpIntegration = ((options: { optional?: boolean } = {}) => {
     name: INTEGRATION_NAME,
     setupOnce() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const commonModule = require('@google-cloud/common') as typeof common;
         fill(commonModule.Service.prototype, 'request', wrapRequestFunction);
       } catch (e) {

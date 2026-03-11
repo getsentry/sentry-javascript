@@ -26,5 +26,4 @@ async function run(): Promise<void> {
   throw new Error('Error in main scope');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

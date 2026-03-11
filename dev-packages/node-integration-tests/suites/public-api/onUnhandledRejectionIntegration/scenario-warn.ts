@@ -7,5 +7,4 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Promise.reject('test rejection');

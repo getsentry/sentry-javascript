@@ -44,7 +44,6 @@ export function makeSession(context?: Omit<SessionContext, 'started' | 'status'>
  * @param session the `Session` to update
  * @param context the `SessionContext` holding the properties that should be updated in @param session
  */
-// eslint-disable-next-line complexity
 export function updateSession(session: Session, context: SessionContext = {}): void {
   if (context.user) {
     if (!session.ipAddress && context.user.ip_address) {

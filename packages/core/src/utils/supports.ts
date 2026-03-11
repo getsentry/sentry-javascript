@@ -92,7 +92,6 @@ function _isFetchSupported(): boolean {
 /**
  * isNative checks if the given function is a native implementation
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function isNativeFunction(func: Function): boolean {
   return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
 }
@@ -122,7 +121,6 @@ export function supportsNativeFetch(): boolean {
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
   const doc = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
   if (doc && typeof (doc.createElement as unknown) === 'function') {
     try {
       const sandbox = doc.createElement('iframe');

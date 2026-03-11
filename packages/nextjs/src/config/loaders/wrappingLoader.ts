@@ -51,7 +51,6 @@ export type WrappingLoaderOptions = {
  * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) or API routes it contains
  * are wrapped, and then everything is re-exported.
  */
-// eslint-disable-next-line complexity
 export default function wrappingLoader(
   this: LoaderThis<WrappingLoaderOptions>,
   userCode: string,

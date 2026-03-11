@@ -7,7 +7,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
+
 Sentry.withMonitor(
   'cron-job-1',
   async () => {
@@ -22,7 +22,7 @@ Sentry.withMonitor(
   },
 );
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
+
 Sentry.withMonitor(
   'cron-job-2',
   async () => {

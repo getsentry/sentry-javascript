@@ -66,7 +66,6 @@ export function instrumentDOM(): void {
     const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
     const proto = globalObject[target]?.prototype;
 
-    // eslint-disable-next-line no-prototype-builtins
     if (!proto?.hasOwnProperty?.('addEventListener')) {
       return;
     }

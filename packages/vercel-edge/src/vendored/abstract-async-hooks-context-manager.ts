@@ -20,15 +20,8 @@
  *   - Modified bind() method not to rely on Node.js specific APIs
  */
 
-/* eslint-disable @typescript-eslint/explicit-member-accessibility */
-/* eslint-disable @typescript-eslint/member-ordering */
-/* eslint-disable jsdoc/require-jsdoc */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable prefer-rest-params */
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
-/* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-this-alias */
 
 import type { Context, ContextManager } from '@opentelemetry/api';
@@ -134,13 +127,16 @@ export abstract class AbstractAsyncHooksContextManager implements ContextManager
     });
     // patch methods that remove a listener
     if (typeof ee.removeListener === 'function') {
+      // oxlint-disable-next-line typescript/unbound-method
       ee.removeListener = this._patchRemoveListener(ee, ee.removeListener);
     }
     if (typeof ee.off === 'function') {
+      // oxlint-disable-next-line typescript/unbound-method
       ee.off = this._patchRemoveListener(ee, ee.off);
     }
     // patch method that remove all listeners
     if (typeof ee.removeAllListeners === 'function') {
+      // oxlint-disable-next-line typescript/unbound-method
       ee.removeAllListeners = this._patchRemoveAllListeners(ee, ee.removeAllListeners);
     }
     return ee;

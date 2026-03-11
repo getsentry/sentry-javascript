@@ -64,7 +64,6 @@ afterEach(() => {
   mkdtempSyncSpy.mockClear();
 });
 
-// eslint-disable-next-line @typescript-eslint/unbound-method
 const realConsoleWarn = global.console.warn;
 global.console.warn = (...args: unknown[]) => {
   // Suppress the v7 -> v8 migration warning which would get spammed for the unit tests otherwise

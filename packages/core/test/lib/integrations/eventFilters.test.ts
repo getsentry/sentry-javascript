@@ -410,7 +410,6 @@ function createUndefinedIsNotAnObjectEvent(evaluatingStr: string): Event {
 }
 
 describe.each([
-  // eslint-disable-next-line deprecation/deprecation
   ['InboundFilters', inboundFiltersIntegration],
   ['EventFilters', eventFiltersIntegration],
 ])('%s', (_, integrationFn) => {

@@ -28,7 +28,6 @@ export class FirebaseInstrumentation extends InstrumentationBase<FirebaseInstrum
    *
    * @protected
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   protected init(): InstrumentationNodeModuleDefinition | InstrumentationNodeModuleDefinition[] | void {
     const modules: InstrumentationNodeModuleDefinition[] = [];
 

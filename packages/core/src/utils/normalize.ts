@@ -174,7 +174,6 @@ function visit(
   return normalized;
 }
 
-/* eslint-disable complexity */
 /**
  * Stringify the given value. Handles various known special values and types.
  *
@@ -258,8 +257,6 @@ function stringifyValue(
     return `**non-serializable** (${err})`;
   }
 }
-/* eslint-enable complexity */
-
 function getConstructorName(value: unknown): string {
   const prototype: Prototype | null = Object.getPrototypeOf(value);
 

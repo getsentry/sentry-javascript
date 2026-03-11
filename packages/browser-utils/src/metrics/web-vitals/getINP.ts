@@ -74,7 +74,6 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
     initInteractionCountPolyfill();
 
     const metric = initMetric('INP');
-    // eslint-disable-next-line prefer-const
     let report: ReturnType<typeof bindReporter>;
 
     const interactionManager = initUnique(opts, InteractionManager);

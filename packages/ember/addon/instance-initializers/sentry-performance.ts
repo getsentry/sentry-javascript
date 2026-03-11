@@ -383,7 +383,6 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
 
   performance.measure(measureName, startName, endName);
   const measures = performance.getEntriesByName(measureName);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
   const startTime = (measure.startTime + origin) / 1000;
@@ -464,7 +463,6 @@ function _instrumentNavigation(
   startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
   startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
 ): void {
-  // eslint-disable-next-line ember/no-private-routing-service
   const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
   let routerService = appInstance.lookup('service:router') as RouterService & {
     externalRouter?: RouterService;

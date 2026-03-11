@@ -31,9 +31,7 @@ export {
 } from '@sentry/opentelemetry';
 
 // Deprecated exports (do not add to common-exports.ts)
-// eslint-disable-next-line deprecation/deprecation
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
-// eslint-disable-next-line deprecation/deprecation
 export { inboundFiltersIntegration } from '@sentry/core';
 
 export type { ExclusiveEventHintOrCaptureContext, CaptureContext } from '@sentry/core';

@@ -7,7 +7,6 @@ import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
-// eslint-disable-next-line no-var
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';

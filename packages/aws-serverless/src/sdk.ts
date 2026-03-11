@@ -168,7 +168,6 @@ export function wrapHandler<TEvent, TResult>(
 ): Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult> {
   const START_TIME = performance.now();
 
-  // eslint-disable-next-line deprecation/deprecation
   if (typeof wrapOptions.startTrace !== 'undefined') {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
@@ -205,7 +204,7 @@ export function wrapHandler<TEvent, TResult>(
           new Promise((resolve, reject) => {
             const rv = (handler as SyncHandler<Handler<TEvent, TResult>>)(event, context, (error, result) => {
               if (error === null || error === undefined) {
-                resolve(result!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
+                resolve(result!);
               } else {
                 reject(error);
               }

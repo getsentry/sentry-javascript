@@ -8,7 +8,6 @@ import type {
   ReplayPluginOptions,
   Session,
 } from '@sentry-internal/replay/build/npm/types/types';
-/* eslint-disable max-lines */
 import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
@@ -446,7 +445,6 @@ export function normalize(
 ): string {
   const rawString = JSON.stringify(obj, null, 2);
   let normalizedString = rawString
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
     .replace(/"file:\/\/.+(\/.*\.html)"/g, '"$1"')
     .replace(/"timeOffset":\s*-?\d+/g, '"timeOffset": [timeOffset]')
     .replace(/"timestamp":\s*0/g, '"timestamp": [timestamp]');

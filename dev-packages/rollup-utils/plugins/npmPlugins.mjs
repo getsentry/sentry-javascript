@@ -80,7 +80,6 @@ export function makeJsonPlugin() {
 export function makeDebuggerPlugin(hookName) {
   return {
     name: 'debugger-plugin',
-    // eslint-disable-next-line no-unused-vars
     [hookName]: (..._args) => {
       // eslint-disable-next-line no-debugger
       debugger;

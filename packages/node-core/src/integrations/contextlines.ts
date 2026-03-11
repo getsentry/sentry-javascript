@@ -104,7 +104,6 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
 
   let current = makeContextRange(line, linecontext);
   const out: ReadlineRange[] = [];
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (i === lines.length - 1) {
       out.push(current);
@@ -214,7 +213,6 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
  * a cache to prevent multiple reads of the same file. Failures to read a file are similarly cached to prevent multiple
  * failing reads from happening.
  */
-/* eslint-disable complexity */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -296,7 +294,6 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   return event;
 }
-/* eslint-enable complexity */
 
 /** Adds context lines to frames */
 function addSourceContextToFrames(

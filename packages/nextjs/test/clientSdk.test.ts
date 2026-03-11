@@ -19,7 +19,6 @@ Object.defineProperty(global, 'addEventListener', { value: () => undefined, writ
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
-// eslint-disable-next-line @typescript-eslint/unbound-method
 const originalGlobalAddEventListener = WINDOW.addEventListener;
 
 afterAll(() => {

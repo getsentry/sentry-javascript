@@ -23,7 +23,6 @@ async function mock(mockedUri: string, stub: any) {
 }
 
 describe('onCreateWebpackConfig', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
   let originalNodeEnv: string | undefined;
 

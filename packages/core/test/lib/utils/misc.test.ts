@@ -303,7 +303,6 @@ describe('uuid4 generation', () => {
   });
 
   it('returns valid uuid v4 ids via crypto.randomUUID', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
     const crypto = { randomUUID: cryptoMod.randomUUID };

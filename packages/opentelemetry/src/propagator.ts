@@ -260,7 +260,6 @@ function getExistingBaggage(carrier: unknown): string | undefined {
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
   // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_URL`, for now.
-  // eslint-disable-next-line deprecation/deprecation
   const urlAttribute = spanData[SEMATTRS_HTTP_URL] || spanData[ATTR_URL_FULL];
   if (typeof urlAttribute === 'string') {
     return urlAttribute;

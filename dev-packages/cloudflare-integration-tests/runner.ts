@@ -53,7 +53,6 @@ type StartResult = {
 };
 
 /** Creates a test runner */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 

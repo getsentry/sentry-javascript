@@ -9,6 +9,5 @@ interface CustomMatchers<R = unknown> {
 
 // This is so that TS & Vscode recognize the custom matchers
 declare module 'vitest' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   export interface Assertion extends CustomMatchers {}
 }

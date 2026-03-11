@@ -113,7 +113,6 @@ function getBrowserTimeOrigin(): number | undefined {
   // Also as of writing, performance.timing is not available in Web Workers in mainstream browsers, so it is not always
   // a valid fallback. In the absence of an initial time provided by the browser, fallback to the current time from the
   // Date API.
-  // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing?.navigationStart;
   if (typeof navigationStart === 'number') {
     const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);

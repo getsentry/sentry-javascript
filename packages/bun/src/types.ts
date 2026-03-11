@@ -5,7 +5,6 @@ import type { OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
  * Base options for the Sentry Bun SDK.
  * Extends the common WinterTC options with OpenTelemetry support shared with Node.js and other server-side SDKs.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BaseBunOptions extends OpenTelemetryServerRuntimeOptions {}
 
 /**

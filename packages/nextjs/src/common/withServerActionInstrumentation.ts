@@ -58,7 +58,6 @@ export function withServerActionInstrumentation<A extends (...args: unknown[]) =
     return withServerActionInstrumentationImplementation(serverActionName, {}, callback);
   } else {
     const [serverActionName, options, callback] = args;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return withServerActionInstrumentationImplementation(serverActionName, options, callback!);
   }
 }

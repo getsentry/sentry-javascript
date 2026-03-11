@@ -45,7 +45,6 @@ export function addRequestBreadcrumb(request: ClientRequest, response: IncomingM
  * Add trace propagation headers to an outgoing request.
  * This must be called _before_ the request is sent!
  */
-// eslint-disable-next-line complexity
 export function addTracePropagationHeadersToOutgoingRequest(
   request: ClientRequest,
   propagationDecisionMap: LRUMap<string, boolean>,

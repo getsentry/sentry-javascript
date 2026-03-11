@@ -93,7 +93,6 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   ];
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line deprecation/deprecation
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
@@ -366,7 +365,6 @@ function getIncomingRequestAttributesOnResponse(request: IncomingMessage, respon
 
   const newAttributes: SpanAttributes = {
     [ATTR_HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    // eslint-disable-next-line deprecation/deprecation
     [SEMATTRS_HTTP_STATUS_CODE]: statusCode,
     'http.status_text': statusMessage?.toUpperCase(),
   };
@@ -374,15 +372,11 @@ function getIncomingRequestAttributesOnResponse(request: IncomingMessage, respon
   const rpcMetadata = getRPCMetadata(context.active());
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
-    // eslint-disable-next-line deprecation/deprecation
     newAttributes[SEMATTRS_NET_HOST_IP] = localAddress;
-    // eslint-disable-next-line deprecation/deprecation
     newAttributes[SEMATTRS_NET_HOST_PORT] = localPort;
-    // eslint-disable-next-line deprecation/deprecation
     newAttributes[SEMATTRS_NET_PEER_IP] = remoteAddress;
     newAttributes['net.peer.port'] = remotePort;
   }
-  // eslint-disable-next-line deprecation/deprecation
   newAttributes[SEMATTRS_HTTP_STATUS_CODE] = statusCode;
   newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
 

@@ -1,8 +1,4 @@
-/* eslint-disable deprecation/deprecation */
-/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable import/no-named-as-default-member */
-/* eslint-disable import/no-duplicates */
 
 // Vendored and modified from:
 // https://github.com/justindsmith/opentelemetry-instrumentations-js/blob/3b1e8c3e566e5cc3389e9c28cafce6a5ebb39600/packages/instrumentation-remix/src/instrumentation.ts
@@ -79,7 +75,6 @@ export class RemixInstrumentation extends InstrumentationBase {
     this._config = Object.assign({}, DEFAULT_CONFIG, config);
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   protected init(): InstrumentationNodeModuleDefinition {
     const remixRunServerRuntimeRouteMatchingFile = new InstrumentationNodeModuleFile(
       '@remix-run/server-runtime/dist/routeMatching.js',

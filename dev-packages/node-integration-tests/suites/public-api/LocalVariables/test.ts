@@ -45,11 +45,9 @@ describe('LocalVariables integration', () => {
   function cleanupExternalModuleFile() {
     try {
       unlinkSync(externalModule);
-      // eslint-disable-next-line no-empty
     } catch {}
     try {
       rmdirSync(nodeModules);
-      // eslint-disable-next-line no-empty
     } catch {}
   }
 

@@ -79,9 +79,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
 function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
 
-  // eslint-disable-next-line deprecation/deprecation
   const httpCodeAttribute = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE] || attributes[SEMATTRS_HTTP_STATUS_CODE];
-  // eslint-disable-next-line deprecation/deprecation
   const grpcCodeAttribute = attributes[SEMATTRS_RPC_GRPC_STATUS_CODE];
 
   const numberHttpCode =

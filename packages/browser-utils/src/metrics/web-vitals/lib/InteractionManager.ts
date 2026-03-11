@@ -61,13 +61,10 @@ export class InteractionManager {
   // oxlint-disable-next-line sdk/no-class-field-initializers
   _longestInteractionMap: Map<number, Interaction> = new Map();
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _onBeforeProcessingEntry?: (entry: PerformanceEventTiming) => void;
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _onAfterProcessingINPCandidate?: (interaction: Interaction) => void;
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility, jsdoc/require-jsdoc
   _resetInteractions() {
     prevInteractionCount = getInteractionCount();
     this._longestInteractionList.length = 0;
@@ -78,7 +75,6 @@ export class InteractionManager {
    * Returns the estimated p98 longest interaction based on the stored
    * interaction candidates and the interaction count for the current page.
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _estimateP98LongestInteraction() {
     const candidateInteractionIndex = Math.min(
       this._longestInteractionList.length - 1,
@@ -94,7 +90,6 @@ export class InteractionManager {
    * entry is part of an existing interaction, it is merged and the latency
    * and entries list is updated as needed.
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _processEntry(entry: PerformanceEventTiming) {
     this._onBeforeProcessingEntry?.(entry);
 

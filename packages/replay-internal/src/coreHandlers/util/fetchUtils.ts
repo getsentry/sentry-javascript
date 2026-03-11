@@ -295,6 +295,5 @@ function _tryGetResponseText(response: Response): Promise<string | undefined> {
 
 async function _getResponseText(response: Response): Promise<string> {
   // Force this to be a promise, just to be safe
-  // eslint-disable-next-line no-return-await
   return await response.text();
 }

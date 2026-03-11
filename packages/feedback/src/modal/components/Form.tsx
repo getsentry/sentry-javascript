@@ -6,7 +6,7 @@ import type {
 } from '@sentry/core';
 import { debug } from '@sentry/core';
 import type { JSX, VNode } from 'preact';
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { h } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';

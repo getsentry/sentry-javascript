@@ -247,7 +247,6 @@ sentryTest(
     const headers = request.headers();
 
     // sampling decision is propagated from meta tag's sentry-trace sampled flag
-    // eslint-disable-next-line regexp/prefer-d
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
@@ -302,7 +301,6 @@ sentryTest(
     const headers = request.headers();
 
     // sampling decision is propagated from meta tag's sentry-trace sampled flag
-    // eslint-disable-next-line regexp/prefer-d
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },

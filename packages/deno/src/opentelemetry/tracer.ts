@@ -24,7 +24,6 @@ class SentryDenoTraceProvider implements TracerProvider {
       this._tracers.set(key, new SentryDenoTracer());
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this._tracers.get(key)!;
   }
 }

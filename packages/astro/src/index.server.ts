@@ -13,10 +13,8 @@ export {
   addIntegration,
   amqplibIntegration,
   anthropicAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   googleGenAIIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -69,7 +67,6 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,

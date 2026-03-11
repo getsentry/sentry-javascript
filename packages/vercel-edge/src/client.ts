@@ -36,7 +36,6 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
   }
 
   // Eslint ignore explanation: This is already documented in super.
-  // eslint-disable-next-line jsdoc/require-jsdoc
   public async flush(timeout?: number): Promise<boolean> {
     const provider = this.traceProvider;
 

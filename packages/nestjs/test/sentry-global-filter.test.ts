@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import * as SentryCore from '@sentry/core';

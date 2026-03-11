@@ -66,7 +66,6 @@ export function wrapServerAction<T>(
       const root = getRootSpan(active);
       const spanData = spanToJSON(root);
       if (spanData.origin === 'auto.http.otel.http') {
-        // eslint-disable-next-line deprecation/deprecation
         const target = spanData.data[SEMATTRS_HTTP_TARGET];
 
         if (target) {

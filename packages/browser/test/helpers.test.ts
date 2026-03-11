@@ -136,9 +136,7 @@ describe('internal wrap()', () => {
       expect(this).toBe(context);
     };
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const wrappedFn = wrap(context.fn);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const wrappedEventFn = wrap(context.eventFn);
 
     wrappedFn.call(context);

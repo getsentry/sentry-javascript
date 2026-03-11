@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type {
   Envelope,
   EnvelopeItem,
@@ -133,10 +132,8 @@ export async function startProxyServer(
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
       .searchParams;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const listenerTimestamp = Number(searchParams.get('timestamp')!);
 
     const callbackListener = (data: string): void => {
@@ -163,7 +160,6 @@ export async function startProxyServer(
   const eventCallbackServerStartupPromise = new Promise<void>(resolve => {
     eventCallbackServer.listen(0, () => {
       const port = String((eventCallbackServer.address() as AddressInfo).port);
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       void registerCallbackServerPort(options.proxyServerName, port).then(resolve);
     });
   });

@@ -38,7 +38,6 @@ export default function sucrase(opts = {}, sucraseOpts = {}) {
   return {
     name: 'sucrase',
 
-    // eslint-disable-next-line consistent-return
     resolveId(importee, importer) {
       if (importer && /^[./]/.test(importee)) {
         const resolved = path.resolve(importer ? path.dirname(importer) : process.cwd(), importee);

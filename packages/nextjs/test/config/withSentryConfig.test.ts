@@ -25,7 +25,6 @@ describe('withSentryConfig', () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
     const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { webpack: _userWebpack, experimental: _userExperimental, ...restOfUserConfig } = userNextConfig;
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
@@ -45,9 +44,7 @@ describe('withSentryConfig', () => {
 
     const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
     const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       webpack: _userWebpack,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       experimental: _userExperimental,
       ...restOfUserConfig
     } = exportedNextConfigFunction();

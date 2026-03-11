@@ -8,11 +8,11 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
+
 recordSpan(async () => {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  
   doSomething();
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  
   doSomethingWithError();
 });
 

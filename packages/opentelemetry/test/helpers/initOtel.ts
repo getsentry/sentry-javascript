@@ -63,7 +63,6 @@ export function setupOtel(client: TestClientInterface): [BasicTracerProvider, Se
     resource: defaultResource().merge(
       resourceFromAttributes({
         [ATTR_SERVICE_NAME]: 'opentelemetry-test',
-        // eslint-disable-next-line deprecation/deprecation
         [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
         [ATTR_SERVICE_VERSION]: SDK_VERSION,
       }),

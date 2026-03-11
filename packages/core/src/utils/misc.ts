@@ -36,7 +36,6 @@ function getRandomByte(): number {
 export function uuid4(crypto = getCrypto()): string {
   try {
     if (crypto?.randomUUID) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return withRandomSafeContext(() => crypto.randomUUID!()).replace(/-/g, '');
     }
   } catch {
@@ -182,7 +181,6 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
   // We guard here to ensure this is not larger than the existing number of lines
   const lineIndex = Math.min(maxLines - 1, sourceLine);
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   frame.context_line = snipLine(lines[lineIndex]!, frame.colno || 0);
 
   frame.post_context = lines
@@ -236,5 +234,5 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
 export function isAlreadyCaptured(exception: unknown): boolean | void {
   try {
     return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
-  } catch {} // eslint-disable-line no-empty
+  } catch {}
 }

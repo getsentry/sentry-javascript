@@ -103,7 +103,6 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         // capturing replays of users that immediately close the window.
 
         // This should never reject
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         void replay.flush();
       }
 

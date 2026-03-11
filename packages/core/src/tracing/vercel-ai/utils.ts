@@ -221,7 +221,6 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
         return result;
       }
     }
-    // eslint-disable-next-line no-empty
   } catch {}
   return [];
 }
@@ -279,7 +278,6 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
-      // eslint-disable-next-line no-empty
     } catch {}
   }
 }

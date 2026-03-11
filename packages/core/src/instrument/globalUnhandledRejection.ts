@@ -28,7 +28,6 @@ function instrumentUnhandledRejection(): void {
     triggerHandlers('unhandledrejection', handlerData);
 
     if (_oldOnUnhandledRejectionHandler) {
-      // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
 

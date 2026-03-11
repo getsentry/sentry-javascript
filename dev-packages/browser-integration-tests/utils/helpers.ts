@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { Page, Request } from '@playwright/test';
 import type {
   ClientReport,

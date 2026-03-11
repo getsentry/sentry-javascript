@@ -90,7 +90,6 @@ function eventFromPlainObject(
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       // event.exception.values[0] has been set above
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       event.exception.values[0]!.stacktrace = { frames };
     }
   }
@@ -297,7 +296,6 @@ export function eventFromUnknownInput(
       addExceptionTypeValue(event, message);
     }
     if ('code' in domException) {
-      // eslint-disable-next-line deprecation/deprecation
       event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
     }
 

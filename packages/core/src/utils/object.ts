@@ -77,7 +77,7 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
     const proto = original.prototype || {};
     wrapped.prototype = original.prototype = proto;
     addNonEnumerableProperty(wrapped, '__sentry_original__', original);
-  } catch {} // eslint-disable-line no-empty
+  } catch {}
 }
 
 /**
@@ -87,7 +87,6 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
  * @param func the function to unwrap
  * @returns the unwrapped version of the function if available.
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
 export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>): T | undefined {
   return func.__sentry_original__;
 }

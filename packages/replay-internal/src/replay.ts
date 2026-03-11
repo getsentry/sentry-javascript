@@ -1005,7 +1005,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
     // This should never reject
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     void this.conditionalFlush();
   }
 

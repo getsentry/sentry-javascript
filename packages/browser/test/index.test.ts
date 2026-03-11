@@ -34,7 +34,6 @@ import { makeSimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
-// eslint-disable-next-line no-var
 declare var global: any;
 
 vi.mock('@sentry/core', async requireActual => {

@@ -1,4 +1,3 @@
-/* eslint-disable deprecation/deprecation */
 import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';

@@ -22,8 +22,6 @@
  *   - Modified constructor to access AsyncLocalStorage class from global object instead of the Node.js API
  */
 
-/* eslint-disable @typescript-eslint/explicit-member-accessibility */
-/* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Context } from '@opentelemetry/api';

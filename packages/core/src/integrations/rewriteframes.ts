@@ -68,7 +68,6 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
         exception: {
           ...event.exception,
           // The check for this is performed inside `process` call itself, safe to skip here
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           values: event.exception!.values!.map(value => ({
             ...value,
             ...(value.stacktrace && { stacktrace: _processStacktrace(value.stacktrace) }),

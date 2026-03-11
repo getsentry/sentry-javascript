@@ -27,7 +27,7 @@ const _dedupeIntegration = (() => {
           DEBUG_BUILD && debug.warn('Event dropped due to being a duplicate of previously captured event.');
           return null;
         }
-      } catch {} // eslint-disable-line no-empty
+      } catch {}
 
       return (previousEvent = currentEvent);
     },
@@ -132,9 +132,7 @@ function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
 
   // Otherwise, compare the two
   for (let i = 0; i < previousFrames.length; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const frameA = previousFrames[i]!;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const frameB = currentFrames[i]!;
 
     if (

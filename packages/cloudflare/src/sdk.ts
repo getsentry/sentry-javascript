@@ -28,7 +28,6 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     // capture all step failures, even if they are the same error.
     ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),

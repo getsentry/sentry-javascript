@@ -2,7 +2,6 @@
  * @vitest-environment jsdom
  */
 
-/* eslint-disable @typescript-eslint/unbound-method */
 import type { Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { createTransport, resolvedSyncPromise } from '@sentry/core';

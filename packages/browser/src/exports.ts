@@ -57,7 +57,6 @@ export {
   withScope,
   withIsolationScope,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
   dedupeIntegration,

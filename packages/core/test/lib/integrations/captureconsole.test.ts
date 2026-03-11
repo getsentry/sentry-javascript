@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';

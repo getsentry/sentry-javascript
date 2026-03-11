@@ -16,7 +16,6 @@ setupOtel(client);
 
 import http from 'http';
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan(
   {
     name: 'initial-name',

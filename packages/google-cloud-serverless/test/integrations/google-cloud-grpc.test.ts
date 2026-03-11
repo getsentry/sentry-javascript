@@ -93,7 +93,6 @@ describe('GoogleCloudGrpc tracing', () => {
         },
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       require('google-gax').GrpcClient = mockGrpcClient;
 
       const integration = googleCloudGrpcIntegration();
@@ -102,7 +101,6 @@ describe('GoogleCloudGrpc tracing', () => {
     });
 
     test('setupOnce throws when google-gax is not available and not optional', () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       require('google-gax').GrpcClient = undefined;
 
       const integration = googleCloudGrpcIntegration();
@@ -110,7 +108,6 @@ describe('GoogleCloudGrpc tracing', () => {
     });
 
     test('setupOnce does not throw when google-gax is not available and optional', () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       require('google-gax').GrpcClient = undefined;
 
       const optionalIntegration = googleCloudGrpcIntegration({ optional: true });

@@ -8,7 +8,6 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan(
   { name: 'initial-name', attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } },
   async span => {

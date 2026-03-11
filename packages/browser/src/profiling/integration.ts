@@ -32,7 +32,6 @@ const _browserProfilingIntegration = (() => {
         options.profileLifecycle = 'manual';
       }
 
-      // eslint-disable-next-line deprecation/deprecation
       if (hasLegacyProfiling(options) && !options.profilesSampleRate) {
         DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no profiling options found.');
         return;

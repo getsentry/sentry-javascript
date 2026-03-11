@@ -75,7 +75,6 @@ export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export { handleTunnelRequest } from './utils/tunnel';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
-// eslint-disable-next-line deprecation/deprecation
 export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -109,7 +108,6 @@ export {
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
-// eslint-disable-next-line deprecation/deprecation
 export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
@@ -129,9 +127,6 @@ export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
-// eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
-// Therefore:
-// eslint-disable-next-line deprecation/deprecation
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
@@ -191,7 +186,6 @@ export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';
 export { getComponentName, getLocationHref, htmlTreeAsString } from './utils/browser';
 export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';
-// eslint-disable-next-line deprecation/deprecation
 export { SentryError } from './utils/error';
 export { GLOBAL_OBJ } from './utils/worldwide';
 export type { InternalGlobal } from './utils/worldwide';
@@ -235,7 +229,6 @@ export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normaliz
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
-  // eslint-disable-next-line deprecation/deprecation
   dropUndefinedKeys,
   extractExceptionKeysForMessage,
   fill,
@@ -263,11 +256,9 @@ export {
   supportsDOMError,
   supportsDOMException,
   supportsErrorEvent,
-  // eslint-disable-next-line deprecation/deprecation
   supportsFetch,
   supportsHistory,
   supportsNativeFetch,
-  // eslint-disable-next-line deprecation/deprecation
   supportsReferrerPolicy,
   supportsReportingObserver,
 } from './utils/supports';
@@ -466,7 +457,6 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
-  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';

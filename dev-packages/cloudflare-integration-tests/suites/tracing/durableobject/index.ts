@@ -11,7 +11,6 @@ class TestDurableObjectBase extends DurableObject<Env> {
     super(ctx, env);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   async sayHello(name: string): Promise<string> {
     return `Hello, ${name}`;
   }

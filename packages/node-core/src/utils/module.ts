@@ -22,7 +22,6 @@ export function createGetModuleFromFilename(
 
     const normalizedFilename = isWindows ? normalizeWindowsPath(filename) : filename;
 
-    // eslint-disable-next-line prefer-const
     let { dir, base: file, ext } = posix.parse(normalizedFilename);
 
     if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {

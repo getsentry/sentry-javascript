@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
@@ -64,7 +63,6 @@ export class SentrySampler implements Sampler {
     }
 
     // `ATTR_HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_METHOD`, for now.
-    // eslint-disable-next-line deprecation/deprecation
     const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
 
     // If we have a http.client span that has no local parent, we never want to sample it
@@ -253,7 +251,6 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
 
   // We always keep the URL on the trace state, so we can access it in the propagator
   // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
-  // eslint-disable-next-line deprecation/deprecation
   const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
   if (url && typeof url === 'string') {
     traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);

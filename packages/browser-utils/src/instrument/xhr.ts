@@ -171,7 +171,7 @@ function parseXhrUrlArg(url: unknown): string | undefined {
     // If the passed in argument is not a string, it should have a `toString` method as a stringifier.
     // If that fails, we just return undefined (like in IE11 where URL is not available)
     return (url as URL).toString();
-  } catch {} // eslint-disable-line no-empty
+  } catch {}
 
   return undefined;
 }

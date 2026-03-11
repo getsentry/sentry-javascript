@@ -46,9 +46,7 @@ export {
   createLangChainCallbackHandler,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
-  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
@@ -66,7 +64,6 @@ export {
   localVariablesIntegration,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -170,6 +167,5 @@ export { awsIntegration } from './integration/aws';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
-// eslint-disable-next-line deprecation/deprecation
 export { tryPatchHandler, wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';

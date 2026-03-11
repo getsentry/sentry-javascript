@@ -219,7 +219,6 @@ describe('hoistNonReactStatics', () => {
     hoistNonReactStatics(Target, Source);
 
     expect((Target as any).customStatic).toBe('value');
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect((Target as any).hasOwnProperty).toBe(Object.prototype.hasOwnProperty);
   });
 

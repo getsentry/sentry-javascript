@@ -67,7 +67,6 @@ export function setupOtel(client: NodeClient): BasicTracerProvider | undefined {
     resource: defaultResource().merge(
       resourceFromAttributes({
         [ATTR_SERVICE_NAME]: 'node',
-        // eslint-disable-next-line deprecation/deprecation
         [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
         [ATTR_SERVICE_VERSION]: SDK_VERSION,
       }),

@@ -89,7 +89,6 @@ export function instrumentVueRouter(
       transactionSource = 'custom';
     } else if (to.matched.length > 0) {
       const lastIndex = to.matched.length - 1;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       spanName = to.matched[lastIndex]!.path;
       transactionSource = 'route';
     }

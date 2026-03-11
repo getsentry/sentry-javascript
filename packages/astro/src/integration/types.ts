@@ -194,9 +194,7 @@ export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
      * @deprecated This option was deprecated. Please move the options to the top-level configuration.
      * See the migration guide in the SourceMapsOptions type documentation.
      */
-    // eslint-disable-next-line deprecation/deprecation
     sourceMapsUploadOptions?: SourceMapsOptions;
-    // eslint-disable-next-line deprecation/deprecation
   } & DeprecatedRuntimeOptions;
 
 /**

@@ -15,5 +15,4 @@ async function run(): Promise<void> {
   await Sentry.flush();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

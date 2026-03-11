@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type {
   ClientReport,
   Envelope,
@@ -232,7 +231,6 @@ function convertEsmFileToCjs(inputPath: string, outputPath: string): void {
 }
 
 /** Creates a test runner */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 
@@ -676,7 +674,6 @@ function convertEsmToCjs(content: string): string {
 
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
-    // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {

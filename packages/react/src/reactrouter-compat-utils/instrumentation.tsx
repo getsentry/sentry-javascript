@@ -799,7 +799,6 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return Routes;
   };
 
-  // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
     return <SentryRoutes routes={routes} locationArg={locationArg} />;
   };
@@ -934,7 +933,6 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
-// eslint-disable-next-line complexity
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];

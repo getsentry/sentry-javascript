@@ -54,7 +54,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
@@ -151,7 +150,6 @@ function validateOpenTelemetrySetup(): void {
 }
 
 // exported for tests
-// eslint-disable-next-line jsdoc/require-jsdoc
 export function setupOtel(client: VercelEdgeClient): void {
   if (client.getOptions().debug) {
     setupOpenTelemetryLogger();
@@ -163,7 +161,6 @@ export function setupOtel(client: VercelEdgeClient): void {
     resource: defaultResource().merge(
       resourceFromAttributes({
         [ATTR_SERVICE_NAME]: 'edge',
-        // eslint-disable-next-line deprecation/deprecation
         [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
         [ATTR_SERVICE_VERSION]: SDK_VERSION,
       }),

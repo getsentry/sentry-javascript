@@ -1171,7 +1171,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       });
 
       // Verifies that wildcard span names are upgraded when parameterized routes become available
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(vi.mocked(firstSpan.updateName)).toHaveBeenCalledWith('/users/:id');
       expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1); // No new span created
     });
@@ -1419,7 +1418,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         vi.fn(() => []),
       );
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(endedSpan.updateName).not.toHaveBeenCalled();
     });
 
@@ -1444,7 +1442,6 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
         vi.fn(() => []),
       );
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(validSpan.updateName).toHaveBeenCalled();
     });
   });

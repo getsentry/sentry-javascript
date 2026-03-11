@@ -1,6 +1,6 @@
 import type { FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { h } from 'preact';
 import { useMemo } from 'preact/hooks';
 import { SentryLogo } from './SentryLogo';
 

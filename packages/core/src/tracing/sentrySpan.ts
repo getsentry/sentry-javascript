@@ -354,7 +354,7 @@ export class SentrySpan implements Span {
     spans.forEach(span => {
       delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     });
-    // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
+
 
     const transaction: TransactionEvent = {
       contexts: {
@@ -432,6 +432,5 @@ function sendSpanEnvelope(envelope: SpanEnvelope): void {
   }
 
   // sendEnvelope should not throw
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   client.sendEnvelope(envelope);
 }

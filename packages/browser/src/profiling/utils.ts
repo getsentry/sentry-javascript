@@ -80,7 +80,6 @@ if (isUserAgentData(userAgentData)) {
       OS_PLATFORM_VERSION = ua.platformVersion || '';
 
       if (ua.fullVersionList?.length) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]!;
         OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
       }
@@ -651,7 +650,6 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
     return false;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
   const profilesSampleRate = (options as BrowserOptions).profilesSampleRate as
     | BrowserOptions['profilesSampleRate']
     | boolean;
@@ -729,7 +727,6 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
  * Checks if legacy profiling is configured.
  */
 export function hasLegacyProfiling(options: BrowserOptions): boolean {
-  // eslint-disable-next-line deprecation/deprecation
   return typeof options.profilesSampleRate !== 'undefined';
 }
 

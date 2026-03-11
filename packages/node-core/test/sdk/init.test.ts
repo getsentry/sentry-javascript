@@ -7,7 +7,6 @@ import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
-// eslint-disable-next-line no-var
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';

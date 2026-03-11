@@ -198,8 +198,7 @@ function matchRoutes(
     const match = route.path
       ? matchPath(pathname, route)
       : branch.length
-        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          branch[branch.length - 1]!.match // use parent match
+        ? branch[branch.length - 1]!.match // use parent match
         : computeRootMatch(pathname); // use default "root" match
 
     if (match) {

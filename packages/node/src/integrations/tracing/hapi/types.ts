@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-new */
-/* eslint-disable @typescript-eslint/naming-convention */
-/* eslint-disable @typescript-eslint/unified-signatures */
-/* eslint-disable @typescript-eslint/no-empty-interface */
-/* eslint-disable @typescript-eslint/no-namespace */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Vendored and simplified from:

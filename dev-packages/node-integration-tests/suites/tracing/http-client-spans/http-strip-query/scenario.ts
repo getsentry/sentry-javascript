@@ -10,7 +10,6 @@ Sentry.init({
 
 import * as http from 'http';
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test_transaction' }, async () => {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v0/users?id=1#fragment`);
 });

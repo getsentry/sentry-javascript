@@ -361,7 +361,6 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     try {
       const profile = await prevProfiler.stop();
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
 
       // Validate chunk before sending
@@ -387,7 +386,6 @@ export class UIProfiler implements ContinuousProfiler<Client> {
    * Send a profile chunk as a standalone envelope.
    */
   private _sendProfileChunk(chunk: ProfileChunk): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const client = this._client!;
 
     const sdkInfo = getSdkMetadataForEnvelopeHeader(client.getSdkMetadata?.());

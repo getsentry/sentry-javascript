@@ -139,7 +139,6 @@ function stripFileProtocol(filename: string | undefined): string | undefined {
   return filename.replace(/^file:\/\//, '');
 }
 
-// eslint-disable-next-line complexity
 function applyDebugMeta(event: Event, debugImages: Record<string, string>): void {
   if (Object.keys(debugImages).length === 0) {
     return;

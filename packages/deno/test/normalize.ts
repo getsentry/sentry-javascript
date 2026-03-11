@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import type { Envelope, Event, Session } from '@sentry/core';
 import { forEachEnvelopeItem } from '@sentry/core';
 

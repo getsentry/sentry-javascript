@@ -95,7 +95,6 @@ export function patchFrames(
     }
 
     const split = frame.filename.split('(');
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const lastSplit = split[split.length - 1]!;
 
     // Let's call this first match a "messy match".

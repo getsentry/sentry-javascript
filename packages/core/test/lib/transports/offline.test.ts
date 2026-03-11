@@ -272,7 +272,6 @@ describe('makeOfflineTransport', () => {
 
     const { getCalls, store } = createTestStore(ERROR_ENVELOPE, ERROR_ENVELOPE);
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
       createStore: store,
@@ -293,7 +292,6 @@ describe('makeOfflineTransport', () => {
 
     const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
     const { getSendCount, baseTransport } = createTestTransport(new Error(), { statusCode: 200 });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
       createStore: store,
@@ -320,7 +318,6 @@ describe('makeOfflineTransport', () => {
 
     const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
     const { getSentEnvelopes, baseTransport } = createTestTransport({ statusCode: 200 });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
       createStore: store,

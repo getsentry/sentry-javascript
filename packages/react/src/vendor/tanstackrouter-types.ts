@@ -35,7 +35,6 @@ export interface VendoredTanstackRouter {
   };
   matchRoutes: (
     pathname: string,
-    // eslint-disable-next-line @typescript-eslint/ban-types
     locationSearch: {},
     opts?: {
       preload?: boolean;
@@ -53,7 +52,6 @@ export interface VendoredTanstackRouter {
 
 interface VendoredTanstackRouterLocation {
   pathname: string;
-  // eslint-disable-next-line @typescript-eslint/ban-types
   search: {};
   state: string;
 }

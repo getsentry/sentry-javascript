@@ -64,12 +64,10 @@ describe('createTransport', () => {
       drain: vi.fn(),
     };
     const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
-    /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
     expect(mockBuffer.drain).toHaveBeenCalledTimes(1);
     expect(mockBuffer.drain).toHaveBeenLastCalledWith(1000);
-    /* eslint-enable @typescript-eslint/unbound-method */
   });
 
   describe('send', () => {

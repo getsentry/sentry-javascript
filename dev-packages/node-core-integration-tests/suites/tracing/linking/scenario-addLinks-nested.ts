@@ -12,11 +12,11 @@ const client = Sentry.init({
 
 setupOtel(client);
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
+
 Sentry.startSpan({ name: 'parent1' }, async parentSpan1 => {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  
   Sentry.startSpan({ name: 'child1.1' }, async childSpan1 => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    
     Sentry.startSpan({ name: 'child2.1' }, async childSpan2 => {
       childSpan2.addLinks([
         { context: parentSpan1.spanContext() },

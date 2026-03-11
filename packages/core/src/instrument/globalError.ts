@@ -38,7 +38,6 @@ function instrumentError(): void {
     triggerHandlers('error', handlerData);
 
     if (_oldOnErrorHandler) {
-      // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
 

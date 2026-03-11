@@ -38,7 +38,6 @@ await vi.hoisted(async () =>
   ),
 );
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');
 
 beforeEach(() => {

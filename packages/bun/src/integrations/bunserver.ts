@@ -166,7 +166,6 @@ function instrumentBunServeOptionRoutes(serveOptions: Parameters<typeof Bun.serv
 
 type RouteHandler = Extract<
   NonNullable<Parameters<typeof Bun.serve>[0]['routes']>[string],
-  // eslint-disable-next-line @typescript-eslint/ban-types
   Function
 >;
 

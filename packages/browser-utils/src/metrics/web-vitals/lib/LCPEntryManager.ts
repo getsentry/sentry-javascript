@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-// eslint-disable-next-line jsdoc/require-jsdoc
 export class LCPEntryManager {
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
   _onBeforeProcessingEntry?: (entry: LargestContentfulPaint) => void;
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility, jsdoc/require-jsdoc
   _processEntry(entry: LargestContentfulPaint) {
     this._onBeforeProcessingEntry?.(entry);
   }
