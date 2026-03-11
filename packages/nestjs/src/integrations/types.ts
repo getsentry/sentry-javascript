@@ -105,6 +105,15 @@ export interface ScheduleDecoratorTarget {
 }
 
 /**
+ * Represents a target class in NestJS annotated with @Processor (BullMQ).
+ */
+export interface ProcessorDecoratorTarget {
+  name: string;
+  sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
+}
+
+/**
  * Represents an express NextFunction.
  */
 export type NextFunction = (err?: any) => void;

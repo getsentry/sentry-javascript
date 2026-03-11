@@ -59,6 +59,24 @@ export function getEventSpanOptions(event: string): {
 }
 
 /**
+ * Returns span options for nest bullmq process spans.
+ */
+export function getBullMQProcessSpanOptions(queueName: string): {
+  name: string;
+  attributes: Record<string, string>;
+  forceTransaction: boolean;
+} {
+  return {
+    name: `${queueName} process`,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
+    },
+    forceTransaction: true,
+  };
+}
+
+/**
  * Adds instrumentation to a js observable and attaches the span to an active parent span.
  */
 export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
