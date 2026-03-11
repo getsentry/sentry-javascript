@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = true;
+---
+
+<Layout title="Static Page">
+  <h1>This is a static page</h1>
+
+  <button onclick="fetch('/test-static')">fetch</button>
+</Layout>

@@ -1,0 +1,23 @@
+---
+import Welcome from '../components/Welcome.astro';
+import Layout from '../layouts/Layout.astro';
+
+// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
+// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+---
+
+<Layout title="Welcome to Astro.">
+  <main>
+    <h1>Astro E2E Test App</h1>
+    <ul role="list" style="display: flex; flex-direction: column;">
+      <a href="/ssr-error">SSR Error</a>
+      <a href="/endpoint-error">Endpoint Error</a>
+      <a href="/client-error">Client Error</a>
+      <a href="/test-ssr">SSR page</a>
+      <a href="/test-static" title="static page">Static Page</a>
+      <a href="/server-island">Server Island</a>
+      <a href="/user-page/myUsername123">Test Parametrized Routes</a>
+      <a href="/blog/my-post">Route Parametrization override</a>
+    </ul>
+  </main>
+</Layout>
