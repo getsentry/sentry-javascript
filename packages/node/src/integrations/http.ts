@@ -185,6 +185,20 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
     // ignore errors here...
   }
 
+  // The OTel HttpInstrumentation (>=0.213.0) has a guard (`_httpPatched`/`_httpsPatched`)
+  // that prevents patching `http`/`https` when loaded by both CJS `require()` and ESM `import`.
+  // In environments like AWS Lambda, the runtime loads `http` via CJS first (for the Runtime API),
+  // and then the user's ESM handler imports `node:http`. The guard blocks ESM patching after CJS,
+  // which breaks HTTP spans for ESM handlers. We disable this guard to allow both to be patched.
+  // TODO(andrei): Remove once https://github.com/open-telemetry/opentelemetry-js/issues/6489 is fixed.
+  try {
+    const noopDescriptor = { get: () => false, set: () => {} };
+    Object.defineProperty(instrumentation, '_httpPatched', noopDescriptor);
+    Object.defineProperty(instrumentation, '_httpsPatched', noopDescriptor);
+  } catch {
+    // ignore errors here...
+  }
+
   return instrumentation;
 });
 
