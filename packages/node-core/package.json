@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-core",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "description": "Sentry Node-Core SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-core",
@@ -99,8 +99,8 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "10.42.0",
-    "@sentry/opentelemetry": "10.42.0",
+    "@sentry/core": "10.43.0",
+    "@sentry/opentelemetry": "10.43.0",
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
@@ -126,8 +126,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
-    "fix": "oxlint . --fix",
-    "lint": "oxlint .",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

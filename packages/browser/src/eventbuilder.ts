@@ -165,6 +165,7 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
   // Check for support
   // @ts-expect-error - WebAssembly.Exception is a valid class
+  // oxlint-disable-next-line typescript/prefer-optional-chain
   if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
     // @ts-expect-error - WebAssembly.Exception is a valid class
     return exception instanceof WebAssembly.Exception;

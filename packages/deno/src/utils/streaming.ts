@@ -66,7 +66,7 @@ export async function streamResponse(span: Span, res: Response): Promise<Respons
         headers: res.headers,
       },
     );
-  } catch (e) {
+  } catch (_e) {
     // tee() failed - handle without streaming
     span.end();
     return res;
@@ -81,6 +81,7 @@ function monitorStream(
   onDone: () => void,
 ): ReadableStream<Uint8Array<ArrayBufferLike>> {
   const reader = stream.getReader();
+  // oxlint-disable-next-line typescript/no-floating-promises
   reader.closed.finally(() => onDone());
   return new ReadableStream({
     async start(controller) {

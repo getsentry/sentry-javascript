@@ -60,7 +60,7 @@ export function patchRequestToCaptureBody(
                     `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
                   );
                 }
-              } catch (err) {
+              } catch (_err) {
                 DEBUG_BUILD && debug.error(integrationName, 'Encountered error while storing body chunk.');
               }
 

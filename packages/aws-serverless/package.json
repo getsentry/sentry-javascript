@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -69,9 +69,9 @@
     "@opentelemetry/instrumentation": "^0.213.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.68.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@sentry/core": "10.42.0",
-    "@sentry/node": "10.42.0",
-    "@sentry/node-core": "10.42.0",
+    "@sentry/core": "10.43.0",
+    "@sentry/node": "10.43.0",
+    "@sentry/node-core": "10.43.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
@@ -92,8 +92,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
-    "fix": "oxlint . --fix",
-    "lint": "oxlint .",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

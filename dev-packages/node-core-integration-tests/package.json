@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-core-integration-tests",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -16,8 +16,8 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "lint": "oxlint .",
-    "fix": "oxlint . --fix",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "type-check": "tsc",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
@@ -34,8 +34,8 @@
     "@opentelemetry/resources": "^2.6.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@sentry/core": "10.42.0",
-    "@sentry/node-core": "10.42.0",
+    "@sentry/core": "10.43.0",
+    "@sentry/node-core": "10.43.0",
     "body-parser": "^2.2.2",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
