@@ -68,13 +68,17 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
         const waitUntil = context?.waitUntil?.bind?.(context);
 
-        const currentClient = scope.getClient();
-        if (!currentClient) {
+        let currentClient = scope.getClient();
+        // Check if client exists AND is still usable (transport not disposed)
+        // This handles the case where a previous handler disposed the client
+        // but the scope still holds a reference to it (e.g., alarm handlers in Durable Objects)
+        if (!currentClient || !currentClient.getTransport()) {
           const client = init({ ...wrapperOptions.options, ctx: context as unknown as ExecutionContext | undefined });
           scope.setClient(client);
+          currentClient = client;
         }
 
-        const clientToDispose = currentClient || scope.getClient();
+        const clientToDispose = currentClient;
 
         if (!wrapperOptions.spanName) {
           try {
