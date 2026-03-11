@@ -14,6 +14,13 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   enableLogs: true,
+  integrations: [
+    Sentry.nativeNodeFetchIntegration({
+      headersToSpanAttributes: {
+        responseHeaders: ['content-length'],
+      },
+    }),
+  ],
 });
 
 import { TRPCError, initTRPC } from '@trpc/server';
@@ -58,6 +65,12 @@ app.get('/test-transaction', function (_req, res) {
   Sentry.startSpan({ name: 'test-span' }, () => undefined);
 
   res.send({ status: 'ok' });
+});
+
+app.get('/test-outgoing-fetch', async function (_req, res) {
+  const response = await fetch('http://localhost:3030/test-success');
+  const data = await response.json();
+  res.send(data);
 });
 app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
