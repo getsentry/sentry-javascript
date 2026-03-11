@@ -22,6 +22,7 @@ const MainLive = HttpLive.pipe(
   Layer.provide(
     Sentry.effectLayer({
       dsn: '__DSN__',
+      enableLogs: true,
       enableEffectLogs: true,
       enableEffectMetrics: true,
     }),
