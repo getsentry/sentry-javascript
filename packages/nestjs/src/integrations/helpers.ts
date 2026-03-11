@@ -71,6 +71,8 @@ export function getBullMQProcessSpanOptions(queueName: string): {
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
+      'messaging.system': 'bullmq',
+      'messaging.destination.name': queueName,
     },
     forceTransaction: true,
   };

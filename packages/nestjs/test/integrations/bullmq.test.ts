@@ -59,6 +59,8 @@ describe('BullMQInstrumentation', () => {
           attributes: expect.objectContaining({
             'sentry.op': 'queue.process',
             'sentry.origin': 'auto.queue.nestjs.bullmq',
+            'messaging.system': 'bullmq',
+            'messaging.destination.name': 'test-queue',
           }),
         }),
         expect.any(Function),

@@ -9,7 +9,7 @@
     "start:prod": "node dist/main",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
-    "test:build": "pnpm install",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {

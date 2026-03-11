@@ -32,6 +32,7 @@ test('Creates a transaction for successful job processing', async ({ baseURL }) 
 
   const transaction = await transactionPromise;
 
+  expect(transaction.transaction).toBe('test-queue process');
   expect(transaction.contexts?.trace?.op).toBe('queue.process');
   expect(transaction.contexts?.trace?.origin).toBe('auto.queue.nestjs.bullmq');
 });

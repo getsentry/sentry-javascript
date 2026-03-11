@@ -64,7 +64,9 @@ export class SentryNestBullMQInstrumentation extends InstrumentationBase {
       return function wrappedProcessor(...decoratorArgs: any[]) {
         // Extract queue name from decorator args
         // @Processor('queueName') or @Processor({ name: 'queueName' })
-        const queueName = typeof decoratorArgs[0] === 'string' ? decoratorArgs[0] : decoratorArgs[0]?.name || 'unknown';
+        const queueName =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          typeof decoratorArgs[0] === 'string' ? decoratorArgs[0] : decoratorArgs[0]?.name || 'unknown';
 
         // Get the original class decorator
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
