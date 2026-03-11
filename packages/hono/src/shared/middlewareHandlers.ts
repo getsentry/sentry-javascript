@@ -1,8 +1,8 @@
-import { getIsolationScope } from '@sentry/cloudflare';
 import {
   getActiveSpan,
   getClient,
   getDefaultIsolationScope,
+  getIsolationScope,
   getRootSpan,
   updateSpanName,
   winterCGRequestToRequestData,
