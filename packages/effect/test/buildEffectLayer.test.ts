@@ -34,36 +34,36 @@ describe('buildEffectLayer', () => {
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
-    it('returns a valid layer with enableLogs: false', () => {
-      const layer = buildEffectLayer({ enableLogs: false }, mockClient);
+    it('returns a valid layer with enableEffectLogs: false', () => {
+      const layer = buildEffectLayer({ enableEffectLogs: false }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
-    it('returns a valid layer with enableLogs: true', () => {
-      const layer = buildEffectLayer({ enableLogs: true }, mockClient);
+    it('returns a valid layer with enableEffectLogs: true', () => {
+      const layer = buildEffectLayer({ enableEffectLogs: true }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
-    it('returns a valid layer with enableMetrics: false', () => {
-      const layer = buildEffectLayer({ enableMetrics: false }, mockClient);
+    it('returns a valid layer with enableEffectMetrics: false', () => {
+      const layer = buildEffectLayer({ enableEffectMetrics: false }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
-    it('returns a valid layer with enableMetrics: true', () => {
-      const layer = buildEffectLayer({ enableMetrics: true }, mockClient);
+    it('returns a valid layer with enableEffectMetrics: true', () => {
+      const layer = buildEffectLayer({ enableEffectMetrics: true }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
     it('returns a valid layer with all features enabled', () => {
-      const layer = buildEffectLayer({ enableLogs: true, enableMetrics: true }, mockClient);
+      const layer = buildEffectLayer({ enableEffectLogs: true, enableEffectMetrics: true }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
@@ -82,12 +82,12 @@ describe('buildEffectLayer', () => {
         yield* Effect.log('test log message');
         expect(infoSpy).toHaveBeenCalledWith('test log message');
         infoSpy.mockRestore();
-      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true }, mockClient))),
+      }).pipe(Effect.provide(buildEffectLayer({ enableEffectLogs: true }, mockClient))),
     );
 
-    it('returns different layer when enableMetrics is true vs false', () => {
-      const layerWithMetrics = buildEffectLayer({ enableMetrics: true }, mockClient);
-      const layerWithoutMetrics = buildEffectLayer({ enableMetrics: false }, mockClient);
+    it('returns different layer when enableEffectMetrics is true vs false', () => {
+      const layerWithMetrics = buildEffectLayer({ enableEffectMetrics: true }, mockClient);
+      const layerWithoutMetrics = buildEffectLayer({ enableEffectMetrics: false }, mockClient);
 
       expect(layerWithMetrics).not.toBe(layerWithoutMetrics);
     });
@@ -96,7 +96,7 @@ describe('buildEffectLayer', () => {
       Effect.gen(function* () {
         const result = yield* Effect.succeed('all-features');
         expect(result).toBe('all-features');
-      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true, enableMetrics: true }, mockClient))),
+      }).pipe(Effect.provide(buildEffectLayer({ enableEffectLogs: true, enableEffectMetrics: true }, mockClient))),
     );
 
     it.effect('layer enables tracing for Effect spans via Sentry tracer', () =>
@@ -120,11 +120,11 @@ describe('buildEffectLayer', () => {
     it('accepts options with additional properties', () => {
       const layer = buildEffectLayer(
         {
-          enableLogs: true,
-          enableMetrics: true,
+          enableEffectLogs: true,
+          enableEffectMetrics: true,
           dsn: 'https://test@sentry.io/123',
           debug: true,
-        } as { enableLogs?: boolean; enableMetrics?: boolean; dsn?: string; debug?: boolean },
+        } as { enableEffectLogs?: boolean; enableEffectMetrics?: boolean; dsn?: string; debug?: boolean },
         mockClient,
       );
 

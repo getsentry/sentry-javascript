@@ -22,8 +22,8 @@ const MainLive = HttpLive.pipe(
   Layer.provide(
     Sentry.effectLayer({
       dsn: '__DSN__',
-      enableLogs: true,
-      enableMetrics: true,
+      enableEffectLogs: true,
+      enableEffectMetrics: true,
     }),
   ),
 );
@@ -35,8 +35,8 @@ The `effectLayer` function initializes Sentry and returns an Effect Layer that p
 
 - Distributed tracing with automatic HTTP header extraction/injection
 - Effect spans traced as Sentry spans
-- Effect logs forwarded to Sentry (when `enableLogs` is set)
-- Effect metrics sent to Sentry (when `enableMetrics` is set)
+- Effect logs forwarded to Sentry (when `enableEffectLogs` is set)
+- Effect metrics sent to Sentry (when `enableEffectMetrics` is set)
 
 ## Links
 

@@ -6,8 +6,8 @@ import { SentryEffectMetricsLayer } from '../metrics';
 import { SentryEffectTracerLayer } from '../tracer';
 
 export interface EffectLayerBaseOptions {
-  enableLogs?: boolean;
-  enableMetrics?: boolean;
+  enableEffectLogs?: boolean;
+  enableEffectMetrics?: boolean;
 }
 
 /**
@@ -25,15 +25,15 @@ export function buildEffectLayer<T extends EffectLayerBaseOptions>(
     return emptyLayer;
   }
 
-  const { enableLogs = false, enableMetrics = true } = options;
+  const { enableEffectLogs = false, enableEffectMetrics = false } = options;
   let layer: EffectLayer.Layer<never, never, never> = SentryEffectTracerLayer;
 
-  if (enableLogs) {
+  if (enableEffectLogs) {
     const effectLogger = replaceLogger(defaultLogger, SentryEffectLogger);
     layer = layer.pipe(provideMerge(effectLogger));
   }
 
-  if (enableMetrics) {
+  if (enableEffectMetrics) {
     layer = layer.pipe(provideMerge(SentryEffectMetricsLayer));
   }
 
