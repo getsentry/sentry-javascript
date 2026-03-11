@@ -3,7 +3,7 @@ import { captureUnderscoreErrorException } from '../../../src/common/pages-route
 
 let storedLastEventId: string | undefined = undefined;
 
-const mockCaptureException = vi.fn(() => 'test-event-id');
+const mockCaptureException = vi.fn((_exception?: unknown, _hint?: unknown) => 'test-event-id');
 const mockWithScope = vi.fn((callback: (scope: any) => any) => {
   const mockScope = {
     setSDKProcessingMetadata: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    captureException: (...args: unknown[]) => mockCaptureException(...args),
+    captureException: (exception: unknown, hint?: unknown) => mockCaptureException(exception, hint),
     withScope: (callback: (scope: any) => any) => mockWithScope(callback),
     httpRequestToRequestData: vi.fn(() => ({ url: 'http://test.com' })),
     lastEventId: () => mockGetIsolationScope().lastEventId(),
@@ -143,6 +143,23 @@ describe('captureUnderscoreErrorException', () => {
     // Should return the existing event ID
     expect(eventId).toBe('existing-event-id');
     // Should NOT call captureException again
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it('should prefer the stored event ID on already captured errors', async () => {
+    storedLastEventId = 'scope-event-id';
+
+    const error = new Error('Already captured render error');
+    (error as any).__sentry_captured__ = true;
+    (error as any).__sentry_event_id__ = 'stored-event-id';
+
+    const eventId = await captureUnderscoreErrorException({
+      err: error,
+      pathname: '/test',
+      res: { statusCode: 500 } as any,
+    });
+
+    expect(eventId).toBe('stored-event-id');
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
