@@ -12,7 +12,7 @@ export class AppController {
     return { queued: true };
   }
 
-@Get('check-isolation')
+  @Get('check-isolation')
   checkIsolation() {
     // This endpoint is called after the processor adds a breadcrumb.
     // The test verifies that breadcrumbs from the processor do NOT leak here.
