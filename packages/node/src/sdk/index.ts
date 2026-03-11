@@ -1,5 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata, hasSpansEnabled, spanStreamingIntegration } from '@sentry/core';
+import { applySdkMetadata, hasSpansEnabled } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import {
   getDefaultIntegrations as getNodeCoreDefaultIntegrations,
@@ -15,8 +15,8 @@ import { initOpenTelemetry } from './initOtel';
 /**
  * Get default integrations, excluding performance.
  */
-export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
-  const nodeCoreIntegrations = getNodeCoreDefaultIntegrations();
+export function getDefaultIntegrationsWithoutPerformance(options: Options): Integration[] {
+  const nodeCoreIntegrations = getNodeCoreDefaultIntegrations(options);
 
   // Filter out the node-core HTTP and NodeFetch integrations and replace them with Node SDK's composite versions
   return nodeCoreIntegrations
@@ -27,13 +27,12 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
-    ...getDefaultIntegrationsWithoutPerformance(),
+    ...getDefaultIntegrationsWithoutPerformance(options),
     // We only add performance integrations if tracing is enabled
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
     // This means that generally request isolation will work (because that is done by httpIntegration)
     // But `transactionName` will not be set automatically
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
-    ...(options.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
