@@ -15,7 +15,7 @@ import { initOpenTelemetry } from './initOtel';
 /**
  * Get default integrations, excluding performance.
  */
-export function getDefaultIntegrationsWithoutPerformance(options: Options): Integration[] {
+export function getDefaultIntegrationsWithoutPerformance(options?: Options | undefined): Integration[] {
   const nodeCoreIntegrations = getNodeCoreDefaultIntegrations(options);
 
   // Filter out the node-core HTTP and NodeFetch integrations and replace them with Node SDK's composite versions

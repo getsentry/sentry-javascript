@@ -27,17 +27,19 @@ export const spanStreamingIntegration = defineIntegration(() => {
     setup(client) {
       const initialMessage = 'SpanStreaming integration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';
+      const clientOptions = client.getOptions();
 
       if (!hasSpanStreamingEnabled(client)) {
+        clientOptions.traceLifecycle = 'static';
         DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "stream"! ${fallbackMsg}`);
         return;
       }
 
-      const beforeSendSpan = client.getOptions().beforeSendSpan;
+      const beforeSendSpan = clientOptions.beforeSendSpan;
       // If users misconfigure their SDK by opting into span streaming but
       // using an incompatible beforeSendSpan callback, we fall back to the static trace lifecycle.
       if (beforeSendSpan && !isStreamedBeforeSendSpanCallback(beforeSendSpan)) {
-        client.getOptions().traceLifecycle = 'static';
+        clientOptions.traceLifecycle = 'static';
         DEBUG_BUILD &&
           debug.warn(`${initialMessage} a beforeSendSpan callback using \`withStreamedSpan\`! ${fallbackMsg}`);
         return;

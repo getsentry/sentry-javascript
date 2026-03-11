@@ -34,25 +34,29 @@ describe('spanStreamingIntegration (core)', () => {
     expect(integration.setup).toBeDefined();
   });
 
-  it('logs a warning if traceLifecycle is not set to "stream"', () => {
-    const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-    const client = new TestClient({
-      ...getDefaultTestClientOptions(),
-      dsn: 'https://username@domain/123',
-      integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'static',
-    });
+  it.each(['static', 'somethingElse'])(
+    'logs a warning if traceLifecycle is not set to "stream" but to %s',
+    traceLifecycle => {
+      const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+      const client = new TestClient({
+        ...getDefaultTestClientOptions(),
+        dsn: 'https://username@domain/123',
+        integrations: [spanStreamingIntegration()],
+        // @ts-expect-error - we want to test the warning for invalid traceLifecycle values
+        traceLifecycle,
+      });
 
-    SentryCore.setCurrentClient(client);
-    client.init();
+      SentryCore.setCurrentClient(client);
+      client.init();
 
-    expect(debugSpy).toHaveBeenCalledWith(
-      'SpanStreaming integration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
-    );
-    debugSpy.mockRestore();
+      expect(debugSpy).toHaveBeenCalledWith(
+        'SpanStreaming integration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
+      );
+      debugSpy.mockRestore();
 
-    expect(client.getOptions().traceLifecycle).toBe('static');
-  });
+      expect(client.getOptions().traceLifecycle).toBe('static');
+    },
+  );
 
   it('falls back to static trace lifecycle if beforeSendSpan is not compatible with span streaming', () => {
     const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
