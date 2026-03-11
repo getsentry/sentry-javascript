@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import * as Sentry from '@sentry/nestjs';
 
@@ -18,5 +18,15 @@ export class TestProcessor extends WorkerHost {
     }
 
     return { processed: true };
+  }
+
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job) {
+    if (job.name === 'lifecycle-breadcrumb-test') {
+      Sentry.addBreadcrumb({
+        message: 'leaked-breadcrumb-from-lifecycle-event',
+        level: 'info',
+      });
+    }
   }
 }
