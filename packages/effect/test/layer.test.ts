@@ -63,7 +63,7 @@ describe.each([
     const layer = effectLayer({
       dsn: TEST_DSN,
       transport: getMockTransport(),
-      enableLogs: true,
+      enableEffectLogs: true,
     });
 
     expect(layer).toBeDefined();
@@ -73,8 +73,8 @@ describe.each([
     const layer = effectLayer({
       dsn: TEST_DSN,
       transport: getMockTransport(),
-      enableLogs: true,
-      enableMetrics: true,
+      enableEffectLogs: true,
+      enableEffectMetrics: true,
     });
 
     expect(layer).toBeDefined();

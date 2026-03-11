@@ -1,6 +1,7 @@
 import type { BrowserOptions } from '@sentry/browser';
 import type * as EffectLayer from 'effect/Layer';
 import { suspend as suspendLayer } from 'effect/Layer';
+import type { EffectLayerBaseOptions } from '../utils/buildEffectLayer';
 import { buildEffectLayer } from '../utils/buildEffectLayer';
 import { init } from './sdk';
 
@@ -9,15 +10,15 @@ export { init } from './sdk';
 /**
  * Options for the Sentry Effect client layer.
  */
-export type EffectClientLayerOptions = BrowserOptions;
+export type EffectClientLayerOptions = BrowserOptions & EffectLayerBaseOptions;
 
 /**
  * Creates an Effect Layer that initializes Sentry for browser clients.
  *
  * This layer provides Effect applications with full Sentry instrumentation including:
  * - Effect spans traced as Sentry spans
- * - Effect logs forwarded to Sentry (when `enableLogs` is set)
- * - Effect metrics sent to Sentry (when `enableMetrics` is set)
+ * - Effect logs forwarded to Sentry (when `enableEffectLogs` is set)
+ * - Effect metrics sent to Sentry (when `enableEffectMetrics` is set)
  *
  * @example
  * ```typescript
