@@ -15,7 +15,7 @@
 
 - **fix(astro): Adjust Sentry middleware for Astro 6 ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
 
-  This release enableds full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
+  This release enables full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
   changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
   but we'll follow up on this once the bug is fixed.
 
