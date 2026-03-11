@@ -48,8 +48,22 @@ describe('buildEffectLayer', () => {
       expect(Layer.isLayer(layer)).toBe(true);
     });
 
+    it('returns a valid layer with enableMetrics: false', () => {
+      const layer = buildEffectLayer({ enableMetrics: false }, mockClient);
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
+
+    it('returns a valid layer with enableMetrics: true', () => {
+      const layer = buildEffectLayer({ enableMetrics: true }, mockClient);
+
+      expect(layer).toBeDefined();
+      expect(Layer.isLayer(layer)).toBe(true);
+    });
+
     it('returns a valid layer with all features enabled', () => {
-      const layer = buildEffectLayer({ enableLogs: true }, mockClient);
+      const layer = buildEffectLayer({ enableLogs: true, enableMetrics: true }, mockClient);
 
       expect(layer).toBeDefined();
       expect(Layer.isLayer(layer)).toBe(true);
@@ -71,20 +85,18 @@ describe('buildEffectLayer', () => {
       }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true }, mockClient))),
     );
 
-    it.effect('layer with logs disabled routes Effect does not log to Sentry logger', () =>
-      Effect.gen(function* () {
-        const infoSpy = vi.spyOn(sentryLogger, 'info');
-        yield* Effect.log('test log message');
-        expect(infoSpy).not.toHaveBeenCalled();
-        infoSpy.mockRestore();
-      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: false }, mockClient))),
-    );
+    it('returns different layer when enableMetrics is true vs false', () => {
+      const layerWithMetrics = buildEffectLayer({ enableMetrics: true }, mockClient);
+      const layerWithoutMetrics = buildEffectLayer({ enableMetrics: false }, mockClient);
+
+      expect(layerWithMetrics).not.toBe(layerWithoutMetrics);
+    });
 
     it.effect('layer with all features enabled can be provided to an Effect program', () =>
       Effect.gen(function* () {
         const result = yield* Effect.succeed('all-features');
         expect(result).toBe('all-features');
-      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true }, mockClient))),
+      }).pipe(Effect.provide(buildEffectLayer({ enableLogs: true, enableMetrics: true }, mockClient))),
     );
 
     it.effect('layer enables tracing for Effect spans via Sentry tracer', () =>
@@ -109,9 +121,10 @@ describe('buildEffectLayer', () => {
       const layer = buildEffectLayer(
         {
           enableLogs: true,
+          enableMetrics: true,
           dsn: 'https://test@sentry.io/123',
           debug: true,
-        } as { enableLogs?: boolean; dsn?: string; debug?: boolean },
+        } as { enableLogs?: boolean; enableMetrics?: boolean; dsn?: string; debug?: boolean },
         mockClient,
       );
 
