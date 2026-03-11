@@ -1,4 +1,5 @@
 import type { EmailMessage, ExportedHandler } from '@cloudflare/workers-types';
+import type { env as cloudflareEnv } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -61,7 +62,7 @@ function wrapEmailHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerEmail<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: Parameters<NonNullable<T['email']>>[1]) => CloudflareOptions | undefined,
+  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
   if (!('email' in handler) || typeof handler.email !== 'function' || isInstrumented(handler.email)) {
     return;
