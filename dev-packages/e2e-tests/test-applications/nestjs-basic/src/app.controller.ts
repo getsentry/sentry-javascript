@@ -2,6 +2,7 @@ import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterce
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
 import { AsyncInterceptor } from './async-example.interceptor';
+import { ScheduleService } from './schedule.service';
 import { ExampleInterceptor1 } from './example-1.interceptor';
 import { ExampleInterceptor2 } from './example-2.interceptor';
 import { ExampleExceptionGlobalFilter } from './example-global-filter.exception';
@@ -12,7 +13,10 @@ import { ExampleGuard } from './example.guard';
 @Controller()
 @UseFilters(ExampleLocalFilter)
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly scheduleService: ScheduleService,
+  ) {}
 
   @Get('test-transaction')
   testTransaction() {
@@ -85,6 +89,30 @@ export class AppController {
   @Get('kill-test-cron/:job')
   async killTestCron(@Param('job') job: string) {
     this.appService.killTestCron(job);
+  }
+
+  @Get('kill-test-schedule-cron/:name')
+  killTestScheduleCron(@Param('name') name: string) {
+    this.scheduleService.killCron(name);
+  }
+
+  @Get('kill-test-schedule-interval/:name')
+  killTestScheduleInterval(@Param('name') name: string) {
+    this.scheduleService.killInterval(name);
+  }
+
+  @Get('test-schedule-isolation')
+  testScheduleIsolation() {
+    return { message: 'ok' };
+  }
+
+  @Get('trigger-schedule-timeout-error')
+  async triggerScheduleTimeoutError() {
+    // Manually calls the @Timeout-decorated method to test instrumentation
+    // without relying on NestJS scheduler timing.
+    // Without this, it's hard to get the timing right for the test.
+    await this.scheduleService.handleTimeoutError();
+    return { message: 'triggered' };
   }
 
   @Get('flush')

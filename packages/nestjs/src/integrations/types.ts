@@ -96,6 +96,15 @@ export interface OnEventTarget {
 }
 
 /**
+ * Represents a target method in NestJS annotated with @Cron, @Interval, or @Timeout.
+ */
+export interface ScheduleDecoratorTarget {
+  name: string;
+  sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
+}
+
+/**
  * Represents an express NextFunction.
  */
 export type NextFunction = (err?: any) => void;

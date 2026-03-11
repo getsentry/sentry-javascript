@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(nestjs): Instrument `@nestjs/schedule` decorators ([#19735](https://github.com/getsentry/sentry-javascript/pull/19735))**
+
+  Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.
+
+  Previously, exceptions in `@Cron` methods were only captured if you used the `SentryCron` decorator. Now they are
+  captured automatically. The exception mechanism type changed from `auto.cron.nestjs.async` to
+  `auto.function.nestjs.cron`. If you have Sentry queries or alerts that filter on the old mechanism type, update them
+  accordingly.
+
 ## 10.43.0
 
 ### Important Changes
