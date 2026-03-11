@@ -1,13 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.describe('tracing in static routes with server islands', () => {
-  // In Astro 6, server island endpoint requests no longer produce a server transaction
-  // because the Vite Environment API refactor changed how these requests are handled.
-  // We still verify client-side pageload behavior and that the server island resource is loaded.
-  test('sends client pageload transaction for static page with server island', async ({ page }) => {
+// Skipping this test FOR NOW because there's a known bug in Astro 6.0.2 that causes
+// server-islands to not work correctly with the node adapter:
+// https://github.com/withastro/astro/issues/15753
+test.describe.skip('tracing in static routes with server islands', () => {
+  test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
       return txnEvent.transaction === '/server-island';
+    });
+
+    const serverIslandEndpointTxnPromise = waitForTransaction('astro-6', evt => {
+      return evt.transaction === 'GET /_server-islands/[name]';
     });
 
     await page.goto('/server-island');
@@ -59,6 +63,37 @@ test.describe('tracing in static routes with server islands', () => {
         }),
       ]),
     );
+
+    const serverIslandEndpointTxn = await serverIslandEndpointTxnPromise;
+
+    expect(serverIslandEndpointTxn).toMatchObject({
+      contexts: {
+        trace: {
+          data: expect.objectContaining({
+            'sentry.op': 'http.server',
+            'sentry.origin': 'auto.http.astro',
+            'sentry.source': 'route',
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'cors',
+            'http.request.header.user_agent': expect.any(String),
+          }),
+          op: 'http.server',
+          origin: 'auto.http.astro',
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        },
+      },
+      transaction: 'GET /_server-islands/[name]',
+    });
+
+    const serverIslandEndpointTraceId = serverIslandEndpointTxn.contexts?.trace?.trace_id;
+
+    // unfortunately, the server island trace id is not the same as the client pageload trace id
+    // this is because the server island endpoint request is made as a resource link request,
+    // meaning our fetch instrumentation can't attach headers to the request :(
+    expect(serverIslandEndpointTraceId).not.toBe(clientPageloadTraceId);
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent
   });

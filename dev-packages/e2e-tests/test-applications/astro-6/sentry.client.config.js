@@ -18,4 +18,5 @@ Sentry.init({
       },
     }),
   ],
+  debug: true,
 });

@@ -201,11 +201,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     );
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
-    expect(routeNameMetaContent).toBe('%2Fuser-page%2F%5Buserid%5D');
+    expect(routeNameMetaContent).toBe('%2Fuser-page%2F%5BuserId%5D');
 
     // Client pageload transaction - actual URL with pageload operation
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/user-page/[userid]',
+      transaction: '/user-page/[userId]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -222,7 +222,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // Server page request transaction - parametrized transaction name with actual URL in data
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /user-page/[userid]',
+      transaction: 'GET /user-page/[userId]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -248,7 +248,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     expect(serverRequestHTTPClientSpan).toMatchObject({
       op: 'http.client',
       origin: 'auto.http.otel.node_fetch',
-      description: 'GET http://localhost:3030/api/user/myUsername123.json',
+      description: 'GET http://localhost:3030/api/user/myUsername123.json', // http.client does not need to be parametrized
       data: {
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.node_fetch',
@@ -258,9 +258,9 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       },
     });
 
-    // Server HTTP request transaction - Astro 6 lowercases route pattern
+    // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/[userid].json',
+      transaction: 'GET /api/user/[userId].json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -283,26 +283,25 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
   });
 
-  // Astro 6 lowercases routePattern: catchAll → catchall
   test('sends parametrized pageload and server transaction names for catch-all routes', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
-      return txnEvent?.transaction?.startsWith('/catchall/') ?? false;
+      return txnEvent?.transaction?.startsWith('/catchAll/') ?? false;
     });
 
     const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
-      return txnEvent?.transaction?.startsWith('GET /catchall/') ?? false;
+      return txnEvent?.transaction?.startsWith('GET /catchAll/') ?? false;
     });
 
     await page.goto('/catchAll/hell0/whatever-do');
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
-    expect(routeNameMetaContent).toBe('%2Fcatchall%2F%5B...path%5D');
+    expect(routeNameMetaContent).toBe('%2FcatchAll%2F%5B...path%5D');
 
     const clientPageloadTxn = await clientPageloadTxnPromise;
     const serverPageRequestTxn = await serverPageRequestTxnPromise;
 
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/catchall/[...path]',
+      transaction: '/catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -318,7 +317,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /catchall/[...path]',
+      transaction: 'GET /catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {

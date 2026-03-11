@@ -405,17 +405,7 @@ function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler
  */
 function joinRouteSegments(segments: RoutePart[][]): string {
   const parthArray = segments.map(segment =>
-    segment
-      .map(routePart => {
-        if (!routePart.dynamic) {
-          return routePart.content;
-        }
-        // In Astro 6+, spread (catch-all) params no longer include "..." in `content`.
-        // We check the `spread` flag and prepend "..." when `content` doesn't already have it.
-        const prefix = routePart.spread && !routePart.content.startsWith('...') ? '...' : '';
-        return `[${prefix}${routePart.content}]`;
-      })
-      .join(''),
+    segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
   );
 
   return `/${parthArray.join('/')}`;
@@ -429,9 +419,13 @@ function getParametrizedRoute(
     const contextWithRoutePattern = ctx;
     const rawRoutePattern = contextWithRoutePattern.routePattern;
 
-    // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const routesFromManifest = ctx?.[Symbol.for('context.routes')]?.manifest?.routes;
+    const routesFromManifest =
+      // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx?.[Symbol.for('context.routes')]?.manifest?.routes ??
+      // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 6)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx?.[Symbol.for('astro.pipeline')]?.manifest?.routes;
 
     // oxlint-disable-next-line typescript/no-unsafe-member-access
     const matchedRouteSegmentsFromManifest = routesFromManifest?.find(
@@ -440,10 +434,8 @@ function getParametrizedRoute(
     )?.routeData?.segments;
 
     return (
-      // Astro v5 - Joining the segments to get the correct casing of the parametrized route
+      // Astro v5+ - Joining the segments to get the correct casing of the parametrized route
       (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
-      // Astro v5+/v6 fallback - use routePattern directly (may be lowercased in Astro 5 but correct in v6+)
-      rawRoutePattern ||
       // Fallback (Astro v4 and earlier)
       interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)
     );
