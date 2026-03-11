@@ -38,11 +38,14 @@ test('Creates a transaction for successful job processing', async ({ baseURL }) 
 });
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {
+  const processTransactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'queue.process';
+  });
+
   // Enqueue a job that adds a breadcrumb during processing
   await fetch(`${baseURL}/enqueue/breadcrumb-test`);
 
-  // Wait for the job to be processed
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await processTransactionPromise;
 
   const transactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
     return transactionEvent.transaction === 'GET /check-isolation';
@@ -65,10 +68,14 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
 test('BullMQ @OnWorkerEvent lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
+  const processTransactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'queue.process';
+  });
+
+  // Enqueue a job (the completed event fires right after the job is processed)
   await fetch(`${baseURL}/enqueue/lifecycle-breadcrumb-test`);
 
-  // Wait for the job to be processed and the completed event to fire
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await processTransactionPromise;
 
   const transactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
     return transactionEvent.transaction === 'GET /check-isolation';
