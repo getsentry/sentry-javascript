@@ -196,7 +196,7 @@ describe('createMetricsFlusher', () => {
 
       flusher.flush();
 
-      expect(mockDistribution).toHaveBeenCalledWith('flush_test_histogram.sum', expect.any(Number), { attributes: {} });
+      expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.sum', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.count', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.min', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.max', expect.any(Number), { attributes: {} });
@@ -220,7 +220,7 @@ describe('createMetricsFlusher', () => {
 
       flusher.flush();
 
-      expect(mockDistribution).toHaveBeenCalledWith('flush_test_summary.sum', 60, { attributes: {} });
+      expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.sum', 60, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.count', 3, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.min', 10, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.max', 30, { attributes: {} });

@@ -20,18 +20,18 @@ function sendMetricToSentry(pair: MetricPair.MetricPair.Untyped): void {
   const attributes = labelsToAttributes(metricKey.tags);
 
   if (MetricState.isCounterState(metricState)) {
-    const value = typeof metricState.count === 'bigint' ? Number(metricState.count) : metricState.count;
+    const value = Number(metricState.count);
     sentryMetrics.count(name, value, { attributes });
   } else if (MetricState.isGaugeState(metricState)) {
-    const value = typeof metricState.value === 'bigint' ? Number(metricState.value) : metricState.value;
+    const value = Number(metricState.value);
     sentryMetrics.gauge(name, value, { attributes });
   } else if (MetricState.isHistogramState(metricState)) {
-    sentryMetrics.distribution(`${name}.sum`, metricState.sum, { attributes });
+    sentryMetrics.gauge(`${name}.sum`, metricState.sum, { attributes });
     sentryMetrics.gauge(`${name}.count`, metricState.count, { attributes });
     sentryMetrics.gauge(`${name}.min`, metricState.min, { attributes });
     sentryMetrics.gauge(`${name}.max`, metricState.max, { attributes });
   } else if (MetricState.isSummaryState(metricState)) {
-    sentryMetrics.distribution(`${name}.sum`, metricState.sum, { attributes });
+    sentryMetrics.gauge(`${name}.sum`, metricState.sum, { attributes });
     sentryMetrics.gauge(`${name}.count`, metricState.count, { attributes });
     sentryMetrics.gauge(`${name}.min`, metricState.min, { attributes });
     sentryMetrics.gauge(`${name}.max`, metricState.max, { attributes });
@@ -59,7 +59,7 @@ function sendDeltaMetricToSentry(
   const metricId = getMetricId(pair);
 
   if (MetricState.isCounterState(metricState)) {
-    const currentValue = typeof metricState.count === 'bigint' ? Number(metricState.count) : metricState.count;
+    const currentValue = Number(metricState.count);
 
     const previousValue = previousCounterValues.get(metricId) ?? 0;
     const delta = currentValue - previousValue;
