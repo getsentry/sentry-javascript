@@ -20,9 +20,12 @@ Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
 | `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
 | `yarn build:bundle`                   | Browser bundles only          |
 | `yarn test`                           | All unit tests                |
-| `yarn lint`                           | Oxlint + Oxfmt                |
-| `yarn fix`                            | Auto-fix lint + format        |
-| `yarn format`                         | Auto-fix formatting (Oxfmt)   |
+| `yarn verify`                         | Lint + format check           |
+| `yarn fix`                            | Format + lint fix             |
+| `yarn lint`                           | Lint (Oxlint)                 |
+| `yarn lint:fix`                       | Lint + auto-fix (Oxlint)      |
+| `yarn format`                         | Format files (Oxfmt)          |
+| `yarn format:check`                   | Check formatting (Oxfmt)      |
 
 Single package: `cd packages/<name> && yarn test`
 

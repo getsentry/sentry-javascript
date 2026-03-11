@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-canvas",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -44,8 +44,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
-    "fix": "oxlint . --fix",
-    "lint": "oxlint .",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -68,8 +68,8 @@
     "@sentry-internal/rrweb": "2.40.0"
   },
   "dependencies": {
-    "@sentry-internal/replay": "10.42.0",
-    "@sentry/core": "10.42.0"
+    "@sentry-internal/replay": "10.43.0",
+    "@sentry/core": "10.43.0"
   },
   "engines": {
     "node": ">=18"

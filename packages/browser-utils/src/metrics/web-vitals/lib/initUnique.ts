@@ -27,7 +27,7 @@ export function initUnique<T>(identityObj: object, ClassObj: new () => T): T {
       instanceMap.set(identityObj, new ClassObj());
     }
     return instanceMap.get(identityObj)! as T;
-  } catch (e) {
+  } catch (_e) {
     // --- START Sentry-custom code (try/catch wrapping) ---
     // Fix for cases where identityObj is not a valid key for WeakMap (sometimes a problem in Safari)
     // Just return a new instance without caching it in instanceMap

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -57,12 +57,10 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
-    "fix": "run-s fix:oxfmt fix:oxlint",
-    "fix:oxlint": "oxlint . --fix",
-    "fix:oxfmt": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
-    "lint": "run-s lint:oxfmt lint:oxlint",
-    "lint:oxlint": "oxlint .",
-    "lint:oxfmt": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
+    "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
+    "format:check": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -80,7 +78,7 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.27.7",
-    "@sentry-internal/replay-worker": "10.42.0",
+    "@sentry-internal/replay-worker": "10.43.0",
     "@sentry-internal/rrweb": "2.40.0",
     "@sentry-internal/rrweb-snapshot": "2.40.0",
     "fflate": "0.8.2",
@@ -88,8 +86,8 @@
     "jsdom-worker": "^0.3.0"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "10.42.0",
-    "@sentry/core": "10.42.0"
+    "@sentry-internal/browser-utils": "10.43.0",
+    "@sentry/core": "10.43.0"
   },
   "engines": {
     "node": ">=18"

@@ -162,7 +162,7 @@ export function wrapRequestHandler(
                 statusText: res.statusText,
                 headers: res.headers,
               });
-            } catch (e) {
+            } catch (_e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
               waitUntil?.(flushAndDispose(client));
