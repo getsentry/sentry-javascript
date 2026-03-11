@@ -24,9 +24,9 @@ describe('ScheduleInstrumentation', () => {
   });
 
   describe.each([
-    { decoratorName: 'Cron', fileIndex: 0, mechanismType: 'auto.schedule.nestjs.cron' },
-    { decoratorName: 'Interval', fileIndex: 1, mechanismType: 'auto.schedule.nestjs.interval' },
-    { decoratorName: 'Timeout', fileIndex: 2, mechanismType: 'auto.schedule.nestjs.timeout' },
+    { decoratorName: 'Cron', fileIndex: 0, mechanismType: 'auto.function.nestjs.cron' },
+    { decoratorName: 'Interval', fileIndex: 1, mechanismType: 'auto.function.nestjs.interval' },
+    { decoratorName: 'Timeout', fileIndex: 2, mechanismType: 'auto.function.nestjs.timeout' },
   ])('$decoratorName decorator wrapping', ({ decoratorName, fileIndex, mechanismType }) => {
     let wrappedDecorator: any;
     let descriptor: PropertyDescriptor;

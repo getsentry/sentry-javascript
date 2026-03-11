@@ -67,7 +67,7 @@ test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from cron async job' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.cron'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
 
@@ -81,7 +81,7 @@ test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.cron',
+    type: 'auto.function.nestjs.cron',
   });
 
   // kill cron so tests don't get stuck
@@ -93,7 +93,7 @@ test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL })
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from cron sync job' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.cron'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
 
@@ -107,7 +107,7 @@ test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL })
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.cron',
+    type: 'auto.function.nestjs.cron',
   });
 
   // kill cron so tests don't get stuck

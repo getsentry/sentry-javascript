@@ -6,7 +6,7 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from schedule cron' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.cron'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
 
@@ -15,7 +15,7 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.cron',
+    type: 'auto.function.nestjs.cron',
   });
 
   // kill cron so tests don't get stuck
@@ -27,7 +27,7 @@ test('Sends exceptions to Sentry on error in @Interval decorated method', async 
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from schedule interval' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.interval'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.interval'
     );
   });
 
@@ -36,7 +36,7 @@ test('Sends exceptions to Sentry on error in @Interval decorated method', async 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.interval',
+    type: 'auto.function.nestjs.interval',
   });
 
   // kill interval so tests don't get stuck
@@ -48,7 +48,7 @@ test('Sends exceptions to Sentry on error in @Timeout decorated method', async (
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from schedule timeout' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.timeout'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.timeout'
     );
   });
 
@@ -63,7 +63,7 @@ test('Sends exceptions to Sentry on error in @Timeout decorated method', async (
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.timeout',
+    type: 'auto.function.nestjs.timeout',
   });
 });
 

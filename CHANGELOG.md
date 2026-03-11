@@ -8,6 +8,9 @@
 
   Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.
 
+  The exception mechanism type for `@Cron` errors changed from `auto.cron.nestjs.async` to `auto.function.nestjs.cron`.
+  If you have Sentry queries or alerts that filter on the old mechanism type, update them accordingly.
+
 ## 10.43.0
 
 ### Important Changes

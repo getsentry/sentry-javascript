@@ -67,7 +67,7 @@ test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
     return (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Test error from cron job' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.schedule.nestjs.cron'
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
 
@@ -77,7 +77,7 @@ test('Sends exceptions to Sentry on error in cron job', async ({ baseURL }) => {
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Test error from cron job');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.schedule.nestjs.cron',
+    type: 'auto.function.nestjs.cron',
   });
 
   expect(errorEvent.contexts?.trace).toEqual({

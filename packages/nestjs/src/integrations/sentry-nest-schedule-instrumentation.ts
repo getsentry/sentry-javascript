@@ -45,7 +45,7 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
         if (isWrapped(moduleExports.Cron)) {
           this._unwrap(moduleExports, 'Cron');
         }
-        this._wrap(moduleExports, 'Cron', this._createWrapDecorator('auto.schedule.nestjs.cron'));
+        this._wrap(moduleExports, 'Cron', this._createWrapDecorator('auto.function.nestjs.cron'));
         return moduleExports;
       },
       (moduleExports: { Cron: ScheduleDecoratorTarget }) => {
@@ -65,7 +65,7 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
         if (isWrapped(moduleExports.Interval)) {
           this._unwrap(moduleExports, 'Interval');
         }
-        this._wrap(moduleExports, 'Interval', this._createWrapDecorator('auto.schedule.nestjs.interval'));
+        this._wrap(moduleExports, 'Interval', this._createWrapDecorator('auto.function.nestjs.interval'));
         return moduleExports;
       },
       (moduleExports: { Interval: ScheduleDecoratorTarget }) => {
@@ -85,7 +85,7 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
         if (isWrapped(moduleExports.Timeout)) {
           this._unwrap(moduleExports, 'Timeout');
         }
-        this._wrap(moduleExports, 'Timeout', this._createWrapDecorator('auto.schedule.nestjs.timeout'));
+        this._wrap(moduleExports, 'Timeout', this._createWrapDecorator('auto.function.nestjs.timeout'));
         return moduleExports;
       },
       (moduleExports: { Timeout: ScheduleDecoratorTarget }) => {
