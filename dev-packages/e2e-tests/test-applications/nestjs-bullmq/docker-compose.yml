@@ -1,0 +1,7 @@
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: e2e-tests-nestjs-bullmq-redis
+    ports:
+      - '6379:6379'
