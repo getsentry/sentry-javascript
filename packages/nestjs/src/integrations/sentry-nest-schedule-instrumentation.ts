@@ -8,7 +8,7 @@ import {
 import { captureException, isThenable, SDK_VERSION, withIsolationScope } from '@sentry/core';
 import type { ScheduleDecoratorTarget } from './types';
 
-const supportedVersions = ['>=4.0.0'];
+const supportedVersions = ['>=2.0.0'];
 const COMPONENT = '@nestjs/schedule';
 
 /**
@@ -117,8 +117,8 @@ export class SentryNestScheduleInstrumentation extends InstrumentationBase {
             return decoratorResult(target, propertyKey, descriptor);
           }
 
-          const originalHandler = descriptor.value;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const originalHandler: (...handlerArgs: unknown[]) => unknown = descriptor.value;
           const handlerName = originalHandler.name || propertyKey;
 
           // Not using async/await here to avoid changing the return type of sync handlers.
