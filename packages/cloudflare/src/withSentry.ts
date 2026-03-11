@@ -1,4 +1,4 @@
-import type { env } from 'cloudflare:workers';
+import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented } from './instrument';
@@ -8,6 +8,11 @@ import { instrumentExportedHandlerQueue } from './instrumentations/worker/instru
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
 import { getHonoIntegration } from './integrations/hono';
+import { isCloudflareClass } from './utils/isCloudflareClass';
+import {
+  instrumentWorkerEntrypoint,
+  type WorkerEntrypointConstructor,
+} from './instrumentations/instrumentWorkerEntrypoint';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -21,15 +26,19 @@ import { getHonoIntegration } from './integrations/hono';
  * @returns The wrapped handler.
  */
 export function withSentry<
-  Env = typeof env,
+  Env = typeof cloudflareEnv,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
+  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
     Env,
     QueueHandlerMessage,
     CfHostMetadata
   >,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+>(optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined, handler: T): T {
+  if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
+    return instrumentWorkerEntrypoint(optionsCallback, handler);
+  }
+
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {
