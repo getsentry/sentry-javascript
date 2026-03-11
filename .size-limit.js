@@ -15,7 +15,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '24.5 KB',
+    limit: '24.1 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
 
@@ -190,7 +190,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Logs, Metrics)',
     path: createCDNPath('bundle.logs.metrics.min.js'),
     gzip: true,
-    limit: '30 KB',
+    limit: '29 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
@@ -214,7 +214,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: true,
-    limit: '82 KB',
+    limit: '81 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
@@ -241,7 +241,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '129 KB',
+    limit: '128 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',

@@ -8,7 +8,7 @@ import type {
   Event as SentryEvent,
   EventEnvelope,
   EventEnvelopeHeaders,
-  SerializedSession,
+  SessionContext,
   TransactionEvent,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
@@ -283,10 +283,7 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
   });
 }
 
-export async function waitForSession(
-  page: Page,
-  callback?: (session: SerializedSession) => boolean,
-): Promise<SerializedSession> {
+export async function waitForSession(page: Page): Promise<SessionContext> {
   const req = await page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -294,11 +291,7 @@ export async function waitForSession(
     }
 
     try {
-      const event = envelopeRequestParser<SerializedSession>(req);
-
-      if (callback) {
-        return callback(event);
-      }
+      const event = envelopeRequestParser<SessionContext>(req);
 
       return typeof event.init === 'boolean' && event.started !== undefined;
     } catch {
@@ -306,7 +299,7 @@ export async function waitForSession(
     }
   });
 
-  return envelopeRequestParser<SerializedSession>(req);
+  return envelopeRequestParser<SessionContext>(req);
 }
 
 /**

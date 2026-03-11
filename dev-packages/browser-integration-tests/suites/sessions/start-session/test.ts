@@ -1,12 +1,12 @@
+import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
+import type { SessionContext } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { waitForSession } from '../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const sessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
-  await page.goto(url);
-  const session = await sessionPromise;
+  const session = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(session).toBeDefined();
   expect(session.init).toBe(true);
@@ -16,20 +16,18 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, 
 
 sentryTest('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.route('**/foo', (route: Route) => route.continue({ url }));
 
-  const initSessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
-  await page.goto(url);
-  const initSession = await initSessionPromise;
+  const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
-  const newSessionPromise = waitForSession(page, s => !!s.init && s.status === 'ok');
   await page.locator('#navigate').click();
-  const newSession = await newSessionPromise;
+
+  const newSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(newSession).toBeDefined();
   expect(newSession.init).toBe(true);
   expect(newSession.errors).toBe(0);
   expect(newSession.status).toBe('ok');
   expect(newSession.sid).toBeDefined();
-
   expect(initSession.sid).not.toBe(newSession.sid);
 });
