@@ -5,15 +5,15 @@ import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -93,7 +93,8 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.pipeline.name': 'generateText',
           'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
           'vercel.ai.response.finishReason': 'stop',
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
@@ -127,7 +128,8 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.response.model': 'mock-model-id',
           'vercel.ai.response.id': expect.any(String),
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.response.timestamp': expect.any(String),
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
@@ -196,6 +198,7 @@ describe('Vercel AI integration (V5)', () => {
         status: 'ok',
       }),
       // Seventh span - tool call execution span
+      // Note: gen_ai.tool.description is NOT present when sendDefaultPii: false because ai.prompt.tools is not recorded
       expect.objectContaining({
         data: {
           'vercel.ai.operationId': 'ai.toolCall',
@@ -215,7 +218,7 @@ describe('Vercel AI integration (V5)', () => {
   };
 
   const EXPECTED_AVAILABLE_TOOLS_JSON =
-    '[{"type":"function","name":"getWeather","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false}}]';
+    '[{"type":"function","name":"getWeather","description":"Get the current weather for a location","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false}}]';
 
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
@@ -230,8 +233,9 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.prompt': '[{"role":"user","content":"Where is the first span?"}]',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.response.finishReason': 'stop',
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'First span here!',
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -257,10 +261,11 @@ describe('Vercel AI integration (V5)', () => {
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]:
             '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.response.id': expect.any(String),
           'vercel.ai.response.model': 'mock-model-id',
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'First span here!',
           'vercel.ai.response.timestamp': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
@@ -290,8 +295,9 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.response.finishReason': 'stop',
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -323,7 +329,8 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.response.finishReason': 'stop',
           'vercel.ai.response.model': 'mock-model-id',
           'vercel.ai.response.id': expect.any(String),
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
           'vercel.ai.response.timestamp': expect.any(String),
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
@@ -349,8 +356,9 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.prompt': '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
           'vercel.ai.response.finishReason': 'tool-calls',
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
@@ -375,14 +383,14 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
+            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
           'vercel.ai.prompt.toolChoice': expect.any(String),
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
           'vercel.ai.response.finishReason': 'tool-calls',
           'vercel.ai.response.id': expect.any(String),
           'vercel.ai.response.model': 'mock-model-id',
-          // 'gen_ai.response.text': 'Tool call completed!', // TODO: look into why this is not being set
           'vercel.ai.response.timestamp': expect.any(String),
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
@@ -406,6 +414,7 @@ describe('Vercel AI integration (V5)', () => {
         data: expect.objectContaining({
           'vercel.ai.operationId': 'ai.toolCall',
           [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: 'Get the current weather for a location',
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
           [GEN_AI_TOOL_INPUT_ATTRIBUTE]: expect.any(String),
           [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: expect.any(String),
