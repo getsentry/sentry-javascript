@@ -1,4 +1,10 @@
-import { captureException, extractTraceparentData, getCurrentScope, withIsolationScope } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  captureException,
+  extractTraceparentData,
+  getCurrentScope,
+  withIsolationScope,
+} from '@sentry/core';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;
@@ -9,6 +15,12 @@ interface ClassComponent {
     props?: unknown;
     render(...args: unknown[]): unknown;
   };
+}
+
+function storeCapturedEventIdOnError(error: unknown, eventId: string | undefined): void {
+  if (error && typeof error === 'object') {
+    addNonEnumerableProperty(error as Record<string, unknown>, '__sentry_event_id__', eventId);
+  }
 }
 
 function isReactClassComponent(target: unknown): target is ClassComponent {
@@ -45,12 +57,13 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           try {
             return super.render(...args);
           } catch (e) {
-            captureException(e, {
+            const eventId = captureException(e, {
               mechanism: {
                 handled: false,
                 type: 'auto.function.nextjs.page_class',
               },
             });
+            storeCapturedEventIdOnError(e, eventId);
             throw e;
           }
         });
@@ -75,12 +88,13 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           try {
             return target.apply(thisArg, argArray);
           } catch (e) {
-            captureException(e, {
+            const eventId = captureException(e, {
               mechanism: {
                 handled: false,
                 type: 'auto.function.nextjs.page_function',
               },
             });
+            storeCapturedEventIdOnError(e, eventId);
             throw e;
           }
         });
