@@ -91,7 +91,6 @@ export interface CatchTarget {
  */
 export interface OnEventTarget {
   name: string;
-  sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
 }
 
@@ -100,7 +99,6 @@ export interface OnEventTarget {
  */
 export interface ScheduleDecoratorTarget {
   name: string;
-  sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
 }
 
@@ -109,8 +107,10 @@ export interface ScheduleDecoratorTarget {
  */
 export interface ProcessorDecoratorTarget {
   name: string;
-  sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
+  prototype: {
+    process?: ((...args: any[]) => Promise<any>) & { __SENTRY_INSTRUMENTED__?: boolean };
+  };
 }
 
 /**

@@ -73,51 +73,37 @@ export class SentryNestBullMQInstrumentation extends InstrumentationBase {
         const classDecorator = original(...decoratorArgs);
 
         // Return a new class decorator that wraps the process method
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return function (target: any) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        return function (target: ProcessorDecoratorTarget) {
           const originalProcess = target.prototype.process;
 
           if (
             originalProcess &&
             typeof originalProcess === 'function' &&
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            !target.prototype.__SENTRY_INTERNAL__ &&
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            !target.__SENTRY_INTERNAL__ &&
             !originalProcess.__SENTRY_INSTRUMENTED__
           ) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            target.prototype.process = async function (...args: unknown[]) {
-              return withIsolationScope(() => {
-                return startSpan(getBullMQProcessSpanOptions(queueName), async () => {
-                  try {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    const result = await originalProcess.apply(this, args);
-                    return result;
-                  } catch (error) {
-                    captureException(error, {
-                      mechanism: {
-                        handled: false,
-                        type: 'auto.queue.nestjs.bullmq',
-                      },
-                    });
-                    throw error;
-                  }
+            target.prototype.process = new Proxy(originalProcess, {
+              apply: (originalProcessFn, thisArg, args) => {
+                return withIsolationScope(() => {
+                  return startSpan(getBullMQProcessSpanOptions(queueName), async () => {
+                    try {
+                      const result = await originalProcessFn.apply(thisArg, args);
+                      return result;
+                    } catch (error) {
+                      captureException(error, {
+                        mechanism: {
+                          handled: false,
+                          type: 'auto.queue.nestjs.bullmq',
+                        },
+                      });
+                      throw error;
+                    }
+                  });
                 });
-              });
-            };
-
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            target.prototype.process.__SENTRY_INSTRUMENTED__ = true;
-
-            // Preserve the original function name
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            Object.defineProperty(target.prototype.process, 'name', {
-              value: 'process',
-              configurable: true,
-              enumerable: true,
-              writable: true,
+              },
             });
+
+            target.prototype.process.__SENTRY_INSTRUMENTED__ = true;
           }
 
           // Apply the original class decorator

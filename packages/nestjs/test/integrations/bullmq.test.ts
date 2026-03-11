@@ -92,7 +92,7 @@ describe('BullMQInstrumentation', () => {
 
       mockProcessor = class TestProcessor {};
       mockProcessor.prototype.process = originalProcess;
-      mockProcessor.prototype.__SENTRY_INTERNAL__ = true;
+      mockProcessor.__SENTRY_INTERNAL__ = true;
 
       const classDecoratorFn = wrappedDecorator('test-queue');
       classDecoratorFn(mockProcessor);
