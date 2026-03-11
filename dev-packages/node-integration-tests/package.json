@@ -16,8 +16,8 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "lint": "oxlint .",
-    "fix": "oxlint . --fix",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "type-check": "tsc",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
