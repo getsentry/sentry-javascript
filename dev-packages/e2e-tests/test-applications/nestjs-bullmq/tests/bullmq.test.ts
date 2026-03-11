@@ -39,7 +39,7 @@ test('Creates a transaction for successful job processing', async ({ baseURL }) 
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {
   // Enqueue a job that adds a breadcrumb during processing
-  await fetch(`${baseURL}/enqueue-with-breadcrumb`);
+  await fetch(`${baseURL}/enqueue/breadcrumb-test`);
 
   // Wait for the job to be processed
   await new Promise(resolve => setTimeout(resolve, 3000));
