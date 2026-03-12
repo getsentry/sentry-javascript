@@ -38,6 +38,8 @@ export function responseHandler(context: Context): void {
   getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
 
   if (context.error) {
-    getClient()?.captureException(context.error);
+    getClient()?.captureException(context.error, {
+      mechanism: { handled: false, type: 'auto.faas.hono.error_handler' },
+    });
   }
 }

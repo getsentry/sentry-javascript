@@ -66,7 +66,9 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env['FC_GIT_COMMIT_SHA'] ||
     // Heroku #1 https://devcenter.heroku.com/articles/heroku-ci
     process.env['HEROKU_TEST_RUN_COMMIT_VERSION'] ||
-    // Heroku #2 https://docs.sentry.io/product/integrations/deployment/heroku/#configure-releases
+    // Heroku #2 https://devcenter.heroku.com/articles/dyno-metadata#dyno-metadata
+    process.env['HEROKU_BUILD_COMMIT'] ||
+    // Heroku #3 (deprecated by Heroku, kept for backward compatibility)
     process.env['HEROKU_SLUG_COMMIT'] ||
     // Railway - https://docs.railway.app/reference/variables#git-variables
     process.env['RAILWAY_GIT_COMMIT_SHA'] ||

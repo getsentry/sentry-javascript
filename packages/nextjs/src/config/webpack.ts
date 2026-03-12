@@ -214,7 +214,7 @@ export function constructWebpackConfigFunction({
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
         !!normalizedAbsoluteResourcePath.match(
-          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          // oxlint-disable-next-line sdk/no-regexp-constructor
           new RegExp(`[\\\\/](page|layout|loading|head|not-found)\\.(${pageExtensionRegex})$`),
         )
       );
@@ -226,7 +226,7 @@ export function constructWebpackConfigFunction({
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
         !!normalizedAbsoluteResourcePath.match(
-          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          // oxlint-disable-next-line sdk/no-regexp-constructor
           new RegExp(`[\\\\/]route\\.(${pageExtensionRegex})$`),
         )
       );

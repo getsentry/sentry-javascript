@@ -65,6 +65,17 @@ interface HttpOptions {
   sessionFlushingDelayMS?: number;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing HTTP requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
+   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's HttpInstrumentation.
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    *
@@ -181,6 +192,20 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
     // ignore errors here...
   }
 
+  // The OTel HttpInstrumentation (>=0.213.0) has a guard (`_httpPatched`/`_httpsPatched`)
+  // that prevents patching `http`/`https` when loaded by both CJS `require()` and ESM `import`.
+  // In environments like AWS Lambda, the runtime loads `http` via CJS first (for the Runtime API),
+  // and then the user's ESM handler imports `node:http`. The guard blocks ESM patching after CJS,
+  // which breaks HTTP spans for ESM handlers. We disable this guard to allow both to be patched.
+  // TODO(andrei): Remove once https://github.com/open-telemetry/opentelemetry-js/issues/6489 is fixed.
+  try {
+    const noopDescriptor = { get: () => false, set: () => {} };
+    Object.defineProperty(instrumentation, '_httpPatched', noopDescriptor);
+    Object.defineProperty(instrumentation, '_httpsPatched', noopDescriptor);
+  } catch {
+    // ignore errors here...
+  }
+
   return instrumentation;
 });
 
@@ -253,11 +278,14 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       const sentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
-        propagateTraceInOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL || !useOtelHttpInstrumentation,
+        propagateTraceInOutgoingRequests:
+          typeof options.tracePropagation === 'boolean'
+            ? options.tracePropagation
+            : FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL || !useOtelHttpInstrumentation,
         createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
         spans: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-        outgoingRequestHook: (span, request) => {
+        outgoingRequestHook: (span: Span, request: ClientRequest) => {
           // Sanitize data URLs to prevent long base64 strings in span attributes
           const url = getRequestUrl(request);
           if (url.startsWith('data:')) {

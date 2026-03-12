@@ -1,0 +1,7 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Client Error">
+  <button id="#errBtn" onclick="throw new Error('client error')"> Throw Error </button>
+</Layout>

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-shims",
-  "version": "10.39.0",
+  "version": "10.43.0",
   "description": "Shims for integrations in Sentry SDK.",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -41,8 +41,8 @@
     "build:dev:watch": "run-p build:watch",
     "build:transpile:watch": "yarn build:transpile --watch",
     "clean": "rimraf build",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run"
   },
@@ -56,7 +56,7 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/core": "10.39.0"
+    "@sentry/core": "10.43.0"
   },
   "engines": {
     "node": ">=18"

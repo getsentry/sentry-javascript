@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nestjs",
-  "version": "10.39.0",
+  "version": "10.43.0",
   "description": "Official Sentry SDK for NestJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs",
@@ -45,18 +45,18 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^2.5.0",
-    "@opentelemetry/instrumentation": "^0.211.0",
-    "@opentelemetry/instrumentation-nestjs-core": "0.57.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@sentry/core": "10.39.0",
-    "@sentry/node": "10.39.0"
+    "@opentelemetry/core": "^2.6.0",
+    "@opentelemetry/instrumentation": "^0.213.0",
+    "@opentelemetry/instrumentation-nestjs-core": "0.59.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@sentry/core": "10.43.0",
+    "@sentry/node": "10.43.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.2"
   },
   "peerDependencies": {
     "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
@@ -75,8 +75,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
     "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

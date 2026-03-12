@@ -2,13 +2,13 @@ import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
 
-it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
+it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
       eventEnvelope(
         {
           level: 'error',
-          transaction: 'GET /error',
+          transaction: 'GET /error/:param',
           exception: {
             values: [
               {
@@ -24,12 +24,25 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
           request: {
             headers: expect.any(Object),
             method: 'GET',
-            url: expect.any(String),
+            url: expect.stringContaining('/error/param-123'),
           },
+          breadcrumbs: [
+            {
+              timestamp: expect.any(Number),
+              category: 'console',
+              level: 'error',
+              message: 'Error: Test error from Hono app',
+              data: expect.objectContaining({
+                logger: 'console',
+                arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
+              }),
+            },
+          ],
         },
         { includeSampleRand: true, sdk: 'hono' },
       ),
     )
+
     .expect(envelope => {
       const [, envelopeItems] = envelope;
       const [itemHeader, itemPayload] = envelopeItems[0];
@@ -39,7 +52,7 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
       expect(itemPayload).toMatchObject({
         type: 'transaction',
         platform: 'javascript',
-        transaction: 'GET /error',
+        transaction: 'GET /error/:param',
         contexts: {
           trace: {
             span_id: expect.any(String),
@@ -51,15 +64,26 @@ it('Hono app captures errors (Hono SDK)', async ({ signal }) => {
         },
         request: expect.objectContaining({
           method: 'GET',
-          url: expect.stringContaining('/error'),
+          url: expect.stringContaining('/error/param-123'),
         }),
+        breadcrumbs: [
+          {
+            timestamp: expect.any(Number),
+            category: 'console',
+            level: 'error',
+            message: 'Error: Test error from Hono app',
+            data: expect.objectContaining({
+              logger: 'console',
+              arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
+            }),
+          },
+        ],
       });
     })
-
     .unordered()
     .start(signal);
 
-  await runner.makeRequest('get', '/error', { expectError: true });
+  await runner.makeRequest('get', '/error/param-123', { expectError: true });
   await runner.completed();
 });
 

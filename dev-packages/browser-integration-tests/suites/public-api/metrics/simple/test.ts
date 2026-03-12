@@ -40,6 +40,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -55,6 +56,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -70,6 +72,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -85,6 +88,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -102,6 +106,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+            'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
           },
         },
         {
@@ -143,6 +148,10 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.sdk.version': {
               type: 'string',
               value: expect.any(String),
+            },
+            'sentry.timestamp.sequence': {
+              type: 'integer',
+              value: expect.any(Number),
             },
             'user.email': {
               type: 'string',

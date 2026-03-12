@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "10.39.0",
+  "version": "10.43.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -31,8 +31,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
     "build:tarball": "run-s build:transpile build:types",
     "build:dev": "yarn build",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@sentry/core": "10.39.0",
+    "@sentry/core": "10.43.0",
     "eslint-plugin-regexp": "^1.15.0"
   },
   "volta": {

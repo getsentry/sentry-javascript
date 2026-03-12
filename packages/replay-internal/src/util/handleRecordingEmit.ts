@@ -146,7 +146,7 @@ export function createOptionsEvent(replay: ReplayContainer): ReplayOptionFrameEv
  */
 function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): void {
   // Only need to add this event when sending the first segment
-  if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
+  if (!isCheckout || replay.session?.segmentId !== 0) {
     return;
   }
 

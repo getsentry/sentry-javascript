@@ -64,5 +64,6 @@
   "cacheDirectory": ".nxcache",
   "tui": {
     "autoExit": true
-  }
+  },
+  "parallel": 5
 }

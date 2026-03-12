@@ -2,13 +2,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const glob = require('glob');
+const { globSync } = require('glob');
 
 function deleteSourcemaps(buildPath) {
   console.info(`[sentry] Deleting sourcemaps from ${buildPath}`);
 
   // Delete all .map files in the build folder and its subfolders
-  const mapFiles = glob.sync('**/*.map', { cwd: buildPath });
+  const mapFiles = globSync('**/*.map', { cwd: buildPath });
 
   mapFiles.forEach(file => {
     fs.unlinkSync(path.join(buildPath, file));

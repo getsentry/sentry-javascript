@@ -2,7 +2,8 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
-import { isInstrumentationApiUsed } from '../serverGlobals';
+import { registerServerBuildGlobal } from '../serverBuild';
+import { enableOtelDataLoaderSpanCreation } from '../serverGlobals';
 
 const INTEGRATION_NAME = 'ReactRouterServer';
 
@@ -13,6 +14,8 @@ const instrumentReactRouter = generateInstrumentOnce(INTEGRATION_NAME, () => {
 export const instrumentReactRouterServer = Object.assign(
   (): void => {
     instrumentReactRouter();
+    // Register global for Vite plugin ServerBuild capture
+    registerServerBuildGlobal();
   },
   { id: INTEGRATION_NAME },
 );
@@ -24,17 +27,17 @@ export const reactRouterServerIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // Skip OTEL patching if the instrumentation API is in use
-      if (isInstrumentationApiUsed()) {
-        return;
+      // Enable OTEL data-loader spans only on Node versions without the diagnostics_channel-based instrumentation API.
+      if (
+        (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) ||
+        (NODE_VERSION.major === 22 && NODE_VERSION.minor < 12)
+      ) {
+        enableOtelDataLoaderSpanCreation();
       }
 
-      if (
-        (NODE_VERSION.major === 20 && NODE_VERSION.minor < 19) || // https://nodejs.org/en/blog/release/v20.19.0
-        (NODE_VERSION.major === 22 && NODE_VERSION.minor < 12) // https://nodejs.org/en/blog/release/v22.12.0
-      ) {
-        instrumentReactRouterServer();
-      }
+      // Always install to capture ServerBuild for middleware names.
+      // Skips per-request wrapping when instrumentation API is active or OTEL span creation is disabled.
+      instrumentReactRouterServer();
     },
     processEvent(event) {
       // Express generates bogus `*` routes for data loaders, which we want to remove here

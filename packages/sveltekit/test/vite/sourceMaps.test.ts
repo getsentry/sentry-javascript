@@ -5,18 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ViteUserConfig } from 'vitest/config';
 import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
-const mockedViteDebugIdUploadPlugin = {
-  name: 'sentry-vite-debug-id-upload-plugin',
-  writeBundle: vi.fn(),
-};
-
-const mockedViteReleaseManagementPlugin = {
-  name: 'sentry-release-management-plugin',
-  writeBundle: vi.fn(),
-};
-
-const mockedFileDeletionPlugin = {
-  name: 'sentry-file-deletion-plugin',
+const mockedMainPlugin = {
+  name: 'sentry-vite-plugin',
   writeBundle: vi.fn(),
 };
 
@@ -68,11 +58,7 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
 describe('makeCustomSentryVitePlugins()', () => {
   beforeEach(() => {
     // @ts-expect-error - this function exists!
-    sentryVitePlugin.mockReturnValue([
-      mockedViteReleaseManagementPlugin,
-      mockedViteDebugIdUploadPlugin,
-      mockedFileDeletionPlugin,
-    ]);
+    sentryVitePlugin.mockReturnValue([mockedMainPlugin]);
   });
 
   it('returns the custom sentry source maps plugin', async () => {
@@ -191,7 +177,7 @@ describe('makeCustomSentryVitePlugins()', () => {
       plugin.configResolved({ build: { ssr: true } });
       // @ts-expect-error this function exists!
       await plugin.closeBundle();
-      expect(mockedViteDebugIdUploadPlugin.writeBundle).toHaveBeenCalledTimes(1);
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
     });
 
     it("doesn't upload source maps during the non-SSR builds", async () => {
@@ -201,12 +187,12 @@ describe('makeCustomSentryVitePlugins()', () => {
       plugin.configResolved({ build: { ssr: false } });
       // @ts-expect-error this function exists!
       await plugin.closeBundle();
-      expect(mockedViteDebugIdUploadPlugin.writeBundle).not.toHaveBeenCalled();
+      expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
     });
   });
 
   it('catches errors while uploading source maps', async () => {
-    mockedViteDebugIdUploadPlugin.writeBundle.mockImplementationOnce(() => {
+    mockedMainPlugin.writeBundle.mockImplementationOnce(() => {
       throw new Error('test error');
     });
 
@@ -225,102 +211,6 @@ describe('makeCustomSentryVitePlugins()', () => {
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upload source maps'));
     expect(consoleLogSpy).toHaveBeenCalled();
-  });
-
-  describe('Custom release management plugin', () => {
-    it('has the expected hooks and properties', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-release-management-plugin');
-
-      expect(plugin).toEqual({
-        name: 'sentry-sveltekit-release-management-plugin',
-        apply: 'build',
-        enforce: 'post',
-        closeBundle: expect.any(Function),
-      });
-    });
-
-    it('calls the original release management plugin to start the release creation pipeline', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-release-management-plugin');
-      // @ts-expect-error this function exists!
-      await plugin.closeBundle();
-      expect(mockedViteReleaseManagementPlugin.writeBundle).toHaveBeenCalledTimes(1);
-    });
-
-    it('catches errors during release creation', async () => {
-      mockedViteReleaseManagementPlugin.writeBundle.mockImplementationOnce(() => {
-        throw new Error('test error');
-      });
-
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
-
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-release-management-plugin');
-
-      // @ts-expect-error this function exists!
-      expect(plugin.closeBundle).not.toThrow();
-
-      // @ts-expect-error this function exists!
-      await plugin.closeBundle();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to upload release data'),
-        expect.any(Error),
-      );
-    });
-
-    it('also works correctly if the original release management plugin has its old name', async () => {
-      const currentName = mockedViteReleaseManagementPlugin.name;
-      mockedViteReleaseManagementPlugin.name = 'sentry-debug-id-upload-plugin';
-
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-release-management-plugin');
-
-      // @ts-expect-error this function exists!
-      await plugin.closeBundle();
-
-      expect(mockedViteReleaseManagementPlugin.writeBundle).toHaveBeenCalledTimes(1);
-
-      mockedViteReleaseManagementPlugin.name = currentName;
-    });
-  });
-
-  describe('Custom file deletion plugin', () => {
-    it('has the expected hooks and properties', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-file-deletion-plugin');
-
-      expect(plugin).toEqual({
-        name: 'sentry-sveltekit-file-deletion-plugin',
-        apply: 'build',
-        enforce: 'post',
-        closeBundle: expect.any(Function),
-      });
-    });
-
-    it('calls the original file deletion plugin to delete files', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-file-deletion-plugin');
-      // @ts-expect-error this function exists!
-      await plugin.closeBundle();
-      expect(mockedFileDeletionPlugin.writeBundle).toHaveBeenCalledTimes(1);
-    });
-
-    it('catches errors during file deletion', async () => {
-      mockedFileDeletionPlugin.writeBundle.mockImplementationOnce(() => {
-        throw new Error('test error');
-      });
-
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
-
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-file-deletion-plugin');
-
-      // @ts-expect-error this function exists!
-      expect(plugin.closeBundle).not.toThrow();
-
-      // @ts-expect-error this function exists!
-      await plugin.closeBundle();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to delete source maps'),
-        expect.any(Error),
-      );
-    });
   });
 });
 

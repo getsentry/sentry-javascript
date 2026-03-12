@@ -1,6 +1,6 @@
+import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import {
   captureException,
-  flush,
   getClient,
   isThenable,
   type Scope,
@@ -11,8 +11,14 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { isInstrumented, markAsInstrumented } from './instrument';
 import { init } from './sdk';
+
+/** Extended DurableObjectState with originalStorage exposed by instrumentContext */
+interface InstrumentedDurableObjectState extends DurableObjectState {
+  originalStorage?: DurableObjectStorage;
+}
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -58,15 +64,21 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
         // In certain situations, the passed context can become undefined.
         // For example, for Astro while prerendering pages at build time.
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
-        const context = wrapperOptions.context as ExecutionContext | undefined;
+        const context = wrapperOptions.context as InstrumentedDurableObjectState | undefined;
 
         const waitUntil = context?.waitUntil?.bind?.(context);
 
-        const currentClient = scope.getClient();
-        if (!currentClient) {
-          const client = init({ ...wrapperOptions.options, ctx: context });
+        let currentClient = scope.getClient();
+        // Check if client exists AND is still usable (transport not disposed)
+        // This handles the case where a previous handler disposed the client
+        // but the scope still holds a reference to it (e.g., alarm handlers in Durable Objects)
+        if (!currentClient?.getTransport()) {
+          const client = init({ ...wrapperOptions.options, ctx: context as unknown as ExecutionContext | undefined });
           scope.setClient(client);
+          currentClient = client;
         }
+
+        const clientToDispose = currentClient;
 
         if (!wrapperOptions.spanName) {
           try {
@@ -78,7 +90,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             if (isThenable(result)) {
               return result.then(
                 (res: unknown) => {
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   return res;
                 },
                 (e: unknown) => {
@@ -88,12 +100,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                       handled: false,
                     },
                   });
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   throw e;
                 },
               );
             } else {
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(clientToDispose));
               return result;
             }
           } catch (e) {
@@ -103,7 +115,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(clientToDispose));
             throw e;
           }
         }
@@ -122,7 +134,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             if (isThenable(result)) {
               return result.then(
                 (res: unknown) => {
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   return res;
                 },
                 (e: unknown) => {
@@ -132,12 +144,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                       handled: false,
                     },
                   });
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(clientToDispose));
                   throw e;
                 },
               );
             } else {
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(clientToDispose));
               return result;
             }
           } catch (e) {
@@ -147,7 +159,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(clientToDispose));
             throw e;
           }
         });

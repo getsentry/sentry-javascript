@@ -933,4 +933,133 @@ describe('maybeParameterizeRoute', () => {
       expect(maybeParameterizeRoute('/fr/about')).toBe('/:locale/about');
     });
   });
+
+  describe('trailing slash normalization (trailingSlash: true)', () => {
+    it('should match static routes when path has a trailing slash', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/settings/profile' }],
+        dynamicRoutes: [],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/about/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/settings/profile/')).toBeUndefined();
+      // Root path should still work
+      expect(maybeParameterizeRoute('/')).toBeUndefined();
+    });
+
+    it('should match dynamic routes when path has a trailing slash', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/users/:id',
+            regex: '^/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/users/:id/posts/:postId',
+            regex: '^/users/([^/]+)/posts/([^/]+)$',
+            paramNames: ['id', 'postId'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/users/123/')).toBe('/users/:id');
+      expect(maybeParameterizeRoute('/users/123/posts/456/')).toBe('/users/:id/posts/:postId');
+    });
+
+    it('should not incorrectly match catch-all routes when a more specific route exists and path has trailing slash', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }],
+        dynamicRoutes: [
+          {
+            path: '/blog/:slug',
+            regex: '^/blog/([^/]+)$',
+            paramNames: ['slug'],
+          },
+          {
+            path: '/parameterized/:param',
+            regex: '^/parameterized/([^/]+)$',
+            paramNames: ['param'],
+          },
+          {
+            path: '/:slug*',
+            regex: '^/(.+)$',
+            paramNames: ['slug'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Static routes with trailing slash should NOT fall through to catch-all
+      expect(maybeParameterizeRoute('/about/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/contact/')).toBeUndefined();
+
+      // Dynamic routes with trailing slash should match correctly, not catch-all
+      expect(maybeParameterizeRoute('/blog/my-post/')).toBe('/blog/:slug');
+      expect(maybeParameterizeRoute('/parameterized/some-value/')).toBe('/parameterized/:param');
+
+      // Actual catch-all routes should still work
+      expect(maybeParameterizeRoute('/unknown/path')).toBe('/:slug*');
+      expect(maybeParameterizeRoute('/unknown/path/')).toBe('/:slug*');
+    });
+
+    it('should handle trailing slash with optional catch-all routes', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }, { path: '/static-page' }],
+        dynamicRoutes: [
+          {
+            path: '/parameterized/:param',
+            regex: '^/parameterized/([^/]+)$',
+            paramNames: ['param'],
+          },
+          {
+            path: '/:slug*?',
+            regex: '^/(.*)$',
+            paramNames: ['slug'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Static route with trailing slash should not match the optional catch-all
+      expect(maybeParameterizeRoute('/static-page/')).toBeUndefined();
+
+      // Dynamic route with trailing slash should not match the optional catch-all
+      expect(maybeParameterizeRoute('/parameterized/value/')).toBe('/parameterized/:param');
+
+      // Root with trailing slash is just '/' - should match static
+      expect(maybeParameterizeRoute('/')).toBeUndefined();
+    });
+
+    it('should produce the same result for paths with and without trailing slashes', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }, { path: '/about' }],
+        dynamicRoutes: [
+          {
+            path: '/users/:id',
+            regex: '^/users/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/:slug*',
+            regex: '^/(.+)$',
+            paramNames: ['slug'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Static routes
+      expect(maybeParameterizeRoute('/about')).toBe(maybeParameterizeRoute('/about/'));
+
+      // Dynamic routes
+      expect(maybeParameterizeRoute('/users/123')).toBe(maybeParameterizeRoute('/users/123/'));
+
+      // Root
+      expect(maybeParameterizeRoute('/')).toBe(maybeParameterizeRoute('/'));
+    });
+  });
 });

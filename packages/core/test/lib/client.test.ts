@@ -13,6 +13,7 @@ import {
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
+import * as logsInternalModule from '../../src/logs/internal';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import * as traceModule from '../../src/tracing/trace';
@@ -2212,6 +2213,24 @@ describe('Client', () => {
       expect(getSentCount()).toBe(1);
     });
 
+    test('close flushes the logs buffer', async () => {
+      vi.useRealTimers();
+
+      const flushLogsSpy = vi
+        .spyOn(logsInternalModule, '_INTERNAL_flushLogsBuffer')
+        .mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      await client.close();
+
+      expect(flushLogsSpy).toHaveBeenCalledTimes(1);
+      expect(flushLogsSpy).toHaveBeenCalledWith(client);
+
+      flushLogsSpy.mockRestore();
+    });
+
     test('multiple concurrent flush calls should just work', async () => {
       vi.useRealTimers();
       expect.assertions(3);
@@ -2797,8 +2816,6 @@ describe('Client', () => {
     // We could set "NODE_OPTIONS='--unhandled-rejections=warn' but it
     // would affect the entire test suite.
     // Maybe this can be re-enabled when switching to vitest.
-    //
-    // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
     test.skip('handles asynchronous errors', async () => {
       const error = new Error('Test error');
       const callback = vi.fn().mockRejectedValue(error);

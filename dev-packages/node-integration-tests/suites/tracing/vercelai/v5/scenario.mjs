@@ -47,6 +47,7 @@ async function run() {
       }),
       tools: {
         getWeather: tool({
+          description: 'Get the current weather for a location',
           inputSchema: z.object({ location: z.string() }),
           execute: async ({ location }) => `Weather in ${location}: Sunny, 72°F`,
         }),

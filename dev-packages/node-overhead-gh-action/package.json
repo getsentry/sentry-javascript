@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-overhead-gh-action",
-  "version": "10.39.0",
+  "version": "10.43.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -19,11 +19,11 @@
     "clean": "rimraf -g **/node_modules",
     "db:up": "docker compose up",
     "db:down": "docker compose down --volumes",
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix"
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware"
   },
   "dependencies": {
-    "@sentry/node": "10.39.0",
+    "@sentry/node": "10.43.0",
     "express": "^4.21.2",
     "mysql2": "^3.14.4"
   },
@@ -32,7 +32,7 @@
     "@actions/core": "1.10.1",
     "@actions/exec": "1.1.1",
     "@actions/github": "^5.0.0",
-    "@actions/glob": "0.4.0",
+    "@actions/glob": "0.6.1",
     "@actions/io": "1.1.3",
     "autocannon": "^8.0.0",
     "eslint-plugin-regexp": "^1.15.0",

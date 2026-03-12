@@ -262,7 +262,7 @@ function instrumentMethod<T extends unknown[], R>(
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
     const spanConfig = {
-      name: `${operationName} ${model}${isStreamRequested ? ' stream-response' : ''}`,
+      name: `${operationName} ${model}`,
       op: getSpanOperation(methodPath),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };

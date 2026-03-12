@@ -10,3 +10,7 @@ document.getElementById('manual-session').addEventListener('click', () => {
   Sentry.startSession();
   Sentry.captureException('Test error from manual session');
 });
+
+document.getElementById('error').addEventListener('click', () => {
+  throw new Error('Test error from error button');
+});

@@ -12,9 +12,6 @@ app.use(
   sentry(app, {
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    debug: true,
-    // fixme - check out what removing this integration changes
-    // integrations: integrations => integrations.filter(integration => integration.name !== 'Hono'),
   }),
 );
 
@@ -26,7 +23,7 @@ app.get('/json', c => {
   return c.json({ message: 'Hello from Hono', framework: 'hono', platform: 'cloudflare' });
 });
 
-app.get('/error', () => {
+app.get('/error/:param', () => {
   throw new Error('Test error from Hono app');
 });
 
