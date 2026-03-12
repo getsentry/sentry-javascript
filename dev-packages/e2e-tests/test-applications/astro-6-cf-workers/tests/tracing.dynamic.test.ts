@@ -167,8 +167,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     expect(serverHTTPServerRequestTxn.contexts?.trace?.parent_span_id).toEqual(serverRequestHTTPClientSpan?.span_id);
   });
 
-  // Astro 6 lowercases routePattern and the internal manifest access (Symbol.for('context.routes'))
-  // no longer works, so route names are lowercased (e.g. [userid] instead of [userId]).
   test('sends parametrized pageload, server and API request transaction names', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
