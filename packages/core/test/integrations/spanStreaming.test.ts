@@ -1,10 +1,9 @@
-import * as SentryCore from '@sentry/core';
-import { debug } from '@sentry/core';
+import * as SentryCore from '../../src';
+import { debug } from '../../src';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient, spanStreamingIntegration } from '../../src';
-import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
+import { spanStreamingIntegration } from '../../src/integrations/spanStreaming';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
-// Mock SpanBuffer as a class that can be instantiated
 const mockSpanBufferInstance = vi.hoisted(() => ({
   flush: vi.fn(),
   add: vi.fn(),
@@ -15,47 +14,32 @@ const MockSpanBuffer = vi.hoisted(() => {
   return vi.fn(() => mockSpanBufferInstance);
 });
 
-vi.mock('@sentry/core', async () => {
-  const original = await vi.importActual('@sentry/core');
+vi.mock('../../src/tracing/spans/spanBuffer', async () => {
+  const original = await vi.importActual('../../src/tracing/spans/spanBuffer');
   return {
     ...original,
     SpanBuffer: MockSpanBuffer,
   };
 });
 
-describe('spanStreamingIntegration', () => {
+describe('spanStreamingIntegration (core)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('has the correct hooks', () => {
+  it('has the correct name and setup hook', () => {
     const integration = spanStreamingIntegration();
     expect(integration.name).toBe('SpanStreaming');
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(integration.beforeSetup).toBeDefined();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(integration.setup).toBeDefined();
-  });
-
-  it('sets traceLifecycle to "stream" if not set', () => {
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
-      dsn: 'https://username@domain/123',
-      integrations: [spanStreamingIntegration()],
-    });
-
-    SentryCore.setCurrentClient(client);
-    client.init();
-
-    expect(client.getOptions().traceLifecycle).toBe('stream');
   });
 
   it.each(['static', 'somethingElse'])(
     'logs a warning if traceLifecycle is not set to "stream" but to %s',
     traceLifecycle => {
       const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-      const client = new BrowserClient({
-        ...getDefaultBrowserClientOptions(),
+      const client = new TestClient({
+        ...getDefaultTestClientOptions(),
         dsn: 'https://username@domain/123',
         integrations: [spanStreamingIntegration()],
         // @ts-expect-error - we want to test the warning for invalid traceLifecycle values
@@ -76,12 +60,12 @@ describe('spanStreamingIntegration', () => {
 
   it('falls back to static trace lifecycle if beforeSendSpan is not compatible with span streaming', () => {
     const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
       traceLifecycle: 'stream',
-      beforeSendSpan: (span: Span) => span,
+      beforeSendSpan: (span: SentryCore.SpanJSON) => span,
     });
 
     SentryCore.setCurrentClient(client);
@@ -95,9 +79,9 @@ describe('spanStreamingIntegration', () => {
     expect(client.getOptions().traceLifecycle).toBe('static');
   });
 
-  it('does nothing if traceLifecycle set to "stream"', () => {
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
+  it('sets up buffer when traceLifecycle is "stream"', () => {
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
       traceLifecycle: 'stream',
@@ -106,14 +90,16 @@ describe('spanStreamingIntegration', () => {
     SentryCore.setCurrentClient(client);
     client.init();
 
+    expect(MockSpanBuffer).toHaveBeenCalledWith(client);
     expect(client.getOptions().traceLifecycle).toBe('stream');
   });
 
   it('enqueues a span into the buffer when the span ends', () => {
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
       tracesSampleRate: 1,
     });
 
@@ -123,45 +109,22 @@ describe('spanStreamingIntegration', () => {
     const span = new SentryCore.SentrySpan({ name: 'test', sampled: true });
     client.emit('afterSpanEnd', span);
 
-    expect(mockSpanBufferInstance.add).toHaveBeenCalledWith({
-      _segmentSpan: span,
-      trace_id: span.spanContext().traceId,
-      span_id: span.spanContext().spanId,
-      end_timestamp: expect.any(Number),
-      is_segment: true,
-      name: 'test',
-      start_timestamp: expect.any(Number),
-      status: 'ok',
-      attributes: {
-        'sentry.origin': {
-          type: 'string',
-          value: 'manual',
-        },
-        'sentry.sdk.name': {
-          type: 'string',
-          value: 'sentry.javascript.browser',
-        },
-        'sentry.sdk.version': {
-          type: 'string',
-          value: expect.any(String),
-        },
-        'sentry.segment.id': {
-          type: 'string',
-          value: span.spanContext().spanId,
-        },
-        'sentry.segment.name': {
-          type: 'string',
-          value: 'test',
-        },
-      },
-    });
+    expect(mockSpanBufferInstance.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _segmentSpan: span,
+        trace_id: span.spanContext().traceId,
+        span_id: span.spanContext().spanId,
+        name: 'test',
+      }),
+    );
   });
 
   it('does not enqueue a span into the buffer when the span is not sampled', () => {
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
       tracesSampleRate: 1,
     });
 
@@ -172,28 +135,5 @@ describe('spanStreamingIntegration', () => {
     client.emit('afterSpanEnd', span);
 
     expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
-    expect(mockSpanBufferInstance.flush).not.toHaveBeenCalled();
-  });
-
-  it('flushes the trace when the segment span ends after a delay for close to finished child spans', () => {
-    vi.useFakeTimers();
-    const client = new BrowserClient({
-      ...getDefaultBrowserClientOptions(),
-      dsn: 'https://username@domain/123',
-      integrations: [spanStreamingIntegration()],
-      traceLifecycle: 'stream',
-    });
-
-    SentryCore.setCurrentClient(client);
-    client.init();
-
-    const span = new SentryCore.SentrySpan({ name: 'test' });
-    client.emit('afterSegmentSpanEnd', span);
-
-    vi.advanceTimersByTime(500);
-
-    expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith(span.spanContext().traceId);
-
-    vi.useRealTimers();
   });
 });

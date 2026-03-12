@@ -140,6 +140,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  spanStreamingIntegration,
   createLangChainCallbackHandler,
   instrumentLangGraph,
   instrumentStateGraphCompile,
