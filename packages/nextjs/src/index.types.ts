@@ -23,6 +23,7 @@ export declare function init(
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
+export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
 
 // Different implementation in server and worker
 export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;

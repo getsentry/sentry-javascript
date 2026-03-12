@@ -160,6 +160,7 @@ export {
   unleashIntegration,
   growthbookIntegration,
   metrics,
+  spanStreamingIntegration,
 } from '@sentry/node';
 
 export {
