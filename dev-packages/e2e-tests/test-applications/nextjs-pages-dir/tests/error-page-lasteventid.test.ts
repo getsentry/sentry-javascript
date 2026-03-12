@@ -36,3 +36,32 @@ test('lastEventId() should return the event ID after captureUnderscoreErrorExcep
   expect(errorEvent.event_id).toBe(returnedEventId);
   expect(errorEvent.event_id).toBe(lastEventId);
 });
+
+test('lastEventId() should return the event ID for component render errors', async ({ page }) => {
+  test.skip(isDevMode, 'should be skipped for non-dev mode');
+  test.skip(isNext13, 'should be skipped for Next.js 13');
+
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'Test render error to trigger _error.tsx page';
+  });
+
+  await page.goto('/underscore-error/test-error-page-no-server');
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.function.nextjs.page_function');
+  expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
+
+  const eventIdFromReturn = await page.locator('[data-testid="event-id"]').textContent();
+  const returnedEventId = eventIdFromReturn?.replace('Event ID from return: ', '');
+
+  const lastEventIdFromFunction = await page.locator('[data-testid="last-event-id"]').textContent();
+  const lastEventId = lastEventIdFromFunction?.replace('Event ID from lastEventId(): ', '');
+
+  expect(returnedEventId).toBeDefined();
+  expect(returnedEventId).not.toBe('No event ID');
+  expect(lastEventId).toBeDefined();
+  expect(lastEventId).not.toBe('No event ID');
+
+  expect(returnedEventId).toBe(errorEvent.event_id);
+  expect(lastEventId).toBe(returnedEventId);
+});

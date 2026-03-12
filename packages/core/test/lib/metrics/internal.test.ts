@@ -7,6 +7,7 @@ import {
 } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types-hoist/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
+import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -1080,6 +1081,10 @@ describe('_INTERNAL_captureMetric', () => {
 
   describe('sentry.timestamp.sequence', () => {
     it('increments the sequence number across consecutive metrics', () => {
+      // Mock timestampInSeconds to return a fixed value so the sequence number
+      // does not reset due to millisecond boundary crossings between calls.
+      const timestampSpy = vi.spyOn(timeModule, 'timestampInSeconds').mockReturnValue(1234.567);
+
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1093,6 +1098,8 @@ describe('_INTERNAL_captureMetric', () => {
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
+
+      timestampSpy.mockRestore();
     });
 
     it('resets the sequence number via _INTERNAL_resetSequenceNumber', () => {

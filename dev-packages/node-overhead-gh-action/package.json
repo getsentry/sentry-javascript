@@ -19,8 +19,8 @@
     "clean": "rimraf -g **/node_modules",
     "db:up": "docker compose up",
     "db:down": "docker compose down --volumes",
-    "lint": "oxlint .",
-    "fix": "oxlint . --fix"
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware"
   },
   "dependencies": {
     "@sentry/node": "10.43.0",

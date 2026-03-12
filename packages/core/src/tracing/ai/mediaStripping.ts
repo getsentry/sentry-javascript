@@ -47,6 +47,8 @@ export function isContentMedia(part: unknown): part is ContentMedia {
     hasInputAudio(part) ||
     hasFileData(part) ||
     hasMediaTypeData(part) ||
+    hasVercelFileData(part) ||
+    hasVercelImageData(part) ||
     hasBlobOrBase64Type(part) ||
     hasB64Json(part) ||
     hasImageGenerationResult(part) ||
@@ -113,6 +115,41 @@ function hasMediaTypeData(part: NonNullable<unknown>): part is { media_type: str
   return 'media_type' in part && typeof part.media_type === 'string' && 'data' in part;
 }
 
+/**
+ * Check for Vercel AI SDK file format: { type: "file", mediaType: "...", data: "..." }
+ * Only matches base64/binary data, not HTTP/HTTPS URLs (which should be preserved).
+ */
+function hasVercelFileData(part: NonNullable<unknown>): part is { type: 'file'; mediaType: string; data: string } {
+  return (
+    'type' in part &&
+    part.type === 'file' &&
+    'mediaType' in part &&
+    typeof part.mediaType === 'string' &&
+    'data' in part &&
+    typeof part.data === 'string' &&
+    // Only strip base64/binary data, not HTTP/HTTPS URLs which should be preserved as references
+    !part.data.startsWith('http://') &&
+    !part.data.startsWith('https://')
+  );
+}
+
+/**
+ * Check for Vercel AI SDK image format: { type: "image", image: "base64...", mimeType?: "..." }
+ * Only matches base64/data URIs, not HTTP/HTTPS URLs (which should be preserved).
+ * Note: mimeType is optional in Vercel AI SDK image parts.
+ */
+function hasVercelImageData(part: NonNullable<unknown>): part is { type: 'image'; image: string; mimeType?: string } {
+  return (
+    'type' in part &&
+    part.type === 'image' &&
+    'image' in part &&
+    typeof part.image === 'string' &&
+    // Only strip base64/data URIs, not HTTP/HTTPS URLs which should be preserved as references
+    !part.image.startsWith('http://') &&
+    !part.image.startsWith('https://')
+  );
+}
+
 function hasBlobOrBase64Type(part: NonNullable<unknown>): part is { type: 'blob' | 'base64'; content: string } {
   return 'type' in part && (part.type === 'blob' || part.type === 'base64');
 }
@@ -131,7 +168,7 @@ function hasDataUri(part: NonNullable<unknown>): part is { uri: string } {
 
 const REMOVED_STRING = '[Blob substitute]';
 
-const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri'] as const;
+const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri', 'image'] as const;
 
 /**
  * Replace inline binary data in a single media content part with a placeholder.
