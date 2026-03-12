@@ -184,6 +184,7 @@ export type {
 
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
 
 export type { FeatureFlag } from './utils/featureFlags';
 
