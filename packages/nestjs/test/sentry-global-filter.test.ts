@@ -8,6 +8,7 @@ import { SentryGlobalFilter } from '../src/setup';
 
 vi.mock('../src/helpers', () => ({
   isExpectedError: vi.fn(),
+  isWsException: vi.fn(),
 }));
 
 vi.mock('@sentry/core', () => ({
@@ -27,6 +28,7 @@ describe('SentryGlobalFilter', () => {
   let mockLoggerError: any;
   let mockLoggerWarn: any;
   let isExpectedErrorMock: any;
+  let isWsExceptionMock: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,6 +59,7 @@ describe('SentryGlobalFilter', () => {
     mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockReturnValue('mock-event-id');
 
     isExpectedErrorMock = vi.mocked(Helpers.isExpectedError).mockImplementation(() => false);
+    isWsExceptionMock = vi.mocked(Helpers.isWsException).mockImplementation(() => false);
   });
 
   describe('HTTP context', () => {
@@ -235,6 +238,78 @@ describe('SentryGlobalFilter', () => {
       }).toThrow(httpException);
 
       expect(mockCaptureException).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('WS context', () => {
+    let mockEmit: any;
+    let mockClient: any;
+
+    beforeEach(() => {
+      mockEmit = vi.fn();
+      mockClient = { emit: mockEmit };
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('ws');
+      vi.mocked(mockArgumentsHost.switchToWs).mockReturnValue({
+        getClient: () => mockClient,
+        getData: vi.fn(),
+        getPattern: vi.fn(),
+      } as any);
+    });
+
+    it('should capture unexpected errors and emit generic error to client', () => {
+      const error = new Error('Test WS error');
+
+      filter.catch(error, mockArgumentsHost);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.ws.nestjs.global_filter',
+        },
+      });
+      expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+      expect(mockEmit).toHaveBeenCalledWith('exception', { status: 'error', message: 'Internal server error' });
+    });
+
+    it('should not capture expected WsException errors and emit extracted error to client', () => {
+      isExpectedErrorMock.mockReturnValueOnce(true);
+      isWsExceptionMock.mockReturnValueOnce(true);
+
+      const wsException = {
+        getError: () => ({ status: 'error', message: 'Expected WS exception' }),
+        initMessage: () => {},
+      };
+
+      filter.catch(wsException, mockArgumentsHost);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalledWith('exception', { status: 'error', message: 'Expected WS exception' });
+    });
+
+    it('should wrap string error from WsException in object', () => {
+      isExpectedErrorMock.mockReturnValueOnce(true);
+      isWsExceptionMock.mockReturnValueOnce(true);
+
+      const wsException = {
+        getError: () => 'string error',
+        initMessage: () => {},
+      };
+
+      filter.catch(wsException, mockArgumentsHost);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockEmit).toHaveBeenCalledWith('exception', { status: 'error', message: 'string error' });
+    });
+
+    it('should throw HttpExceptions in WS context without capturing', () => {
+      const httpException = new HttpException('Test HTTP exception', HttpStatus.BAD_REQUEST);
+
+      expect(() => {
+        filter.catch(httpException, mockArgumentsHost);
+      }).toThrow(httpException);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockEmit).not.toHaveBeenCalled();
     });
   });
 });

@@ -10,7 +10,7 @@ import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestj
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import { captureException, debug, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { Observable } from 'rxjs';
-import { isExpectedError } from './helpers';
+import { isExpectedError, isWsException } from './helpers';
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
@@ -149,6 +149,39 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 
       // Log the error and return, otherwise we may crash the user's app by handling rpc errors in a http context
       this._logger.error(exception.message, exception.stack);
+      return;
+    }
+
+    // Handle WebSocket context
+    if (contextType === 'ws') {
+      if (exception instanceof HttpException) {
+        throw exception;
+      }
+
+      if (!isExpectedError(exception)) {
+        captureException(exception, {
+          mechanism: {
+            handled: false,
+            type: 'auto.ws.nestjs.global_filter',
+          },
+        });
+      }
+
+      const client: { emit: (event: string, data: unknown) => void } = host.switchToWs().getClient();
+
+      // WsException: extract error and emit to client
+      if (isWsException(exception)) {
+        const res = (exception as { getError(): unknown }).getError();
+        const message = typeof res === 'object' && res !== null ? res : { status: 'error', message: res };
+        client.emit('exception', message);
+        return;
+      }
+
+      // Unknown error: log and emit generic error
+      if (exception instanceof Error) {
+        this._logger.error(exception.message, exception.stack);
+      }
+      client.emit('exception', { status: 'error', message: 'Internal server error' });
       return;
     }
 

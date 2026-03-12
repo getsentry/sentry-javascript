@@ -1,4 +1,4 @@
-import { SubscribeMessage, WebSocketGateway, MessageBody } from '@nestjs/websockets';
+import { SubscribeMessage, WebSocketGateway, MessageBody, WsException } from '@nestjs/websockets';
 import * as Sentry from '@sentry/nestjs';
 
 @WebSocketGateway()
@@ -6,6 +6,11 @@ export class AppGateway {
   @SubscribeMessage('test-exception')
   handleTestException() {
     throw new Error('This is an exception in a WebSocket handler');
+  }
+
+  @SubscribeMessage('test-ws-exception')
+  handleWsException() {
+    throw new WsException('Expected WS exception');
   }
 
   @SubscribeMessage('test-manual-capture')
