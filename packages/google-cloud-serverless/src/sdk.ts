@@ -16,8 +16,8 @@ function getCjsOnlyIntegrations(): Integration[] {
 }
 
 /** Get the default integrations for the GCP SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
-  return [...getDefaultIntegrationsWithoutPerformance(options), ...getCjsOnlyIntegrations()];
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), ...getCjsOnlyIntegrations()];
 }
 
 /**
