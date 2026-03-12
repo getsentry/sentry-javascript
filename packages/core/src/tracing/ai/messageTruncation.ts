@@ -232,8 +232,9 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
 /**
  * Truncate a single message to fit within maxBytes.
  *
- * Supports two message formats:
+ * Supports three message formats:
  * - OpenAI/Anthropic: `{ ..., content: string }`
+ * - Vercel AI/OpenAI multimodal: `{ ..., content: Array<{type, text?, ...}> }`
  * - Google GenAI: `{ ..., parts: Array<string | {text: string} | non-text> }`
  *
  * @param message - The message to truncate
@@ -255,6 +256,11 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
+  }
+
+  if (isContentArrayMessage(message)) {
+    // Content array messages are returned as-is without truncation
+    return [message];
   }
 
   if (isPartsMessage(message)) {

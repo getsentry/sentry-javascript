@@ -49,9 +49,9 @@
   ],
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "oxlint .",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
-    "fix": "oxlint . --fix",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "build": "yarn build:types && yarn build:transpile",
     "build:transpile": "yarn rollup -c rollup.npm.config.mjs",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
