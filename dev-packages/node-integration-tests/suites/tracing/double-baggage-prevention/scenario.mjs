@@ -89,6 +89,7 @@ targetServer.listen(0, async () => {
 
     process.stdout.write(`RESULTS: ${JSON.stringify(results)}\n`);
 
+    Sentry.captureMessage('double-baggage-test-complete');
   } finally {
     targetServer.close();
   }

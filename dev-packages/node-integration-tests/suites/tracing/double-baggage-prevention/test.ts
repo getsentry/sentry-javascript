@@ -4,7 +4,9 @@ import { createEsmAndCjsTests } from '../../../utils/runner';
 describe('double baggage prevention', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('prevents duplicate headers when using manual getTraceData() with auto-instrumentation', async () => {
-      const runner = createRunner().start();
+      const runner = createRunner()
+        .expect({ event: { message: 'double-baggage-test-complete' } })
+        .start();
 
       await runner.completed();
 
