@@ -107,18 +107,37 @@ describe('Light Mode | SDK', () => {
       expect(integrationNames).toContain('NodeFetch');
     });
 
-    it('includes spanStreaming integration when traceLifecycle is "stream"', () => {
+    it('does not include spanStreaming integration', () => {
       const integrations = Sentry.getDefaultIntegrations({ traceLifecycle: 'stream' });
       const integrationNames = integrations.map(i => i.name);
+
+      expect(integrationNames).not.toContain('SpanStreaming');
+    });
+  });
+
+  describe('spanStreamingIntegration', () => {
+    it('installs spanStreaming integration when traceLifecycle is "stream"', () => {
+      const client = mockLightSdkInit({ traceLifecycle: 'stream' });
+      const integrationNames = client?.getOptions().integrations.map(i => i.name);
 
       expect(integrationNames).toContain('SpanStreaming');
     });
 
-    it("doesn't include spanStreaming integration when traceLifecycle is not 'stream'", () => {
-      const integrations = Sentry.getDefaultIntegrations();
-      const integrationNames = integrations.map(i => i.name);
+    it('does not install spanStreaming integration when traceLifecycle is not "stream"', () => {
+      const client = mockLightSdkInit();
+      const integrationNames = client?.getOptions().integrations.map(i => i.name);
 
       expect(integrationNames).not.toContain('SpanStreaming');
+    });
+
+    it('installs spanStreaming integration even with custom defaultIntegrations', () => {
+      const client = mockLightSdkInit({
+        traceLifecycle: 'stream',
+        defaultIntegrations: [],
+      });
+      const integrationNames = client?.getOptions().integrations.map(i => i.name);
+
+      expect(integrationNames).toContain('SpanStreaming');
     });
   });
 

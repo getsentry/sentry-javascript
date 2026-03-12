@@ -39,7 +39,7 @@ import { nativeNodeFetchIntegration } from './integrations/nativeNodeFetchIntegr
 /**
  * Get default integrations for the Light Node-Core SDK.
  */
-export function getDefaultIntegrations(options?: Options): Integration[] {
+export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     eventFiltersIntegration(),
@@ -61,7 +61,6 @@ export function getDefaultIntegrations(options?: Options): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
-    ...(options?.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
@@ -164,12 +163,18 @@ function getClientOptions(
   const integrations = options.integrations;
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(mergedOptions);
 
+  const resolvedIntegrations = getIntegrationsToSetup({
+    defaultIntegrations,
+    integrations,
+  });
+
+  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
+    resolvedIntegrations.push(spanStreamingIntegration());
+  }
+
   return {
     ...mergedOptions,
-    integrations: getIntegrationsToSetup({
-      defaultIntegrations,
-      integrations,
-    }),
+    integrations: resolvedIntegrations,
   };
 }
 

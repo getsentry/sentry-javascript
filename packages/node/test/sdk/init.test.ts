@@ -165,6 +165,17 @@ describe('init()', () => {
         }),
       );
     });
+
+    it('installs spanStreaming integration even with custom defaultIntegrations', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', defaultIntegrations: [] });
+      const client = getClient();
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          integrations: expect.arrayContaining([expect.objectContaining({ name: 'SpanStreaming' })]),
+        }),
+      );
+    });
   });
 
   describe('OpenTelemetry', () => {

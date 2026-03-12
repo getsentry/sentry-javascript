@@ -47,7 +47,7 @@ import { initializeEsmLoader } from './esmLoader';
 /**
  * Get default integrations for the Node-Core SDK.
  */
-export function getDefaultIntegrations(options?: Options): Integration[] {
+export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
@@ -72,7 +72,6 @@ export function getDefaultIntegrations(options?: Options): Integration[] {
     childProcessIntegration(),
     processSessionIntegration(),
     modulesIntegration(),
-    ...(options?.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
@@ -214,12 +213,18 @@ function getClientOptions(
   const integrations = options.integrations;
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(mergedOptions);
 
+  const resolvedIntegrations = getIntegrationsToSetup({
+    defaultIntegrations,
+    integrations,
+  });
+
+  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
+    resolvedIntegrations.push(spanStreamingIntegration());
+  }
+
   return {
     ...mergedOptions,
-    integrations: getIntegrationsToSetup({
-      defaultIntegrations,
-      integrations,
-    }),
+    integrations: resolvedIntegrations,
   };
 }
 
