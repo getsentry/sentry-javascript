@@ -258,7 +258,7 @@ describe('_onElementTiming', () => {
       const entry = {
         name: 'image-paint',
         entryType: 'element',
-        loadToe: 50,
+        loadTime: 50,
         startTime: 100,
         duration: 0,
         renderTime: 100,
