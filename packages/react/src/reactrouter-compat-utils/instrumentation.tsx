@@ -249,6 +249,7 @@ function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
   promises.add(promise);
 
   // Clean up when promise resolves/rejects
+  // oxlint-disable-next-line typescript/no-floating-promises
   promise.finally(() => {
     const currentPromises = pendingLazyRouteLoads.get(span);
     if (currentPromises) {
@@ -613,8 +614,8 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const initialEntries = opts?.initialEntries;
     const initialIndex = opts?.initialIndex;
 
-    const hasOnlyOneInitialEntry = initialEntries && initialEntries.length === 1;
-    const hasIndexedEntry = initialIndex !== undefined && initialEntries && initialEntries[initialIndex];
+    const hasOnlyOneInitialEntry = initialEntries?.length === 1;
+    const hasIndexedEntry = initialIndex !== undefined && initialEntries?.[initialIndex];
 
     initialEntry = hasOnlyOneInitialEntry
       ? initialEntries[0]

@@ -15,6 +15,14 @@ export class TestEventListener {
     throw new Error('Test error from event handler');
   }
 
+  @OnEvent('test-isolation.breadcrumb')
+  handleIsolationBreadcrumbEvent(): void {
+    Sentry.addBreadcrumb({
+      message: 'leaked-breadcrumb-from-event-handler',
+      level: 'info',
+    });
+  }
+
   @OnEvent('multiple.first')
   @OnEvent('multiple.second')
   async handleMultipleEvents(payload: any): Promise<void> {

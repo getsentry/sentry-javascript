@@ -77,6 +77,10 @@ describe('Metrics Public API', () => {
               value: 'GET',
               type: 'string',
             },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
+            },
             status: {
               value: 200,
               type: 'integer',
@@ -194,6 +198,10 @@ describe('Metrics Public API', () => {
               value: 'websocket',
               type: 'string',
             },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
+            },
           },
         }),
       );
@@ -283,6 +291,10 @@ describe('Metrics Public API', () => {
             type: {
               value: 'async',
               type: 'string',
+            },
+            'sentry.timestamp.sequence': {
+              value: expect.any(Number),
+              type: 'integer',
             },
           },
         }),

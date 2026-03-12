@@ -82,6 +82,7 @@ export async function makeCustomSentryVitePlugins(
 
   const { debug } = mergedOptions;
 
+  // oxlint-disable-next-line typescript/await-thenable -- sentryVitePlugin may return a Promise in some versions
   const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
 
   // In @sentry/vite-plugin v5, all functionality is consolidated into a single 'sentry-vite-plugin'.

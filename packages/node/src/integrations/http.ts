@@ -26,6 +26,13 @@ const INTEGRATION_NAME = 'Http';
 
 const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
+// The `http.client.request.created` diagnostics channel, needed for trace propagation,
+// was added in Node 22.12.0 (backported from 23.2.0). Earlier 22.x versions don't have it.
+const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
+  (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
+  (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
+  NODE_VERSION.major >= 24;
+
 interface HttpOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
@@ -185,6 +192,20 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
     // ignore errors here...
   }
 
+  // The OTel HttpInstrumentation (>=0.213.0) has a guard (`_httpPatched`/`_httpsPatched`)
+  // that prevents patching `http`/`https` when loaded by both CJS `require()` and ESM `import`.
+  // In environments like AWS Lambda, the runtime loads `http` via CJS first (for the Runtime API),
+  // and then the user's ESM handler imports `node:http`. The guard blocks ESM patching after CJS,
+  // which breaks HTTP spans for ESM handlers. We disable this guard to allow both to be patched.
+  // TODO(andrei): Remove once https://github.com/open-telemetry/opentelemetry-js/issues/6489 is fixed.
+  try {
+    const noopDescriptor = { get: () => false, set: () => {} };
+    Object.defineProperty(instrumentation, '_httpPatched', noopDescriptor);
+    Object.defineProperty(instrumentation, '_httpsPatched', noopDescriptor);
+  } catch {
+    // ignore errors here...
+  }
+
   return instrumentation;
 });
 
@@ -203,9 +224,9 @@ export function _shouldUseOtelHttpInstrumentation(
     return false;
   }
 
-  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on Node 22+,
-  // as otherwise the necessary diagnostics channel is not available yet
-  if (!hasSpansEnabled(clientOptions) && NODE_VERSION.major >= 22) {
+  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on a Node version
+  // that fully supports the necessary diagnostics channels for trace propagation
+  if (!hasSpansEnabled(clientOptions) && FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL) {
     return false;
   }
 
@@ -258,8 +279,26 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       const sentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
         propagateTraceInOutgoingRequests:
-          typeof options.tracePropagation === 'boolean' ? options.tracePropagation : !useOtelHttpInstrumentation,
+          typeof options.tracePropagation === 'boolean'
+            ? options.tracePropagation
+            : FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL || !useOtelHttpInstrumentation,
+        createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
+        spans: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+        outgoingRequestHook: (span: Span, request: ClientRequest) => {
+          // Sanitize data URLs to prevent long base64 strings in span attributes
+          const url = getRequestUrl(request);
+          if (url.startsWith('data:')) {
+            const sanitizedUrl = stripDataUrlContent(url);
+            span.setAttribute('http.url', sanitizedUrl);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
+            span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+          }
+
+          options.instrumentation?.requestHook?.(span, request);
+        },
+        outgoingResponseHook: options.instrumentation?.responseHook,
+        outgoingRequestApplyCustomAttributes: options.instrumentation?.applyCustomAttributesOnSpan,
       } satisfies SentryHttpInstrumentationOptions;
 
       // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
@@ -281,6 +320,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
 function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrumentationConfig {
   const instrumentationConfig = {
+    // This is handled by the SentryHttpInstrumentation on Node 22+
+    disableOutgoingRequestInstrumentation: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
+
     ignoreOutgoingRequestHook: request => {
       const url = getRequestUrl(request);
 

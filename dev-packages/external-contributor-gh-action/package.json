@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/external-contributor-gh-action",
   "description": "An internal Github Action to add external contributors to the CHANGELOG.md file.",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -10,8 +10,8 @@
   "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "lint": "oxlint .",
-    "fix": "oxlint . --fix"
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware"
   },
   "dependencies": {
     "@actions/core": "1.10.1"

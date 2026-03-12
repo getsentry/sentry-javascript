@@ -5,6 +5,10 @@ description: Manage agent skill dependencies with dotagents. Use when asked to "
 
 Manage agent skill dependencies declared in `agents.toml`. dotagents resolves, installs, and symlinks skills so multiple agent tools (Claude Code, Cursor, Codex, VS Code, OpenCode) discover them from `.agents/skills/`.
 
+## Running dotagents
+
+If `dotagents` is not available as a direct command, use `npx @sentry/dotagents` instead. For example: `npx @sentry/dotagents sync`. All commands and flags work the same way.
+
 ## References
 
 Read the relevant reference when the task requires deeper detail:

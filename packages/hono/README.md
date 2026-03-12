@@ -54,7 +54,6 @@ const app = new Hono();
 
 // Initialize Sentry middleware right after creating the app
 app.use(
-  '*',
   sentry(app, {
     dsn: 'your-sentry-dsn',
     // ...other Sentry options
