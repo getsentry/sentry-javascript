@@ -178,6 +178,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   metrics,
+  spanStreamingIntegration,
 } from '@sentry/node';
 
 export {
