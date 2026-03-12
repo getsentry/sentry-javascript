@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(node): Expose `headersToSpanAttributes` option on `nativeNodeFetchIntegration()` ([#19770](https://github.com/getsentry/sentry-javascript/pull/19770))**
+
+  Response headers like `http.response.header.content-length` were previously captured automatically on outgoing
+  fetch spans but are now opt-in since `@opentelemetry/instrumentation-undici@0.22.0`. You can now configure which
+  headers to capture via the `headersToSpanAttributes` option.
+
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.nativeNodeFetchIntegration({
+        headersToSpanAttributes: {
+          requestHeaders: ['x-custom-header'],
+          responseHeaders: ['content-length', 'content-type'],
+        },
+      }),
+    ],
+  });
+  ```
+
 - **feat(nestjs): Instrument `@nestjs/schedule` decorators ([#19735](https://github.com/getsentry/sentry-javascript/pull/19735))**
 
   Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.

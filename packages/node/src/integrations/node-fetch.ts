@@ -16,7 +16,10 @@ import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
-interface NodeFetchOptions extends Pick<UndiciInstrumentationConfig, 'requestHook' | 'responseHook'> {
+interface NodeFetchOptions extends Pick<
+  UndiciInstrumentationConfig,
+  'requestHook' | 'responseHook' | 'headersToSpanAttributes'
+> {
   /**
    * Whether breadcrumbs should be recorded for requests.
    * Defaults to true
@@ -54,7 +57,7 @@ const instrumentOtelNodeFetch = generateInstrumentOnce(
   INTEGRATION_NAME,
   UndiciInstrumentation,
   (options: NodeFetchOptions) => {
-    return getConfigWithDefaults(options);
+    return _getConfigWithDefaults(options);
   },
 );
 
@@ -110,7 +113,8 @@ function _shouldInstrumentSpans(options: NodeFetchOptions, clientOptions: Partia
     : !clientOptions.skipOpenTelemetrySetup && hasSpansEnabled(clientOptions);
 }
 
-function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {
+/** Exported only for tests. */
+export function _getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {
   const instrumentationConfig = {
     requireParentforSpans: false,
     ignoreRequestHook: request => {
@@ -140,6 +144,7 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
     },
     requestHook: options.requestHook,
     responseHook: options.responseHook,
+    headersToSpanAttributes: options.headersToSpanAttributes,
   } satisfies UndiciInstrumentationConfig;
 
   return instrumentationConfig;
