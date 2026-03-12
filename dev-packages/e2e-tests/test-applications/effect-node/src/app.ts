@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/effect/server';
+import * as Sentry from '@sentry/effect';
 import { HttpRouter, HttpServer, HttpServerResponse } from '@effect/platform';
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
 import { Cause, Effect, Layer, Logger, LogLevel } from 'effect';
