@@ -39,7 +39,7 @@ targetServer.listen(0, async () => {
           headers: traceData,
         },
         res => {
-          res.on('data', () => { });
+          res.on('data', () => {});
           res.on('end', () => resolve());
         },
       );
