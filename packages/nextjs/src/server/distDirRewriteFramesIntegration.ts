@@ -6,7 +6,7 @@ export const distDirRewriteFramesIntegration = defineIntegration(({ distDirName 
   // we can read in the project directory from the currently running process
   const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
 
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- user input is escaped
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- user input is escaped
   const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
 
   const rewriteFramesInstance = rewriteFramesIntegration({

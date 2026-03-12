@@ -6,13 +6,13 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { EventHandler, H3Event } from 'h3';
-import { defineNitroPlugin } from 'nitropack/runtime';
+import type { NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 
-export default defineNitroPlugin(nitroApp => {
+export default (nitroApp => {
   nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
 
   nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
@@ -36,7 +36,7 @@ export default defineNitroPlugin(nitroApp => {
       );
     }
   });
-});
+}) satisfies NitroAppPlugin;
 
 function patchEventHandler(handler: EventHandler): EventHandler {
   return new Proxy(handler, {

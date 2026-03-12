@@ -78,19 +78,19 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling
-      // expect.objectContaining({
-      //   data: expect.objectContaining({
-      //     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-      //     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-      //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-      //   }),
-      //   description: 'invoke_agent error-model',
-      //   op: 'gen_ai.chat',
-      //   origin: 'auto.ai.langchain',
-      //   status: 'internal_error',
-      // }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+        }),
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'internal_error',
+      }),
     ]),
   };
 
@@ -147,20 +147,20 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling with PII
-      // expect.objectContaining({
-      //   data: expect.objectContaining({
-      //     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-      //     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-      //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-      //     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
-      //   }),
-      //   description: 'invoke_agent error-model',
-      //   op: 'gen_ai.chat',
-      //   origin: 'auto.ai.langchain',
-      //   status: 'internal_error',
-      // }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+        }),
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'internal_error',
+      }),
     ]),
   };
 
@@ -453,19 +453,19 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling
-      // expect.objectContaining({
-      //   data: expect.objectContaining({
-      //     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-      //     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-      //     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-      //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-      //   }),
-      //   description: 'invoke_agent error-model',
-      //   op: 'gen_ai.chat',
-      //   origin: 'auto.ai.langchain',
-      //   status: 'internal_error',
-      // }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+        }),
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'internal_error',
+      }),
     ]),
   };
 

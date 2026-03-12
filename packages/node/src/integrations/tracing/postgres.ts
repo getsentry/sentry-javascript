@@ -3,24 +3,29 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 
+interface PostgresIntegrationOptions {
+  ignoreConnectSpans?: boolean;
+}
+
 const INTEGRATION_NAME = 'Postgres';
 
 export const instrumentPostgres = generateInstrumentOnce(
   INTEGRATION_NAME,
-  () =>
-    new PgInstrumentation({
-      requireParentSpan: true,
-      requestHook(span) {
-        addOriginToSpan(span, 'auto.db.otel.postgres');
-      },
-    }),
+  PgInstrumentation,
+  (options?: PostgresIntegrationOptions) => ({
+    requireParentSpan: true,
+    requestHook(span) {
+      addOriginToSpan(span, 'auto.db.otel.postgres');
+    },
+    ignoreConnectSpans: options?.ignoreConnectSpans ?? false,
+  }),
 );
 
-const _postgresIntegration = (() => {
+const _postgresIntegration = ((options?: PostgresIntegrationOptions) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentPostgres();
+      instrumentPostgres(options);
     },
   };
 }) satisfies IntegrationFn;

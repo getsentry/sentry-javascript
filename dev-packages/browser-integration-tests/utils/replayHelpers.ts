@@ -364,7 +364,7 @@ export function replayEnvelopeIsCompressed(resOrReq: Request | Response): boolea
   const lines: boolean[] = envelopeString.split('\n').map(line => {
     try {
       JSON.parse(line);
-    } catch (error) {
+    } catch {
       // If we fail to parse a line, we _might_ have found a compressed payload,
       // so let's check if this is actually the case.
       // This is quite hacky but we can't go through `line` because the prior operations
@@ -394,7 +394,7 @@ export const replayEnvelopeParser = (request: Request | null): unknown[] => {
   const lines = envelopeString.split('\n').map(line => {
     try {
       return JSON.parse(line);
-    } catch (error) {
+    } catch {
       // If we fail to parse a line, we _might_ have found a compressed payload,
       // so let's check if this is actually the case.
       // This is quite hacky but we can't go through `line` because the prior operations

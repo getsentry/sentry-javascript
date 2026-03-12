@@ -136,7 +136,7 @@ function instrumentCompiledGraphInvoke(
             const recordInputs = options.recordInputs;
             const recordOutputs = options.recordOutputs;
             const inputMessages =
-              args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] }).messages ?? []) : [];
+              args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
 
             if (inputMessages && recordInputs) {
               const normalizedMessages = normalizeLangChainMessages(inputMessages);

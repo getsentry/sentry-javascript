@@ -614,7 +614,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
   // as we risk breaking the user's application, so just disable profiling and log an error.
   try {
     return new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
-  } catch (e) {
+  } catch (_e) {
     if (DEBUG_BUILD) {
       debug.log(
         "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
@@ -798,16 +798,18 @@ export function attachProfiledThreadToEvent(event: Event): Event {
     return event;
   }
 
-  // @ts-expect-error the trace fallback value is wrong, though it should never happen
-  // and in case it does, we dont want to override whatever was passed initially.
-  event.contexts.trace = {
-    ...(event.contexts?.trace ?? {}),
-    data: {
-      ...(event.contexts?.trace?.data ?? {}),
-      ['thread.id']: PROFILER_THREAD_ID_STRING,
-      ['thread.name']: PROFILER_THREAD_NAME,
-    },
-  };
+  // Only mutate the trace context when it already has a trace_id — that
+  // guarantees `applySpanToEvent` has already run, and we are not creating a partial trace context from scratch.
+  if (event.contexts.trace?.trace_id) {
+    event.contexts.trace = {
+      ...event.contexts.trace,
+      data: {
+        ...(event.contexts.trace.data ?? {}),
+        ['thread.id']: PROFILER_THREAD_ID_STRING,
+        ['thread.name']: PROFILER_THREAD_NAME,
+      },
+    };
+  }
 
   // Attach thread info to individual spans so that spans can be associated with the profiled thread on the UI even if contexts are missing.
   event.spans?.forEach(span => {

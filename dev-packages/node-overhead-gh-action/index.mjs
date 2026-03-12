@@ -157,7 +157,7 @@ async function run() {
             body,
           });
         }
-      } catch (error) {
+      } catch {
         core.error(
           "Error updating comment. This can happen for PR's originating from a fork without write permissions.",
         );

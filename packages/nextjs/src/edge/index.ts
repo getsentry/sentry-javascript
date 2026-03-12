@@ -78,6 +78,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const opts: VercelEdgeOptions = {
     defaultIntegrations: customDefaultIntegrations,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare

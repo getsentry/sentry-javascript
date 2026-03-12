@@ -1,0 +1,31 @@
+{
+  "name": "astro-5-cf-workers",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "wrangler dev --port 3030",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/astro": "latest || *",
+    "@sentry/cloudflare": "latest || *",
+    "astro": "^5.17.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.63.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.24.0"
+    }
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "nestjs-websockets",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/websockets@latest @nestjs/platform-socket.io@latest && pnpm add -D @nestjs/cli@latest && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/websockets": "^11.0.0",
+    "@nestjs/platform-socket.io": "^11.0.0",
+    "@sentry/nestjs": "latest || *",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@nestjs/cli": "^11.0.0",
+    "@types/node": "^18.19.1",
+    "socket.io-client": "^4.0.0",
+    "typescript": "~5.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

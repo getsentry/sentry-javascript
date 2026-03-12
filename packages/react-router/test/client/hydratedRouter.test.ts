@@ -127,6 +127,28 @@ describe('instrumentHydratedRouter', () => {
     delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
 
+  it('creates navigation transaction with correct name when navigate is called with an object `to`', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate({ pathname: '/items/123', search: '?foo=bar' });
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        name: '/items/123',
+      }),
+    );
+  });
+
+  it('creates navigation transaction with correct name when navigate is called with a number', () => {
+    instrumentHydratedRouter();
+    mockRouter.navigate(-1);
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        name: '-1',
+      }),
+    );
+  });
+
   it('creates navigation span when client instrumentation API is not enabled', () => {
     // Ensure the flag is not set (default state - instrumentation API not used)
     delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;

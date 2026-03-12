@@ -1,0 +1,8 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../.oxlintrc.json"],
+  "env": {
+    "node": true
+  },
+  "ignorePatterns": ["test-applications/**", "tmp/**"]
+}

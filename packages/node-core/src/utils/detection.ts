@@ -4,6 +4,7 @@ import { NODE_MAJOR, NODE_MINOR } from '../nodeVersion';
 /** Detect CommonJS. */
 export function isCjs(): boolean {
   try {
+    // oxlint-disable-next-line typescript/prefer-optional-chain
     return typeof module !== 'undefined' && typeof module.exports !== 'undefined';
   } catch {
     return false;

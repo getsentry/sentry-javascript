@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRequest } from '@sentry-internal/test-utils';
+import { waitForError, waitForRequest, waitForTransaction } from '@sentry-internal/test-utils';
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
@@ -81,4 +81,21 @@ test('sends user-agent header with SDK name and version in envelope requests', a
   expect(request.rawProxyRequestHeaders).toMatchObject({
     'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
   });
+});
+
+test('Storage operations create spans in Durable Object transactions', async ({ baseURL }) => {
+  const transactionWaiter = waitForTransaction('cloudflare-workers', event => {
+    return event.spans?.some(span => span.op === 'db' && span.description === 'durable_object_storage_put') ?? false;
+  });
+
+  const response = await fetch(`${baseURL}/pass-to-object/storage/put`);
+  expect(response.status).toBe(200);
+
+  const transaction = await transactionWaiter;
+  const putSpan = transaction.spans?.find(span => span.description === 'durable_object_storage_put');
+
+  expect(putSpan).toBeDefined();
+  expect(putSpan?.op).toBe('db');
+  expect(putSpan?.data?.['db.system.name']).toBe('cloudflare.durable_object.storage');
+  expect(putSpan?.data?.['db.operation.name']).toBe('put');
 });

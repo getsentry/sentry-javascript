@@ -1,6 +1,6 @@
 import * as childProcess from 'child_process';
 import { readFileSync } from 'fs';
-import * as glob from 'glob';
+import { globSync } from 'glob';
 import * as path from 'path';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
@@ -10,7 +10,7 @@ const version = (JSON.parse(readFileSync(path.join(__dirname, './package.json'),
 
 // Get absolute paths of all the packages we want to publish to the fake registry
 // Only include the current versions, to avoid getting old tarballs published as well
-const packageTarballPaths = glob.sync(`packages/*/sentry-*-${version}.tgz`, {
+const packageTarballPaths = globSync(`packages/*/sentry-*-${version}.tgz`, {
   cwd: repositoryRoot,
   absolute: true,
 });

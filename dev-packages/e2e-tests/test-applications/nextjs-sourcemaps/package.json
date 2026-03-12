@@ -1,0 +1,29 @@
+{
+  "name": "nextjs-sourcemaps",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & next build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "next": "16.1.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^18.19.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "ts-node": "10.9.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -65,7 +65,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   const opts = {
-    environment: getVercelEnv(true) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,

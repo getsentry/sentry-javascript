@@ -191,6 +191,30 @@ describe('AWSLambda', () => {
       expect(mockCaptureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
       expect(mockCaptureException).toBeCalledTimes(2);
     });
+
+    test('captureAllSettledReasons does not throw on array with null elements', async () => {
+      const handler = () => Promise.resolve([null]);
+      const wrappedHandler = wrapHandler(handler, { captureAllSettledReasons: true });
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toEqual([null]);
+      expect(mockCaptureException).toBeCalledTimes(0);
+    });
+
+    test('captureAllSettledReasons does not throw on array with undefined elements', async () => {
+      const handler = () => Promise.resolve([undefined]);
+      const wrappedHandler = wrapHandler(handler, { captureAllSettledReasons: true });
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toEqual([undefined]);
+      expect(mockCaptureException).toBeCalledTimes(0);
+    });
+
+    test('captureAllSettledReasons does not throw on mixed array with null and settled results', async () => {
+      const handler = () => Promise.resolve([null, { status: 'rejected', reason: new Error() }]);
+      const wrappedHandler = wrapHandler(handler, { captureAllSettledReasons: true });
+      await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toEqual([
+        null,
+        { status: 'rejected', reason: expect.any(Error) },
+      ]);
+      expect(mockCaptureException).toBeCalledTimes(0);
+    });
   });
 
   describe('wrapHandler() on sync handler', () => {

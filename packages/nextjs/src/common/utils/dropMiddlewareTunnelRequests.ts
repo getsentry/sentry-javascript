@@ -1,5 +1,5 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
-import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
+import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
 import { isSentryRequestSpan } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
@@ -15,6 +15,12 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * 2. Requests to Sentry ingest (after rewrite)
  */
 export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
+  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+  // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
+  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+    return;
+  }
+
   // Only filter middleware spans or HTTP fetch spans
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request

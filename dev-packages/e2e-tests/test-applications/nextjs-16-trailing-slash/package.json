@@ -1,0 +1,43 @@
+{
+  "name": "nextjs-16-trailing-slash",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "start": "next start",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
+    "import-in-the-middle": "^2",
+    "next": "16.1.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "require-in-the-middle": "^8"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "nextjs-16-trailing-slash (latest, turbopack)"
+      }
+    ]
+  }
+}

@@ -573,7 +573,6 @@ type StartEventName =
   | 'loadEvent';
 
 type EndEventName =
-  | 'connectEnd'
   | 'domainLookupStart'
   | 'domainLookupEnd'
   | 'unloadEventEnd'

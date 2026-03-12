@@ -2,6 +2,7 @@ import type { ConfigEnv, Plugin } from 'vite';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
+import { makeServerBuildCapturePlugin } from './makeServerBuildCapturePlugin';
 import type { SentryReactRouterBuildOptions } from './types';
 
 /**
@@ -18,6 +19,7 @@ export async function sentryReactRouter(
   const plugins: Plugin[] = [];
 
   plugins.push(makeConfigInjectorPlugin(options));
+  plugins.push(makeServerBuildCapturePlugin());
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(makeEnableSourceMapsPlugin(options));

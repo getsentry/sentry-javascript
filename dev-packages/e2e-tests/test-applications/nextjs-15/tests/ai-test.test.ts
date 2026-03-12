@@ -34,14 +34,14 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   expect(firstPipelineSpan?.data?.['vercel.ai.model.id']).toBe('mock-model-id');
   expect(firstPipelineSpan?.data?.['vercel.ai.model.provider']).toBe('mock-provider');
   expect(firstPipelineSpan?.data?.['vercel.ai.prompt']).toContain('Where is the first span?');
-  expect(firstPipelineSpan?.data?.['gen_ai.response.text']).toBe('First span here!');
+  expect(firstPipelineSpan?.data?.['gen_ai.output.messages']).toContain('First span here!');
   expect(firstPipelineSpan?.data?.['gen_ai.usage.input_tokens']).toBe(10);
   expect(firstPipelineSpan?.data?.['gen_ai.usage.output_tokens']).toBe(20); */
 
   // Second AI call - explicitly enabled telemetry
   const secondPipelineSpan = aiPipelineSpans[0];
   expect(secondPipelineSpan?.data?.['vercel.ai.prompt']).toContain('Where is the second span?');
-  expect(secondPipelineSpan?.data?.['gen_ai.response.text']).toContain('Second span here!');
+  expect(secondPipelineSpan?.data?.['gen_ai.output.messages']).toContain('Second span here!');
 
   // Third AI call - with tool calls
   /*  const thirdPipelineSpan = aiPipelineSpans[2];

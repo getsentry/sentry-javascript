@@ -6,6 +6,7 @@ import MyFeedbackForm from './examples/myFeedbackForm';
 import CrashReportButton from './examples/crashReportButton';
 import ThumbsUpDownButtons from './examples/thumbsUpDownButtons';
 import TranslatedFeedbackForm from './examples/translatedFeedbackForm';
+import ThemeSwitcher from './examples/themeSwitcher';
 
 export default function Home() {
   return (
@@ -61,6 +62,12 @@ export default function Home() {
           <fieldset className="border-1 border-gray-300 rounded-md p-2" data-testid="translated-feedback-section">
             <legend>Translated Feedback Form</legend>
             <TranslatedFeedbackForm />
+          </fieldset>
+        </li>
+        <li>
+          <fieldset className="border-1 border-gray-300 rounded-md p-2" data-testid="theme-switcher-section">
+            <legend>Theme Switcher</legend>
+            <ThemeSwitcher />
           </fieldset>
         </li>
       </ul>

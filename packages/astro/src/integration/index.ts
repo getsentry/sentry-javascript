@@ -1,7 +1,9 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
+import { createRequire } from 'module';
 import * as path from 'path';
+import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -160,22 +162,61 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
         }
 
+        const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
+        const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
+
+        if (isCloudflare) {
+          try {
+            const _require = createRequire(`${process.cwd()}/`);
+            _require.resolve('@sentry/cloudflare');
+          } catch {
+            logger.error(
+              'You are using the Cloudflare adapter but `@sentry/cloudflare` is not installed. ' +
+                'Please install the `@sentry/cloudflare` package in your project.',
+            );
+            process.exit(1);
+          }
+        }
+
         if (sdkEnabled.server) {
           const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
+
           if (pathToServerInit) {
             debug && logger.info(`Using ${pathToServerInit} for server init.`);
+            // Always inject the server config via `injectScript('page-ssr')`.
+            // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
+            // and also serves as the fallback for non-Cloudflare adapters in production.
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
           } else {
             debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
-          // Prevent Sentry from being externalized for SSR.
-          // Cloudflare like environments have Node.js APIs are available under `node:` prefix.
-          // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
-          if (config?.adapter?.name.startsWith('@astrojs/cloudflare')) {
+          if (isCloudflareWorkers && command !== 'dev') {
+            // For Cloudflare Workers production builds, additionally use a Vite plugin to:
+            // 1. Import the server config at the Worker entry level (so Sentry.init() runs
+            //    for ALL requests, not just SSR pages — covers actions and API routes)
+            // 2. Wrap the default export with `withSentry` from @sentry/cloudflare for
+            //    per-request isolation, async context, and trace propagation
+            //
+            // Note: We do NOT set `ssr.noExternal` here. The `@astrojs/cloudflare` adapter
+            // already configures Vite to bundle all dependencies for Workers. Explicitly
+            // adding `@sentry/node` to `noExternal` would cause Vite to emit dozens of
+            // warnings about auto-externalizing Node.js built-in modules that @sentry/node
+            // and its transitive dependencies (OpenTelemetry, etc.) import.
+            debug && logger.info('Adding Cloudflare Vite plugin to wrap Worker entry with withSentry.');
             updateConfig({
               vite: {
+                plugins: [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
+              },
+            });
+          } else if (isCloudflare) {
+            // Prevent Sentry from being externalized for SSR.
+            // Cloudflare environments have Node.js APIs available under `node:` prefix.
+            // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+            updateConfig({
+              vite: {
+                plugins: [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
                   // @sentry/node is required in case we have 2 different @sentry/node
                   // packages installed in the same project.
@@ -187,7 +228,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
         }
 
-        const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
+        // In Astro 5+, `config.output` is no longer explicitly set — having an adapter
+        // implies SSR capability. We check for the adapter to handle this correctly.
+        const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
         // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
@@ -212,6 +255,41 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   return possibleFileExtensions
     .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
     .find(filename => fs.existsSync(filename));
+}
+
+/**
+ * Detects if the project is a Cloudflare Pages project by checking for
+ * `pages_build_output_dir` in the wrangler configuration file.
+ *
+ * Cloudflare Pages projects use `pages_build_output_dir` while Workers projects
+ * use `assets.directory` or `main` fields instead.
+ */
+function isCloudflarePages(): boolean {
+  const cwd = process.cwd();
+  const configFiles = ['wrangler.jsonc', 'wrangler.json', 'wrangler.toml'];
+
+  for (const configFile of configFiles) {
+    const configPath = path.join(cwd, configFile);
+
+    if (!fs.existsSync(configPath)) {
+      continue;
+    }
+
+    const content = fs.readFileSync(configPath, 'utf-8');
+
+    if (configFile.endsWith('.toml')) {
+      // https://regex101.com/r/Uxe4p0/1
+      // Match pages_build_output_dir as a TOML key (at start of line, ignoring whitespace)
+      // This avoids false positives from comments (lines starting with #)
+      return /^\s*pages_build_output_dir\s*=/m.test(content);
+    }
+
+    // Match "pages_build_output_dir" as a JSON key (followed by :)
+    // This works for both .json and .jsonc without needing to strip comments
+    return /"pages_build_output_dir"\s*:/.test(content);
+  }
+
+  return false;
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {

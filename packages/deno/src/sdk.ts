@@ -8,12 +8,14 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   nodeStackLineParser,
+  requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
+import { denoServeIntegration } from './integrations/deno-serve';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -28,12 +30,14 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
+    requestDataIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
     // Deno Specific
     breadcrumbsIntegration(),
     denoContextIntegration(),
+    denoServeIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),

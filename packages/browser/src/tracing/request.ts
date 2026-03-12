@@ -332,24 +332,28 @@ function xhrCallback(
 
   const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
-  // check first if the request has finished and is tracked by an existing span which should now end
-  if (handlerData.endTimestamp && shouldCreateSpanResult) {
+  // Handle XHR completion - clean up spans from the record
+  if (handlerData.endTimestamp) {
     const spanId = xhr.__sentry_xhr_span_id__;
     if (!spanId) return;
 
     const span = spans[spanId];
-    if (span && sentryXhrData.status_code !== undefined) {
-      setHttpStatus(span, sentryXhrData.status_code);
-      span.end();
 
-      onRequestSpanEnd?.(span, {
-        headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
-        error: handlerData.error,
-      });
+    if (span) {
+      if (shouldCreateSpanResult && sentryXhrData.status_code !== undefined) {
+        setHttpStatus(span, sentryXhrData.status_code);
+        span.end();
+
+        onRequestSpanEnd?.(span, {
+          headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
+          error: handlerData.error,
+        });
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
+
     return undefined;
   }
 

@@ -334,4 +334,39 @@ describe('util', () => {
       expect(util.detectActiveBundler()).toBe('webpack');
     });
   });
+
+  describe('supportsTurbopackRuleCondition', () => {
+    describe('supported versions (returns true)', () => {
+      it.each([
+        ['16.0.0', 'Next.js 16.0.0'],
+        ['16.1.0', 'Next.js 16.1.0'],
+        ['17.0.0', 'Next.js 17.0.0'],
+        ['20.0.0', 'Next.js 20.0.0'],
+      ])('returns true for %s (%s)', version => {
+        expect(util.supportsTurbopackRuleCondition(version)).toBe(true);
+      });
+    });
+
+    describe('unsupported versions (returns false)', () => {
+      it.each([
+        ['15.9.9', 'Next.js 15.9.9'],
+        ['15.4.1', 'Next.js 15.4.1 (min Turbopack version)'],
+        ['15.0.0', 'Next.js 15.0.0'],
+        ['14.2.0', 'Next.js 14.2.0'],
+        ['13.0.0', 'Next.js 13.0.0'],
+      ])('returns false for %s (%s)', version => {
+        expect(util.supportsTurbopackRuleCondition(version)).toBe(false);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('returns false for empty string', () => {
+        expect(util.supportsTurbopackRuleCondition('')).toBe(false);
+      });
+
+      it('returns false for invalid version string', () => {
+        expect(util.supportsTurbopackRuleCondition('invalid')).toBe(false);
+      });
+    });
+  });
 });

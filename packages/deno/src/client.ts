@@ -1,5 +1,5 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import { _INTERNAL_flushLogsBuffer, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {
@@ -19,6 +19,8 @@ function getHostName(): string | undefined {
  * @see SentryClient for usage documentation.
  */
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
+  private _logOnExitFlushListener: (() => void) | undefined;
+
   /**
    * Creates a new Deno SDK instance.
    * @param options Configuration options for this SDK.
@@ -36,13 +38,42 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
       version: SDK_VERSION,
     };
 
+    const serverName = options.serverName || getHostName();
+
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'javascript',
       runtime: { name: 'deno', version: Deno.version.deno },
-      serverName: options.serverName || getHostName(),
+      serverName,
     };
 
     super(clientOptions);
+
+    if (this.getOptions().enableLogs) {
+      this._logOnExitFlushListener = () => {
+        _INTERNAL_flushLogsBuffer(this);
+      };
+
+      if (serverName) {
+        this.on('beforeCaptureLog', log => {
+          log.attributes = {
+            ...log.attributes,
+            'server.address': serverName,
+          };
+        });
+      }
+
+      globalThis.addEventListener('unload', this._logOnExitFlushListener);
+    }
+  }
+
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async close(timeout?: number | undefined): PromiseLike<boolean> {
+    if (this._logOnExitFlushListener) {
+      globalThis.removeEventListener('unload', this._logOnExitFlushListener);
+    }
+
+    return super.close(timeout);
   }
 }
