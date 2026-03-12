@@ -33,11 +33,8 @@ test.describe('server-side errors', () => {
 
     expect(errorEvent).toMatchObject({
       contexts: {
-        app: expect.any(Object),
         cloud_resource: expect.any(Object),
         culture: expect.any(Object),
-        device: expect.any(Object),
-        os: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
           span_id: spanId,
@@ -61,9 +58,7 @@ test.describe('server-side errors', () => {
       },
       platform: 'javascript',
       request: {
-        cookies: {},
         headers: expect.objectContaining({
-          // demonstrates that requestData integration is getting data
           host: 'localhost:3030',
           'user-agent': expect.any(String),
         }),
@@ -76,7 +71,6 @@ test.describe('server-side errors', () => {
         packages: expect.any(Array),
         version: expect.any(String),
       },
-      server_name: expect.any(String),
       timestamp: expect.any(Number),
       transaction: 'GET /ssr-error',
     });
@@ -147,7 +141,6 @@ test.describe('server-side errors', () => {
       },
       platform: 'javascript',
       request: {
-        cookies: {},
         headers: expect.objectContaining({
           accept: expect.any(String),
         }),

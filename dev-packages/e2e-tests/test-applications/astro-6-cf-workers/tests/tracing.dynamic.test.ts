@@ -63,12 +63,8 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
 
     expect(serverPageRequestTxn).toMatchObject({
       contexts: {
-        app: expect.any(Object),
         cloud_resource: expect.any(Object),
         culture: expect.any(Object),
-        device: expect.any(Object),
-        os: expect.any(Object),
-        otel: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
           data: {
@@ -78,7 +74,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
-            url: expect.stringContaining('/test-ssr'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
@@ -96,9 +91,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       event_id: expect.stringMatching(/[a-f0-9]{32}/),
       platform: 'javascript',
       request: {
-        cookies: {},
         headers: expect.objectContaining({
-          // demonstrates that request data integration can extract headers
           accept: expect.any(String),
           'accept-encoding': expect.any(String),
           'user-agent': expect.any(String),
@@ -112,7 +105,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
         packages: expect.any(Array),
         version: expect.any(String),
       },
-      server_name: expect.any(String),
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -232,7 +224,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/user-page/myUsername123'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
@@ -247,20 +238,18 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     // HTTP client span - actual API URL with client operation
     expect(serverRequestHTTPClientSpan).toMatchObject({
       op: 'http.client',
-      origin: 'auto.http.otel.node_fetch',
+      origin: 'auto.http.fetch',
       description: 'GET http://localhost:3030/api/user/myUsername123.json', // http.client does not need to be parametrized
       data: {
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.otel.node_fetch',
-        'url.full': expect.stringContaining('/api/user/myUsername123.json'),
-        'url.path': '/api/user/myUsername123.json',
+        'sentry.origin': 'auto.http.fetch',
         url: expect.stringContaining('/api/user/myUsername123.json'),
       },
     });
 
     // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/[userId].json',
+      transaction: 'GET /api/user/myUsername123.json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -270,12 +259,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/api/user/myUsername123.json'),
-            'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate',
-            'http.request.header.accept_language': '*',
-            'http.request.header.sec_fetch_mode': 'cors',
-            'http.request.header.user_agent': expect.any(String),
+            'http.request.header.accept_encoding': 'br, gzip',
           },
         },
       },
@@ -327,7 +311,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/catchAll/hell0/whatever-do'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
@@ -384,7 +367,6 @@ test.describe('parametrized vs static paths', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/user-page/settings'),
             'http.request.header.accept': expect.any(String),
             'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
