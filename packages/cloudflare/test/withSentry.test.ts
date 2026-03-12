@@ -1,8 +1,6 @@
 // Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
-import type { ExecutionContext } from '@cloudflare/workers-types';
-import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { withSentry } from '../src/withSentry';
@@ -22,13 +20,6 @@ const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
   SENTRY_RELEASE: '1.1.1',
 };
-
-function createMockExecutionContext(): ExecutionContext {
-  return {
-    waitUntil: vi.fn(),
-    passThroughOnException: vi.fn(),
-  };
-}
 
 describe('withSentry', () => {
   beforeEach(() => {
