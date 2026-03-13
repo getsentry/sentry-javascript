@@ -256,10 +256,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // todo(v11): Remove the experimental flag
     // eslint-disable-next-line deprecation/deprecation
-    this._options.enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
 
     // Setup metric flushing with weight and timeout tracking
-    if (this._options.enableMetrics) {
+    if (enableMetrics) {
       setupWeightBasedFlushing(
         this,
         'afterCaptureMetric',
