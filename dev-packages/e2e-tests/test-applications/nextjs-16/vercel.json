@@ -11,9 +11,7 @@
   ],
   "functions": {
     "app/api/queues/process-order/route.ts": {
-      "experimentalTriggers": [
-        { "type": "queue/v2beta", "topic": "orders" }
-      ]
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "orders" }]
     }
   }
 }

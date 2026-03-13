@@ -89,10 +89,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ par
       }).catch(err => console.error('[mock-queue] Failed to push to consumer:', err));
     }
 
-    return NextResponse.json(
-      { messageId },
-      { status: 201, headers: { 'Vqs-Message-Id': messageId } },
-    );
+    return NextResponse.json({ messageId }, { status: 201, headers: { 'Vqs-Message-Id': messageId } });
   }
 
   // POST /api/v3/topic/{topic}/consumer/{consumer}/id/{messageId} → ReceiveMessageById
