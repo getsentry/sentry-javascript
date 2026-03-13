@@ -88,7 +88,7 @@ export function maybeEnrichQueueProducerSpan(span: Span): void {
     return;
   }
 
-  if (!parsed.hostname.endsWith('vercel-queue.com')) {
+  if (parsed.hostname !== 'vercel-queue.com' && !parsed.hostname.endsWith('.vercel-queue.com')) {
     return;
   }
 

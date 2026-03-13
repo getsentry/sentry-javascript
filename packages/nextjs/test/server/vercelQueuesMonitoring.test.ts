@@ -125,6 +125,12 @@ describe('vercelQueuesMonitoring', () => {
       expect(span._data['messaging.system']).toBeUndefined();
     });
 
+    it('does nothing for hostname that is a suffix match but not a subdomain', () => {
+      const span = createMockSpan({ 'url.full': 'https://evil-vercel-queue.com/api/v3/topic/orders' });
+      maybeEnrichQueueProducerSpan(span as any);
+      expect(span._data['messaging.system']).toBeUndefined();
+    });
+
     it('does nothing for vercel-queue.com URLs without topic path', () => {
       const span = createMockSpan({ 'url.full': 'https://queue.vercel-queue.com/api/v3/other' });
       maybeEnrichQueueProducerSpan(span as any);
