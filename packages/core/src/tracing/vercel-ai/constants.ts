@@ -11,9 +11,6 @@ export const INVOKE_AGENT_OPS = new Set([
   'ai.streamText',
   'ai.generateObject',
   'ai.streamObject',
-  'ai.embed',
-  'ai.embedMany',
-  'ai.rerank',
 ]);
 
 export const GENERATE_CONTENT_OPS = new Set([
@@ -28,7 +25,10 @@ export const EMBEDDINGS_OPS = new Set(['ai.embed.doEmbed', 'ai.embedMany.doEmbed
 export const RERANK_OPS = new Set(['ai.rerank.doRerank']);
 
 export const DO_SPAN_NAME_PREFIX: Record<string, string> = {
+  'ai.embed': 'embeddings',
   'ai.embed.doEmbed': 'embeddings',
+  'ai.embedMany': 'embeddings',
   'ai.embedMany.doEmbed': 'embeddings',
+  'ai.rerank': 'rerank',
   'ai.rerank.doRerank': 'rerank',
 };

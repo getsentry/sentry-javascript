@@ -837,18 +837,6 @@ describe('Vercel AI integration', () => {
       const expectedTransaction = {
         transaction: 'main',
         spans: expect.arrayContaining([
-          // embed invoke_agent span
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-            }),
-            description: 'invoke_agent',
-            op: 'gen_ai.invoke_agent',
-            origin: 'auto.vercelai.otel',
-            status: 'ok',
-          }),
           // embed doEmbed span
           expect.objectContaining({
             data: expect.objectContaining({
@@ -861,18 +849,6 @@ describe('Vercel AI integration', () => {
             }),
             description: 'embeddings mock-model-id',
             op: 'gen_ai.embeddings',
-            origin: 'auto.vercelai.otel',
-            status: 'ok',
-          }),
-          // embedMany invoke_agent span
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-            }),
-            description: 'invoke_agent',
-            op: 'gen_ai.invoke_agent',
             origin: 'auto.vercelai.otel',
             status: 'ok',
           }),
@@ -903,19 +879,6 @@ describe('Vercel AI integration', () => {
       const expectedTransaction = {
         transaction: 'main',
         spans: expect.arrayContaining([
-          // embed invoke_agent span with input
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'Embedding test!',
-            }),
-            description: 'invoke_agent',
-            op: 'gen_ai.invoke_agent',
-            origin: 'auto.vercelai.otel',
-            status: 'ok',
-          }),
           // embed doEmbed span with input
           expect.objectContaining({
             data: expect.objectContaining({
@@ -929,19 +892,6 @@ describe('Vercel AI integration', () => {
             }),
             description: 'embeddings mock-model-id',
             op: 'gen_ai.embeddings',
-            origin: 'auto.vercelai.otel',
-            status: 'ok',
-          }),
-          // embedMany invoke_agent span with input
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: '["First input","Second input"]',
-            }),
-            description: 'invoke_agent',
-            op: 'gen_ai.invoke_agent',
             origin: 'auto.vercelai.otel',
             status: 'ok',
           }),

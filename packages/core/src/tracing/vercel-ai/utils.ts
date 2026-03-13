@@ -235,9 +235,6 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamText':
     case 'ai.generateObject':
     case 'ai.streamObject':
-    case 'ai.embed':
-    case 'ai.embedMany':
-    case 'ai.rerank':
       return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
     case 'ai.generateText.doGenerate':
       return GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE;
