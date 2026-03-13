@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:latest
+    image: redis:8
     restart: always
     container_name: e2e-tests-nestjs-bullmq-redis
     ports:
