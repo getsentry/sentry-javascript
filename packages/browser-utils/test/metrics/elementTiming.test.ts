@@ -45,6 +45,7 @@ describe('_onElementTiming', () => {
       entryType: 'element',
       startTime: 0,
       duration: 0,
+      identifier: 'test-element',
     } as Partial<PerformanceEntry>;
 
     // @ts-expect-error - only passing a partial entry. This is fine for the test.
@@ -59,6 +60,7 @@ describe('_onElementTiming', () => {
       entryType: 'element',
       startTime,
       duration: 0,
+      identifier: 'test-element',
     } as Partial<PerformanceEntry>;
 
     // @ts-expect-error - only passing a partial entry. This is fine for the test.
