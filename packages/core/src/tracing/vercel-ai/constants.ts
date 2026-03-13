@@ -6,12 +6,7 @@ import type { ToolCallSpanContext } from './types';
 export const toolCallSpanContextMap = new Map<string, ToolCallSpanContext>();
 
 // Operation sets for efficient mapping to OpenTelemetry semantic convention values
-export const INVOKE_AGENT_OPS = new Set([
-  'ai.generateText',
-  'ai.streamText',
-  'ai.generateObject',
-  'ai.streamObject',
-]);
+export const INVOKE_AGENT_OPS = new Set(['ai.generateText', 'ai.streamText', 'ai.generateObject', 'ai.streamObject']);
 
 export const GENERATE_CONTENT_OPS = new Set([
   'ai.generateText.doGenerate',
