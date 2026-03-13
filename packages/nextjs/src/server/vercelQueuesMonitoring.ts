@@ -118,10 +118,7 @@ export function maybeCleanupQueueSpan(span: Span): void {
   }
 }
 
-function getHeader(
-  headers: Record<string, string | string[] | undefined>,
-  name: string,
-): string | undefined {
+function getHeader(headers: Record<string, string | string[] | undefined>, name: string): string | undefined {
   const value = headers[name];
   return Array.isArray(value) ? value[0] : value;
 }
