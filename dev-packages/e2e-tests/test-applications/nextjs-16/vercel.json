@@ -8,5 +8,12 @@
       "path": "/api/cron-test-error",
       "schedule": "30 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/queues/process-order/route.ts": {
+      "experimentalTriggers": [
+        { "type": "queue/v2beta", "topic": "orders" }
+      ]
+    }
+  }
 }
