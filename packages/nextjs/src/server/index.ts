@@ -37,6 +37,7 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
+import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
@@ -193,6 +194,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   client?.on('spanStart', handleOnSpanStart);
   client?.on('spanEnd', maybeCompleteCronCheckIn);
+  client?.on('spanEnd', maybeCleanupQueueSpan);
 
   getGlobalScope().addEventProcessor(
     Object.assign(
