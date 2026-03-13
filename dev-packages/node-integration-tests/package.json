@@ -61,7 +61,7 @@
     "ioredis": "^5.4.1",
     "kafkajs": "2.2.4",
     "knex": "^2.5.1",
-    "lru-memoizer": "2.3.0",
+    "lru-memoizer": "3.0.0",
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^10.1.4",
     "mongoose": "^6.13.6",
