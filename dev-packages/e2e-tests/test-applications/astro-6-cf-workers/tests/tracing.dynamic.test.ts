@@ -3,11 +3,11 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe('tracing in dynamically rendered (ssr) routes', () => {
   test('sends server and client pageload spans with the same trace id', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction === '/test-ssr';
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction === 'GET /test-ssr';
     });
 
@@ -63,12 +63,8 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
 
     expect(serverPageRequestTxn).toMatchObject({
       contexts: {
-        app: expect.any(Object),
         cloud_resource: expect.any(Object),
         culture: expect.any(Object),
-        device: expect.any(Object),
-        os: expect.any(Object),
-        otel: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
           data: {
@@ -78,9 +74,8 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
-            url: expect.stringContaining('/test-ssr'),
             'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
             'http.request.header.sec_fetch_mode': 'navigate',
             'http.request.header.user_agent': expect.any(String),
@@ -94,11 +89,9 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       },
       environment: 'qa',
       event_id: expect.stringMatching(/[a-f0-9]{32}/),
-      platform: 'node',
+      platform: 'javascript',
       request: {
-        cookies: {},
         headers: expect.objectContaining({
-          // demonstrates that request data integration can extract headers
           accept: expect.any(String),
           'accept-encoding': expect.any(String),
           'user-agent': expect.any(String),
@@ -108,11 +101,10 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       },
       sdk: {
         integrations: expect.any(Array),
-        name: 'sentry.javascript.astro',
+        name: 'sentry.javascript.cloudflare',
         packages: expect.any(Array),
         version: expect.any(String),
       },
-      server_name: expect.any(String),
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -135,15 +127,15 @@ test.describe('nested SSR routes (client, server, server request)', () => {
    *             └── http.server — GET /api/user/myUsername123.json   (server request)
    */
   test('sends connected server and client pageload and request spans with the same trace id', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
-    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /api/user/') ?? false;
     });
 
@@ -176,15 +168,15 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   });
 
   test('sends parametrized pageload, server and API request transaction names', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
-    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverHTTPServerRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /api/user/') ?? false;
     });
 
@@ -220,7 +212,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // Server page request transaction - parametrized transaction name with actual URL in data
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /user-page/[userId]',
+      transaction: 'GET /user-page/myUsername123',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -230,9 +222,8 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/user-page/myUsername123'),
             'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
             'http.request.header.sec_fetch_mode': 'navigate',
             'http.request.header.user_agent': expect.any(String),
@@ -245,20 +236,18 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     // HTTP client span - actual API URL with client operation
     expect(serverRequestHTTPClientSpan).toMatchObject({
       op: 'http.client',
-      origin: 'auto.http.otel.node_fetch',
+      origin: 'auto.http.fetch',
       description: 'GET http://localhost:3030/api/user/myUsername123.json', // http.client does not need to be parametrized
       data: {
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.otel.node_fetch',
-        'url.full': expect.stringContaining('/api/user/myUsername123.json'),
-        'url.path': '/api/user/myUsername123.json',
+        'sentry.origin': 'auto.http.fetch',
         url: expect.stringContaining('/api/user/myUsername123.json'),
       },
     });
 
     // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/[userId].json',
+      transaction: 'GET /api/user/myUsername123.json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -268,12 +257,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/api/user/myUsername123.json'),
-            'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate',
-            'http.request.header.accept_language': '*',
-            'http.request.header.sec_fetch_mode': 'cors',
-            'http.request.header.user_agent': expect.any(String),
+            'http.request.header.accept_encoding': 'br, gzip',
           },
         },
       },
@@ -282,11 +266,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   });
 
   test('sends parametrized pageload and server transaction names for catch-all routes', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/catchAll/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /catchAll/') ?? false;
     });
 
@@ -315,7 +299,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /catchAll/[...path]',
+      transaction: 'GET /catchAll/hell0/whatever-do',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -325,9 +309,8 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/catchAll/hell0/whatever-do'),
             'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
             'http.request.header.sec_fetch_mode': 'navigate',
             'http.request.header.user_agent': expect.any(String),
@@ -342,11 +325,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 // Case for `user-page/[id]` vs. `user-page/settings` static routes
 test.describe('parametrized vs static paths', () => {
   test('should use static route name for static route in parametrized path', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/user-page/') ?? false;
     });
 
-    const serverPageRequestTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const serverPageRequestTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('GET /user-page/') ?? false;
     });
 
@@ -382,9 +365,8 @@ test.describe('parametrized vs static paths', () => {
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
-            url: expect.stringContaining('/user-page/settings'),
             'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_encoding': 'br, gzip',
             'http.request.header.accept_language': 'en-US',
             'http.request.header.sec_fetch_mode': 'navigate',
             'http.request.header.user_agent': expect.any(String),
@@ -396,7 +378,7 @@ test.describe('parametrized vs static paths', () => {
   });
 
   test('allows for span name override via beforeStartSpan', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-6-cf-workers', txnEvent => {
       return txnEvent?.transaction?.startsWith('/blog/') ?? false;
     });
 

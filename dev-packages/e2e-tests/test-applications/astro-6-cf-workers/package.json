@@ -1,0 +1,28 @@
+{
+  "name": "astro-6-cf-workers",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "start": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test",
+    "generate-types": "wrangler types"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.0.2",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/astro": "latest || *",
+    "@sentry/cloudflare": "latest || *",
+    "astro": "^6.0.0",
+    "wrangler": "^4.72.0"
+  },
+  "volta": {
+    "node": "22.22.0",
+    "extends": "../../package.json"
+  }
+}
