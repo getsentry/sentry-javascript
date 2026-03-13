@@ -30,6 +30,7 @@ function createMockSpan(data: Record<string, unknown> = {}): {
     _data,
     setAttribute: (key: string, value: unknown) => {
       if (value === undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete _data[key];
       } else {
         _data[key] = value;
