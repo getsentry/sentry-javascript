@@ -57,7 +57,6 @@ import {
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   AI_USAGE_TOKENS_ATTRIBUTE,
-  AI_VALUE_ATTRIBUTE,
   AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
@@ -216,38 +215,18 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
 
-  // Map embedding input: ai.value (single) or ai.values (batch) → gen_ai.embeddings.input
-  // Vercel AI SDK JSON-stringifies each value individually, so for ai.value we parse it back,
-  // and for ai.values we parse each element and re-stringify as a proper JSON array.
-  if (attributes[AI_VALUE_ATTRIBUTE] != null) {
-    const raw = attributes[AI_VALUE_ATTRIBUTE];
-    if (typeof raw === 'string') {
+  // Map embedding input: ai.values → gen_ai.embeddings.input
+  // Vercel AI SDK JSON-stringifies each value individually, so we parse each element back.
+  // Single embed gets unwrapped to a plain value; batch embedMany stays as a JSON array.
+  if (Array.isArray(attributes[AI_VALUES_ATTRIBUTE])) {
+    const parsed = (attributes[AI_VALUES_ATTRIBUTE] as string[]).map(v => {
       try {
-        attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = JSON.parse(raw);
+        return JSON.parse(v);
       } catch {
-        attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = raw;
-      }
-    } else {
-      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = raw;
-    }
-  } else if (attributes[AI_VALUES_ATTRIBUTE] != null) {
-    const values = attributes[AI_VALUES_ATTRIBUTE];
-    if (Array.isArray(values)) {
-      const parsed = values.map(v => {
-        if (typeof v === 'string') {
-          try {
-            return JSON.parse(v);
-          } catch {
-            return v;
-          }
-        }
         return v;
-      });
-      // Single embed: unwrap to plain value; batch embedMany: keep as JSON array
-      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
-    } else {
-      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = values;
-    }
+      }
+    });
+    attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
   }
 
   addProviderMetadataToAttributes(attributes);
