@@ -886,7 +886,7 @@ describe('Vercel AI integration', () => {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
               [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: '["Embedding test!"]',
+              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'Embedding test!',
               [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
               [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 10,
             }),

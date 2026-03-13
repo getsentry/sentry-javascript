@@ -243,7 +243,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
         }
         return v;
       });
-      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = JSON.stringify(parsed);
+      // Single embed: unwrap to plain value; batch embedMany: keep as JSON array
+      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
     } else {
       attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = values;
     }
