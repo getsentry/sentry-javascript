@@ -110,6 +110,8 @@ export interface ProcessorDecoratorTarget {
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
     process?: ((...args: any[]) => Promise<any>) & { __SENTRY_INSTRUMENTED__?: boolean };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: (((...args: any[]) => any) & { __SENTRY_INSTRUMENTED__?: boolean }) | undefined;
   };
 }
 
