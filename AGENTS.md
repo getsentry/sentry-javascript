@@ -94,6 +94,14 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `test-utils/` — Shared test utilities
 - `rollup-utils/` — Build utilities
 
+## Linting & Formatting
+
+- This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
+- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
+- Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
+
 ## Coding Standards
 
 - Follow existing conventions — check neighboring files
