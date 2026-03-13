@@ -182,10 +182,10 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   if (typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number') {
     const outputTokens =
       typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number'
-        ? (attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] as number)
+        ? attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]
         : 0;
     attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
-      outputTokens + (attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] as number);
+      outputTokens + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
   }
 
   // Convert the available tools array to a JSON string
