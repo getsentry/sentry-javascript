@@ -27,15 +27,17 @@ export function buildEffectLayer<T extends EffectLayerBaseOptions>(
   }
 
   const clientOptions = client.getOptions();
+  const enableMetrics = clientOptions.enableMetrics ?? clientOptions._experiments?.enableMetrics ?? true;
+  const enableLogs = clientOptions.enableLogs ?? clientOptions._experiments?.enableLogs ?? false;
   const { enableEffectLogs = false, enableEffectMetrics = false } = options;
   let layer: EffectLayer.Layer<never, never, never> = SentryEffectTracerLayer;
 
-  if (enableEffectLogs && clientOptions.enableLogs) {
+  if (enableEffectLogs && enableLogs) {
     const effectLogger = replaceLogger(defaultLogger, SentryEffectLogger);
     layer = layer.pipe(provideMerge(effectLogger));
   }
 
-  if (enableEffectMetrics && clientOptions.enableMetrics) {
+  if (enableEffectMetrics && enableMetrics) {
     layer = layer.pipe(provideMerge(SentryEffectMetricsLayer));
   }
 
