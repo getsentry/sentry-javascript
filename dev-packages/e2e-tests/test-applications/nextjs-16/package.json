@@ -25,6 +25,7 @@
   "dependencies": {
     "@sentry/nextjs": "latest || *",
     "@sentry/core": "latest || *",
+    "@vercel/queue": "^0.1.3",
     "ai": "^3.0.0",
     "import-in-the-middle": "^2",
     "next": "16.1.5",
