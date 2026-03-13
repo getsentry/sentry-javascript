@@ -130,6 +130,12 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   });
 }
 
+type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
 type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
 type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) => void);
@@ -139,7 +145,7 @@ type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => vo
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
 type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
 type ExpectedSpanContainer =
-  | Partial<SerializedStreamedSpanContainer>
+  | DeepPartial<SerializedStreamedSpanContainer>
   | ((container: SerializedStreamedSpanContainer) => void);
 
 type Expected =

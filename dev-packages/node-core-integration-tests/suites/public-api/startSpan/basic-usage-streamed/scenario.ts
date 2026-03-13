@@ -12,12 +12,13 @@ const client = Sentry.init({
 
 setupOtel(client);
 
-Sentry.startSpan({ name: 'test-span', op: 'test' }, () => {
+Sentry.startSpan({ name: 'test-span', op: 'test' }, segmentSpan => {
   Sentry.startSpan({ name: 'test-child-span', op: 'test-child' }, () => {
     // noop
   });
 
   const inactiveSpan = Sentry.startInactiveSpan({ name: 'test-inactive-span' });
+  inactiveSpan.addLink({ context: segmentSpan.spanContext(), attributes: { 'sentry.link.type': 'some_relation' } });
   inactiveSpan.end();
 
   Sentry.startSpanManual({ name: 'test-manual-span' }, span => {

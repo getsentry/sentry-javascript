@@ -1,4 +1,12 @@
-import { SDK_VERSION } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
+  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
+} from '@sentry/core';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
@@ -39,7 +47,17 @@ test('sends a streamed span envelope with correct spans for a manually started s
 
         const childSpan = spans.find(s => s.name === 'test-child-span');
         expect(childSpan).toBeDefined();
-        expect(childSpan).toMatchObject({
+        expect(childSpan).toEqual({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+              type: 'string',
+              value: 'test-child',
+            },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          },
           name: 'test-child-span',
           is_segment: false,
           parent_span_id: segmentSpanId,
@@ -52,7 +70,26 @@ test('sends a streamed span envelope with correct spans for a manually started s
 
         const inactiveSpan = spans.find(s => s.name === 'test-inactive-span');
         expect(inactiveSpan).toBeDefined();
-        expect(inactiveSpan).toMatchObject({
+        expect(inactiveSpan).toEqual({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          },
+          links: [
+            {
+              attributes: {
+                'sentry.link.type': {
+                  type: 'string',
+                  value: 'some_relation',
+                },
+              },
+              sampled: true,
+              span_id: segmentSpanId,
+              trace_id: traceId,
+            },
+          ],
           name: 'test-inactive-span',
           is_segment: false,
           parent_span_id: segmentSpanId,
@@ -65,7 +102,13 @@ test('sends a streamed span envelope with correct spans for a manually started s
 
         const manualSpan = spans.find(s => s.name === 'test-manual-span');
         expect(manualSpan).toBeDefined();
-        expect(manualSpan).toMatchObject({
+        expect(manualSpan).toEqual({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          },
           name: 'test-manual-span',
           is_segment: false,
           parent_span_id: segmentSpanId,
@@ -76,7 +119,15 @@ test('sends a streamed span envelope with correct spans for a manually started s
           status: 'ok',
         });
 
-        expect(segmentSpan).toMatchObject({
+        expect(segmentSpan).toEqual({
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          },
           name: 'test-span',
           is_segment: true,
           trace_id: traceId,

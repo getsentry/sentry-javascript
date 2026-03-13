@@ -124,12 +124,11 @@ export function getStreamedSpanLinks(
   links?: SpanLink[],
 ): SpanLinkJSON<RawAttributes<Record<string, unknown>>>[] | undefined {
   if (links?.length) {
-    return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
+    return links.map(({ context: { spanId, traceId, traceFlags }, attributes }) => ({
       span_id: spanId,
       trace_id: traceId,
       sampled: traceFlags === TRACE_FLAG_SAMPLED,
       attributes,
-      ...restContext,
     }));
   } else {
     return undefined;
