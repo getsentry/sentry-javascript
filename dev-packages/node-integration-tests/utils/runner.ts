@@ -9,6 +9,7 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedStreamedSpanContainer,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
@@ -29,7 +30,9 @@ import {
   assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
+  assertSentrySpanContainer,
   assertSentryTransaction,
+  assertSpanEnvelopeHeader,
 } from './assertions';
 
 const execPromise = promisify(exec);
@@ -135,6 +138,9 @@ type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) 
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
 type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
+type ExpectedSpanContainer =
+  | Partial<SerializedStreamedSpanContainer>
+  | ((container: SerializedStreamedSpanContainer) => void);
 
 type Expected =
   | {
@@ -160,6 +166,9 @@ type Expected =
     }
   | {
       trace_metric: ExpectedMetricContainer;
+    }
+  | {
+      span: ExpectedSpanContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -167,7 +176,8 @@ type ExpectedEnvelopeHeader =
   | { transaction: Partial<Envelope[0]> }
   | { session: Partial<Envelope[0]> }
   | { sessions: Partial<Envelope[0]> }
-  | { log: Partial<Envelope[0]> };
+  | { log: Partial<Envelope[0]> }
+  | { span: Partial<Envelope[0]> };
 
 type StartResult = {
   completed(): Promise<void>;
@@ -479,7 +489,11 @@ export function createRunner(...paths: string[]) {
                 return;
               }
 
-              assertEnvelopeHeader(header, expected);
+              if (envelopeItemType === 'span') {
+                assertSpanEnvelopeHeader(header, expected);
+              } else {
+                assertEnvelopeHeader(header, expected);
+              }
 
               expectCallbackCalled();
             } catch (e) {
@@ -530,6 +544,9 @@ export function createRunner(...paths: string[]) {
               expectCallbackCalled();
             } else if ('trace_metric' in expected) {
               expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
+              expectCallbackCalled();
+            } else if ('span' in expected) {
+              expectSpanContainer(item[1] as SerializedStreamedSpanContainer, expected.span);
               expectCallbackCalled();
             } else {
               throw new Error(
@@ -794,6 +811,14 @@ function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricC
     expected(item);
   } else {
     assertSentryMetricContainer(item, expected);
+  }
+}
+
+function expectSpanContainer(item: SerializedStreamedSpanContainer, expected: ExpectedSpanContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentrySpanContainer(item, expected);
   }
 }
 
