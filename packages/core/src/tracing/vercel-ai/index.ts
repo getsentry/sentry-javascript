@@ -5,6 +5,7 @@ import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -55,6 +56,9 @@ import {
   AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  AI_USAGE_TOKENS_ATTRIBUTE,
+  AI_VALUE_ATTRIBUTE,
+  AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
 
@@ -160,6 +164,9 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, 'ai.usage.outputTokens', GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
 
+  // Embedding spans use ai.usage.tokens instead of promptTokens/completionTokens
+  renameAttributeKey(attributes, AI_USAGE_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+
   // AI SDK uses avgOutputTokensPerSecond, map to our expected attribute name
   renameAttributeKey(attributes, 'ai.response.avgOutputTokensPerSecond', 'ai.response.avgCompletionTokensPerSecond');
 
@@ -172,12 +179,14 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
       attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE];
   }
 
-  if (
-    typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
-  ) {
+  // Compute total tokens from input + output (embeddings may only have input tokens)
+  if (typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number') {
+    const outputTokens =
+      typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number'
+        ? (attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] as number)
+        : 0;
     attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
-      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+      outputTokens + (attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] as number);
   }
 
   // Convert the available tools array to a JSON string
@@ -206,6 +215,39 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
+
+  // Map embedding input: ai.value (single) or ai.values (batch) → gen_ai.embeddings.input
+  // Vercel AI SDK JSON-stringifies each value individually, so for ai.value we parse it back,
+  // and for ai.values we parse each element and re-stringify as a proper JSON array.
+  if (attributes[AI_VALUE_ATTRIBUTE] != null) {
+    const raw = attributes[AI_VALUE_ATTRIBUTE];
+    if (typeof raw === 'string') {
+      try {
+        attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = JSON.parse(raw);
+      } catch {
+        attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = raw;
+      }
+    } else {
+      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = raw;
+    }
+  } else if (attributes[AI_VALUES_ATTRIBUTE] != null) {
+    const values = attributes[AI_VALUES_ATTRIBUTE];
+    if (Array.isArray(values)) {
+      const parsed = values.map(v => {
+        if (typeof v === 'string') {
+          try {
+            return JSON.parse(v);
+          } catch {
+            return v;
+          }
+        }
+        return v;
+      });
+      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = JSON.stringify(parsed);
+    } else {
+      attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = values;
+    }
+  }
 
   addProviderMetadataToAttributes(attributes);
 

@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -830,4 +831,140 @@ describe('Vercel AI integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates embedding related spans with sendDefaultPii: false', async () => {
+      const expectedTransaction = {
+        transaction: 'main',
+        spans: expect.arrayContaining([
+          // embed invoke_agent span
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+            }),
+            description: 'invoke_agent',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embed doEmbed span
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 10,
+            }),
+            description: 'embeddings mock-model-id',
+            op: 'gen_ai.embeddings',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embedMany invoke_agent span
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+            }),
+            description: 'invoke_agent',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embedMany doEmbed span
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 20,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
+            }),
+            description: 'embeddings mock-model-id',
+            op: 'gen_ai.embeddings',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+        ]),
+      };
+
+      await createRunner().expect({ transaction: expectedTransaction }).start().completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates embedding related spans with sendDefaultPii: true', async () => {
+      const expectedTransaction = {
+        transaction: 'main',
+        spans: expect.arrayContaining([
+          // embed invoke_agent span with input
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'Embedding test!',
+            }),
+            description: 'invoke_agent',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embed doEmbed span with input
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
+              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: '["Embedding test!"]',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 10,
+            }),
+            description: 'embeddings mock-model-id',
+            op: 'gen_ai.embeddings',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embedMany invoke_agent span with input
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: '["First input","Second input"]',
+            }),
+            description: 'invoke_agent',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+          // embedMany doEmbed span with input
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
+              [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: '["First input","Second input"]',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 20,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
+            }),
+            description: 'embeddings mock-model-id',
+            op: 'gen_ai.embeddings',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+          }),
+        ]),
+      };
+
+      await createRunner().expect({ transaction: expectedTransaction }).start().completed();
+    });
+  });
 });
