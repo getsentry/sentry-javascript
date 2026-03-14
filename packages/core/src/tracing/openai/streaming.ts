@@ -1,11 +1,14 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import { updateSpanName } from '../../utils/spanUtils';
 import {
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
@@ -26,6 +29,8 @@ import {
  * State object used to accumulate information from a stream of OpenAI events/chunks.
  */
 interface StreamingState {
+  /** Whether this stream contained Responses API events. */
+  sawResponsesApiEvent: boolean;
   /** Types of events encountered in the stream. */
   eventTypes: string[];
   /** Collected response text fragments (for output recording). */
@@ -222,6 +227,7 @@ export async function* instrumentStream<T>(
   recordOutputs: boolean,
 ): AsyncGenerator<T, void, unknown> {
   const state: StreamingState = {
+    sawResponsesApiEvent: false,
     eventTypes: [],
     responseTexts: [],
     finishReasons: [],
@@ -240,12 +246,19 @@ export async function* instrumentStream<T>(
       if (isChatCompletionChunk(event)) {
         processChatCompletionChunk(event as ChatCompletionChunk, state, recordOutputs);
       } else if (isResponsesApiStreamEvent(event)) {
+        state.sawResponsesApiEvent = true;
         processResponsesApiEvent(event as ResponseStreamingEvent, state, recordOutputs, span);
       }
       yield event;
     }
   } finally {
     setCommonResponseAttributes(span, state.responseId, state.responseModel, state.responseTimestamp);
+    if (state.sawResponsesApiEvent && state.responseModel) {
+      span.setAttributes({
+        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: state.responseModel,
+      });
+      updateSpanName(span, `${OPENAI_OPERATIONS.CHAT} ${state.responseModel}`);
+    }
     setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
 
     span.setAttributes({
