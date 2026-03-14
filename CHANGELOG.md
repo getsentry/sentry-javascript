@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(nestjs): Instrument `@nestjs/bullmq` `@Processor` decorator**
+
+  Automatically capture exceptions and create transactions for BullMQ queue processors in NestJS applications.
+
+  When using the `@Processor` decorator from `@nestjs/bullmq`, the SDK now automatically wraps the `process()` method
+  to create `queue.process` transactions with proper isolation scopes, preventing breadcrumb and scope leakage between
+  jobs and HTTP requests. Errors thrown in processors are captured with the `auto.queue.nestjs.bullmq` mechanism type.
+
+  Requires `@nestjs/bullmq` v10.0.0 or later.
+
 - **feat(node): Expose `headersToSpanAttributes` option on `nativeNodeFetchIntegration()` ([#19770](https://github.com/getsentry/sentry-javascript/pull/19770))**
 
   Response headers like `http.response.header.content-length` were previously captured automatically on outgoing
