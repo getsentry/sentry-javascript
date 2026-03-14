@@ -19,6 +19,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
+import { _INTERNAL_isAiProviderSpanSuppressed } from '../ai/suppression';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
@@ -254,6 +255,10 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedMethod(...args: T): Promise<R> {
+    if (_INTERNAL_isAiProviderSpanSuppressed()) {
+      return originalMethod.apply(context, args) as Promise<R>;
+    }
+
     const requestAttributes = extractRequestAttributes(args, methodPath);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);

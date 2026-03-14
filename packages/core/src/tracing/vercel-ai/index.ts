@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';

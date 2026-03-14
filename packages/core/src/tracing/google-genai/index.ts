@@ -2,6 +2,7 @@ import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
+import { _INTERNAL_isAiProviderSpanSuppressed } from '../../tracing/ai/suppression';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
@@ -260,6 +261,10 @@ function instrumentMethod<T extends unknown[], R>(
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
+      if (_INTERNAL_isAiProviderSpanSuppressed()) {
+        return Reflect.apply(target, _, args);
+      }
+
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(methodPath, params, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
