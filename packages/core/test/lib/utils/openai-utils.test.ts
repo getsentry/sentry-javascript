@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  addResponsesApiAttributes,
   buildMethodPath,
+  extractRequestParameters,
   getOperationName,
   getSpanOperation,
   isChatCompletionChunk,
@@ -10,6 +12,7 @@ import {
   isResponsesApiStreamEvent,
   shouldInstrument,
 } from '../../../src/tracing/openai/utils';
+import type { OpenAIResponseObject } from '../../../src/tracing/openai/types';
 
 describe('openai-utils', () => {
   describe('getOperationName', () => {
@@ -64,6 +67,31 @@ describe('openai-utils', () => {
       expect(buildMethodPath('', 'chat')).toBe('chat');
       expect(buildMethodPath('chat', 'completions')).toBe('chat.completions');
       expect(buildMethodPath('chat.completions', 'create')).toBe('chat.completions.create');
+    });
+  });
+
+  describe('extractRequestParameters', () => {
+    it('should include the request model when it is explicitly provided', () => {
+      expect(
+        extractRequestParameters({
+          model: 'gpt-4.1-mini',
+          temperature: 0.2,
+        }),
+      ).toEqual({
+        'gen_ai.request.model': 'gpt-4.1-mini',
+        'gen_ai.request.temperature': 0.2,
+      });
+    });
+
+    it('should default the request model to unknown when it is not provided', () => {
+      expect(
+        extractRequestParameters({
+          temperature: 0.2,
+        }),
+      ).toEqual({
+        'gen_ai.request.model': 'unknown',
+        'gen_ai.request.temperature': 0.2,
+      });
     });
   });
 
@@ -183,6 +211,32 @@ describe('openai-utils', () => {
       expect(isConversationResponse({ object: 'thread' })).toBe(false);
       expect(isConversationResponse({ object: 'response' })).toBe(false);
       expect(isConversationResponse({ object: null })).toBe(false);
+    });
+  });
+
+  describe('addResponsesApiAttributes', () => {
+    it('should backfill the request model and span name from the response model', () => {
+      const span = {
+        setAttributes: vi.fn(),
+        updateName: vi.fn(),
+      };
+
+      addResponsesApiAttributes(
+        span as unknown as Parameters<typeof addResponsesApiAttributes>[0],
+        {
+          object: 'response',
+          id: 'resp_123',
+          model: 'gpt-4.1-mini',
+          created_at: 1704067200,
+          status: 'completed',
+        } as unknown as OpenAIResponseObject,
+        false,
+      );
+
+      expect(span.setAttributes).toHaveBeenCalledWith({
+        'gen_ai.request.model': 'gpt-4.1-mini',
+      });
+      expect(span.updateName).toHaveBeenCalledWith('chat gpt-4.1-mini');
     });
   });
 });

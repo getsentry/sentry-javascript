@@ -1,4 +1,5 @@
 import type { Span } from '../../types-hoist/span';
+import { updateSpanName } from '../../utils/spanUtils';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -201,6 +202,12 @@ export function addChatCompletionAttributes(
  */
 export function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created_at);
+  if (typeof response.model === 'string' && response.model.length > 0) {
+    span.setAttributes({
+      [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: response.model,
+    });
+    updateSpanName(span, `${OPENAI_OPERATIONS.CHAT} ${response.model}`);
+  }
   if (response.status) {
     span.setAttributes({
       [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
