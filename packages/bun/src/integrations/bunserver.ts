@@ -239,7 +239,6 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
               if (response?.status) {
                 setHttpStatus(span, response.status);
                 isolationScope.setContext('response', {
-                  headers: response.headers.toJSON(),
                   status_code: response.status,
                 });
               }
