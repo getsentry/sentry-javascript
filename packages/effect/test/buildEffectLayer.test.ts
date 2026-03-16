@@ -136,7 +136,31 @@ describe('buildEffectLayer', () => {
           }),
         );
         startInactiveSpanSpy.mockRestore();
+      }).pipe(Effect.provide(buildEffectLayer({}, createClient({ tracesSampleRate: 1.0 })))),
+    );
+
+    it.effect('layer does not enable tracing when tracesSampleRate is not set', () =>
+      Effect.gen(function* () {
+        const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
+        const result = yield* Effect.withSpan('test-span-no-tracing')(Effect.succeed('not-traced'));
+        expect(result).toBe('not-traced');
+        expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+        startInactiveSpanSpy.mockRestore();
       }).pipe(Effect.provide(buildEffectLayer({}, createClient()))),
+    );
+
+    it.effect('layer enables tracing when tracesSampler is set', () =>
+      Effect.gen(function* () {
+        const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
+        const result = yield* Effect.withSpan('test-sampler-span')(Effect.succeed('sampled'));
+        expect(result).toBe('sampled');
+        expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'test-sampler-span',
+          }),
+        );
+        startInactiveSpanSpy.mockRestore();
+      }).pipe(Effect.provide(buildEffectLayer({}, createClient({ tracesSampler: () => true })))),
     );
   });
 
