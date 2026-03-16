@@ -19,9 +19,7 @@ export interface AIRecordingOptions {
  * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
  * Precedence: explicit option > sendDefaultPii > false
  */
-export function resolveAIRecordingOptions<T extends AIRecordingOptions>(
-  options?: T,
-): T & Required<AIRecordingOptions> {
+export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
   const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
   return {
     ...options,
