@@ -50,6 +50,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
