@@ -54,6 +54,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   withScope,
   withIsolationScope,
   functionToStringIntegration,
