@@ -36,6 +36,16 @@
         "types": "./build/types/index.cloudflare.d.ts",
         "default": "./build/cjs/index.cloudflare.js"
       }
+    },
+    "./node": {
+      "import": {
+        "types": "./build/types/index.node.d.ts",
+        "default": "./build/esm/index.node.js"
+      },
+      "require": {
+        "types": "./build/types/index.node.d.ts",
+        "default": "./build/cjs/index.node.js"
+      }
     }
   },
   "typesVersions": {
@@ -45,6 +55,9 @@
       ],
       "build/types/index.cloudflare.d.ts": [
         "build/types-ts3.8/index.cloudflare.d.ts"
+      ],
+      "build/types/index.node.d.ts": [
+        "build/types-ts3.8/index.node.d.ts"
       ]
     }
   },
