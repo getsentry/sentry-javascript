@@ -27,6 +27,6 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
-    responseHandler(context);
+    responseHandler(context, 'auto.middleware.hono.error_handler');
   };
 };

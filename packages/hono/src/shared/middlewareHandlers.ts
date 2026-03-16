@@ -29,7 +29,7 @@ export function requestHandler(context: Context): void {
 /**
  * Response handler for Hono framework
  */
-export function responseHandler(context: Context): void {
+export function responseHandler(context: Context, mechanismType = 'auto.faas.hono.error_handler'): void {
   const activeSpan = getActiveSpan();
   if (activeSpan) {
     activeSpan.updateName(`${context.req.method} ${routePath(context)}`);
@@ -44,7 +44,7 @@ export function responseHandler(context: Context): void {
 
   if (context.error) {
     getClient()?.captureException(context.error, {
-      mechanism: { handled: false, type: 'auto.faas.hono.error_handler' },
+      mechanism: { handled: false, type: mechanismType },
     });
   }
 }

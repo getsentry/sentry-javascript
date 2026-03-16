@@ -2,10 +2,16 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import * as middlewareHandlers from '../../src/shared/middlewareHandlers';
 import { sentry } from '../../src/node/middleware';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn(),
+}));
+
+vi.mock('../../src/shared/middlewareHandlers', () => ({
+  requestHandler: vi.fn(),
+  responseHandler: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -22,6 +28,8 @@ vi.mock('@sentry/core', async () => {
 });
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
+const requestHandlerMock = middlewareHandlers.requestHandler as Mock;
+const responseHandlerMock = middlewareHandlers.responseHandler as Mock;
 
 describe('Hono Vercel Middleware', () => {
   beforeEach(() => {
@@ -112,6 +120,18 @@ describe('Hono Vercel Middleware', () => {
       const middleware = sentry(app, {});
 
       expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+
+    it('uses node mechanism type for response errors', async () => {
+      const app = new Hono();
+      const middleware = sentry(app, {});
+      const context = {} as Parameters<typeof middleware>[0];
+      const next = vi.fn(async () => undefined);
+
+      await middleware(context, next);
+
+      expect(requestHandlerMock).toHaveBeenCalledWith(context);
+      expect(responseHandlerMock).toHaveBeenCalledWith(context, 'auto.middleware.hono.error_handler');
     });
 
     it('includes hono SDK metadata', () => {
