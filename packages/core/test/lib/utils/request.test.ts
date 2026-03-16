@@ -780,6 +780,42 @@ describe('request utils', () => {
           'http.request.header.x_saml_token': '[Filtered]',
         });
       });
+
+      it('returns response header attributes if `lifecycle` is "response"', () => {
+        const headers = {
+          Host: 'example.com',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate',
+          Connection: 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+          'Cache-Control': 'no-cache',
+          'X-Forwarded-For': '192.168.1.1',
+          Authorization: '[Filtered]',
+          'x-bearer-token': 'bearer',
+          'x-sso-token': 'sso',
+          'x-saml-token': 'saml',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, false, 'response');
+
+        expect(result).toEqual({
+          'http.response.header.host': 'example.com',
+          'http.response.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'http.response.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'http.response.header.accept_language': 'en-US,en;q=0.5',
+          'http.response.header.accept_encoding': 'gzip, deflate',
+          'http.response.header.connection': 'keep-alive',
+          'http.response.header.upgrade_insecure_requests': '1',
+          'http.response.header.cache_control': 'no-cache',
+          'http.response.header.x_forwarded_for': '[Filtered]',
+          'http.response.header.authorization': '[Filtered]',
+          'http.response.header.x_bearer_token': '[Filtered]',
+          'http.response.header.x_saml_token': '[Filtered]',
+          'http.response.header.x_sso_token': '[Filtered]',
+        });
+      });
     });
   });
 });
