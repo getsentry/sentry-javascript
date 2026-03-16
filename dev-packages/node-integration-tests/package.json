@@ -40,6 +40,7 @@
     "@prisma/client": "6.15.0",
     "@sentry/aws-serverless": "10.43.0",
     "@sentry/core": "10.43.0",
+    "@sentry/hono": "10.43.0",
     "@sentry/node": "10.43.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
