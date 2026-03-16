@@ -1,7 +1,11 @@
-import type { RequestOptions } from 'node:http';
-
-/** Build a full URL from request options. */
-export function getRequestUrl(requestOptions: RequestOptions): string {
+/** Build a full URL from request options or a ClientRequest. */
+export function getRequestUrl(requestOptions: {
+  protocol?: string | null;
+  hostname?: string | null;
+  host?: string | null;
+  port?: string | number | null;
+  path?: string | null;
+}): string {
   const protocol = requestOptions.protocol || '';
   const hostname = requestOptions.hostname || requestOptions.host || '';
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise

@@ -108,7 +108,7 @@ export {
   instrumentLangGraph,
 } from '@sentry/core';
 
-export { withSentry } from './handler';
+export { withSentry } from './withSentry';
 export { instrumentDurableObjectWithSentry } from './durableobject';
 export { sentryPagesPlugin } from './pages-plugin';
 

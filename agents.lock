@@ -13,8 +13,8 @@ integrity = "sha256-EWfTlMvQtawp0i453jhIozX6pGNld+5fKXwMHhIa1KQ="
 source = "getsentry/dotagents"
 resolved_url = "https://github.com/getsentry/dotagents.git"
 resolved_path = "skills/dotagents"
-commit = "84ec01d363fdd50b47f2baefed742d27a564c210"
-integrity = "sha256-bVx96wBmjIF6NPfPH7GMDWUJLulbAHWZhRWi1UAZ6Ws="
+commit = "a71b92d3cca4d0ed7bd763b611771ff9c81d50c8"
+integrity = "sha256-/KBw6Ea4epWV0EiNUF32dEQKd7vcBhns31rSI6D4R1o="
 
 [skills.e2e]
 source = "path:.agents/skills/e2e"
@@ -28,6 +28,20 @@ integrity = "sha256-J5OmnVv+u8fjERNeDkaxgLuM3c/rrHKfpEe9gIedeZk="
 source = "path:.agents/skills/release"
 integrity = "sha256-/5xBn5M/VGzyi18Q1Llui5aASIsYsvE7sdMSUf1dm4Q="
 
+[skills.skill-creator]
+source = "anthropics/skills"
+resolved_url = "https://github.com/anthropics/skills.git"
+resolved_path = "skills/skill-creator"
+commit = "b0cbd3df1533b396d281a6886d5132f623393a9c"
+integrity = "sha256-vR9WjFQ+qi7pH+1usde0vuZwbMr4pPVVEu8UR3jn/NA="
+
+[skills.skill-scanner]
+source = "getsentry/skills"
+resolved_url = "https://github.com/getsentry/skills.git"
+resolved_path = ".agents/skills/skill-scanner"
+commit = "360070a6ed7a7530ff1df26adb285807f4483ffa"
+integrity = "sha256-IlmfhBZzW5gl9117KXUqjAekn4iORqDpjM3+EPS6Ods="
+
 [skills.triage-issue]
 source = "path:.agents/skills/triage-issue"
 integrity = "sha256-Oxwx2zTEr0UY3JnOw7l0O2pa7/CunntqZTUtSeWJvh0="
@@ -39,10 +53,3 @@ integrity = "sha256-IMo0XcsfNtduSQzNZLsrXD/Qg0aE6loetoM0qIqYatA="
 [skills.upgrade-otel]
 source = "path:.agents/skills/upgrade-otel"
 integrity = "sha256-PnfUymsVK2zWTGNPOvL2XkIXLWta0RpVTVDcvQC5q8w="
-
-[skills.skill-scanner]
-source = "getsentry/skills"
-resolved_url = "https://github.com/getsentry/skills.git"
-resolved_path = ".agents/skills/skill-scanner"
-commit = "b68ac5ce82c981ac3235dd6f2037c1109baaf0f2"
-integrity = "sha256-IleKDxGpne+9g/048+q4wBv7MkfZPIYFX78TnLjeGyQ="

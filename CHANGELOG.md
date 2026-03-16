@@ -4,6 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(nestjs): Instrument `@nestjs/bullmq` `@Processor` decorator**
+
+  Automatically capture exceptions and create transactions for BullMQ queue processors in NestJS applications.
+
+  When using the `@Processor` decorator from `@nestjs/bullmq`, the SDK now automatically wraps the `process()` method
+  to create `queue.process` transactions with proper isolation scopes, preventing breadcrumb and scope leakage between
+  jobs and HTTP requests. Errors thrown in processors are captured with the `auto.queue.nestjs.bullmq` mechanism type.
+
+  Requires `@nestjs/bullmq` v10.0.0 or later.
+
+- **feat(node): Expose `headersToSpanAttributes` option on `nativeNodeFetchIntegration()` ([#19770](https://github.com/getsentry/sentry-javascript/pull/19770))**
+
+  Response headers like `http.response.header.content-length` were previously captured automatically on outgoing
+  fetch spans but are now opt-in since `@opentelemetry/instrumentation-undici@0.22.0`. You can now configure which
+  headers to capture via the `headersToSpanAttributes` option.
+
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.nativeNodeFetchIntegration({
+        headersToSpanAttributes: {
+          requestHeaders: ['x-custom-header'],
+          responseHeaders: ['content-length', 'content-type'],
+        },
+      }),
+    ],
+  });
+  ```
+
 - **feat(nestjs): Instrument `@nestjs/schedule` decorators ([#19735](https://github.com/getsentry/sentry-javascript/pull/19735))**
 
   Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.
@@ -12,6 +41,12 @@
   captured automatically. The exception mechanism type changed from `auto.cron.nestjs.async` to
   `auto.function.nestjs.cron`. If you have Sentry queries or alerts that filter on the old mechanism type, update them
   accordingly.
+
+- **feat(astro): Add Astro 6 support ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
+
+  This release enables full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
+  changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
+  but we'll follow up on this once the bug is fixed.
 
 ## 10.43.0
 
