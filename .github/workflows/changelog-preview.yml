@@ -2,12 +2,12 @@ name: Changelog Preview
 on:
   pull_request_target:
     types:
-    - opened
-    - synchronize
-    - reopened
-    - edited
-    - labeled
-    - unlabeled
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - labeled
+      - unlabeled
 permissions:
   contents: write
   pull-requests: write
