@@ -13,8 +13,6 @@ import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTrunca
 /**
  * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
  * Precedence: explicit option > sendDefaultPii > false
- *
- * Returns all original options with `recordInputs` and `recordOutputs` resolved to booleans.
  */
 export function resolveAIRecordingOptions<T extends { recordInputs?: boolean; recordOutputs?: boolean }>(
   options?: T,
