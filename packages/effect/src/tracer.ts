@@ -1,35 +1,9 @@
 import type { Span } from '@sentry/core';
-import {
-  getActiveSpan,
-  getIsolationScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
-
-const KIND_MAP: Record<EffectTracer.SpanKind, 'internal' | 'server' | 'client' | 'producer' | 'consumer'> = {
-  internal: 'internal',
-  client: 'client',
-  server: 'server',
-  producer: 'producer',
-  consumer: 'consumer',
-};
-
-function deriveOp(name: string, kind: EffectTracer.SpanKind): string {
-  if (name.startsWith('http.server')) {
-    return 'http.server';
-  }
-
-  if (name.startsWith('http.client')) {
-    return 'http.client';
-  }
-
-  return KIND_MAP[kind];
-}
 
 function deriveOrigin(name: string): string {
   if (name.startsWith('http.server') || name.startsWith('http.client')) {
@@ -37,17 +11,6 @@ function deriveOrigin(name: string): string {
   }
 
   return 'auto.function.effect';
-}
-
-function deriveSpanName(name: string, kind: EffectTracer.SpanKind): string {
-  if (name.startsWith('http.server') && kind === 'server') {
-    const isolationScope = getIsolationScope();
-    const transactionName = isolationScope.getScopeData().transactionName;
-    if (transactionName) {
-      return transactionName;
-    }
-  }
-  return name;
 }
 
 type HrTime = [number, number];
@@ -164,11 +127,8 @@ function createSentrySpan(
   const parentSentrySpan =
     Option.isSome(parent) && isSentrySpan(parent.value) ? parent.value.sentrySpan : (getActiveSpan() ?? null);
 
-  const spanName = deriveSpanName(name, kind);
-
   const newSpan = startInactiveSpan({
-    name: spanName,
-    op: deriveOp(name, kind),
+    name,
     startTime: nanosToHrTime(startTime),
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),

@@ -15,30 +15,28 @@ This SDK does not have docs yet. Stay tuned.
 ```typescript
 import * as Sentry from '@sentry/effect/server';
 import { NodeRuntime } from '@effect/platform-node';
-import { Layer } from 'effect';
+import { Layer, Logger } from 'effect';
 import { HttpLive } from './Http.js';
 
-const MainLive = HttpLive.pipe(
-  Layer.provide(
-    Sentry.effectLayer({
-      dsn: '__DSN__',
-      tracesSampleRate: 1.0,
-      enableLogs: true,
-      enableEffectLogs: true,
-      enableEffectMetrics: true,
-    }),
-  ),
+const SentryLive = Layer.mergeAll(
+  Sentry.effectLayer({
+    dsn: '__DSN__',
+    tracesSampleRate: 1.0,
+    enableLogs: true,
+  }),
+  Layer.setTracer(Sentry.SentryEffectTracer),
+  Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
 );
 
+const MainLive = HttpLive.pipe(Layer.provide(SentryLive));
 MainLive.pipe(Layer.launch, NodeRuntime.runMain);
 ```
 
-The `effectLayer` function initializes Sentry and returns an Effect Layer that provides:
+The `effectLayer` function initializes Sentry. To enable Effect instrumentation, compose with:
 
-- Distributed tracing with automatic HTTP header extraction/injection
-- Effect spans traced as Sentry spans
-- Effect logs forwarded to Sentry (when `enableEffectLogs` is set)
-- Effect metrics sent to Sentry (when `enableEffectMetrics` is set)
+- `Layer.setTracer(Sentry.SentryEffectTracer)` - Effect spans traced as Sentry spans
+- `Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger)` - Effect logs forwarded to Sentry
+- `Sentry.SentryEffectMetricsLayer` - Effect metrics sent to Sentry
 
 ## Links
 

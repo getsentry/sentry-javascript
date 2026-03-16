@@ -3,25 +3,21 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an HTTP transaction', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction?.includes('/test-success')
-    );
+    return transactionEvent?.transaction === 'http.server GET';
   });
 
   await fetch(`${baseURL}/test-success`);
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-  expect(transactionEvent.transaction).toContain('/test-success');
+  expect(transactionEvent.transaction).toBe('http.server GET');
 });
 
 test('Sends transaction with manual Effect span', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction?.includes('/test-transaction')
+      transactionEvent?.transaction === 'http.server GET' &&
+      transactionEvent?.spans?.some(span => span.description === 'test-span')
     );
   });
 
@@ -29,8 +25,7 @@ test('Sends transaction with manual Effect span', async ({ baseURL }) => {
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-  expect(transactionEvent.transaction).toContain('/test-transaction');
+  expect(transactionEvent.transaction).toBe('http.server GET');
 
   const spans = transactionEvent.spans || [];
   expect(spans).toContainEqual(
@@ -43,8 +38,8 @@ test('Sends transaction with manual Effect span', async ({ baseURL }) => {
 test('Sends Effect spans with correct parent-child structure', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction?.includes('/test-effect-span')
+      transactionEvent?.transaction === 'http.server GET' &&
+      transactionEvent?.spans?.some(span => span.description === 'custom-effect-span')
     );
   });
 
@@ -52,15 +47,13 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-  expect(transactionEvent.transaction).toContain('/test-effect-span');
+  expect(transactionEvent.transaction).toBe('http.server GET');
 
   const spans = transactionEvent.spans || [];
 
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'custom-effect-span',
-      op: 'internal',
     }),
   );
 
@@ -77,15 +70,12 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
 
 test('Sends transaction for error route', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction?.includes('/test-error')
-    );
+    return transactionEvent?.transaction === 'http.server GET';
   });
 
   await fetch(`${baseURL}/test-error`);
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-  expect(transactionEvent.transaction).toContain('/test-error');
+  expect(transactionEvent.transaction).toBe('http.server GET');
 });
