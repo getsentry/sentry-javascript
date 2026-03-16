@@ -44,7 +44,12 @@ describe('instrumentLangGraph sendDefaultPii resolution', () => {
   it('defaults recordInputs and recordOutputs to false when sendDefaultPii is false', async () => {
     setup(false);
 
-    const graph = createFakeStateGraph({ messages: [{ role: 'assistant', content: 'hi' }] });
+    const graph = createFakeStateGraph({
+      messages: [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi' },
+      ],
+    });
     instrumentLangGraph(graph);
 
     await startSpan({ name: 'test-root' }, async rootSpan => {
