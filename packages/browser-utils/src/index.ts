@@ -4,6 +4,7 @@ export {
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
+  addFcpInstrumentationHandler,
 } from './metrics/instrument';
 
 export {
@@ -19,6 +20,15 @@ export {
 export { startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
+
+export {
+  trackClsAsSpan,
+  trackFcpAsSpan,
+  trackFpAsSpan,
+  trackInpAsSpan,
+  trackLcpAsSpan,
+  trackTtfbAsSpan,
+} from './metrics/webVitalSpans';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 

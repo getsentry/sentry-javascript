@@ -22,6 +22,7 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -45,6 +46,12 @@ import {
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
   startTrackingWebVitals,
+  trackClsAsSpan,
+  trackFcpAsSpan,
+  trackFpAsSpan,
+  trackInpAsSpan,
+  trackLcpAsSpan,
+  trackTtfbAsSpan,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
@@ -514,6 +521,15 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
         client,
       });
+
+      if (hasSpanStreamingEnabled(client)) {
+        trackLcpAsSpan(client);
+        trackClsAsSpan(client);
+        trackInpAsSpan(client);
+        trackTtfbAsSpan(client);
+        trackFcpAsSpan(client);
+        trackFpAsSpan(client);
+      }
 
       if (enableInp) {
         startTrackingINP();
