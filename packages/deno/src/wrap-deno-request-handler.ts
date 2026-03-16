@@ -95,9 +95,15 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
             res = await handler();
             setHttpStatus(span, res.status);
             isolationScope.setContext('response', {
-              headers: Object.fromEntries(res.headers),
               status_code: res.status,
             });
+            span.setAttributes(
+              httpHeadersToSpanAttributes(
+                Object.fromEntries(res.headers),
+                client.getOptions().sendDefaultPii,
+                'response',
+              ),
+            );
           } catch (e) {
             span.end();
             captureException(e, {
