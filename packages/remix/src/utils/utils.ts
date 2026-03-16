@@ -13,7 +13,7 @@ type ServerRouteManifest = ServerBuild['routes'];
 export async function storeFormDataKeys(
   args: LoaderFunctionArgs | ActionFunctionArgs,
   span: Span,
-  formDataKeys?: Record<string, string | boolean> | undefined,
+  formDataKeys?: Record<string, string | boolean>,
 ): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.

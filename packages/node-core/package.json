@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-core",
-  "version": "10.42.0",
+  "version": "10.43.0",
   "description": "Sentry Node-Core SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-core",
@@ -99,18 +99,18 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "10.42.0",
-    "@sentry/opentelemetry": "10.42.0",
-    "import-in-the-middle": "^2.0.6"
+    "@sentry/core": "10.43.0",
+    "@sentry/opentelemetry": "10.43.0",
+    "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-async-hooks": "^2.5.1",
-    "@opentelemetry/core": "^2.5.1",
-    "@opentelemetry/instrumentation": "^0.211.0",
-    "@opentelemetry/resources": "^2.5.1",
-    "@opentelemetry/sdk-trace-base": "^2.5.1",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
+    "@opentelemetry/context-async-hooks": "^2.6.0",
+    "@opentelemetry/core": "^2.6.0",
+    "@opentelemetry/instrumentation": "^0.213.0",
+    "@opentelemetry/resources": "^2.6.0",
+    "@opentelemetry/sdk-trace-base": "^2.6.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@types/node": "^18.19.1"
   },
   "scripts": {
@@ -126,8 +126,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

@@ -36,7 +36,7 @@ const SORTED_MANIFEST_CACHE = new WeakMap<string[], string[]>();
  * Optionally strips a basename prefix before matching.
  */
 export function matchRouteManifest(pathname: string, manifest: string[], basename?: string): string | null {
-  if (!pathname || !manifest || !manifest.length) {
+  if (!pathname || !manifest?.length) {
     return null;
   }
 

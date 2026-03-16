@@ -17,7 +17,7 @@ describe('httpIntegration', () => {
       expect(actual).toBe(expected);
     });
 
-    conditionalTest({ min: 22 })('returns false without tracesSampleRate on Node >=22', () => {
+    conditionalTest({ min: 22 })('returns false without tracesSampleRate on Node >=22.12', () => {
       const actual = _shouldUseOtelHttpInstrumentation({}, {});
       expect(actual).toBe(false);
     });

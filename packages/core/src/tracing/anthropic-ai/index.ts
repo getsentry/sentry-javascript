@@ -1,4 +1,3 @@
-import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -23,7 +22,13 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
+import {
+  buildMethodPath,
+  getFinalOperationName,
+  getSpanOperation,
+  resolveAIRecordingOptions,
+  setTokenUsageAttributes,
+} from '../ai/utils';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
@@ -350,12 +355,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-
-  const _options = {
-    recordInputs: sendDefaultPii,
-    recordOutputs: sendDefaultPii,
-    ...options,
-  };
-  return createDeepProxy(anthropicAiClient, '', _options);
+  return createDeepProxy(anthropicAiClient, '', resolveAIRecordingOptions(options));
 }

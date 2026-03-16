@@ -28,14 +28,19 @@ export function isPatched(target: InjectableTarget | CatchTarget): boolean {
  * Returns span options for nest middleware spans.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget, name: string | undefined = undefined) {
+export function getMiddlewareSpanOptions(
+  target: InjectableTarget | CatchTarget,
+  name: string | undefined = undefined,
+  componentType: string | undefined = undefined,
+) {
   const span_name = name ?? target.name; // fallback to class name if no name is provided
+  const origin = componentType ? `auto.middleware.nestjs.${componentType}` : 'auto.middleware.nestjs';
 
   return {
     name: span_name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     },
   };
 }
@@ -53,6 +58,26 @@ export function getEventSpanOptions(event: string): {
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+    },
+    forceTransaction: true,
+  };
+}
+
+/**
+ * Returns span options for nest bullmq process spans.
+ */
+export function getBullMQProcessSpanOptions(queueName: string): {
+  name: string;
+  attributes: Record<string, string>;
+  forceTransaction: boolean;
+} {
+  return {
+    name: `${queueName} process`,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
+      'messaging.system': 'bullmq',
+      'messaging.destination.name': queueName,
     },
     forceTransaction: true,
   };

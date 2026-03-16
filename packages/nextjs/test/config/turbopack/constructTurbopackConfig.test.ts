@@ -965,7 +965,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: 'foreign' },
+      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
@@ -975,6 +975,22 @@ describe('moduleMetadataInjection with applicationKey', () => {
         },
       ],
     });
+  });
+
+  it('should only exclude Next.js polyfills, not all foreign modules', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: { _experimental: { turbopackApplicationKey: 'my-app' } },
+      nextJsVersion: '16.0.0',
+    });
+
+    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: { not: unknown }; loaders: unknown[] };
+    // Unlike component annotation (which uses { not: 'foreign' }), metadata injection
+    // must cover node_modules to match the webpack plugin's BannerPlugin behavior.
+    // Only Next.js build polyfills are excluded because they have non-standard syntax.
+    expect(rule.condition).toEqual({ not: { path: /next\/dist\/build\/polyfills/ } });
   });
 
   it('should NOT add metadata loader rule when Next.js < 16', () => {
@@ -1023,7 +1039,6 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as {
-      condition: unknown;
       loaders: Array<{ loader: string; options: { applicationKey: string } }>;
     };
     expect(rule.loaders[0]!.options.applicationKey).toBe('custom-key-123');
@@ -1070,7 +1085,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: 'foreign' },
+      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',

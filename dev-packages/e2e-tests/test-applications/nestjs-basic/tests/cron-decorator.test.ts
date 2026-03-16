@@ -64,7 +64,11 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
 
 test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron async job';
+    return (
+      !event.type &&
+      event.exception?.values?.[0]?.value === 'Test error from cron async job' &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
+    );
   });
 
   const errorEvent = await errorEventPromise;
@@ -77,7 +81,7 @@ test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.cron.nestjs.async',
+    type: 'auto.function.nestjs.cron',
   });
 
   // kill cron so tests don't get stuck
@@ -86,7 +90,11 @@ test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }
 
 test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Test error from cron sync job';
+    return (
+      !event.type &&
+      event.exception?.values?.[0]?.value === 'Test error from cron sync job' &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
+    );
   });
 
   const errorEvent = await errorEventPromise;
@@ -99,7 +107,7 @@ test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL })
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.cron.nestjs',
+    type: 'auto.function.nestjs.cron',
   });
 
   // kill cron so tests don't get stuck

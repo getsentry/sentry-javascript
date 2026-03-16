@@ -48,6 +48,15 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   // return the existing event ID instead of capturing it again (needed for lastEventId() to work)
   if (err && isAlreadyCaptured(err)) {
     waitUntil(flushSafelyWithTimeout());
+
+    const storedEventId =
+      typeof err === 'object' ? (err as unknown as Record<string, unknown>).__sentry_event_id__ : undefined;
+
+    if (typeof storedEventId === 'string') {
+      getIsolationScope().setLastEventId(storedEventId);
+      return storedEventId;
+    }
+
     return getIsolationScope().lastEventId();
   }
 

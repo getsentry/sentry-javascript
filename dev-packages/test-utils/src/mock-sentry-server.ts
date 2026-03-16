@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import type { ChunkFileRecord, RequestRecord } from './sourcemap-upload-assertions';
+import type { ChunkFileRecord, RequestRecord } from './sourcemap-upload-utils';
 
 export interface MockSentryServerOptions {
   port?: number;

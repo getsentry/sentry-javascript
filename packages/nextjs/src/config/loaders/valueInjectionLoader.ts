@@ -1,5 +1,5 @@
 // Rollup doesn't like if we put the directive regex as a literal (?). No idea why.
-/* eslint-disable @sentry-internal/sdk/no-regexp-constructor */
+/* oxlint-disable sdk/no-regexp-constructor */
 
 import type { LoaderThis } from './types';
 

@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "overrides": [
+    {
+      "files": ["vendor/**/*.js"],
+      "env": {
+        "browser": true,
+        "node": false
+      }
+    },
+    {
+      "files": ["{addon,app,tests}/**/*.{js,ts,d.ts}"],
+      "rules": {
+        "import/no-unresolved": "off"
+      }
+    }
+  ]
+}

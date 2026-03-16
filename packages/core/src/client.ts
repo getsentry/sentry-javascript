@@ -1222,7 +1222,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this.emit('postprocessEvent', evt, hint);
 
       evt.contexts = {
-        trace: getTraceContextFromScope(currentScope),
+        trace: { ...evt.contexts?.trace, ...getTraceContextFromScope(currentScope) },
         ...evt.contexts,
       };
 
@@ -1321,7 +1321,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
-        const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+        const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
         if (isInternalException) {
           return prepared;
         }

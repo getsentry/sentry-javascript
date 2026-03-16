@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "env": {
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "sdk/no-class-field-initializers": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["build/**/*", "examples/**/*", "vitest.config.ts"]
+}

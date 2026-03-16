@@ -18,4 +18,9 @@ export class EventsController {
 
     return { message: 'Events emitted' };
   }
+
+  @Get('test-isolation')
+  testIsolation() {
+    return { message: 'ok' };
+  }
 }

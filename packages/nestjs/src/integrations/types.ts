@@ -91,8 +91,26 @@ export interface CatchTarget {
  */
 export interface OnEventTarget {
   name: string;
-  sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
+}
+
+/**
+ * Represents a target method in NestJS annotated with @Cron, @Interval, or @Timeout.
+ */
+export interface ScheduleDecoratorTarget {
+  name: string;
+  __SENTRY_INTERNAL__?: boolean;
+}
+
+/**
+ * Represents a target class in NestJS annotated with @Processor (BullMQ).
+ */
+export interface ProcessorDecoratorTarget {
+  name: string;
+  __SENTRY_INTERNAL__?: boolean;
+  prototype: {
+    process?: ((...args: any[]) => Promise<any>) & { __SENTRY_INSTRUMENTED__?: boolean };
+  };
 }
 
 /**

@@ -38,5 +38,12 @@ provider.register({
 });
 
 registerInstrumentations({
-  instrumentations: [new UndiciInstrumentation(), new HttpInstrumentation()],
+  instrumentations: [
+    new UndiciInstrumentation({
+      headersToSpanAttributes: {
+        responseHeaders: ['content-length'],
+      },
+    }),
+    new HttpInstrumentation(),
+  ],
 });

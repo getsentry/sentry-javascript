@@ -419,17 +419,22 @@ function getParametrizedRoute(
     const contextWithRoutePattern = ctx;
     const rawRoutePattern = contextWithRoutePattern.routePattern;
 
-    // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const routesFromManifest = ctx?.[Symbol.for('context.routes')]?.manifest?.routes;
+    const routesFromManifest =
+      // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx?.[Symbol.for('context.routes')]?.manifest?.routes ??
+      // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 6)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx?.[Symbol.for('astro.pipeline')]?.manifest?.routes;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // oxlint-disable-next-line typescript/no-unsafe-member-access
     const matchedRouteSegmentsFromManifest = routesFromManifest?.find(
       (route: { routeData?: { route?: string } }) => route?.routeData?.route === rawRoutePattern,
+      // oxlint-disable-next-line typescript/no-unsafe-member-access
     )?.routeData?.segments;
 
     return (
-      // Astro v5 - Joining the segments to get the correct casing of the parametrized route
+      // Astro v5+ - Joining the segments to get the correct casing of the parametrized route
       (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
       // Fallback (Astro v4 and earlier)
       interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)
