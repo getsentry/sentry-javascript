@@ -796,6 +796,8 @@ describe('request utils', () => {
           'x-bearer-token': 'bearer',
           'x-sso-token': 'sso',
           'x-saml-token': 'saml',
+          'Set-Cookie': 'session=456',
+          Cookie: 'session=abc123',
         };
 
         const result = httpHeadersToSpanAttributes(headers, false, 'response');
@@ -814,6 +816,8 @@ describe('request utils', () => {
           'http.response.header.x_bearer_token': '[Filtered]',
           'http.response.header.x_saml_token': '[Filtered]',
           'http.response.header.x_sso_token': '[Filtered]',
+          'http.response.header.set_cookie.session': '[Filtered]',
+          'http.response.header.cookie.session': '[Filtered]',
         });
       });
     });
