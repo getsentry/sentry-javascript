@@ -1,4 +1,3 @@
-import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -14,7 +13,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { extractSystemInstructions } from '../ai/utils';
+import { extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
 import type { LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
@@ -208,13 +207,7 @@ export function instrumentLangGraph<T extends { compile: (...args: any[]) => any
   stateGraph: T,
   options?: LangGraphOptions,
 ): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-  const _options: LangGraphOptions = {
-    recordInputs: options?.recordInputs ?? sendDefaultPii,
-    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
-  };
-
-  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, _options);
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, resolveAIRecordingOptions(options));
 
   return stateGraph;
 }

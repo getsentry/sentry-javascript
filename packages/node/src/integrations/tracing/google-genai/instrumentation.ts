@@ -7,7 +7,6 @@ import {
 import type { GoogleGenAIClient, GoogleGenAIOptions } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  getClient,
   GOOGLE_GENAI_INTEGRATION_NAME,
   instrumentGoogleGenAIClient,
   replaceExports,
@@ -77,16 +76,10 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
       }
 
       const instance = Reflect.construct(Original, args);
-      const client = getClient();
-      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-
-      const typedConfig = config;
-      const recordInputs = typedConfig?.recordInputs ?? defaultPii;
-      const recordOutputs = typedConfig?.recordOutputs ?? defaultPii;
 
       return instrumentGoogleGenAIClient(instance, {
-        recordInputs,
-        recordOutputs,
+        recordInputs: config.recordInputs,
+        recordOutputs: config.recordOutputs,
       });
     };
 

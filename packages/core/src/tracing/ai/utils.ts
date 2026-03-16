@@ -1,6 +1,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
+import { getClient } from '../../currentScopes';
 import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
@@ -8,6 +9,22 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
 import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
+
+/**
+ * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
+ * Precedence: explicit option > sendDefaultPii > false
+ */
+export function resolveAIRecordingOptions(options?: { recordInputs?: boolean; recordOutputs?: boolean }): {
+  recordInputs: boolean;
+  recordOutputs: boolean;
+} {
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  return {
+    recordInputs: options?.recordInputs ?? sendDefaultPii,
+    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+  };
+}
+
 /**
  * Maps AI method paths to OpenTelemetry semantic convention operation names
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans

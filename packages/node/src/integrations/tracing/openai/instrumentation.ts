@@ -7,7 +7,6 @@ import {
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
-  getClient,
   instrumentOpenAiClient,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
@@ -74,15 +73,10 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
       }
 
       const instance = Reflect.construct(Original, args);
-      const client = getClient();
-      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-
-      const recordInputs = config.recordInputs ?? defaultPii;
-      const recordOutputs = config.recordOutputs ?? defaultPii;
 
       return instrumentOpenAiClient(instance as OpenAiClient, {
-        recordInputs,
-        recordOutputs,
+        recordInputs: config.recordInputs,
+        recordOutputs: config.recordOutputs,
       });
     } as unknown as abstract new (...args: unknown[]) => OpenAiClient;
 
