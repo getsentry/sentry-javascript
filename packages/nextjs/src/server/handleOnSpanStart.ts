@@ -16,6 +16,7 @@ import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
 import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
+import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './vercelQueuesMonitoring';
 
 /**
  * Handles the on span start event for Next.js spans.
@@ -56,6 +57,9 @@ export function handleOnSpanStart(span: Span): void {
 
       // Check if this is a Vercel cron request and start a check-in
       maybeStartCronCheckIn(rootSpan, route);
+
+      // Enrich queue consumer spans (Vercel Queue push delivery via CloudEvent)
+      maybeEnrichQueueConsumerSpan(rootSpan);
     }
   }
 
@@ -96,4 +100,7 @@ export function handleOnSpanStart(span: Span): void {
   }
 
   maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
+
+  // Enrich outgoing http.client spans targeting the Vercel Queues API (producer)
+  maybeEnrichQueueProducerSpan(span);
 }
