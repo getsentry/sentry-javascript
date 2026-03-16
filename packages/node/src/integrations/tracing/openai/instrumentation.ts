@@ -74,10 +74,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
 
       const instance = Reflect.construct(Original, args);
 
-      return instrumentOpenAiClient(instance as OpenAiClient, {
-        recordInputs: config.recordInputs,
-        recordOutputs: config.recordOutputs,
-      });
+      return instrumentOpenAiClient(instance as OpenAiClient, config);
     } as unknown as abstract new (...args: unknown[]) => OpenAiClient;
 
     // Preserve static and prototype chains

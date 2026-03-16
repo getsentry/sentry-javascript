@@ -60,10 +60,7 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
 
       const instance = Reflect.construct(Original, args);
 
-      return instrumentAnthropicAiClient(instance as AnthropicAiClient, {
-        recordInputs: config.recordInputs,
-        recordOutputs: config.recordOutputs,
-      });
+      return instrumentAnthropicAiClient(instance as AnthropicAiClient, config);
     } as unknown as abstract new (...args: unknown[]) => AnthropicAiClient;
 
     // Preserve static and prototype chains

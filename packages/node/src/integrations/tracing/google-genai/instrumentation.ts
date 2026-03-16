@@ -77,10 +77,7 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
 
       const instance = Reflect.construct(Original, args);
 
-      return instrumentGoogleGenAIClient(instance, {
-        recordInputs: config.recordInputs,
-        recordOutputs: config.recordOutputs,
-      });
+      return instrumentGoogleGenAIClient(instance, config);
     };
 
     // Preserve static and prototype chains

@@ -59,15 +59,12 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    const config = this.getConfig();
-    const options: LangGraphOptions = {
-      recordInputs: config.recordInputs,
-      recordOutputs: config.recordOutputs,
-    };
-
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
-      instrumentLangGraph(exports.StateGraph.prototype as { compile: (...args: unknown[]) => unknown }, options);
+      instrumentLangGraph(
+        exports.StateGraph.prototype as { compile: (...args: unknown[]) => unknown },
+        this.getConfig(),
+      );
     }
 
     return exports;
