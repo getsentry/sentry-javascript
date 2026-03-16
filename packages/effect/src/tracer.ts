@@ -198,4 +198,4 @@ const makeSentryTracer = (): EffectTracer.Tracer =>
 /**
  * Effect Layer that sets up the Sentry tracer for Effect spans.
  */
-export const SentryEffectTracerLayer: Layer.Layer<never, never, never> = setTracer(makeSentryTracer());
+export const SentryEffectTracer = makeSentryTracer();

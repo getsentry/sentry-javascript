@@ -5,3 +5,7 @@ export * from '@sentry/browser';
 
 export { effectLayer, init } from './client/index';
 export type { EffectClientLayerOptions } from './client/index';
+
+export { SentryEffectTracer } from './tracer';
+export { SentryEffectLogger } from './logger';
+export { SentryEffectMetricsLayer } from './metrics';
