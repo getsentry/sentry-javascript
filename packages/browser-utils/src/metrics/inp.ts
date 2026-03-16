@@ -54,7 +54,7 @@ export function startTrackingINP(): () => void {
   return () => undefined;
 }
 
-const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
+export const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
   click: 'click',
   pointerdown: 'click',
   pointerup: 'click',
