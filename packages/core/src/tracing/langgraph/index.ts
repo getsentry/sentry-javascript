@@ -1,3 +1,4 @@
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -207,9 +208,13 @@ export function instrumentLangGraph<T extends { compile: (...args: any[]) => any
   stateGraph: T,
   options?: LangGraphOptions,
 ): T {
-  const _options: LangGraphOptions = options || {};
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  const _options: LangGraphOptions = {
+    recordInputs: options?.recordInputs ?? sendDefaultPii,
+    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+  };
 
-  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile.bind(stateGraph), _options);
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, _options);
 
   return stateGraph;
 }

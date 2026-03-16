@@ -5,8 +5,8 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
-import { getClient, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
+import type { LangGraphOptions } from '@sentry/core';
+import { instrumentLangGraph, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.0.0 <2.0.0'];
 
@@ -59,28 +59,15 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    const client = getClient();
-    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-
     const config = this.getConfig();
-    const recordInputs = config.recordInputs ?? defaultPii;
-    const recordOutputs = config.recordOutputs ?? defaultPii;
-
     const options: LangGraphOptions = {
-      recordInputs,
-      recordOutputs,
+      recordInputs: config.recordInputs,
+      recordOutputs: config.recordOutputs,
     };
 
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
-      const StateGraph = exports.StateGraph as {
-        prototype: Record<string, unknown>;
-      };
-
-      StateGraph.prototype.compile = instrumentStateGraphCompile(
-        StateGraph.prototype.compile as (...args: unknown[]) => CompiledGraph,
-        options,
-      );
+      instrumentLangGraph(exports.StateGraph.prototype as { compile: (...args: unknown[]) => unknown }, options);
     }
 
     return exports;
