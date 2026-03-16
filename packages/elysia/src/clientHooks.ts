@@ -40,24 +40,24 @@ export function setupClientHooks(client: Client): void {
   client.on('beforeSendEvent', (event: Event) => {
     if (event.type === 'transaction' && event.spans) {
       const elysiaSpanIds = new Set<string>();
+      const filteredSpans = [];
+
       for (const span of event.spans) {
         if (span.origin === ELYSIA_ORIGIN) {
           elysiaSpanIds.add(span.span_id);
         }
+
+        const shouldFilter =
+          (!span.description || span.description === '<unknown>') &&
+          span.parent_span_id &&
+          elysiaSpanIds.has(span.parent_span_id);
+
+        if (!shouldFilter) {
+          filteredSpans.push(span);
+        }
       }
 
-      if (elysiaSpanIds.size > 0) {
-        event.spans = event.spans.filter(span => {
-          if (
-            (!span.description || span.description === '<unknown>') &&
-            span.parent_span_id &&
-            elysiaSpanIds.has(span.parent_span_id)
-          ) {
-            return false;
-          }
-          return true;
-        });
-      }
+      event.spans = filteredSpans;
     }
   });
 }
