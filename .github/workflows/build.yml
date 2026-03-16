@@ -65,7 +65,7 @@ env:
 
 jobs:
   job_get_metadata:
-    uses: ./.github/workflows/reusable-metadata.yml
+    uses: ./.github/workflows/ci-metadata.yml
     with:
       head_commit: ${{ github.event.inputs.commit || github.sha }}
     permissions:
