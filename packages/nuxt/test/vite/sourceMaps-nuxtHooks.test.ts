@@ -179,7 +179,7 @@ describe('setupSourceMaps hooks', () => {
       );
     });
 
-    it('sentryVitePlugin is called with fallback filesToDeleteAfterUpload even when source maps are explicitly enabled', async () => {
+    it('sentryRollupPlugin is called without filesToDeleteAfterUpload when source maps are explicitly enabled', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
@@ -189,14 +189,15 @@ describe('setupSourceMaps hooks', () => {
       const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
 
-      expect(mockSentryVitePlugin).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourcemaps: expect.objectContaining({
-            filesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload,
-          }),
-        }),
-      );
+      const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+      const pluginOptions = (mockSentryRollupPlugin?.mock?.calls?.[0] as unknown[])?.[0] as {
+        sourcemaps?: { filesToDeleteAfterUpload?: string[] };
+      };
+      expect(pluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     });
   });
 
