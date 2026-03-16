@@ -10,19 +10,24 @@ import {
 } from './gen-ai-attributes';
 import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
 
+export interface AIRecordingOptions {
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+}
+
 /**
  * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
  * Precedence: explicit option > sendDefaultPii > false
  */
-export function resolveAIRecordingOptions<T extends { recordInputs?: boolean; recordOutputs?: boolean }>(
+export function resolveAIRecordingOptions<T extends AIRecordingOptions>(
   options?: T,
-): T & { recordInputs: boolean; recordOutputs: boolean } {
+): T & Required<AIRecordingOptions> {
   const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
   return {
     ...options,
     recordInputs: options?.recordInputs ?? sendDefaultPii,
     recordOutputs: options?.recordOutputs ?? sendDefaultPii,
-  } as T & { recordInputs: boolean; recordOutputs: boolean };
+  } as T & Required<AIRecordingOptions>;
 }
 
 /**
