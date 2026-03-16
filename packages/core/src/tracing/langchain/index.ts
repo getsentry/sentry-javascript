@@ -1,3 +1,4 @@
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -32,8 +33,9 @@ import {
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
-  const recordInputs = options.recordInputs ?? false;
-  const recordOutputs = options.recordOutputs ?? false;
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  const recordInputs = options.recordInputs ?? sendDefaultPii;
+  const recordOutputs = options.recordOutputs ?? sendDefaultPii;
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
