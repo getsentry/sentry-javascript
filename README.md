@@ -70,6 +70,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/capacitor`](https://github.com/getsentry/sentry-capacitor): SDK for Capacitor Apps and Ionic with support
   for native crashes
 - [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
+- [`@sentry/elysia`](https://github.com/getsentry/sentry-javascript/tree/master/packages/elysia): SDK for Elysia
 - [`@sentry/deno`](https://github.com/getsentry/sentry-javascript/tree/master/packages/deno): SDK for Deno
 - [`@sentry/cloudflare`](https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare): SDK for
   Cloudflare

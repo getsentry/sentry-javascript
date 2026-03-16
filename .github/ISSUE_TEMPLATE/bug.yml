@@ -45,6 +45,7 @@ body:
         - '@sentry/cloudflare'
         - '@sentry/cloudflare - hono'
         - '@sentry/deno'
+        - '@sentry/elysia'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/google-cloud-serverless'

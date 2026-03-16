@@ -60,6 +60,7 @@
     "packages/cloudflare",
     "packages/deno",
     "packages/ember",
+    "packages/elysia",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/feedback",
@@ -156,7 +157,11 @@
     "wide-align/string-width": "4.2.3",
     "cliui/wrap-ansi": "7.0.0",
     "sucrase": "getsentry/sucrase#es2020-polyfills",
-    "**/express/path-to-regexp": "0.1.12"
+    "**/express/path-to-regexp": "0.1.12",
+    "**/@opentelemetry/core": "2.6.0",
+    "**/@opentelemetry/resources": "2.6.0",
+    "**/@opentelemetry/sdk-trace-base": "2.6.0",
+    "**/@opentelemetry/instrumentation": "0.213.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"
