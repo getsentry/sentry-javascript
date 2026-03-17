@@ -23,7 +23,7 @@ vi.mock('@sentry/core', async () => {
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
 
-describe('Hono Vercel Middleware', () => {
+describe('Hono Node Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -38,7 +38,7 @@ describe('Hono Vercel Middleware', () => {
       sentry(app, options);
 
       expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono');
+      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'node']);
     });
 
     it('calls init from @sentry/node', () => {
@@ -128,7 +128,10 @@ describe('Hono Vercel Middleware', () => {
             sdk: expect.objectContaining({
               name: 'sentry.javascript.hono',
               version: SDK_VERSION,
-              packages: [{ name: 'npm:@sentry/hono', version: SDK_VERSION }],
+              packages: [
+                { name: 'npm:@sentry/hono', version: SDK_VERSION },
+                { name: 'npm:@sentry/node', version: SDK_VERSION },
+              ],
             }),
           }),
         }),

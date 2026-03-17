@@ -99,7 +99,7 @@ const app = new Hono();
 // Initialize Sentry middleware right after creating the app
 app.use(
   sentry(app, {
-    dsn: '__DSN__',
+    dsn: '__DSN__', // or process.env.SENTRY_DSN
     tracesSampleRate: 1.0,
   }),
 );
@@ -119,7 +119,7 @@ When starting the Hono Node application, use the `@sentry/node/preload` hook wit
 node --import @sentry/node/preload index.js
 ```
 
-This can also be added to the `NODE_OPTIONS` environment variable:
+This option can also be added to the `NODE_OPTIONS` environment variable:
 
 ```bash
 NODE_OPTIONS="--import @sentry/node/preload"

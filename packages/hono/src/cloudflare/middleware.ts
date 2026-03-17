@@ -11,7 +11,7 @@ import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { patchAppUse } from '../shared/patchAppUse';
 
-export interface HonoOptions extends Options<BaseTransportOptions> {}
+export interface HonoCloudflareOptions extends Options<BaseTransportOptions> {}
 
 const filterHonoIntegration = (integration: Integration): boolean => integration.name !== 'Hono';
 
@@ -20,7 +20,7 @@ const filterHonoIntegration = (integration: Integration): boolean => integration
  */
 export function sentry<E extends Env>(
   app: Hono<E>,
-  options: HonoOptions | ((env: E['Bindings']) => HonoOptions),
+  options: HonoCloudflareOptions | ((env: E['Bindings']) => HonoCloudflareOptions),
 ): MiddlewareHandler {
   withSentry(
     env => {
