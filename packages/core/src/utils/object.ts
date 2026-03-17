@@ -158,16 +158,9 @@ function serializeEventTarget(target: unknown): string {
 /** Filters out all but an object's own properties */
 function getOwnProperties(obj: unknown): { [key: string]: unknown } {
   if (typeof obj === 'object' && obj !== null) {
-    const extractedProps: { [key: string]: unknown } = {};
-    for (const property in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, property)) {
-        extractedProps[property] = (obj as Record<string, unknown>)[property];
-      }
-    }
-    return extractedProps;
-  } else {
-    return {};
+    return Object.fromEntries(Object.entries(obj));
   }
+  return {};
 }
 
 /**
