@@ -48,6 +48,16 @@
   changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
   but we'll follow up on this once the bug is fixed.
 
+- **feat(hono): Add basic instrumentation for Node runtime ([#19817](https://github.com/getsentry/sentry-javascript/pull/19817))**
+
+  Adds a new package `@sentry/hono/node` (alpha) with basic instrumentation for Hono applications running in Node.js.
+  The Hono middleware for Cloudflare (`@sentry/hono/cloudflare` - alpha) comes with fixes, and it's now possible to access the Cloudflare Worker Bindings (`env`) from the options' callback.
+
+  Start using the new Hono middlewares by installing `@sentry/hono` and importing the respective middleware for your runtime.
+  More instructions can be found in the [Hono readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/hono/README.md).
+
+  Alpha features are still in progress, may have bugs and might include breaking changes. Please reach out on GitHub if you have any feedback or concerns.
+
 ## 10.43.0
 
 ### Important Changes

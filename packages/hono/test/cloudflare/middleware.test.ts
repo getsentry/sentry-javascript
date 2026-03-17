@@ -25,7 +25,7 @@ describe('Hono Cloudflare Middleware', () => {
   });
 
   describe('sentry middleware', () => {
-    it('calls applySdkMetadata with "hono"', () => {
+    it('calls applySdkMetadata with "hono" when the options callback is invoked', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -33,8 +33,11 @@ describe('Hono Cloudflare Middleware', () => {
 
       sentry(app, options);
 
+      const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+      optionsCallback();
+
       expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono');
+      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'cloudflare']);
     });
 
     it('calls withSentry with modified options', () => {
@@ -63,22 +66,11 @@ describe('Hono Cloudflare Middleware', () => {
           name: 'npm:@sentry/hono',
           version: SDK_VERSION,
         },
+        {
+          name: 'npm:@sentry/cloudflare',
+          version: SDK_VERSION,
+        },
       ]);
-    });
-
-    it('calls applySdkMetadata before withSentry', () => {
-      const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
-
-      sentry(app, options);
-
-      // Verify applySdkMetadata was called before withSentry
-      const applySdkMetadataCallOrder = applySdkMetadataMock.mock.invocationCallOrder[0];
-      const withSentryCallOrder = withSentryMock.mock.invocationCallOrder[0];
-
-      expect(applySdkMetadataCallOrder).toBeLessThan(withSentryCallOrder as number);
     });
 
     it('preserves all user options', () => {
@@ -123,6 +115,53 @@ describe('Hono Cloudflare Middleware', () => {
       const middleware = sentry(app, {});
 
       expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+
+    describe('when options is a function (env callback)', () => {
+      it('calls the options function with the env argument passed by withSentry', () => {
+        type Bindings = { SENTRY_DSN: string };
+        const app = new Hono<{ Bindings: Bindings }>();
+        const mockEnv: Bindings = { SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337' };
+        const optionsFn = vi.fn((env: Bindings) => ({ dsn: env.SENTRY_DSN }));
+
+        sentry(app, optionsFn);
+
+        const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+        optionsCallback(mockEnv);
+
+        expect(optionsFn).toHaveBeenCalledTimes(1);
+        expect(optionsFn).toHaveBeenCalledWith(mockEnv);
+      });
+
+      it('uses the return value of the options function as configuration', () => {
+        type Bindings = { SENTRY_DSN: string };
+        const app = new Hono<{ Bindings: Bindings }>();
+        const mockEnv: Bindings = { SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337' };
+
+        sentry(app, (env: Bindings) => ({ dsn: env.SENTRY_DSN, environment: 'production' }));
+
+        const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+        const result = optionsCallback(mockEnv);
+
+        expect(result.dsn).toBe('https://public@dsn.ingest.sentry.io/1337');
+        expect(result.environment).toBe('production');
+      });
+
+      it('calls applySdkMetadata with the options object returned by the function', () => {
+        type Bindings = { SENTRY_DSN: string };
+        const app = new Hono<{ Bindings: Bindings }>();
+        const mockEnv: Bindings = { SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337' };
+        const returnedOptions = { dsn: 'https://public@dsn.ingest.sentry.io/1337' };
+        const optionsFn = vi.fn(() => returnedOptions);
+
+        sentry(app, optionsFn);
+
+        const optionsCallback = withSentryMock.mock.calls[0]?.[0];
+        optionsCallback(mockEnv);
+
+        expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
+        expect(applySdkMetadataMock).toHaveBeenCalledWith(returnedOptions, 'hono', ['hono', 'cloudflare']);
+      });
     });
   });
 

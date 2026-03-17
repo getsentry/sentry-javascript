@@ -6,7 +6,7 @@ import {
   SPAN_STATUS_OK,
   startInactiveSpan,
 } from '@sentry/core';
-import type { Hono, MiddlewareHandler } from 'hono';
+import type { Env, Hono, MiddlewareHandler } from 'hono';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
@@ -14,7 +14,7 @@ const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
  * Patches `app.use` so that every middleware registered through it is automatically
  * wrapped in a Sentry span. Supports both forms: `app.use(...handlers)` and `app.use(path, ...handlers)`.
  */
-export function patchAppUse(app: Hono): void {
+export function patchAppUse<E extends Env>(app: Hono<E>): void {
   app.use = new Proxy(app.use, {
     apply(target: typeof app.use, thisArg: typeof app, args: Parameters<typeof app.use>): ReturnType<typeof app.use> {
       const [first, ...rest] = args as [unknown, ...MiddlewareHandler[]];

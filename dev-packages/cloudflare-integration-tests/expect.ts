@@ -28,6 +28,7 @@ function getSdk(sdk: 'cloudflare' | 'hono'): SdkInfo {
         name: `npm:@sentry/${sdk}`,
         version: SDK_VERSION,
       },
+      ...(sdk === 'hono' ? [{ name: 'npm:@sentry/cloudflare', version: SDK_VERSION }] : []),
     ],
     version: SDK_VERSION,
   };
