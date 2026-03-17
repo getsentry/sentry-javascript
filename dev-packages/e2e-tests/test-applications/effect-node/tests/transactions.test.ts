@@ -28,11 +28,11 @@ test('Sends transaction with manual Effect span', async ({ baseURL }) => {
   expect(transactionEvent.transaction).toBe('http.server GET');
 
   const spans = transactionEvent.spans || [];
-  expect(spans).toContainEqual(
+  expect(spans).toEqual([
     expect.objectContaining({
       description: 'test-span',
     }),
-  );
+  ]);
 });
 
 test('Sends Effect spans with correct parent-child structure', async ({ baseURL }) => {
@@ -49,23 +49,41 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
 
   expect(transactionEvent.transaction).toBe('http.server GET');
 
-  const spans = transactionEvent.spans || [];
-
-  expect(spans).toContainEqual(
+  expect(transactionEvent).toEqual(
     expect.objectContaining({
-      description: 'custom-effect-span',
+      contexts: expect.objectContaining({
+        trace: expect.objectContaining({
+          origin: 'auto.http.effect',
+        }),
+      }),
+      spans: [
+        expect.objectContaining({
+          description: 'custom-effect-span',
+          origin: 'auto.function.effect',
+        }),
+        expect.objectContaining({
+          description: 'nested-span',
+          origin: 'auto.function.effect',
+        }),
+      ],
+      sdk: expect.objectContaining({
+        name: 'sentry.javascript.effect',
+        packages: [
+          expect.objectContaining({
+            name: 'npm:@sentry/effect',
+          }),
+          expect.objectContaining({
+            name: 'npm:@sentry/node-light',
+          }),
+        ],
+      }),
     }),
   );
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      description: 'nested-span',
-    }),
-  );
+  const parentSpan = transactionEvent.spans?.[0]?.span_id;
+  const nestedSpan = transactionEvent.spans?.[1]?.parent_span_id;
 
-  const parentSpan = spans.find(s => s.description === 'custom-effect-span');
-  const nestedSpan = spans.find(s => s.description === 'nested-span');
-  expect(nestedSpan?.parent_span_id).toBe(parentSpan?.span_id);
+  expect(nestedSpan).toBe(parentSpan);
 });
 
 test('Sends transaction for error route', async ({ baseURL }) => {

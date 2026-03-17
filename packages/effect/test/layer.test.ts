@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
-import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
+import * as sentryCore from '@sentry/core';
+import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION, SentrySpan } from '@sentry/core';
 import { Effect, Layer, Logger, LogLevel } from 'effect';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as sentryClient from '../src/index.client';
@@ -41,6 +42,7 @@ describe.each([
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    vi.restoreAllMocks();
   });
 
   it('creates a valid Effect layer', () => {
@@ -91,8 +93,11 @@ describe.each([
 
   it.effect('layer enables tracing when tracer is set', () =>
     Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+
       const result = yield* Effect.withSpan('test-span')(Effect.succeed('traced'));
       expect(result).toBe('traced');
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'test-span' }));
     }).pipe(
       Effect.withTracer(SentryEffectTracer),
       Effect.provide(
@@ -106,11 +111,14 @@ describe.each([
 
   it.effect('layer can be composed with tracer layer', () =>
     Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+
       const result = yield* Effect.succeed(42).pipe(
         Effect.map(n => n * 2),
         Effect.withSpan('computation'),
       );
       expect(result).toBe(84);
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
       Effect.provide(
         Layer.mergeAll(
@@ -145,6 +153,8 @@ describe.each([
 
   it.effect('layer can be composed with all Effect features', () =>
     Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(sentryCore, 'startInactiveSpan');
+
       yield* Effect.logInfo('starting computation');
       const result = yield* Effect.succeed(42).pipe(
         Effect.map(n => n * 2),
@@ -152,6 +162,7 @@ describe.each([
       );
       yield* Effect.logInfo('computation complete');
       expect(result).toBe(84);
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
     }).pipe(
       Effect.provide(
         Layer.mergeAll(

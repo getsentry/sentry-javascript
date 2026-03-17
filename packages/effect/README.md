@@ -26,6 +26,7 @@ const SentryLive = Layer.mergeAll(
   }),
   Layer.setTracer(Sentry.SentryEffectTracer),
   Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
+  Sentry.SentryEffectMetricsLayer,
 );
 
 const MainLive = HttpLive.pipe(Layer.provide(SentryLive));
