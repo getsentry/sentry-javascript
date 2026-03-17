@@ -1,18 +1,25 @@
 import * as Sentry from '@sentry/effect';
 import { HttpRouter, HttpServer, HttpServerResponse } from '@effect/platform';
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
-import { Cause, Effect, Layer, Logger, LogLevel } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Cause from 'effect/Cause';
+import * as Layer from 'effect/Layer';
+import * as Logger from 'effect/Logger';
+import * as LogLevel from 'effect/LogLevel';
 import { createServer } from 'http';
 
-const SentryLive = Sentry.effectLayer({
-  dsn: process.env.E2E_TEST_DSN,
-  environment: 'qa',
-  debug: !!process.env.DEBUG,
-  tunnel: 'http://localhost:3031/',
-  tracesSampleRate: 1,
-  enableLogs: true,
-  enableEffectLogs: true,
-});
+const SentryLive = Layer.mergeAll(
+  Sentry.effectLayer({
+    dsn: process.env.E2E_TEST_DSN,
+    environment: 'qa',
+    debug: !!process.env.DEBUG,
+    tunnel: 'http://localhost:3031/',
+    tracesSampleRate: 1,
+    enableLogs: true,
+  }),
+  Layer.setTracer(Sentry.SentryEffectTracer),
+  Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
+);
 
 const router = HttpRouter.empty.pipe(
   HttpRouter.get('/test-success', HttpServerResponse.json({ version: 'v1' })),

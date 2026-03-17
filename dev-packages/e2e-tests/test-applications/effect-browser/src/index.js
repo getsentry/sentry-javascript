@@ -1,6 +1,10 @@
 // @ts-check
 import * as Sentry from '@sentry/effect';
-import { Cause, Effect, Layer, Logger, LogLevel, Runtime } from 'effect';
+import * as Logger from 'effect/Logger';
+import * as Layer from 'effect/Layer';
+import * as Runtime from 'effect/Runtime';
+import * as LogLevel from 'effect/LogLevel';
+import * as Effect from 'effect/Effect';
 
 const LogLevelLive = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
@@ -16,8 +20,9 @@ const AppLayer = Layer.mergeAll(
     environment: 'qa',
     tunnel: 'http://localhost:3031',
     enableLogs: true,
-    enableEffectLogs: true,
   }),
+  Layer.setTracer(Sentry.SentryEffectTracer),
+  Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
   LogLevelLive,
 );
 
