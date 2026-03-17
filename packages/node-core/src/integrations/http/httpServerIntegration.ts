@@ -223,6 +223,8 @@ function instrumentServer(
         // Set a fresh propagation context so each request gets a unique traceId.
         // When there are incoming trace headers, propagation.extract() below sets a remote
         // span on the OTel context which takes precedence in getTraceContextForScope().
+        // We can write directly to the current scope here because it is forked implicitly via
+        // `context.with` in `withIsolationScope` (See `SentryContextManager`).
         getCurrentScope().setPropagationContext({
           traceId: generateTraceId(),
           sampleRand: _INTERNAL_safeMathRandom(),
