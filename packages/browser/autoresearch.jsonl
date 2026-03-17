@@ -2,3 +2,4 @@
 {"run":1,"commit":"66d1459","metric":27.8466,"metrics":{"raw_kb":81.3759,"gzip_bytes":28515},"status":"keep","description":"Baseline: browser CDN bundle.min.js gzipped size","timestamp":1773739502093,"segment":0}
 {"run":2,"commit":"d470cd1","metric":27.707,"metrics":{"raw_kb":80.75,"gzip_bytes":28372},"status":"keep","description":"terser compress passes: 3 — better dead code elimination and folding","timestamp":1773740097667,"segment":0}
 {"run":3,"commit":"5c3ab44","metric":27.705,"metrics":{"raw_kb":80.75,"gzip_bytes":28370},"status":"keep","description":"terser compress ecma: 2017 — enables modern JS optimizations (arrow fns, etc)","timestamp":1773740122319,"segment":0}
+{"run":4,"commit":"4fb42e8","metric":27.7031,"metrics":{"raw_kb":80.746,"gzip_bytes":28368},"status":"keep","description":"Remove unused breadcrumbData variable in fetch breadcrumb handler","timestamp":1773740201717,"segment":0}
