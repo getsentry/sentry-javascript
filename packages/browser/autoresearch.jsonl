@@ -19,3 +19,4 @@
 {"run":18,"commit":"4224030","metric":27.4716,"metrics":{"raw_kb":79.1201,"gzip_bytes":28131},"status":"discard","description":"output.ecma: 2020 — no additional improvement over compress.ecma","timestamp":1773741502202,"segment":0}
 {"run":19,"commit":"4224030","metric":27.4716,"metrics":{"raw_kb":79.1201,"gzip_bytes":28131},"status":"discard","description":"unsafe_undefined — no change (void 0 same length as undefined)","timestamp":1773741633394,"segment":0}
 {"run":20,"commit":"80dc43b","metric":27.4677,"metrics":{"raw_kb":79.1083,"gzip_bytes":28127},"status":"keep","description":"terser: increase compress passes from 3 to 5 — slightly more dead code found","timestamp":1773741912230,"segment":0}
+{"run":21,"commit":"86f2f2d","metric":27.4648,"metrics":{"raw_kb":79.1083,"gzip_bytes":28124},"status":"keep","description":"Simplify isNativeFunction regex — shorter and more permissive [native code] check","timestamp":1773741953342,"segment":0}

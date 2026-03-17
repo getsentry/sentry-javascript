@@ -55,11 +55,10 @@ function _isEmbeddedBrowserExtension(): boolean {
   }
 
   const href = getLocationHref();
-  const extensionProtocols = ['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'];
 
   // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
   const isDedicatedExtensionPage =
-    WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}://`));
+    WINDOW === WINDOW.top && /^(?:chrome-extension|moz-extension|ms-browser-extension|safari-web-extension):\/\//.test(href);
 
   return !isDedicatedExtensionPage;
 }
