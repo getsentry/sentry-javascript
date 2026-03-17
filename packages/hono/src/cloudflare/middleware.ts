@@ -7,40 +7,47 @@ import {
   type Integration,
   type Options,
 } from '@sentry/core';
-import type { Context, Hono, MiddlewareHandler } from 'hono';
+import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { patchAppUse } from '../shared/patchAppUse';
 
-export interface HonoOptions extends Options<BaseTransportOptions> {
-  context?: Context;
-}
+export interface HonoOptions extends Options<BaseTransportOptions> {}
 
 const filterHonoIntegration = (integration: Integration): boolean => integration.name !== 'Hono';
 
-export const sentry = (app: Hono, options: HonoOptions | undefined = {}): MiddlewareHandler => {
-  const isDebug = options.debug;
-
-  isDebug && debug.log('Initialized Sentry Hono middleware (Cloudflare)');
-
-  applySdkMetadata(options, 'hono');
-
-  const { integrations: userIntegrations } = options;
+/**
+ * Sentry middleware for Hono on Cloudflare Workers.
+ */
+export function sentry<E extends Env>(
+  app: Hono<E>,
+  options: HonoOptions | ((env: E['Bindings']) => HonoOptions),
+): MiddlewareHandler {
   withSentry(
-    () => ({
-      ...options,
-      // Always filter out the Hono integration from defaults and user integrations.
-      // The Hono integration is already set up by withSentry, so adding it again would cause capturing too early (in Cloudflare SDK) and non-parametrized URLs.
-      integrations: Array.isArray(userIntegrations)
-        ? defaults =>
-            getIntegrationsToSetup({
-              defaultIntegrations: defaults.filter(filterHonoIntegration),
-              integrations: userIntegrations.filter(filterHonoIntegration),
-            })
-        : typeof userIntegrations === 'function'
-          ? defaults => userIntegrations(defaults).filter(filterHonoIntegration)
-          : defaults => defaults.filter(filterHonoIntegration),
-    }),
-    app,
+    env => {
+      const honoOptions = typeof options === 'function' ? options(env as E['Bindings']) : options;
+
+      applySdkMetadata(honoOptions, 'hono', ['hono', 'cloudflare']);
+
+      honoOptions.debug && debug.log('Initialized Sentry Hono middleware (Cloudflare)');
+
+      const { integrations: userIntegrations } = honoOptions;
+      return {
+        ...honoOptions,
+        // Always filter out the Hono integration from defaults and user integrations.
+        // The Hono integration is already set up by withSentry, so adding it again would cause capturing too early (in Cloudflare SDK) and non-parametrized URLs.
+        integrations: Array.isArray(userIntegrations)
+          ? defaults =>
+              getIntegrationsToSetup({
+                defaultIntegrations: defaults.filter(filterHonoIntegration),
+                integrations: userIntegrations.filter(filterHonoIntegration),
+              })
+          : typeof userIntegrations === 'function'
+            ? defaults => userIntegrations(defaults).filter(filterHonoIntegration)
+            : defaults => defaults.filter(filterHonoIntegration),
+      };
+    },
+    // Cast needed because Hono<E> exposes a narrower fetch signature than ExportedHandler<unknown>
+    app as unknown as ExportedHandler<unknown>,
   );
 
   patchAppUse(app);
@@ -52,4 +59,4 @@ export const sentry = (app: Hono, options: HonoOptions | undefined = {}): Middle
 
     responseHandler(context);
   };
-};
+}

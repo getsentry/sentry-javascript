@@ -48,6 +48,7 @@ compatibility_flags = ["nodejs_compat"]
 Initialize the Sentry Hono middleware as early as possible in your app:
 
 ```typescript
+import { Hono } from 'hono';
 import { sentry } from '@sentry/hono/cloudflare';
 
 const app = new Hono();
@@ -61,6 +62,23 @@ app.use(
 );
 
 // ... your routes and other middleware
+
+export default app;
+```
+
+#### Access `env` from Cloudflare Worker bindings
+
+Pass the options as a callback instead of a plain options object. The function receives the Cloudflare Worker `env` as defined in the Worker's `Bindings`:
+
+```typescript
+import { Hono } from 'hono';
+import { sentry } from '@sentry/hono/cloudflare';
+
+type Bindings = { SENTRY_DSN: string };
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+app.use(sentry(app, env => ({ dsn: env.SENTRY_DSN })));
 
 export default app;
 ```
