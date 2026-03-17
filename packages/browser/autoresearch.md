@@ -6,7 +6,7 @@ This bundle is built from `src/index.bundle.ts` → `src/index.bundle.base.ts` �
 It includes `@sentry/core` and `@sentry-internal/integration-shims` (for tracing/replay/feedback stubs).
 
 Original baseline: ~27.85 kB gzipped, ~81.4 kB raw (minified).
-Current best: ~27.47 kB gzipped, ~79.1 kB raw (minified). (-1.3%)
+Current best: ~27.43 kB gzipped, ~78.9 kB raw (minified). (-1.5%)
 
 ## Metrics
 - **Primary**: gzip_kb (kB, lower is better) — gzipped size of bundle.min.js
