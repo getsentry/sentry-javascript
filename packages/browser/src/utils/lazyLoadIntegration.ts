@@ -6,29 +6,11 @@ import { WINDOW } from '../helpers';
 // Integration names that can be lazy-loaded from the CDN.
 // Bundle file names are derived: strip 'Integration' suffix, lowercase.
 // Exceptions (hyphenated bundle names) are listed separately.
-const LAZY_LOADABLE_NAMES = [
-  'replayIntegration',
-  'replayCanvasIntegration',
-  'feedbackIntegration',
-  'feedbackModalIntegration',
-  'feedbackScreenshotIntegration',
-  'captureConsoleIntegration',
-  'contextLinesIntegration',
-  'linkedErrorsIntegration',
-  'dedupeIntegration',
-  'extraErrorDataIntegration',
-  'graphqlClientIntegration',
-  'httpClientIntegration',
-  'reportingObserverIntegration',
-  'rewriteFramesIntegration',
-  'browserProfilingIntegration',
-  'moduleMetadataIntegration',
-  'instrumentAnthropicAiClient',
-  'instrumentOpenAiClient',
-  'instrumentGoogleGenAIClient',
-  'instrumentLangGraph',
-  'createLangChainCallbackHandler',
-] as const;
+// Using comma-separated string + split for smaller bundle size.
+const LAZY_LOADABLE_NAMES =
+  'replayIntegration,replayCanvasIntegration,feedbackIntegration,feedbackModalIntegration,feedbackScreenshotIntegration,captureConsoleIntegration,contextLinesIntegration,linkedErrorsIntegration,dedupeIntegration,extraErrorDataIntegration,graphqlClientIntegration,httpClientIntegration,reportingObserverIntegration,rewriteFramesIntegration,browserProfilingIntegration,moduleMetadataIntegration,instrumentAnthropicAiClient,instrumentOpenAiClient,instrumentGoogleGenAIClient,instrumentLangGraph,createLangChainCallbackHandler'.split(
+    ',',
+  );
 
 // Bundle names that don't follow the simple lowercase derivation pattern
 const HYPHENATED_BUNDLES: Record<string, string> = {
@@ -37,7 +19,28 @@ const HYPHENATED_BUNDLES: Record<string, string> = {
   feedbackScreenshotIntegration: 'feedback-screenshot',
 };
 
-type LazyLoadableIntegrationName = (typeof LAZY_LOADABLE_NAMES)[number];
+type LazyLoadableIntegrationName =
+  | 'replayIntegration'
+  | 'replayCanvasIntegration'
+  | 'feedbackIntegration'
+  | 'feedbackModalIntegration'
+  | 'feedbackScreenshotIntegration'
+  | 'captureConsoleIntegration'
+  | 'contextLinesIntegration'
+  | 'linkedErrorsIntegration'
+  | 'dedupeIntegration'
+  | 'extraErrorDataIntegration'
+  | 'graphqlClientIntegration'
+  | 'httpClientIntegration'
+  | 'reportingObserverIntegration'
+  | 'rewriteFramesIntegration'
+  | 'browserProfilingIntegration'
+  | 'moduleMetadataIntegration'
+  | 'instrumentAnthropicAiClient'
+  | 'instrumentOpenAiClient'
+  | 'instrumentGoogleGenAIClient'
+  | 'instrumentLangGraph'
+  | 'createLangChainCallbackHandler';
 
 function getBundleName(name: string): string {
   return HYPHENATED_BUNDLES[name] || name.replace('Integration', '').toLowerCase();
@@ -55,7 +58,7 @@ export async function lazyLoadIntegration(
   name: LazyLoadableIntegrationName,
   scriptNonce?: string,
 ): Promise<IntegrationFn> {
-  const bundle = (LAZY_LOADABLE_NAMES as readonly string[]).includes(name) ? getBundleName(name) : undefined;
+  const bundle = LAZY_LOADABLE_NAMES.includes(name) ? getBundleName(name) : undefined;
 
   // `window.Sentry` is only set when using a CDN bundle, but this method can also be used via the NPM package
   const sentryOnWindow = (WindowWithMaybeIntegration.Sentry = WindowWithMaybeIntegration.Sentry || {});
