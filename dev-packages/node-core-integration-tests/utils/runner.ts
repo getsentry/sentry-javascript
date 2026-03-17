@@ -18,6 +18,7 @@ import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, test } from 'vitest';
+import type { DeepPartial } from './assertions';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -119,12 +120,6 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     child.stderr.on('data', newData);
   });
 }
-
-type DeepPartial<T> = T extends object
-  ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    }
-  : T;
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
 type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);

@@ -13,6 +13,12 @@ import type {
 import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
 
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
+  : T;
+
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties
  *
@@ -89,7 +95,7 @@ export function assertSentryMetricContainer(
 
 export function assertSentrySpanContainer(
   actual: SerializedStreamedSpanContainer,
-  expected: Partial<SerializedStreamedSpanContainer>,
+  expected: DeepPartial<SerializedStreamedSpanContainer>,
 ): void {
   expect(actual).toMatchObject({
     items: expect.any(Array),
