@@ -80,9 +80,9 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
       if (
         typeof value === 'object' &&
         value !== null &&
-        ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)
+        ('__isVue' in value || '_isVue' in value || '__v_isVNode' in value)
       ) {
-        output.push((value as any).__v_isVNode ? '[VueVNode]' : '[VueViewModel]');
+        output.push('__v_isVNode' in value && value.__v_isVNode ? '[VueVNode]' : '[VueViewModel]');
       } else {
         output.push(String(value));
       }

@@ -219,9 +219,9 @@ function stringifyValue(
     if (
       typeof value === 'object' &&
       value !== null &&
-      ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)
+      ('__isVue' in value || '_isVue' in value || '__v_isVNode' in value)
     ) {
-      return (value as any).__v_isVNode ? '[VueVNode]' : '[VueViewModel]';
+      return '__v_isVNode' in value && value.__v_isVNode ? '[VueVNode]' : '[VueViewModel]';
     }
 
     // React's SyntheticEvent thingy
