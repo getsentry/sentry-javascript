@@ -1,7 +1,21 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+
+  // Reproduces the "span bleed" bug with lazy routes:
+  // 1. Navigate to /span-bleed/source (triggers 600ms lazy load + fetch span)
+  // 2. After 200ms (before the lazy load resolves), navigate to /span-bleed-destination
+  // Expected (correct): fetch span from /span-bleed/source appears only in that page's transaction
+  // Actual (bug): fetch span appears in /span-bleed-destination's navigation transaction
+  const triggerSpanBleed = () => {
+    navigate('/span-bleed/source');
+    setTimeout(() => {
+      navigate('/span-bleed-destination');
+    }, 200);
+  };
+
   return (
     <>
       <Link to="/lazy/inner/123/456/789" id="navigation">
@@ -39,6 +53,26 @@ const Index = () => {
       <Link to="/wildcard-lazy/789" id="navigation-to-wildcard-lazy">
         Navigate to Wildcard Lazy Route (500ms delay, no fetch)
       </Link>
+      <br />
+      <br />
+      <strong>Span Bleed Bug Reproduction:</strong>
+      <br />
+      <Link to="/span-bleed/source" id="navigation-to-span-bleed-source">
+        Navigate to Span Bleed Source (600ms delay + fetch)
+      </Link>
+      <br />
+      <Link to="/span-bleed-destination" id="navigation-to-span-bleed-destination">
+        Navigate to Span Bleed Destination
+      </Link>
+      <br />
+      {/* Triggers the bug: navigates to the source (slow lazy route), then after 200ms
+          navigates to the destination — before the 600ms lazy load resolves.
+          The fetch span from the source page's loading should appear only in the
+          source navigation transaction, but the bug causes it to appear in the
+          destination navigation transaction instead. */}
+      <button type="button" id="trigger-span-bleed" onClick={triggerSpanBleed}>
+        Trigger Span Bleed (source → destination after 200ms)
+      </button>
     </>
   );
 };

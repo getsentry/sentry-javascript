@@ -73,11 +73,14 @@ const lazyRouteManifest = [
   '/deep/level2/level3/:id',
   '/slow-fetch/:id',
   '/wildcard-lazy/:id',
+  '/span-bleed/source',
+  '/span-bleed-destination',
 ];
 
 Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.REACT_APP_E2E_TEST_DSN,
+  //environment: 'qa', // dynamic sampling bias to keep transactions
+  dsn: 'https://873851df37857dbf44f9586546c87f7f@o447951.ingest.us.sentry.io/4509435183104000',
+  debug: true,
   integrations: [
     Sentry.reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
@@ -97,7 +100,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   release: 'e2e-test',
 
-  tunnel: 'http://localhost:3031',
+  // tunnel: 'http://localhost:3031',
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);
@@ -168,6 +171,31 @@ const router = sentryCreateBrowserRouter(
       handle: {
         lazyChildren: () => import('./pages/WildcardLazyRoutes').then(module => module.wildcardRoutes),
       },
+    },
+    {
+      // Span bleed reproduction: a lazy route with a 600ms delay + fetch request.
+      // Navigating here and then quickly navigating to /span-bleed-destination
+      // (before the 600ms resolves) reproduces the bug where the fetch span from
+      // this route's loading appears in the /span-bleed-destination transaction.
+      path: '/span-bleed',
+      handle: {
+        lazyChildren: () => import('./pages/SpanBleedLazyRoutes').then(module => module.spanBleedSourceRoutes),
+      },
+    },
+    {
+      path: '/span-bleed-destination',
+      element: (
+        <div id="span-bleed-destination-content">
+          <h1>Span Bleed Destination Page</h1>
+          <p>
+            This is the "next page". Any fetch span from <code>/span-bleed/source</code>&apos;s lazy loading that
+            appears in this page&apos;s navigation transaction demonstrates the span bleed bug.
+          </p>
+          <a href="/" id="span-bleed-destination-home">
+            Go Home
+          </a>
+        </div>
+      ),
     },
   ],
   {
