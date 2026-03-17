@@ -18,9 +18,9 @@ const DEFAULT_IGNORE_ERRORS = [
   /^Can't find variable: gmo$/, // Error from Google Search App https://issuetracker.google.com/issues/396043331
   /^undefined is not an object \(evaluating 'a\.[A-Z]'\)$/, // Random error that happens but not actionable or noticeable to end-users.
   'can\'t redefine non-configurable property "solana"', // Probably a browser extension or custom browser (Brave) throwing this error
-  /vv\(\)\.getRestrictions is not a function/, // Error thrown by GTM, seemingly not affecting end-users
+  "vv().getRestrictions is not a function. (In 'vv().getRestrictions(1,a)', 'vv().getRestrictions' is undefined)", // Error thrown by GTM, seemingly not affecting end-users
   "Can't find variable: _AutofillCallbackHandler", // Unactionable error in instagram webview https://developers.facebook.com/community/threads/320013549791141/
-  /Object Not Found Matching Id:\d+, MethodName:simulateEvent/, // unactionable error from CEFSharp, a .NET library that embeds chromium in .NET apps
+  /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:simulateEvent, ParamCount:\d+$/, // unactionable error from CEFSharp, a .NET library that embeds chromium in .NET apps
   /^Java exception was raised during method invocation$/, // error from Facebook Mobile browser (https://github.com/getsentry/sentry-javascript/issues/15065)
 ];
 

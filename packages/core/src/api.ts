@@ -53,25 +53,32 @@ export function getReportDialogEndpoint(dsnLike: DsnLike, dialogOptions: ReportD
   }
 
   const endpoint = `${getBaseApiEndpoint(dsn)}embed/error-page/`;
-  const params = new URLSearchParams({ dsn: dsnToString(dsn) });
 
+  let encodedOptions = `dsn=${dsnToString(dsn)}`;
   for (const key in dialogOptions) {
-    if (key === 'dsn' || key === 'onClose') {
+    if (key === 'dsn') {
+      continue;
+    }
+
+    if (key === 'onClose') {
       continue;
     }
 
     if (key === 'user') {
       const user = dialogOptions.user;
-      if (user?.name) {
-        params.set('name', user.name);
+      if (!user) {
+        continue;
       }
-      if (user?.email) {
-        params.set('email', user.email);
+      if (user.name) {
+        encodedOptions += `&name=${encodeURIComponent(user.name)}`;
+      }
+      if (user.email) {
+        encodedOptions += `&email=${encodeURIComponent(user.email)}`;
       }
     } else {
-      params.set(key, dialogOptions[key] as string);
+      encodedOptions += `&${encodeURIComponent(key)}=${encodeURIComponent(dialogOptions[key] as string)}`;
     }
   }
 
-  return `${endpoint}?${params.toString()}`;
+  return `${endpoint}?${encodedOptions}`;
 }
