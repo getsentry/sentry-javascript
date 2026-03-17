@@ -55,8 +55,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
 export function addNonEnumerableProperty(obj: object, name: string, value: unknown): void {
   try {
     Object.defineProperty(obj, name, {
-      // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
-      value: value,
+      value,
       writable: true,
       configurable: true,
     });
@@ -158,16 +157,9 @@ function serializeEventTarget(target: unknown): string {
 /** Filters out all but an object's own properties */
 function getOwnProperties(obj: unknown): { [key: string]: unknown } {
   if (typeof obj === 'object' && obj !== null) {
-    const extractedProps: { [key: string]: unknown } = {};
-    for (const property in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, property)) {
-        extractedProps[property] = (obj as Record<string, unknown>)[property];
-      }
-    }
-    return extractedProps;
-  } else {
-    return {};
+    return Object.fromEntries(Object.entries(obj));
   }
+  return {};
 }
 
 /**
