@@ -5,7 +5,8 @@ Reduce the gzipped size of the `@sentry/browser` base CDN bundle (`build/bundles
 This bundle is built from `src/index.bundle.ts` → `src/index.bundle.base.ts` → `src/exports.ts`.
 It includes `@sentry/core` and `@sentry-internal/integration-shims` (for tracing/replay/feedback stubs).
 
-Current baseline: ~27.85 kB gzipped, ~81.4 kB raw (minified).
+Original baseline: ~27.85 kB gzipped, ~81.4 kB raw (minified).
+Current best: ~27.47 kB gzipped, ~79.1 kB raw (minified). (-1.3%)
 
 ## Metrics
 - **Primary**: gzip_kb (kB, lower is better) — gzipped size of bundle.min.js

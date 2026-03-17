@@ -143,7 +143,7 @@ export function makeTerserPlugin() {
       },
     },
     compress: {
-      passes: 3,
+      passes: 5,
       ecma: 2020,
       toplevel: true,
       unsafe_comps: true,
@@ -151,10 +151,12 @@ export function makeTerserPlugin() {
       pure_getters: true,
       unsafe_arrows: true,
       unsafe_methods: true,
+      unsafe_undefined: true,
       collapse_vars: true,
     },
     output: {
       comments: false,
+      ecma: 2020,
     },
   });
 }
