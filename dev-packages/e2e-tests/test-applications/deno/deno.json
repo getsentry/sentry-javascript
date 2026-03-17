@@ -1,7 +1,8 @@
 {
   "imports": {
-    "@sentry/deno": "../../../../packages/deno/build/esm/index.js",
-    "@sentry/core": "../../../../packages/core/build/esm/index.js",
+    "@sentry/deno": "npm:@sentry/deno",
+    "@sentry/core": "npm:@sentry/core",
     "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0"
-  }
+  },
+  "nodeModulesDir": "manual"
 }

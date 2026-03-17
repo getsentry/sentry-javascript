@@ -8,7 +8,6 @@ export async function copyToTemp(originalPath: string, tmpDirPath: string): Prom
   await cp(originalPath, tmpDirPath, { recursive: true });
 
   fixPackageJson(tmpDirPath);
-  fixDenoJson(tmpDirPath);
 }
 
 function fixPackageJson(cwd: string): void {
@@ -58,40 +57,5 @@ function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
       dependencyObj[key] = `link:${newPath}`;
       console.log(`Fixed ${key} dependency to ${newPath}`);
     }
-  }
-}
-
-function fixDenoJson(cwd: string): void {
-  const denoJsonPath = join(cwd, 'deno.json');
-
-  let raw: string;
-  try {
-    raw = readFileSync(denoJsonPath, 'utf8');
-  } catch {
-    return;
-  }
-
-  const denoJson = JSON.parse(raw) as {
-    imports?: Record<string, string>;
-  };
-
-  if (!denoJson.imports) {
-    return;
-  }
-
-  let changed = false;
-  for (const [key, value] of Object.entries(denoJson.imports)) {
-    // Fix relative paths (not npm: or https: specifiers)
-    if (value.startsWith('.') || value.startsWith('/')) {
-      // Same virtual-dir trick as link: deps to get consistent relative depth
-      const newPath = join(__dirname, 'virtual-dir/', value);
-      denoJson.imports[key] = newPath;
-      console.log(`Fixed deno.json import ${key} to ${newPath}`);
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    writeFileSync(denoJsonPath, JSON.stringify(denoJson, null, 2));
   }
 }
