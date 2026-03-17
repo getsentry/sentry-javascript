@@ -136,7 +136,7 @@ describe('buildEffectLayer', () => {
           }),
         );
         startInactiveSpanSpy.mockRestore();
-      }).pipe(Effect.provide(buildEffectLayer({}, createClient()))),
+      }).pipe(Effect.provide(buildEffectLayer({}, createClient({ tracesSampleRate: 1.0 })))),
     );
   });
 
