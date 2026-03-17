@@ -58,7 +58,6 @@ describe('Bun Serve Integration', () => {
           'http.request.header.connection': 'keep-alive',
           'http.request.header.host': expect.any(String),
           'http.request.header.user_agent': expect.stringContaining('Bun'),
-          // 'http.response.header.x_bearer_token': '[Filtered]',
         },
         op: 'http.server',
         name: 'GET /users',
