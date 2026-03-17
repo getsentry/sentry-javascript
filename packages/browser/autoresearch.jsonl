@@ -23,3 +23,4 @@
 {"run":22,"commit":"4fa3f22","metric":27.4619,"metrics":{"raw_kb":79.0859,"gzip_bytes":28121},"status":"keep","description":"Replace extension protocol array+some with regex test in _isEmbeddedBrowserExtension","timestamp":1773741998660,"segment":0}
 {"run":23,"commit":"4fa3f22","metric":27.4619,"metrics":{"raw_kb":79.0859,"gzip_bytes":28121},"status":"discard","description":"Inline allowedAttrs array — terser already handles this","timestamp":1773742073674,"segment":0}
 {"run":24,"commit":"2e68d10","metric":27.4541,"metrics":{"raw_kb":79.0361,"gzip_bytes":28113},"status":"keep","description":"DEFAULT_EVENT_TARGET: use comma-separated string.split instead of array literal (51B raw savings)","timestamp":1773742154648,"segment":0}
+{"run":25,"commit":"1f56ec6","metric":27.4531,"metrics":{"raw_kb":79.0058,"gzip_bytes":28112},"status":"keep","description":"LAZY_LOADABLE_NAMES: use comma-separated string.split (31B raw savings)","timestamp":1773742218321,"segment":0}
