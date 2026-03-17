@@ -10146,12 +10146,12 @@
   integrity sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==
 
 "@unhead/vue@^2.0.12", "@unhead/vue@^2.1.3":
-  version "2.1.4"
-  resolved "https://registry.yarnpkg.com/@unhead/vue/-/vue-2.1.4.tgz#360360b683708a59802753a59e32133eae8af911"
-  integrity sha512-MFvywgkHMt/AqbhmKOqRuzvuHBTcmmmnUa7Wm/Sg11leXAeRShv2PcmY7IiYdeeJqBMCm1jwhcs6201jj6ggZg==
+  version "2.1.12"
+  resolved "https://registry.npmjs.org/@unhead/vue/-/vue-2.1.12.tgz"
+  integrity sha512-zEWqg0nZM8acpuTZE40wkeUl8AhIe0tU0OkilVi1D4fmVjACrwoh5HP6aNqJ8kUnKsoy6D+R3Vi/O+fmdNGO7g==
   dependencies:
     hookable "^6.0.1"
-    unhead "2.1.4"
+    unhead "2.1.12"
 
 "@vercel/nft@^1.2.0", "@vercel/nft@^1.3.0":
   version "1.3.0"
@@ -29453,10 +29453,10 @@ unenv@^1.10.0:
     node-fetch-native "^1.6.4"
     pathe "^1.1.2"
 
-unhead@2.1.4:
-  version "2.1.4"
-  resolved "https://registry.yarnpkg.com/unhead/-/unhead-2.1.4.tgz#be0d25e2bdc801a0c91eb7568a9be0c698356a89"
-  integrity sha512-+5091sJqtNNmgfQ07zJOgUnMIMKzVKAWjeMlSrTdSGPB6JSozhpjUKuMfWEoLxlMAfhIvgOU8Me0XJvmMA/0fA==
+unhead@2.1.12:
+  version "2.1.12"
+  resolved "https://registry.npmjs.org/unhead/-/unhead-2.1.12.tgz"
+  integrity sha512-iTHdWD9ztTunOErtfUFk6Wr11BxvzumcYJ0CzaSCBUOEtg+DUZ9+gnE99i8QkLFT2q1rZD48BYYGXpOZVDLYkA==
   dependencies:
     hookable "^6.0.1"
 
