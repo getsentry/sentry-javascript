@@ -204,24 +204,19 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
   ];
 }
 
-const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
-  session: 'session',
+// Map of envelope item types to data categories where the category differs from the type.
+// Types that map to themselves (session, attachment, transaction, profile, feedback, span, metric) fall through.
+const DATA_CATEGORY_OVERRIDES: Partial<Record<string, DataCategory>> = {
   sessions: 'session',
-  attachment: 'attachment',
-  transaction: 'transaction',
   event: 'error',
   client_report: 'internal',
   user_report: 'default',
-  profile: 'profile',
   profile_chunk: 'profile',
   replay_event: 'replay',
   replay_recording: 'replay',
   check_in: 'monitor',
-  feedback: 'feedback',
-  span: 'span',
   raw_security: 'security',
   log: 'log_item',
-  metric: 'metric',
   trace_metric: 'metric',
 };
 
@@ -229,7 +224,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
  * Maps the type of an envelope item to a data category.
  */
 export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
-  return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
+  return DATA_CATEGORY_OVERRIDES[type] || (type as DataCategory);
 }
 
 /** Extracts the minimal SDK info from the metadata or an events */
