@@ -89,9 +89,22 @@ Any file in these packages that contributes to the bundle:
 - `getReportDialogEndpoint` URLSearchParams — no size improvement
 - `LazyLoadableIntegrations` full derivation with hyphens — CDN filenames don't match (some are `httpclient` not `http-client`)
 
+### Additional Kept Changes
+- `isNativeFunction`: simplified regex from exact whitespace match to just `[native code]` check
+- Extension protocol check: replaced array.some with regex test
+- `DEFAULT_EVENT_TARGET`: use comma-separated string.split instead of array literal (51B raw savings)
+- `LAZY_LOADABLE_NAMES`: same string.split technique (31B raw savings)
+- terser compress passes: 5 (up from 3)
+- terser compress ecma: 2020 (up from 2017)
+
 ### Dead Ends
 - SyncPromise and AsyncContextStack already tree-shaken from min bundle
 - Debug logging properly stripped via DEBUG_BUILD flag
 - Node-specific code properly tree-shaken via __SENTRY_BROWSER_BUNDLE__
 - Spotlight integration stripped by rollup-include-development-only comment
-- DEFAULT_EVENT_TARGET list can't be reduced without behavior change
+- `hoist_funs`/`hoist_vars` terser options — hurt gzip patterns
+- `unsafe_proto`/`unsafe_regexp`/`module`/`unsafe_undefined`/`collapse_vars` terser options — no improvement
+- `output.ecma: 2020` — no additional benefit over `compress.ecma`
+- `getReportDialogEndpoint` URLSearchParams — no size improvement
+- Inlining arrays (e.g. allowedAttrs) — terser already handles this
+- Object.keys(x).length patterns — too many small instances, gzip handles repetition
