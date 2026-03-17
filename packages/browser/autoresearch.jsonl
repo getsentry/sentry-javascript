@@ -9,3 +9,4 @@
 {"run":8,"commit":"deb232e","metric":27.5556,"metrics":{"raw_kb":79.2792,"gzip_bytes":28217},"status":"keep","description":"terser: unsafe_methods — converts { m: function(){} } to { m(){} }","timestamp":1773740454372,"segment":0}
 {"run":9,"commit":"deb232e","metric":27.5605,"metrics":{"raw_kb":79.1796,"gzip_bytes":28222},"status":"discard","description":"unsafe_proto + unsafe_regexp — no gzip improvement","timestamp":1773740480925,"segment":0}
 {"run":10,"commit":"deb232e","metric":27.5605,"metrics":{"raw_kb":79.1796,"gzip_bytes":28222},"status":"discard","description":"terser compress module: true — no improvement","timestamp":1773740607266,"segment":0}
+{"run":11,"commit":"0a4947f","metric":27.5527,"metrics":{"raw_kb":79.2792,"gzip_bytes":28214},"status":"keep","description":"terser: mangle.toplevel — mangle top-level variable names in IIFE","timestamp":1773740915529,"segment":0}
