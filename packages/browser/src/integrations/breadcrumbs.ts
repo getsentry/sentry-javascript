@@ -287,13 +287,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       return;
     }
 
-    const breadcrumbData: FetchBreadcrumbData = {
-      method: handlerData.fetchData.method,
-      url: handlerData.fetchData.url,
-    };
-
     if (handlerData.error) {
-      const data: FetchBreadcrumbData = handlerData.fetchData;
       const hint: FetchBreadcrumbHint = {
         data: handlerData.error,
         input: handlerData.args,
@@ -303,7 +297,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
 
       const breadcrumb = {
         category: 'fetch',
-        data,
+        data: handlerData.fetchData,
         level: 'error',
         type: 'http',
       } satisfies Breadcrumb;
@@ -317,10 +311,6 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         ...handlerData.fetchData,
         status_code: response?.status,
       };
-
-      breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
-      breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
-      breadcrumbData.status_code = response?.status;
 
       const hint: FetchBreadcrumbHint = {
         input: handlerData.args,
