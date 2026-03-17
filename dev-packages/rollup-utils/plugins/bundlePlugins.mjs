@@ -141,6 +141,9 @@ export function makeTerserPlugin() {
         ],
       },
     },
+    compress: {
+      passes: 3,
+    },
     output: {
       comments: false,
     },

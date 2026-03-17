@@ -1,1 +1,2 @@
 {"type":"config","name":"Browser CDN Bundle Size Reduction","metricName":"gzip_kb","metricUnit":"kb","bestDirection":"lower"}
+{"run":1,"commit":"66d1459","metric":27.8466,"metrics":{"raw_kb":81.3759,"gzip_bytes":28515},"status":"keep","description":"Baseline: browser CDN bundle.min.js gzipped size","timestamp":1773739502093,"segment":0}
