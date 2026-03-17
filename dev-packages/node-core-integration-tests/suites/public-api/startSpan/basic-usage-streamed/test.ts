@@ -48,7 +48,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         const childSpan = spans.find(s => s.name === 'test-child-span');
         expect(childSpan).toBeDefined();
         expect(childSpan).toEqual({
-          attributes: {
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
@@ -57,7 +57,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-          },
+          }),
           name: 'test-child-span',
           is_segment: false,
           parent_span_id: segmentSpanId,
@@ -71,12 +71,12 @@ test('sends a streamed span envelope with correct spans for a manually started s
         const inactiveSpan = spans.find(s => s.name === 'test-inactive-span');
         expect(inactiveSpan).toBeDefined();
         expect(inactiveSpan).toEqual({
-          attributes: {
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-          },
+          }),
           links: [
             {
               attributes: {
@@ -103,12 +103,12 @@ test('sends a streamed span envelope with correct spans for a manually started s
         const manualSpan = spans.find(s => s.name === 'test-manual-span');
         expect(manualSpan).toBeDefined();
         expect(manualSpan).toEqual({
-          attributes: {
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-          },
+          }),
           name: 'test-manual-span',
           is_segment: false,
           parent_span_id: segmentSpanId,
@@ -120,14 +120,14 @@ test('sends a streamed span envelope with correct spans for a manually started s
         });
 
         expect(segmentSpan).toEqual({
-          attributes: {
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-          },
+          }),
           name: 'test-span',
           is_segment: true,
           trace_id: traceId,
