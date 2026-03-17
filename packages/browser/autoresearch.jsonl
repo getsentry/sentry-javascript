@@ -5,3 +5,4 @@
 {"run":4,"commit":"4fb42e8","metric":27.7031,"metrics":{"raw_kb":80.746,"gzip_bytes":28368},"status":"keep","description":"Remove unused breadcrumbData variable in fetch breadcrumb handler","timestamp":1773740201717,"segment":0}
 {"run":5,"commit":"d447107","metric":27.6347,"metrics":{"raw_kb":80.539,"gzip_bytes":28298},"status":"keep","description":"terser: enable toplevel, unsafe_comps, unsafe_math, pure_getters","timestamp":1773740331815,"segment":0}
 {"run":6,"commit":"d447107","metric":27.6406,"metrics":{"raw_kb":80.4257,"gzip_bytes":28304},"status":"discard","description":"hoist_funs + hoist_vars — worse gzipped despite better raw (hurts gzip patterns)","timestamp":1773740360912,"segment":0}
+{"run":7,"commit":"84679cd","metric":27.5615,"metrics":{"raw_kb":79.2617,"gzip_bytes":28223},"status":"keep","description":"terser: unsafe_arrows — converts functions to arrows, saves ~1.3KB raw","timestamp":1773740408187,"segment":0}
