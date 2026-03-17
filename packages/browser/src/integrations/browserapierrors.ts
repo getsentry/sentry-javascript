@@ -2,39 +2,11 @@ import type { IntegrationFn, WrappedFunction } from '@sentry/core';
 import { defineIntegration, fill, getFunctionName, getOriginalFunction } from '@sentry/core';
 import { WINDOW, wrap } from '../helpers';
 
-const DEFAULT_EVENT_TARGET = [
-  'EventTarget',
-  'Window',
-  'Node',
-  'ApplicationCache',
-  'AudioTrackList',
-  'BroadcastChannel',
-  'ChannelMergerNode',
-  'CryptoOperation',
-  'EventSource',
-  'FileReader',
-  'HTMLUnknownElement',
-  'IDBDatabase',
-  'IDBRequest',
-  'IDBTransaction',
-  'KeyOperation',
-  'MediaController',
-  'MessagePort',
-  'ModalWindow',
-  'Notification',
-  'SVGElementInstance',
-  'Screen',
-  'SharedWorker',
-  'TextTrack',
-  'TextTrackCue',
-  'TextTrackList',
-  'WebSocket',
-  'WebSocketWorker',
-  'Worker',
-  'XMLHttpRequest',
-  'XMLHttpRequestEventTarget',
-  'XMLHttpRequestUpload',
-];
+// Using a comma-separated string and split for smaller bundle size vs an array literal
+const DEFAULT_EVENT_TARGET =
+  'EventTarget,Window,Node,ApplicationCache,AudioTrackList,BroadcastChannel,ChannelMergerNode,CryptoOperation,EventSource,FileReader,HTMLUnknownElement,IDBDatabase,IDBRequest,IDBTransaction,KeyOperation,MediaController,MessagePort,ModalWindow,Notification,SVGElementInstance,Screen,SharedWorker,TextTrack,TextTrackCue,TextTrackList,WebSocket,WebSocketWorker,Worker,XMLHttpRequest,XMLHttpRequestEventTarget,XMLHttpRequestUpload'.split(
+    ',',
+  );
 
 const INTEGRATION_NAME = 'BrowserApiErrors';
 
