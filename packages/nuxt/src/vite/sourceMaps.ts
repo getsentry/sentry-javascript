@@ -1,10 +1,10 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { createSentryViteConfigPlugin } from './sentryVitePlugin';
+import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
  * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
@@ -20,7 +20,7 @@ export type SourceMapSetting = boolean | 'hidden' | 'inline';
 export function setupSourceMaps(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
-  addVitePlugin: (plugin: Plugin | (() => Plugin), options?: { dev?: boolean; build?: boolean }) => void,
+  addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean }) => void,
 ): void {
   // TODO(v11): remove deprecated options (also from SentryNuxtModuleOptions type)
 
@@ -81,16 +81,16 @@ export function setupSourceMaps(
     }
   });
 
-  addVitePlugin(
-    createSentryViteConfigPlugin({
-      nuxt,
-      moduleOptions,
-      sourceMapsEnabled,
-      shouldDeleteFilesFallback,
-    }),
-    // Only add source map plugin during build
-    { dev: false, build: true },
-  );
+  if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
+    addVitePlugin(
+      [
+        validateSourceMapsOptionsPlugin({ nuxt, moduleOptions, sourceMapsEnabled }),
+        // Vite plugin is added on the client and server side (plugin runs for both builds)
+        ...sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+      ],
+      { dev: false, build: true }, // Only add source map plugin during build
+    );
+  }
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {

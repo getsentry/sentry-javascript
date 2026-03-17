@@ -1,4 +1,3 @@
-import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -27,7 +26,13 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { buildMethodPath, extractSystemInstructions, getFinalOperationName, getSpanOperation } from '../ai/utils';
+import {
+  buildMethodPath,
+  extractSystemInstructions,
+  getFinalOperationName,
+  getSpanOperation,
+  resolveAIRecordingOptions,
+} from '../ai/utils';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
@@ -393,12 +398,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * ```
  */
 export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GoogleGenAIOptions): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-
-  const _options = {
-    recordInputs: sendDefaultPii,
-    recordOutputs: sendDefaultPii,
-    ...options,
-  };
-  return createDeepProxy(client, '', _options);
+  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

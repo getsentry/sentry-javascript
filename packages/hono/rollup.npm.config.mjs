@@ -1,7 +1,7 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 const baseConfig = makeBaseNPMConfig({
-  entrypoints: ['src/index.ts', 'src/index.cloudflare.ts'],
+  entrypoints: ['src/index.ts', 'src/index.cloudflare.ts', 'src/index.node.ts'],
   packageSpecificConfig: {
     output: {
       preserveModulesRoot: 'src',

@@ -317,9 +317,8 @@ Deno.test('Deno.serve should capture request headers and set response context', 
 
   // Check response context
   assertEquals(transaction?.contexts?.response?.status_code, 201);
-  assertExists(transaction?.contexts?.response?.headers);
-  assertEquals(transaction?.contexts?.response?.headers?.['content-type'], 'text/plain');
-  assertEquals(transaction?.contexts?.response?.headers?.['x-custom-header'], 'test');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.content_type'], 'text/plain');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x_custom_header'], 'test');
 });
 
 Deno.test('Deno.serve should support distributed tracing with sentry-trace header', async () => {

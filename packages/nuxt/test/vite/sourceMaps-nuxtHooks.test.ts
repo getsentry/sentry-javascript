@@ -4,15 +4,16 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 
 function createMockAddVitePlugin() {
-  let capturedPlugin: Plugin | null = null;
+  let capturedPlugins: Plugin[] | null = null;
 
-  const mockAddVitePlugin = vi.fn((plugin: Plugin | (() => Plugin)) => {
-    capturedPlugin = typeof plugin === 'function' ? plugin() : plugin;
+  const mockAddVitePlugin = vi.fn((plugins: Plugin[]) => {
+    capturedPlugins = plugins;
   });
 
   return {
     mockAddVitePlugin,
-    getCapturedPlugin: () => capturedPlugin,
+    getCapturedPlugin: () => capturedPlugins?.[0] ?? null,
+    getCapturedPlugins: () => capturedPlugins,
   };
 }
 
@@ -46,7 +47,7 @@ function createMockNuxt(options: {
 }
 
 describe('setupSourceMaps hooks', () => {
-  const mockSentryVitePlugin = vi.fn(() => ({ name: 'sentry-vite-plugin' }));
+  const mockSentryVitePlugin = vi.fn(() => [{ name: 'sentry-vite-plugin' }]);
   const mockSentryRollupPlugin = vi.fn(() => ({ name: 'sentry-rollup-plugin' }));
 
   const consoleLogSpy = vi.spyOn(console, 'log');
@@ -85,39 +86,27 @@ describe('setupSourceMaps hooks', () => {
 
       const plugin = getCapturedPlugin();
       expect(plugin).not.toBeNull();
-      expect(plugin?.name).toBe('sentry-nuxt-vite-config');
-      // modules:done is called afterward. Later, the plugin is actually added
+      expect(plugin?.name).toBe('sentry-nuxt-source-map-validation');
     });
 
     it.each([
       {
         label: 'prepare mode',
         nuxtOptions: { _prepare: true },
-        viteOptions: { mode: 'production', command: 'build' as const },
-        buildConfig: { build: {}, plugins: [] },
       },
       {
         label: 'dev mode',
         nuxtOptions: { dev: true },
-        viteOptions: { mode: 'development', command: 'build' as const },
-        buildConfig: { build: {}, plugins: [] },
       },
-    ])('does not add plugins to vite config in $label', async ({ nuxtOptions, viteOptions, buildConfig }) => {
+    ])('does not add plugins to vite config in $label', async ({ nuxtOptions }) => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
 
-      const plugin = getCapturedPlugin();
-      expect(plugin).not.toBeNull();
-
-      if (plugin && typeof plugin.config === 'function') {
-        const viteConfig: UserConfig = buildConfig;
-        plugin.config(viteConfig, viteOptions);
-        expect(viteConfig.plugins?.length).toBe(0);
-      }
+      expect(mockAddVitePlugin).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -126,19 +115,14 @@ describe('setupSourceMaps hooks', () => {
     ])('adds sentry vite plugin to vite config for $label in production', async ({ buildConfig }) => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin, getCapturedPlugins } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-      await mockNuxt.triggerHook('modules:done');
 
-      const plugin = getCapturedPlugin();
-      expect(plugin).not.toBeNull();
-
-      if (plugin && typeof plugin.config === 'function') {
-        const viteConfig: UserConfig = buildConfig;
-        plugin.config(viteConfig, { mode: 'production', command: 'build' });
-        expect(viteConfig.plugins?.length).toBeGreaterThan(0);
-      }
+      const plugins = getCapturedPlugins();
+      expect(plugins).not.toBeNull();
+      expect(plugins?.length).toBeGreaterThan(0);
+      expect(mockSentryVitePlugin).toHaveBeenCalled();
     });
   });
 
@@ -146,15 +130,9 @@ describe('setupSourceMaps hooks', () => {
     it('calls sentryVitePlugin in production mode', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-      await mockNuxt.triggerHook('modules:done');
-
-      const plugin = getCapturedPlugin();
-      if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
-      }
 
       expect(mockSentryVitePlugin).toHaveBeenCalled();
     });
@@ -162,18 +140,12 @@ describe('setupSourceMaps hooks', () => {
     it.each([
       { label: 'prepare mode', nuxtOptions: { _prepare: true }, viteMode: 'production' as const },
       { label: 'dev mode', nuxtOptions: { dev: true }, viteMode: 'development' as const },
-    ])('does not call sentryVitePlugin in $label', async ({ nuxtOptions, viteMode }) => {
+    ])('does not call sentryVitePlugin in $label', async ({ nuxtOptions }) => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt(nuxtOptions);
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-      await mockNuxt.triggerHook('modules:done');
-
-      const plugin = getCapturedPlugin();
-      if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: {}, plugins: [] }, { mode: viteMode, command: 'build' });
-      }
 
       expect(mockSentryVitePlugin).not.toHaveBeenCalled();
     });
@@ -187,23 +159,16 @@ describe('setupSourceMaps hooks', () => {
       '.*/**/function/**/*.map',
     ];
 
-    it('uses mutated shouldDeleteFilesFallback (unset → true): plugin.config() after modules:done gets fallback filesToDeleteAfterUpload', async () => {
+    it('sentryVitePlugin is called with fallback filesToDeleteAfterUpload when source maps are unset', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
         sourcemap: { client: undefined, server: undefined },
       });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-      await mockNuxt.triggerHook('modules:done');
-
-      const plugin = getCapturedPlugin();
-      expect(plugin).not.toBeNull();
-      if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
-      }
 
       expect(mockSentryVitePlugin).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -214,25 +179,22 @@ describe('setupSourceMaps hooks', () => {
       );
     });
 
-    it('uses mutated shouldDeleteFilesFallback (explicitly enabled → false): plugin.config() after modules:done gets no filesToDeleteAfterUpload', async () => {
+    it('sentryRollupPlugin is called without filesToDeleteAfterUpload when source maps are explicitly enabled', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
         sourcemap: { client: true, server: true },
       });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
 
-      const plugin = getCapturedPlugin();
-      expect(plugin).not.toBeNull();
-      if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
-      }
+      const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
-      const pluginOptions = (mockSentryVitePlugin?.mock?.calls?.[0] as unknown[])?.[0] as {
+      const pluginOptions = (mockSentryRollupPlugin?.mock?.calls?.[0] as unknown[])?.[0] as {
         sourcemaps?: { filesToDeleteAfterUpload?: string[] };
       };
       expect(pluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
@@ -286,14 +248,14 @@ describe('setupSourceMaps hooks', () => {
 
       const plugin = getCapturedPlugin();
       if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: { ssr: false }, plugins: [] }, { mode: 'production', command: 'build' });
+        plugin.config({ build: { ssr: false }, plugins: [] } as UserConfig, { mode: 'production', command: 'build' });
       }
 
       const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[Sentry] Adding Sentry Vite plugin to the client runtime.'),
+        expect.stringContaining('[Sentry] Validating Vite config for the client runtime.'),
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Sentry] Adding Sentry Rollup plugin to the server runtime.'),
@@ -310,7 +272,7 @@ describe('setupSourceMaps hooks', () => {
 
       const plugin = getCapturedPlugin();
       if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: {}, plugins: [] }, { mode: 'production', command: 'build' });
+        plugin.config({ build: {}, plugins: [] } as UserConfig, { mode: 'production', command: 'build' });
       }
 
       await mockNuxt.triggerHook('nitro:config', { rollupConfig: { plugins: [] }, dev: false });

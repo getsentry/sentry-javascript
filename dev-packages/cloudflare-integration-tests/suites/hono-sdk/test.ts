@@ -17,7 +17,7 @@ it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
                 stacktrace: {
                   frames: expect.any(Array),
                 },
-                mechanism: { type: 'auto.faas.hono.error_handler', handled: false },
+                mechanism: { type: 'auto.http.hono.context_error', handled: false },
               },
             ],
           },

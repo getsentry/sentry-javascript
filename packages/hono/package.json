@@ -36,6 +36,16 @@
         "types": "./build/types/index.cloudflare.d.ts",
         "default": "./build/cjs/index.cloudflare.js"
       }
+    },
+    "./node": {
+      "import": {
+        "types": "./build/types/index.node.d.ts",
+        "default": "./build/esm/index.node.js"
+      },
+      "require": {
+        "types": "./build/types/index.node.d.ts",
+        "default": "./build/cjs/index.node.js"
+      }
     }
   },
   "typesVersions": {
@@ -45,6 +55,9 @@
       ],
       "build/types/index.cloudflare.d.ts": [
         "build/types-ts3.8/index.cloudflare.d.ts"
+      ],
+      "build/types/index.node.d.ts": [
+        "build/types-ts3.8/index.node.d.ts"
       ]
     }
   },
@@ -84,8 +97,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-hono-*.tgz",
-    "fix": "oxlint . --fix",
-    "lint": "oxlint .",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

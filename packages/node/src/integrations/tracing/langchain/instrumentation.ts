@@ -10,7 +10,6 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
-  getClient,
   GOOGLE_GENAI_INTEGRATION_NAME,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
@@ -178,19 +177,8 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       GOOGLE_GENAI_INTEGRATION_NAME,
     ]);
 
-    const client = getClient();
-    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-
-    const config = this.getConfig();
-
-    const recordInputs = config?.recordInputs ?? defaultPii;
-    const recordOutputs = config?.recordOutputs ?? defaultPii;
-
     // Create a shared handler instance
-    const sentryHandler = createLangChainCallbackHandler({
-      recordInputs,
-      recordOutputs,
-    });
+    const sentryHandler = createLangChainCallbackHandler(this.getConfig());
 
     // Patch Runnable methods to inject callbacks at request time
     // This directly manipulates options.callbacks that LangChain uses

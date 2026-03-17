@@ -1,10 +1,15 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
+import type { Span } from '@sentry/core';
 
 describe('Bun Serve Integration', () => {
+  const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
+  const setAttributesSpy = spyOn(mockSpan, 'setAttributes');
   const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
-  const startSpanSpy = spyOn(SentryCore, 'startSpan');
+  const startSpanSpy = spyOn(SentryCore, 'startSpan').mockImplementation((_opts, cb) => {
+    return cb(mockSpan as unknown as Span);
+  });
 
   beforeAll(() => {
     instrumentBunServe();
@@ -13,6 +18,7 @@ describe('Bun Serve Integration', () => {
   beforeEach(() => {
     startSpanSpy.mockClear();
     continueTraceSpy.mockClear();
+    setAttributesSpy.mockClear();
   });
 
   // Fun fact: Bun = 2 21 14 :)
@@ -27,7 +33,7 @@ describe('Bun Serve Integration', () => {
   test('generates a transaction around a request', async () => {
     const server = Bun.serve({
       async fetch(_req) {
-        return new Response('Bun!');
+        return new Response('Bun!', { headers: new Headers({ 'x-custom': 'value' }) });
       },
       port,
     });
@@ -58,6 +64,10 @@ describe('Bun Serve Integration', () => {
       },
       expect.any(Function),
     );
+
+    expect(setAttributesSpy).toHaveBeenCalledWith({
+      'http.response.header.x_custom': 'value',
+    });
   });
 
   test('generates a post transaction', async () => {

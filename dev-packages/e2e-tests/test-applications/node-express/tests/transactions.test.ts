@@ -216,6 +216,35 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
   });
 });
 
+test('Outgoing fetch spans include response headers when headersToSpanAttributes is configured', async ({
+  baseURL,
+}) => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-outgoing-fetch'
+    );
+  });
+
+  await fetch(`${baseURL}/test-outgoing-fetch`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  const spans = transactionEvent.spans || [];
+
+  // Find the outgoing fetch span (http.client operation from undici instrumentation)
+  const fetchSpan = spans.find(
+    span => span.op === 'http.client' && span.description?.includes('localhost:3030/test-success'),
+  );
+
+  expect(fetchSpan).toBeDefined();
+  expect(fetchSpan?.data).toEqual(
+    expect.objectContaining({
+      'http.response.header.content-length': [expect.any(String)],
+    }),
+  );
+});
+
 test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
