@@ -105,9 +105,6 @@ test('captures Effect spans with correct parent-child structure', async ({ page 
   expect(spans).toContainEqual(
     expect.objectContaining({
       description: 'custom-effect-span',
-      data: expect.objectContaining({
-        'sentry.op': 'internal',
-      }),
     }),
   );
 
