@@ -1,19 +1,11 @@
 import { withSentry } from '@sentry/cloudflare';
-import {
-  applySdkMetadata,
-  type BaseTransportOptions,
-  debug,
-  getIntegrationsToSetup,
-  type Integration,
-  type Options,
-} from '@sentry/core';
+import { applySdkMetadata, type BaseTransportOptions, debug, getIntegrationsToSetup, type Options } from '@sentry/core';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { patchAppUse } from '../shared/patchAppUse';
+import { filterHonoIntegration } from '../shared/filterHonoIntegration';
 
 export interface HonoCloudflareOptions extends Options<BaseTransportOptions> {}
-
-const filterHonoIntegration = (integration: Integration): boolean => integration.name !== 'Hono';
 
 /**
  * Sentry middleware for Hono on Cloudflare Workers.
