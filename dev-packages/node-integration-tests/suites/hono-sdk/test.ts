@@ -57,7 +57,7 @@ describe('hono-sdk (Node)', () => {
                   type: 'Error',
                   value: 'Test error from Hono app',
                   mechanism: {
-                    type: 'auto.faas.hono.error_handler',
+                    type: 'auto.http.hono.context_error',
                     handled: false,
                   },
                 },
