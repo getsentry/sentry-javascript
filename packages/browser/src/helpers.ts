@@ -104,8 +104,9 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   }
 
   // Wrap the function itself
-  // It is important that `sentryWrapped` is not an arrow function to preserve the context of `this`
-  const sentryWrapped = function (this: unknown, ...args: unknown[]): unknown {
+  // It is important that `sW` is not an arrow function to preserve the context of `this`
+  // The name `sW` is matched by the frame stripping regex in stacktrace.ts
+  const sW = function (this: unknown, ...args: unknown[]): unknown {
     try {
       // Also wrap arguments that are themselves functions
       const wrappedArguments = args.map(arg => wrap(arg, options));
@@ -145,7 +146,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   try {
     for (const property in fn) {
       if (Object.prototype.hasOwnProperty.call(fn, property)) {
-        sentryWrapped[property as keyof T] = fn[property as keyof T];
+        sW[property as keyof T] = fn[property as keyof T];
       }
     }
   } catch {
@@ -155,16 +156,16 @@ export function wrap<T extends WrappableFunction, NonFunction>(
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
-  markFunctionWrapped(sentryWrapped, fn);
+  markFunctionWrapped(sW, fn);
 
-  addNonEnumerableProperty(fn, '__sentry_wrapped__', sentryWrapped);
+  addNonEnumerableProperty(fn, '__sentry_wrapped__', sW);
 
   // Restore original function name (not all browsers allow that)
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const descriptor = Object.getOwnPropertyDescriptor(sentryWrapped, 'name')!;
+    const descriptor = Object.getOwnPropertyDescriptor(sW, 'name')!;
     if (descriptor.configurable) {
-      Object.defineProperty(sentryWrapped, 'name', {
+      Object.defineProperty(sW, 'name', {
         get(): string {
           return fn.name;
         },
@@ -175,7 +176,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
     // to save some bytes we simply try-catch this
   }
 
-  return sentryWrapped;
+  return sW;
 }
 
 /**

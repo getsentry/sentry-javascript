@@ -88,7 +88,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   const localStack = Array.from(stack);
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (/sentryWrapped/.test(getLastStackFrame(localStack).function || '')) {
+  if (/sentryWrapped|^sW$/.test(getLastStackFrame(localStack).function || '')) {
     localStack.pop();
   }
 
