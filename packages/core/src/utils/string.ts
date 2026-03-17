@@ -1,5 +1,4 @@
-import { isRegExp, isString, isVueViewModel } from './is';
-import { getVueInternalName } from './stacktrace';
+import { isRegExp, isString } from './is';
 
 export { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 
@@ -76,13 +75,14 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     try {
-      // This is a hack to fix a Vue3-specific bug that causes an infinite loop of
-      // console warnings. This happens when a Vue template is rendered with
-      // an undeclared variable, which we try to stringify, ultimately causing
-      // Vue to issue another warning which repeats indefinitely.
+      // Vue3 ViewModels and VNodes can cause infinite console warning loops when stringified
       // see: https://github.com/getsentry/sentry-javascript/pull/8981
-      if (isVueViewModel(value)) {
-        output.push(getVueInternalName(value));
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        ('__isVue' in value || '_isVue' in value || '__v_isVNode' in value)
+      ) {
+        output.push('__v_isVNode' in value && value.__v_isVNode ? '[VueVNode]' : '[VueViewModel]');
       } else {
         output.push(String(value));
       }

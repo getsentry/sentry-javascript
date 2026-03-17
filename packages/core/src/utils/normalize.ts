@@ -1,7 +1,7 @@
 import type { Primitive } from '../types-hoist/misc';
-import { isSyntheticEvent, isVueViewModel } from './is';
+import { isSyntheticEvent } from './is';
 import { convertToPlainObject } from './object';
-import { getFunctionName, getVueInternalName } from './stacktrace';
+import { getFunctionName } from './stacktrace';
 
 type Prototype = { constructor?: (...args: unknown[]) => unknown };
 // This is a hack to placate TS, relying on the fact that technically, arrays are objects with integer keys. Normally we
@@ -216,8 +216,12 @@ function stringifyValue(
       return '[Document]';
     }
 
-    if (isVueViewModel(value)) {
-      return getVueInternalName(value);
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      ('__isVue' in value || '_isVue' in value || '__v_isVNode' in value)
+    ) {
+      return '__v_isVNode' in value && value.__v_isVNode ? '[VueVNode]' : '[VueViewModel]';
     }
 
     // React's SyntheticEvent thingy
