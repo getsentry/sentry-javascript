@@ -1,0 +1,1 @@
+{"type":"config","name":"Browser CDN Bundle Size Reduction","metricName":"gzip_kb","metricUnit":"kb","bestDirection":"lower"}
