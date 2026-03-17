@@ -55,8 +55,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
 export function addNonEnumerableProperty(obj: object, name: string, value: unknown): void {
   try {
     Object.defineProperty(obj, name, {
-      // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
-      value: value,
+      value,
       writable: true,
       configurable: true,
     });
