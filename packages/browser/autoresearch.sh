@@ -1,11 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 
-# Quick syntax check on key source files
-node -e "require('sucrase').transform('', {transforms:['typescript']})" 2>/dev/null || true
+cd "$(dirname "$0")"
+REPO_ROOT="$(cd ../.. && pwd)"
+
+# Rebuild core if any core source files were modified (the CDN bundle uses built ESM output)
+if git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -q '^packages/core/src/'; then
+  echo "Core source changed — rebuilding @sentry/core..."
+  (cd "$REPO_ROOT/packages/core" && yarn build:transpile 2>&1 | tail -1)
+fi
+
+# Rebuild browser-utils if any browser-utils source files were modified
+if git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -q '^packages/browser-utils/src/'; then
+  echo "Browser-utils source changed — rebuilding @sentry-internal/browser-utils..."
+  (cd "$REPO_ROOT/packages/browser-utils" && yarn build:transpile 2>&1 | tail -1)
+fi
 
 # Build only the base CDN bundle (bundle.min.js)
-cd "$(dirname "$0")"
 npx rollup -c rollup.bundle.base-only.config.mjs 2>&1 | tail -3
 
 # Measure gzipped size
