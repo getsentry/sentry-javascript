@@ -17,7 +17,7 @@ test('sends a streamed span envelope with correct envelope header', async () => 
       span: {
         sent_at: expect.any(String),
         sdk: {
-          name: 'sentry.javascript.node-core',
+          name: 'sentry.javascript.node',
           version: SDK_VERSION,
         },
         trace: expect.objectContaining({
@@ -54,7 +54,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
               type: 'string',
               value: 'test-child',
             },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
@@ -74,7 +74,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(inactiveSpan).toBeDefined();
         expect(inactiveSpan).toEqual({
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
@@ -107,7 +107,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(manualSpan).toBeDefined();
         expect(manualSpan).toEqual({
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
@@ -127,7 +127,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node-core' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },

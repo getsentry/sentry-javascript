@@ -8,6 +8,7 @@ const client = Sentry.init({
   traceLifecycle: 'stream',
   integrations: [Sentry.spanStreamingIntegration()],
   transport: loggingTransport,
+  release: '1.0.0',
 });
 
 setupOtel(client);

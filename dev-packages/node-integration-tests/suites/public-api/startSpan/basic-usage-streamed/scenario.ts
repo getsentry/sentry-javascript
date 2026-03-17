@@ -7,14 +7,18 @@ Sentry.init({
   traceLifecycle: 'stream',
   integrations: [Sentry.spanStreamingIntegration()],
   transport: loggingTransport,
+  release: '1.0.0',
 });
 
-Sentry.startSpan({ name: 'test-span', op: 'test' }, () => {
+Sentry.startSpan({ name: 'test-span', op: 'test' }, segmentSpan => {
   Sentry.startSpan({ name: 'test-child-span', op: 'test-child' }, () => {
     // noop
   });
 
-  const inactiveSpan = Sentry.startInactiveSpan({ name: 'test-inactive-span' });
+  const inactiveSpan = Sentry.startInactiveSpan({
+    name: 'test-inactive-span',
+    links: [{ context: segmentSpan.spanContext(), attributes: { 'sentry.link.type': 'some_relation' } }],
+  });
   inactiveSpan.end();
 
   Sentry.startSpanManual({ name: 'test-manual-span' }, span => {
