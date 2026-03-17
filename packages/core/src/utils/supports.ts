@@ -94,7 +94,7 @@ function _isFetchSupported(): boolean {
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function isNativeFunction(func: Function): boolean {
-  return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+  return func && /\[native code\]/.test(func.toString());
 }
 
 /**
