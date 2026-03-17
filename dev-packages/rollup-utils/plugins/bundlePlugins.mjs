@@ -143,6 +143,7 @@ export function makeTerserPlugin() {
     },
     compress: {
       passes: 3,
+      ecma: 2017,
     },
     output: {
       comments: false,
