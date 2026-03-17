@@ -154,7 +154,6 @@ export function makeTerserPlugin() {
     },
     output: {
       comments: false,
-      ecma: 2020,
     },
   });
 }
