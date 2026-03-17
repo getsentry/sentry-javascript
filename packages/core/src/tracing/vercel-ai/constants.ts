@@ -6,15 +6,7 @@ import type { ToolCallSpanContext } from './types';
 export const toolCallSpanContextMap = new Map<string, ToolCallSpanContext>();
 
 // Operation sets for efficient mapping to OpenTelemetry semantic convention values
-export const INVOKE_AGENT_OPS = new Set([
-  'ai.generateText',
-  'ai.streamText',
-  'ai.generateObject',
-  'ai.streamObject',
-  'ai.embed',
-  'ai.embedMany',
-  'ai.rerank',
-]);
+export const INVOKE_AGENT_OPS = new Set(['ai.generateText', 'ai.streamText', 'ai.generateObject', 'ai.streamObject']);
 
 export const GENERATE_CONTENT_OPS = new Set([
   'ai.generateText.doGenerate',
@@ -28,7 +20,7 @@ export const EMBEDDINGS_OPS = new Set(['ai.embed.doEmbed', 'ai.embedMany.doEmbed
 export const RERANK_OPS = new Set(['ai.rerank.doRerank']);
 
 export const DO_SPAN_NAME_PREFIX: Record<string, string> = {
-  'ai.embed.doEmbed': 'embed',
-  'ai.embedMany.doEmbed': 'embed_many',
+  'ai.embed.doEmbed': 'embeddings',
+  'ai.embedMany.doEmbed': 'embeddings',
   'ai.rerank.doRerank': 'rerank',
 };

@@ -13,7 +13,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { extractSystemInstructions } from '../ai/utils';
+import { extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
 import type { LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
@@ -207,9 +207,7 @@ export function instrumentLangGraph<T extends { compile: (...args: any[]) => any
   stateGraph: T,
   options?: LangGraphOptions,
 ): T {
-  const _options: LangGraphOptions = options || {};
-
-  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile.bind(stateGraph), _options);
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile, resolveAIRecordingOptions(options));
 
   return stateGraph;
 }

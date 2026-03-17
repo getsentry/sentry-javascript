@@ -1484,3 +1484,140 @@ test('Route manifest provides correct name when pageload span ends before lazy r
   expect(event.contexts?.trace?.op).toBe('pageload');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
 });
+
+test('GQL fetch span is attributed to the correct navigation transaction when navigating from index to lazy GQL page', async ({
+  page,
+}) => {
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/'
+    );
+  });
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-a/fetch'
+    );
+  });
+
+  await page.goto('/');
+  const pageloadEvent = await pageloadPromise;
+
+  // Pageload should NOT contain any /api/graphql spans (neither UserAQuery nor UserBQuery)
+  const pageloadSpans = pageloadEvent.spans || [];
+  const pageloadGqlSpans = pageloadSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' &&
+      (span.description?.includes('/api/graphql') || span.data?.url?.includes('/api/graphql')),
+  );
+  expect(pageloadGqlSpans.length).toBe(0);
+
+  // Navigate to lazy GQL page A
+  const gqlLink = page.locator('id=navigation-to-gql-a');
+  await expect(gqlLink).toBeVisible();
+  await gqlLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Verify the lazy GQL page rendered
+  await expect(page.locator('id=gql-page-a')).toBeVisible();
+
+  // Verify the navigation transaction has the correct name
+  expect(navigationEvent.transaction).toBe('/lazy-gql-a/fetch');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+
+  // Verify the UserAQuery GQL fetch span is inside this navigation transaction
+  const navSpans = navigationEvent.spans || [];
+  const userASpans = navSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(userASpans.length).toBe(1);
+
+  // Verify NO UserBQuery spans leaked into this transaction
+  const userBSpans = navSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(userBSpans.length).toBe(0);
+});
+
+test('GQL fetch spans are attributed to correct navigation transactions when navigating between two lazy GQL pages', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.waitForTimeout(500);
+
+  // Navigate to GQL page A
+  const firstNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-a/fetch'
+    );
+  });
+
+  const gqlALink = page.locator('id=navigation-to-gql-a');
+  await expect(gqlALink).toBeVisible();
+  await gqlALink.click();
+
+  const firstNavEvent = await firstNavPromise;
+  await expect(page.locator('id=gql-page-a')).toBeVisible();
+
+  // First navigation should have exactly the UserAQuery span
+  const firstNavSpans = firstNavEvent.spans || [];
+  const firstUserASpans = firstNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(firstUserASpans.length).toBe(1);
+
+  // First navigation must NOT contain UserBQuery spans
+  const firstUserBSpans = firstNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(firstUserBSpans.length).toBe(0);
+
+  // Now navigate from GQL page A to GQL page B
+  const secondNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-b/fetch'
+    );
+  });
+
+  const gqlBLink = page.locator('id=navigate-to-gql-b');
+  await expect(gqlBLink).toBeVisible();
+  await gqlBLink.click();
+
+  const secondNavEvent = await secondNavPromise;
+  await expect(page.locator('id=gql-page-b')).toBeVisible();
+
+  // Second navigation should have exactly the UserBQuery span
+  const secondNavSpans = secondNavEvent.spans || [];
+  const secondUserBSpans = secondNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(secondUserBSpans.length).toBe(1);
+
+  // Second navigation must NOT contain UserAQuery spans (no leaking from first nav)
+  const secondUserASpans = secondNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(secondUserASpans.length).toBe(0);
+
+  // Verify the two transactions have different trace IDs
+  const firstTraceId = firstNavEvent.contexts?.trace?.trace_id;
+  const secondTraceId = secondNavEvent.contexts?.trace?.trace_id;
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(firstTraceId).not.toBe(secondTraceId);
+});

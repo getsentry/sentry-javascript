@@ -18,6 +18,7 @@ import { patchRequestToCaptureBody } from '../../utils/captureRequestBody';
 import {
   addRequestBreadcrumb,
   addTracePropagationHeadersToOutgoingRequest,
+  getClientRequestUrl,
   getRequestOptions,
 } from '../../utils/outgoingHttpRequest';
 import type { LightNodeClient } from '../client';
@@ -279,6 +280,6 @@ function shouldIgnoreOutgoingRequest(
     return false;
   }
 
-  const url = `${request.protocol}//${request.getHeader('host') || request.host}${request.path}`;
+  const url = getClientRequestUrl(request);
   return ignoreOutgoingRequests(url, getRequestOptions(request));
 }

@@ -75,6 +75,10 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
         { key: 'network.peer.address', value: { stringValue: expect.any(String) } },
         { key: 'network.peer.port', value: { intValue: 3030 } },
         { key: 'http.response.status_code', value: { intValue: 200 } },
+        {
+          key: 'http.response.header.content-length',
+          value: { arrayValue: { values: [{ stringValue: expect.any(String) }] } },
+        },
       ]),
       droppedAttributesCount: 0,
       events: [],

@@ -1,6 +1,7 @@
 import { NestInstrumentation as NestInstrumentationCore } from '@opentelemetry/instrumentation-nestjs-core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node';
+import { SentryNestBullMQInstrumentation } from './sentry-nest-bullmq-instrumentation';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import { SentryNestScheduleInstrumentation } from './sentry-nest-schedule-instrumentation';
@@ -23,12 +24,17 @@ const instrumentNestSchedule = generateInstrumentOnce(`${INTEGRATION_NAME}.Sched
   return new SentryNestScheduleInstrumentation();
 });
 
+const instrumentNestBullMQ = generateInstrumentOnce(`${INTEGRATION_NAME}.BullMQ`, () => {
+  return new SentryNestBullMQInstrumentation();
+});
+
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
     instrumentNestEvent();
     instrumentNestSchedule();
+    instrumentNestBullMQ();
   },
   { id: INTEGRATION_NAME },
 );

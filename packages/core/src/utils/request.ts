@@ -152,15 +152,22 @@ const SENSITIVE_HEADER_SNIPPETS = [
 const PII_HEADER_SNIPPETS = ['x-forwarded-', '-user'];
 
 /**
- * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
- * Header names are converted to the format: http.request.header.<key>
+ * Converts incoming HTTP request or response headers to OpenTelemetry span attributes following semantic conventions.
+ * Header names are converted to the format: http.<request|response>.header.<key>
  * where <key> is the header name in lowercase with dashes converted to underscores.
  *
+ * @param lifecycle - The lifecycle of the headers, either 'request' or 'response'
+ *
  * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-request-header
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-response-header
+ *
+ * @see https://getsentry.github.io/sentry-conventions/attributes/http/#http-request-header-key
+ * @see https://getsentry.github.io/sentry-conventions/attributes/http/#http-response-header-key
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
   sendDefaultPii: boolean = false,
+  lifecycle: 'request' | 'response' = 'request',
 ): Record<string, string> {
   const spanAttributes: Record<string, string> = {};
 
@@ -189,10 +196,17 @@ export function httpHeadersToSpanAttributes(
 
           const lowerCasedCookieKey = cookieKey.toLowerCase();
 
-          addSpanAttribute(spanAttributes, lowerCasedHeaderKey, lowerCasedCookieKey, cookieValue, sendDefaultPii);
+          addSpanAttribute(
+            spanAttributes,
+            lowerCasedHeaderKey,
+            lowerCasedCookieKey,
+            cookieValue,
+            sendDefaultPii,
+            lifecycle,
+          );
         }
       } else {
-        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii);
+        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii, lifecycle);
       }
     });
   } catch {
@@ -212,15 +226,15 @@ function addSpanAttribute(
   cookieKey: string,
   value: string | string[] | undefined,
   sendPii: boolean,
+  lifecycle: 'request' | 'response',
 ): void {
-  const normalizedKey = cookieKey
-    ? `http.request.header.${normalizeAttributeKey(headerKey)}.${normalizeAttributeKey(cookieKey)}`
-    : `http.request.header.${normalizeAttributeKey(headerKey)}`;
-
   const headerValue = handleHttpHeader(cookieKey || headerKey, value, sendPii);
-  if (headerValue !== undefined) {
-    spanAttributes[normalizedKey] = headerValue;
+  if (headerValue == null) {
+    return;
   }
+
+  const normalizedKey = `http.${lifecycle}.header.${normalizeAttributeKey(headerKey)}${cookieKey ? `.${normalizeAttributeKey(cookieKey)}` : ''}`;
+  spanAttributes[normalizedKey] = headerValue;
 }
 
 function handleHttpHeader(
