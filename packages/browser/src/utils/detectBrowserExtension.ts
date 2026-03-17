@@ -58,7 +58,8 @@ function _isEmbeddedBrowserExtension(): boolean {
 
   // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
   const isDedicatedExtensionPage =
-    WINDOW === WINDOW.top && /^(?:chrome-extension|moz-extension|ms-browser-extension|safari-web-extension):\/\//.test(href);
+    WINDOW === WINDOW.top &&
+    /^(?:chrome-extension|moz-extension|ms-browser-extension|safari-web-extension):\/\//.test(href);
 
   return !isDedicatedExtensionPage;
 }

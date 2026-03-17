@@ -216,7 +216,11 @@ function stringifyValue(
       return '[Document]';
     }
 
-    if (typeof value === 'object' && value !== null && ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)) {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)
+    ) {
       return (value as any).__v_isVNode ? '[VueVNode]' : '[VueViewModel]';
     }
 

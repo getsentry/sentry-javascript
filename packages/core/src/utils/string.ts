@@ -77,7 +77,11 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
     try {
       // Vue3 ViewModels and VNodes can cause infinite console warning loops when stringified
       // see: https://github.com/getsentry/sentry-javascript/pull/8981
-      if (typeof value === 'object' && value !== null && ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)) {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        ((value as any).__isVue || (value as any)._isVue || (value as any).__v_isVNode)
+      ) {
         output.push((value as any).__v_isVNode ? '[VueVNode]' : '[VueViewModel]');
       } else {
         output.push(String(value));
