@@ -62,4 +62,35 @@ Any file in these packages that contributes to the bundle:
 - Changes to core must not break other packages (but we only test browser here)
 
 ## What's Been Tried
-(nothing yet — this is the initial session)
+
+### Terser Config Optimizations (kept)
+- `compress.passes: 3` — multi-pass dead code elimination (+0.5%)
+- `compress.ecma: 2017` — modern JS optimizations (tiny)
+- `compress.toplevel: true` — better inlining
+- `compress.unsafe_comps: true` — comparison optimizations
+- `compress.unsafe_math: true` — math optimizations
+- `compress.pure_getters: true` — assumes getters have no side effects
+- `compress.unsafe_arrows: true` — converts functions to arrows (~1.3KB raw savings)
+- `compress.unsafe_methods: true` — shorthand methods
+- `mangle.toplevel: true` — mangle top-level variables
+
+### Terser Config (discarded)
+- `hoist_funs + hoist_vars` — worse gzipped despite better raw (hurts gzip patterns)
+- `unsafe_proto + unsafe_regexp` — no gzip improvement
+- `compress.module: true` — no improvement
+
+### Source Optimizations (kept)
+- Removed unused `breadcrumbData` variable in fetch breadcrumb handler
+- Simplified `_enhanceEventWithInitialFrame` — removed redundant variable aliases
+- `LazyLoadableIntegrations`: derive bundle names from key names instead of storing both key+value (~72 bytes gzipped)
+
+### Source Optimizations (discarded)
+- `getReportDialogEndpoint` URLSearchParams — no size improvement
+- `LazyLoadableIntegrations` full derivation with hyphens — CDN filenames don't match (some are `httpclient` not `http-client`)
+
+### Dead Ends
+- SyncPromise and AsyncContextStack already tree-shaken from min bundle
+- Debug logging properly stripped via DEBUG_BUILD flag
+- Node-specific code properly tree-shaken via __SENTRY_BROWSER_BUNDLE__
+- Spotlight integration stripped by rollup-include-development-only comment
+- DEFAULT_EVENT_TARGET list can't be reduced without behavior change

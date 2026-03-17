@@ -144,13 +144,14 @@ export function makeTerserPlugin() {
     },
     compress: {
       passes: 3,
-      ecma: 2017,
+      ecma: 2020,
       toplevel: true,
       unsafe_comps: true,
       unsafe_math: true,
       pure_getters: true,
       unsafe_arrows: true,
       unsafe_methods: true,
+      collapse_vars: true,
     },
     output: {
       comments: false,
