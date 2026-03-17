@@ -6,7 +6,11 @@ This bundle is built from `src/index.bundle.ts` → `src/index.bundle.base.ts` �
 It includes `@sentry/core` and `@sentry-internal/integration-shims` (for tracing/replay/feedback stubs).
 
 Original baseline: ~27.85 kB gzipped, ~81.4 kB raw (minified).
-Current best: ~27.24 kB gzipped, ~78.0 kB raw (minified). (-2.2%)
+Current best: ~27.23 kB gzipped, ~78.0 kB raw (minified). (-2.2%)
+
+**IMPORTANT**: When modifying files in packages/core or packages/browser-utils, 
+the autoresearch.sh script auto-rebuilds them. Previous sessions missed this,
+causing core changes to be invisible in the bundle until session 3 discovered the bug.
 
 ## Metrics
 - **Primary**: gzip_kb (kB, lower is better) — gzipped size of bundle.min.js
