@@ -81,4 +81,81 @@ describe('lazyLoadIntegration', () => {
       `https://browser.sentry-cdn.com/${SDK_VERSION}/httpclient.min.js`,
     );
   });
+
+  describe('bundle name derivation', () => {
+    test.each([
+      ['replayIntegration', 'replay'],
+      ['feedbackIntegration', 'feedback'],
+      ['captureConsoleIntegration', 'captureconsole'],
+      ['contextLinesIntegration', 'contextlines'],
+      ['linkedErrorsIntegration', 'linkederrors'],
+      ['dedupeIntegration', 'dedupe'],
+      ['extraErrorDataIntegration', 'extraerrordata'],
+      ['graphqlClientIntegration', 'graphqlclient'],
+      ['httpClientIntegration', 'httpclient'],
+      ['reportingObserverIntegration', 'reportingobserver'],
+      ['rewriteFramesIntegration', 'rewriteframes'],
+      ['browserProfilingIntegration', 'browserprofiling'],
+      ['moduleMetadataIntegration', 'modulemetadata'],
+    ])('derives correct bundle name for %s', async (integrationName, expectedBundle) => {
+      // @ts-expect-error For testing sake
+      global.Sentry = {};
+
+      try {
+        // @ts-expect-error Dynamic integration name for testing
+        await lazyLoadIntegration(integrationName);
+      } catch {
+        // skip - we just want to verify the script URL
+      }
+
+      expect(global.document.querySelector('script')?.src).toEqual(
+        `https://browser.sentry-cdn.com/${SDK_VERSION}/${expectedBundle}.min.js`,
+      );
+    });
+
+    test.each([
+      ['replayCanvasIntegration', 'replay-canvas'],
+      ['feedbackModalIntegration', 'feedback-modal'],
+      ['feedbackScreenshotIntegration', 'feedback-screenshot'],
+    ])('derives correct hyphenated bundle name for %s', async (integrationName, expectedBundle) => {
+      // @ts-expect-error For testing sake
+      global.Sentry = {};
+
+      try {
+        // @ts-expect-error Dynamic integration name for testing
+        await lazyLoadIntegration(integrationName);
+      } catch {
+        // skip - we just want to verify the script URL
+      }
+
+      expect(global.document.querySelector('script')?.src).toEqual(
+        `https://browser.sentry-cdn.com/${SDK_VERSION}/${expectedBundle}.min.js`,
+      );
+    });
+
+    test.each([
+      ['instrumentAnthropicAiClient', 'instrumentanthropicaiclient'],
+      ['instrumentOpenAiClient', 'instrumentopenaiclient'],
+      ['instrumentGoogleGenAIClient', 'instrumentgooglegenaiclient'],
+      ['instrumentLangGraph', 'instrumentlanggraph'],
+      ['createLangChainCallbackHandler', 'createlangchaincallbackhandler'],
+    ])(
+      'derives correct bundle name for AI integrations without Integration suffix: %s',
+      async (integrationName, expectedBundle) => {
+        // @ts-expect-error For testing sake
+        global.Sentry = {};
+
+        try {
+          // @ts-expect-error Dynamic integration name for testing
+          await lazyLoadIntegration(integrationName);
+        } catch {
+          // skip - we just want to verify the script URL
+        }
+
+        expect(global.document.querySelector('script')?.src).toEqual(
+          `https://browser.sentry-cdn.com/${SDK_VERSION}/${expectedBundle}.min.js`,
+        );
+      },
+    );
+  });
 });
