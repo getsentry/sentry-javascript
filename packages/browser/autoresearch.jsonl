@@ -3,3 +3,5 @@
 {"run":2,"commit":"d470cd1","metric":27.707,"metrics":{"raw_kb":80.75,"gzip_bytes":28372},"status":"keep","description":"terser compress passes: 3 — better dead code elimination and folding","timestamp":1773740097667,"segment":0}
 {"run":3,"commit":"5c3ab44","metric":27.705,"metrics":{"raw_kb":80.75,"gzip_bytes":28370},"status":"keep","description":"terser compress ecma: 2017 — enables modern JS optimizations (arrow fns, etc)","timestamp":1773740122319,"segment":0}
 {"run":4,"commit":"4fb42e8","metric":27.7031,"metrics":{"raw_kb":80.746,"gzip_bytes":28368},"status":"keep","description":"Remove unused breadcrumbData variable in fetch breadcrumb handler","timestamp":1773740201717,"segment":0}
+{"run":5,"commit":"d447107","metric":27.6347,"metrics":{"raw_kb":80.539,"gzip_bytes":28298},"status":"keep","description":"terser: enable toplevel, unsafe_comps, unsafe_math, pure_getters","timestamp":1773740331815,"segment":0}
+{"run":6,"commit":"d447107","metric":27.6406,"metrics":{"raw_kb":80.4257,"gzip_bytes":28304},"status":"discard","description":"hoist_funs + hoist_vars — worse gzipped despite better raw (hurts gzip patterns)","timestamp":1773740360912,"segment":0}
