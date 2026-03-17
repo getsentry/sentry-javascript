@@ -101,7 +101,8 @@ export function makeTerserPlugin() {
       // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
       // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
       // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
-      reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
+      reserved: ['captureException', 'captureMessage', 'sentryWrapped', 'sW'],
+      toplevel: true,
       properties: {
         // allow mangling of private field names...
         regex: /^_[^_]/,
@@ -140,6 +141,16 @@ export function makeTerserPlugin() {
           '_sentryModuleMetadata',
         ],
       },
+    },
+    compress: {
+      passes: 5,
+      ecma: 2020,
+      toplevel: true,
+      unsafe_comps: true,
+      unsafe_math: true,
+      pure_getters: true,
+      unsafe_arrows: true,
+      unsafe_methods: true,
     },
     output: {
       comments: false,
