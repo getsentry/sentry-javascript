@@ -73,10 +73,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       assignIfSet(attributes, 'client.port', (info?.remoteAddr as Deno.NetAddr)?.port);
     }
 
-    Object.assign(
-      attributes,
-      httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getOptions().sendDefaultPii ?? false),
-    );
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), sendDefaultPii));
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
@@ -95,9 +92,11 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
             res = await handler();
             setHttpStatus(span, res.status);
             isolationScope.setContext('response', {
-              headers: Object.fromEntries(res.headers),
               status_code: res.status,
             });
+            span.setAttributes(
+              httpHeadersToSpanAttributes(Object.fromEntries(res.headers), sendDefaultPii, 'response'),
+            );
           } catch (e) {
             span.end();
             captureException(e, {
