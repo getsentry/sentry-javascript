@@ -10,6 +10,7 @@ import {
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -32,8 +33,7 @@ import {
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
-  const recordInputs = options.recordInputs ?? false;
-  const recordOutputs = options.recordOutputs ?? false;
+  const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
