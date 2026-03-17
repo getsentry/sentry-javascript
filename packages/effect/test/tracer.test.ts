@@ -2,10 +2,13 @@ import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
+import { setTracer } from 'effect/Layer';
 import { afterEach, vi } from 'vitest';
-import { SentryEffectTracerLayer } from '../src/tracer';
+import { SentryEffectTracer } from '../src/tracer';
 
-describe('SentryEffectTracerLayer', () => {
+const SentryTracerLayer = setTracer(SentryEffectTracer);
+
+describe('SentryEffectTracer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -22,7 +25,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(capturedSpanName).toBe('effect-span-executed');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('creates spans with correct attributes', () =>
@@ -30,7 +33,7 @@ describe('SentryEffectTracerLayer', () => {
       const result = yield* Effect.withSpan('my-operation')(Effect.succeed('success'));
 
       expect(result).toBe('success');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('handles nested spans', () =>
@@ -43,7 +46,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(result).toBe('outer-inner-result');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('propagates span context through Effect fibers', () =>
@@ -60,7 +63,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(results).toEqual(['parent-start', 'child-1', 'child-2', 'parent-end']);
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('handles span failures correctly', () =>
@@ -70,7 +73,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(result).toBe('caught: expected-error');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('handles span with defects (die)', () =>
@@ -80,7 +83,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(result).toBe('caught-defect: defect-value');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('works with Effect.all for parallel operations', () =>
@@ -94,7 +97,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(results).toEqual([1, 2, 3]);
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('supports span annotations', () =>
@@ -105,7 +108,7 @@ describe('SentryEffectTracerLayer', () => {
       );
 
       expect(result).toBe('annotated');
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets span status to ok on success', () =>
@@ -128,7 +131,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(setStatusCalls).toContainEqual({ code: 1 });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets span status to error on failure', () =>
@@ -151,7 +154,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'test-error' });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets span status to error on defect', () =>
@@ -174,7 +177,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'fatal-defect' });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('propagates Sentry span context via withActiveSpan', () =>
@@ -195,7 +198,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(withActiveSpanCalls.length).toBeGreaterThan(0);
 
       mockWithActiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets origin to auto.function.effect for regular spans', () =>
@@ -220,7 +223,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets origin to auto.http.effect for http.server spans', () =>
@@ -245,7 +248,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('sets origin to auto.http.effect for http.client spans', () =>
@@ -270,7 +273,7 @@ describe('SentryEffectTracerLayer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 
   it.effect('uses transaction name from isolation scope for http.server spans', () =>
@@ -301,6 +304,6 @@ describe('SentryEffectTracerLayer', () => {
 
       mockStartInactiveSpan.mockRestore();
       mockGetIsolationScope.mockRestore();
-    }).pipe(Effect.provide(SentryEffectTracerLayer)),
+    }).pipe(Effect.provide(SentryTracerLayer)),
   );
 });

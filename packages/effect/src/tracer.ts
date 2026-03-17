@@ -8,8 +8,6 @@ import {
 } from '@sentry/core';
 import type * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
-import type * as Layer from 'effect/Layer';
-import { setTracer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
 
@@ -198,4 +196,4 @@ const makeSentryTracer = (): EffectTracer.Tracer =>
 /**
  * Effect Layer that sets up the Sentry tracer for Effect spans.
  */
-export const SentryEffectTracerLayer: Layer.Layer<never, never, never> = setTracer(makeSentryTracer());
+export const SentryEffectTracer = makeSentryTracer();
