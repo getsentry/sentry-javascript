@@ -102,6 +102,7 @@ export function makeTerserPlugin() {
       // minification. (We need it in its original form to correctly detect our internal frames for stripping.) All three
       // are all listed here just for the clarity's sake, as they are all used in the frames manipulation process.
       reserved: ['captureException', 'captureMessage', 'sentryWrapped'],
+      toplevel: true,
       properties: {
         // allow mangling of private field names...
         regex: /^_[^_]/,
