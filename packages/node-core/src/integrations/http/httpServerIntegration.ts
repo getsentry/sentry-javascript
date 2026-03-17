@@ -225,13 +225,14 @@ function instrumentServer(
           sampleRand: _INTERNAL_safeMathRandom(),
           propagationSpanId: generateSpanId(),
         };
-        // Set a fresh propagation context so each request gets a unique traceId.
-        // When there are incoming trace headers, propagation.extract() below sets a remote
-        // span on the OTel context which takes precedence in getTraceContextForScope().
-        // We can write directly to the current scope here because it is forked implicitly via
-        // `context.with` in `withIsolationScope` (See `SentryContextManager`).
-        getCurrentScope().setPropagationContext(newPropagationContext);
-        isolationScope.setPropagationContext(newPropagationContext);
+        // - Set a fresh propagation context so each request gets a unique traceId.
+        //   When there are incoming trace headers, propagation.extract() below sets a remote
+        //   span on the OTel context which takes precedence in getTraceContextForScope().
+        // - We can write directly to the current scope here because it is forked implicitly via
+        //   `context.with` in `withIsolationScope` (See `SentryContextManager`).
+        // - explicilty making a deep copy to avoid mutation of original PC on the other scope
+        getCurrentScope().setPropagationContext({ ...newPropagationContext });
+        isolationScope.setPropagationContext({ ...newPropagationContext });
 
         const ctx = propagation
           .extract(context.active(), normalizedRequest.headers)
