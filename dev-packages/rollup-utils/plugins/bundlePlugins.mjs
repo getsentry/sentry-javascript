@@ -151,7 +151,6 @@ export function makeTerserPlugin() {
       pure_getters: true,
       unsafe_arrows: true,
       unsafe_methods: true,
-      unsafe_Function: true,
     },
     output: {
       comments: false,
