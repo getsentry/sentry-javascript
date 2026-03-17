@@ -534,23 +534,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public sendSession(session: Session | SessionAggregates): void {
     // Backfill release and environment on session
     const { release: clientReleaseOption, environment: clientEnvironmentOption = DEFAULT_ENVIRONMENT } = this._options;
-    if ('aggregates' in session) {
-      const sessionAttrs = session.attrs || {};
-      if (!sessionAttrs.release && !clientReleaseOption) {
-        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
-        return;
-      }
-      sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
-      sessionAttrs.environment = sessionAttrs.environment || clientEnvironmentOption;
-      session.attrs = sessionAttrs;
-    } else {
-      if (!session.release && !clientReleaseOption) {
-        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
-        return;
-      }
-      session.release = session.release || clientReleaseOption;
-      session.environment = session.environment || clientEnvironmentOption;
+    const isAggregates = 'aggregates' in session;
+    const target = isAggregates ? (session.attrs = session.attrs || {}) : session;
+
+    if (!target.release && !clientReleaseOption) {
+      DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+      return;
     }
+
+    target.release = target.release || clientReleaseOption;
+    target.environment = target.environment || clientEnvironmentOption;
 
     this.emit('beforeSendSession', session);
 
