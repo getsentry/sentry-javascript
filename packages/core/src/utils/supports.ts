@@ -108,37 +108,7 @@ export function supportsNativeFetch(): boolean {
     return true;
   }
 
-  if (!_isFetchSupported()) {
-    return false;
-  }
-
-  // Fast path to avoid DOM I/O
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (isNativeFunction(WINDOW.fetch)) {
-    return true;
-  }
-
-  // window.fetch is implemented, but is polyfilled or already wrapped (e.g: by a chrome extension)
-  // so create a "pure" iframe to see if that has native fetch
-  let result = false;
-  const doc = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
-  if (doc && typeof (doc.createElement as unknown) === 'function') {
-    try {
-      const sandbox = doc.createElement('iframe');
-      sandbox.hidden = true;
-      doc.head.appendChild(sandbox);
-      if (sandbox.contentWindow?.fetch) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        result = isNativeFunction(sandbox.contentWindow.fetch);
-      }
-      doc.head.removeChild(sandbox);
-    } catch (err) {
-      DEBUG_BUILD && debug.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
-    }
-  }
-
-  return result;
+  return _isFetchSupported();
 }
 
 /**

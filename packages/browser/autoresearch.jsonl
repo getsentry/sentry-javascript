@@ -37,3 +37,4 @@
 {"run":36,"commit":"aefd587","metric":27.4326,"metrics":{"raw_kb":78.8593,"gzip_bytes":28091},"status":"discard","description":"Replace SENTRY_BAGGAGE_KEY_PREFIX_REGEX.match with startsWith — no size change","timestamp":1773743750054,"segment":0}
 {"run":37,"commit":"768a296","metric":27.4326,"metrics":{"raw_kb":78.8593,"gzip_bytes":28091},"status":"keep","description":"Remove stale output.ecma: 2020 from terser config (no effect on output)","timestamp":1773743877915,"segment":0}
 {"run":38,"commit":"768a296","metric":27.4335,"metrics":{"raw_kb":78.8593,"gzip_bytes":28092},"status":"discard","description":"unsafe_Function terser option — 1 byte worse","timestamp":1773743908383,"segment":0}
+{"run":39,"commit":"877c8d3","metric":27.4335,"metrics":{"raw_kb":78.8593,"gzip_bytes":28092},"status":"keep","description":"Resume session 3 — verify current state, matches previous best within noise","timestamp":1773744001010,"segment":0}
