@@ -35,18 +35,22 @@ describe('serverTimingTracePropagation', () => {
     vi.clearAllMocks();
     vi.mocked(isNodeEnv).mockReturnValue(true);
     vi.mocked(getActiveSpan).mockReturnValue(mockSpan);
+    vi.mocked(getTraceData).mockReturnValue({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage: 'sentry-environment=production,sentry-release=1.0.0',
+    });
   });
 
   describe('generateSentryServerTimingHeader', () => {
     it('returns null in browser environments', () => {
-      vi.mocked(isNodeEnv).mockReturnValue(false);
+      vi.mocked(isNodeEnv).mockReturnValueOnce(false);
 
       expect(generateSentryServerTimingHeader()).toBeNull();
     });
 
     it('returns null without trace data', () => {
-      vi.mocked(getActiveSpan).mockReturnValue(undefined);
-      vi.mocked(getTraceData).mockReturnValue({});
+      vi.mocked(getActiveSpan).mockReturnValueOnce(undefined);
+      vi.mocked(getTraceData).mockReturnValueOnce({});
 
       expect(generateSentryServerTimingHeader()).toBeNull();
     });
@@ -60,8 +64,8 @@ describe('serverTimingTracePropagation', () => {
     });
 
     it('falls back to getTraceData without active span', () => {
-      vi.mocked(getActiveSpan).mockReturnValue(undefined);
-      vi.mocked(getTraceData).mockReturnValue({
+      vi.mocked(getActiveSpan).mockReturnValueOnce(undefined);
+      vi.mocked(getTraceData).mockReturnValueOnce({
         'sentry-trace': 'fallback-trace-id-1234567890123456-0',
         baggage: 'sentry-fallback=true',
       });
@@ -73,7 +77,7 @@ describe('serverTimingTracePropagation', () => {
     });
 
     it('generates header in Cloudflare environment when isNodeEnv is false', () => {
-      vi.mocked(isNodeEnv).mockReturnValue(false);
+      vi.mocked(isNodeEnv).mockReturnValueOnce(false);
 
       const originalNavigator = globalThis.navigator;
       Object.defineProperty(globalThis, 'navigator', {
