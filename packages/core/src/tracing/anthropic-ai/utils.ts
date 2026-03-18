@@ -41,13 +41,35 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
   });
 }
 
+const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, string> = {
+  invalid_request_error: 'invalid_argument',
+  authentication_error: 'unauthenticated',
+  permission_error: 'permission_denied',
+  not_found_error: 'not_found',
+  request_too_large: 'failed_precondition',
+  rate_limit_error: 'resource_exhausted',
+  api_error: 'internal_error',
+  overloaded_error: 'unavailable',
+};
+
+/**
+ * Map an Anthropic API error type to a SpanStatusType value.
+ * @see https://docs.anthropic.com/en/api/errors#error-shapes
+ */
+export function mapAnthropicErrorToStatus(errorType: string | undefined): string {
+  if (!errorType) {
+    return 'internal_error';
+  }
+  return ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS[errorType] || 'internal_error';
+}
+
 /**
  * Capture error information from the response
  * @see https://docs.anthropic.com/en/api/errors#error-shapes
  */
 export function handleResponseError(span: Span, response: AnthropicAiResponse): void {
   if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'internal_error' });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatus(response.error.type) });
 
     captureException(response.error, {
       mechanism: {
