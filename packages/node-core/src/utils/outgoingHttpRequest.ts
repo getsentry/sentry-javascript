@@ -12,7 +12,7 @@ import {
 } from '@sentry/core';
 import type { ClientRequest, IncomingMessage, RequestOptions } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
-import { hasSentryBaggageValues, mergeBaggageHeaders } from './baggage';
+import { mergeBaggageHeaders } from './baggage';
 
 const LOG_PREFIX = '@sentry/instrumentation-http';
 
@@ -93,21 +93,18 @@ export function addTracePropagationHeadersToOutgoingRequest(
 
   if (baggage) {
     const existingBaggage = request.getHeader('baggage');
-    // if existing baggage already has Sentry values, just skip it
-    if (!hasSentryBaggageValues(existingBaggage as string | string[] | undefined)) {
-      const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
-      if (newBaggage) {
-        try {
-          request.setHeader('baggage', newBaggage);
-          DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added baggage header to outgoing request');
-        } catch (error) {
-          DEBUG_BUILD &&
-            debug.error(
-              LOG_PREFIX,
-              'Failed to add baggage header to outgoing request:',
-              isError(error) ? error.message : 'Unknown error',
-            );
-        }
+    const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
+    if (newBaggage) {
+      try {
+        request.setHeader('baggage', newBaggage);
+        DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added baggage header to outgoing request');
+      } catch (error) {
+        DEBUG_BUILD &&
+          debug.error(
+            LOG_PREFIX,
+            'Failed to add baggage header to outgoing request:',
+            isError(error) ? error.message : 'Unknown error',
+          );
       }
     }
   }

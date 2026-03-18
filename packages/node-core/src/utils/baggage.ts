@@ -37,7 +37,7 @@ export function mergeBaggageHeaders<Existing extends string | string[] | number 
 
   const mergedBaggageEntries = { ...existingBaggageEntries };
   Object.entries(newBaggageEntries).forEach(([key, value]) => {
-    if (!mergedBaggageEntries[key]) {
+    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX) || !mergedBaggageEntries[key]) {
       mergedBaggageEntries[key] = value;
     }
   });

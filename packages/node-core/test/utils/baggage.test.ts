@@ -78,17 +78,17 @@ describe('mergeBaggageHeaders', () => {
     expect(entries).not.toContain('foo=newvalue');
   });
 
-  it('preserves existing Sentry entries when keys conflict', () => {
+  it('overwrites existing Sentry entries with new ones', () => {
     const result = mergeBaggageHeaders(
       'sentry-release=1.0.0,sentry-environment=prod',
       'sentry-release=2.0.0,sentry-environment=staging',
     );
 
     const entries = result?.split(',');
-    expect(entries).toContain('sentry-release=1.0.0');
-    expect(entries).toContain('sentry-environment=prod');
-    expect(entries).not.toContain('sentry-release=2.0.0');
-    expect(entries).not.toContain('sentry-environment=staging');
+    expect(entries).toContain('sentry-release=2.0.0');
+    expect(entries).toContain('sentry-environment=staging');
+    expect(entries).not.toContain('sentry-release=1.0.0');
+    expect(entries).not.toContain('sentry-environment=prod');
   });
 
   it('merges Sentry and non-Sentry entries correctly', () => {
@@ -98,8 +98,8 @@ describe('mergeBaggageHeaders', () => {
     expect(entries).toContain('foo=bar');
     expect(entries).toContain('other=vendor');
     expect(entries).toContain('third=party');
-    expect(entries).toContain('sentry-release=1.0.0');
-    expect(entries).not.toContain('sentry-release=2.0.0');
+    expect(entries).toContain('sentry-release=2.0.0');
+    expect(entries).not.toContain('sentry-release=1.0.0');
   });
 
   it('handles third-party baggage with Sentry entries', () => {
@@ -113,11 +113,11 @@ describe('mergeBaggageHeaders', () => {
     expect(entries).toContain('last=item');
     expect(entries).toContain('other=vendor');
     expect(entries).toContain('third=party');
-    expect(entries).toContain('sentry-environment=staging');
-    expect(entries).toContain('sentry-release=9.9.9');
+    expect(entries).toContain('sentry-environment=myEnv');
+    expect(entries).toContain('sentry-release=2.1.0');
     expect(entries).toContain('sentry-sample_rate=0.54');
-    expect(entries).not.toContain('sentry-environment=myEnv');
-    expect(entries).not.toContain('sentry-release=2.1.0');
+    expect(entries).not.toContain('sentry-environment=staging');
+    expect(entries).not.toContain('sentry-release=9.9.9');
   });
 
   it('adds new Sentry entries when they do not exist', () => {
@@ -153,26 +153,26 @@ describe('mergeBaggageHeaders', () => {
     const entries = result?.split(',');
     expect(entries).toContain('foo=bar');
     expect(entries).toContain('other=vendor');
-    expect(entries).toContain('sentry-release=old');
-    expect(entries).toContain('sentry-environment=old');
+    expect(entries).toContain('sentry-release=new');
+    expect(entries).toContain('sentry-environment=new');
     expect(entries).toContain('sentry-transaction=test');
     expect(entries).toContain('new=entry');
-    expect(entries).not.toContain('sentry-release=new');
-    expect(entries).not.toContain('sentry-environment=new');
+    expect(entries).not.toContain('sentry-release=old');
+    expect(entries).not.toContain('sentry-environment=old');
   });
 
-  it('preserves existing entries even for Sentry keys when both conflict', () => {
+  it('overwrites existing Sentry entries with new SDK values', () => {
     const result = mergeBaggageHeaders(
       'sentry-trace_id=abc123,sentry-sampled=false,non-sentry=keep',
       'sentry-trace_id=xyz789,sentry-sampled=true',
     );
 
     const entries = result?.split(',');
-    expect(entries).toContain('sentry-trace_id=abc123');
-    expect(entries).toContain('sentry-sampled=false');
+    expect(entries).toContain('sentry-trace_id=xyz789');
+    expect(entries).toContain('sentry-sampled=true');
     expect(entries).toContain('non-sentry=keep');
-    expect(entries).not.toContain('sentry-trace_id=xyz789');
-    expect(entries).not.toContain('sentry-sampled=true');
+    expect(entries).not.toContain('sentry-trace_id=abc123');
+    expect(entries).not.toContain('sentry-sampled=false');
   });
 
   it('merges non-conflicting baggage entries', () => {
@@ -183,20 +183,20 @@ describe('mergeBaggageHeaders', () => {
     expect(result).toContain('sentry-environment=production');
   });
 
-  it('preserves existing entries when keys conflict', () => {
+  it('overwrites existing Sentry entries when keys conflict', () => {
     const existing = 'sentry-environment=staging';
     const newBaggage = 'sentry-environment=production';
     const result = mergeBaggageHeaders(existing, newBaggage);
-    expect(result).toBe('sentry-environment=staging');
+    expect(result).toBe('sentry-environment=production');
   });
 
-  it('handles multiple entries with conflicts', () => {
+  it('handles multiple entries with Sentry conflicts', () => {
     const existing = 'custom-key=value1,sentry-environment=staging';
     const newBaggage = 'sentry-environment=production,sentry-trace_id=123';
     const result = mergeBaggageHeaders(existing, newBaggage);
     expect(result).toContain('custom-key=value1');
-    expect(result).toContain('sentry-environment=staging');
+    expect(result).toContain('sentry-environment=production');
     expect(result).toContain('sentry-trace_id=123');
-    expect(result).not.toContain('sentry-environment=production');
+    expect(result).not.toContain('sentry-environment=staging');
   });
 });

@@ -9,7 +9,7 @@ import {
   shouldPropagateTraceForUrl,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
-import { hasSentryBaggageValues, mergeBaggageHeaders } from './baggage';
+import { mergeBaggageHeaders } from './baggage';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
@@ -66,12 +66,9 @@ export function addTracePropagationHeadersToFetchRequest(
       requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
     } else if (baggage && existingBaggagePos !== -1) {
       const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      // if existing baggage already has Sentry values, just skip it
-      if (!hasSentryBaggageValues(existingBaggage)) {
-        const merged = mergeBaggageHeaders(existingBaggage, baggage);
-        if (merged) {
-          requestHeaders[existingBaggagePos + 1] = merged;
-        }
+      const merged = mergeBaggageHeaders(existingBaggage, baggage);
+      if (merged) {
+        requestHeaders[existingBaggagePos + 1] = merged;
       }
     }
   } else {
@@ -89,11 +86,9 @@ export function addTracePropagationHeadersToFetchRequest(
     if (baggage && !existingBaggage) {
       request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
     } else if (baggage && existingBaggage) {
-      if (!hasSentryBaggageValues(existingBaggage)) {
-        const merged = mergeBaggageHeaders(existingBaggage, baggage);
-        if (merged) {
-          request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
-        }
+      const merged = mergeBaggageHeaders(existingBaggage, baggage);
+      if (merged) {
+        request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
       }
     }
   }
