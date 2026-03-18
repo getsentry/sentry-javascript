@@ -1,7 +1,8 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
-export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from
+'./integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { kafkaIntegration } from './integrations/tracing/kafka';

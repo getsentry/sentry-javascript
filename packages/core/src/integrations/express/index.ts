@@ -8,7 +8,6 @@
 import type { SpanAttributes } from '../../types-hoist/span';
 import { debug } from '../../utils/debug-logger';
 import { captureException } from '../../exports';
-import { getDefaultIsolationScope } from '../../defaultScopes';
 import { getIsolationScope } from '../../currentScopes';
 import { httpRequestToRequestData } from '../../utils/request';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -24,13 +23,11 @@ import type {
   ExpressLayer,
   ExpressLayerType,
   ExpressMiddleware,
+  ExpressModuleExport,
   ExpressRequest,
-  ExpressRequestInfo,
   ExpressResponse,
   ExpressRouter,
   MiddlewareError,
-  Routerv4,
-  Routerv5,
 } from './types';
 import {
   ATTR_EXPRESS_TYPE,
@@ -47,39 +44,16 @@ import {
   getConstructedRoute,
   getLayerMetadata,
   getLayerPath,
+  getSpanName,
+  hasDefaultProp,
+  isExpressWithoutRouterPrototype,
+  isExpressWithRouterPrototype,
   isLayerIgnored,
 } from './utils';
+import { unwrapMethod, wrapMethod } from '../../utils/object';
 
-// TODO: these two are passed to the ported out OTel inst
-function getSpanName(info: ExpressRequestInfo<unknown>, defaultName: string): string {
-  if (getIsolationScope() === getDefaultIsolationScope()) {
-    DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
-    return defaultName;
-  }
-  if (info.layerType === 'request_handler') {
-    // type cast b/c Otel unfortunately types info.request as any :(
-    const req = info.request as { method?: string };
-    const method = req.method ? req.method.toUpperCase() : 'GET';
-    getIsolationScope().setTransactionName(`${method} ${info.route}`);
-  }
-  return defaultName;
-}
-
-const isExpressWithRouterPrototype = (express: unknown): express is { Router: Routerv5 } =>
-  isExpressRouterPrototype((express as ExpressExport & { Router: Routerv5 })?.Router?.prototype);
-const isExpressRouterPrototype = (routerProto?: unknown) =>
-  typeof routerProto === 'object' && !!routerProto && 'route' in routerProto && typeof routerProto.route === 'function';
-
-const isExpressWithoutRouterPrototype = (express: unknown): express is ExpressExport & { Router: Routerv4 } =>
-  !isExpressWithRouterPrototype(express);
-
-// dynamic puts the default on .default, require or normal import are fine
-const hasDefaultProp = (
-  express: unknown,
-): express is {
-  [k: string]: unknown;
-  default: ExpressExport;
-} => !!express && typeof express === 'object' && 'default' in express && typeof express.default === 'function';
+const getExpressExport = (express: ExpressModuleExport): ExpressExport =>
+  hasDefaultProp(express) ? express.default : express as ExpressExport
 
 /**
  * This is a portable instrumentatiton function that works in any environment
@@ -88,72 +62,121 @@ const hasDefaultProp = (
  * @example
  * ```javascript
  * import express from 'express';
- * import * as Sentry from '@sentry/deno';
+ * import * as Sentry from '@sentry/deno'; // or any SDK that extends core
  *
- * instrumentExpress({ express })
+ * Sentry.patchExpressModule({ express })
  */
-export const instrumentExpress = (options: ExpressIntegrationOptions) => {
-  let { express } = options;
+export const patchExpressModule = (options: ExpressIntegrationOptions) => {
   // pass in the require() or import() result of express
-  if (hasDefaultProp(express)) express = express.default;
+  const express = getExpressExport(options.express);
   const routerProto: ExpressExport['Router'] | undefined = isExpressWithRouterPrototype(express)
     ? express.Router.prototype // Express v5
     : isExpressWithoutRouterPrototype(express)
       ? express.Router // Express v4
       : undefined;
+
   if (!routerProto) {
     throw new TypeError('no valid Express route function to instrument');
   }
 
   // oxlint-disable-next-line @typescript-eslint/unbound-method
   const originalRouteMethod = routerProto.route;
-  Object.defineProperty(routerProto, 'route', {
-    configurable: true,
-    enumerable: true,
-    value: function route_trace(this: ExpressRouter, ...args: Parameters<typeof originalRouteMethod>[]) {
-      const route = originalRouteMethod.apply(this, args);
-      const layer = this.stack[this.stack.length - 1] as ExpressLayer;
-      patchLayer(options, layer, getLayerPath(args));
-      return route;
-    },
-  });
+  try {
+    wrapMethod(
+      routerProto,
+      'route',
+      function routeTrace(this: ExpressRouter, ...args: Parameters<typeof originalRouteMethod>[]) {
+        const route = originalRouteMethod.apply(this, args);
+        const layer = this.stack[this.stack.length - 1] as ExpressLayer;
+        patchLayer(options, layer, getLayerPath(args));
+        return route;
+      },
+    );
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to patch express route method:', e);
+  }
 
   // oxlint-disable-next-line @typescript-eslint/unbound-method
   const originalRouterUse = routerProto.use;
-  Object.defineProperty(routerProto, 'use', {
-    configurable: true,
-    enumerable: true,
-    value: function use_trace(this: ExpressApplication, ...args: Parameters<typeof originalRouterUse>) {
-      const route = originalRouterUse.apply(this, args);
-      const layer = this.stack[this.stack.length - 1];
-      if (!layer) return route;
-      patchLayer(options, layer, getLayerPath(args));
-      return route;
-    },
-  });
+  try {
+    wrapMethod(
+      routerProto,
+      'use',
+      function use_trace(this: ExpressApplication, ...args: Parameters<typeof originalRouterUse>) {
+        const route = originalRouterUse.apply(this, args);
+        const layer = this.stack[this.stack.length - 1];
+        if (!layer) return route;
+        patchLayer(options, layer, getLayerPath(args));
+        return route;
+      },
+    );
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to patch express use method:', e);
+  }
 
   const { application } = express;
   const originalApplicationUse = application.use;
-  Object.defineProperty(application, 'use', {
-    configurable: true,
-    enumerable: true,
-    value: function app_use_trace(
-      this: { _router?: ExpressRouter; router?: ExpressRouter },
-      ...args: Parameters<ExpressApplication['use']>
-    ) {
-      // If we access app.router in express 4.x we trigger an assertion error.
-      // This property existed in v3, was removed in v4 and then re-added in v5.
-      const router = isExpressWithRouterPrototype(express) ? this.router : this._router;
-      const route = originalApplicationUse.apply(this, args);
-      if (router) {
-        const layer = router.stack[router.stack.length - 1];
-        if (layer) {
-          patchLayer(options, layer, getLayerPath(args));
+  try {
+    wrapMethod(
+      application,
+      'use',
+      function app_use_trace(
+        this: ExpressApplication & {
+          _router?: ExpressRouter;
+          router?: ExpressRouter;
+        },
+        ...args: Parameters<ExpressApplication['use']>
+      ) {
+        // If we access app.router in express 4.x we trigger an assertion error.
+        // This property existed in v3, was removed in v4 and then re-added in v5.
+        const router = isExpressWithRouterPrototype(express) ? this.router : this._router;
+        const route = originalApplicationUse.apply(this, args);
+        if (router) {
+          const layer = router.stack[router.stack.length - 1];
+          if (layer) {
+            patchLayer(options, layer, getLayerPath(args));
+          }
         }
-      }
-      return route;
-    },
-  });
+        return route;
+      },
+    );
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to patch express application.use method:', e);
+  }
+
+  return express;
+};
+
+export const unpatchExpressModule = (options: ExpressIntegrationOptions) => {
+  const express = getExpressExport(options.express);
+  const routerProto: ExpressExport['Router'] | undefined = isExpressWithRouterPrototype(express)
+    ? express.Router.prototype // Express v5
+    : isExpressWithoutRouterPrototype(express)
+      ? express.Router // Express v4
+      : undefined;
+
+  if (!routerProto) {
+    throw new TypeError('no valid Express route function to deinstrument');
+  }
+
+  try {
+    unwrapMethod(routerProto, 'route');
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to unpatch express route method:', e);
+  }
+
+  try {
+    unwrapMethod(routerProto, 'use');
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to unpatch express use method:', e);
+  }
+
+  const { application } = express;
+  try {
+    unwrapMethod(application, 'use');
+  } catch (e) {
+    DEBUG_BUILD && debug.error('Failed to unpatch express application.use method:', e);
+  }
 
   return express;
 };
@@ -161,7 +184,7 @@ export const instrumentExpress = (options: ExpressIntegrationOptions) => {
 /**
  * An Express-compatible error handler, used by setupExpressErrorHandler
  */
-function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
     request: IncomingMessage,
@@ -176,7 +199,9 @@ function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErrorMiddl
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const eventId = captureException(error, { mechanism: { type: 'auto.middleware.express', handled: false } });
+      const eventId = captureException(error, {
+        mechanism: { type: 'auto.middleware.express', handled: false },
+      });
       (res as { sentry?: string }).sentry = eventId;
     }
 
@@ -222,7 +247,9 @@ function defaultShouldHandleError(error: MiddlewareError): boolean {
  * ```
  */
 export function setupExpressErrorHandler(
-  app: { use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown },
+  app: {
+    use: (middleware: ExpressMiddleware | ExpressErrorMiddleware) => unknown;
+  },
   options?: ExpressHandlerOptions,
 ): void {
   app.use(expressRequestHandler());

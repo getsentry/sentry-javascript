@@ -1,12 +1,20 @@
+import { getIsolationScope } from '../../currentScopes';
+import { DEBUG_BUILD } from '../../debug-build';
+import { getDefaultIsolationScope } from '../../defaultScopes';
+import { debug } from '../../utils/debug-logger';
 import type { SpanAttributes } from '../../types-hoist/span';
 import { getStoredLayers } from './request-layer-store';
 import type {
+  ExpressExport,
   ExpressIntegrationOptions,
   ExpressLayer,
   ExpressLayerType,
   ExpressRequest,
+  ExpressRequestInfo,
   IgnoreMatcher,
   LayerPathSegment,
+  Routerv4,
+  Routerv5,
 } from './types';
 import {
   ATTR_EXPRESS_NAME,
@@ -221,3 +229,35 @@ export const getLayerPath = (args: unknown[]): string | undefined => {
 
 const extractLayerPathSegment = (arg: LayerPathSegment): string | undefined =>
   typeof arg === 'string' ? arg : arg instanceof RegExp || typeof arg === 'number' ? String(arg) : undefined;
+
+// v5 we instrument Router.prototype
+// v4 we instrument Router itself
+export const isExpressWithRouterPrototype = (express: unknown): express is { Router: Routerv5 } =>
+  isExpressRouterPrototype((express as ExpressExport & { Router: Routerv5 })?.Router?.prototype);
+const isExpressRouterPrototype = (routerProto?: unknown): routerProto is Routerv4 =>
+  typeof routerProto === 'object' && !!routerProto && 'route' in routerProto && typeof routerProto.route === 'function';
+
+export const isExpressWithoutRouterPrototype = (express: unknown): express is ExpressExport & { Router: Routerv4 } =>
+  !isExpressWithRouterPrototype(express);
+
+// dynamic puts the default on .default, require or normal import are fine
+export const hasDefaultProp = (
+  express: unknown,
+): express is {
+  [k: string]: unknown;
+  default: ExpressExport;
+} => !!express && typeof express === 'object' && 'default' in express && typeof express.default === 'function';
+
+export function getSpanName(info: ExpressRequestInfo<unknown>, defaultName: string): string {
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    return defaultName;
+  }
+  if (info.layerType === 'request_handler') {
+    // type cast b/c Otel unfortunately types info.request as any :(
+    const req = info.request as { method?: string };
+    const method = req.method ? req.method.toUpperCase() : 'GET';
+    getIsolationScope().setTransactionName(`${method} ${info.route}`);
+  }
+  return defaultName;
+}
