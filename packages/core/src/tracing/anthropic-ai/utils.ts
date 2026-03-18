@@ -56,7 +56,7 @@ const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, string> = {
  * Map an Anthropic API error type to a SpanStatusType value.
  * @see https://docs.anthropic.com/en/api/errors#error-shapes
  */
-export function mapAnthropicErrorToStatus(errorType: string | undefined): string {
+export function mapAnthropicErrorToStatusMessage(errorType: string | undefined): string {
   if (!errorType) {
     return 'internal_error';
   }
@@ -69,7 +69,7 @@ export function mapAnthropicErrorToStatus(errorType: string | undefined): string
  */
 export function handleResponseError(span: Span, response: AnthropicAiResponse): void {
   if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatus(response.error.type) });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatusMessage(response.error.type) });
 
     captureException(response.error, {
       mechanism: {

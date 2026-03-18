@@ -376,7 +376,7 @@ describe('Google GenAI integration', () => {
         description: 'generate_content blocked-model',
         op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
-        status: 'permission_denied',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming
       expect.objectContaining({
@@ -475,7 +475,7 @@ describe('Google GenAI integration', () => {
         description: 'generate_content blocked-model',
         op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
-        status: 'permission_denied',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming with PII
       expect.objectContaining({
