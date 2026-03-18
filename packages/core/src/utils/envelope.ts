@@ -204,9 +204,11 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
   ];
 }
 
+type OverriddenItemType = Exclude<EnvelopeItemType, DataCategory>;
+
 // Map of envelope item types to data categories where the category differs from the type.
 // Types that map to themselves (session, attachment, transaction, profile, feedback, span, metric) fall through.
-const DATA_CATEGORY_OVERRIDES: Partial<Record<string, DataCategory>> = {
+const DATA_CATEGORY_OVERRIDES: Record<OverriddenItemType, DataCategory> = {
   sessions: 'session',
   event: 'error',
   client_report: 'internal',
@@ -220,11 +222,15 @@ const DATA_CATEGORY_OVERRIDES: Partial<Record<string, DataCategory>> = {
   trace_metric: 'metric',
 };
 
+function _isOverriddenType(type: EnvelopeItemType): type is OverriddenItemType {
+  return type in DATA_CATEGORY_OVERRIDES;
+}
+
 /**
  * Maps the type of an envelope item to a data category.
  */
 export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
-  return DATA_CATEGORY_OVERRIDES[type] || (type as DataCategory);
+  return _isOverriddenType(type) ? DATA_CATEGORY_OVERRIDES[type] : type;
 }
 
 /** Extracts the minimal SDK info from the metadata or an events */

@@ -33,7 +33,7 @@ export function baggageHeaderToDynamicSamplingContext(
 
   // Read all "sentry-" prefixed values out of the baggage object and put it onto a dynamic sampling context object.
   const dynamicSamplingContext = Object.entries(baggageObject).reduce<Record<string, string>>((acc, [key, value]) => {
-    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+    if (key.match(SENTRY_BAGGAGE_KEY_PREFIX)) {
       const nonPrefixedKey = key.slice(SENTRY_BAGGAGE_KEY_PREFIX.length);
       acc[nonPrefixedKey] = value;
     }
