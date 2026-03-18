@@ -115,14 +115,13 @@ function getTraceAndBaggage(): {
 function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (this: unknown, request: Request, ...args: unknown[]): Promise<Response> {
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan && getRootSpan(activeSpan);
-
-      const serverTimingHeader = rootSpan ? generateSentryServerTimingHeader(rootSpan) : null;
+      const serverTimingHeader = generateSentryServerTimingHeader();
 
       let response: Response;
 
       if (instrumentTracing) {
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
         const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
         response = await startSpan(
@@ -220,13 +219,9 @@ function makeWrappedDataFunction(
 
     // Redirects bypass makeWrappedDocumentRequestFunction, so we inject Server-Timing here.
     if (isResponse(res) && isRedirectResponse(res)) {
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan && getRootSpan(activeSpan);
-      if (rootSpan) {
-        const serverTimingHeader = generateSentryServerTimingHeader(rootSpan);
-        if (serverTimingHeader) {
-          return injectServerTimingHeaderValue(res, serverTimingHeader);
-        }
+      const serverTimingHeader = generateSentryServerTimingHeader();
+      if (serverTimingHeader) {
+        return injectServerTimingHeaderValue(res, serverTimingHeader);
       }
     }
 

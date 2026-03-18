@@ -72,16 +72,6 @@ describe('serverTimingTracePropagation', () => {
       expect(result).toContain('sentry-fallback=true');
     });
 
-    it('uses the provided span directly instead of resolving from active span', () => {
-      const directSpan = { spanId: 'direct-span-id', spanContext: () => ({ traceId: 'abc' }) };
-
-      const result = generateSentryServerTimingHeader(directSpan as any);
-
-      expect(spanToTraceHeader).toHaveBeenCalledWith(directSpan);
-      expect(spanToBaggageHeader).toHaveBeenCalledWith(directSpan);
-      expect(result).toBeDefined();
-    });
-
     it('generates header in Cloudflare environment when isNodeEnv is false', () => {
       vi.mocked(isNodeEnv).mockReturnValue(false);
 

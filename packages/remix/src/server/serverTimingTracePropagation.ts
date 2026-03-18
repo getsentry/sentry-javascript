@@ -4,13 +4,13 @@ import { DEBUG_BUILD } from '../utils/debug-build';
 import { isCloudflareEnv } from '../utils/utils';
 
 /** Generate a Server-Timing header value containing Sentry trace context. */
-export function generateSentryServerTimingHeader(span?: Span): string | null {
+export function generateSentryServerTimingHeader(): string | null {
   if (!isNodeEnv() && !isCloudflareEnv()) {
     return null;
   }
 
   try {
-    const traceData = getTraceData({ span });
+    const traceData = getTraceData();
     const sentryTrace = traceData['sentry-trace'];
     const baggage = traceData.baggage;
 
