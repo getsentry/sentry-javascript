@@ -71,6 +71,18 @@ describe('dropMiddlewareTunnelRequests', () => {
       expect(span.setAttribute).not.toHaveBeenCalled();
     });
 
+    it('does not mark BaseServer.handleRequest span for dropping when http.target shares tunnel path prefix', () => {
+      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      const span = createMockSpan();
+
+      dropMiddlewareTunnelRequests(span as any, {
+        'next.span_type': 'BaseServer.handleRequest',
+        'http.target': '/monitoring-dashboard',
+      });
+
+      expect(span.setAttribute).not.toHaveBeenCalled();
+    });
+
     it('does not mark BaseServer.handleRequest span when no tunnel path is configured', () => {
       const span = createMockSpan();
 

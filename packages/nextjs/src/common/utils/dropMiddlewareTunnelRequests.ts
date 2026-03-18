@@ -59,7 +59,7 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
     const pathname = httpTarget.split('?')[0] || '';
 
-    return pathname.startsWith(tunnelPath);
+    return pathname === tunnelPath || pathname.startsWith(`${tunnelPath}/`);
   }
 
   return false;
