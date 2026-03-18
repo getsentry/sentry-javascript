@@ -1,4 +1,5 @@
 import { RemixServer } from '@remix-run/react';
+import { generateSentryServerTimingHeader } from '@sentry/remix/cloudflare';
 import { createContentSecurityPolicy } from '@shopify/hydrogen';
 import type { EntryContext } from '@shopify/remix-oxygen';
 import isbot from 'isbot';
@@ -43,8 +44,15 @@ export default async function handleRequest(
   // This is required for Sentry's profiling integration
   responseHeaders.set('Document-Policy', 'js-profiling');
 
-  return new Response(body, {
+  const response = new Response(body, {
     headers: responseHeaders,
     status: responseStatusCode,
   });
+
+  const serverTimingValue = generateSentryServerTimingHeader();
+  if (serverTimingValue) {
+    response.headers.append('Server-Timing', serverTimingValue);
+  }
+
+  return response;
 }
