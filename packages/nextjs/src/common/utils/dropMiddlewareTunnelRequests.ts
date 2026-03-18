@@ -54,12 +54,35 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
   // eslint-disable-next-line deprecation/deprecation
   const httpTarget = spanAttributes[SEMATTRS_HTTP_TARGET];
 
-  if (typeof httpTarget === 'string') {
-    // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
-    const pathname = httpTarget.split('?')[0] || '';
-
-    return pathname.startsWith(tunnelPath);
+  if (typeof httpTarget !== 'string') {
+    return false;
   }
 
-  return false;
+  // Next.js / OTel can sometimes report `http.target` as a full URL (including scheme/host), e.g.
+  // "https://example.com/monitoring/tunnel?o=...". In that case, comparing the raw string to the tunnel
+  // route path would fail.
+  const pathname = extractPathnameFromHttpTarget(httpTarget);
+  if (!pathname) {
+    return false;
+  }
+
+  const normalizedTunnelPath = tunnelPath.startsWith('/') ? tunnelPath : `/${tunnelPath}`;
+  return pathname === normalizedTunnelPath || pathname.startsWith(normalizedTunnelPath + '/');
+}
+
+function extractPathnameFromHttpTarget(httpTarget: string): string {
+  if (!httpTarget) {
+    return '';
+  }
+
+  if (httpTarget.startsWith('http://') || httpTarget.startsWith('https://')) {
+    try {
+      return new URL(httpTarget).pathname;
+    } catch {
+      // Fall back to best-effort parsing below.
+    }
+  }
+
+  // Example: "/tunnel?o=123&p=456" -> "/tunnel"
+  return httpTarget.split('?')[0] || '';
 }
