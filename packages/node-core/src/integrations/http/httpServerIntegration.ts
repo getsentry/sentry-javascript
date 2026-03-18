@@ -230,7 +230,7 @@ function instrumentServer(
         //   span on the OTel context which takes precedence in getTraceContextForScope().
         // - We can write directly to the current scope here because it is forked implicitly via
         //   `context.with` in `withIsolationScope` (See `SentryContextManager`).
-        // - explicilty making a deep copy to avoid mutation of original PC on the other scope
+        // - explicitly making a deep copy to avoid mutation of original PC on the other scope
         getCurrentScope().setPropagationContext({ ...newPropagationContext });
         isolationScope.setPropagationContext({ ...newPropagationContext });
 

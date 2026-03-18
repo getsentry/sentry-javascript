@@ -21,7 +21,6 @@ test('errors from in different requests each get a unique traceId when tracing i
     })
     .expect({
       event: event => {
-        // console.log('xx event 3');
         eventTraceIds.push(event.contexts?.trace?.trace_id || '');
       },
     })
