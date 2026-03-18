@@ -6,7 +6,11 @@ on:
     branches:
       - master
 
-# This workflow tirggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
+# This workflow triggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   release:
     runs-on: ubuntu-24.04
@@ -47,7 +51,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/action-prepare-release@v1
+        uses: getsentry/craft@013a7b2113c2cac0ff32d5180cfeaefc7c9ce5b6 # v2.24.1
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

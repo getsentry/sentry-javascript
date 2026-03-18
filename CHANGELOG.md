@@ -4,7 +4,48 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(nestjs): Instrument `@nestjs/bullmq` `@Processor` decorator**
+## 10.44.0
+
+### Important Changes
+
+- **feat(effect): Add `@sentry/effect` SDK (Alpha) ([#19644](https://github.com/getsentry/sentry-javascript/pull/19644))**
+
+  This release introduces `@sentry/effect`, a new SDK for [Effect.ts](https://effect.website/) applications. The SDK provides Sentry integration via composable Effect layers for both Node.js and browser environments.
+
+  Compose the `effectLayer` with optional tracing, logging, and metrics layers to instrument your Effect application:
+
+  ```typescript
+  import * as Sentry from '@sentry/effect';
+  import * as Layer from 'effect/Layer';
+  import * as Logger from 'effect/Logger';
+
+  const SentryLive = Layer.mergeAll(
+    Sentry.effectLayer({ dsn: '__DSN__', tracesSampleRate: 1.0, enableLogs: true }),
+    Layer.setTracer(Sentry.SentryEffectTracer),
+    Logger.replace(Logger.defaultLogger, Sentry.SentryEffectLogger),
+    Sentry.SentryEffectMetricsLayer,
+  );
+  ```
+
+  Alpha features are still in progress, may have bugs and might include breaking changes. Please reach out on GitHub if you have any feedback or concerns.
+
+- **feat(astro): Add Astro 6 support ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
+
+  This release enables full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
+  changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
+  but we'll follow up on this once the bug is fixed.
+
+- **feat(hono): Add basic instrumentation for Node runtime ([#19817](https://github.com/getsentry/sentry-javascript/pull/19817))**
+
+  Adds a new package `@sentry/hono/node` (alpha) with basic instrumentation for Hono applications running in Node.js.
+  The Hono middleware for Cloudflare (`@sentry/hono/cloudflare` - alpha) comes with fixes, and it's now possible to access the Cloudflare Worker Bindings (`env`) from the options' callback.
+
+  Start using the new Hono middlewares by installing `@sentry/hono` and importing the respective middleware for your runtime.
+  More instructions can be found in the [Hono readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/hono/README.md).
+
+  Alpha features are still in progress, may have bugs and might include breaking changes. Please reach out on GitHub if you have any feedback or concerns.
+
+- **feat(nestjs): Instrument `@nestjs/bullmq` `@Processor` decorator ([#19759](https://github.com/getsentry/sentry-javascript/pull/19759))**
 
   Automatically capture exceptions and create transactions for BullMQ queue processors in NestJS applications.
 
@@ -13,6 +54,15 @@
   jobs and HTTP requests. Errors thrown in processors are captured with the `auto.queue.nestjs.bullmq` mechanism type.
 
   Requires `@nestjs/bullmq` v10.0.0 or later.
+
+- **feat(nestjs): Instrument `@nestjs/schedule` decorators ([#19735](https://github.com/getsentry/sentry-javascript/pull/19735))**
+
+  Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.
+
+  Previously, exceptions in `@Cron` methods were only captured if you used the `SentryCron` decorator. Now they are
+  captured automatically. The exception mechanism type changed from `auto.cron.nestjs.async` to
+  `auto.function.nestjs.cron`. If you have Sentry queries or alerts that filter on the old mechanism type, update them
+  accordingly.
 
 - **feat(node): Expose `headersToSpanAttributes` option on `nativeNodeFetchIntegration()` ([#19770](https://github.com/getsentry/sentry-javascript/pull/19770))**
 
@@ -33,20 +83,61 @@
   });
   ```
 
-- **feat(nestjs): Instrument `@nestjs/schedule` decorators ([#19735](https://github.com/getsentry/sentry-javascript/pull/19735))**
+### Other Changes
 
-  Automatically capture exceptions thrown in `@Cron`, `@Interval`, and `@Timeout` decorated methods.
+- feat(browser/cloudflare): Export conversation id from browser and cloudflare runtimes ([#19820](https://github.com/getsentry/sentry-javascript/pull/19820))
+- feat(bun): Set http response header attributes instead of response context headers ([#19821](https://github.com/getsentry/sentry-javascript/pull/19821))
+- feat(core): Add `sentry.timestamp.sequence` attribute for timestamp tie-breaking ([#19421](https://github.com/getsentry/sentry-javascript/pull/19421))
+- feat(deno): Set http response header attributes instead of response context headers ([#19822](https://github.com/getsentry/sentry-javascript/pull/19822))
+- feat(deps): Bump OpenTelemetry dependencies ([#19682](https://github.com/getsentry/sentry-javascript/pull/19682))
+- feat(nestjs): Use more specific span origins for NestJS guards, pipes, interceptors, and exception filters ([#19751](https://github.com/getsentry/sentry-javascript/pull/19751))
+- feat(nextjs): Vercel queue instrumentation ([#19799](https://github.com/getsentry/sentry-javascript/pull/19799))
+- feat(node): Avoid OTEL instrumentation for outgoing requests on Node 22+ ([#17355](https://github.com/getsentry/sentry-javascript/pull/17355))
+- feat(deps): bump hono from 4.12.5 to 4.12.7 ([#19747](https://github.com/getsentry/sentry-javascript/pull/19747))
+- feat(deps): bump mysql2 from 3.14.4 to 3.19.1 ([#19787](https://github.com/getsentry/sentry-javascript/pull/19787))
+- feat(deps): bump simple-git from 3.30.0 to 3.33.0 ([#19744](https://github.com/getsentry/sentry-javascript/pull/19744))
+- feat(deps): bump yauzl from 3.2.0 to 3.2.1 ([#19809](https://github.com/getsentry/sentry-javascript/pull/19809))
+- fix(browser): Skip browserTracingIntegration setup for bot user agents ([#19708](https://github.com/getsentry/sentry-javascript/pull/19708))
+- fix(cloudflare): Recreate client when previous one was disposed ([#19727](https://github.com/getsentry/sentry-javascript/pull/19727))
+- fix(core): Align Vercel embedding spans with semantic conventions ([#19795](https://github.com/getsentry/sentry-javascript/pull/19795))
+- fix(core): Fallback to `sendDefaultPii` setting in langchain and langgraph in non-node environments ([#19813](https://github.com/getsentry/sentry-javascript/pull/19813))
+- fix(core): Improve Vercel AI SDK instrumentation attributes ([#19717](https://github.com/getsentry/sentry-javascript/pull/19717))
+- fix(hono): Align error mechanism ([#19831](https://github.com/getsentry/sentry-javascript/pull/19831))
+- fix(hono): Allow passing env and fix type issues ([#19825](https://github.com/getsentry/sentry-javascript/pull/19825))
+- fix(nestjs): Fork isolation scope in `@nestjs/event-emitter` instrumentation ([#19725](https://github.com/getsentry/sentry-javascript/pull/19725))
+- fix(nextjs): Log correct `lastEventId` when error is thrown in component render ([#19764](https://github.com/getsentry/sentry-javascript/pull/19764))
+- fix(nextjs): Strip sourceMappingURL comments after deleting source maps in turbopack builds ([#19814](https://github.com/getsentry/sentry-javascript/pull/19814))
+- fix(nuxt): Upload client source maps ([#19805](https://github.com/getsentry/sentry-javascript/pull/19805))
+- fix(profiling-node): Fix NODE_VERSION rendered as [object Object] in warning ([#19788](https://github.com/getsentry/sentry-javascript/pull/19788))
 
-  Previously, exceptions in `@Cron` methods were only captured if you used the `SentryCron` decorator. Now they are
-  captured automatically. The exception mechanism type changed from `auto.cron.nestjs.async` to
-  `auto.function.nestjs.cron`. If you have Sentry queries or alerts that filter on the old mechanism type, update them
-  accordingly.
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
 
-- **feat(astro): Add Astro 6 support ([#19745](https://github.com/getsentry/sentry-javascript/pull/19745))**
+- chore: Add oxlint migration commits to blame ignore ([#19784](https://github.com/getsentry/sentry-javascript/pull/19784))
+- chore: add oxlint typescript program suppression to workspace settings ([#19692](https://github.com/getsentry/sentry-javascript/pull/19692))
+- chore: Bump oxlint and oxfmt ([#19771](https://github.com/getsentry/sentry-javascript/pull/19771))
+- chore: Clean up lint and format script names ([#19719](https://github.com/getsentry/sentry-javascript/pull/19719))
+- chore(agents): Be more explicit on linting and formatting ([#19803](https://github.com/getsentry/sentry-javascript/pull/19803))
+- chore(ci): Extract metadata workflow ([#19680](https://github.com/getsentry/sentry-javascript/pull/19680))
+- chore(deps): bump tedious from 18.6.1 to 19.2.1 ([#19786](https://github.com/getsentry/sentry-javascript/pull/19786))
+- chore(deps-dev): bump file-type from 20.5.0 to 21.3.1 ([#19748](https://github.com/getsentry/sentry-javascript/pull/19748))
+- chore(effect): Add Effect to craft, README and issue templates ([#19837](https://github.com/getsentry/sentry-javascript/pull/19837))
+- chore(lint): Rule adjustments and fix warnings ([#19612](https://github.com/getsentry/sentry-javascript/pull/19612))
+- chore(skills): Add `skill-creator` and update managed agent skills ([#19713](https://github.com/getsentry/sentry-javascript/pull/19713))
+- docs(changelog): Add entry for `@sentry/hono` alpha release ([#19828](https://github.com/getsentry/sentry-javascript/pull/19828))
+- docs(hono): Document usage without `"*"` ([#19756](https://github.com/getsentry/sentry-javascript/pull/19756))
+- docs(new-release): Document `sdkName` for craft ([#19736](https://github.com/getsentry/sentry-javascript/pull/19736))
+- docs(new-release): Update docs based on new Craft flow ([#19731](https://github.com/getsentry/sentry-javascript/pull/19731))
+- ref(cloudflare): Prepare for WorkerEntrypoint ([#19742](https://github.com/getsentry/sentry-javascript/pull/19742))
+- ref(nestjs): Move event instrumentation unit tests to separate file ([#19738](https://github.com/getsentry/sentry-javascript/pull/19738))
+- style: Auto changes made from "yarn fix" ([#19710](https://github.com/getsentry/sentry-javascript/pull/19710))
+- test(astro,cloudflare): Add an E2E test for Astro 6 on Cloudflare ([#19781](https://github.com/getsentry/sentry-javascript/pull/19781))
+- test(browser): Add simulated mfe integration test ([#19768](https://github.com/getsentry/sentry-javascript/pull/19768))
+- test(e2e): Add MFE e2e test using `vite-plugin-federation` ([#19778](https://github.com/getsentry/sentry-javascript/pull/19778))
+- test(nextjs): Add vercel queue tests to next-16 ([#19798](https://github.com/getsentry/sentry-javascript/pull/19798))
+- tests(core): Fix flaky metric sequence number test ([#19754](https://github.com/getsentry/sentry-javascript/pull/19754))
 
-  This release enables full support for Astro v6 by adjusting our Astro SDK's middleware to some Astro-internal
-  changes. We cannot yet guarantee full support for server-islands, due to a [bug in Astro v6](https://github.com/withastro/astro/issues/15753)
-  but we'll follow up on this once the bug is fixed.
+</details>
 
 ## 10.43.0
 

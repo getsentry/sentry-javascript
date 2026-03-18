@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "@sentry/deno": "npm:@sentry/deno",
+    "@sentry/core": "npm:@sentry/core",
+    "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0"
+  },
+  "nodeModulesDir": "manual"
+}

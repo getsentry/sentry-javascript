@@ -40,4 +40,12 @@ test('Should create transactions for queue producer and consumer', async ({ requ
   expect(consumerTransaction).toBeDefined();
   expect(consumerTransaction.contexts?.trace?.op).toBe('http.server');
   expect(consumerTransaction.contexts?.trace?.status).toBe('ok');
+
+  // 5. Verify the consumer span has messaging.* attributes from queue instrumentation.
+  const consumerSpanData = consumerTransaction.contexts?.trace?.data;
+  expect(consumerSpanData?.['messaging.system']).toBe('vercel.queue');
+  expect(consumerSpanData?.['messaging.operation.name']).toBe('process');
+  expect(consumerSpanData?.['messaging.destination.name']).toBe('orders');
+  expect(consumerSpanData?.['messaging.message.id']).toBeTruthy();
+  expect(consumerSpanData?.['messaging.consumer.group.name']).toBeTruthy();
 });
