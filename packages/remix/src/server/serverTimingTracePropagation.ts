@@ -1,13 +1,5 @@
 import type { Span } from '@sentry/core';
-import {
-  debug,
-  getActiveSpan,
-  getRootSpan,
-  getTraceData,
-  isNodeEnv,
-  spanToBaggageHeader,
-  spanToTraceHeader,
-} from '@sentry/core';
+import { debug, getTraceData, isNodeEnv } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { isCloudflareEnv } from '../utils/utils';
 
@@ -18,25 +10,9 @@ export function generateSentryServerTimingHeader(span?: Span): string | null {
   }
 
   try {
-    let resolvedSpan = span;
-    if (!resolvedSpan) {
-      const activeSpan = getActiveSpan();
-      if (activeSpan) {
-        resolvedSpan = getRootSpan(activeSpan);
-      }
-    }
-
-    let sentryTrace: string | undefined;
-    let baggage: string | undefined;
-
-    if (resolvedSpan) {
-      sentryTrace = spanToTraceHeader(resolvedSpan);
-      baggage = spanToBaggageHeader(resolvedSpan);
-    } else {
-      const traceData = getTraceData();
-      sentryTrace = traceData['sentry-trace'];
-      baggage = traceData.baggage;
-    }
+    const traceData = getTraceData({ span });
+    const sentryTrace = traceData['sentry-trace'];
+    const baggage = traceData.baggage;
 
     if (!sentryTrace) {
       return null;

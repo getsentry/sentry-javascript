@@ -24,7 +24,7 @@ export function getTraceData({
   if (span) {
     const { scope } = getCapturedScopesOnSpan(span);
     // fall back to current context if for whatever reason we can't find the one of the span
-    ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
+    ctx = api.trace.setSpan(api.context.active(), span) || (scope && getContextFromScope(scope));
   }
 
   const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx, { scope, client });
