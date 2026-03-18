@@ -182,6 +182,25 @@ describe('instrumentDurableObjectStorage', () => {
     });
   });
 
+  describe('native getter preservation', () => {
+    it('preserves native getter `this` binding through the proxy', () => {
+      // Private fields simulate workerd's native brand check —
+      // accessing #sqlInstance on wrong `this` throws TypeError,
+      // like workerd's "Illegal invocation".
+      class BrandCheckedStorage {
+        #sqlInstance = { exec: () => {} };
+        get sql() {
+          return this.#sqlInstance;
+        }
+      }
+
+      const storage = new BrandCheckedStorage();
+      const instrumented = instrumentDurableObjectStorage(storage as any);
+
+      expect(() => (instrumented as any).sql).not.toThrow();
+    });
+  });
+
   describe('error handling', () => {
     it('propagates errors from storage operations', async () => {
       const mockStorage = createMockStorage();

@@ -163,6 +163,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
+        const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
 
         if (isCloudflare) {
           try {
@@ -191,8 +192,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
-          if (isCloudflare && command !== 'dev') {
-            // For Cloudflare production builds, additionally use a Vite plugin to:
+          if (isCloudflareWorkers && command !== 'dev') {
+            // For Cloudflare Workers production builds, additionally use a Vite plugin to:
             // 1. Import the server config at the Worker entry level (so Sentry.init() runs
             //    for ALL requests, not just SSR pages — covers actions and API routes)
             // 2. Wrap the default export with `withSentry` from @sentry/cloudflare for
@@ -215,6 +216,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
             updateConfig({
               vite: {
+                plugins: [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
                   // @sentry/node is required in case we have 2 different @sentry/node
                   // packages installed in the same project.
@@ -253,6 +255,41 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   return possibleFileExtensions
     .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
     .find(filename => fs.existsSync(filename));
+}
+
+/**
+ * Detects if the project is a Cloudflare Pages project by checking for
+ * `pages_build_output_dir` in the wrangler configuration file.
+ *
+ * Cloudflare Pages projects use `pages_build_output_dir` while Workers projects
+ * use `assets.directory` or `main` fields instead.
+ */
+function isCloudflarePages(): boolean {
+  const cwd = process.cwd();
+  const configFiles = ['wrangler.jsonc', 'wrangler.json', 'wrangler.toml'];
+
+  for (const configFile of configFiles) {
+    const configPath = path.join(cwd, configFile);
+
+    if (!fs.existsSync(configPath)) {
+      continue;
+    }
+
+    const content = fs.readFileSync(configPath, 'utf-8');
+
+    if (configFile.endsWith('.toml')) {
+      // https://regex101.com/r/Uxe4p0/1
+      // Match pages_build_output_dir as a TOML key (at start of line, ignoring whitespace)
+      // This avoids false positives from comments (lines starting with #)
+      return /^\s*pages_build_output_dir\s*=/m.test(content);
+    }
+
+    // Match "pages_build_output_dir" as a JSON key (followed by :)
+    // This works for both .json and .jsonc without needing to strip comments
+    return /"pages_build_output_dir"\s*:/.test(content);
+  }
+
+  return false;
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {

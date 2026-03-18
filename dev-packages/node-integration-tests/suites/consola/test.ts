@@ -491,4 +491,55 @@ describe('consola integration', () => {
 
     await runner.completed();
   });
+
+  test('should capture object-first consola logs (object as first arg)', async () => {
+    const runner = createRunner(__dirname, 'subject-object-first.ts')
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: '{"userId":100,"action":"login"} User logged in',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                userId: { value: 100, type: 'integer' },
+                action: { value: 'login', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: '{"event":"click","count":2}',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                event: { value: 'click', type: 'string' },
+                count: { value: 2, type: 'integer' },
+              },
+            },
+          ],
+        },
+      })
+      .start();
+
+    await runner.completed();
+  });
 });

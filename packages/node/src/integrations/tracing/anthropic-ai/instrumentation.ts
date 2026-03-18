@@ -8,7 +8,6 @@ import type { AnthropicAiClient, AnthropicAiOptions } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
-  getClient,
   instrumentAnthropicAiClient,
   SDK_VERSION,
 } from '@sentry/core';
@@ -60,16 +59,8 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
       }
 
       const instance = Reflect.construct(Original, args);
-      const client = getClient();
-      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
-      const recordInputs = config.recordInputs ?? defaultPii;
-      const recordOutputs = config.recordOutputs ?? defaultPii;
-
-      return instrumentAnthropicAiClient(instance as AnthropicAiClient, {
-        recordInputs,
-        recordOutputs,
-      });
+      return instrumentAnthropicAiClient(instance as AnthropicAiClient, config);
     } as unknown as abstract new (...args: unknown[]) => AnthropicAiClient;
 
     // Preserve static and prototype chains
@@ -89,7 +80,7 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     // The Anthropic property might have only a getter, so use defineProperty
     try {
       exports.Anthropic = WrappedAnthropic;
-    } catch (error) {
+    } catch {
       // If direct assignment fails, override the property descriptor
       Object.defineProperty(exports, 'Anthropic', {
         value: WrappedAnthropic,
@@ -105,7 +96,7 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     if (exports.default === Original) {
       try {
         exports.default = WrappedAnthropic;
-      } catch (error) {
+      } catch {
         // If direct assignment fails, override the property descriptor
         Object.defineProperty(exports, 'default', {
           value: WrappedAnthropic,

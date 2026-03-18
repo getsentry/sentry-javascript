@@ -1,4 +1,3 @@
-import { getClient } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -19,7 +18,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString, resolveAIRecordingOptions } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
@@ -262,7 +261,7 @@ function instrumentMethod<T extends unknown[], R>(
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
     const spanConfig = {
-      name: `${operationName} ${model}${isStreamRequested ? ' stream-response' : ''}`,
+      name: `${operationName} ${model}`,
       op: getSpanOperation(methodPath),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
@@ -370,13 +369,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-
-  const _options = {
-    recordInputs: sendDefaultPii,
-    recordOutputs: sendDefaultPii,
-    ...options,
-  };
-
-  return createDeepProxy(client, '', _options);
+  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

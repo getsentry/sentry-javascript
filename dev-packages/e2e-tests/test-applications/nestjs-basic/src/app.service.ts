@@ -3,6 +3,7 @@ import { RpcException } from '@nestjs/microservices';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import * as Sentry from '@sentry/nestjs';
 import { SentryCron, SentryTraced } from '@sentry/nestjs';
+import { AxiosError } from 'axios';
 
 const monitorConfig = {
   schedule: {
@@ -40,6 +41,17 @@ export class AppService {
 
   testExpectedRpcException(id: string) {
     throw new RpcException(`This is an expected RPC exception with id ${id}`);
+  }
+
+  testAxiosError(id: string) {
+    throw new AxiosError(
+      `This is an axios error with id ${id}`,
+      'ERR_BAD_RESPONSE',
+      undefined,
+      undefined,
+      // Simulating an upstream API 502 response
+      { status: 502, statusText: 'Bad Gateway', headers: {}, config: { headers: {} }, data: {} } as any,
+    );
   }
 
   @SentryTraced('wait and return a string')

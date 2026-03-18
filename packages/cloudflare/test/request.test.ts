@@ -377,3 +377,192 @@ function createMockExecutionContext(): ExecutionContext {
     passThroughOnException: vi.fn(),
   };
 }
+
+describe('flushAndDispose', () => {
+  test('dispose is called after flush completes', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
+      const response = new Response('test');
+      response.headers.set('content-length', '4');
+      return response;
+    });
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    expect(flushSpy).toHaveBeenCalled();
+    expect(disposeSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+
+  test('dispose is called after handler throws error', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    try {
+      await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
+        throw new Error('test error');
+      });
+    } catch {
+      // Expected to throw
+    }
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    expect(disposeSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+
+  test('dispose is called for OPTIONS requests', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    await wrapRequestHandler(
+      {
+        options: MOCK_OPTIONS,
+        request: new Request('https://example.com', { method: 'OPTIONS' }),
+        context,
+      },
+      () => new Response('', { status: 200 }),
+    );
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    expect(disposeSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+
+  test('dispose is called for HEAD requests', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    await wrapRequestHandler(
+      {
+        options: MOCK_OPTIONS,
+        request: new Request('https://example.com', { method: 'HEAD' }),
+        context,
+      },
+      () => new Response('', { status: 200 }),
+    );
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    expect(disposeSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+
+  test('dispose is called after streaming response completes', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        controller.close();
+      },
+    });
+
+    const result = await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+      () => new Response(stream),
+    );
+
+    // Consume the response to trigger stream completion
+    await result.text();
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    expect(disposeSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+
+  test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {
+    const context = createMockExecutionContext();
+    const waits: Promise<unknown>[] = [];
+    const waitUntil = vi.fn(promise => waits.push(promise));
+    (context as any).waitUntil = waitUntil;
+
+    const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+    const flushSpy = vi.spyOn(CloudflareClient.prototype, 'flush').mockResolvedValue(true);
+
+    // Create a mock protocol upgrade response (Node.js Response doesn't allow status 101)
+    // In Cloudflare Workers, this is a valid response for WebSocket upgrades and other protocol switches
+    const mockWebSocketResponse = {
+      status: 101,
+      statusText: 'Switching Protocols',
+      headers: new Headers(),
+      body: null,
+      ok: false,
+      redirected: false,
+      type: 'basic' as ResponseType,
+      url: '',
+      clone: () => mockWebSocketResponse,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      blob: () => Promise.resolve(new Blob()),
+      formData: () => Promise.resolve(new FormData()),
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+      bodyUsed: false,
+      bytes: () => Promise.resolve(new Uint8Array()),
+    } as Response;
+
+    await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+      () => mockWebSocketResponse,
+    );
+
+    // Wait for all waitUntil promises to resolve
+    await Promise.all(waits);
+
+    // dispose should NOT be called for protocol upgrades (101) since the connection stays alive
+    // and subsequent handlers (e.g., webSocketMessage/webSocketClose) may still need the client
+    expect(disposeSpy).not.toHaveBeenCalled();
+    // But flush should still be called
+    expect(flushSpy).toHaveBeenCalled();
+
+    flushSpy.mockRestore();
+    disposeSpy.mockRestore();
+  });
+});

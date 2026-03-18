@@ -169,6 +169,23 @@ describe('LangChain integration', () => {
         .start()
         .completed();
     });
+
+    test('does not create duplicate spans from double module patching', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: event => {
+            const spans = event.spans || [];
+            const genAiChatSpans = spans.filter(span => span.op === 'gen_ai.chat');
+            // The scenario makes 3 LangChain calls (2 successful + 1 error).
+            // Without the dedup guard, the file-level and module-level hooks
+            // both patch the same prototype, producing 6 spans instead of 3.
+            expect(genAiChatSpans).toHaveLength(3);
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
@@ -376,4 +393,41 @@ describe('LangChain integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('uses runName for chain spans instead of unknown_chain', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: 'chain format_prompt',
+                op: 'gen_ai.invoke_agent',
+                origin: 'auto.ai.langchain',
+                data: expect.objectContaining({
+                  'langchain.chain.name': 'format_prompt',
+                }),
+              }),
+              expect.objectContaining({
+                description: 'chain parse_output',
+                op: 'gen_ai.invoke_agent',
+                origin: 'auto.ai.langchain',
+                data: expect.objectContaining({
+                  'langchain.chain.name': 'parse_output',
+                }),
+              }),
+              expect.objectContaining({
+                description: 'chat claude-3-5-sonnet-20241022',
+                op: 'gen_ai.chat',
+                origin: 'auto.ai.langchain',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

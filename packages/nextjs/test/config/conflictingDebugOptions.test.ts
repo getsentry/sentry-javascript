@@ -20,7 +20,15 @@ describe('debug: true + removeDebugLogging warning', () => {
   let originalLocation: unknown;
   let originalAddEventListener: unknown;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    // Pre-warm V8 compilation cache for the large SDK module graphs.
+    // Without this, the first dynamic import after vi.resetModules() can hang
+    // because vitest needs to compile the entire module graph from scratch.
+    await import('../../src/client/index.js');
+    await import('../../src/server/index.js');
+    await import('../../src/edge/index.js');
+    vi.resetModules();
+
     dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'https://example.com/' });
 
     originalDocument = (globalThis as any).document;

@@ -203,12 +203,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _eventProcessors: EventProcessor[];
 
   /** Holds flushable  */
-  private _outcomes: { [key: string]: number };
+  protected _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Set<Function>>;
+  protected _hooks: Record<string, Set<Function>>;
 
-  private _promiseBuffer: PromiseBuffer<unknown>;
+  protected _promiseBuffer: PromiseBuffer<unknown>;
 
   /**
    * Initializes this client instance.
@@ -1098,6 +1098,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return {};
   }
 
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * Subclasses should override this method to clean up their own resources.
+   * After calling dispose(), the client should not be used anymore.
+   */
+  public dispose(): void {
+    // Base class has no cleanup logic - subclasses implement their own
+  }
+
   /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Setup integrations for this client. */
@@ -1212,7 +1222,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this.emit('postprocessEvent', evt, hint);
 
       evt.contexts = {
-        trace: getTraceContextFromScope(currentScope),
+        trace: { ...evt.contexts?.trace, ...getTraceContextFromScope(currentScope) },
         ...evt.contexts,
       };
 
@@ -1311,7 +1321,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
-        const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+        const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
         if (isInternalException) {
           return prepared;
         }

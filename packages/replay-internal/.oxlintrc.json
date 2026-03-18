@@ -1,0 +1,19 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "overrides": [
+    {
+      "files": ["test.setup.ts", "vitest.config.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["test/**/*.ts"],
+      "rules": {
+        "typescript/unbound-method": "off",
+        "typescript/no-floating-promises": "off"
+      }
+    }
+  ]
+}

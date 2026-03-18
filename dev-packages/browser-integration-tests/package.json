@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.39.0",
+  "version": "10.44.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -10,8 +10,8 @@
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
     "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && npx playwright install --with-deps || echo 'Skipping browser installation'",
-    "lint": "eslint . --format stylish",
-    "fix": "eslint . --format stylish --fix",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "type-check": "tsc",
     "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
@@ -60,7 +60,7 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/rrweb": "2.34.0",
-    "@sentry/browser": "10.39.0",
+    "@sentry/browser": "10.44.0",
     "@supabase/supabase-js": "2.49.3",
     "axios": "^1.12.2",
     "babel-loader": "^10.0.0",
@@ -69,10 +69,9 @@
     "webpack": "^5.95.0"
   },
   "devDependencies": {
-    "@types/glob": "8.0.0",
     "@types/node": "^18.19.1",
     "eslint-plugin-regexp": "^1.15.0",
-    "glob": "8.0.3"
+    "glob": "^13.0.6"
   },
   "volta": {
     "extends": "../../package.json"

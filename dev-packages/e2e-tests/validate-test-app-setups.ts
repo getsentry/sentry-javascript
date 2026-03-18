@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 import * as fs from 'fs';
-import * as glob from 'glob';
+import { globSync } from 'glob';
 import * as path from 'path';
 
-const testRecipePaths = glob.sync('test-applications/*/test-recipe.json', {
+const testRecipePaths = globSync('test-applications/*/test-recipe.json', {
   cwd: __dirname,
   absolute: true,
 });

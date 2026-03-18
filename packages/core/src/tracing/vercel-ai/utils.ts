@@ -10,15 +10,18 @@ import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
   GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
-import { toolCallSpanMap } from './constants';
-import type { TokenSummary } from './types';
+import { toolCallSpanContextMap } from './constants';
+import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
 
 /**
@@ -75,17 +78,72 @@ export function applyAccumulatedTokens(
 }
 
 /**
- * Get the span associated with a tool call ID
+ * Builds a map of tool name -> description from all spans with available_tools.
+ * This avoids O(n²) iteration and repeated JSON parsing.
  */
-export function _INTERNAL_getSpanForToolCallId(toolCallId: string): Span | undefined {
-  return toolCallSpanMap.get(toolCallId);
+function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
+  const toolDescriptions = new Map<string, string>();
+
+  for (const span of spans) {
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
+    if (typeof availableTools !== 'string') {
+      continue;
+    }
+    try {
+      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
+      for (const tool of tools) {
+        if (tool.name && tool.description && !toolDescriptions.has(tool.name)) {
+          toolDescriptions.set(tool.name, tool.description);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return toolDescriptions;
+}
+
+/**
+ * Applies tool descriptions and accumulated tokens to spans in a single pass.
+ *
+ * - For `gen_ai.execute_tool` spans: looks up tool description from
+ *   `gen_ai.request.available_tools` on sibling spans
+ * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
+ */
+export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {
+  // Build lookup map once to avoid O(n²) iteration and repeated JSON parsing
+  const toolDescriptions = buildToolDescriptionMap(spans);
+
+  for (const span of spans) {
+    if (span.op === 'gen_ai.execute_tool') {
+      const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      if (typeof toolName === 'string') {
+        const description = toolDescriptions.get(toolName);
+        if (description) {
+          span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
+        }
+      }
+    }
+
+    if (span.op === 'gen_ai.invoke_agent') {
+      applyAccumulatedTokens(span, tokenAccumulator);
+    }
+  }
+}
+
+/**
+ * Get the span context associated with a tool call ID.
+ */
+export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolCallSpanContext | undefined {
+  return toolCallSpanContextMap.get(toolCallId);
 }
 
 /**
  * Clean up the span mapping for a tool call ID
  */
-export function _INTERNAL_cleanupToolCallSpan(toolCallId: string): void {
-  toolCallSpanMap.delete(toolCallId);
+export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
+  toolCallSpanContextMap.delete(toolCallId);
 }
 
 /**
@@ -235,9 +293,6 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamText':
     case 'ai.generateObject':
     case 'ai.streamObject':
-    case 'ai.embed':
-    case 'ai.embedMany':
-    case 'ai.rerank':
       return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
     case 'ai.generateText.doGenerate':
       return GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE;

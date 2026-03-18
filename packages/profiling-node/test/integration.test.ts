@@ -5,6 +5,7 @@ import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
+import { NODE_VERSION } from '../src/nodeVersion';
 
 function makeLegacySpanProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
@@ -981,6 +982,16 @@ describe('ProfilingIntegration', () => {
         });
       });
     });
+  });
+});
+
+describe('NODE_VERSION', () => {
+  it('is a plain object without a custom toString', () => {
+    // NODE_VERSION is a SemVer object from parseSemver — it has no custom toString().
+    // Code should never interpolate it directly in a template literal.
+    // Use process.versions.node or format the components manually instead.
+    expect(`${NODE_VERSION}`).toBe('[object Object]');
+    expect(`${NODE_VERSION.major}.${NODE_VERSION.minor}.${NODE_VERSION.patch}`).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
 

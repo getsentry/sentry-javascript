@@ -1,11 +1,14 @@
+/* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
@@ -19,11 +22,19 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, RERANK_OPS, toolCallSpanMap } from './constants';
+import {
+  DO_SPAN_NAME_PREFIX,
+  EMBEDDINGS_OPS,
+  GENERATE_CONTENT_OPS,
+  INVOKE_AGENT_OPS,
+  RERANK_OPS,
+  toolCallSpanContextMap,
+} from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
+  applyToolDescriptionsAndTokens,
   convertAvailableToolsToJsonString,
   getSpanOpFromName,
   requestMessagesFromPrompt,
@@ -34,6 +45,7 @@ import {
   AI_OPERATION_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_FINISH_REASON_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
   AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
@@ -47,12 +59,10 @@ import {
   AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  AI_USAGE_TOKENS_ATTRIBUTE,
+  AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
-
-function addOriginToSpan(span: Span, origin: SpanOrigin): void {
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
-}
 
 /**
  * Maps Vercel AI SDK operation names to OpenTelemetry semantic convention values
@@ -120,24 +130,132 @@ function vercelAiEventProcessor(event: Event): Event {
       accumulateTokensForParent(span, tokenAccumulator);
     }
 
-    // Second pass: apply accumulated token data to parent spans
-    for (const span of event.spans) {
-      if (span.op !== 'gen_ai.invoke_agent') {
-        continue;
-      }
-
-      applyAccumulatedTokens(span, tokenAccumulator);
-    }
+    // Second pass: apply tool descriptions and accumulated tokens
+    applyToolDescriptionsAndTokens(event.spans, tokenAccumulator);
 
     // Also apply to root when it is the invoke_agent pipeline
     const trace = event.contexts?.trace;
-    if (trace && trace.op === 'gen_ai.invoke_agent') {
+    if (trace?.op === 'gen_ai.invoke_agent') {
       applyAccumulatedTokens(trace, tokenAccumulator);
     }
   }
 
   return event;
 }
+
+/**
+ * Tool call structure from Vercel AI SDK
+ * Note: V5/V6 use 'input' for arguments, V4 and earlier use 'args'
+ */
+interface VercelToolCall {
+  toolCallId: string;
+  toolName: string;
+  input?: Record<string, unknown> | string; // V5/V6
+  args?: string; // V4 and earlier
+}
+
+/**
+ * Normalize finish reason to match OpenTelemetry semantic conventions.
+ * Valid values: "stop", "length", "content_filter", "tool_call", "error"
+ *
+ * Vercel AI SDK uses "tool-calls" (plural, with hyphen) which we map to "tool_call".
+ */
+function normalizeFinishReason(finishReason: unknown): string {
+  if (typeof finishReason !== 'string') {
+    return 'stop';
+  }
+
+  // Map Vercel AI SDK finish reasons to OpenTelemetry semantic convention values
+  switch (finishReason) {
+    case 'tool-calls':
+      return 'tool_call';
+    case 'stop':
+    case 'length':
+    case 'content_filter':
+    case 'error':
+      return finishReason;
+    default:
+      // For unknown values, return as-is (schema allows arbitrary strings)
+      return finishReason;
+  }
+}
+
+/**
+ * Build gen_ai.output.messages from ai.response.text and/or ai.response.toolCalls
+ *
+ * Format follows OpenTelemetry semantic conventions:
+ * [{"role": "assistant", "parts": [...], "finish_reason": "stop"}]
+ *
+ * Parts can be:
+ * - {"type": "text", "content": "..."}
+ * - {"type": "tool_call", "id": "...", "name": "...", "arguments": "..."}
+ */
+function buildOutputMessages(attributes: Record<string, unknown>): void {
+  const responseText = attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+  const responseToolCalls = attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+  const finishReason = attributes[AI_RESPONSE_FINISH_REASON_ATTRIBUTE];
+
+  // Skip if neither text nor tool calls are present
+  if (responseText == null && responseToolCalls == null) {
+    return;
+  }
+
+  const parts: Array<Record<string, unknown>> = [];
+
+  // Add text part if present
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({
+      type: 'text',
+      content: responseText,
+    });
+  }
+
+  // Add tool call parts if present
+  if (responseToolCalls != null) {
+    try {
+      // Tool calls can be a string (JSON) or already parsed array
+      const toolCalls: VercelToolCall[] =
+        typeof responseToolCalls === 'string' ? JSON.parse(responseToolCalls) : responseToolCalls;
+
+      if (Array.isArray(toolCalls)) {
+        for (const toolCall of toolCalls) {
+          // V5/V6 use 'input', V4 and earlier use 'args'
+          const args = toolCall.input ?? toolCall.args;
+          parts.push({
+            type: 'tool_call',
+            id: toolCall.toolCallId,
+            name: toolCall.toolName,
+            // Handle undefined args: JSON.stringify(undefined) returns undefined, not a string,
+            // which would cause the property to be omitted from the final JSON output
+            arguments: typeof args === 'string' ? args : JSON.stringify(args ?? {}),
+          });
+        }
+        // Only delete tool calls attribute if we successfully processed them
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete attributes[AI_RESPONSE_TOOL_CALLS_ATTRIBUTE];
+      }
+    } catch {
+      // Ignore parsing errors - tool calls attribute is preserved
+    }
+  }
+
+  // Only set output messages and delete text attribute if we have parts
+  if (parts.length > 0) {
+    const outputMessage = {
+      role: 'assistant',
+      parts,
+      finish_reason: normalizeFinishReason(finishReason),
+    };
+
+    attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE] = JSON.stringify([outputMessage]);
+
+    // Remove the text attribute since it's now captured in gen_ai.output.messages
+    // Note: tool calls attribute is deleted above only if successfully parsed
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete attributes[AI_RESPONSE_TEXT_ATTRIBUTE];
+  }
+}
+
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
@@ -156,6 +274,9 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, 'ai.usage.inputTokens', GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, 'ai.usage.outputTokens', GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
 
+  // Embedding spans use ai.usage.tokens instead of promptTokens/completionTokens
+  renameAttributeKey(attributes, AI_USAGE_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+
   // AI SDK uses avgOutputTokensPerSecond, map to our expected attribute name
   renameAttributeKey(attributes, 'ai.response.avgOutputTokensPerSecond', 'ai.response.avgCompletionTokensPerSecond');
 
@@ -168,12 +289,13 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
       attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE];
   }
 
-  if (
-    typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
-    typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
-  ) {
-    attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
-      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  // Compute total tokens from input + output (embeddings may only have input tokens)
+  if (typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number') {
+    const outputTokens =
+      typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number'
+        ? attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]
+        : 0;
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = outputTokens + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
   }
 
   // Convert the available tools array to a JSON string
@@ -192,8 +314,11 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     delete attributes[OPERATION_NAME_ATTRIBUTE];
   }
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
-  renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+
+  // Build gen_ai.output.messages from response text and/or tool calls
+  // Note: buildOutputMessages also removes the source attributes when output is successfully generated
+  buildOutputMessages(attributes);
+
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 
@@ -202,6 +327,20 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
+
+  // Map embedding input: ai.values → gen_ai.embeddings.input
+  // Vercel AI SDK JSON-stringifies each value individually, so we parse each element back.
+  // Single embed gets unwrapped to a plain value; batch embedMany stays as a JSON array.
+  if (Array.isArray(attributes[AI_VALUES_ATTRIBUTE])) {
+    const parsed = (attributes[AI_VALUES_ATTRIBUTE] as string[]).map(v => {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return v;
+      }
+    });
+    attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE] = parsed.length === 1 ? parsed[0] : JSON.stringify(parsed);
+  }
 
   addProviderMetadataToAttributes(attributes);
 
@@ -226,18 +365,19 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 }
 
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
-  addOriginToSpan(span, 'auto.vercelai.otel');
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
   span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
-  // Store the span in our global map using the tool call ID
+  // Store the span context in our global map using the tool call ID.
   // This allows us to capture tool errors and link them to the correct span
+  // without retaining the full Span object in memory.
   const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
-    toolCallSpanMap.set(toolCallId, span);
+    toolCallSpanContextMap.set(toolCallId, span.spanContext());
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
@@ -251,17 +391,14 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
-  addOriginToSpan(span, 'auto.vercelai.otel');
+  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
   span.setAttribute('ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
 
-  // If a telemetry name is set and the span represents a pipeline, use it as the operation name.
-  // This name can be set at the request level by adding `experimental_telemetry.functionId`.
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
   if (functionId && typeof functionId === 'string') {
-    span.updateName(`${nameWthoutAi} ${functionId}`);
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
@@ -278,31 +415,22 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  // Update span names for .do* spans to include the model ID (only if model ID exists)
+  // For invoke_agent pipeline spans, use 'invoke_agent' as the description
+  // to be consistent with other AI integrations (e.g. LangGraph)
+  if (INVOKE_AGENT_OPS.has(name)) {
+    if (functionId && typeof functionId === 'string') {
+      span.updateName(`invoke_agent ${functionId}`);
+    } else {
+      span.updateName('invoke_agent');
+    }
+    return;
+  }
+
   const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
   if (modelId) {
-    switch (name) {
-      case 'ai.generateText.doGenerate':
-        span.updateName(`generate_text ${modelId}`);
-        break;
-      case 'ai.streamText.doStream':
-        span.updateName(`stream_text ${modelId}`);
-        break;
-      case 'ai.generateObject.doGenerate':
-        span.updateName(`generate_object ${modelId}`);
-        break;
-      case 'ai.streamObject.doStream':
-        span.updateName(`stream_object ${modelId}`);
-        break;
-      case 'ai.embed.doEmbed':
-        span.updateName(`embed ${modelId}`);
-        break;
-      case 'ai.embedMany.doEmbed':
-        span.updateName(`embed_many ${modelId}`);
-        break;
-      case 'ai.rerank.doRerank':
-        span.updateName(`rerank ${modelId}`);
-        break;
+    const doSpanPrefix = GENERATE_CONTENT_OPS.has(name) ? 'generate_content' : DO_SPAN_NAME_PREFIX[name];
+    if (doSpanPrefix) {
+      span.updateName(`${doSpanPrefix} ${modelId}`);
     }
   }
 }

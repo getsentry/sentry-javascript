@@ -12,6 +12,9 @@ import {
  * This is not perfect but handles easy/common use cases.
  */
 export function setupOpenTelemetryTracer(): void {
+  // Clear any pre-existing OTel global registration (e.g. from Supabase Edge Runtime
+  // or Deno's built-in OTel) so Sentry's TracerProvider gets registered successfully.
+  trace.disable();
   trace.setGlobalTracerProvider(new SentryDenoTraceProvider());
 }
 
