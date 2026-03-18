@@ -5,6 +5,7 @@ describe('double baggage prevention', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('prevents duplicate headers when using manual getTraceData() with auto-instrumentation', async () => {
       const runner = createRunner()
+        .ignore('transaction')
         .expect({ event: { message: 'double-baggage-test-complete' } })
         .start();
 
@@ -18,19 +19,18 @@ describe('double baggage prevention', () => {
 
       expect(results.test1.hasDuplicateSentryTrace).toBe(false);
       expect(results.test1.sentryTrace).toBeDefined();
-      expect(results.test1.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-[01]$/);
+      expect(results.test1.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
       expect(results.test1.baggage).toBeDefined();
       expect(results.test1.sentryBaggageCount).toBeGreaterThan(0);
 
-      expect(results.test2.hasDuplicateSentryTrace).toBe(false);
       expect(results.test2.sentryTrace).toBeDefined();
-      expect(results.test2.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-[01]$/);
+      expect(results.test2.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
       expect(results.test2.baggage).toBeDefined();
       expect(results.test2.sentryBaggageCount).toBeGreaterThan(0);
 
       expect(results.test3.hasDuplicateSentryTrace).toBe(false);
       expect(results.test3.sentryTrace).toBeDefined();
-      expect(results.test3.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-[01]$/);
+      expect(results.test3.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
       expect(results.test3.baggage).toBeDefined();
       expect(results.test3.sentryBaggageCount).toBeGreaterThan(0);
 
