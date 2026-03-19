@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // Skipping this test FOR NOW because there's a known bug in Astro 6.0.2 that causes
 // server-islands to not work correctly with the node adapter:
 // https://github.com/withastro/astro/issues/15753
-test.describe.skip('tracing in static routes with server islands', () => {
+test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-6', txnEvent => {
       return txnEvent.transaction === '/server-island';
