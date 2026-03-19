@@ -139,3 +139,4 @@ export * from '@sentry/node';
 export { init, getRemixDefaultIntegrations } from './sdk';
 export { captureRemixServerException } from './errors';
 export { sentryHandleError, wrapHandleErrorWithSentry, instrumentBuild } from './instrumentServer';
+export { generateSentryServerTimingHeader } from './serverTimingTracePropagation';
