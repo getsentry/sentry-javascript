@@ -88,7 +88,7 @@
     "@sentry/vercel-edge": "10.45.0",
     "@sentry/webpack-plugin": "^5.1.0",
     "rollup": "^4.35.0",
-    "stacktrace-parser": "^0.1.10"
+    "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
     "eslint-plugin-react": "^7.31.11",
