@@ -1,14 +1,15 @@
-import { getActiveSpan, getTraceData, isNodeEnv, spanToBaggageHeader, spanToTraceHeader } from '@sentry/core';
+import { getActiveSpan, getTraceData, isNodeEnv } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   generateSentryServerTimingHeader,
   injectServerTimingHeaderValue,
 } from '../../src/server/serverTimingTracePropagation';
+import type { Span } from '@sentry/core';
 
 const mockSpan = {
   spanId: 'test-span-id',
   spanContext: () => ({ traceId: '12345678901234567890123456789012' }),
-};
+} as unknown as Span;
 const mockRootSpan = {
   spanId: 'root-span-id',
   spanContext: () => ({ traceId: '12345678901234567890123456789012' }),

@@ -138,7 +138,6 @@ describe('dropMiddlewareTunnelRequests', () => {
   describe('skipOpenTelemetrySetup', () => {
     it('does not process spans when skipOpenTelemetrySetup is true', async () => {
       const core = await import('@sentry/core');
-      const originalGetClient = core.getClient;
       vi.spyOn(core, 'getClient').mockReturnValueOnce({
         getOptions: () => ({ skipOpenTelemetrySetup: true }),
       } as any);
