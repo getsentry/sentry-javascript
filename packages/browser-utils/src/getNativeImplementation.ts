@@ -38,14 +38,14 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
     return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
   }
 
-  // Sanity check: the ?? fallback _should_ not happen, but if it does, we just skip caching...
-  // This can happen e.g. in tests where fetch may not be available in the env, or similar.
-  impl = getNativeImplementationFromIframe(name) ?? impl;
-  if (!impl) {
+  const nativeImpl = getNativeImplementationFromIframe(name);
+  if (!nativeImpl) {
+    // Sanity check: this _should_ not happen, but if it does, we just skip caching...
+    // This can happen e.g. in tests where fetch may not be available in the env, or similar.
     return impl;
   }
 
-  return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
+  return (cachedImplementations[name] = nativeImpl.bind(WINDOW) as CacheableImplementations[T]);
 }
 
 /** Clear a cached implementation. */
