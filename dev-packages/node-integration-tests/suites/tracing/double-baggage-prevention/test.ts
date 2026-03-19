@@ -17,28 +17,29 @@ describe('double baggage prevention', () => {
 
       const results = JSON.parse(resultsLine!.replace('RESULTS: ', ''));
 
-      expect(results.test1.hasDuplicateSentryTrace).toBe(false);
-      expect(results.test1.sentryTrace).toBeDefined();
-      expect(results.test1.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
-      expect(results.test1.baggage).toBeDefined();
-      expect(results.test1.sentryBaggageCount).toBeGreaterThan(0);
-
       expect(results.test2.sentryTrace).toBeDefined();
       expect(results.test2.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
       expect(results.test2.baggage).toBeDefined();
       expect(results.test2.sentryBaggageCount).toBeGreaterThan(0);
+      const baselineSentryBaggageCount = results.test2.sentryBaggageCount;
+
+      expect(results.test1.hasDuplicateSentryTrace).toBe(false);
+      expect(results.test1.sentryTrace).toBeDefined();
+      expect(results.test1.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
+      expect(results.test1.baggage).toBeDefined();
+      expect(results.test1.sentryBaggageCount).toBe(baselineSentryBaggageCount);
 
       expect(results.test3.hasDuplicateSentryTrace).toBe(false);
       expect(results.test3.sentryTrace).toBeDefined();
       expect(results.test3.sentryTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}(-[01])?$/);
       expect(results.test3.baggage).toBeDefined();
-      expect(results.test3.sentryBaggageCount).toBeGreaterThan(0);
+      expect(results.test3.sentryBaggageCount).toBe(baselineSentryBaggageCount);
 
       expect(results.test4.hasDuplicateSentryTrace).toBe(false);
       expect(results.test4.hasCustomBaggage).toBe(true);
       expect(results.test4.sentryTrace).toBeDefined();
       expect(results.test4.baggage).toContain('custom-key=value');
-      expect(results.test4.sentryBaggageCount).toBeGreaterThan(0);
+      expect(results.test4.sentryBaggageCount).toBe(baselineSentryBaggageCount);
     });
   });
 });

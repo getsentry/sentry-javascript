@@ -1,55 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasSentryBaggageValues, mergeBaggageHeaders } from '../../src/utils/baggage';
-
-describe('hasSentryBaggageValues', () => {
-  it('returns true for baggage with sentry- prefix', () => {
-    const baggage = 'sentry-environment=production,sentry-public_key=abc123';
-    expect(hasSentryBaggageValues(baggage)).toBe(true);
-  });
-
-  it('returns true for baggage with mixed sentry and non-sentry values', () => {
-    const baggage = 'custom-key=value,sentry-trace_id=123,another-key=foo';
-    expect(hasSentryBaggageValues(baggage)).toBe(true);
-  });
-
-  it('returns false for baggage without sentry values', () => {
-    const baggage = 'custom-key=value,another-key=foo';
-    expect(hasSentryBaggageValues(baggage)).toBe(false);
-  });
-
-  it('returns false for empty baggage', () => {
-    expect(hasSentryBaggageValues('')).toBe(false);
-  });
-
-  it('returns false for undefined baggage', () => {
-    expect(hasSentryBaggageValues(undefined)).toBe(false);
-  });
-
-  it('handles array of baggage headers', () => {
-    const baggage = ['custom-key=value', 'sentry-environment=production'];
-    expect(hasSentryBaggageValues(baggage)).toBe(true);
-  });
-
-  it('returns false for array without sentry values', () => {
-    const baggage = ['custom-key=value', 'another-key=foo'];
-    expect(hasSentryBaggageValues(baggage)).toBe(false);
-  });
-
-  it('handles baggage with whitespace', () => {
-    const baggage = 'custom-key=value, sentry-environment=production , another-key=foo';
-    expect(hasSentryBaggageValues(baggage)).toBe(true);
-  });
-
-  it('handles single sentry entry', () => {
-    const baggage = 'sentry-trace_id=abc123';
-    expect(hasSentryBaggageValues(baggage)).toBe(true);
-  });
-
-  it('is case-sensitive (does not match Sentry- or SENTRY-)', () => {
-    const baggage = 'Sentry-environment=production,SENTRY-trace=123';
-    expect(hasSentryBaggageValues(baggage)).toBe(false);
-  });
-});
+import { mergeBaggageHeaders } from '../../src/utils/baggage';
 
 describe('mergeBaggageHeaders', () => {
   it('returns new baggage when existing is undefined', () => {
