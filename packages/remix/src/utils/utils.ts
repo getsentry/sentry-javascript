@@ -109,6 +109,12 @@ export function convertRemixRouteIdToPath(routeId: string): string {
   return routePath;
 }
 
+/** Check if running in Cloudflare Workers environment. */
+export function isCloudflareEnv(): boolean {
+  // eslint-disable-next-line no-restricted-globals
+  return typeof navigator !== 'undefined' && navigator?.userAgent?.includes('Cloudflare');
+}
+
 /**
  * Get transaction name from routes and url
  */
