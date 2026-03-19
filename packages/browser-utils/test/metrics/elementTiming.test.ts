@@ -28,7 +28,7 @@ describe('elementTimingIntegration', () => {
 
   function setupIntegration(): void {
     const integration = elementTimingIntegration();
-    integration.setup({} as sentryCore.Client);
+    integration?.setup?.({} as sentryCore.Client);
   }
 
   it('skips entries without an identifier', () => {
