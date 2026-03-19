@@ -1,6 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import type { SpanStatusType } from '../../types-hoist/spanStatus';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
@@ -41,7 +42,7 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
   });
 }
 
-const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, string> = {
+const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, SpanStatusType> = {
   invalid_request_error: 'invalid_argument',
   authentication_error: 'unauthenticated',
   permission_error: 'permission_denied',
@@ -56,7 +57,7 @@ const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, string> = {
  * Map an Anthropic API error type to a SpanStatusType value.
  * @see https://docs.anthropic.com/en/api/errors#error-shapes
  */
-export function mapAnthropicErrorToStatusMessage(errorType: string | undefined): string {
+export function mapAnthropicErrorToStatusMessage(errorType: string | undefined): SpanStatusType {
   if (!errorType) {
     return 'internal_error';
   }
