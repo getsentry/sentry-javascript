@@ -6,53 +6,43 @@
 
 # Official Sentry SDK for Ember.js
 
-## Links
+[![npm version](https://img.shields.io/npm/v/@sentry/ember.svg)](https://www.npmjs.com/package/@sentry/ember)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/ember.svg)](https://www.npmjs.com/package/@sentry/ember)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/ember.svg)](https://www.npmjs.com/package/@sentry/ember)
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+This SDK is a v2 Ember addon that provides error tracking and performance monitoring for Ember.js applications.
 
-## General
+## Requirements
 
-This package is an Ember addon that wraps `@sentry/browser`, with added functionality related to Ember. All methods
-available in `@sentry/browser` can be imported from `@sentry/ember`.
+- Ember.js 4.0+
+- Node.js 18+
 
-### Installation
+## Installation
 
-As with other Ember addons, run: `ember install @sentry/ember`
-
-Then add the following to your `<your-app>/app.js`
-
-```javascript
-  import * as Sentry from "@sentry/ember";
-
-  Sentry.init({
-    dsn: '__DSN__' // replace __DSN__ with your DSN,
-
-    // Set tracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
-    // We recommend adjusting this value in production,
-    tracesSampleRate: 1.0,
-  });
+```bash
+npm install @sentry/ember
+# or
+yarn add @sentry/ember
+# or
+pnpm add @sentry/ember
 ```
 
-### Usage
+## Basic Setup
 
-To use this SDK, call `Sentry.init` before the application is initialized, in `app.js`. This will allow Sentry to
-capture information while your app is starting. Any additional SDK settings can be modified via the usual config in
-`environment.js` for you, see the Additional Configuration section for more details.
+Initialize Sentry early in your application, typically in `app/app.ts` or `app/app.js`:
 
-```javascript
+```typescript
 import Application from '@ember/application';
 import Resolver from 'ember-resolver';
 import loadInitializers from 'ember-load-initializers';
-import config from './config/environment';
-import * as Sentry from "@sentry/ember";
+import config from 'my-app/config/environment';
+import * as Sentry from '@sentry/ember';
 
+// Initialize Sentry before the application
 Sentry.init({
-  dsn: '__DSN__' // replace __DSN__ with your DSN,
-
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production,
+  dsn: '__YOUR_DSN__',
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+  // We recommend adjusting this value in production
   tracesSampleRate: 1.0,
 });
 
@@ -61,126 +51,148 @@ export default class App extends Application {
   podModulePrefix = config.podModulePrefix;
   Resolver = Resolver;
 }
+
+loadInitializers(App, config.modulePrefix);
 ```
 
-### Additional Configuration
+## Performance Monitoring
 
-Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the
-following Ember specific configuration:
+For automatic performance instrumentation (page loads, navigation, runloop, components), create an instance-initializer:
 
-```javascript
-ENV['@sentry/ember'] = {
-  // Will disable automatic instrumentation of performance.
-  // Manual instrumentation will still be sent.
-  disablePerformance: true,
+```typescript
+// app/instance-initializers/sentry-performance.ts
+import type ApplicationInstance from '@ember/application/instance';
+import { setupPerformance } from '@sentry/ember';
 
-  // All runloop queue durations will be added as spans.
-  minimumRunloopQueueDuration: 0,
+export function initialize(appInstance: ApplicationInstance): void {
+  setupPerformance(appInstance, {
+    // Optional configuration
+    transitionTimeout: 5000,
+    minimumRunloopQueueDuration: 5,
+    minimumComponentRenderDuration: 2,
+  });
+}
 
-  // Will disable automatic instrumentation for components.
-  disableInstrumentComponents: true,
-
-  // All (non-glimmer) component render durations will be added as spans.
-  minimumComponentRenderDuration: 0,
-
-  // All component definitions will be added as spans.
-  enableComponentDefinition: true,
+export default {
+  initialize,
 };
 ```
 
-#### Disabling Performance
+### Performance Options
 
-`@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation,
-you can add the following to your `config/environment.js`:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `disablePerformance` | `boolean` | `false` | Disable all performance instrumentation |
+| `disableRunloopPerformance` | `boolean` | `false` | Disable runloop queue tracking |
+| `disableInstrumentComponents` | `boolean` | `false` | Disable component render tracking |
+| `disableInitialLoadInstrumentation` | `boolean` | `false` | Disable initial page load instrumentation |
+| `enableComponentDefinitions` | `boolean` | `false` | Enable component definition tracking |
+| `minimumRunloopQueueDuration` | `number` | `5` | Minimum duration (ms) for runloop spans |
+| `minimumComponentRenderDuration` | `number` | `2` | Minimum duration (ms) for component spans |
+| `transitionTimeout` | `number` | `5000` | Timeout (ms) for navigation transitions |
+| `browserTracingOptions` | `object` | `{}` | Options for browserTracingIntegration |
 
-```javascript
-ENV['@sentry/ember'] = {
-  disablePerformance: true, // Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.
-};
-```
+### Route Performance Instrumentation
 
-### Performance
+To instrument individual routes with detailed lifecycle tracking, use the `instrumentRoutePerformance` decorator:
 
-#### Routes
-
-If you would like to capture `beforeModel`, `model`, `afterModel` and `setupController` times for one of your routes,
-you can import `instrumentRoutePerformance` and wrap your route with it.
-
-```javascript
+```typescript
+// app/routes/application.ts
 import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
 
-class MyRoute extends Route {
-  model() {
-    //...
+class ApplicationRoute extends Route {
+  async model() {
+    return this.store.findAll('post');
   }
 }
 
-export default instrumentRoutePerformance(MyRoute);
+export default instrumentRoutePerformance(ApplicationRoute);
 ```
 
-#### Runloop
+This wraps the route's `beforeModel`, `model`, `afterModel`, and `setupController` hooks with Sentry spans.
 
-The runloop queue durations are instrumented by default, as long as they are longer than a threshold (by default 5ms).
-This helps (via the render queue) capturing the entire render in case component render times aren't fully instrumented,
-such as when using glimmer components.
+## Initial Load Instrumentation
 
-If you would like to change the runloop queue threshold, add the following to your config:
+To capture the initial page load time, add these performance marks to your `index.html`:
 
-```javascript
-ENV['@sentry/ember'] = {
-  minimumRunloopQueueDuration: 0, // All runloop queue durations will be added as spans.
-};
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Add at start of head -->
+    <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-start');}</script>
+    <!-- ... other head content ... -->
+  </head>
+  <body>
+    <!-- ... body content ... -->
+    <!-- Add at end of body -->
+    <script>if(window.performance&&window.performance.mark){window.performance.mark('@sentry/ember:initial-load-end');}</script>
+  </body>
+</html>
 ```
 
-#### Components
+> **CSP note:** If using Content Security Policy, add the SHA-256 hashes to your `script-src` directive.
+> You can import `INITIAL_LOAD_HEAD_SCRIPT_HASH` and `INITIAL_LOAD_BODY_SCRIPT_HASH` from `@sentry/ember`.
 
-Non-glimmer component render times will automatically get captured.
+## API
 
-If you would like to disable component render being instrumented, add the following to your config:
+This package re-exports everything from `@sentry/browser`, so you have access to the full Sentry Browser SDK API:
 
-```javascript
-ENV['@sentry/ember'] = {
-  disableInstrumentComponents: true, // Will disable automatic instrumentation for components.
-};
+```typescript
+import * as Sentry from '@sentry/ember';
+
+// Capture an error
+Sentry.captureException(new Error('Something went wrong'));
+
+// Capture a message
+Sentry.captureMessage('Something happened');
+
+// Set user context
+Sentry.setUser({ id: '123', email: 'user@example.com' });
+
+// Add breadcrumb
+Sentry.addBreadcrumb({
+  category: 'ui.click',
+  message: 'User clicked button',
+  level: 'info',
+});
+
+// Create a span
+Sentry.startSpan({ name: 'my-operation', op: 'task' }, () => {
+  // ... do work
+});
 ```
 
-Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans. If you
-would like to change this threshold, add the following to your config:
+## Migration from v1 Addon
 
-```javascript
-ENV['@sentry/ember'] = {
-  minimumComponentRenderDuration: 0, // All (non-glimmer) component render durations will be added as spans.
-};
-```
+If you're upgrading from an older version of `@sentry/ember` (v1 addon format), here are the key changes:
 
-#### Glimmer components
+### What Changed
 
-Currently glimmer component render durations can only be captured indirectly via the runloop instrumentation. You can
-optionally enable a setting to show component definitions (which will indicate which components are being rendered) be
-adding the following to your config:
+1. **No automatic instance initializer**: You must now explicitly set up performance instrumentation by creating an instance-initializer and calling `setupPerformance()`.
 
-```javascript
-ENV['@sentry/ember'] = {
-  enableComponentDefinition: true, // All component definitions will be added as spans.
-};
-```
+2. **No `contentFor` hooks**: The addon no longer injects scripts via `contentFor`. Add the performance marks to your `index.html` manually if you want initial load instrumentation.
 
-### Supported Versions
+3. **No environment config via `ENV['@sentry/ember']`**: Configure Sentry directly via `Sentry.init()` in your app.ts.
 
-- **Ember.js**: v4.0 or above
-- **Node**: v14.18 or above
+4. **Simpler dependency tree**: The v2 addon format has fewer dependencies and works better with modern build tools like Vite and Embroider.
 
-### Previous Integration
+### Migration Steps
 
-Previously we've recommended using the Ember integration from `@sentry/integrations` but moving forward we will be using
-this Ember addon to offer more Ember-specific error and performancing monitoring.
+1. Update your `app/app.ts` to call `Sentry.init()` directly with your configuration.
 
-## Testing
+2. Create `app/instance-initializers/sentry-performance.ts` to set up performance monitoring.
 
-For this package itself, you can find example instrumentation in the `dummy` application, which is also used for
-testing. To test with the dummy application, you must pass the dsn as an environment variable.
+3. Add the performance mark scripts to your `index.html` if you want initial load tracking.
 
-```javascript
-SENTRY_DSN=__DSN__ ember serve
-```
+4. Remove any `@sentry/ember` configuration from `config/environment.js`.
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/ember/)
+- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+
+## License
+
+MIT

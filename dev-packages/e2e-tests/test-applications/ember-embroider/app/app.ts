@@ -5,8 +5,11 @@ import loadInitializers from 'ember-load-initializers';
 import Resolver from 'ember-resolver';
 
 Sentry.init({
+  dsn: config.sentryDsn,
+  tracesSampleRate: 1,
   replaysSessionSampleRate: 1,
   replaysOnErrorSampleRate: 1,
+  tracePropagationTargets: ['localhost', 'doesntexist.example'],
   tunnel: `http://localhost:3031/`, // proxy server
 });
 export default class App extends Application {
