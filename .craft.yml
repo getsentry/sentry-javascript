@@ -201,8 +201,6 @@ targets:
         onlyIfPresent: /^sentry-cloudflare-\d.*\.tgz$/
       'npm:@sentry/deno':
         onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
-      'npm:@sentry/elysia':
-        onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/
       'npm:@sentry/ember':
         onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
       'npm:@sentry/gatsby':
@@ -252,3 +250,8 @@ targets:
         packageUrl: 'https://www.npmjs.com/package/@sentry/effect'
         mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/effect/'
         onlyIfPresent: /^sentry-effect-\d.*\.tgz$/
+      'npm:@sentry/elysia':
+        name: 'Sentry Elysia SDK'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/elysia'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/elysia/'
+        onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/
