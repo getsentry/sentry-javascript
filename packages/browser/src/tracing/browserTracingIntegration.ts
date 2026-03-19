@@ -39,7 +39,6 @@ import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
-  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -146,10 +145,8 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
-   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
-   * information and add it to the corresponding transaction.
-   *
-   * Default: true
+   * @deprecated This option is no longer used. Element timing is now tracked via the standalone
+   * `elementTimingIntegration`. Add it to your `integrations` array to collect element timing metrics.
    */
   enableElementTiming: boolean;
 
@@ -371,7 +368,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const {
     enableInp,
-    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
     _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
@@ -517,10 +513,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (enableInp) {
         startTrackingINP();
-      }
-
-      if (enableElementTiming) {
-        startTrackingElementTiming();
       }
 
       if (
