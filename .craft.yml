@@ -1,5 +1,6 @@
 minVersion: '0.23.1'
-changelogPolicy: simple
+changelog:
+  policy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets

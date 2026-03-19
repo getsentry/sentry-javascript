@@ -1,12 +1,13 @@
+import type { env } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
-import { getHonoIntegration } from './integrations/hono';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
+import { getHonoIntegration } from './integrations/hono';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -20,7 +21,7 @@ import { instrumentExportedHandlerTail } from './instrumentations/worker/instrum
  * @returns The wrapped handler.
  */
 export function withSentry<
-  Env = unknown,
+  Env = typeof env,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
   T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<

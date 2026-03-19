@@ -46,7 +46,7 @@ function isErrorChunk(chunk: GoogleGenAIResponse, span: Span): boolean {
   const feedback = chunk?.promptFeedback;
   if (feedback?.blockReason) {
     const message = feedback.blockReasonMessage ?? feedback.blockReason;
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: `Content blocked: ${message}` });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     captureException(`Content blocked: ${message}`, {
       mechanism: { handled: false, type: 'auto.ai.google_genai' },
     });

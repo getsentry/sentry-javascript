@@ -1,8 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { messagesFromParams, setMessagesAttribute, shouldInstrument } from '../../../src/tracing/anthropic-ai/utils';
+import {
+  mapAnthropicErrorToStatusMessage,
+  messagesFromParams,
+  setMessagesAttribute,
+  shouldInstrument,
+} from '../../../src/tracing/anthropic-ai/utils';
 import type { Span } from '../../../src/types-hoist/span';
 
 describe('anthropic-ai-utils', () => {
+  describe('mapAnthropicErrorToStatusMessage', () => {
+    it('maps known Anthropic error types to SpanStatusType values', () => {
+      expect(mapAnthropicErrorToStatusMessage('invalid_request_error')).toBe('invalid_argument');
+      expect(mapAnthropicErrorToStatusMessage('authentication_error')).toBe('unauthenticated');
+      expect(mapAnthropicErrorToStatusMessage('permission_error')).toBe('permission_denied');
+      expect(mapAnthropicErrorToStatusMessage('not_found_error')).toBe('not_found');
+      expect(mapAnthropicErrorToStatusMessage('request_too_large')).toBe('failed_precondition');
+      expect(mapAnthropicErrorToStatusMessage('rate_limit_error')).toBe('resource_exhausted');
+      expect(mapAnthropicErrorToStatusMessage('api_error')).toBe('internal_error');
+      expect(mapAnthropicErrorToStatusMessage('overloaded_error')).toBe('unavailable');
+    });
+
+    it('falls back to internal_error for unknown error types', () => {
+      expect(mapAnthropicErrorToStatusMessage('some_new_error')).toBe('internal_error');
+    });
+
+    it('falls back to internal_error for undefined', () => {
+      expect(mapAnthropicErrorToStatusMessage(undefined)).toBe('internal_error');
+    });
+  });
+
   describe('shouldInstrument', () => {
     it('should instrument known methods', () => {
       expect(shouldInstrument('models.get')).toBe(true);
