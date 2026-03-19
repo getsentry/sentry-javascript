@@ -1,10 +1,18 @@
+import { getNativeImplementationFromIframe, isNativeFunction } from '@sentry/core';
 import { WINDOW } from './types';
-import { getNativeImplementation as getNativeImplementationCore } from '@sentry/core';
+
+/**
+ * We generally want to use window.fetch / window.setTimeout.
+ * However, in some cases this may be wrapped (e.g. by Zone.js for Angular),
+ * so we try to get an unpatched version of this from a sandboxed iframe.
+ */
 
 interface CacheableImplementations {
   setTimeout: typeof WINDOW.setTimeout;
   fetch: typeof WINDOW.fetch;
 }
+
+const cachedImplementations: Partial<CacheableImplementations> = {};
 
 /**
  * Get the native implementation of a browser function.
@@ -18,14 +26,31 @@ interface CacheableImplementations {
 export function getNativeImplementation<T extends keyof CacheableImplementations>(
   name: T,
 ): CacheableImplementations[T] {
-  const nativeImpl = getNativeImplementationCore(name);
-  if (nativeImpl) {
-    return nativeImpl;
+  const cached = cachedImplementations[name];
+  if (cached) {
+    return cached;
   }
 
-  // Sanity check: This _should_ not happen, but if it does, we just skip caching...
+  let impl = WINDOW[name] as CacheableImplementations[T];
+
+  // Fast path to avoid DOM I/O
+  if (isNativeFunction(impl)) {
+    return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
+  }
+
+  // Sanity check: the ?? fallback _should_ not happen, but if it does, we just skip caching...
   // This can happen e.g. in tests where fetch may not be available in the env, or similar.
-  return WINDOW[name] as CacheableImplementations[T];
+  impl = getNativeImplementationFromIframe(name) ?? impl;
+  if (!impl) {
+    return impl;
+  }
+
+  return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
+}
+
+/** Clear a cached implementation. */
+export function clearCachedImplementation(name: keyof CacheableImplementations): void {
+  cachedImplementations[name] = undefined;
 }
 
 /**

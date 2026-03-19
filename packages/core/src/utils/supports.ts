@@ -1,4 +1,5 @@
-import { getNativeImplementation } from './getNativeImplementation';
+import { getNativeImplementationFromIframe } from './getNativeImplementationFromIframe';
+import { isNativeFunction } from './is';
 import { GLOBAL_OBJ } from './worldwide';
 
 const WINDOW = GLOBAL_OBJ as unknown as Window;
@@ -103,7 +104,15 @@ export function supportsNativeFetch(): boolean {
     return false;
   }
 
-  return !!getNativeImplementation('fetch');
+  // Fast path to avoid DOM I/O
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (isNativeFunction(WINDOW.fetch)) {
+    return true;
+  }
+
+  const nativeImpl = getNativeImplementationFromIframe('fetch');
+
+  return nativeImpl ? isNativeFunction(nativeImpl) : false;
 }
 
 /**

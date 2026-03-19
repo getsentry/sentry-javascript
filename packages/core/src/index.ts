@@ -218,7 +218,7 @@ export {
   isVueViewModel,
   isNativeFunction,
 } from './utils/is';
-export { getNativeImplementation, clearCachedImplementation } from './utils/getNativeImplementation';
+export { getNativeImplementationFromIframe } from './utils/getNativeImplementationFromIframe';
 export { isBrowser } from './utils/isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
 export type { SentryDebugLogger } from './utils/debug-logger';
