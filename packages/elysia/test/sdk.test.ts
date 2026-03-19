@@ -37,6 +37,7 @@ describe('init', () => {
     expect(mockApplySdkMetadata).toHaveBeenCalledWith(
       expect.objectContaining({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' }),
       'elysia',
+      ['elysia', 'node'],
     );
   });
 
