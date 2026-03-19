@@ -14,7 +14,7 @@ test('Captures an error thrown in a route handler', async ({ baseURL, request })
   const exception = errorEvent.exception?.values?.[0];
   expect(exception?.value).toBe('This is an exception with id 123');
   expect(exception?.mechanism).toEqual({
-    type: 'elysia',
+    type: 'auto.http.elysia.on_error',
     handled: false,
   });
 
@@ -69,7 +69,7 @@ test('Captures errors even when status is <= 299 in error handler', async ({ bas
 
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Error with 200 status');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-    type: 'elysia',
+    type: 'auto.http.elysia.on_error',
     handled: false,
   });
 });
@@ -85,7 +85,7 @@ test('Captures POST route errors', async ({ baseURL, request }) => {
 
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Post error');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-    type: 'elysia',
+    type: 'auto.http.elysia.on_error',
     handled: false,
   });
 });
@@ -102,7 +102,7 @@ test('Captures thrown string errors', async ({ baseURL, request }) => {
   expect(errorEvent.exception?.values?.[0]?.value).toBe('String error message');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
     expect.objectContaining({
-      type: 'elysia',
+      type: 'auto.http.elysia.on_error',
       handled: false,
     }),
   );
