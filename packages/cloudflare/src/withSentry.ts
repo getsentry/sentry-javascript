@@ -25,6 +25,8 @@ import {
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
+// TODO(v11): The generic types need to be rewritten to following to improve type safety:
+// T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any>
 export function withSentry<
   Env = typeof cloudflareEnv,
   QueueHandlerMessage = unknown,
@@ -34,20 +36,26 @@ export function withSentry<
     QueueHandlerMessage,
     CfHostMetadata
   >,
->(optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined, handler: T): T {
+>(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
-    return instrumentWorkerEntrypoint(optionsCallback, handler);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    return instrumentWorkerEntrypoint(optionsCallback as any, handler);
   }
 
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {
-    instrumentExportedHandlerFetch(handler, optionsCallback);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerFetch(handler, optionsCallback as any);
     instrumentHonoErrorHandler(handler);
-    instrumentExportedHandlerScheduled(handler, optionsCallback);
-    instrumentExportedHandlerEmail(handler, optionsCallback);
-    instrumentExportedHandlerQueue(handler, optionsCallback);
-    instrumentExportedHandlerTail(handler, optionsCallback);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerScheduled(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerEmail(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerQueue(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerTail(handler, optionsCallback as any);
     // This is here because Miniflare sometimes cannot get instrumented
   } catch {
     // Do not console anything here, we don't want to spam the console with errors
