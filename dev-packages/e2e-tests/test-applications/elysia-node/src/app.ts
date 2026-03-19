@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/elysia';
 import { Elysia } from 'elysia';
+import { node } from '@elysiajs/node';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
@@ -9,7 +10,7 @@ Sentry.init({
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
 });
 
-const app = Sentry.withElysia(new Elysia());
+const app = Sentry.withElysia(new Elysia({ adapter: node() }));
 
 // Simple success route
 app.get('/test-success', () => ({ version: 'v1' }));
