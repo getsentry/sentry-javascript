@@ -73,6 +73,7 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public getEarliestTimestamp(): number | null {
+    //oxlint-disable-next-line require-array-sort-compare
     const timestamp = this.events.map(event => event.timestamp).sort()[0];
 
     if (!timestamp) {
