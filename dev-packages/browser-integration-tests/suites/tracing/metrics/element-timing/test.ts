@@ -49,10 +49,7 @@ sentryTest(
       return payload.items || [];
     });
 
-    const elementTimingMetrics = allMetrics.filter(
-      m =>
-        (m.name as string)?.startsWith('element_timing.'),
-    );
+    const elementTimingMetrics = allMetrics.filter(m => (m.name as string)?.startsWith('element_timing.'));
 
     // We expect render_time for all elements and load_time for images
     const renderTimeMetrics = elementTimingMetrics.filter(m => m.name === 'element_timing.render_time');
@@ -94,78 +91,75 @@ sentryTest(
       unit: 'millisecond',
       value: expect.any(Number),
     });
-    expect(
-      (imageFastRender!.attributes as Record<string, { value: string }>)['element.paint_type']?.value,
-    ).toBe('image-paint');
+    expect((imageFastRender!.attributes as Record<string, { value: string }>)['element.paint_type']?.value).toBe(
+      'image-paint',
+    );
 
     // Validate text-paint metric
     const text1Render = renderTimeMetrics.find(
       m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value === 'text1',
     );
-    expect(
-      (text1Render!.attributes as Record<string, { value: string }>)['element.paint_type']?.value,
-    ).toBe('text-paint');
-  },
-);
-
-sentryTest(
-  'emits element timing metrics after navigation',
-  async ({ getLocalTestUrl, page, browserName }) => {
-    if (shouldSkipTracingTest() || shouldSkipMetricsTest() || browserName === 'webkit') {
-      sentryTest.skip();
-    }
-
-    serveAssets(page);
-
-    const url = await getLocalTestUrl({ testDir: __dirname });
-
-    const metricItems: EnvelopeItem[] = [];
-
-    page.on('request', request => {
-      if (!request.url().includes('/api/1337/envelope/')) return;
-      try {
-        const envelope = properFullEnvelopeRequestParser<Envelope>(request);
-        const items = envelope[1];
-        for (const item of items) {
-          const [header] = item;
-          if (header.type === 'trace_metric') {
-            metricItems.push(item);
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
-    });
-
-    await page.goto(url);
-
-    // Wait for pageload to complete
-    await page.waitForTimeout(2500);
-
-    // Clear collected metrics from pageload
-    metricItems.length = 0;
-
-    // Trigger navigation
-    await page.locator('#button1').click();
-
-    // Wait for navigation elements to render
-    await page.waitForTimeout(1500);
-
-    const allMetrics = metricItems.flatMap(item => {
-      const payload = item[1] as { items?: Array<Record<string, unknown>> };
-      return payload.items || [];
-    });
-
-    const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
-
-    const renderIdentifiers = renderTimeMetrics.map(
-      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value,
+    expect((text1Render!.attributes as Record<string, { value: string }>)['element.paint_type']?.value).toBe(
+      'text-paint',
     );
-
-    expect(renderIdentifiers).toContain('navigation-image');
-    expect(renderIdentifiers).toContain('navigation-text');
   },
 );
+
+sentryTest('emits element timing metrics after navigation', async ({ getLocalTestUrl, page, browserName }) => {
+  if (shouldSkipTracingTest() || shouldSkipMetricsTest() || browserName === 'webkit') {
+    sentryTest.skip();
+  }
+
+  serveAssets(page);
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const metricItems: EnvelopeItem[] = [];
+
+  page.on('request', request => {
+    if (!request.url().includes('/api/1337/envelope/')) return;
+    try {
+      const envelope = properFullEnvelopeRequestParser<Envelope>(request);
+      const items = envelope[1];
+      for (const item of items) {
+        const [header] = item;
+        if (header.type === 'trace_metric') {
+          metricItems.push(item);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  });
+
+  await page.goto(url);
+
+  // Wait for pageload to complete
+  await page.waitForTimeout(2500);
+
+  // Clear collected metrics from pageload
+  metricItems.length = 0;
+
+  // Trigger navigation
+  await page.locator('#button1').click();
+
+  // Wait for navigation elements to render
+  await page.waitForTimeout(1500);
+
+  const allMetrics = metricItems.flatMap(item => {
+    const payload = item[1] as { items?: Array<Record<string, unknown>> };
+    return payload.items || [];
+  });
+
+  const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
+
+  const renderIdentifiers = renderTimeMetrics.map(
+    m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value,
+  );
+
+  expect(renderIdentifiers).toContain('navigation-image');
+  expect(renderIdentifiers).toContain('navigation-text');
+});
 
 function serveAssets(page: Page) {
   page.route(/image-(fast|lazy|navigation|click)\.png/, async (route: Route) => {
