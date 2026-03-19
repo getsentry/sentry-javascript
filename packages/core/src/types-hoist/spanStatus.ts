@@ -1,4 +1,4 @@
-type SpanStatusType =
+export type SpanStatusType =
   /** The operation completed successfully. */
   | 'ok'
   /** Deadline expired before operation could complete. */
