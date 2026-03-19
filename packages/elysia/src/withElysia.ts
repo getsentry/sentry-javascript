@@ -96,7 +96,7 @@ export function withElysia<T extends Elysia>(app: T, options?: Partial<ElysiaHan
     if (shouldHandleError(context)) {
       captureException(context.error, {
         mechanism: {
-          type: 'elysia',
+          type: 'auto.http.elysia.on_error',
           handled: false,
         },
       });
