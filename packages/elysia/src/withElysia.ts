@@ -21,7 +21,7 @@ function defaultShouldHandleError(context: ErrorContext): boolean {
   if (status === undefined) {
     return true;
   }
-  const statusCode = typeof status === 'string' ? parseInt(status, 10) : status;
+  const statusCode = parseInt(String(status), 10);
   if (Number.isNaN(statusCode)) {
     return true;
   }
