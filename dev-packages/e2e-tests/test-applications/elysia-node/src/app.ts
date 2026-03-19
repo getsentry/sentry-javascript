@@ -126,7 +126,7 @@ app.listen(3030, () => {
 });
 
 // Second app for external propagation tests
-const app2 = new Elysia();
+const app2 = new Elysia({ adapter: node() });
 
 app2.get('/external-allowed', ({ request }) => {
   const headers = Object.fromEntries(request.headers.entries());

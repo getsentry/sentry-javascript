@@ -1,9 +1,13 @@
 import { opentelemetry } from '@elysiajs/opentelemetry';
 import {
   captureException,
+  getActiveSpan,
   getClient,
   getIsolationScope,
+  getRootSpan,
   getTraceData,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Elysia, ErrorContext } from 'elysia';
@@ -13,8 +17,29 @@ interface ElysiaHandlerOptions {
   shouldHandleError?: (context: ErrorContext) => boolean;
 }
 
+function isBun(): boolean {
+  return typeof Bun !== 'undefined';
+}
+
 let isClientHooksSetup = false;
 const instrumentedApps = new WeakSet<Elysia>();
+
+/**
+ * Updates the root span and isolation scope with the parameterized route name.
+ * Only needed on Node.js where the root span comes from HTTP instrumentation.
+ */
+function updateRouteTransactionName(method: string, route: string): void {
+  const transactionName = `${method} ${route}`;
+
+  const activeSpan = getActiveSpan();
+  if (activeSpan) {
+    const rootSpan = getRootSpan(activeSpan);
+    updateSpanName(rootSpan, transactionName);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  }
+
+  getIsolationScope().setTransactionName(transactionName);
+}
 
 function defaultShouldHandleError(context: ErrorContext): boolean {
   const status = context.set.status;
@@ -75,8 +100,15 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
     });
   });
 
-  // Propagate trace data to all response headers
+  // Propagate trace data to all response headers and update transaction name
   app.onAfterHandle({ as: 'global' }, context => {
+    // On Node.js, the root span is created by the HTTP instrumentation and only has the raw URL.
+    // The Elysia OTel plugin creates a child span with route info, but we need to propagate it up.
+    // On Bun, the Elysia OTel plugin already handles the root span correctly.
+    if (!isBun() && context.route) {
+      updateRouteTransactionName(context.request.method, context.route);
+    }
+
     const traceData = getTraceData();
     if (traceData['sentry-trace']) {
       context.set.headers['sentry-trace'] = traceData['sentry-trace'];
@@ -89,7 +121,7 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
   // Register the error handler for all routes
   app.onError({ as: 'global' }, context => {
     if (context.route) {
-      getIsolationScope().setTransactionName(`${context.request.method} ${context.route}`);
+      updateRouteTransactionName(context.request.method, context.route);
     }
 
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;

@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "start": "bun src/app.ts",
-    "start:node": "node src/app.ts",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
