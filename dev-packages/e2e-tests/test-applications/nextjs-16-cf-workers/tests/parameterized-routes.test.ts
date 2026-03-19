@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one' && transactionEvent.contexts?.trace?.op === 'pageload'
@@ -47,7 +48,8 @@ test('should create a parameterized transaction when the `app` directory is used
   });
 });
 
-test('should create a static transaction when the `app` directory is used and the route is not parameterized', async ({
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should create a static transaction when the `app` directory is used and the route is not parameterized', async ({
   page,
 }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
@@ -95,7 +97,8 @@ test('should create a static transaction when the `app` directory is used and th
   });
 });
 
-test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep' && transactionEvent.contexts?.trace?.op === 'pageload'
@@ -141,7 +144,8 @@ test('should create a partially parameterized transaction when the `app` directo
   });
 });
 
-test('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep/:two' &&
