@@ -10,7 +10,7 @@ import type { Elysia, ErrorContext } from 'elysia';
 import { setupClientHooks } from './clientHooks';
 
 interface ElysiaHandlerOptions {
-  shouldHandleError: (context: ErrorContext) => boolean;
+  shouldHandleError?: (context: ErrorContext) => boolean;
 }
 
 let isClientHooksSetup = false;
@@ -50,7 +50,7 @@ function defaultShouldHandleError(context: ErrorContext): boolean {
  *   .listen(3000);
  * ```
  */
-export function withElysia<T extends Elysia>(app: T, options?: Partial<ElysiaHandlerOptions>): T {
+export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptions = {}): T {
   if (instrumentedApps.has(app)) {
     return app;
   }
