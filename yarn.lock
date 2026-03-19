@@ -17277,7 +17277,7 @@ file-entry-cache@^6.0.1:
   dependencies:
     flat-cache "^3.0.4"
 
-file-type@21.3.2, file-type@^21.3.1:
+file-type@21.3.2:
   version "21.3.2"
   resolved "https://registry.npmjs.org/file-type/-/file-type-21.3.2.tgz"
   integrity sha512-DLkUvGwep3poOV2wpzbHCOnSKGk1LzyXTv+aHFgN2VFl96wnp8YA9YjO2qPzg5PuL8q/SW9Pdi6WTkYOIh995w==
