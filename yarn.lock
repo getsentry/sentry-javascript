@@ -8011,14 +8011,6 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-5.1.1.tgz#9eeef63099011155691a5ee59b0f796c141e8f85"
   integrity sha512-x2wEpBHwsTyTF2rWsLKJlzrRF1TTIGOfX+ngdE+Yd5DBkoS58HwQv824QOviPGQRla4/ypISqAXzjdDPL/zalg==
 
-"@sentry/bun@10.44.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bun/-/bun-10.44.0.tgz#a6351785b4a062cb2f10389e3e0de67be364addc"
-  integrity sha512-abVguUvPi8e3uyWlwHKTQ4vMTikkaTV7gpN4Zk4TgGqab1go9sEVXabksQFoVdEiFha1HGYyg9uNjMpYdOV5EA==
-  dependencies:
-    "@sentry/core" "10.44.0"
-    "@sentry/node" "10.44.0"
-
 "@sentry/bundler-plugin-core@5.1.0":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-5.1.0.tgz#01bef91543eb42cd370288573291b9a02b240e84"
@@ -8104,68 +8096,6 @@
     "@sentry/cli-win32-arm64" "2.58.5"
     "@sentry/cli-win32-i686" "2.58.5"
     "@sentry/cli-win32-x64" "2.58.5"
-
-"@sentry/core@10.44.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-10.44.0.tgz#a24cdf4742b064e3340cb1cd05146e39c9ab4746"
-  integrity sha512-aa7CiDaNFZvHpqd97LJhuskolfJ/4IH5xyuVVLnv7l6B0v9KTwskPUxb0tH1ej3FxuzfH+i8iTiTFuqpfHS3QA==
-
-"@sentry/node-core@10.44.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@sentry/node-core/-/node-core-10.44.0.tgz#d331f677b39cd42d9f0dcbbc7e1c0c4cfa74ea9e"
-  integrity sha512-jUGsadMrvZ08UMbqJBfjFFMk1k3VbyxfUypf0iDGGgyLmuHotYQPo/5aND+o2KxMDXR60LwcQrMoZFpanK6jXQ==
-  dependencies:
-    "@sentry/core" "10.44.0"
-    "@sentry/opentelemetry" "10.44.0"
-    import-in-the-middle "^3.0.0"
-
-"@sentry/node@10.44.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-10.44.0.tgz#4ff1aaceb69864b62b3e3bba7046b10c294f0c23"
-  integrity sha512-q+/WR9ZeF9Af8uyehOj2tQQOa7LH07mJfOuDus5X6G6cLuugdRUGUBB5Qhw+J/ULSxbzGADBZv6AYOyoGaNx7w==
-  dependencies:
-    "@fastify/otel" "0.17.1"
-    "@opentelemetry/api" "^1.9.0"
-    "@opentelemetry/context-async-hooks" "^2.6.0"
-    "@opentelemetry/core" "^2.6.0"
-    "@opentelemetry/instrumentation" "^0.213.0"
-    "@opentelemetry/instrumentation-amqplib" "0.60.0"
-    "@opentelemetry/instrumentation-connect" "0.56.0"
-    "@opentelemetry/instrumentation-dataloader" "0.30.0"
-    "@opentelemetry/instrumentation-express" "0.61.0"
-    "@opentelemetry/instrumentation-fs" "0.32.0"
-    "@opentelemetry/instrumentation-generic-pool" "0.56.0"
-    "@opentelemetry/instrumentation-graphql" "0.61.0"
-    "@opentelemetry/instrumentation-hapi" "0.59.0"
-    "@opentelemetry/instrumentation-http" "0.213.0"
-    "@opentelemetry/instrumentation-ioredis" "0.61.0"
-    "@opentelemetry/instrumentation-kafkajs" "0.22.0"
-    "@opentelemetry/instrumentation-knex" "0.57.0"
-    "@opentelemetry/instrumentation-koa" "0.61.0"
-    "@opentelemetry/instrumentation-lru-memoizer" "0.57.0"
-    "@opentelemetry/instrumentation-mongodb" "0.66.0"
-    "@opentelemetry/instrumentation-mongoose" "0.59.0"
-    "@opentelemetry/instrumentation-mysql" "0.59.0"
-    "@opentelemetry/instrumentation-mysql2" "0.59.0"
-    "@opentelemetry/instrumentation-pg" "0.65.0"
-    "@opentelemetry/instrumentation-redis" "0.61.0"
-    "@opentelemetry/instrumentation-tedious" "0.32.0"
-    "@opentelemetry/instrumentation-undici" "0.23.0"
-    "@opentelemetry/resources" "^2.6.0"
-    "@opentelemetry/sdk-trace-base" "^2.6.0"
-    "@opentelemetry/semantic-conventions" "^1.40.0"
-    "@prisma/instrumentation" "7.4.2"
-    "@sentry/core" "10.44.0"
-    "@sentry/node-core" "10.44.0"
-    "@sentry/opentelemetry" "10.44.0"
-    import-in-the-middle "^3.0.0"
-
-"@sentry/opentelemetry@10.44.0":
-  version "10.44.0"
-  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-10.44.0.tgz#4b5880597c2f35942170fcaaecb10e12086b151f"
-  integrity sha512-zP4vP8tBxjlmxQ4VcWOwZ0b3lPUxlYPg9FqJwANm9SRJN+7V5psm8TIaAtu9uqtIcJMRHdXkOM4cAggNiLk0KA==
-  dependencies:
-    "@sentry/core" "10.44.0"
 
 "@sentry/rollup-plugin@5.1.0":
   version "5.1.0"
