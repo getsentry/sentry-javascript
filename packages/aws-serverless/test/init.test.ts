@@ -28,6 +28,28 @@ describe('init', () => {
     delete process.env.SENTRY_LAYER_EXTENSION;
   });
 
+  describe('sdk metadata', () => {
+    test('should include aws-serverless and node packages in metadata', () => {
+      mockGetSDKSource.mockReturnValue('npm');
+      init({});
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          _metadata: {
+            sdk: {
+              name: 'sentry.javascript.aws-serverless',
+              packages: [
+                { name: 'npm:@sentry/aws-serverless', version: expect.any(String) },
+                { name: 'npm:@sentry/node', version: expect.any(String) },
+              ],
+              version: expect.any(String),
+            },
+          },
+        }),
+      );
+    });
+  });
+
   describe('Lambda extension setup', () => {
     test('should preserve user-provided tunnel option when Lambda extension is enabled', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
