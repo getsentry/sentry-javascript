@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should remove sentry-trace and baggage meta tags on ISR dynamic route page load', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should remove sentry-trace and baggage meta tags on ISR dynamic route page load', async ({ page }) => {
   // Navigate to ISR page
   await page.goto('/isr-test/laptop');
 
@@ -25,7 +26,8 @@ test('should remove sentry-trace and baggage meta tags on ISR static route', asy
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should remove meta tags for different ISR dynamic route values', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should remove meta tags for different ISR dynamic route values', async ({ page }) => {
   // Test with 'phone' (one of the pre-generated static params)
   await page.goto('/isr-test/phone');
   await expect(page.locator('#isr-product-id')).toHaveText('phone');
@@ -41,7 +43,8 @@ test('should remove meta tags for different ISR dynamic route values', async ({ 
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
+// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
+test.skip('should create unique transactions for ISR pages on each visit', async ({ page }) => {
   const traceIds: string[] = [];
 
   // Load the same ISR page 5 times to ensure cached HTML meta tags are consistently removed
