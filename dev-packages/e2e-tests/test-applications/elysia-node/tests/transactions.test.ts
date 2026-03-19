@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a transaction for a successful route', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
     );
@@ -33,7 +33,7 @@ test('Sends a transaction for a successful route', async ({ baseURL, request }) 
 });
 
 test('Sends a transaction with parameterized route name', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-param/:param'
@@ -49,7 +49,7 @@ test('Sends a transaction with parameterized route name', async ({ baseURL, requ
 });
 
 test('Sends a transaction with multiple parameterized segments', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-multi-param/:param1/:param2'
@@ -65,7 +65,7 @@ test('Sends a transaction with multiple parameterized segments', async ({ baseUR
 });
 
 test('Sends a transaction for an errored route', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-exception/:id'
@@ -81,7 +81,7 @@ test('Sends a transaction for an errored route', async ({ baseURL, request }) =>
 });
 
 test('Includes manually started spans with parent-child relationship', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -113,7 +113,7 @@ test('Includes manually started spans with parent-child relationship', async ({ 
 });
 
 test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
     );
@@ -139,7 +139,7 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
 });
 
 test('Filters out empty anonymous Elysia spans but keeps all other spans', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
     );
@@ -160,7 +160,7 @@ test('Filters out empty anonymous Elysia spans but keeps all other spans', async
 });
 
 test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /with-middleware/test'
@@ -183,7 +183,7 @@ test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, 
 });
 
 test('Captures request metadata for POST requests', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
     );

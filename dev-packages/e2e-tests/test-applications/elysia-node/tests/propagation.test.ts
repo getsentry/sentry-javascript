@@ -21,14 +21,14 @@ test('Includes sentry-trace and baggage in response headers', async ({ baseURL }
 test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-inbound-headers/:id'
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-outgoing-fetch/:id'
@@ -65,7 +65,7 @@ test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) =
 });
 
 test.fixme('Propagates trace for outgoing fetch to external allowed URL', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-outgoing-fetch-external-allowed'
@@ -95,7 +95,7 @@ test.fixme('Propagates trace for outgoing fetch to external allowed URL', async 
 });
 
 test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('bun-elysia', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-outgoing-fetch-external-disallowed'
