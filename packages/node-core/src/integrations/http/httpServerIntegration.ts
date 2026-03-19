@@ -6,9 +6,11 @@ import type { Socket } from 'node:net';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { AggregationCounts, Client, Integration, IntegrationFn, Scope } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
   debug,
   generateSpanId,
+  generateTraceId,
   getClient,
   getCurrentScope,
   getIsolationScope,
@@ -218,10 +220,19 @@ function instrumentServer(
       }
 
       return withIsolationScope(isolationScope, () => {
-        // Set a new propagationSpanId for this request
-        // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
-        // This way we can save an "unnecessary" `withScope()` invocation
-        getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+        const newPropagationContext = {
+          traceId: generateTraceId(),
+          sampleRand: _INTERNAL_safeMathRandom(),
+          propagationSpanId: generateSpanId(),
+        };
+        // - Set a fresh propagation context so each request gets a unique traceId.
+        //   When there are incoming trace headers, propagation.extract() below sets a remote
+        //   span on the OTel context which takes precedence in getTraceContextForScope().
+        // - We can write directly to the current scope here because it is forked implicitly via
+        //   `context.with` in `withIsolationScope` (See `SentryContextManager`).
+        // - explicitly making a deep copy to avoid mutation of original PC on the other scope
+        getCurrentScope().setPropagationContext({ ...newPropagationContext });
+        isolationScope.setPropagationContext({ ...newPropagationContext });
 
         const ctx = propagation
           .extract(context.active(), normalizedRequest.headers)
