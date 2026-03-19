@@ -5,6 +5,6 @@ window.Sentry = Sentry;
 Sentry.init({
   debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [Sentry.browserTracingIntegration(), Sentry.elementTimingIntegration()],
   tracesSampleRate: 1,
 });

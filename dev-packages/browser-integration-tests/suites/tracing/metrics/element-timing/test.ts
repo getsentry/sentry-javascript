@@ -1,219 +1,171 @@
 import type { Page, Route } from '@playwright/test';
 import { expect } from '@playwright/test';
+import type { Envelope, EnvelopeItem } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import {
+  properFullEnvelopeRequestParser,
+  shouldSkipMetricsTest,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 sentryTest(
-  'adds element timing spans to pageload span tree for elements rendered during pageload',
+  'emits element timing metrics for elements rendered during pageload',
   async ({ getLocalTestUrl, page, browserName }) => {
-    if (shouldSkipTracingTest() || browserName === 'webkit') {
+    if (shouldSkipTracingTest() || shouldSkipMetricsTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
-
-    const pageloadEventPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
 
     serveAssets(page);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
+    const metricItems: EnvelopeItem[] = [];
+
+    // Collect all metric envelope items
+    page.on('request', request => {
+      if (!request.url().includes('/api/1337/envelope/')) return;
+      try {
+        const envelope = properFullEnvelopeRequestParser<Envelope>(request);
+        const items = envelope[1];
+        for (const item of items) {
+          const [header] = item;
+          if (header.type === 'trace_metric') {
+            metricItems.push(item);
+          }
+        }
+      } catch {
+        // ignore parse errors
+      }
+    });
+
     await page.goto(url);
 
-    const eventData = envelopeRequestParser(await pageloadEventPromise);
+    // Wait for slow image (1500ms) + lazy content (1000ms) + some buffer
+    await page.waitForTimeout(3000);
 
-    const elementTimingSpans = eventData.spans?.filter(({ op }) => op === 'ui.elementtiming');
-
-    expect(elementTimingSpans?.length).toEqual(8);
-
-    // Check image-fast span (this is served with a 100ms delay)
-    const imageFastSpan = elementTimingSpans?.find(({ description }) => description === 'element[image-fast]');
-    const imageFastRenderTime = imageFastSpan?.data['element.render_time'];
-    const imageFastLoadTime = imageFastSpan?.data['element.load_time'];
-    const duration = imageFastSpan!.timestamp! - imageFastSpan!.start_timestamp;
-
-    expect(imageFastSpan).toBeDefined();
-    expect(imageFastSpan?.data).toEqual({
-      'sentry.op': 'ui.elementtiming',
-      'sentry.origin': 'auto.ui.browser.elementtiming',
-      'sentry.source': 'component',
-      'sentry.span_start_time_source': 'load-time',
-      'element.id': 'image-fast-id',
-      'element.identifier': 'image-fast',
-      'element.type': 'img',
-      'element.size': '600x179',
-      'element.url': 'https://sentry-test-site.example/path/to/image-fast.png',
-      'element.render_time': expect.any(Number),
-      'element.load_time': expect.any(Number),
-      'element.paint_type': 'image-paint',
-      'sentry.transaction_name': '/index.html',
-    });
-    expect(imageFastRenderTime).toBeGreaterThan(90);
-    expect(imageFastRenderTime).toBeLessThan(400);
-    expect(imageFastLoadTime).toBeGreaterThan(90);
-    expect(imageFastLoadTime).toBeLessThan(400);
-    expect(imageFastRenderTime).toBeGreaterThan(imageFastLoadTime as number);
-    expect(duration).toBeGreaterThan(0);
-    expect(duration).toBeLessThan(20);
-
-    // Check text1 span
-    const text1Span = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'text1');
-    const text1RenderTime = text1Span?.data['element.render_time'];
-    const text1LoadTime = text1Span?.data['element.load_time'];
-    const text1Duration = text1Span!.timestamp! - text1Span!.start_timestamp;
-    expect(text1Span).toBeDefined();
-    expect(text1Span?.data).toEqual({
-      'sentry.op': 'ui.elementtiming',
-      'sentry.origin': 'auto.ui.browser.elementtiming',
-      'sentry.source': 'component',
-      'sentry.span_start_time_source': 'render-time',
-      'element.id': 'text1-id',
-      'element.identifier': 'text1',
-      'element.type': 'p',
-      'element.render_time': expect.any(Number),
-      'element.load_time': expect.any(Number),
-      'element.paint_type': 'text-paint',
-      'sentry.transaction_name': '/index.html',
-    });
-    expect(text1RenderTime).toBeGreaterThan(0);
-    expect(text1RenderTime).toBeLessThan(300);
-    expect(text1LoadTime).toBe(0);
-    expect(text1RenderTime).toBeGreaterThan(text1LoadTime as number);
-    expect(text1Duration).toBe(0);
-
-    // Check button1 span (no need for a full assertion)
-    const button1Span = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'button1');
-    expect(button1Span).toBeDefined();
-    expect(button1Span?.data).toMatchObject({
-      'element.identifier': 'button1',
-      'element.type': 'button',
-      'element.paint_type': 'text-paint',
-      'sentry.transaction_name': '/index.html',
+    // Flatten all metric items into individual metrics
+    const allMetrics = metricItems.flatMap(item => {
+      const payload = item[1] as { items?: Array<Record<string, unknown>> };
+      return payload.items || [];
     });
 
-    // Check image-slow span
-    const imageSlowSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'image-slow');
-    expect(imageSlowSpan).toBeDefined();
-    expect(imageSlowSpan?.data).toEqual({
-      'element.id': '',
-      'element.identifier': 'image-slow',
-      'element.type': 'img',
-      'element.size': '600x179',
-      'element.url': 'https://sentry-test-site.example/path/to/image-slow.png',
-      'element.paint_type': 'image-paint',
-      'element.render_time': expect.any(Number),
-      'element.load_time': expect.any(Number),
-      'sentry.op': 'ui.elementtiming',
-      'sentry.origin': 'auto.ui.browser.elementtiming',
-      'sentry.source': 'component',
-      'sentry.span_start_time_source': 'load-time',
-      'sentry.transaction_name': '/index.html',
-    });
-    const imageSlowRenderTime = imageSlowSpan?.data['element.render_time'];
-    const imageSlowLoadTime = imageSlowSpan?.data['element.load_time'];
-    const imageSlowDuration = imageSlowSpan!.timestamp! - imageSlowSpan!.start_timestamp;
-    expect(imageSlowRenderTime).toBeGreaterThan(1400);
-    expect(imageSlowRenderTime).toBeLessThan(2000);
-    expect(imageSlowLoadTime).toBeGreaterThan(1400);
-    expect(imageSlowLoadTime).toBeLessThan(2000);
-    expect(imageSlowDuration).toBeGreaterThan(0);
-    expect(imageSlowDuration).toBeLessThan(20);
+    const elementTimingMetrics = allMetrics.filter(
+      m =>
+        (m.name as string)?.startsWith('element_timing.'),
+    );
 
-    // Check lazy-image span
-    const lazyImageSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'lazy-image');
-    expect(lazyImageSpan).toBeDefined();
-    expect(lazyImageSpan?.data).toEqual({
-      'element.id': '',
-      'element.identifier': 'lazy-image',
-      'element.type': 'img',
-      'element.size': '600x179',
-      'element.url': 'https://sentry-test-site.example/path/to/image-lazy.png',
-      'element.paint_type': 'image-paint',
-      'element.render_time': expect.any(Number),
-      'element.load_time': expect.any(Number),
-      'sentry.op': 'ui.elementtiming',
-      'sentry.origin': 'auto.ui.browser.elementtiming',
-      'sentry.source': 'component',
-      'sentry.span_start_time_source': 'load-time',
-      'sentry.transaction_name': '/index.html',
-    });
-    const lazyImageRenderTime = lazyImageSpan?.data['element.render_time'];
-    const lazyImageLoadTime = lazyImageSpan?.data['element.load_time'];
-    const lazyImageDuration = lazyImageSpan!.timestamp! - lazyImageSpan!.start_timestamp;
-    expect(lazyImageRenderTime).toBeGreaterThan(1000);
-    expect(lazyImageRenderTime).toBeLessThan(1500);
-    expect(lazyImageLoadTime).toBeGreaterThan(1000);
-    expect(lazyImageLoadTime).toBeLessThan(1500);
-    expect(lazyImageDuration).toBeGreaterThan(0);
-    expect(lazyImageDuration).toBeLessThan(20);
+    // We expect render_time for all elements and load_time for images
+    const renderTimeMetrics = elementTimingMetrics.filter(m => m.name === 'element_timing.render_time');
+    const loadTimeMetrics = elementTimingMetrics.filter(m => m.name === 'element_timing.load_time');
 
-    // Check lazy-text span
-    const lazyTextSpan = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'lazy-text');
-    expect(lazyTextSpan?.data).toMatchObject({
-      'element.id': '',
-      'element.identifier': 'lazy-text',
-      'element.type': 'p',
-      'sentry.transaction_name': '/index.html',
-    });
-    const lazyTextRenderTime = lazyTextSpan?.data['element.render_time'];
-    const lazyTextLoadTime = lazyTextSpan?.data['element.load_time'];
-    const lazyTextDuration = lazyTextSpan!.timestamp! - lazyTextSpan!.start_timestamp;
-    expect(lazyTextRenderTime).toBeGreaterThan(1000);
-    expect(lazyTextRenderTime).toBeLessThan(1500);
-    expect(lazyTextLoadTime).toBe(0);
-    expect(lazyTextDuration).toBe(0);
+    // Check that we have render_time for known identifiers
+    const renderIdentifiers = renderTimeMetrics.map(
+      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value,
+    );
 
-    // the div1 entry does not emit an elementTiming entry because it's neither a text nor an image
-    expect(elementTimingSpans?.find(({ description }) => description === 'element[div1]')).toBeUndefined();
+    expect(renderIdentifiers).toContain('image-fast');
+    expect(renderIdentifiers).toContain('text1');
+    expect(renderIdentifiers).toContain('button1');
+    expect(renderIdentifiers).toContain('image-slow');
+    expect(renderIdentifiers).toContain('lazy-image');
+    expect(renderIdentifiers).toContain('lazy-text');
+
+    // Check that image elements also have load_time
+    const loadIdentifiers = loadTimeMetrics.map(
+      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value,
+    );
+
+    expect(loadIdentifiers).toContain('image-fast');
+    expect(loadIdentifiers).toContain('image-slow');
+    expect(loadIdentifiers).toContain('lazy-image');
+
+    // Text elements should NOT have load_time (loadTime is 0 for text-paint)
+    expect(loadIdentifiers).not.toContain('text1');
+    expect(loadIdentifiers).not.toContain('button1');
+    expect(loadIdentifiers).not.toContain('lazy-text');
+
+    // Validate metric structure for image-fast
+    const imageFastRender = renderTimeMetrics.find(
+      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value === 'image-fast',
+    );
+    expect(imageFastRender).toMatchObject({
+      name: 'element_timing.render_time',
+      type: 'distribution',
+      unit: 'millisecond',
+      value: expect.any(Number),
+    });
+    expect(
+      (imageFastRender!.attributes as Record<string, { value: string }>)['element.paint_type']?.value,
+    ).toBe('image-paint');
+
+    // Validate text-paint metric
+    const text1Render = renderTimeMetrics.find(
+      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value === 'text1',
+    );
+    expect(
+      (text1Render!.attributes as Record<string, { value: string }>)['element.paint_type']?.value,
+    ).toBe('text-paint');
   },
 );
 
-sentryTest('emits element timing spans on navigation', async ({ getLocalTestUrl, page, browserName }) => {
-  if (shouldSkipTracingTest() || browserName === 'webkit') {
-    sentryTest.skip();
-  }
+sentryTest(
+  'emits element timing metrics after navigation',
+  async ({ getLocalTestUrl, page, browserName }) => {
+    if (shouldSkipTracingTest() || shouldSkipMetricsTest() || browserName === 'webkit') {
+      sentryTest.skip();
+    }
 
-  serveAssets(page);
+    serveAssets(page);
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
+    const metricItems: EnvelopeItem[] = [];
 
-  const pageloadEventPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    page.on('request', request => {
+      if (!request.url().includes('/api/1337/envelope/')) return;
+      try {
+        const envelope = properFullEnvelopeRequestParser<Envelope>(request);
+        const items = envelope[1];
+        for (const item of items) {
+          const [header] = item;
+          if (header.type === 'trace_metric') {
+            metricItems.push(item);
+          }
+        }
+      } catch {
+        // ignore parse errors
+      }
+    });
 
-  const navigationEventPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+    await page.goto(url);
 
-  await pageloadEventPromise;
+    // Wait for pageload to complete
+    await page.waitForTimeout(2500);
 
-  await page.locator('#button1').click();
+    // Clear collected metrics from pageload
+    metricItems.length = 0;
 
-  const navigationTransactionEvent = envelopeRequestParser(await navigationEventPromise);
-  const pageloadTransactionEvent = envelopeRequestParser(await pageloadEventPromise);
+    // Trigger navigation
+    await page.locator('#button1').click();
 
-  const navigationElementTimingSpans = navigationTransactionEvent.spans?.filter(({ op }) => op === 'ui.elementtiming');
+    // Wait for navigation elements to render
+    await page.waitForTimeout(1500);
 
-  expect(navigationElementTimingSpans?.length).toEqual(2);
+    const allMetrics = metricItems.flatMap(item => {
+      const payload = item[1] as { items?: Array<Record<string, unknown>> };
+      return payload.items || [];
+    });
 
-  const navigationStartTime = navigationTransactionEvent.start_timestamp!;
-  const pageloadStartTime = pageloadTransactionEvent.start_timestamp!;
+    const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
 
-  const imageSpan = navigationElementTimingSpans?.find(
-    ({ description }) => description === 'element[navigation-image]',
-  );
-  const textSpan = navigationElementTimingSpans?.find(({ description }) => description === 'element[navigation-text]');
+    const renderIdentifiers = renderTimeMetrics.map(
+      m => (m.attributes as Record<string, { value: string }>)['element.identifier']?.value,
+    );
 
-  // Image started loading after navigation, but render-time and load-time still start from the time origin
-  // of the pageload. This is somewhat a limitation (though by design according to the ElementTiming spec)
-  expect((imageSpan!.data['element.render_time']! as number) / 1000 + pageloadStartTime).toBeGreaterThan(
-    navigationStartTime,
-  );
-  expect((imageSpan!.data['element.load_time']! as number) / 1000 + pageloadStartTime).toBeGreaterThan(
-    navigationStartTime,
-  );
-
-  expect(textSpan?.data['element.load_time']).toBe(0);
-  expect((textSpan!.data['element.render_time']! as number) / 1000 + pageloadStartTime).toBeGreaterThan(
-    navigationStartTime,
-  );
-});
+    expect(renderIdentifiers).toContain('navigation-image');
+    expect(renderIdentifiers).toContain('navigation-text');
+  },
+);
 
 function serveAssets(page: Page) {
   page.route(/image-(fast|lazy|navigation|click)\.png/, async (route: Route) => {
