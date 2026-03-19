@@ -41,14 +41,14 @@ function getRuntime(): { name: string; version: string } {
  * ```
  */
 export function init(userOptions: ElysiaOptions = {}): NodeClient | undefined {
-  applySdkMetadata(userOptions, 'elysia');
-
   const options = {
     ...userOptions,
     platform: 'javascript',
     runtime: getRuntime(),
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
+
+  applySdkMetadata(userOptions, 'elysia', ['elysia', options.runtime.name]);
 
   options.transport = options.transport || makeFetchTransport;
 
