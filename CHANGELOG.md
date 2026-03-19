@@ -4,6 +4,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.45.0
+
+### Important Changes
+
+- **feat(remix): Server Timing Headers Trace Propagation ([#18653](https://github.com/getsentry/sentry-javascript/pull/18653))**
+
+  The Remix SDK now supports automatic trace propagation via `Server-Timing` response headers to continue pageload traces on the client side.
+  This means, you no longer have to define a custom `meta` function to add Sentry `<meta>` tags to your page as previously.
+  We'll update out Remix tracing docs after this release.
+
+### Other Changes
+
+- fix(cloudflare): Use correct env types for `withSentry` ([#19836](https://github.com/getsentry/sentry-javascript/pull/19836))
+- fix(core): Align error span status message with core `SpanStatusType` for langchain/google-genai ([#19863](https://github.com/getsentry/sentry-javascript/pull/19863))
+- fix(deno): Clear pre-existing OTel global before registering TracerProvider ([#19723](https://github.com/getsentry/sentry-javascript/pull/19723))
+- fix(nextjs): Skip tracing for tunnel requests ([#19861](https://github.com/getsentry/sentry-javascript/pull/19861))
+- fix(node-core): Recycle propagationContext for each request ([#19835](https://github.com/getsentry/sentry-javascript/pull/19835))
+- ref(core): Simplify core utility functions for smaller bundle ([#19854](https://github.com/getsentry/sentry-javascript/pull/19854))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(deps): bump next from 16.1.5 to 16.1.7 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#19851](https://github.com/getsentry/sentry-javascript/pull/19851))
+- ci(release): Switch from action-prepare-release to Craft ([#18763](https://github.com/getsentry/sentry-javascript/pull/18763))
+- fix(deps): bump devalue 5.6.3 to 5.6.4 to fix CVE-2026-30226 ([#19849](https://github.com/getsentry/sentry-javascript/pull/19849))
+- fix(deps): bump file-type to 21.3.2 and @nestjs/common to 11.1.17 ([#19847](https://github.com/getsentry/sentry-javascript/pull/19847))
+- fix(deps): bump flatted 3.3.1 to 3.4.2 to fix CVE-2026-32141 ([#19842](https://github.com/getsentry/sentry-javascript/pull/19842))
+- fix(deps): bump hono 4.12.5 to 4.12.7 in cloudflare-hono E2E test app ([#19850](https://github.com/getsentry/sentry-javascript/pull/19850))
+- fix(deps): bump next to 15.5.13/16.1.7 to fix CVE-2026-1525, CVE-202-33036 and related ([#19870](https://github.com/getsentry/sentry-javascript/pull/19870))
+- fix(deps): bump tar 7.5.10 to 7.5.11 to fix CVE-2026-31802 ([#19846](https://github.com/getsentry/sentry-javascript/pull/19846))
+- fix(deps): bump undici 6.23.0 to 6.24.1 to fix multiple CVEs ([#19841](https://github.com/getsentry/sentry-javascript/pull/19841))
+- fix(deps): bump unhead 2.1.4 to 2.1.12 to fix CVE-2026-31860 and CVE-2026-31873 ([#19848](https://github.com/getsentry/sentry-javascript/pull/19848))
+- test(nextjs): Skip broken ISR tests ([#19871](https://github.com/getsentry/sentry-javascript/pull/19871))
+- test(react): Add gql tests for react router ([#19844](https://github.com/getsentry/sentry-javascript/pull/19844))
+
+</details>
+
 ## 10.44.0
 
 ### Important Changes

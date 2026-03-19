@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "10.44.0",
+  "version": "10.45.0",
   "description": "Sentry Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
@@ -96,9 +96,9 @@
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/instrumentation": "7.4.2",
     "@fastify/otel": "0.17.1",
-    "@sentry/core": "10.44.0",
-    "@sentry/node-core": "10.44.0",
-    "@sentry/opentelemetry": "10.44.0",
+    "@sentry/core": "10.45.0",
+    "@sentry/node-core": "10.45.0",
+    "@sentry/opentelemetry": "10.45.0",
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
