@@ -1,5 +1,4 @@
-import { DEBUG_BUILD } from '../debug-build';
-import { debug } from './debug-logger';
+import { getNativeImplementation } from './getNativeImplementation';
 import { GLOBAL_OBJ } from './worldwide';
 
 const WINDOW = GLOBAL_OBJ as unknown as Window;
@@ -90,14 +89,6 @@ function _isFetchSupported(): boolean {
 }
 
 /**
- * isNative checks if the given function is a native implementation
- */
-// eslint-disable-next-line @typescript-eslint/ban-types
-export function isNativeFunction(func: Function): boolean {
-  return func && /\[native code\]/.test(func.toString());
-}
-
-/**
  * Tells whether current environment supports Fetch API natively
  * {@link supportsNativeFetch}.
  *
@@ -108,7 +99,11 @@ export function supportsNativeFetch(): boolean {
     return true;
   }
 
-  return _isFetchSupported();
+  if (!_isFetchSupported()) {
+    return false;
+  }
+
+  return !!getNativeImplementation('fetch');
 }
 
 /**

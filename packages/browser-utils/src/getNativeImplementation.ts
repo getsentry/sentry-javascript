@@ -1,19 +1,10 @@
-import { debug, isNativeFunction } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './types';
-
-/**
- * We generally want to use window.fetch / window.setTimeout.
- * However, in some cases this may be wrapped (e.g. by Zone.js for Angular),
- * so we try to get an unpatched version of this from a sandboxed iframe.
- */
+import { getNativeImplementation as getNativeImplementationCore } from '@sentry/core';
 
 interface CacheableImplementations {
   setTimeout: typeof WINDOW.setTimeout;
   fetch: typeof WINDOW.fetch;
 }
-
-const cachedImplementations: Partial<CacheableImplementations> = {};
 
 /**
  * Get the native implementation of a browser function.
@@ -27,48 +18,14 @@ const cachedImplementations: Partial<CacheableImplementations> = {};
 export function getNativeImplementation<T extends keyof CacheableImplementations>(
   name: T,
 ): CacheableImplementations[T] {
-  const cached = cachedImplementations[name];
-  if (cached) {
-    return cached;
-  }
-
-  let impl = WINDOW[name] as CacheableImplementations[T];
-
-  // Fast path to avoid DOM I/O
-  if (isNativeFunction(impl)) {
-    return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
-  }
-
-  const document = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
-  if (document && typeof document.createElement === 'function') {
-    try {
-      const sandbox = document.createElement('iframe');
-      sandbox.hidden = true;
-      document.head.appendChild(sandbox);
-      const contentWindow = sandbox.contentWindow;
-      if (contentWindow?.[name]) {
-        impl = contentWindow[name] as CacheableImplementations[T];
-      }
-      document.head.removeChild(sandbox);
-    } catch (e) {
-      // Could not create sandbox iframe, just use window.xxx
-      DEBUG_BUILD && debug.warn(`Could not create sandbox iframe for ${name} check, bailing to window.${name}: `, e);
-    }
+  const nativeImpl = getNativeImplementationCore(name);
+  if (nativeImpl) {
+    return nativeImpl;
   }
 
   // Sanity check: This _should_ not happen, but if it does, we just skip caching...
   // This can happen e.g. in tests where fetch may not be available in the env, or similar.
-  if (!impl) {
-    return impl;
-  }
-
-  return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
-}
-
-/** Clear a cached implementation. */
-export function clearCachedImplementation(name: keyof CacheableImplementations): void {
-  cachedImplementations[name] = undefined;
+  return WINDOW[name] as CacheableImplementations[T];
 }
 
 /**

@@ -216,7 +216,9 @@ export {
   isSyntheticEvent,
   isThenable,
   isVueViewModel,
+  isNativeFunction,
 } from './utils/is';
+export { getNativeImplementation, clearCachedImplementation } from './utils/getNativeImplementation';
 export { isBrowser } from './utils/isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
 export type { SentryDebugLogger } from './utils/debug-logger';
@@ -259,7 +261,6 @@ export {
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
 export {
-  isNativeFunction,
   supportsDOMError,
   supportsDOMException,
   supportsErrorEvent,

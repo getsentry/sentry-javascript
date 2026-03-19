@@ -214,3 +214,11 @@ export function isVueViewModel(wat: unknown): wat is VueViewModel | VNode {
 export function isRequest(request: unknown): request is Request {
   return typeof Request !== 'undefined' && isInstanceOf(request, Request);
 }
+
+/**
+ * isNative checks if the given function is a native implementation
+ */
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isNativeFunction(func: Function): boolean {
+  return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+}
