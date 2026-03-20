@@ -470,7 +470,9 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
           'gen_ai.usage.output_tokens.prediction_rejected',
           openaiMetadata.rejectedPredictionTokens,
         );
-        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
+        if (!attributes['gen_ai.conversation.id']) {
+          setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
+        }
       }
 
       if (providerMetadataObject.anthropic) {
