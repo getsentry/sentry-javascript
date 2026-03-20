@@ -60,7 +60,7 @@ function createMetricCollector(page: Page) {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
       const all = getAll().filter(m => m.name === 'element_timing.render_time');
-      const seen = new Set(all.map(m => m.attributes['element.identifier']?.value));
+      const seen = new Set(all.map(m => m.attributes['ui.element.identifier']?.value));
       if (identifiers.every(id => seen.has(id))) {
         return;
       }
@@ -68,7 +68,7 @@ function createMetricCollector(page: Page) {
     }
     // Final check with assertion for clear error message
     const all = getAll().filter(m => m.name === 'element_timing.render_time');
-    const seen = all.map(m => m.attributes['element.identifier']?.value);
+    const seen = all.map(m => m.attributes['ui.element.identifier']?.value);
     for (const id of identifiers) {
       expect(seen).toContain(id);
     }
@@ -102,8 +102,8 @@ sentryTest(
     const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
     const loadTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.load_time');
 
-    const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['element.identifier']?.value);
-    const loadIdentifiers = loadTimeMetrics.map(m => m.attributes['element.identifier']?.value);
+    const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
+    const loadIdentifiers = loadTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
 
     // All text and image elements should have render_time
     expect(renderIdentifiers).toContain('image-fast');
@@ -124,18 +124,18 @@ sentryTest(
     expect(loadIdentifiers).not.toContain('lazy-text');
 
     // Validate metric structure for image-fast
-    const imageFastRender = renderTimeMetrics.find(m => m.attributes['element.identifier']?.value === 'image-fast');
+    const imageFastRender = renderTimeMetrics.find(m => m.attributes['ui.element.identifier']?.value === 'image-fast');
     expect(imageFastRender).toMatchObject({
       name: 'element_timing.render_time',
       type: 'distribution',
       unit: 'millisecond',
       value: expect.any(Number),
     });
-    expect(imageFastRender!.attributes['element.paint_type']?.value).toBe('image-paint');
+    expect(imageFastRender!.attributes['ui.element.paint_type']?.value).toBe('image-paint');
 
     // Validate text-paint metric
-    const text1Render = renderTimeMetrics.find(m => m.attributes['element.identifier']?.value === 'text1');
-    expect(text1Render!.attributes['element.paint_type']?.value).toBe('text-paint');
+    const text1Render = renderTimeMetrics.find(m => m.attributes['ui.element.identifier']?.value === 'text1');
+    expect(text1Render!.attributes['ui.element.paint_type']?.value).toBe('text-paint');
   },
 );
 
@@ -165,7 +165,7 @@ sentryTest('emits element timing metrics after navigation', async ({ getLocalTes
 
   const allMetrics = collector.getAll();
   const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
-  const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['element.identifier']?.value);
+  const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
 
   expect(renderIdentifiers).toContain('navigation-image');
   expect(renderIdentifiers).toContain('navigation-text');

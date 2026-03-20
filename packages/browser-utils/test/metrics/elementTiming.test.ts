@@ -62,6 +62,10 @@ describe('elementTimingIntegration', () => {
           renderTime: 150,
           loadTime: 0,
           identifier: 'hero-text',
+          id: 'hero',
+          element: { tagName: 'P' },
+          naturalWidth: 0,
+          naturalHeight: 0,
         } as unknown as PerformanceEntry,
       ],
     });
@@ -70,8 +74,10 @@ describe('elementTimingIntegration', () => {
     expect(distributionSpy).toHaveBeenCalledWith('element_timing.render_time', 150, {
       unit: 'millisecond',
       attributes: {
-        'element.identifier': 'hero-text',
-        'element.paint_type': 'text-paint',
+        'ui.element.identifier': 'hero-text',
+        'ui.element.paint_type': 'text-paint',
+        'ui.element.id': 'hero',
+        'ui.element.type': 'p',
       },
     });
   });
@@ -89,24 +95,32 @@ describe('elementTimingIntegration', () => {
           renderTime: 200,
           loadTime: 150,
           identifier: 'hero-image',
+          id: 'img1',
+          element: { tagName: 'IMG' },
+          url: 'https://example.com/hero.jpg',
+          naturalWidth: 1920,
+          naturalHeight: 1080,
         } as unknown as PerformanceEntry,
       ],
     });
 
     expect(distributionSpy).toHaveBeenCalledTimes(2);
+    const expectedAttributes = {
+      'ui.element.identifier': 'hero-image',
+      'ui.element.paint_type': 'image-paint',
+      'ui.element.id': 'img1',
+      'ui.element.type': 'img',
+      'ui.element.url': 'https://example.com/hero.jpg',
+      'ui.element.width': 1920,
+      'ui.element.height': 1080,
+    };
     expect(distributionSpy).toHaveBeenCalledWith('element_timing.render_time', 200, {
       unit: 'millisecond',
-      attributes: {
-        'element.identifier': 'hero-image',
-        'element.paint_type': 'image-paint',
-      },
+      attributes: expectedAttributes,
     });
     expect(distributionSpy).toHaveBeenCalledWith('element_timing.load_time', 150, {
       unit: 'millisecond',
-      attributes: {
-        'element.identifier': 'hero-image',
-        'element.paint_type': 'image-paint',
-      },
+      attributes: expectedAttributes,
     });
   });
 

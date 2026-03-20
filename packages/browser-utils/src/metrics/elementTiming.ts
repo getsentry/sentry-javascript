@@ -40,12 +40,32 @@ const _elementTimingIntegration = (() => {
           const renderTime = elementEntry.renderTime;
           const loadTime = elementEntry.loadTime;
 
-          const metricAttributes: Record<string, string> = {
-            'element.identifier': identifier,
+          const metricAttributes: Record<string, string | number> = {
+            'ui.element.identifier': identifier,
           };
 
           if (paintType) {
-            metricAttributes['element.paint_type'] = paintType;
+            metricAttributes['ui.element.paint_type'] = paintType;
+          }
+
+          if (elementEntry.id) {
+            metricAttributes['ui.element.id'] = elementEntry.id;
+          }
+
+          if (elementEntry.element) {
+            metricAttributes['ui.element.type'] = elementEntry.element.tagName.toLowerCase();
+          }
+
+          if (elementEntry.url) {
+            metricAttributes['ui.element.url'] = elementEntry.url;
+          }
+
+          if (elementEntry.naturalWidth) {
+            metricAttributes['ui.element.width'] = elementEntry.naturalWidth;
+          }
+
+          if (elementEntry.naturalHeight) {
+            metricAttributes['ui.element.height'] = elementEntry.naturalHeight;
           }
 
           if (renderTime) {
