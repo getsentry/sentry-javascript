@@ -57,7 +57,7 @@ jobs:
                 "label": "Ember"
               },
               "@sentry.gatsby": {
-                "label": "Gatbsy"
+                "label": "Gatsby"
               },
               "@sentry.google-cloud-serverless": {
                 "label": "Google Cloud Functions"
