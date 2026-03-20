@@ -51,8 +51,10 @@ jobs:
         id: get_metadata
         # We need to try a number of different options for finding the head commit, because each kind of trigger event
         # stores it in a different location
+        env:
+          COMMIT_SHA_EXPR: ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }}
         run: |
-          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }})
+          COMMIT_SHA=$(git rev-parse --short "$COMMIT_SHA_EXPR")
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
