@@ -18,7 +18,7 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
     ...options,
   };
 
-  applySdkMetadata(opts, 'nestjs');
+  applySdkMetadata(opts, 'nestjs', ['nestjs', 'node']);
 
   const client = nodeInit(opts);
 

@@ -73,12 +73,10 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public getEarliestTimestamp(): number | null {
-    const timestamp = this.events.map(event => event.timestamp).sort()[0];
-
-    if (!timestamp) {
-      return null;
+    let ts: number | null = null;
+    for (const { timestamp } of this.events) {
+      if (ts === null || timestamp < ts) ts = timestamp;
     }
-
-    return timestampToMs(timestamp);
+    return ts === null ? ts : timestampToMs(ts);
   }
 }

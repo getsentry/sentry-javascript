@@ -112,7 +112,7 @@ describe('setupSourceMaps hooks', () => {
     it.each([
       { label: 'server (SSR) build', buildConfig: { build: { ssr: true }, plugins: [] } },
       { label: 'client build', buildConfig: { build: { ssr: false }, plugins: [] } },
-    ])('adds sentry vite plugin to vite config for $label in production', async ({ buildConfig }) => {
+    ])('adds sentry vite plugin to vite config for $label in production', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
       const { mockAddVitePlugin, getCapturedPlugins } = createMockAddVitePlugin();

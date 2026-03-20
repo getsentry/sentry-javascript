@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION, SentrySpan } from '@sentry/core';
+import { getClient, getCurrentScope, getIsolationScope, SDK_VERSION } from '@sentry/core';
 import { Effect, Layer, Logger, LogLevel } from 'effect';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as sentryClient from '../src/index.client';
