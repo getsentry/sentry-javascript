@@ -13,6 +13,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { instrumentEnv } from './instrumentEnv';
 
 /**
  * Core email handler logic - wraps execution with Sentry instrumentation.
@@ -74,6 +75,7 @@ export function instrumentExportedHandlerEmail<T extends ExportedHandler<any, an
         apply(target, thisArg, args: Parameters<NonNullable<T['email']>>) {
           const [emailMessage, env, ctx] = args;
           const context = instrumentContext(ctx);
+          args[1] = instrumentEnv(env);
           args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
