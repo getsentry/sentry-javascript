@@ -267,7 +267,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   }
 
   // The Vercel AI SDK sets span status to raw error message strings.
-  // Normalize any non-ok status to 'internal_error'.
+  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
   if (span.status && span.status !== 'ok') {
     span.status = 'internal_error';
   }
