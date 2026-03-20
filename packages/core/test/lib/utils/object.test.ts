@@ -11,6 +11,8 @@ import {
   fill,
   markFunctionWrapped,
   objectify,
+  unwrapMethod,
+  wrapMethod,
 } from '../../../src/utils/object';
 import { testOnlyIfNodeVersionAtLeast } from '../../testutils';
 
@@ -453,5 +455,40 @@ describe('markFunctionWrapped', () => {
 
     expect(wrappedFunc).toHaveBeenCalledTimes(1);
     expect(originalFunc).not.toHaveBeenCalled();
+  });
+});
+
+describe('unwrapMethod, wrapMethod', () => {
+  it('can wrap a method on an object and unwrap it later', () => {
+    const wrapped = () => {};
+    const original = () => {};
+    const obj = { m: original };
+    wrapMethod(obj, 'm', wrapped);
+    expect(obj.m).toBe(wrapped);
+    expect((obj.m as WrappedFunction).__sentry_original__).toBe(original);
+    unwrapMethod(obj, 'm');
+    expect(obj.m).toBe(original);
+  });
+
+  it('throws if misused', () => {
+    const wrapped = () => {};
+    const original = () => {};
+    const obj = { m: original };
+    wrapMethod(obj, 'm', wrapped);
+    expect(() => {
+      //@ts-expect-error verify type checking prevents this mistake
+      wrapMethod(obj, 'foo', wrapped);
+    }).toThrowError('Cannot wrap method: foo is not a function');
+    expect(() => {
+      //@ts-expect-error verify type checking prevents this mistake
+      unwrapMethod(obj, 'foo');
+    }).toThrowError('Cannot unwrap method: foo is not a function');
+    expect(() => {
+      wrapMethod(obj, 'm', wrapped);
+    }).toThrowError('Attempting to wrap method m multiple times');
+    unwrapMethod(obj, 'm');
+    expect(() => {
+      unwrapMethod(obj, 'm');
+    }).toThrowError('Method m is not wrapped, and cannot be unwrapped');
   });
 });

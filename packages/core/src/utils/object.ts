@@ -18,6 +18,7 @@ import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
  * args>)` or `origMethod.apply(this, [<other args>])` (rather than being called directly), again to preserve `this`.
  * @returns void
  */
+
 export function fill(source: { [key: string]: any }, name: string, replacementFactory: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
@@ -78,6 +79,36 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
     wrapped.prototype = original.prototype = proto;
     addNonEnumerableProperty(wrapped, '__sentry_original__', original);
   } catch {} // eslint-disable-line no-empty
+}
+
+/**
+ * Wrap a method on an object by name, only if it is not already wrapped.
+ */
+export function wrapMethod<O extends {}, T extends string & keyof O>(obj: O, field: T, wrapped: WrappedFunction): void {
+  const original = obj[field];
+  if (typeof original !== 'function') {
+    throw new Error(`Cannot wrap method: ${field} is not a function`);
+  }
+  if (getOriginalFunction(original)) {
+    throw new Error(`Attempting to wrap method ${field} multiple times`);
+  }
+  markFunctionWrapped(wrapped, original);
+  addNonEnumerableProperty(obj, field, wrapped);
+}
+
+/**
+ * Unwrap a previously wrapped method on an object by name
+ */
+export function unwrapMethod<O extends {}, T extends string & keyof O>(obj: O, field: T): void {
+  const wrapped = obj[field];
+  if (typeof wrapped !== 'function') {
+    throw new Error(`Cannot unwrap method: ${field} is not a function`);
+  }
+  const original = getOriginalFunction(wrapped);
+  if (!original) {
+    throw new Error(`Method ${field} is not wrapped, and cannot be unwrapped`);
+  }
+  addNonEnumerableProperty(obj, field, original);
 }
 
 /**
