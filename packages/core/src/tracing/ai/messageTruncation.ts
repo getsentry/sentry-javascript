@@ -48,6 +48,11 @@ type MediaPart = {
 };
 
 /**
+ * Union of all item types that can appear in array-based messages.
+ */
+type ArrayMessageItem = TextPart | MediaPart | ContentArrayMessage['content'][number];
+
+/**
  * Calculate the UTF-8 byte length of a string.
  */
 const utf8Bytes = (text: string): number => {
@@ -100,11 +105,11 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
  *
  * @returns The text content
  */
-function getPartText(part: unknown): string {
+function getPartText(part: ArrayMessageItem): string {
   if (typeof part === 'string') {
     return part;
   }
-  if (typeof part === 'object' && part !== null && 'text' in part && typeof part.text === 'string') {
+  if ('text' in part && typeof part.text === 'string') {
     return part.text;
   }
   return '';
@@ -117,14 +122,11 @@ function getPartText(part: unknown): string {
  * @param text - New text content
  * @returns New part with updated text
  */
-function withPartText(part: unknown, text: string): unknown {
+function withPartText(part: ArrayMessageItem, text: string): ArrayMessageItem {
   if (typeof part === 'string') {
     return text;
   }
-  if (typeof part === 'object' && part !== null) {
-    return { ...part, text };
-  }
-  return text;
+  return { ...part, text };
 }
 
 /**
@@ -191,8 +193,8 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
  */
 function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
   const key = 'parts' in message ? 'parts' : 'content';
-  const rawItems = 'parts' in message ? message.parts : message.content;
-  const items: unknown[] = Array.isArray(rawItems) ? rawItems : [];
+  const items: ArrayMessageItem[] =
+    'parts' in message && Array.isArray(message.parts) ? message.parts : Array.isArray(message.content) ? message.content : [];
 
   if (items.length === 0) {
     return [];
@@ -208,7 +210,7 @@ function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBy
   }
 
   // Include items until we run out of space
-  const includedItems: unknown[] = [];
+  const includedItems: ArrayMessageItem[] = [];
 
   for (const item of items) {
     const text = getPartText(item);
