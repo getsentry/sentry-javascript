@@ -7134,10 +7134,17 @@
     valibot "^1.2.0"
     vite-node "^3.2.2"
 
-"@react-router/node@7.13.0", "@react-router/node@^7.13.0":
+"@react-router/node@7.13.0":
   version "7.13.0"
   resolved "https://registry.yarnpkg.com/@react-router/node/-/node-7.13.0.tgz#8146a95ab894a0035702e2f65cd069e834e25488"
   integrity sha512-Mhr3fAou19oc/S93tKMIBHwCPfqLpWyWM/m0NWd3pJh/wZin8/9KhAdjwxhYbXw1TrTBZBLDENa35uZ+Y7oh3A==
+  dependencies:
+    "@mjackson/node-fetch-server" "^0.2.0"
+
+"@react-router/node@^7.13.1":
+  version "7.13.1"
+  resolved "https://registry.yarnpkg.com/@react-router/node/-/node-7.13.1.tgz#aadedf2fb37afe63b9ac268d818e5eec4f5437ab"
+  integrity sha512-IWPPf+Q3nJ6q4bwyTf5leeGUfg8GAxSN1RKj5wp9SK915zKK+1u4TCOfOmr8hmC6IW1fcjKV0WChkM0HkReIiw==
   dependencies:
     "@mjackson/node-fetch-server" "^0.2.0"
 
@@ -8644,12 +8651,7 @@
     "@supabase/realtime-js" "2.11.2"
     "@supabase/storage-js" "2.7.1"
 
-"@sveltejs/acorn-typescript@^1.0.5":
-  version "1.0.9"
-  resolved "https://registry.yarnpkg.com/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.9.tgz#ac0bde368d6623727b0e0bc568cf6b4e5d5c4baa"
-  integrity sha512-lVJX6qEgs/4DOcRTpo56tmKzVPtoWAaVbL4hfO7t7NVwl9AAXzQR6cihesW1BmNMPl+bK6dreu2sOKBP2Q9CIA==
-
-"@sveltejs/acorn-typescript@^1.0.9":
+"@sveltejs/acorn-typescript@^1.0.5", "@sveltejs/acorn-typescript@^1.0.9":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@sveltejs/acorn-typescript/-/acorn-typescript-1.0.9.tgz#ac0bde368d6623727b0e0bc568cf6b4e5d5c4baa"
   integrity sha512-lVJX6qEgs/4DOcRTpo56tmKzVPtoWAaVbL4hfO7t7NVwl9AAXzQR6cihesW1BmNMPl+bK6dreu2sOKBP2Q9CIA==
