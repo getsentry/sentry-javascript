@@ -36,14 +36,49 @@ function extractMetricsFromRequest(req: Request): MetricItem[] {
   }
 }
 
-function isElementTimingMetricRequest(req: Request): boolean {
-  if (!req.url().includes('/api/1337/envelope/')) return false;
-  const metrics = extractMetricsFromRequest(req);
-  return metrics.some(m => m.name.startsWith('element_timing.'));
-}
+/**
+ * Collects element timing metrics from envelope requests on the page.
+ * Returns a function to get all collected metrics so far and a function
+ * that waits until all expected identifiers have been seen in render_time metrics.
+ */
+function createMetricCollector(page: Page) {
+  const collectedRequests: Request[] = [];
 
-function waitForElementTimingMetrics(page: Page): Promise<Request> {
-  return page.waitForRequest(req => isElementTimingMetricRequest(req), { timeout: 15_000 });
+  page.on('request', req => {
+    if (!req.url().includes('/api/1337/envelope/')) return;
+    const metrics = extractMetricsFromRequest(req);
+    if (metrics.some(m => m.name.startsWith('element_timing.'))) {
+      collectedRequests.push(req);
+    }
+  });
+
+  function getAll(): MetricItem[] {
+    return collectedRequests.flatMap(req => extractMetricsFromRequest(req));
+  }
+
+  async function waitForIdentifiers(identifiers: string[], timeout = 30_000): Promise<void> {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      const all = getAll().filter(m => m.name === 'element_timing.render_time');
+      const seen = new Set(all.map(m => m.attributes['element.identifier']?.value));
+      if (identifiers.every(id => seen.has(id))) {
+        return;
+      }
+      await page.waitForTimeout(500);
+    }
+    // Final check with assertion for clear error message
+    const all = getAll().filter(m => m.name === 'element_timing.render_time');
+    const seen = all.map(m => m.attributes['element.identifier']?.value);
+    for (const id of identifiers) {
+      expect(seen).toContain(id);
+    }
+  }
+
+  function reset(): void {
+    collectedRequests.length = 0;
+  }
+
+  return { getAll, waitForIdentifiers, reset };
 }
 
 sentryTest(
@@ -56,32 +91,23 @@ sentryTest(
     serveAssets(page);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
-
-    // Collect all metric requests
-    const allMetricRequests: Request[] = [];
-    page.on('request', req => {
-      if (req.url().includes('/api/1337/envelope/')) {
-        const metrics = extractMetricsFromRequest(req);
-        if (metrics.some(m => m.name.startsWith('element_timing.'))) {
-          allMetricRequests.push(req);
-        }
-      }
-    });
+    const collector = createMetricCollector(page);
 
     await page.goto(url);
 
-    // Wait for at least one element timing metric envelope to arrive
-    await waitForElementTimingMetrics(page);
+    // Wait until all expected element identifiers have been flushed as metrics
+    await collector.waitForIdentifiers([
+      'image-fast',
+      'text1',
+      'button1',
+      'image-slow',
+      'lazy-image',
+      'lazy-text',
+    ]);
 
-    // Wait a bit more for slow images and lazy content + flush interval
-    await page.waitForTimeout(8000);
-
-    // Extract all element timing metrics from all collected requests
-    const allMetrics = allMetricRequests.flatMap(req => extractMetricsFromRequest(req));
-    const elementTimingMetrics = allMetrics.filter(m => m.name.startsWith('element_timing.'));
-
-    const renderTimeMetrics = elementTimingMetrics.filter(m => m.name === 'element_timing.render_time');
-    const loadTimeMetrics = elementTimingMetrics.filter(m => m.name === 'element_timing.load_time');
+    const allMetrics = collector.getAll().filter(m => m.name.startsWith('element_timing.'));
+    const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
+    const loadTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.load_time');
 
     const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['element.identifier']?.value);
     const loadIdentifiers = loadTimeMetrics.map(m => m.attributes['element.identifier']?.value);
@@ -128,30 +154,23 @@ sentryTest('emits element timing metrics after navigation', async ({ getLocalTes
   serveAssets(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
+  const collector = createMetricCollector(page);
 
   await page.goto(url);
 
-  // Wait for pageload content to settle and flush
-  await page.waitForTimeout(8000);
+  // Wait for pageload element timing metrics to arrive before navigating
+  await collector.waitForIdentifiers(['image-fast', 'text1']);
 
-  // Now collect only post-navigation metrics
-  const postNavMetricRequests: Request[] = [];
-  page.on('request', req => {
-    if (req.url().includes('/api/1337/envelope/')) {
-      const metrics = extractMetricsFromRequest(req);
-      if (metrics.some(m => m.name.startsWith('element_timing.'))) {
-        postNavMetricRequests.push(req);
-      }
-    }
-  });
+  // Reset so we only capture post-navigation metrics
+  collector.reset();
 
   // Trigger navigation
   await page.locator('#button1').click();
 
-  // Wait for navigation elements to render + flush interval
-  await page.waitForTimeout(8000);
+  // Wait for navigation element timing metrics
+  await collector.waitForIdentifiers(['navigation-image', 'navigation-text']);
 
-  const allMetrics = postNavMetricRequests.flatMap(req => extractMetricsFromRequest(req));
+  const allMetrics = collector.getAll();
   const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
   const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['element.identifier']?.value);
 
