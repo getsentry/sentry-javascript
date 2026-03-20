@@ -334,7 +334,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
-  enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   detectRedirects: true,
