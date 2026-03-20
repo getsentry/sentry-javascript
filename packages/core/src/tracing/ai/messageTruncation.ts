@@ -15,14 +15,19 @@ type ContentMessage = {
 };
 
 /**
+ * One block inside OpenAI / Anthropic `content: [...]` arrays (text, image_url, etc.).
+ */
+type ContentArrayBlock = {
+  [key: string]: unknown;
+  type: string;
+};
+
+/**
  * Message format used by OpenAI and Anthropic APIs for media.
  */
 type ContentArrayMessage = {
   [key: string]: unknown;
-  content: {
-    [key: string]: unknown;
-    type: string;
-  }[];
+  content: ContentArrayBlock[];
 };
 
 /**
@@ -48,9 +53,9 @@ type MediaPart = {
 };
 
 /**
- * Union of all item types that can appear in array-based messages.
+ * One element of an array-based message: OpenAI/Anthropic `content[]` or Google `parts`.
  */
-type ArrayMessageItem = TextPart | MediaPart | ContentArrayMessage['content'][number];
+type ArrayMessageItem = TextPart | MediaPart | ContentArrayBlock;
 
 /**
  * Calculate the UTF-8 byte length of a string.
