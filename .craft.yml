@@ -245,4 +245,5 @@ targets:
         name: 'Sentry Effect SDK'
         sdkName: 'sentry.javascript.effect'
         packageUrl: 'https://www.npmjs.com/package/@sentry/effect'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/effect/'
         onlyIfPresent: /^sentry-effect-\d.*\.tgz$/
