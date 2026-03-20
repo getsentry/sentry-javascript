@@ -188,6 +188,23 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
 }
 
 /**
+ * Picks content array on the message that should be truncated (`parts` or `content`).
+ * Returns `null` if neither field has a truncateable array.
+ */
+function resolvePartsOrContentForTruncation(message: PartsMessage | ContentArrayMessage): {
+  key: 'parts' | 'content' | null;
+  items: ArrayMessageItem[];
+} {
+  if ('parts' in message && Array.isArray(message.parts)) {
+    return { key: 'parts', items: message.parts };
+  }
+  if ('content' in message && Array.isArray(message.content)) {
+    return { key: 'content', items: message.content };
+  }
+  return { key: null, items: [] };
+}
+
+/**
  * Truncate a message with an array-based format.
  * Handles both `parts: [...]` (Google GenAI) and `content: [...]` (OpenAI/Anthropic multimodal).
  * Keeps as many complete items as possible, only truncating the first item if needed.
@@ -197,11 +214,9 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
  * @returns Array with truncated message, or empty array if it doesn't fit
  */
 function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
-  const key = 'parts' in message ? 'parts' : 'content';
-  const items: ArrayMessageItem[] =
-    'parts' in message && Array.isArray(message.parts) ? message.parts : Array.isArray(message.content) ? message.content : [];
+  const { key, items } = resolvePartsOrContentForTruncation(message);
 
-  if (items.length === 0) {
+  if (key === null || items.length === 0) {
     return [];
   }
 
