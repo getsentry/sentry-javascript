@@ -100,33 +100,33 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
 }
 
 /**
- * Extract text content from a message part/item.
+ * Extract text content from a message item.
  * Handles plain strings and objects with a text property.
  *
  * @returns The text content
  */
-function getPartText(part: ArrayMessageItem): string {
-  if (typeof part === 'string') {
-    return part;
+function getItemText(item: ArrayMessageItem): string {
+  if (typeof item === 'string') {
+    return item;
   }
-  if ('text' in part && typeof part.text === 'string') {
-    return part.text;
+  if ('text' in item && typeof item.text === 'string') {
+    return item.text;
   }
   return '';
 }
 
 /**
- * Create a new part/item with updated text content while preserving the original structure.
+ * Create a new item with updated text content while preserving the original structure.
  *
- * @param part - Original part (string or object)
+ * @param item - Original item (string or object)
  * @param text - New text content
- * @returns New part with updated text
+ * @returns New item with updated text
  */
-function withPartText(part: ArrayMessageItem, text: string): ArrayMessageItem {
-  if (typeof part === 'string') {
+function withItemText(item: ArrayMessageItem, text: string): ArrayMessageItem {
+  if (typeof item === 'string') {
     return text;
   }
-  return { ...part, text };
+  return { ...item, text };
 }
 
 /**
@@ -201,7 +201,7 @@ function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBy
   }
 
   // Calculate overhead by creating empty text items
-  const emptyItems = items.map(item => withPartText(item, ''));
+  const emptyItems = items.map(item => withItemText(item, ''));
   const overhead = jsonBytes({ ...message, [key]: emptyItems });
   let remainingBytes = maxBytes - overhead;
 
@@ -213,7 +213,7 @@ function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBy
   const includedItems: ArrayMessageItem[] = [];
 
   for (const item of items) {
-    const text = getPartText(item);
+    const text = getItemText(item);
     const textSize = utf8Bytes(text);
 
     if (textSize <= remainingBytes) {
@@ -224,7 +224,7 @@ function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBy
       // First item doesn't fit: truncate it
       const truncated = truncateTextByBytes(text, remainingBytes);
       if (truncated) {
-        includedItems.push(withPartText(item, truncated));
+        includedItems.push(withItemText(item, truncated));
       }
       break;
     } else {
