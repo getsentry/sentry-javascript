@@ -938,7 +938,7 @@ describe('Vercel AI integration', () => {
                 }),
               }),
               expect.objectContaining({
-                op: 'gen_ai.generate_content',
+                op: 'gen_ai.generate_text',
                 data: expect.objectContaining({
                   'gen_ai.conversation.id': 'conv-a',
                 }),
