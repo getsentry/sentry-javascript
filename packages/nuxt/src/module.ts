@@ -80,6 +80,7 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
 
     if (serverConfigFile) {
+      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
       addPlugin({
