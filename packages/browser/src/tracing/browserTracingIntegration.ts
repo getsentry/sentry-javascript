@@ -148,7 +148,7 @@ export interface BrowserTracingOptions {
    * @deprecated This option is no longer used. Element timing is now tracked via the standalone
    * `elementTimingIntegration`. Add it to your `integrations` array to collect element timing metrics.
    */
-  enableElementTiming: boolean;
+  enableElementTiming?: boolean;
 
   /**
    * Flag to disable patching all together for fetch requests.
