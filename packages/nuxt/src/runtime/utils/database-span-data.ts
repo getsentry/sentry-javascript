@@ -1,14 +1,28 @@
 import type { ConnectorName } from 'db0';
-import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 
 export interface DatabaseSpanData {
   [key: string]: string | number | undefined;
 }
 
 /**
+ * A minimal database connection configuration type compatible with both nitropack (Nitro v2) and nitro (Nitro v3+).
+ * Mirrors the shape of `DatabaseConnectionConfig` from both packages.
+ */
+export interface DatabaseConnectionConfig {
+  connector?: ConnectorName;
+  options?: {
+    host?: string;
+    port?: number;
+    dataDir?: string;
+    name?: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
  * Extracts span attributes from the database configuration.
  */
-export function getDatabaseSpanData(config?: DatabaseConfig): Partial<DatabaseSpanData> {
+export function getDatabaseSpanData(config?: DatabaseConnectionConfig): Partial<DatabaseSpanData> {
   try {
     if (!config?.connector) {
       // Default to SQLite if no connector is configured
