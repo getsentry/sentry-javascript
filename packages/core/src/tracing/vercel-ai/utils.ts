@@ -271,6 +271,7 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+        console.log('filteredMessages', filteredMessages);
         const truncatedMessages = getTruncatedJsonString(filteredMessages);
 
         span.setAttributes({

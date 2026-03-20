@@ -95,11 +95,14 @@ function mapVercelAiOperationName(operationName: string): string {
  * This is supposed to be used in `client.on('spanStart', ...)
  */
 function onVercelAiSpanStart(span: Span): void {
+  console.log('onVercelAiSpanStart');
   const { data: attributes, description: name } = spanToJSON(span);
 
   if (!name) {
     return;
   }
+
+  console.log('name present', name);
 
   // Tool call spans
   // https://ai-sdk.dev/docs/ai-sdk-core/telemetry#tool-call-spans
@@ -107,6 +110,8 @@ function onVercelAiSpanStart(span: Span): void {
     processToolCallSpan(span, attributes);
     return;
   }
+
+  console.log('not a tool call')
 
   // V6+ Check if this is a Vercel AI span by checking if the operation ID attribute is present.
   // V5+ Check if this is a Vercel AI span by name pattern.
@@ -391,6 +396,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
+  console.log('processGenerateSpan', name);
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
@@ -402,7 +408,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
+  console.log('before requestMessagesFromPrompt', attributes);
   requestMessagesFromPrompt(span, attributes);
+  console.log('attributes', attributes);
 
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);

@@ -547,5 +547,66 @@ describe('message truncation utilities', () => {
         },
       ]);
     });
+
+    it('truncates content array message when first text item does not fit', () => {
+      const messages = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: `2 ${humongous}` }],
+        },
+      ];
+      const result = truncateGenAiMessages(messages);
+      const truncLen =
+        20_000 -
+        2 -
+        JSON.stringify({
+          role: 'user',
+          content: [{ type: 'text', text: '' }],
+        }).length;
+      expect(result).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: `2 ${humongous}`.substring(0, truncLen) }],
+        },
+      ]);
+    });
+
+    it('drops subsequent content array items that do not fit', () => {
+      const messages = [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: `1 ${big}` },
+            { type: 'image_url', url: 'https://example.com/img.png' },
+            { type: 'text', text: `2 ${big}` },
+            { type: 'text', text: `3 ${big}` },
+            { type: 'text', text: `4 ${giant}` },
+            { type: 'text', text: `5 ${giant}` },
+          ],
+        },
+      ];
+      const result = truncateGenAiMessages(messages);
+      expect(result).toStrictEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: `1 ${big}` },
+            { type: 'image_url', url: 'https://example.com/img.png' },
+            { type: 'text', text: `2 ${big}` },
+            { type: 'text', text: `3 ${big}` },
+          ],
+        },
+      ]);
+    });
+
+    it('drops content array message if overhead is too large', () => {
+      const messages = [
+        {
+          some_other_field: humongous,
+          content: [{ type: 'text', text: 'hello' }],
+        },
+      ];
+      expect(truncateGenAiMessages(messages)).toStrictEqual([]);
+    });
   });
 });

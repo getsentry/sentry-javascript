@@ -95,31 +95,36 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
 }
 
 /**
- * Extract text content from a Google GenAI message part.
- * Parts are either plain strings or objects with a text property.
+ * Extract text content from a message part/item.
+ * Handles plain strings and objects with a text property.
  *
  * @returns The text content
  */
-function getPartText(part: TextPart | MediaPart): string {
+function getPartText(part: unknown): string {
   if (typeof part === 'string') {
     return part;
   }
-  if ('text' in part) return part.text;
+  if (typeof part === 'object' && part !== null && 'text' in part && typeof part.text === 'string') {
+    return part.text;
+  }
   return '';
 }
 
 /**
- * Create a new part with updated text content while preserving the original structure.
+ * Create a new part/item with updated text content while preserving the original structure.
  *
  * @param part - Original part (string or object)
  * @param text - New text content
  * @returns New part with updated text
  */
-function withPartText(part: TextPart | MediaPart, text: string): TextPart {
+function withPartText(part: unknown, text: string): unknown {
   if (typeof part === 'string') {
     return text;
   }
-  return { ...part, text };
+  if (typeof part === 'object' && part !== null) {
+    return { ...part, text };
+  }
+  return text;
 }
 
 /**
@@ -176,56 +181,63 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
 }
 
 /**
- * Truncate a message with `parts: [...]` format (Google GenAI).
- * Keeps as many complete parts as possible, only truncating the first part if needed.
+ * Truncate a message with an array-based format.
+ * Handles both `parts: [...]` (Google GenAI) and `content: [...]` (OpenAI/Anthropic multimodal).
+ * Keeps as many complete items as possible, only truncating the first item if needed.
  *
- * @param message - Message with parts array
+ * @param message - Message with parts or content array
  * @param maxBytes - Maximum byte limit
  * @returns Array with truncated message, or empty array if it doesn't fit
  */
-function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[] {
-  const { parts } = message;
+function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
+  const key = 'parts' in message ? 'parts' : 'content';
+  const rawItems = 'parts' in message ? message.parts : message.content;
+  const items: unknown[] = Array.isArray(rawItems) ? rawItems : [];
 
-  // Calculate overhead by creating empty text parts
-  const emptyParts = parts.map(part => withPartText(part, ''));
-  const overhead = jsonBytes({ ...message, parts: emptyParts });
+  if (items.length === 0) {
+    return [];
+  }
+
+  // Calculate overhead by creating empty text items
+  const emptyItems = items.map(item => withPartText(item, ''));
+  const overhead = jsonBytes({ ...message, [key]: emptyItems });
   let remainingBytes = maxBytes - overhead;
 
   if (remainingBytes <= 0) {
     return [];
   }
 
-  // Include parts until we run out of space
-  const includedParts: (TextPart | MediaPart)[] = [];
+  // Include items until we run out of space
+  const includedItems: unknown[] = [];
 
-  for (const part of parts) {
-    const text = getPartText(part);
+  for (const item of items) {
+    const text = getPartText(item);
     const textSize = utf8Bytes(text);
 
     if (textSize <= remainingBytes) {
-      // Part fits: include it as-is
-      includedParts.push(part);
+      // Item fits: include it as-is
+      includedItems.push(item);
       remainingBytes -= textSize;
-    } else if (includedParts.length === 0) {
-      // First part doesn't fit: truncate it
+    } else if (includedItems.length === 0) {
+      // First item doesn't fit: truncate it
       const truncated = truncateTextByBytes(text, remainingBytes);
       if (truncated) {
-        includedParts.push(withPartText(part, truncated));
+        includedItems.push(withPartText(item, truncated));
       }
       break;
     } else {
-      // Subsequent part doesn't fit: stop here
+      // Subsequent item doesn't fit: stop here
       break;
     }
   }
 
   /* c8 ignore start
    * for type safety only, algorithm guarantees SOME text included */
-  if (includedParts.length <= 0) {
+  if (includedItems.length <= 0) {
     return [];
   } else {
     /* c8 ignore stop */
-    return [{ ...message, parts: includedParts }];
+    return [{ ...message, [key]: includedItems }];
   }
 }
 
@@ -258,13 +270,8 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
     return truncateContentMessage(message, maxBytes);
   }
 
-  if (isContentArrayMessage(message)) {
-    // Content array messages are returned as-is without truncation
-    return [message];
-  }
-
-  if (isPartsMessage(message)) {
-    return truncatePartsMessage(message, maxBytes);
+  if (isContentArrayMessage(message) || isPartsMessage(message)) {
+    return truncateArrayMessage(message, maxBytes);
   }
 
   // Unknown message format: cannot truncate safely
@@ -348,6 +355,7 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
   const strippedMessage = stripped[0];
 
   // Check if it fits
+  console.log('strippedMessage', strippedMessage);
   const messageBytes = jsonBytes(strippedMessage);
   if (messageBytes <= effectiveMaxBytes) {
     return stripped;
