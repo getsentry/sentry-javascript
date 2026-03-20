@@ -47,7 +47,6 @@
     }
   },
   "dependencies": {
-    "@babel/parser": "7.26.9",
     "@sentry/cloudflare": "10.45.0",
     "@sentry/core": "10.45.0",
     "@sentry/node": "10.45.0",
