@@ -9,6 +9,7 @@ import {
   getClient,
   handleCallbackErrors,
   SDK_VERSION,
+  SPAN_STATUS_ERROR,
   withScope,
 } from '@sentry/core';
 import { INTEGRATION_NAME } from './constants';
@@ -263,7 +264,11 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
               // So to circumvent this, we set the active span on the error object
               // which is picked up by the unhandledrejection handler
               if (error && typeof error === 'object') {
-                addNonEnumerableProperty(error, '_sentry_active_span', getActiveSpan());
+                const activeSpan = getActiveSpan();
+                addNonEnumerableProperty(error, '_sentry_active_span', activeSpan);
+                if (activeSpan) {
+                  activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                }
               }
             },
             () => {},
