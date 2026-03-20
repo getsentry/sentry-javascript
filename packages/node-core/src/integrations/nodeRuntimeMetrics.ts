@@ -1,46 +1,19 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
-import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
+import { defineIntegration, flushIfServerless, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
-const EVENT_LOOP_DELAY_RESOLUTION_MS = 10;
 
 export interface NodeRuntimeMetricsOptions {
   /**
-   * Which metrics to collect.
-   *
-   * Default on (8 metrics):
-   * - `cpuUtilization` — CPU utilization ratio
-   * - `memRss` — Resident Set Size (actual memory footprint)
-   * - `memHeapUsed` — V8 heap currently in use
-   * - `memHeapTotal` — total V8 heap allocated (headroom paired with `memHeapUsed`)
-   * - `eventLoopDelayP50` — median event loop delay (baseline latency)
-   * - `eventLoopDelayP99` — 99th percentile event loop delay (tail latency / spikes)
-   * - `eventLoopUtilization` — fraction of time the event loop was active
-   * - `uptime` — process uptime (detect restarts/crashes)
-   *
-   * Default off (opt-in):
-   * - `cpuTime` — raw user/system CPU time in seconds
-   * - `memExternal` — external/ArrayBuffer memory (relevant for native addons)
-   * - `eventLoopDelayMin` / `eventLoopDelayMax` / `eventLoopDelayMean` / `eventLoopDelayP90`
+   * Which metric groups to collect. All groups are enabled by default.
    */
   collect?: {
-    // Default on
-    cpuUtilization?: boolean;
-    memHeapUsed?: boolean;
-    memRss?: boolean;
-    eventLoopDelayP99?: boolean;
+    cpu?: boolean;
+    memory?: boolean;
+    eventLoopDelay?: boolean;
     eventLoopUtilization?: boolean;
     uptime?: boolean;
-    // Default off
-    cpuTime?: boolean;
-    memHeapTotal?: boolean;
-    memExternal?: boolean;
-    eventLoopDelayMin?: boolean;
-    eventLoopDelayMax?: boolean;
-    eventLoopDelayMean?: boolean;
-    eventLoopDelayP50?: boolean;
-    eventLoopDelayP90?: boolean;
   };
   /**
    * How often to collect metrics, in milliseconds.
@@ -64,132 +37,64 @@ export interface NodeRuntimeMetricsOptions {
 export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRuntimeMetricsOptions = {}) => {
   const collectionIntervalMs = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
   const collect = {
-    // Default on
-    cpuUtilization: true,
-    memHeapUsed: true,
-    memHeapTotal: true,
-    memRss: true,
-    eventLoopDelayP50: true,
-    eventLoopDelayP99: true,
+    cpu: true,
+    memory: true,
+    eventLoopDelay: true,
     eventLoopUtilization: true,
     uptime: true,
-    // Default off
-    cpuTime: false,
-    memExternal: false,
-    eventLoopDelayMin: false,
-    eventLoopDelayMax: false,
-    eventLoopDelayMean: false,
-    eventLoopDelayP90: false,
     ...options.collect,
   };
-
-  const needsEventLoopDelay =
-    collect.eventLoopDelayP99 ||
-    collect.eventLoopDelayMin ||
-    collect.eventLoopDelayMax ||
-    collect.eventLoopDelayMean ||
-    collect.eventLoopDelayP50 ||
-    collect.eventLoopDelayP90;
-
-  const needsCpu = collect.cpuUtilization || collect.cpuTime;
 
   let intervalId: ReturnType<typeof setInterval> | undefined;
   let prevCpuUsage: NodeJS.CpuUsage | undefined;
   let prevElu: ReturnType<typeof performance.eventLoopUtilization> | undefined;
-  let prevFlushTime: number = 0;
+  let prevFlushTime: number | undefined;
   let eventLoopDelayHistogram: ReturnType<typeof monitorEventLoopDelay> | undefined;
 
-  const resolutionNs = EVENT_LOOP_DELAY_RESOLUTION_MS * 1e6;
-  const nsToS = (ns: number): number => Math.max(0, (ns - resolutionNs) / 1e9);
-
-  const METRIC_ATTRIBUTES = { attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
-
   function collectMetrics(): void {
-    const now = _INTERNAL_safeDateNow();
-    const elapsed = now - prevFlushTime;
+    const now = Date.now();
+    const elapsed = now - (prevFlushTime ?? now);
 
-    if (needsCpu && prevCpuUsage !== undefined) {
+    if (collect.cpu && prevCpuUsage !== undefined) {
       const delta = process.cpuUsage(prevCpuUsage);
-
-      if (collect.cpuTime) {
-        metrics.gauge('node.runtime.cpu.user', delta.user / 1e6, METRIC_ATTRIBUTES_SECOND);
-        metrics.gauge('node.runtime.cpu.system', delta.system / 1e6, METRIC_ATTRIBUTES_SECOND);
-      }
-      if (collect.cpuUtilization && elapsed > 0) {
+      metrics.gauge('node.runtime.cpu.user', delta.user / 1e6, { unit: 'second' });
+      metrics.gauge('node.runtime.cpu.system', delta.system / 1e6, { unit: 'second' });
+      if (elapsed > 0) {
         // Ratio of CPU time to wall-clock time. Can exceed 1.0 on multi-core systems.
         // TODO: In cluster mode, add a runtime_id/process_id attribute to disambiguate per-worker metrics.
-        metrics.gauge(
-          'node.runtime.cpu.utilization',
-          (delta.user + delta.system) / (elapsed * 1000),
-          METRIC_ATTRIBUTES,
-        );
+        metrics.gauge('node.runtime.cpu.percent', (delta.user + delta.system) / (elapsed * 1000), { unit: '1' });
       }
-
       prevCpuUsage = process.cpuUsage();
     }
 
-    if (collect.memRss || collect.memHeapUsed || collect.memHeapTotal || collect.memExternal) {
+    if (collect.memory) {
       const mem = process.memoryUsage();
-      if (collect.memRss) {
-        metrics.gauge('node.runtime.mem.rss', mem.rss, METRIC_ATTRIBUTES_BYTE);
-      }
-      if (collect.memHeapUsed) {
-        metrics.gauge('node.runtime.mem.heap_used', mem.heapUsed, METRIC_ATTRIBUTES_BYTE);
-      }
-      if (collect.memHeapTotal) {
-        metrics.gauge('node.runtime.mem.heap_total', mem.heapTotal, METRIC_ATTRIBUTES_BYTE);
-      }
-      if (collect.memExternal) {
-        metrics.gauge('node.runtime.mem.external', mem.external, METRIC_ATTRIBUTES_BYTE);
-        metrics.gauge('node.runtime.mem.array_buffers', mem.arrayBuffers, METRIC_ATTRIBUTES_BYTE);
+      metrics.gauge('node.runtime.mem.rss', mem.rss, { unit: 'byte' });
+      metrics.gauge('node.runtime.mem.heap_total', mem.heapTotal, { unit: 'byte' });
+      metrics.gauge('node.runtime.mem.heap_used', mem.heapUsed, { unit: 'byte' });
+      metrics.gauge('node.runtime.mem.external', mem.external, { unit: 'byte' });
+      if (mem.arrayBuffers !== undefined) {
+        metrics.gauge('node.runtime.mem.array_buffers', mem.arrayBuffers, { unit: 'byte' });
       }
     }
 
-    if (needsEventLoopDelay && eventLoopDelayHistogram) {
-      if (collect.eventLoopDelayMin) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.min',
-          nsToS(eventLoopDelayHistogram.min),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
-      if (collect.eventLoopDelayMax) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.max',
-          nsToS(eventLoopDelayHistogram.max),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
-      if (collect.eventLoopDelayMean) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.mean',
-          nsToS(eventLoopDelayHistogram.mean),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
-      if (collect.eventLoopDelayP50) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.p50',
-          nsToS(eventLoopDelayHistogram.percentile(50)),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
-      if (collect.eventLoopDelayP90) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.p90',
-          nsToS(eventLoopDelayHistogram.percentile(90)),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
-      if (collect.eventLoopDelayP99) {
-        metrics.gauge(
-          'node.runtime.event_loop.delay.p99',
-          nsToS(eventLoopDelayHistogram.percentile(99)),
-          METRIC_ATTRIBUTES_SECOND,
-        );
-      }
+    if (collect.eventLoopDelay && eventLoopDelayHistogram) {
+      // Resolution is 10ms (10_000_000 ns) as configured below. Subtract it to normalize out sampling overhead.
+      const resolutionNs = 10_000_000;
+      const nsToS = (ns: number): number => Math.max(0, (ns - resolutionNs) / 1e9);
+
+      metrics.gauge('node.runtime.event_loop.delay.min', nsToS(eventLoopDelayHistogram.min), { unit: 'second' });
+      metrics.gauge('node.runtime.event_loop.delay.max', nsToS(eventLoopDelayHistogram.max), { unit: 'second' });
+      metrics.gauge('node.runtime.event_loop.delay.mean', nsToS(eventLoopDelayHistogram.mean), { unit: 'second' });
+      metrics.gauge('node.runtime.event_loop.delay.p50', nsToS(eventLoopDelayHistogram.percentile(50)), {
+        unit: 'second',
+      });
+      metrics.gauge('node.runtime.event_loop.delay.p90', nsToS(eventLoopDelayHistogram.percentile(90)), {
+        unit: 'second',
+      });
+      metrics.gauge('node.runtime.event_loop.delay.p99', nsToS(eventLoopDelayHistogram.percentile(99)), {
+        unit: 'second',
+      });
 
       eventLoopDelayHistogram.reset();
     }
@@ -197,12 +102,12 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
     if (collect.eventLoopUtilization && prevElu !== undefined) {
       const currentElu = performance.eventLoopUtilization();
       const delta = performance.eventLoopUtilization(currentElu, prevElu);
-      metrics.gauge('node.runtime.event_loop.utilization', delta.utilization, METRIC_ATTRIBUTES);
+      metrics.gauge('node.runtime.event_loop.utilization', delta.utilization, { unit: '1' });
       prevElu = currentElu;
     }
 
     if (collect.uptime && elapsed > 0) {
-      metrics.count('node.runtime.process.uptime', elapsed / 1000, METRIC_ATTRIBUTES_SECOND);
+      metrics.count('node.runtime.process.uptime', elapsed / 1000, { unit: 'second' });
     }
 
     prevFlushTime = now;
@@ -212,32 +117,34 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
     name: INTEGRATION_NAME,
 
     setup(): void {
-      if (needsEventLoopDelay) {
-        // Disable any previous histogram before overwriting (prevents native resource leak on re-init).
-        eventLoopDelayHistogram?.disable();
+      if (collect.eventLoopDelay) {
         try {
-          eventLoopDelayHistogram = monitorEventLoopDelay({ resolution: EVENT_LOOP_DELAY_RESOLUTION_MS });
+          eventLoopDelayHistogram = monitorEventLoopDelay({ resolution: 10 });
           eventLoopDelayHistogram.enable();
         } catch {
           // Not available in all runtimes (e.g. Bun throws NotImplementedError).
-          eventLoopDelayHistogram = undefined;
         }
       }
 
       // Prime baselines before the first collection interval.
-      if (needsCpu) {
+      if (collect.cpu) {
         prevCpuUsage = process.cpuUsage();
       }
       if (collect.eventLoopUtilization) {
         prevElu = performance.eventLoopUtilization();
       }
-      prevFlushTime = _INTERNAL_safeDateNow();
+      prevFlushTime = Date.now();
 
-      // Guard against double setup (e.g. re-init).
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-      intervalId = _INTERNAL_safeUnref(setInterval(collectMetrics, collectionIntervalMs));
+      intervalId = setInterval(collectMetrics, collectionIntervalMs);
+      // Do not keep the process alive solely for metric collection.
+      intervalId.unref();
+
+      // In serverless environments the process may not live long enough to hit the interval.
+      // Collect and flush eagerly whenever the event loop drains (end of invocation).
+      process.on('beforeExit', () => {
+        collectMetrics();
+        void flushIfServerless();
+      });
     },
   };
 });
