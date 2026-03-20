@@ -1,11 +1,5 @@
-import {
-  debug,
-  flushIfServerless,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  withIsolationScope,
-} from '@sentry/core';
-import type { EventHandler, H3Event } from 'h3';
+import { debug } from '@sentry/core';
+import type { H3Event } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
@@ -13,8 +7,6 @@ import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 
 export default (nitroApp => {
-  nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
-
   nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
@@ -37,26 +29,3 @@ export default (nitroApp => {
     }
   });
 }) satisfies NitroAppPlugin;
-
-function patchEventHandler(handler: EventHandler): EventHandler {
-  return new Proxy(handler, {
-    async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<EventHandler>) {
-      const isolationScope = getIsolationScope();
-      const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
-
-      debug.log(
-        `Patched h3 event handler. ${
-          isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
-        } isolation scope.`,
-      );
-
-      return withIsolationScope(newIsolationScope, async () => {
-        try {
-          return await handlerTarget.apply(handlerThisArg, handlerArgs);
-        } finally {
-          await flushIfServerless();
-        }
-      });
-    },
-  });
-}
