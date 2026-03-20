@@ -1,3 +1,4 @@
+/// <reference types="@nuxt/nitro-server" />
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';

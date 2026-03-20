@@ -1,3 +1,4 @@
+/// <reference types="@nuxt/nitro-server" />
 import { useNuxt } from '@nuxt/kit';
 import type { NuxtTemplate } from '@nuxt/schema';
 
