@@ -188,10 +188,10 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
 }
 
 /**
- * Picks content array on the message that should be truncated (`parts` or `content`).
- * Returns `null` if neither field has a truncateable array.
+ * Extracts the array items and their key from an array-based message.
+ * Returns `null` key if neither `parts` nor `content` is a valid array.
  */
-function resolvePartsOrContentForTruncation(message: PartsMessage | ContentArrayMessage): {
+function getArrayItems(message: PartsMessage | ContentArrayMessage): {
   key: 'parts' | 'content' | null;
   items: ArrayMessageItem[];
 } {
@@ -214,7 +214,7 @@ function resolvePartsOrContentForTruncation(message: PartsMessage | ContentArray
  * @returns Array with truncated message, or empty array if it doesn't fit
  */
 function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
-  const { key, items } = resolvePartsOrContentForTruncation(message);
+  const { key, items } = getArrayItems(message);
 
   if (key === null || items.length === 0) {
     return [];
