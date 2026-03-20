@@ -45,7 +45,13 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": ">=3.7.0 || 4.x"
+    "nuxt": ">=3.7.0 || 4.x",
+    "nitro": "3.x"
+  },
+  "peerDependenciesMeta": {
+    "nitro": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
