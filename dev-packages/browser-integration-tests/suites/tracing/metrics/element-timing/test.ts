@@ -96,14 +96,7 @@ sentryTest(
     await page.goto(url);
 
     // Wait until all expected element identifiers have been flushed as metrics
-    await collector.waitForIdentifiers([
-      'image-fast',
-      'text1',
-      'button1',
-      'image-slow',
-      'lazy-image',
-      'lazy-text',
-    ]);
+    await collector.waitForIdentifiers(['image-fast', 'text1', 'button1', 'image-slow', 'lazy-image', 'lazy-text']);
 
     const allMetrics = collector.getAll().filter(m => m.name.startsWith('element_timing.'));
     const renderTimeMetrics = allMetrics.filter(m => m.name === 'element_timing.render_time');
