@@ -31,21 +31,34 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
     return cached;
   }
 
-  let impl = WINDOW[name] as CacheableImplementations[T];
+  const cacheAndReturn = (impl: CacheableImplementations[T]) => (cachedImplementations[name] = impl.bind(WINDOW));
+
+  const windowImpl = WINDOW[name] as CacheableImplementations[T];
 
   // Fast path to avoid DOM I/O
-  if (isNativeFunction(impl)) {
-    return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
+  if (isNativeFunction(windowImpl)) {
+    return cacheAndReturn(windowImpl);
   }
 
-  const nativeImpl = getNativeImplementationFromIframe(name);
-  if (!nativeImpl) {
-    // Sanity check: this _should_ not happen, but if it does, we just skip caching...
-    // This can happen e.g. in tests where fetch may not be available in the env, or similar.
-    return impl;
+  const iframeImpl = getNativeImplementationFromIframe(name);
+  if (iframeImpl) {
+    return cacheAndReturn(iframeImpl);
   }
 
-  return (cachedImplementations[name] = nativeImpl.bind(WINDOW) as CacheableImplementations[T]);
+  // This is a really weird fallback but here's what's going on:
+  // We're just being extra careful here. According to types, windowImpl is _always_ defined.
+  // However, in some very rare cases (for example test environments), it may in fact not be defined.
+  // In exactly this case, if we fail to get an iframeImpl, AND no windowImpl either,
+  // we skip caching and just return effectively undefined (despite types saying it's always defined)
+  // This basically tricks TS into thinking this function never returns `undefined` which
+  // for the most part is true.
+  if (!windowImpl) {
+    return windowImpl; // but actually return undefined
+  }
+
+  // If _only_ iframeImpl is undefined and windowImpl is defined and not not native, we end up here
+  // In this case, we deliberately cache the windowImpl.
+  return cacheAndReturn(windowImpl);
 }
 
 /** Clear a cached implementation. */
