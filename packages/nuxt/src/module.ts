@@ -1,3 +1,4 @@
+/// <reference types="@nuxt/nitro-server" />
 import {
   addPlugin,
   addPluginTemplate,
