@@ -7,7 +7,7 @@ import { patchEventHandler } from '../utils/patchEventHandler';
  */
 export default ((nitroApp: NitroApp) => {
   if (nitroApp?.h3?.handler) {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // oxlint-disable-next-line @typescript-eslint/unbound-method
     nitroApp.h3.handler = patchEventHandler<EventHandler>(nitroApp.h3.handler);
   }
 }) satisfies NitroAppPlugin;
