@@ -15030,10 +15030,10 @@ effect@3.16.12:
     "@standard-schema/spec" "^1.0.0"
     fast-check "^3.23.1"
 
-effect@^3.19.19:
-  version "3.19.19"
-  resolved "https://registry.yarnpkg.com/effect/-/effect-3.19.19.tgz#643a5a4b7445cc924a28270bc6cd1a5c8facd27e"
-  integrity sha512-Yc8U/SVXo2dHnaP7zNBlAo83h/nzSJpi7vph6Hzyl4ulgMBIgPmz3UzOjb9sBgpFE00gC0iETR244sfXDNLHRg==
+effect@^3.20.0:
+  version "3.20.0"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-3.20.0.tgz#827752d2c90f0a12562f1fdac3bf0197d067fd6a"
+  integrity sha512-qMLfDJscrNG8p/aw+IkT9W7fgj50Z4wG5bLBy0Txsxz8iUHjDIkOgO3SV0WZfnQbNG2VJYb0b+rDLMrhM4+Krw==
   dependencies:
     "@standard-schema/spec" "^1.0.0"
     fast-check "^3.23.1"
