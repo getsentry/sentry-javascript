@@ -928,15 +928,10 @@ describe('Vercel AI integration', () => {
     test('does not overwrite conversation id set via Sentry.setConversationId with responseId from provider metadata', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'main',
-            spans: expect.arrayContaining([
-              expect.objectContaining({
-                data: expect.objectContaining({
-                  'gen_ai.conversation.id': 'conv-a',
-                }),
-              }),
-            ]),
+          transaction: transaction => {
+            for (const span of transaction.spans ?? []) {
+              expect(span.data?.['gen_ai.conversation.id']).toBe('conv-a');
+            }
           },
         })
         .start()
