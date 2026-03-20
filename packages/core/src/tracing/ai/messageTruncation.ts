@@ -355,7 +355,6 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
   const strippedMessage = stripped[0];
 
   // Check if it fits
-  console.log('strippedMessage', strippedMessage);
   const messageBytes = jsonBytes(strippedMessage);
   if (messageBytes <= effectiveMaxBytes) {
     return stripped;
