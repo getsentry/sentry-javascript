@@ -87,7 +87,7 @@ describe('mergeBaggageHeaders', () => {
   it('handles array-type existing baggage', () => {
     const result = mergeBaggageHeaders(['foo=bar', 'other=vendor'], 'sentry-release=1.0.0');
 
-    const entries = result?.split(',');
+    const entries = (result as string)?.split(',');
     expect(entries).toContain('foo=bar');
     expect(entries).toContain('other=vendor');
     expect(entries).toContain('sentry-release=1.0.0');
@@ -115,7 +115,7 @@ describe('mergeBaggageHeaders', () => {
     expect(entries).not.toContain('sentry-environment=old');
   });
 
-  it('matches OTEL propagation.inject() behavior for Sentry keys', () => {
+  it('overwrites existing Sentry entries with new SDK values', () => {
     const result = mergeBaggageHeaders(
       'sentry-trace_id=abc123,sentry-sampled=false,non-sentry=keep',
       'sentry-trace_id=xyz789,sentry-sampled=true',
@@ -127,5 +127,30 @@ describe('mergeBaggageHeaders', () => {
     expect(entries).toContain('non-sentry=keep');
     expect(entries).not.toContain('sentry-trace_id=abc123');
     expect(entries).not.toContain('sentry-sampled=false');
+  });
+
+  it('merges non-conflicting baggage entries', () => {
+    const existing = 'custom-key=value';
+    const newBaggage = 'sentry-environment=production';
+    const result = mergeBaggageHeaders(existing, newBaggage);
+    expect(result).toContain('custom-key=value');
+    expect(result).toContain('sentry-environment=production');
+  });
+
+  it('overwrites existing Sentry entries when keys conflict', () => {
+    const existing = 'sentry-environment=staging';
+    const newBaggage = 'sentry-environment=production';
+    const result = mergeBaggageHeaders(existing, newBaggage);
+    expect(result).toBe('sentry-environment=production');
+  });
+
+  it('handles multiple entries with Sentry conflicts', () => {
+    const existing = 'custom-key=value1,sentry-environment=staging';
+    const newBaggage = 'sentry-environment=production,sentry-trace_id=123';
+    const result = mergeBaggageHeaders(existing, newBaggage);
+    expect(result).toContain('custom-key=value1');
+    expect(result).toContain('sentry-environment=production');
+    expect(result).toContain('sentry-trace_id=123');
+    expect(result).not.toContain('sentry-environment=staging');
   });
 });

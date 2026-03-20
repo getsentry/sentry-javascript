@@ -92,7 +92,9 @@ export function addTracePropagationHeadersToOutgoingRequest(
   }
 
   if (baggage) {
-    const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
+    const existingBaggage = request.getHeader('baggage');
+
+    const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
     if (newBaggage) {
       try {
         request.setHeader('baggage', newBaggage);

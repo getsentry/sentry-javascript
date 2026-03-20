@@ -1,4 +1,4 @@
-import { objectToBaggageHeader, parseBaggageHeader } from '@sentry/core';
+import { objectToBaggageHeader, parseBaggageHeader, SENTRY_BAGGAGE_KEY_PREFIX } from '@sentry/core';
 
 /**
  * Merge two baggage headers into one.
@@ -29,7 +29,7 @@ export function mergeBaggageHeaders<Existing extends string | string[] | number 
   Object.entries(newBaggageEntries).forEach(([key, value]) => {
     // Sentry-specific keys always take precedence from new baggage
     // Non-Sentry keys only added if not already present
-    if (key.startsWith('sentry-') || !mergedBaggageEntries[key]) {
+    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX) || !mergedBaggageEntries[key]) {
       mergedBaggageEntries[key] = value;
     }
   });

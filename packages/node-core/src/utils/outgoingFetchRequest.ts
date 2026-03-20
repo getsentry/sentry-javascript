@@ -14,8 +14,8 @@ import { mergeBaggageHeaders } from './baggage';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
 
-// For baggage, we make sure to merge this into a possibly existing header
-const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
+const BAGGAGE_HEADER_REGEX_GLOBAL = /baggage: (.*)\r\n/g;
+const SENTRY_TRACE_HEADER_REGEX_GLOBAL = /sentry-trace: .*\r\n/g;
 
 /**
  * Add trace propagation headers to an outgoing fetch/undici request.
@@ -60,15 +60,44 @@ export function addTracePropagationHeadersToFetchRequest(
       requestHeaders.push('traceparent', traceparent);
     }
 
-    // For baggage, we make sure to merge this into a possibly existing header
-    const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
-    if (baggage && existingBaggagePos === -1) {
+    // Consolidate all duplicate baggage entries into one, then merge with our new baggage.
+    // OTel's UndiciInstrumentation may append a second baggage header via propagation.inject(),
+    // so we need to handle multiple entries — not just the first one.
+    const baggagePositions: number[] = [];
+    for (let i = 0; i < requestHeaders.length; i++) {
+      if (requestHeaders[i] === SENTRY_BAGGAGE_HEADER) {
+        baggagePositions.push(i);
+      }
+    }
+
+    if (baggage && !baggagePositions.length) {
       requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
     } else if (baggage) {
-      const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
+      // First, consolidate all existing baggage values into one
+      let consolidatedBaggage = requestHeaders[baggagePositions[0]! + 1] as string;
+      for (let i = baggagePositions.length - 1; i >= 1; i--) {
+        const pos = baggagePositions[i]!;
+        const val = requestHeaders[pos + 1] as string;
+        consolidatedBaggage = mergeBaggageHeaders(consolidatedBaggage, val) || consolidatedBaggage;
+        requestHeaders.splice(pos, 2);
+      }
+
+      // Then merge with the new baggage we want to add
+      const merged = mergeBaggageHeaders(consolidatedBaggage, baggage);
       if (merged) {
-        requestHeaders[existingBaggagePos + 1] = merged;
+        requestHeaders[baggagePositions[0]! + 1] = merged;
+      }
+    }
+
+    // Also deduplicate sentry-trace headers — keep only the first occurrence.
+    // OTel's UndiciInstrumentation may have appended a second one via propagation.inject().
+    let firstSentryTraceFound = false;
+    for (let i = requestHeaders.length - 2; i >= 0; i--) {
+      if (requestHeaders[i] === SENTRY_TRACE_HEADER) {
+        if (firstSentryTraceFound) {
+          requestHeaders.splice(i, 2);
+        }
+        firstSentryTraceFound = true;
       }
     }
   } else {
@@ -82,15 +111,37 @@ export function addTracePropagationHeadersToFetchRequest(
       request.headers += `traceparent: ${traceparent}\r\n`;
     }
 
-    const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
-    if (baggage && !existingBaggage) {
-      request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
-    } else if (baggage) {
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
+    // Consolidate all duplicate baggage entries into one, then merge with our new baggage.
+    // OTel's UndiciInstrumentation may append a second baggage header via propagation.inject(),
+    // so we need to handle multiple entries — not just the first one.
+    const allBaggageMatches = request.headers.matchAll(BAGGAGE_HEADER_REGEX_GLOBAL);
+    let consolidatedBaggage: string | undefined;
+    for (const match of allBaggageMatches) {
+      if (match[1]) {
+        consolidatedBaggage = consolidatedBaggage
+          ? mergeBaggageHeaders(consolidatedBaggage, match[1]) || consolidatedBaggage
+          : match[1];
       }
     }
+
+    // Remove all existing baggage entries
+    request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX_GLOBAL, '');
+
+    if (baggage && !consolidatedBaggage) {
+      request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
+    } else if (baggage && consolidatedBaggage) {
+      const merged = mergeBaggageHeaders(consolidatedBaggage, baggage);
+      if (merged) {
+        request.headers += `${SENTRY_BAGGAGE_HEADER}: ${merged}\r\n`;
+      }
+    }
+
+    // Deduplicate sentry-trace headers — keep only the first occurrence.
+    let sentryTraceCount = 0;
+    request.headers = request.headers.replace(SENTRY_TRACE_HEADER_REGEX_GLOBAL, match => {
+      sentryTraceCount++;
+      return sentryTraceCount === 1 ? match : '';
+    });
   }
 }
 
