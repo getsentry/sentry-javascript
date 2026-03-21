@@ -14,7 +14,18 @@ export function makeFetchTransport(options: BaseTransportOptions): Transport {
 
     try {
       return suppressTracing(() => {
-        return fetch(options.url, requestOptions).then(response => {
+        return fetch(options.url, requestOptions).then(async response => {
+          // Consume the response body to prevent memory leaks in Bun's fetch implementation.
+          // Bun retains the backing ArrayBuffer of unconsumed response bodies indefinitely,
+          // causing memory to accumulate when sending many Sentry envelopes.
+          // See: https://github.com/getsentry/sentry-javascript/issues/18534
+          try {
+            await response.text();
+          } catch {
+            // We don't care about the response body, but consuming it is necessary
+            // to prevent memory leaks in Bun's fetch implementation
+          }
+
           return {
             statusCode: response.status,
             headers: {
