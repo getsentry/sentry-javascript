@@ -17,7 +17,9 @@ export function makeFetchTransport(options: BaseTransportOptions): Transport {
         return fetch(options.url, requestOptions).then(response => {
           // Drain response body to prevent Bun from retaining the backing ArrayBuffer.
           // See: https://github.com/oven-sh/bun/issues/10763, https://github.com/oven-sh/bun/issues/27358
-          void response.text().catch(() => {});
+          // try/catch: guards against synchronous TypeError if response.text is not a function.
+          // .catch(): handles async rejection if body read fails mid-stream (prevents unhandled promise rejection).
+          try { void response.text().catch(() => {}); } catch {} // eslint-disable-line no-empty
 
           return {
             statusCode: response.status,
