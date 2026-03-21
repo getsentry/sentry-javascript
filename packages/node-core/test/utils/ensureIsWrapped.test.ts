@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ensureIsWrapped } from '../../src/utils/ensureIsWrapped';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
+import { markFunctionWrapped } from '@sentry/core';
 
 const unwrappedFunction = () => {};
 
@@ -66,6 +67,26 @@ describe('ensureIsWrapped', () => {
     mockSdkInit({ tracesSampleRate: 1, disableInstrumentationWarnings: true });
 
     ensureIsWrapped(unwrappedFunction, 'express');
+
+    expect(spyWarn).toHaveBeenCalledTimes(0);
+  });
+
+  it('does not warn when the method is wrapped by @sentry/core', () => {
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mockSdkInit({ tracesSampleRate: 1 });
+
+    function original() {
+      return 'i am original';
+    }
+
+    function sentryWrapped() {
+      return original();
+    }
+
+    markFunctionWrapped(sentryWrapped, original);
+
+    ensureIsWrapped(sentryWrapped, 'express');
 
     expect(spyWarn).toHaveBeenCalledTimes(0);
   });
