@@ -116,6 +116,18 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+export {
+  unpatchExpressModule,
+  patchExpressModule,
+  setupExpressErrorHandler,
+  expressErrorHandler,
+} from './integrations/express/index';
+export type {
+  ExpressIntegrationOptions,
+  ExpressHandlerOptions,
+  ExpressMiddleware,
+  ExpressErrorMiddleware,
+} from './integrations/express/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';

@@ -72,7 +72,6 @@
     "@opentelemetry/instrumentation-amqplib": "0.60.0",
     "@opentelemetry/instrumentation-connect": "0.56.0",
     "@opentelemetry/instrumentation-dataloader": "0.30.0",
-    "@opentelemetry/instrumentation-express": "0.61.0",
     "@opentelemetry/instrumentation-fs": "0.32.0",
     "@opentelemetry/instrumentation-generic-pool": "0.56.0",
     "@opentelemetry/instrumentation-graphql": "0.61.0",
