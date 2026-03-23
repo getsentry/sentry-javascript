@@ -133,6 +133,8 @@ export type {
   ExpressMiddleware,
   ExpressErrorMiddleware,
 } from './integrations/express/types';
+export { patchConnectModule, setupConnectErrorHandler } from './integrations/connect/index';
+export type { ConnectIntegrationOptions, ConnectModule } from './integrations/connect/index';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';

@@ -1,29 +1,67 @@
-import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
-import type { IntegrationFn, Span } from '@sentry/core';
+// Automatic instrumentation for Connect using our portable core integration
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { context } from '@opentelemetry/api';
+import { getRPCMetadata, RPCType } from '@opentelemetry/core';
+
+import type { ConnectIntegrationOptions, ConnectModule, IntegrationFn } from '@sentry/core';
 import {
-  captureException,
+  patchConnectModule,
+  setupConnectErrorHandler as coreSetupConnectErrorHandler,
+  SDK_VERSION,
   defineIntegration,
-  getClient,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
 } from '@sentry/core';
 import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 
 type ConnectApp = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line no-explicit-any
   use: (middleware: any) => void;
 };
 
 const INTEGRATION_NAME = 'Connect';
+const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
 
-export const instrumentConnect = generateInstrumentOnce(INTEGRATION_NAME, () => new ConnectInstrumentation());
+export type ConnectInstrumentationConfig = InstrumentationConfig & Omit<ConnectIntegrationOptions, 'onRouteResolved'>;
 
-const _connectIntegration = (() => {
+export const instrumentConnect = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  (options?: ConnectInstrumentationConfig) => new ConnectInstrumentation(options),
+);
+
+export class ConnectInstrumentation extends InstrumentationBase<ConnectInstrumentationConfig> {
+  public constructor(config: ConnectInstrumentationConfig = {}) {
+    super('sentry-connect', SDK_VERSION, config);
+  }
+
+  public init(): InstrumentationNodeModuleDefinition {
+    let originalConnect: ConnectModule | undefined;
+
+    return new InstrumentationNodeModuleDefinition(
+      'connect',
+      SUPPORTED_VERSIONS,
+      connect => {
+        originalConnect = connect as ConnectModule;
+        return patchConnectModule(connect as ConnectModule, {
+          onRouteResolved(route) {
+            const rpcMetadata = getRPCMetadata(context.active());
+            if (route && rpcMetadata?.type === RPCType.HTTP) {
+              rpcMetadata.route = route;
+            }
+          },
+        });
+      },
+      () => {
+        return originalConnect;
+      },
+    );
+  }
+}
+
+const _connectIntegration = ((options?: ConnectInstrumentationConfig) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentConnect();
+      instrumentConnect(options);
     },
   };
 }) satisfies IntegrationFn;
@@ -46,17 +84,6 @@ const _connectIntegration = (() => {
  */
 export const connectIntegration = defineIntegration(_connectIntegration);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
-  captureException(err, {
-    mechanism: {
-      handled: false,
-      type: 'auto.middleware.connect',
-    },
-  });
-  next(err);
-}
-
 /**
  * Add a Connect middleware to capture errors to Sentry.
  *
@@ -71,46 +98,12 @@ function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
  *
  * Sentry.setupConnectErrorHandler(app);
  *
- * // Add you connect routes here
+ * // Add your connect routes here
  *
  * app.listen(3000);
  * ```
  */
 export const setupConnectErrorHandler = (app: ConnectApp): void => {
-  app.use(connectErrorMiddleware);
-
-  // Sadly, ConnectInstrumentation has no requestHook, so we need to add the attributes here
-  // We register this hook in this method, because if we register it in the integration `setup`,
-  // it would always run even for users that are not even using connect
-  const client = getClient();
-  if (client) {
-    client.on('spanStart', span => {
-      addConnectSpanAttributes(span);
-    });
-  }
-
+  coreSetupConnectErrorHandler(app);
   ensureIsWrapped(app.use, 'connect');
 };
-
-function addConnectSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data;
-
-  // this is one of: middleware, request_handler
-  const type = attributes['connect.type'];
-
-  // If this is already set, or we have no connect span, no need to process again...
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
-    return;
-  }
-
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.connect',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.connect`,
-  });
-
-  // Also update the name, we don't need the "middleware - " prefix
-  const name = attributes['connect.name'];
-  if (typeof name === 'string') {
-    span.updateName(name);
-  }
-}
