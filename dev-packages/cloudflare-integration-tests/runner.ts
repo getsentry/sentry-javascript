@@ -105,6 +105,7 @@ export function createRunner(...paths: string[]) {
       let envelopeCount = 0;
       const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
       let child: ReturnType<typeof spawn> | undefined;
+      let childSubWorker: ReturnType<typeof spawn> | undefined;
 
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
@@ -168,7 +169,7 @@ export function createRunner(...paths: string[]) {
       }
 
       createBasicSentryServer(newEnvelope)
-        .then(([mockServerPort, mockServerClose]) => {
+        .then(async ([mockServerPort, mockServerClose]) => {
           if (mockServerClose) {
             CLEANUP_STEPS.add(() => {
               mockServerClose();
@@ -180,6 +181,54 @@ export function createRunner(...paths: string[]) {
           const stdio: ('inherit' | 'ipc' | 'ignore')[] = process.env.DEBUG
             ? ['inherit', 'inherit', 'inherit', 'ipc']
             : ['ignore', 'ignore', 'ignore', 'ipc'];
+
+          const onChildError = (e: Error) => {
+            // eslint-disable-next-line no-console
+            console.error('Error starting child process:', e);
+            reject(e);
+          };
+
+          function onChildMessage(
+            message: string,
+            onReady?: (port: number) => void,
+          ): void {
+            const msg = JSON.parse(message) as { event: string; port?: number };
+            if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
+              if (process.env.DEBUG) log('worker ready on port', msg.port);
+              onReady?.(msg.port);
+            }
+          }
+
+          if (existsSync(join(testPath, 'wrangler-sub-worker.jsonc'))) {
+            childSubWorker = spawn(
+              'wrangler',
+              [
+                'dev',
+                '--config',
+                join(testPath, 'wrangler-sub-worker.jsonc'),
+                '--show-interactive-dev-session',
+                'false',
+                '--var',
+                `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
+                '--port',
+                '0',
+                '--inspector-port',
+                '0',
+              ],
+              { stdio, signal },
+            );
+
+            // Wait for the sub-worker to be ready before starting the main worker
+            await new Promise<void>((resolveSubWorker, rejectSubWorker) => {
+              childSubWorker!.on('message', (msg: string) =>
+                onChildMessage(msg, () => resolveSubWorker()),
+              );
+              childSubWorker!.on('error', rejectSubWorker);
+              childSubWorker!.on('exit', code => {
+                rejectSubWorker(new Error(`Sub-worker exited with code ${code}`));
+              });
+            });
+          }
 
           child = spawn(
             'wrangler',
@@ -199,21 +248,12 @@ export function createRunner(...paths: string[]) {
 
           CLEANUP_STEPS.add(() => {
             child?.kill();
+            childSubWorker?.kill();
           });
 
-          child.on('error', e => {
-            // eslint-disable-next-line no-console
-            console.error('Error starting child process:', e);
-            reject(e);
-          });
-
-          child.on('message', (message: string) => {
-            const msg = JSON.parse(message) as { event: string; port?: number };
-            if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
-              setWorkerPort(msg.port);
-              if (process.env.DEBUG) log('worker ready on port', msg.port);
-            }
-          });
+          childSubWorker?.on('error', onChildError);
+          child.on('error', onChildError);
+          child.on('message', (msg: string) => onChildMessage(msg, setWorkerPort));
         })
         .catch(e => reject(e));
 
