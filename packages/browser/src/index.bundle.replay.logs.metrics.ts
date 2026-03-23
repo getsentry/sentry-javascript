@@ -1,8 +1,4 @@
-import {
-  browserTracingIntegrationShim,
-  elementTimingIntegrationShim,
-  feedbackIntegrationShim,
-} from '@sentry-internal/integration-shims';
+import { browserTracingIntegrationShim, feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
 
@@ -11,9 +7,10 @@ export { logger, consoleLoggingIntegration } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
 
+export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
-  elementTimingIntegrationShim as elementTimingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
 };

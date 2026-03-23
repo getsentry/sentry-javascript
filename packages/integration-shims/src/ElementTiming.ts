@@ -8,7 +8,7 @@ import { consoleSandbox, defineIntegration } from '@sentry/core';
 export const elementTimingIntegrationShim = defineIntegration(() => {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
-    console.warn('You are using elementTimingIntegration() even though this bundle does not include metrics.');
+    console.warn('You are using elementTimingIntegration() even though this bundle does not include element timing.');
   });
 
   return {
