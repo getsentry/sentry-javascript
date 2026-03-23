@@ -1,5 +1,6 @@
 import {
   browserTracingIntegrationShim,
+  elementTimingIntegrationShim,
   feedbackIntegrationShim,
   replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
@@ -11,6 +12,7 @@ export { logger, consoleLoggingIntegration } from '@sentry/core';
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
+  elementTimingIntegrationShim as elementTimingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
   replayIntegrationShim as replayIntegration,
