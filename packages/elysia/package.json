@@ -43,19 +43,14 @@
     "@sentry/core": "10.45.0"
   },
   "peerDependencies": {
-    "elysia": "^1.4.0",
-    "@elysiajs/opentelemetry": "^1.4.0"
+    "elysia": "^1.4.0"
   },
   "devDependencies": {
-    "@elysiajs/opentelemetry": "^1.4.0",
     "bun-types": "^1.2.9",
     "elysia": "^1.4.0"
   },
   "peerDependenciesMeta": {
     "elysia": {
-      "optional": false
-    },
-    "@elysiajs/opentelemetry": {
       "optional": false
     }
   },
