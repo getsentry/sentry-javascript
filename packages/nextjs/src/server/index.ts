@@ -94,6 +94,13 @@ export function showReportDialog(): void {
 }
 
 /**
+ * Noop on the server - this is a client-only API to capture Next.js router transitions.
+ */
+export function captureRouterTransitionStart(_href: string, _navigationType: string): void {
+  return;
+}
+
+/**
  * Returns the runtime configuration for the SDK based on the environment.
  * When running on OpenNext/Cloudflare, returns cloudflare runtime config.
  */

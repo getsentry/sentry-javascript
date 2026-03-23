@@ -151,3 +151,5 @@ export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegra
 export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
 export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
+
+export declare const captureRouterTransitionStart: typeof clientSdk.captureRouterTransitionStart;
