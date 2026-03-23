@@ -30579,7 +30579,7 @@ vite@^5.0.0, vite@^5.4.11, vite@^5.4.21:
   optionalDependencies:
     fsevents "~2.3.3"
 
-vite@^7.3.1:
+"vite@^5.0.0 || ^6.0.0 || ^7.0.0-0", vite@^7.3.1:
   version "7.3.1"
   resolved "https://registry.yarnpkg.com/vite/-/vite-7.3.1.tgz#7f6cfe8fb9074138605e822a75d9d30b814d6507"
   integrity sha512-w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA==
@@ -30593,7 +30593,7 @@ vite@^7.3.1:
   optionalDependencies:
     fsevents "~2.3.3"
 
-"vite@^5.0.0 || ^6.0.0 || ^7.0.0-0", vite@^6.0.0, vite@^6.1.0, vite@^6.4.1:
+vite@^6.0.0, vite@^6.1.0, vite@^6.4.1:
   version "6.4.1"
   resolved "https://registry.yarnpkg.com/vite/-/vite-6.4.1.tgz#afbe14518cdd6887e240a4b0221ab6d0ce733f96"
   integrity sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g==
