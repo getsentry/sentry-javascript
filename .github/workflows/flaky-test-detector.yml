@@ -30,9 +30,9 @@ jobs:
     if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
       - name: Check out current branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: 'package.json'
           cache: 'yarn'
@@ -40,7 +40,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: NX cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -55,7 +55,7 @@ jobs:
           browsers: 'chromium'
 
       - name: Determine changed tests
-        uses: dorny/paths-filter@v3.0.1
+        uses: dorny/paths-filter@ebc4d7e9ebcb0b1eb21480bb8f43113e996ac77a # v3.0.1
         id: changed
         with:
           list-files: json
@@ -71,7 +71,7 @@ jobs:
           TEST_RUN_COUNT: 'AUTO'
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: failure() && steps.test.outcome == 'failure'
         with:
           name: playwright-test-results

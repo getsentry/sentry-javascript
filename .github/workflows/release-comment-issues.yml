@@ -29,7 +29,7 @@ jobs:
           && !contains(steps.get_version.outputs.version, '-alpha.')
           && !contains(steps.get_version.outputs.version, '-rc.')
 
-        uses: getsentry/release-comment-issues-gh-action@v1
+        uses: getsentry/release-comment-issues-gh-action@52e08022ca721e701515ede89edd224b63b180eb # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.get_version.outputs.version }}
