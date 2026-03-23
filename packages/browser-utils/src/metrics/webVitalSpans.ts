@@ -19,16 +19,8 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import { INP_ENTRY_MAP } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
-import {
-  addClsInstrumentationHandler,
-  addFcpInstrumentationHandler,
-  addInpInstrumentationHandler,
-  addLcpInstrumentationHandler,
-  addPerformanceInstrumentationHandler,
-  addTtfbInstrumentationHandler,
-} from './instrument';
+import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
 import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
-import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
 interface WebVitalSpanOptions {
   name: string;
@@ -264,114 +256,5 @@ export function _sendInpSpan(
     },
     startTime,
     endTime: startTime + msToSec(entry.duration),
-  });
-}
-
-/**
- * Tracks TTFB as a streamed span.
- */
-export function trackTtfbAsSpan(client: Client): void {
-  addTtfbInstrumentationHandler(({ metric }) => {
-    _sendTtfbSpan(metric.value, client);
-  });
-}
-
-/**
- * Exported only for testing.
- */
-export function _sendTtfbSpan(ttfbValue: number, _client: Client): void {
-  DEBUG_BUILD && debug.log(`Sending TTFB span (${ttfbValue})`);
-
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin() || 0);
-
-  const attributes: SpanAttributes = {};
-
-  // Try to get request_time from navigation timing
-  try {
-    const navEntry = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
-    if (navEntry) {
-      attributes['browser.web_vital.ttfb.request_time'] = navEntry.responseStart - navEntry.requestStart;
-    }
-  } catch {
-    // ignore
-  }
-
-  _emitWebVitalSpan({
-    name: 'TTFB',
-    op: 'ui.webvital.ttfb',
-    origin: 'auto.http.browser.ttfb',
-    metricName: 'ttfb',
-    value: ttfbValue,
-    unit: 'millisecond',
-    attributes,
-    startTime: timeOrigin,
-    endTime: timeOrigin + msToSec(ttfbValue),
-  });
-}
-
-/**
- * Tracks FCP as a streamed span.
- */
-export function trackFcpAsSpan(_client: Client): void {
-  addFcpInstrumentationHandler(({ metric }) => {
-    _sendFcpSpan(metric.value);
-  });
-}
-
-/**
- * Exported only for testing.
- */
-export function _sendFcpSpan(fcpValue: number): void {
-  DEBUG_BUILD && debug.log(`Sending FCP span (${fcpValue})`);
-
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin() || 0);
-
-  _emitWebVitalSpan({
-    name: 'FCP',
-    op: 'ui.webvital.fcp',
-    origin: 'auto.http.browser.fcp',
-    metricName: 'fcp',
-    value: fcpValue,
-    unit: 'millisecond',
-    startTime: timeOrigin,
-    endTime: timeOrigin + msToSec(fcpValue),
-  });
-}
-
-/**
- * Tracks FP (First Paint) as a streamed span.
- */
-export function trackFpAsSpan(_client: Client): void {
-  const visibilityWatcher = getVisibilityWatcher();
-
-  addPerformanceInstrumentationHandler('paint', ({ entries }) => {
-    for (const entry of entries) {
-      if (entry.name === 'first-paint') {
-        if (entry.startTime < visibilityWatcher.firstHiddenTime) {
-          _sendFpSpan(entry.startTime);
-        }
-        break;
-      }
-    }
-  });
-}
-
-/**
- * Exported only for testing.
- */
-export function _sendFpSpan(fpStartTime: number): void {
-  DEBUG_BUILD && debug.log(`Sending FP span (${fpStartTime})`);
-
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin() || 0);
-
-  _emitWebVitalSpan({
-    name: 'FP',
-    op: 'ui.webvital.fp',
-    origin: 'auto.http.browser.fp',
-    metricName: 'fp',
-    value: fpStartTime,
-    unit: 'millisecond',
-    startTime: timeOrigin,
-    endTime: timeOrigin + msToSec(fpStartTime),
   });
 }
