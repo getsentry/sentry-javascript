@@ -22,6 +22,9 @@ import type { InstrumentationHandlerCallback } from './instrument';
 import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
 import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 
+// Maximum plausible INP duration in seconds (matches standalone INP handler)
+const MAX_PLAUSIBLE_INP_DURATION = 60;
+
 interface WebVitalSpanOptions {
   name: string;
   op: string;
@@ -212,6 +215,11 @@ export function _sendClsSpan(clsValue: number, entry: LayoutShift | undefined, p
 export function trackInpAsSpan(_client: Client): void {
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
     if (metric.value == null) {
+      return;
+    }
+
+    // Guard against unrealistically long INP values (matching standalone INP handler)
+    if (msToSec(metric.value) > MAX_PLAUSIBLE_INP_DURATION) {
       return;
     }
 
