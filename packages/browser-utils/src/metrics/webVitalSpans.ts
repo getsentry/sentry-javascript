@@ -244,7 +244,7 @@ export function _sendInpSpan(
 ): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + entry.startTime);
   const interactionType = INP_ENTRY_MAP[entry.name];
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
