@@ -124,8 +124,9 @@ export function _sendLcpSpan(
 ): void {
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin() || 0);
-  const endTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
+  const performanceTimeOrigin = browserPerformanceTimeOrigin() || 0;
+  const timeOrigin = msToSec(performanceTimeOrigin);
+  const endTime = msToSec(performanceTimeOrigin + (entry?.startTime || 0));
   const name = entry ? htmlTreeAsString(entry.element) : 'Largest contentful paint';
 
   const attributes: SpanAttributes = {};
