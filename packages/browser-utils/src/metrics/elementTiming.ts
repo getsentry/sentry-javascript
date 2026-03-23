@@ -41,6 +41,7 @@ const _elementTimingIntegration = (() => {
           const loadTime = elementEntry.loadTime;
 
           const metricAttributes: Record<string, string | number> = {
+            'sentry.origin': 'auto.ui.browser.element_timing',
             'ui.element.identifier': identifier,
           };
 

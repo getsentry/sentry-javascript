@@ -74,6 +74,7 @@ describe('elementTimingIntegration', () => {
     expect(distributionSpy).toHaveBeenCalledWith('element_timing.render_time', 150, {
       unit: 'millisecond',
       attributes: {
+        'sentry.origin': 'auto.ui.browser.element_timing',
         'ui.element.identifier': 'hero-text',
         'ui.element.paint_type': 'text-paint',
         'ui.element.id': 'hero',
@@ -106,6 +107,7 @@ describe('elementTimingIntegration', () => {
 
     expect(distributionSpy).toHaveBeenCalledTimes(2);
     const expectedAttributes = {
+      'sentry.origin': 'auto.ui.browser.element_timing',
       'ui.element.identifier': 'hero-image',
       'ui.element.paint_type': 'image-paint',
       'ui.element.id': 'img1',
