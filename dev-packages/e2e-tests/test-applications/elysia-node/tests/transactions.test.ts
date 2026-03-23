@@ -141,11 +141,13 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
 test('Names anonymous handler spans as "anonymous" instead of "<unknown>"', async ({ baseURL, request }) => {
   const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /with-middleware/test'
     );
   });
 
-  await request.get(`${baseURL}/test-success`);
+  // Use a route with middleware so there are child handler spans
+  await request.get(`${baseURL}/with-middleware/test`);
 
   const transactionEvent = await transactionEventPromise;
   const spans = transactionEvent.spans || [];
@@ -155,7 +157,9 @@ test('Names anonymous handler spans as "anonymous" instead of "<unknown>"', asyn
   expect(unknownSpans).toHaveLength(0);
 
   // Anonymous handler spans should be named 'anonymous'
-  const anonymousSpans = spans.filter(span => span.description === 'anonymous' && span.origin === 'auto.http.elysia');
+  const anonymousSpans = spans.filter(
+    span => span.description === 'anonymous' && span.origin === 'auto.http.elysia',
+  );
   expect(anonymousSpans.length).toBeGreaterThan(0);
 
   // Named Elysia lifecycle spans should still be present

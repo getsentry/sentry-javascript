@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setHttpStatus,
   startInactiveSpan,
   startSpanManual,
   updateSpanName,
@@ -38,12 +39,6 @@ const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
   AfterResponse: 'middleware.elysia',
   Error: 'middleware.elysia',
 };
-
-interface TraceEndDetail {
-  end: number;
-  error: Error | null;
-  elapsed: number;
-}
 
 function isBun(): boolean {
   return typeof Bun !== 'undefined';
@@ -116,16 +111,8 @@ function setupClientHooksOnce(): void {
  * @param rootSpan - The root server span to parent lifecycle spans under.
  *   Must be passed explicitly because Elysia's .trace() listener callbacks run
  *   in a different async context where getActiveSpan() returns undefined.
- * @param onPhaseEnd - Optional callback invoked when the phase completes.
- *   Used to run SDK logic (e.g. error capture, header propagation) within the
- *   same trace listener so we don't need separate lifecycle hooks.
  */
-function instrumentLifecyclePhase(
-  phaseName: string,
-  listener: TraceListener,
-  rootSpan: Span | undefined,
-  onPhaseEnd?: (detail: TraceEndDetail) => void,
-): void {
+function instrumentLifecyclePhase(phaseName: string, listener: TraceListener, rootSpan: Span | undefined): void {
   const op = ELYSIA_LIFECYCLE_OP_MAP[phaseName];
   if (!op) {
     return;
@@ -161,9 +148,8 @@ function instrumentLifecyclePhase(
       });
     }
 
-    void process.onStop((detail: TraceEndDetail) => {
+    void process.onStop(() => {
       phaseSpan.end();
-      onPhaseEnd?.(detail);
     });
   });
 }
@@ -267,76 +253,79 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
     return fn;
   });
 
-  // All Sentry logic lives inside .trace() and .wrap() — never as separate
-  // lifecycle hooks (onRequest, onAfterHandle, onError). Registering hooks
-  // would make them visible as handler spans in the trace, which we don't want.
+  // Use .trace() ONLY for span creation. The trace API is observational —
+  // callbacks fire after phases complete, so they can't reliably mutate
+  // response headers or capture errors. All SDK logic stays in real hooks.
   const traceHandler: TraceHandler = lifecycle => {
-    const { context } = lifecycle;
-    const { request } = context;
-    const rootSpan = rootSpanForRequest.get(request);
+    const rootSpan = rootSpanForRequest.get(lifecycle.context.request);
 
-    // Equivalent to onRequest: set SDK processing metadata
-    getIsolationScope().setSDKProcessingMetadata({
-      normalizedRequest: winterCGRequestToRequestData(request),
-    });
-
-    // Create lifecycle spans for each phase.
-    // AfterHandle and Error get additional SDK logic via onPhaseEnd callbacks
-    // so we don't need separate lifecycle hooks (which would show up as handler spans).
-    const phases: [string, TraceListener, ((detail: TraceEndDetail) => void)?][] = [
+    const phases: [string, TraceListener][] = [
       ['Request', lifecycle.onRequest],
       ['Parse', lifecycle.onParse],
       ['Transform', lifecycle.onTransform],
       ['BeforeHandle', lifecycle.onBeforeHandle],
       ['Handle', lifecycle.onHandle],
-      [
-        'AfterHandle',
-        lifecycle.onAfterHandle,
-        () => {
-          if (context.route) {
-            updateRouteTransactionName(request, request.method, context.route);
-          }
-          const traceData = getTraceData();
-          if (traceData['sentry-trace']) {
-            context.set.headers['sentry-trace'] = traceData['sentry-trace'];
-          }
-          if (traceData.baggage) {
-            context.set.headers['baggage'] = traceData.baggage;
-          }
-        },
-      ],
+      ['AfterHandle', lifecycle.onAfterHandle],
       ['MapResponse', lifecycle.onMapResponse],
       ['AfterResponse', lifecycle.onAfterResponse],
-      [
-        'Error',
-        lifecycle.onError,
-        ({ error }) => {
-          if (context.route) {
-            updateRouteTransactionName(request, request.method, context.route);
-          }
-          if (error) {
-            const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-            if (shouldHandleError(context as ErrorContext)) {
-              captureException(error, {
-                mechanism: {
-                  type: 'auto.http.elysia.on_error',
-                  handled: false,
-                },
-              });
-            }
-          }
-        },
-      ],
+      ['Error', lifecycle.onError],
     ];
 
-    for (const [phaseName, listener, onPhaseEnd] of phases) {
+    for (const [phaseName, listener] of phases) {
       if (listener) {
-        instrumentLifecyclePhase(phaseName, listener, rootSpan, onPhaseEnd);
+        instrumentLifecyclePhase(phaseName, listener, rootSpan);
       }
     }
   };
 
   app.trace({ as: 'global' }, traceHandler);
+
+  // SDK logic uses real lifecycle hooks — these show up as handler spans
+  // in the trace (named sentryOnRequest etc.), but that's the correct
+  // tradeoff: the trace API can't reliably mutate state or capture errors.
+
+  app.onRequest(function sentryOnRequest(context) {
+    getIsolationScope().setSDKProcessingMetadata({
+      normalizedRequest: winterCGRequestToRequestData(context.request),
+    });
+  });
+
+  app.onAfterHandle({ as: 'global' }, function sentryOnAfterHandle(context) {
+    if (context.route) {
+      updateRouteTransactionName(context.request, context.request.method, context.route);
+    }
+
+    const traceData = getTraceData();
+    if (traceData['sentry-trace']) {
+      context.set.headers['sentry-trace'] = traceData['sentry-trace'];
+    }
+    if (traceData.baggage) {
+      context.set.headers['baggage'] = traceData.baggage;
+    }
+  });
+
+  app.onError({ as: 'global' }, function sentryOnError(context) {
+    if (context.route) {
+      updateRouteTransactionName(context.request, context.request.method, context.route);
+    }
+
+    // Set error status on root span
+    const rootSpan = rootSpanForRequest.get(context.request);
+    if (rootSpan) {
+      const statusCode = parseInt(String(context.set.status), 10);
+      setHttpStatus(rootSpan, Number.isNaN(statusCode) ? 500 : statusCode);
+    }
+
+    const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
+    if (shouldHandleError(context)) {
+      captureException(context.error, {
+        mechanism: {
+          type: 'auto.http.elysia.on_error',
+          handled: false,
+        },
+      });
+    }
+  });
 
   return app;
 }
