@@ -6,7 +6,11 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { ClientOptions } from '../types-hoist/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
@@ -15,6 +19,7 @@ import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
@@ -61,6 +66,25 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
     return wrapper(() => {
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
+
+      const client = getClient();
+      const ignoreSpans = client?.getOptions().ignoreSpans;
+      if (ignoreSpans?.length) {
+        const op = spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+        if (shouldIgnoreSpan({ description: spanArguments.name || '', op }, ignoreSpans)) {
+          client?.recordDroppedEvent('ignored', 'span');
+          const nonRecordingSpan = new SentryNonRecordingSpan();
+          // For root spans, set on scope (like unsampled). For child spans, don't — keep parent active.
+          if (!parentSpan) {
+            _setSpanForScope(scope, nonRecordingSpan);
+          }
+          return handleCallbackErrors(
+            () => callback(nonRecordingSpan),
+            () => {},
+            () => nonRecordingSpan.end(),
+          );
+        }
+      }
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -119,6 +143,23 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
     return wrapper(() => {
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
+
+      const client = getClient();
+      const ignoreSpans = client?.getOptions().ignoreSpans;
+      if (ignoreSpans?.length) {
+        const op = spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+        if (shouldIgnoreSpan({ description: spanArguments.name || '', op }, ignoreSpans)) {
+          client?.recordDroppedEvent('ignored', 'span');
+          const nonRecordingSpan = new SentryNonRecordingSpan();
+          if (!parentSpan) {
+            _setSpanForScope(scope, nonRecordingSpan);
+          }
+          return handleCallbackErrors(
+            () => callback(nonRecordingSpan, () => nonRecordingSpan.end()),
+            () => {},
+          );
+        }
+      }
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -179,6 +220,16 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
   return wrapper(() => {
     const scope = getCurrentScope();
     const parentSpan = getParentSpan(scope, customParentSpan);
+
+    const client = getClient();
+    const ignoreSpans = client?.getOptions().ignoreSpans;
+    if (ignoreSpans?.length) {
+      const op = spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+      if (shouldIgnoreSpan({ description: spanArguments.name || '', op }, ignoreSpans)) {
+        client?.recordDroppedEvent('ignored', 'span');
+        return new SentryNonRecordingSpan();
+      }
+    }
 
     const shouldSkipSpan = options.onlyIfParent && !parentSpan;
 

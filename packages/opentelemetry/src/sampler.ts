@@ -20,9 +20,11 @@ import {
   sampleSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  shouldIgnoreSpan,
 } from '@sentry/core';
 import {
   SENTRY_TRACE_STATE_DSC,
+  SENTRY_TRACE_STATE_IGNORED,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
   SENTRY_TRACE_STATE_SAMPLE_RATE,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
@@ -79,6 +81,22 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (!isRootSpan) {
+      if (parentSampled) {
+        const { ignoreSpans } = options;
+        if (ignoreSpans?.length) {
+          const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes, spanKind);
+          if (shouldIgnoreSpan({ description: inferredChildName, op: childOp }, ignoreSpans)) {
+            this._client.recordDroppedEvent('ignored', 'span');
+            return wrapSamplingDecision({
+              decision: SamplingDecision.NOT_RECORD,
+              context,
+              spanAttributes,
+              ignoredSpan: true,
+            });
+          }
+        }
+      }
+
       return wrapSamplingDecision({
         decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
         context,
@@ -100,6 +118,16 @@ export class SentrySampler implements Sampler {
 
     if (op) {
       mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
+
+    const { ignoreSpans } = options;
+    if (ignoreSpans?.length && shouldIgnoreSpan({ description: inferredSpanName, op }, ignoreSpans)) {
+      this._client.recordDroppedEvent('ignored', 'span');
+      return wrapSamplingDecision({
+        decision: SamplingDecision.NOT_RECORD,
+        context,
+        spanAttributes,
+      });
     }
 
     const mutableSamplingDecision = { decision: true };
@@ -211,12 +239,14 @@ export function wrapSamplingDecision({
   spanAttributes,
   sampleRand,
   downstreamTraceSampleRate,
+  ignoredSpan,
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
   spanAttributes: SpanAttributes;
   sampleRand?: number;
   downstreamTraceSampleRate?: number;
+  ignoredSpan?: boolean;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
 
@@ -230,6 +260,10 @@ export function wrapSamplingDecision({
 
   if (sampleRand !== undefined) {
     traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);
+  }
+
+  if (ignoredSpan) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_IGNORED, '1');
   }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs

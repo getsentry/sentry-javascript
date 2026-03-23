@@ -2410,3 +2410,92 @@ describe('startNewTrace', () => {
     });
   });
 });
+
+describe('ignoreSpans (core path)', () => {
+  beforeEach(() => {
+    registerSpanErrorInstrumentation();
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+    setAsyncContextStrategy(undefined);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns SentryNonRecordingSpan for root span matching ignoreSpans', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'GET /health' }, span => {
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+      expect(spanIsSampled(span)).toBe(false);
+      startSpan({ name: 'child' }, childSpan => {
+        expect(childSpan).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(spanIsSampled(childSpan)).toBe(false);
+      });
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('returns SentryNonRecordingSpan for child span matching ignoreSpans', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-child'] });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'root' }, () => {
+      startSpan({ name: 'ignored-child' }, span => {
+        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+      });
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('children of ignored child spans parent to grandparent', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'root' }, rootSpan => {
+      startSpan({ name: 'ignored-span' }, () => {
+        expect(getActiveSpan()).toBe(rootSpan);
+
+        startSpan({ name: 'grandchild' }, grandchildSpan => {
+          const json = spanToJSON(grandchildSpan);
+          expect(json.parent_span_id).toBe(rootSpan.spanContext().spanId);
+        });
+      });
+    });
+  });
+
+  it('does not ignore non-matching spans', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'GET /users' }, span => {
+      expect(span).toBeInstanceOf(SentrySpan);
+      expect(spanIsSampled(span)).toBe(true);
+    });
+  });
+
+  it('returns SentryNonRecordingSpan for startInactiveSpan matching ignoreSpans', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startInactiveSpan({ name: 'ignored-span' });
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+  });
+});
