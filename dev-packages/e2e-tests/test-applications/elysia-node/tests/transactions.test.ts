@@ -157,9 +157,7 @@ test('Names anonymous handler spans as "anonymous" instead of "<unknown>"', asyn
   expect(unknownSpans).toHaveLength(0);
 
   // Anonymous handler spans should be named 'anonymous'
-  const anonymousSpans = spans.filter(
-    span => span.description === 'anonymous' && span.origin === 'auto.http.elysia',
-  );
+  const anonymousSpans = spans.filter(span => span.description === 'anonymous' && span.origin === 'auto.http.elysia');
   expect(anonymousSpans.length).toBeGreaterThan(0);
 
   // Named Elysia lifecycle spans should still be present
