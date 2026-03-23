@@ -359,6 +359,42 @@ describe('Anthropic integration', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('preserves .withResponse() method and works correctly', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_withresponse',
+                }),
+                description: 'chat claude-3-haiku-20240307',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                  [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_withresponse',
+                }),
+                description: 'chat claude-3-haiku-20240307',
+                op: 'gen_ai.chat',
+                status: 'ok',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with sendDefaultPii: false', async () => {
       await createRunner()
