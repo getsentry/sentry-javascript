@@ -1,5 +1,5 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
-import { defineIntegration, flushIfServerless, metrics, safeDateNow } from '@sentry/core';
+import { _INTERNAL_safeDateNow, defineIntegration, flushIfServerless, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -52,7 +52,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
   let eventLoopDelayHistogram: ReturnType<typeof monitorEventLoopDelay> | undefined;
 
   function collectMetrics(): void {
-    const now = safeDateNow();
+    const now = _INTERNAL_safeDateNow();
     const elapsed = now - prevFlushTime;
 
     if (collect.cpu && prevCpuUsage !== undefined) {
@@ -131,7 +131,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       if (collect.eventLoopUtilization) {
         prevElu = performance.eventLoopUtilization();
       }
-      prevFlushTime = safeDateNow();
+      prevFlushTime = _INTERNAL_safeDateNow();
 
       // Guard against double setup (e.g. re-init).
       if (intervalId) {
