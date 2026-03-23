@@ -9,4 +9,3 @@ setTimeout(() => {
     Sentry.startSpan({ name: 'child-span' }, () => {});
   });
 }, 1000);
-
