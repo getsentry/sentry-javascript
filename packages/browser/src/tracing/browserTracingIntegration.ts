@@ -354,6 +354,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
+  if (DEBUG_BUILD && 'enableElementTiming' in options) {
+    debug.warn(
+      '[Tracing] `enableElementTiming` is deprecated and no longer has any effect. Use the standalone `elementTimingIntegration` instead.',
+    );
+  }
+
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
