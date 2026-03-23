@@ -4,7 +4,6 @@ import { onCLS } from './web-vitals/getCLS';
 import { onINP } from './web-vitals/getINP';
 import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
-import { onFCP } from './web-vitals/onFCP';
 import { onTTFB } from './web-vitals/onTTFB';
 
 type InstrumentHandlerTypePerformanceObserver =
@@ -17,7 +16,7 @@ type InstrumentHandlerTypePerformanceObserver =
   // fist-input is still needed for INP
   | 'first-input';
 
-type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp' | 'fcp';
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp';
 
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
@@ -115,8 +114,6 @@ let _previousCls: Metric | undefined;
 let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
-let _previousFcp: Metric | undefined;
-
 /**
  * Add a callback that will be triggered when a CLS metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
@@ -164,14 +161,6 @@ export type InstrumentationHandlerCallback = (data: {
  */
 export function addInpInstrumentationHandler(callback: InstrumentationHandlerCallback): CleanupHandlerCallback {
   return addMetricObserver('inp', callback, instrumentInp, _previousInp);
-}
-
-/**
- * Add a callback that will be triggered when a FCP metric is available.
- * Returns a cleanup callback which can be called to remove the instrumentation handler.
- */
-export function addFcpInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
-  return addMetricObserver('fcp', callback, instrumentFcp, _previousFcp);
 }
 
 export function addPerformanceInstrumentationHandler(
@@ -266,15 +255,6 @@ function instrumentInp(): void {
       metric,
     });
     _previousInp = metric;
-  });
-}
-
-function instrumentFcp(): StopListening {
-  return onFCP(metric => {
-    triggerHandlers('fcp', {
-      metric,
-    });
-    _previousFcp = metric;
   });
 }
 
