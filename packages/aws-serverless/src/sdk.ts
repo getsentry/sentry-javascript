@@ -124,6 +124,10 @@ function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.
   if (options.captureTimeoutWarning) {
     const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
 
+    if (timeoutWarningDelay < 1) {
+      return undefined;
+    }
+
     return setTimeout(() => {
       withScope(scope => {
         scope.setTag('timeout', humanReadableTimeout);
