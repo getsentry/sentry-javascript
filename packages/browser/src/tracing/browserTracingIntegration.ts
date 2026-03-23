@@ -47,11 +47,8 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
   trackClsAsSpan,
-  trackFcpAsSpan,
-  trackFpAsSpan,
   trackInpAsSpan,
   trackLcpAsSpan,
-  trackTtfbAsSpan,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
@@ -516,19 +513,18 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       registerSpanErrorInstrumentation();
 
+      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
+
       _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+        recordClsStandaloneSpans: !spanStreamingEnabled && (enableStandaloneClsSpans || false),
+        recordLcpStandaloneSpans: !spanStreamingEnabled && (enableStandaloneLcpSpans || false),
         client,
       });
 
-      if (hasSpanStreamingEnabled(client)) {
+      if (spanStreamingEnabled) {
         trackLcpAsSpan(client);
         trackClsAsSpan(client);
         trackInpAsSpan(client);
-        trackTtfbAsSpan(client);
-        trackFcpAsSpan(client);
-        trackFpAsSpan(client);
       }
 
       if (enableInp) {
