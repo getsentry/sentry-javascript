@@ -6,8 +6,29 @@ describe('nodeRuntimeMetricsIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('emits runtime metrics', async () => {
+  test('emits default runtime metrics', async () => {
     const runner = createRunner(__dirname, 'scenario.ts')
+      .expect({
+        trace_metric: {
+          items: expect.arrayContaining([
+            expect.objectContaining({ name: 'node.runtime.mem.rss', type: 'gauge', unit: 'byte' }),
+            expect.objectContaining({ name: 'node.runtime.mem.heap_used', type: 'gauge', unit: 'byte' }),
+            expect.objectContaining({ name: 'node.runtime.mem.heap_total', type: 'gauge', unit: 'byte' }),
+            expect.objectContaining({ name: 'node.runtime.cpu.utilization', type: 'gauge' }),
+            expect.objectContaining({ name: 'node.runtime.event_loop.delay.p50', type: 'gauge', unit: 'second' }),
+            expect.objectContaining({ name: 'node.runtime.event_loop.delay.p99', type: 'gauge', unit: 'second' }),
+            expect.objectContaining({ name: 'node.runtime.event_loop.utilization', type: 'gauge' }),
+            expect.objectContaining({ name: 'node.runtime.process.uptime', type: 'counter', unit: 'second' }),
+          ]),
+        },
+      })
+      .start();
+
+    await runner.completed();
+  });
+
+  test('emits all metrics when fully opted in', async () => {
+    const runner = createRunner(__dirname, 'scenario-all.ts')
       .expect({
         trace_metric: {
           items: expect.arrayContaining([
