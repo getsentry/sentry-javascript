@@ -1,5 +1,9 @@
 import { registerSpanErrorInstrumentation } from '@sentry/core';
-import { consoleLoggingIntegrationShim, elementTimingIntegrationShim, loggerShim } from '@sentry-internal/integration-shims';
+import {
+  consoleLoggingIntegrationShim,
+  elementTimingIntegrationShim,
+  loggerShim,
+} from '@sentry-internal/integration-shims';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
