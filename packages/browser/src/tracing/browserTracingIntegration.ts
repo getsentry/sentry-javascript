@@ -524,10 +524,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       if (spanStreamingEnabled) {
         trackLcpAsSpan(client);
         trackClsAsSpan(client);
-        trackInpAsSpan(client);
+        if (enableInp) {
+          trackInpAsSpan(client);
+        }
       }
 
-      if (enableInp) {
+      if (enableInp && !spanStreamingEnabled) {
         startTrackingINP();
       }
 
