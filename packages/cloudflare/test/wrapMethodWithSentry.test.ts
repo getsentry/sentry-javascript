@@ -4,11 +4,16 @@ import { isInstrumented } from '../src/instrument';
 import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
 
+const mocks = vi.hoisted(() => ({
+  flush: vi.fn().mockResolvedValue(true),
+}));
+
 function createMockClient(hasTransport: boolean = true) {
   return {
     getOptions: () => ({}),
     on: vi.fn(),
     dispose: vi.fn(),
+    flush: mocks.flush,
     getTransport: vi.fn().mockReturnValue(hasTransport ? { send: vi.fn() } : undefined),
   };
 }
@@ -263,8 +268,7 @@ describe('wrapMethodWithSentry', () => {
       await wrapped();
 
       expect(waitUntil).toHaveBeenCalled();
-      // flushAndDispose calls flush internally
-      expect(sentryCore.flush).toHaveBeenCalledWith(2000);
+      expect(mocks.flush).toHaveBeenCalledWith(2000);
     });
 
     it('handles missing waitUntil gracefully', async () => {
@@ -346,6 +350,7 @@ describe('wrapMethodWithSentry', () => {
         getOptions: () => ({}),
         on: vi.fn(),
         dispose: vi.fn(),
+        flush: vi.fn().mockResolvedValue(true),
         getTransport: vi.fn().mockReturnValue(undefined),
       } as unknown as sentryCore.Client;
 
@@ -377,6 +382,7 @@ describe('wrapMethodWithSentry', () => {
         getOptions: () => ({}),
         on: vi.fn(),
         dispose: vi.fn(),
+        flush: vi.fn().mockResolvedValue(true),
         getTransport: vi.fn().mockReturnValue({ send: vi.fn() }),
       } as unknown as sentryCore.Client;
 
