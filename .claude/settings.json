@@ -1,4 +1,5 @@
 {
+  "env": { "ENABLE_LSP_TOOL": "1" },
   "permissions": {
     "allow": [
       "Bash(find:*)",
