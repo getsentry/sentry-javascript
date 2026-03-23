@@ -17,5 +17,5 @@ export function addStorageInstrumentation(nuxt: Nuxt): void {
     },
   });
 
-  addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
+  addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage-legacy.server'));
 }
