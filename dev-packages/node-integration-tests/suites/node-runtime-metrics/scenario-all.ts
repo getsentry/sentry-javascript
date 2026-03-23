@@ -10,11 +10,12 @@ Sentry.init({
     Sentry.nodeRuntimeMetricsIntegration({
       collectionIntervalMs: 100,
       collect: {
-        cpuUtilization: false,
-        cpuTime: false,
-        eventLoopDelayP99: false,
-        eventLoopUtilization: false,
-        uptime: false,
+        cpuTime: true,
+        memExternal: true,
+        eventLoopDelayMin: true,
+        eventLoopDelayMax: true,
+        eventLoopDelayMean: true,
+        eventLoopDelayP90: true,
       },
     }),
   ],
