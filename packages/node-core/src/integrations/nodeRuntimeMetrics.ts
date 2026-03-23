@@ -1,5 +1,5 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
-import { defineIntegration, flushIfServerless, metrics } from '@sentry/core';
+import { defineIntegration, flushIfServerless, metrics, safeDateNow } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -48,12 +48,12 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
   let intervalId: ReturnType<typeof setInterval> | undefined;
   let prevCpuUsage: NodeJS.CpuUsage | undefined;
   let prevElu: ReturnType<typeof performance.eventLoopUtilization> | undefined;
-  let prevFlushTime: number | undefined;
+  let prevFlushTime: number;
   let eventLoopDelayHistogram: ReturnType<typeof monitorEventLoopDelay> | undefined;
 
   function collectMetrics(): void {
-    const now = Date.now();
-    const elapsed = now - (prevFlushTime ?? now);
+    const now = safeDateNow();
+    const elapsed = now - prevFlushTime;
 
     if (collect.cpu && prevCpuUsage !== undefined) {
       const delta = process.cpuUsage(prevCpuUsage);
@@ -62,7 +62,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       if (elapsed > 0) {
         // Ratio of CPU time to wall-clock time. Can exceed 1.0 on multi-core systems.
         // TODO: In cluster mode, add a runtime_id/process_id attribute to disambiguate per-worker metrics.
-        metrics.gauge('node.runtime.cpu.percent', (delta.user + delta.system) / (elapsed * 1000), { unit: '1' });
+        metrics.gauge('node.runtime.cpu.utilization', (delta.user + delta.system) / (elapsed * 1000));
       }
       prevCpuUsage = process.cpuUsage();
     }
@@ -73,9 +73,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       metrics.gauge('node.runtime.mem.heap_total', mem.heapTotal, { unit: 'byte' });
       metrics.gauge('node.runtime.mem.heap_used', mem.heapUsed, { unit: 'byte' });
       metrics.gauge('node.runtime.mem.external', mem.external, { unit: 'byte' });
-      if (mem.arrayBuffers !== undefined) {
-        metrics.gauge('node.runtime.mem.array_buffers', mem.arrayBuffers, { unit: 'byte' });
-      }
+      metrics.gauge('node.runtime.mem.array_buffers', mem.arrayBuffers, { unit: 'byte' });
     }
 
     if (collect.eventLoopDelay && eventLoopDelayHistogram) {
@@ -102,7 +100,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
     if (collect.eventLoopUtilization && prevElu !== undefined) {
       const currentElu = performance.eventLoopUtilization();
       const delta = performance.eventLoopUtilization(currentElu, prevElu);
-      metrics.gauge('node.runtime.event_loop.utilization', delta.utilization, { unit: '1' });
+      metrics.gauge('node.runtime.event_loop.utilization', delta.utilization);
       prevElu = currentElu;
     }
 
@@ -133,15 +131,19 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       if (collect.eventLoopUtilization) {
         prevElu = performance.eventLoopUtilization();
       }
-      prevFlushTime = Date.now();
+      prevFlushTime = safeDateNow();
 
+      // Guard against double setup (e.g. re-init).
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
       intervalId = setInterval(collectMetrics, collectionIntervalMs);
       // Do not keep the process alive solely for metric collection.
       intervalId.unref();
 
-      // In serverless environments the process may not live long enough to hit the interval.
-      // Collect and flush eagerly whenever the event loop drains (end of invocation).
-      process.on('beforeExit', () => {
+      // Collect and flush at the end of every invocation. In non-serverless environments
+      // flushIfServerless is a no-op, so this is safe to call unconditionally.
+      process.once('beforeExit', () => {
         collectMetrics();
         void flushIfServerless();
       });

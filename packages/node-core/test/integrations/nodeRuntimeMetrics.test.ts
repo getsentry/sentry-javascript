@@ -115,7 +115,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
 
       expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.user', expect.any(Number), { unit: 'second' });
       expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.system', expect.any(Number), { unit: 'second' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.percent', expect.any(Number), { unit: '1' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.any(Number));
     });
 
     it('emits memory metrics', () => {
@@ -157,7 +157,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3, { unit: '1' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3);
     });
 
     it('emits uptime counter', () => {
@@ -196,7 +196,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
 
       expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.user', expect.anything(), expect.anything());
       expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.system', expect.anything(), expect.anything());
-      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.percent', expect.anything(), expect.anything());
+      expect(gaugeSpy).not.toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.anything(), expect.anything());
     });
 
     it('skips memory metrics when collect.memory is false', () => {
