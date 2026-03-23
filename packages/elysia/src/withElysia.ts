@@ -16,7 +16,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import type { Elysia, ErrorContext } from 'elysia';
+import type { Elysia, ErrorContext, TraceHandler, TraceListener } from 'elysia';
 
 interface ElysiaHandlerOptions {
   shouldHandleError?: (context: ErrorContext) => boolean;
@@ -38,6 +38,12 @@ const ELYSIA_LIFECYCLE_OP_MAP: Record<string, string> = {
   AfterResponse: 'middleware.elysia',
   Error: 'middleware.elysia',
 };
+
+interface TraceEndDetail {
+  end: number;
+  error: Error | null;
+  elapsed: number;
+}
 
 function isBun(): boolean {
   return typeof Bun !== 'undefined';
@@ -103,24 +109,6 @@ function setupClientHooksOnce(): void {
   isClientHooksSetup = true;
 }
 
-interface TraceEndDetail {
-  end: number;
-  error: Error | null;
-  elapsed: number;
-}
-
-interface TraceProcess {
-  name: string;
-  begin: number;
-  end: Promise<number>;
-  error: Promise<Error | null>;
-  onStop(callback?: (detail: TraceEndDetail) => unknown): Promise<void>;
-  total: number;
-  onEvent(callback?: (process: TraceProcess) => unknown): Promise<void>;
-}
-
-type TraceListener = (callback?: (process: TraceProcess) => unknown) => Promise<TraceProcess>;
-
 /**
  * Instruments a single Elysia lifecycle phase by creating a Sentry span for it,
  * and child spans for each individual handler within the phase.
@@ -143,7 +131,7 @@ function instrumentLifecyclePhase(
     return;
   }
 
-  listener(process => {
+  void listener(process => {
     const phaseSpan = startInactiveSpan({
       name: phaseName,
       parentSpan: rootSpan,
@@ -156,7 +144,7 @@ function instrumentLifecyclePhase(
     // Create child spans for individual handlers within this phase.
     // Named functions get their name, arrow functions get 'anonymous'.
     if (process.total > 0) {
-      process.onEvent(child => {
+      void process.onEvent(child => {
         const handlerName = child.name || 'anonymous';
         const childSpan = startInactiveSpan({
           name: handlerName,
@@ -167,13 +155,13 @@ function instrumentLifecyclePhase(
           },
         });
 
-        child.onStop(() => {
+        void child.onStop(() => {
           childSpan.end();
         });
       });
     }
 
-    process.onStop((detail: TraceEndDetail) => {
+    void process.onStop((detail: TraceEndDetail) => {
       phaseSpan.end();
       onPhaseEnd?.(detail);
     });
@@ -212,8 +200,9 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
   // This is necessary because Elysia's .trace() callbacks run in a different
   // async context where getActiveSpan() returns undefined. By storing the root
   // span in a WeakMap keyed by the Request object, we can retrieve it in .trace().
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (app as any).wrap((fn: (...args: unknown[]) => unknown, request: Request) => {
+  // HigherOrderFunction type is not exported from elysia's main entry point,
+  // so we type the callback parameters directly.
+  app.wrap((fn: (...args: unknown[]) => unknown, request: Request) => {
     if (isBun()) {
       // On Bun there is no HTTP instrumentation, so we create a root span ourselves.
       // Scope setup must happen inside the returned function so that it's active
@@ -281,10 +270,9 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
   // All Sentry logic lives inside .trace() and .wrap() — never as separate
   // lifecycle hooks (onRequest, onAfterHandle, onError). Registering hooks
   // would make them visible as handler spans in the trace, which we don't want.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (app as any).trace({ as: 'global' }, (lifecycle: any) => {
-    const context = lifecycle.context;
-    const request: Request = context.request;
+  const traceHandler: TraceHandler = lifecycle => {
+    const { context } = lifecycle;
+    const { request } = context;
     const rootSpan = rootSpanForRequest.get(request);
 
     // Equivalent to onRequest: set SDK processing metadata
@@ -328,7 +316,7 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
           }
           if (error) {
             const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
-            if (shouldHandleError(context)) {
+            if (shouldHandleError(context as ErrorContext)) {
               captureException(error, {
                 mechanism: {
                   type: 'auto.http.elysia.on_error',
@@ -346,7 +334,9 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
         instrumentLifecyclePhase(phaseName, listener, rootSpan, onPhaseEnd);
       }
     }
-  });
+  };
+
+  app.trace({ as: 'global' }, traceHandler);
 
   return app;
 }
