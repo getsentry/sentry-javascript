@@ -17,13 +17,10 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
-import { INP_ENTRY_MAP } from './inp';
+import { INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
 import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
 import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
-
-// Maximum plausible INP duration in seconds (matches standalone INP handler)
-const MAX_PLAUSIBLE_INP_DURATION = 60;
 
 interface WebVitalSpanOptions {
   name: string;

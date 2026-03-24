@@ -37,7 +37,7 @@ const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
  * 60 seconds is the maximum for a plausible INP value
  * (source: Me)
  */
-const MAX_PLAUSIBLE_INP_DURATION = 60;
+export const MAX_PLAUSIBLE_INP_DURATION = 60;
 /**
  * Start tracking INP webvital events.
  */
