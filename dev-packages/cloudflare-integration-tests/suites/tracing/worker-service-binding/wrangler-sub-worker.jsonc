@@ -1,0 +1,9 @@
+{
+  "name": "cloudflare-service-binding-sub-worker",
+  "main": "index-sub-worker.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "vars": {
+    "SENTRY_DSN": "https://932e620ee3921c3b4a61c72558ad88ce@o447951.ingest.us.sentry.io/4509553159831552",
+  },
+}
