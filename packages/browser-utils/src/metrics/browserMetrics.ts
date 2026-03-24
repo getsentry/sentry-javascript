@@ -75,8 +75,18 @@ let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
 interface StartTrackingWebVitalsOptions {
-  recordClsStandaloneSpans: boolean;
-  recordLcpStandaloneSpans: boolean;
+  /**
+   * When `true`, CLS is tracked as a standalone span. When `false`, CLS is
+   * recorded as a measurement on the pageload span. When `undefined`, CLS
+   * tracking is skipped entirely (e.g. because span streaming handles it).
+   */
+  recordClsStandaloneSpans: boolean | undefined;
+  /**
+   * When `true`, LCP is tracked as a standalone span. When `false`, LCP is
+   * recorded as a measurement on the pageload span. When `undefined`, LCP
+   * tracking is skipped entirely (e.g. because span streaming handles it).
+   */
+  recordLcpStandaloneSpans: boolean | undefined;
   client: Client;
 }
 
@@ -97,9 +107,22 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
+
+    const lcpCleanupCallback =
+      recordLcpStandaloneSpans === true
+        ? trackLcpAsStandaloneSpan(client)
+        : recordLcpStandaloneSpans === false
+          ? _trackLCP()
+          : undefined;
+
+    const clsCleanupCallback =
+      recordClsStandaloneSpans === true
+        ? trackClsAsStandaloneSpan(client)
+        : recordClsStandaloneSpans === false
+          ? _trackCLS()
+          : undefined;
+
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
       lcpCleanupCallback?.();
