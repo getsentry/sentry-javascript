@@ -522,8 +522,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       const spanStreamingEnabled = hasSpanStreamingEnabled(client);
 
       _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: !spanStreamingEnabled && (enableStandaloneClsSpans || false),
-        recordLcpStandaloneSpans: !spanStreamingEnabled && (enableStandaloneLcpSpans || false),
+        recordClsStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneClsSpans || false,
+        recordLcpStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneLcpSpans || false,
         client,
       });
 
