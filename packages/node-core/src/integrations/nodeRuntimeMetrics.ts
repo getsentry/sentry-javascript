@@ -202,7 +202,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
 
       // Collect and flush at the end of every invocation. In non-serverless environments
       // flushIfServerless is a no-op, so this is safe to call unconditionally.
-      process.once('beforeExit', () => {
+      process.on('beforeExit', () => {
         collectMetrics();
         void flushIfServerless();
       });
