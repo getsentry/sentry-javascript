@@ -3,7 +3,6 @@ import {
   captureException,
   continueTrace,
   getActiveSpan,
-  getClient,
   getIsolationScope,
   getRootSpan,
   getTraceData,
@@ -52,7 +51,6 @@ function isBun(): boolean {
  */
 const rootSpanForRequest = new WeakMap<Request, Span>();
 
-let isClientHooksSetup = false;
 const instrumentedApps = new WeakSet<Elysia>();
 
 /**
@@ -91,17 +89,6 @@ function defaultShouldHandleError(context: ErrorContext): boolean {
   // Capture server errors (5xx) and unusual status codes (<= 299 in an error handler).
   // 3xx and 4xx are not captured by default (client errors / redirects).
   return statusCode >= 500 || statusCode <= 299;
-}
-
-function setupClientHooksOnce(): void {
-  if (isClientHooksSetup) {
-    return;
-  }
-  const client = getClient();
-  if (!client) {
-    return;
-  }
-  isClientHooksSetup = true;
 }
 
 /**
@@ -179,8 +166,6 @@ export function withElysia<T extends Elysia>(app: T, options: ElysiaHandlerOptio
     return app;
   }
   instrumentedApps.add(app);
-
-  setupClientHooksOnce();
 
   // Use .wrap() to capture or create the root span for each request.
   // This is necessary because Elysia's .trace() callbacks run in a different
