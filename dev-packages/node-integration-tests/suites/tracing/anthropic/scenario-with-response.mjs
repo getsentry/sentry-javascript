@@ -155,7 +155,6 @@ async function run() {
     // Test 3: Verify .withResponse() works with streaming (stream: true)
     const streamResult = client.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 100,
       messages: [{ role: 'user', content: 'Test stream withResponse' }],
       stream: true,
     });

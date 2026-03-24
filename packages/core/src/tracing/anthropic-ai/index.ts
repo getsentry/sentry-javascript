@@ -241,11 +241,9 @@ function handleStreamingRequest<T extends unknown[], R>(
       })();
     });
 
-    return wrapPromiseWithMethods(
-      originalResult as Promise<R>,
-      instrumentedPromise,
-      'auto.ai.anthropic',
-    ) as R | Promise<R>;
+    return wrapPromiseWithMethods(originalResult as Promise<R>, instrumentedPromise, 'auto.ai.anthropic') as
+      | R
+      | Promise<R>;
   } else {
     return startSpanManual(spanConfig, span => {
       try {
@@ -313,7 +311,7 @@ function instrumentMethod<T extends unknown[], R>(
             addPrivateRequestAttributes(span, params);
           }
 
-          return (originalResult as Promise<unknown>).then(
+          return (originalResult as Promise<R>).then(
             result => {
               addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
               return result;
@@ -332,9 +330,11 @@ function instrumentMethod<T extends unknown[], R>(
             },
           );
         },
-      ) as Promise<R>;
+      );
 
-      return wrapPromiseWithMethods(originalResult as Promise<R>, instrumentedPromise, 'auto.ai.anthropic') as R;
+      return wrapPromiseWithMethods(originalResult as Promise<R>, instrumentedPromise, 'auto.ai.anthropic') as
+        | R
+        | Promise<R>;
     },
   }) as (...args: T) => R | Promise<R>;
 }

@@ -114,8 +114,6 @@ describe('wrapPromiseWithMethods', () => {
       request_id: 'req_123',
     });
     const instrumented = Promise.reject(new Error('instrumented-error'));
-    // Suppress unhandled rejection from original
-    original.catch(() => {});
     const wrapped = wrapPromiseWithMethods(original, instrumented, 'auto.ai.test');
 
     await expect(wrapped).rejects.toThrow('instrumented-error');
