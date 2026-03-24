@@ -41,6 +41,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Astro
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {
@@ -75,6 +76,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {
@@ -84,6 +86,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {

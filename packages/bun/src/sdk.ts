@@ -105,7 +105,7 @@ export function init(userOptions: BunOptions = {}): NodeClient | undefined {
   const options = {
     ...userOptions,
     platform: 'javascript',
-    runtime: { name: 'bun', version: Bun.version },
+    runtime: { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 

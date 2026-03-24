@@ -1,0 +1,26 @@
+{
+  "name": "elysia-bun-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/app.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@elysiajs/opentelemetry": "^1.4.0",
+    "@sentry/elysia": "latest || *",
+    "elysia": "^1.4.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "bun-types": "^1.2.9"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
