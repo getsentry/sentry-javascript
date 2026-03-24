@@ -15,7 +15,7 @@ import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
+import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -28,7 +28,7 @@ export default defineNuxtModule<ModuleOptions>({
     },
   },
   defaults: {},
-  setup(moduleOptionsParam, nuxt) {
+  async setup(moduleOptionsParam, nuxt) {
     if (moduleOptionsParam?.enabled === false) {
       return;
     }
@@ -78,6 +78,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
+    const isNitroV3 = (await getNitroMajorVersion()) >= 3;
 
     if (serverConfigFile) {
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
@@ -93,7 +94,7 @@ export default defineNuxtModule<ModuleOptions>({
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
 
-    addOTelCommonJSImportAlias(nuxt);
+    addOTelCommonJSImportAlias(nuxt, isNitroV3);
 
     const pagesDataTemplate = addTemplate({
       filename: 'sentry--nuxt-pages-data.mjs',
