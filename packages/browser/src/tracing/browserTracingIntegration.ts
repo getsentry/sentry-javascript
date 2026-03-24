@@ -519,6 +519,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       _collectWebVitals = startTrackingWebVitals({
         recordClsStandaloneSpans: !spanStreamingEnabled && (enableStandaloneClsSpans || false),
         recordLcpStandaloneSpans: !spanStreamingEnabled && (enableStandaloneLcpSpans || false),
+        recordClsOnPageloadSpan: !spanStreamingEnabled,
+        recordLcpOnPageloadSpan: !spanStreamingEnabled,
         client,
       });
 

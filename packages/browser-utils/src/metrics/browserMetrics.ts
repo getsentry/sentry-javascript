@@ -77,6 +77,8 @@ let _clsEntry: LayoutShift | undefined;
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
   recordLcpStandaloneSpans: boolean;
+  recordClsOnPageloadSpan?: boolean;
+  recordLcpOnPageloadSpan?: boolean;
   client: Client;
 }
 
@@ -89,6 +91,8 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({
   recordClsStandaloneSpans,
   recordLcpStandaloneSpans,
+  recordClsOnPageloadSpan = true,
+  recordLcpOnPageloadSpan = true,
   client,
 }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
@@ -97,9 +101,21 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
+    let lcpCleanupCallback: (() => void) | undefined;
+    if (recordLcpStandaloneSpans) {
+      trackLcpAsStandaloneSpan(client);
+    } else if (recordLcpOnPageloadSpan) {
+      lcpCleanupCallback = _trackLCP();
+    }
+
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
+
+    let clsCleanupCallback: (() => void) | undefined;
+    if (recordClsStandaloneSpans) {
+      trackClsAsStandaloneSpan(client);
+    } else if (recordClsOnPageloadSpan) {
+      clsCleanupCallback = _trackCLS();
+    }
 
     return (): void => {
       lcpCleanupCallback?.();
