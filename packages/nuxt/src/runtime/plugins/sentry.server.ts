@@ -13,10 +13,15 @@ export default (nitroApp => {
 
   // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-    const headers = event.node.res?.getHeaders() || {};
+    // h3 v1 (Nuxt 4): event.node.res.getHeaders(); h3 v2 (Nuxt 5): event.node is undefined
+    const nodeResHeadersH3v1 = event.node?.res?.getHeaders() || {};
 
-    const isPreRenderedPage = Object.keys(headers).includes('x-nitro-prerender');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // h3 v2 (Nuxt 5): response headers are on event.res.headers
+    const isPreRenderedPage =
+      Object.keys(nodeResHeadersH3v1).includes('x-nitro-prerender') ||
+      // oxlint-disable-next-line typescript/no-explicit-any
+      !!(event as any).res?.headers?.has?.('x-nitro-prerender');
+
     const isSWRCachedPage = event?.context?.cache?.options.swr as boolean | undefined;
 
     if (!isPreRenderedPage && !isSWRCachedPage) {

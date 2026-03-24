@@ -7,7 +7,11 @@ import { addServerTemplate } from '../vendor/server-template';
 /**
  * Sets up the database instrumentation.
  */
-export function addDatabaseInstrumentation(nitro: NitroConfig, moduleOptions?: SentryNuxtModuleOptions): void {
+export function addDatabaseInstrumentation(
+  nitro: NitroConfig,
+  isLegacyNitro: boolean,
+  moduleOptions?: SentryNuxtModuleOptions,
+): void {
   if (!nitro.experimental?.database) {
     // We cannot use DEBUG_BUILD here because it is a runtime flag, so it is not available for build time scripts
     // So we have to pass in the module options to the build time script
@@ -38,5 +42,9 @@ export function addDatabaseInstrumentation(nitro: NitroConfig, moduleOptions?: S
     },
   });
 
-  addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database-legacy.server'));
+  if (isLegacyNitro) {
+    addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database-legacy.server'));
+  } else {
+    addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database.server'));
+  }
 }

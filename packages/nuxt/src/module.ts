@@ -81,13 +81,23 @@ export default defineNuxtModule<ModuleOptions>({
     const isNitroV3 = (await getNitroMajorVersion()) >= 3;
 
     if (serverConfigFile) {
-      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
+      if (isNitroV3) {
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
+      } else {
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
+      }
+
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
       addPlugin({
         src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
         mode: 'server',
       });
+
+      // Preps the middleware instrumentation module.
+      addMiddlewareImports();
+      addStorageInstrumentation(nuxt, !isNitroV3);
+      addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
     }
 
     if (clientConfigFile || serverConfigFile) {
@@ -116,13 +126,6 @@ export default defineNuxtModule<ModuleOptions>({
       };
     });
 
-    // Preps the the middleware instrumentation module.
-    if (serverConfigFile) {
-      addMiddlewareImports();
-      addStorageInstrumentation(nuxt);
-      addDatabaseInstrumentation(nuxt.options.nitro, moduleOptions);
-    }
-
     // Add the sentry config file to the include array
     nuxt.hook('prepare:types', options => {
       const tsConfig = options.tsConfig as { include?: string[] };
@@ -148,7 +151,7 @@ export default defineNuxtModule<ModuleOptions>({
         return;
       }
 
-      if (serverConfigFile) {
+      if (serverConfigFile && !isNitroV3) {
         addMiddlewareInstrumentation(nitro);
       }
 

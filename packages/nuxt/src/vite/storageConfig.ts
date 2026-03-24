@@ -5,7 +5,7 @@ import { addServerTemplate } from '../vendor/server-template';
 /**
  * Prepares the storage config export to be used in the runtime storage instrumentation.
  */
-export function addStorageInstrumentation(nuxt: Nuxt): void {
+export function addStorageInstrumentation(nuxt: Nuxt, isLegacyNitro: boolean): void {
   const moduleDirResolver = createResolver(import.meta.url);
   const userStorageMounts = Object.keys(nuxt.options.nitro.storage || {});
 
@@ -17,5 +17,9 @@ export function addStorageInstrumentation(nuxt: Nuxt): void {
     },
   });
 
-  addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage-legacy.server'));
+  if (isLegacyNitro) {
+    addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage-legacy.server'));
+  } else {
+    addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
+  }
 }
