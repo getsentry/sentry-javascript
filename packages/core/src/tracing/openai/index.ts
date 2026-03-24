@@ -5,7 +5,6 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { debug } from '../../utils/debug-logger';
-import { isThenable } from '../../utils/is';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -18,7 +17,12 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString, resolveAIRecordingOptions } from '../ai/utils';
+import {
+  extractSystemInstructions,
+  getTruncatedJsonString,
+  resolveAIRecordingOptions,
+  wrapPromiseWithMethods,
+} from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
@@ -173,75 +177,6 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
 }
 
 /**
- * Creates a wrapped version of .withResponse() that replaces the data field
- * with the instrumented result while preserving metadata (response, request_id).
- */
-async function createWithResponseWrapper<T>(
-  originalWithResponse: Promise<unknown>,
-  instrumentedPromise: Promise<T>,
-): Promise<unknown> {
-  // Attach catch handler to originalWithResponse immediately to prevent unhandled rejection
-  // If instrumentedPromise rejects first, we still need this handled
-  const safeOriginalWithResponse = originalWithResponse.catch(error => {
-    captureException(error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.ai.openai',
-      },
-    });
-    throw error;
-  });
-
-  const instrumentedResult = await instrumentedPromise;
-  const originalWrapper = await safeOriginalWithResponse;
-
-  // Combine instrumented result with original metadata
-  if (originalWrapper && typeof originalWrapper === 'object' && 'data' in originalWrapper) {
-    return {
-      ...originalWrapper,
-      data: instrumentedResult,
-    };
-  }
-  return instrumentedResult;
-}
-
-/**
- * Wraps a promise-like object to preserve additional methods (like .withResponse())
- */
-function wrapPromiseWithMethods<R>(originalPromiseLike: Promise<R>, instrumentedPromise: Promise<R>): Promise<R> {
-  // If the original result is not thenable, return the instrumented promise
-  // Should not happen with current OpenAI SDK instrumented methods, but just in case.
-  if (!isThenable(originalPromiseLike)) {
-    return instrumentedPromise;
-  }
-
-  // Create a proxy that forwards Promise methods to instrumentedPromise
-  // and preserves additional methods from the original result
-  return new Proxy(originalPromiseLike, {
-    get(target: object, prop: string | symbol): unknown {
-      // For standard Promise methods (.then, .catch, .finally, Symbol.toStringTag),
-      // use instrumentedPromise to preserve Sentry instrumentation.
-      // For custom methods (like .withResponse()), use the original target.
-      const useInstrumentedPromise = prop in Promise.prototype || prop === Symbol.toStringTag;
-      const source = useInstrumentedPromise ? instrumentedPromise : target;
-
-      const value = Reflect.get(source, prop) as unknown;
-
-      // Special handling for .withResponse() to preserve instrumentation
-      // .withResponse() returns { data: T, response: Response, request_id: string }
-      if (prop === 'withResponse' && typeof value === 'function') {
-        return function wrappedWithResponse(this: unknown): unknown {
-          const originalWithResponse = (value as (...args: unknown[]) => unknown).call(target);
-          return createWithResponseWrapper(originalWithResponse, instrumentedPromise);
-        };
-      }
-
-      return typeof value === 'function' ? value.bind(source) : value;
-    },
-  }) as Promise<R>;
-}
-
-/**
  * Instrument a method with Sentry spans
  * Following Sentry AI Agents Manual Instrumentation conventions
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -300,7 +235,7 @@ function instrumentMethod<T extends unknown[], R>(
         })();
       });
 
-      return wrapPromiseWithMethods(originalResult, instrumentedPromise);
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
     }
 
     // Non-streaming
@@ -332,7 +267,7 @@ function instrumentMethod<T extends unknown[], R>(
       );
     });
 
-    return wrapPromiseWithMethods(originalResult, instrumentedPromise);
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
   };
 }
 

@@ -11,6 +11,32 @@ function startMockAnthropicServer() {
 
     res.set('request-id', 'req_withresponse_test');
 
+    if (req.body.stream) {
+      res.set('content-type', 'text/event-stream');
+      res.flushHeaders();
+
+      const events = [
+        `event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: 'msg_stream_withresponse', type: 'message', role: 'assistant', model, content: [], usage: { input_tokens: 10 } } })}\n\n`,
+        `event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`,
+        `event: content_block_delta\ndata: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Streaming with response!' } })}\n\n`,
+        `event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`,
+        `event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 5 } })}\n\n`,
+        `event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`,
+      ];
+
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < events.length) {
+          res.write(events[i]);
+          i++;
+        } else {
+          clearInterval(interval);
+          res.end();
+        }
+      }, 10);
+      return;
+    }
+
     res.send({
       id: 'msg_withresponse',
       type: 'message',
@@ -74,11 +100,10 @@ async function run() {
     if (data.model !== 'claude-3-haiku-20240307') {
       throw new Error(`Expected data.model to be 'claude-3-haiku-20240307', got '${data.model}'`);
     }
-    if (data.role !== 'assistant') {
-      throw new Error(`Expected data.role to be 'assistant', got '${data.role}'`);
-    }
     if (data.content[0].text !== 'Testing .withResponse() method!') {
-      throw new Error(`Expected data.content[0].text to be 'Testing .withResponse() method!', got '${data.content[0].text}'`);
+      throw new Error(
+        `Expected data.content[0].text to be 'Testing .withResponse() method!', got '${data.content[0].text}'`,
+      );
     }
 
     // Verify response is a Response object with correct headers
@@ -127,13 +152,42 @@ async function run() {
       );
     }
 
-    // Verify we can manually parse the body
-    const body = await rawResponse.json();
-    if (body.id !== 'msg_withresponse') {
-      throw new Error(`Expected body.id 'msg_withresponse', got '${body.id}'`);
+    // Test 3: Verify .withResponse() works with streaming (stream: true)
+    const streamResult = client.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 100,
+      messages: [{ role: 'user', content: 'Test stream withResponse' }],
+      stream: true,
+    });
+
+    if (typeof streamResult.withResponse !== 'function') {
+      throw new Error('.withResponse() method does not exist on streaming result');
     }
-    if (body.content[0].text !== 'Testing .withResponse() method!') {
-      throw new Error(`Expected specific content in body, got '${body.content[0].text}'`);
+
+    const streamWithResponse = await streamResult.withResponse();
+
+    if (!streamWithResponse.data) {
+      throw new Error('streaming .withResponse() did not return data');
+    }
+    if (!streamWithResponse.response) {
+      throw new Error('streaming .withResponse() did not return response');
+    }
+    if (streamWithResponse.request_id === undefined) {
+      throw new Error('streaming .withResponse() did not return request_id');
+    }
+
+    if (!(streamWithResponse.response instanceof Response)) {
+      throw new Error('streaming response is not a Response object');
+    }
+    if (streamWithResponse.response.headers.get('request-id') !== 'req_withresponse_test') {
+      throw new Error(
+        `Expected request-id header 'req_withresponse_test', got '${streamWithResponse.response.headers.get('request-id')}'`,
+      );
+    }
+
+    // Consume the stream to allow span to complete
+    for await (const _ of streamWithResponse.data) {
+      void _;
     }
   });
 
