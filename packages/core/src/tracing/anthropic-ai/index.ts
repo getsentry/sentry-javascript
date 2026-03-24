@@ -218,10 +218,10 @@ function handleStreamingRequest<T extends unknown[], R>(
 
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
-    let originalResult!: R | Promise<R>;
+    let originalResult!: Promise<R>;
 
     const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
-      originalResult = originalMethod.apply(context, args);
+      originalResult = originalMethod.apply(context, args) as Promise<R>;
 
       if (options.recordInputs && params) {
         addPrivateRequestAttributes(span, params);
@@ -241,9 +241,7 @@ function handleStreamingRequest<T extends unknown[], R>(
       })();
     });
 
-    return wrapPromiseWithMethods(originalResult as Promise<R>, instrumentedPromise, 'auto.ai.anthropic') as
-      | R
-      | Promise<R>;
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
   } else {
     return startSpanManual(spanConfig, span => {
       try {
@@ -296,7 +294,7 @@ function instrumentMethod<T extends unknown[], R>(
         );
       }
 
-      let originalResult!: R | Promise<R>;
+      let originalResult!: Promise<R>;
 
       const instrumentedPromise = startSpan(
         {
@@ -305,13 +303,13 @@ function instrumentMethod<T extends unknown[], R>(
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {
-          originalResult = target.apply(context, args);
+          originalResult = target.apply(context, args) as Promise<R>;
 
           if (options.recordInputs && params) {
             addPrivateRequestAttributes(span, params);
           }
 
-          return (originalResult as Promise<R>).then(
+          return originalResult.then(
             result => {
               addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
               return result;
@@ -332,9 +330,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
       );
 
-      return wrapPromiseWithMethods(originalResult as Promise<R>, instrumentedPromise, 'auto.ai.anthropic') as
-        | R
-        | Promise<R>;
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
     },
   }) as (...args: T) => R | Promise<R>;
 }
