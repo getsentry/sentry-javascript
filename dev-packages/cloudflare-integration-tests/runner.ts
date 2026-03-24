@@ -188,10 +188,7 @@ export function createRunner(...paths: string[]) {
             reject(e);
           };
 
-          function onChildMessage(
-            message: string,
-            onReady?: (port: number) => void,
-          ): void {
+          function onChildMessage(message: string, onReady?: (port: number) => void): void {
             const msg = JSON.parse(message) as { event: string; port?: number };
             if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
               if (process.env.DEBUG) log('worker ready on port', msg.port);
@@ -220,9 +217,7 @@ export function createRunner(...paths: string[]) {
 
             // Wait for the sub-worker to be ready before starting the main worker
             await new Promise<void>((resolveSubWorker, rejectSubWorker) => {
-              childSubWorker!.on('message', (msg: string) =>
-                onChildMessage(msg, () => resolveSubWorker()),
-              );
+              childSubWorker!.on('message', (msg: string) => onChildMessage(msg, () => resolveSubWorker()));
               childSubWorker!.on('error', rejectSubWorker);
               childSubWorker!.on('exit', code => {
                 rejectSubWorker(new Error(`Sub-worker exited with code ${code}`));
