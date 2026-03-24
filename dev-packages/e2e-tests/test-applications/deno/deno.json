@@ -2,7 +2,10 @@
   "imports": {
     "@sentry/deno": "npm:@sentry/deno",
     "@sentry/core": "npm:@sentry/core",
-    "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0"
+    "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0",
+    "ai": "npm:ai@^3.0.0",
+    "ai/test": "npm:ai@^3.0.0/test",
+    "zod": "npm:zod@^3.22.4"
   },
   "nodeModulesDir": "manual"
 }
