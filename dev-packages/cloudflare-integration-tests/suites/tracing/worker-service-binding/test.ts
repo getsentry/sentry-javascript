@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../runner';
 
-it('propagates trace from worker to worker via service binding', async ({ signal }) => {
+it('adds a trace to a worker via service binding', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as Event;

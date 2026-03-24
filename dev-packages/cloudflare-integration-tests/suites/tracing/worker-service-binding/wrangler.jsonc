@@ -1,5 +1,5 @@
 {
-  "name": "cloudflare-durable-objects",
+  "name": "cloudflare-worker-service-binding",
   "main": "index.ts",
   "compatibility_date": "2025-06-17",
   "compatibility_flags": ["nodejs_als"],
