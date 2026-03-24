@@ -2156,6 +2156,19 @@ describe('startNewTrace', () => {
       });
     });
   });
+
+  it('does not leak the new traceId to the outer scope', () => {
+    const outerPropagationContext = getCurrentScope().getPropagationContext();
+    const outerTraceId = outerPropagationContext.traceId;
+
+    startNewTrace(() => {
+      const innerTraceId = getCurrentScope().getPropagationContext().traceId;
+      expect(innerTraceId).not.toBe(outerTraceId);
+    });
+
+    const afterTraceId = getCurrentScope().getPropagationContext().traceId;
+    expect(afterTraceId).toBe(outerTraceId);
+  });
 });
 
 function getSpanName(span: AbstractSpan): string | undefined {

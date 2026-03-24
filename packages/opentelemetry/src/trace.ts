@@ -306,11 +306,6 @@ export function startNewTrace<T>(callback: () => T): T {
   const traceId = generateTraceId();
   const spanId = generateSpanId();
 
-  getCurrentScope().setPropagationContext({
-    traceId,
-    sampleRand: _INTERNAL_safeMathRandom(),
-  });
-
   const spanContext: SpanContext = {
     traceId,
     spanId,
@@ -320,7 +315,13 @@ export function startNewTrace<T>(callback: () => T): T {
 
   const ctxWithTrace = trace.setSpanContext(context.active(), spanContext);
 
-  return context.with(ctxWithTrace, callback);
+  return context.with(ctxWithTrace, () => {
+    getCurrentScope().setPropagationContext({
+      traceId,
+      sampleRand: _INTERNAL_safeMathRandom(),
+    });
+    return callback();
+  });
 }
 
 /**
