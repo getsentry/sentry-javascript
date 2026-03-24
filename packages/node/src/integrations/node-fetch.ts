@@ -83,7 +83,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
       // This is the Sentry-specific instrumentation that creates breadcrumbs & propagates traces
       // This must be registered after the OTEL one, to ensure that the core trace propagation logic takes presedence
       // Otherwise, the sentry-trace header may be set multiple times
-      instrumentSentryNodeFetch(options);
+      instrumentSentryNodeFetch({ ...options });
     },
   };
 }) satisfies IntegrationFn;

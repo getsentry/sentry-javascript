@@ -57,44 +57,53 @@ export function addTracePropagationHeadersToFetchRequest(
   if (Array.isArray(request.headers)) {
     const requestHeaders = request.headers;
 
-    // We do not want to overwrite existing header here, if it was already set
-    if (sentryTrace && !requestHeaders.includes(SENTRY_TRACE_HEADER)) {
-      requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
-    }
+    const hasExistingSentryTraceHeader = requestHeaders.includes(SENTRY_TRACE_HEADER);
 
-    if (traceparent && !requestHeaders.includes('traceparent')) {
-      requestHeaders.push('traceparent', traceparent);
-    }
+    // We do not want to set any headers if we already have an existing sentry-trace header.
+    // This is still the source of truth, otherwise we risk mixing up baggage and sentry-trace values.
+    if (!hasExistingSentryTraceHeader) {
+      if (sentryTrace) {
+        requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
+      }
 
-    // For baggage, we make sure to merge this into a possibly existing header
-    const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
-    if (baggage && existingBaggagePos === -1) {
-      requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
-    } else if (baggage) {
-      // headers in format [key_0, value_0, key_1, value_1, ...], hence the +1 here
-      const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        requestHeaders[existingBaggagePos + 1] = merged;
+      if (traceparent && !requestHeaders.includes('traceparent')) {
+        requestHeaders.push('traceparent', traceparent);
+      }
+
+      // For baggage, we make sure to merge this into a possibly existing header
+      const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
+      if (baggage && existingBaggagePos === -1) {
+        requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
+      } else if (baggage) {
+        // headers in format [key_0, value_0, key_1, value_1, ...], hence the +1 here
+        const existingBaggage = requestHeaders[existingBaggagePos + 1];
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          requestHeaders[existingBaggagePos + 1] = merged;
+        }
       }
     }
   } else {
     // We do not want to overwrite existing header here, if it was already set
-    if (sentryTrace && !request.headers.includes(`${SENTRY_TRACE_HEADER}:`)) {
-      request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
-    }
+    const hasExistingSentryTraceHeader = request.headers.includes(`${SENTRY_TRACE_HEADER}:`);
 
-    if (traceparent && !request.headers.includes('traceparent:')) {
-      request.headers += `traceparent: ${traceparent}\r\n`;
-    }
+    if (!hasExistingSentryTraceHeader) {
+      if (sentryTrace) {
+        request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
+      }
 
-    const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
-    if (baggage && !existingBaggage) {
-      request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
-    } else if (baggage) {
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
-      if (merged) {
-        request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
+      if (traceparent && !request.headers.includes('traceparent:')) {
+        request.headers += `traceparent: ${traceparent}\r\n`;
+      }
+
+      const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
+      if (baggage && !existingBaggage) {
+        request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
+      } else if (baggage) {
+        const merged = mergeBaggageHeaders(existingBaggage, baggage);
+        if (merged) {
+          request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
+        }
       }
     }
   }
@@ -111,12 +120,12 @@ export function addTracePropagationHeadersToFetchRequest(
 function _deduplicateHeaders(request: UndiciRequest): void {
   if (Array.isArray(request.headers)) {
     _deduplicateArrayHeaders(request.headers);
-  } else if (typeof request.headers === 'string') {
+  } else {
     request.headers = _deduplicateStringHeaders(request.headers);
   }
 }
 
-function _deduplicateArrayHeaders(headers: (string | string[])[]): void {
+function _deduplicateArrayHeaders(headers: string[]): void {
   _deduplicateArrayHeader(headers, SENTRY_TRACE_HEADER);
   _deduplicateArrayHeader(headers, SENTRY_BAGGAGE_HEADER);
 }
@@ -124,25 +133,27 @@ function _deduplicateArrayHeaders(headers: (string | string[])[]): void {
 /**
  * For a given header name, if there are multiple entries in the [key, value, key, value, ...] array,
  * keep the first entry and remove the rest.
- * For baggage, values are merged to preserve all entries. For other headers, the first value wins.
+ * For baggage, values are merged to preserve all entries but to dedupe sentry- values, and always
+ * keept the first occurance of them
  */
-function _deduplicateArrayHeader(headers: (string | string[])[], name: string): void {
-  let firstPos = -1;
+function _deduplicateArrayHeader(headers: string[], headerName: string): void {
+  let firstIndex = -1;
   for (let i = 0; i < headers.length; i += 2) {
-    if (headers[i] !== name) {
+    if (headers[i] !== headerName) {
       continue;
     }
 
-    if (firstPos === -1) {
-      firstPos = i;
+    if (firstIndex === -1) {
+      firstIndex = i;
       continue;
     }
 
-    // Duplicate found after firstPos. Merge into firstPos and remove.
-    if (name === SENTRY_BAGGAGE_HEADER) {
-      const merged = mergeBaggageHeaders(headers[firstPos + 1] as string, headers[i + 1] as string);
+    if (headerName === SENTRY_BAGGAGE_HEADER) {
+      // merge the initial entry into the later occurance so that we keep the initial sentry- values around.
+      // all other non-sentry values are merged
+      const merged = mergeBaggageHeaders(headers[i + 1] as string, headers[firstIndex + 1] as string);
       if (merged) {
-        headers[firstPos + 1] = merged;
+        headers[firstIndex + 1] = merged;
       }
     }
     headers.splice(i, 2);
@@ -157,13 +168,13 @@ function _deduplicateStringHeaders(input: string): string {
     return ++sentryTraceCount === 1 ? match : '';
   });
 
-  // Deduplicate baggage — merge all occurrences into one
+  // Deduplicate baggage — merge all occurrences into one but preserve initial sentry- values
   let mergedBaggage: string | undefined;
   result = result.replace(/baggage: (.*)\r\n/g, (_match, value: string) => {
     if (!mergedBaggage) {
       mergedBaggage = value;
     } else {
-      mergedBaggage = mergeBaggageHeaders(mergedBaggage, value) || mergedBaggage;
+      mergedBaggage = mergeBaggageHeaders(value, mergedBaggage) || mergedBaggage;
     }
     return '';
   });
