@@ -31,6 +31,10 @@ describe('init()', () => {
                 name: 'npm:@sentry/google-cloud-serverless',
                 version: expect.any(String),
               },
+              {
+                name: 'npm:@sentry/node',
+                version: expect.any(String),
+              },
             ],
             version: expect.any(String),
           },

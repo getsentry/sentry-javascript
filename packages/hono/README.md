@@ -48,6 +48,7 @@ compatibility_flags = ["nodejs_compat"]
 Initialize the Sentry Hono middleware as early as possible in your app:
 
 ```typescript
+import { Hono } from 'hono';
 import { sentry } from '@sentry/hono/cloudflare';
 
 const app = new Hono();
@@ -55,7 +56,7 @@ const app = new Hono();
 // Initialize Sentry middleware right after creating the app
 app.use(
   sentry(app, {
-    dsn: 'your-sentry-dsn',
+    dsn: '__DSN__',
     // ...other Sentry options
   }),
 );
@@ -64,3 +65,64 @@ app.use(
 
 export default app;
 ```
+
+#### Access `env` from Cloudflare Worker bindings
+
+Pass the options as a callback instead of a plain options object. The function receives the Cloudflare Worker `env` as defined in the Worker's `Bindings`:
+
+```typescript
+import { Hono } from 'hono';
+import { sentry } from '@sentry/hono/cloudflare';
+
+type Bindings = { SENTRY_DSN: string };
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+app.use(sentry(app, env => ({ dsn: env.SENTRY_DSN })));
+
+export default app;
+```
+
+## Setup (Node)
+
+### 1. Initialize Sentry in your Hono app
+
+Initialize the Sentry Hono middleware as early as possible in your app:
+
+```ts
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { sentry } from '@sentry/hono/node';
+
+const app = new Hono();
+
+// Initialize Sentry middleware right after creating the app
+app.use(
+  sentry(app, {
+    dsn: '__DSN__', // or process.env.SENTRY_DSN
+    tracesSampleRate: 1.0,
+  }),
+);
+
+// ... your routes and other middleware
+
+serve(app);
+```
+
+### 2. Add `preload` script to start command
+
+To ensure that Sentry can capture spans from third-party libraries (e.g. database clients) used in your Hono app, Sentry needs to wrap these libraries as early as possible.
+
+When starting the Hono Node application, use the `@sentry/node/preload` hook with the `--import` CLI option to ensure modules are wrapped before the application code runs:
+
+```bash
+node --import @sentry/node/preload index.js
+```
+
+This option can also be added to the `NODE_OPTIONS` environment variable:
+
+```bash
+NODE_OPTIONS="--import @sentry/node/preload"
+```
+
+Read more about this preload script in the docs: https://docs.sentry.io/platforms/javascript/guides/hono/install/late-initialization/#late-initialization-with-esm

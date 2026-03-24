@@ -9,10 +9,10 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 };
 
 /**
- * Drops spans for tunnel requests from middleware or fetch instrumentation.
- * This catches both:
- * 1. Requests to the local tunnel route (before rewrite)
- * 2. Requests to Sentry ingest (after rewrite)
+ * Drops spans for tunnel requests from middleware, fetch instrumentation, or BaseServer.handleRequest.
+ * This catches:
+ * 1. Requests to the local tunnel route (before rewrite) via middleware or BaseServer.handleRequest
+ * 2. Requests to Sentry ingest (after rewrite) via fetch spans
  */
 export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
   // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
@@ -21,14 +21,15 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
     return;
   }
 
-  // Only filter middleware spans or HTTP fetch spans
+  // Only filter middleware spans, HTTP fetch spans, or BaseServer.handleRequest spans
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
   const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.node_fetch';
+  const isBaseServerHandleRequest = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest';
 
-  // If the span is not a middleware span or a fetch span, return
-  if (!isMiddleware && !isFetchSpan) {
+  // If the span is not a middleware span, fetch span, or BaseServer.handleRequest span, return
+  if (!isMiddleware && !isFetchSpan && !isBaseServerHandleRequest) {
     return;
   }
 
@@ -58,7 +59,7 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
     const pathname = httpTarget.split('?')[0] || '';
 
-    return pathname.startsWith(tunnelPath);
+    return pathname === tunnelPath || pathname.startsWith(`${tunnelPath}/`);
   }
 
   return false;

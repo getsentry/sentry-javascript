@@ -73,6 +73,8 @@ const lazyRouteManifest = [
   '/deep/level2/level3/:id',
   '/slow-fetch/:id',
   '/wildcard-lazy/:id',
+  '/lazy-gql-a/fetch',
+  '/lazy-gql-b/fetch',
 ];
 
 Sentry.init({
@@ -167,6 +169,18 @@ const router = sentryCreateBrowserRouter(
       ],
       handle: {
         lazyChildren: () => import('./pages/WildcardLazyRoutes').then(module => module.wildcardRoutes),
+      },
+    },
+    {
+      path: '/lazy-gql-a',
+      handle: {
+        lazyChildren: () => import('./pages/LazyFetchRoutes').then(module => module.lazyGqlARoutes),
+      },
+    },
+    {
+      path: '/lazy-gql-b',
+      handle: {
+        lazyChildren: () => import('./pages/LazyFetchSubRoutes').then(module => module.lazyGqlBRoutes),
       },
     },
   ],

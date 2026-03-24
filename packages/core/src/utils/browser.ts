@@ -117,8 +117,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
       }
     }
   }
-  const allowedAttrs = ['aria-label', 'type', 'name', 'title', 'alt'];
-  for (const k of allowedAttrs) {
+  for (const k of ['aria-label', 'type', 'name', 'title', 'alt']) {
     const attr = elem.getAttribute(k);
     if (attr) {
       out.push(`[${k}="${attr}"]`);

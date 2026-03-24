@@ -7,18 +7,21 @@ import { withSentry } from '../src/withSentry';
 import { markAsInstrumented } from '../src/instrument';
 import * as HonoIntegration from '../src/integrations/hono';
 
-type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      SENTRY_DSN: string;
+    }
+  }
+}
+
+type HonoLikeApp<Env = Cloudflare.Env, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
   Env,
   QueueHandlerMessage,
   CfHostMetadata
 > & {
   onError?: () => void;
   errorHandler?: (err: Error) => Response;
-};
-
-const MOCK_ENV = {
-  SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
-  SENTRY_RELEASE: '1.1.1',
 };
 
 describe('withSentry', () => {
@@ -33,7 +36,7 @@ describe('withSentry', () => {
       const handleHonoException = vi.fn();
       vi.spyOn(HonoIntegration, 'getHonoIntegration').mockReturnValue({ handleHonoException } as any);
 
-      const honoApp = {
+      const honoApp: HonoLikeApp = {
         fetch(_request, _env, _context) {
           return new Response('test');
         },
@@ -41,7 +44,7 @@ describe('withSentry', () => {
         errorHandler(err: Error) {
           return new Response(`Error: ${err.message}`, { status: 500 });
         },
-      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+      };
 
       withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
 
@@ -59,13 +62,13 @@ describe('withSentry', () => {
 
       const error = new Error('test hono error');
 
-      const honoApp = {
+      const honoApp: HonoLikeApp = {
         fetch(_request, _env, _context) {
           return new Response('test');
         },
         onError() {},
         errorHandler: originalErrorHandlerSpy,
-      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+      };
 
       withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
 
@@ -86,13 +89,13 @@ describe('withSentry', () => {
 
       markAsInstrumented(originalErrorHandler);
 
-      const honoApp = {
+      const honoApp: HonoLikeApp = {
         fetch(_request, _env, _context) {
           return new Response('test');
         },
         onError() {},
         errorHandler: originalErrorHandler,
-      } satisfies HonoLikeApp<typeof MOCK_ENV>;
+      };
 
       withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
 

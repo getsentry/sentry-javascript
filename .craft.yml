@@ -1,5 +1,6 @@
 minVersion: '0.23.1'
-changelogPolicy: simple
+changelog:
+  policy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets
@@ -100,6 +101,9 @@ targets:
   - name: npm
     id: '@sentry/nestjs'
     includeNames: /^sentry-nestjs-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/effect'
+    includeNames: /^sentry-effect-\d.*\.tgz$/
 
   ## 6. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm
@@ -237,3 +241,9 @@ targets:
         onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
+      'npm:@sentry/effect':
+        name: 'Sentry Effect SDK'
+        sdkName: 'sentry.javascript.effect'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/effect'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/effect/'
+        onlyIfPresent: /^sentry-effect-\d.*\.tgz$/

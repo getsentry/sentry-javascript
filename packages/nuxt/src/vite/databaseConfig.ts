@@ -38,5 +38,5 @@ export function addDatabaseInstrumentation(nitro: NitroConfig, moduleOptions?: S
     },
   });
 
-  addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database.server'));
+  addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database-legacy.server'));
 }

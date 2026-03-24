@@ -16,7 +16,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "latest || *",
-    "astro": "^6.0.0"
+    "astro": "^6.0.6"
   },
   "volta": {
     "node": "22.22.0",

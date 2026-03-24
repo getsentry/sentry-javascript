@@ -266,6 +266,12 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     return;
   }
 
+  // The Vercel AI SDK sets span status to raw error message strings.
+  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
+  if (span.status && span.status !== 'ok') {
+    span.status = 'internal_error';
+  }
+
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
@@ -470,7 +476,9 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
           'gen_ai.usage.output_tokens.prediction_rejected',
           openaiMetadata.rejectedPredictionTokens,
         );
-        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
+        if (!attributes['gen_ai.conversation.id']) {
+          setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
+        }
       }
 
       if (providerMetadataObject.anthropic) {

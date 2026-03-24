@@ -171,7 +171,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleLLMError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'llm_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 
@@ -239,7 +239,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChainError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'chain_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 
@@ -298,7 +298,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleToolError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'tool_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 

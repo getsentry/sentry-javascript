@@ -11,6 +11,7 @@ import {
 } from '../ai/gen-ai-attributes';
 import { setTokenUsageAttributes } from '../ai/utils';
 import type { AnthropicAiStreamingEvent } from './types';
+import { mapAnthropicErrorToStatusMessage } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Anthropic AI events.
@@ -59,7 +60,7 @@ function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: event.error?.type ?? 'internal_error' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatusMessage(event.error?.type) });
       captureException(event.error, {
         mechanism: {
           handled: false,
@@ -377,7 +378,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     });
 
     if (span.isRecording()) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'stream_error' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       span.end();
     }
   });
