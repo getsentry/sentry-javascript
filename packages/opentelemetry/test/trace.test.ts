@@ -2157,6 +2157,17 @@ describe('startNewTrace', () => {
     });
   });
 
+  it('allows spans to be sampled based on tracesSampleRate', () => {
+    startNewTrace(() => {
+      const span = startInactiveSpan({ name: 'sampled-span' });
+      // tracesSampleRate is 1 in mockSdkInit, so spans should be sampled
+      // This verifies that TraceFlags.NONE on the remote span context does not
+      // cause the sampler to inherit a "not sampled" decision from the parent
+      expect(spanIsSampled(span)).toBe(true);
+      span.end();
+    });
+  });
+
   it('does not leak the new traceId to the outer scope', () => {
     const outerPropagationContext = getCurrentScope().getPropagationContext();
     const outerTraceId = outerPropagationContext.traceId;
