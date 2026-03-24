@@ -9,5 +9,5 @@ export default defineHandler(async event => {
   }
 
   // Set a header to indicate this middleware ran
-  event.res.headers.set('x-auth-middleware', 'executed');
+  event.res?.headers.set('x-auth-middleware', 'executed');
 });

@@ -4,7 +4,7 @@ import { getQuery } from 'nitro/h3';
 export default defineHandler({
   onRequest: async event => {
     // Set a header to indicate the onRequest hook ran
-    event.req.headers.set('x-hooks-onrequest', 'executed');
+    event.res?.headers.set('x-hooks-onrequest', 'executed');
 
     // Check if we should throw an error in onRequest
     const query = getQuery(event);
@@ -15,7 +15,7 @@ export default defineHandler({
 
   handler: async event => {
     // Set a header to indicate the main handler ran
-    event.res.headers.set('x-hooks-handler', 'executed');
+    event.res?.headers.set('x-hooks-handler', 'executed');
 
     // Check if we should throw an error in handler
     const query = getQuery(event);
@@ -26,7 +26,7 @@ export default defineHandler({
 
   onBeforeResponse: async (event, response) => {
     // Set a header to indicate the onBeforeResponse hook ran
-    event.res.headers.set('x-hooks-onbeforeresponse', 'executed');
+    event.res?.headers.set('x-hooks-onbeforeresponse', 'executed');
 
     // Check if we should throw an error in onBeforeResponse
     const query = getQuery(event);

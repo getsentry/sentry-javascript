@@ -7,9 +7,9 @@ export default defineHandler(async event => {
     path: event.path,
     method: event.method,
     headers: {
-      'x-first-middleware': event.req.headers.get('x-first-middleware'),
-      'x-second-middleware': event.req.headers.get('x-second-middleware'),
-      'x-auth-middleware': event.req.headers.get('x-auth-middleware'),
+      'x-first-middleware': event.res?.headers.get('x-first-middleware'),
+      'x-second-middleware': event.res?.headers.get('x-second-middleware'),
+      'x-auth-middleware': event.res?.headers.get('x-auth-middleware'),
     },
   };
 });

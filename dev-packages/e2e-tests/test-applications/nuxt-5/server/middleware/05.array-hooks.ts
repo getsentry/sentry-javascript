@@ -5,7 +5,7 @@ export default defineHandler({
   // Array of onRequest handlers
   onRequest: [
     async event => {
-      event.res.headers.set('x-array-onrequest-0', 'executed');
+      event.res?.headers.set('x-array-onrequest-0', 'executed');
 
       const query = getQuery(event);
       if (query.throwOnRequest0Error === 'true') {
@@ -13,7 +13,7 @@ export default defineHandler({
       }
     },
     async event => {
-      event.res.headers.set('x-array-onrequest-1', 'executed');
+      event.res?.headers.set('x-array-onrequest-1', 'executed');
 
       const query = getQuery(event);
       if (query.throwOnRequest1Error === 'true') {
@@ -23,13 +23,13 @@ export default defineHandler({
   ],
 
   handler: async event => {
-    event.res.headers.set('x-array-handler', 'executed');
+    event.res?.headers.set('x-array-handler', 'executed');
   },
 
   // Array of onBeforeResponse handlers
   onBeforeResponse: [
     async (event, response) => {
-      event.res.headers.set('x-array-onbeforeresponse-0', 'executed');
+      event.res?.headers.set('x-array-onbeforeresponse-0', 'executed');
 
       const query = getQuery(event);
       if (query.throwOnBeforeResponse0Error === 'true') {
@@ -37,7 +37,7 @@ export default defineHandler({
       }
     },
     async (event, response) => {
-      event.res.headers.set('x-array-onbeforeresponse-1', 'executed');
+      event.res?.headers.set('x-array-onbeforeresponse-1', 'executed');
 
       const query = getQuery(event);
       if (query.throwOnBeforeResponse1Error === 'true') {

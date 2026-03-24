@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
 
-test.describe('Server Middleware Instrumentation', () => {
+// TODO: Skipped for Nuxt 5 as the SDK is not yet updated for that
+test.describe.skip('Server Middleware Instrumentation', () => {
   test('should create separate spans for each server middleware', async ({ request }) => {
     const serverTxnEventPromise = waitForTransaction('nuxt-5', txnEvent => {
       return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;

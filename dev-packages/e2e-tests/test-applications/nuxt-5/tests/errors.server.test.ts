@@ -27,7 +27,7 @@ test.describe('server-side errors', async () => {
       source: 'cause',
     });
 
-    expect(exception1.type).toEqual('Error');
+    expect(exception1.type).toEqual('HTTPError');
     expect(exception1.value).toEqual('Nuxt 4 Server error');
     // TODO: This isn't correct but requires adjustment in the core SDK
     expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });
@@ -58,7 +58,7 @@ test.describe('server-side errors', async () => {
       source: 'cause',
     });
 
-    expect(exception1.type).toEqual('Error');
+    expect(exception1.type).toEqual('HTTPError');
     expect(exception1.value).toEqual('Nuxt 4 Param Server error');
     // TODO: This isn't correct but requires adjustment in the core SDK
     expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });

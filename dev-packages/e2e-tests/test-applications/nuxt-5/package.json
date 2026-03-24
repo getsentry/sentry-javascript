@@ -18,8 +18,8 @@
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "//": [
-    "Currently, we need to install the latest version of the nightlies as those contain Nuxt v5",
-    "todo: remove nitro from dependencies"
+    "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
+    "TODO: remove nitro from dependencies"
   ],
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",

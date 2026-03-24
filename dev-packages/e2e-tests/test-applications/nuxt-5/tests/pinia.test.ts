@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-test('sends pinia action breadcrumbs and state context', async ({ page }) => {
+// TODO: Pinia does not yet support Nuxt 5, so this test is skipped for now.
+test.skip('sends pinia action breadcrumbs and state context', async ({ page }) => {
   await page.goto('/pinia-cart');
 
   await page.locator('#item-input').fill('item');
