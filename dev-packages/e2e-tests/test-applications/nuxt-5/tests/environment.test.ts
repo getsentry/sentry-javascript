@@ -3,6 +3,8 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test.describe('environment detection', async () => {
+  const expectedEnvironment = isDevMode ? 'development' : 'production';
+
   test('sets correct environment for client-side errors', async ({ page }) => {
     const errorPromise = waitForError('nuxt-5', async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from nuxt-5 E2E test app';
@@ -14,11 +16,7 @@ test.describe('environment detection', async () => {
 
     const error = await errorPromise;
 
-    if (isDevMode) {
-      expect(error.environment).toBe('development');
-    } else {
-      expect(error.environment).toBe('production');
-    }
+    expect(error.environment).toBe(expectedEnvironment);
   });
 
   test('sets correct environment for client-side transactions', async ({ page }) => {
@@ -30,11 +28,7 @@ test.describe('environment detection', async () => {
 
     const transaction = await transactionPromise;
 
-    if (isDevMode) {
-      expect(transaction.environment).toBe('development');
-    } else {
-      expect(transaction.environment).toBe('production');
-    }
+    expect(transaction.environment).toBe(expectedEnvironment);
   });
 
   test('sets correct environment for server-side errors', async ({ page }) => {
@@ -49,11 +43,7 @@ test.describe('environment detection', async () => {
 
     expect(error.transaction).toBe('GET /api/server-error');
 
-    if (isDevMode) {
-      expect(error.environment).toBe('development');
-    } else {
-      expect(error.environment).toBe('production');
-    }
+    expect(error.environment).toBe(expectedEnvironment);
   });
 
   test('sets correct environment for server-side transactions', async ({ page }) => {
@@ -68,10 +58,6 @@ test.describe('environment detection', async () => {
 
     expect(transaction.contexts.trace.op).toBe('http.server');
 
-    if (isDevMode) {
-      expect(transaction.environment).toBe('development');
-    } else {
-      expect(transaction.environment).toBe('production');
-    }
+    expect(transaction.environment).toBe(expectedEnvironment);
   });
 });
