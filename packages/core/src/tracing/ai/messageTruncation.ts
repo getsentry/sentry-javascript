@@ -15,14 +15,19 @@ type ContentMessage = {
 };
 
 /**
+ * One block inside OpenAI / Anthropic `content: [...]` arrays (text, image_url, etc.).
+ */
+type ContentArrayBlock = {
+  [key: string]: unknown;
+  type: string;
+};
+
+/**
  * Message format used by OpenAI and Anthropic APIs for media.
  */
 type ContentArrayMessage = {
   [key: string]: unknown;
-  content: {
-    [key: string]: unknown;
-    type: string;
-  }[];
+  content: ContentArrayBlock[];
 };
 
 /**
@@ -46,6 +51,11 @@ type MediaPart = {
   type: string;
   content: string;
 };
+
+/**
+ * One element of an array-based message: OpenAI/Anthropic `content[]` or Google `parts`.
+ */
+type ArrayMessageItem = TextPart | MediaPart | ContentArrayBlock;
 
 /**
  * Calculate the UTF-8 byte length of a string.
@@ -95,31 +105,33 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
 }
 
 /**
- * Extract text content from a Google GenAI message part.
- * Parts are either plain strings or objects with a text property.
+ * Extract text content from a message item.
+ * Handles plain strings and objects with a text property.
  *
  * @returns The text content
  */
-function getPartText(part: TextPart | MediaPart): string {
-  if (typeof part === 'string') {
-    return part;
+function getItemText(item: ArrayMessageItem): string {
+  if (typeof item === 'string') {
+    return item;
   }
-  if ('text' in part) return part.text;
+  if ('text' in item && typeof item.text === 'string') {
+    return item.text;
+  }
   return '';
 }
 
 /**
- * Create a new part with updated text content while preserving the original structure.
+ * Create a new item with updated text content while preserving the original structure.
  *
- * @param part - Original part (string or object)
+ * @param item - Original item (string or object)
  * @param text - New text content
- * @returns New part with updated text
+ * @returns New item with updated text
  */
-function withPartText(part: TextPart | MediaPart, text: string): TextPart {
-  if (typeof part === 'string') {
+function withItemText(item: ArrayMessageItem, text: string): ArrayMessageItem {
+  if (typeof item === 'string') {
     return text;
   }
-  return { ...part, text };
+  return { ...item, text };
 }
 
 /**
@@ -176,56 +188,78 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
 }
 
 /**
- * Truncate a message with `parts: [...]` format (Google GenAI).
- * Keeps as many complete parts as possible, only truncating the first part if needed.
+ * Extracts the array items and their key from an array-based message.
+ * Returns `null` key if neither `parts` nor `content` is a valid array.
+ */
+function getArrayItems(message: PartsMessage | ContentArrayMessage): {
+  key: 'parts' | 'content' | null;
+  items: ArrayMessageItem[];
+} {
+  if ('parts' in message && Array.isArray(message.parts)) {
+    return { key: 'parts', items: message.parts };
+  }
+  if ('content' in message && Array.isArray(message.content)) {
+    return { key: 'content', items: message.content };
+  }
+  return { key: null, items: [] };
+}
+
+/**
+ * Truncate a message with an array-based format.
+ * Handles both `parts: [...]` (Google GenAI) and `content: [...]` (OpenAI/Anthropic multimodal).
+ * Keeps as many complete items as possible, only truncating the first item if needed.
  *
- * @param message - Message with parts array
+ * @param message - Message with parts or content array
  * @param maxBytes - Maximum byte limit
  * @returns Array with truncated message, or empty array if it doesn't fit
  */
-function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[] {
-  const { parts } = message;
+function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
+  const { key, items } = getArrayItems(message);
 
-  // Calculate overhead by creating empty text parts
-  const emptyParts = parts.map(part => withPartText(part, ''));
-  const overhead = jsonBytes({ ...message, parts: emptyParts });
+  if (key === null || items.length === 0) {
+    return [];
+  }
+
+  // Calculate overhead by creating empty text items
+  const emptyItems = items.map(item => withItemText(item, ''));
+  const overhead = jsonBytes({ ...message, [key]: emptyItems });
   let remainingBytes = maxBytes - overhead;
 
   if (remainingBytes <= 0) {
     return [];
   }
 
-  // Include parts until we run out of space
-  const includedParts: (TextPart | MediaPart)[] = [];
+  // Include items until we run out of space
+  const includedItems: ArrayMessageItem[] = [];
 
-  for (const part of parts) {
-    const text = getPartText(part);
+  for (const item of items) {
+    const text = getItemText(item);
     const textSize = utf8Bytes(text);
 
     if (textSize <= remainingBytes) {
-      // Part fits: include it as-is
-      includedParts.push(part);
+      // Item fits: include it as-is
+      includedItems.push(item);
       remainingBytes -= textSize;
-    } else if (includedParts.length === 0) {
-      // First part doesn't fit: truncate it
+    } else if (includedItems.length === 0) {
+      // First item doesn't fit: truncate it
       const truncated = truncateTextByBytes(text, remainingBytes);
       if (truncated) {
-        includedParts.push(withPartText(part, truncated));
+        includedItems.push(withItemText(item, truncated));
       }
       break;
     } else {
-      // Subsequent part doesn't fit: stop here
+      // Subsequent item doesn't fit: stop here
       break;
     }
   }
 
   /* c8 ignore start
    * for type safety only, algorithm guarantees SOME text included */
-  if (includedParts.length <= 0) {
+  if (includedItems.length <= 0) {
     return [];
   } else {
     /* c8 ignore stop */
-    return [{ ...message, parts: includedParts }];
+    return [{ ...message, [key]: includedItems }];
   }
 }
 
@@ -258,13 +292,8 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
     return truncateContentMessage(message, maxBytes);
   }
 
-  if (isContentArrayMessage(message)) {
-    // Content array messages are returned as-is without truncation
-    return [message];
-  }
-
-  if (isPartsMessage(message)) {
-    return truncatePartsMessage(message, maxBytes);
+  if (isContentArrayMessage(message) || isPartsMessage(message)) {
+    return truncateArrayMessage(message, maxBytes);
   }
 
   // Unknown message format: cannot truncate safely
