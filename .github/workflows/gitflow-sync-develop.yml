@@ -23,11 +23,11 @@ jobs:
       contents: write
     steps:
       - name: git checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ vars.GITFLOW_APP_ID }}
           private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
@@ -35,7 +35,7 @@ jobs:
       # https://github.com/marketplace/actions/github-pull-request-action
       - name: Create Pull Request
         id: open-pr
-        uses: repo-sync/pull-request@v2
+        uses: repo-sync/pull-request@7e79a9f5dc3ad0ce53138f01df2fad14a04831c5 # v2
         with:
           source_branch: ${{ env.SOURCE_BRANCH }}
           destination_branch: ${{ env.TARGET_BRANCH }}
@@ -53,7 +53,7 @@ jobs:
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
         if: steps.open-pr.outputs.pr_number != ''
-        uses: hmarr/auto-approve-action@v4
+        uses: hmarr/auto-approve-action@8f929096a962e83ccdfa8afcf855f39f12d4dac7 # v4
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           review-message: 'Auto approved automated PR'

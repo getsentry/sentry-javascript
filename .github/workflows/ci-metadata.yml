@@ -40,7 +40,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ inputs.head_commit }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
@@ -58,7 +58,7 @@ jobs:
 
       # Most changed packages are determined in job_build via Nx
       - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.1
+        uses: dorny/paths-filter@ebc4d7e9ebcb0b1eb21480bb8f43113e996ac77a # v3.0.1
         id: changed
         with:
           filters: |
@@ -69,7 +69,7 @@ jobs:
 
       - name: Get PR labels
         id: pr-labels
-        uses: mydea/pr-labels-action@fn/bump-node20
+        uses: mydea/pr-labels-action@8e1ae01b5f5abf97ff6b6838aaead9dad67ae752 # fn/bump-node20
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'

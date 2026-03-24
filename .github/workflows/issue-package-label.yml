@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Get used package from issue body
         # https://github.com/actions-ecosystem/action-regex-match
-        uses: actions-ecosystem/action-regex-match@v2
+        uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b # v2
         id: packageName
         with:
           # Parse used package from issue body
@@ -21,7 +21,7 @@ jobs:
 
       - name: Map package to issue label
         # https://github.com/kanga333/variable-mapper
-        uses: kanga333/variable-mapper@v0.3.0
+        uses: kanga333/variable-mapper@3681b75f5c6c00162721168fb91ab74925eaebcb # v0.3.0
         id: packageLabel
         if: steps.packageName.outputs.match != ''
         with:
@@ -131,13 +131,13 @@ jobs:
       - name: Add package label if applicable
         # Note: We only add the label if the issue is still open
         if: steps.packageLabel.outputs.label != ''
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # v1
         with:
           labels: ${{ steps.packageLabel.outputs.label }}
 
       - name: Map additional to issue label
         # https://github.com/kanga333/variable-mapper
-        uses: kanga333/variable-mapper@v0.3.0
+        uses: kanga333/variable-mapper@3681b75f5c6c00162721168fb91ab74925eaebcb # v0.3.0
         id: additionalLabel
         if: steps.packageName.outputs.match != ''
         with:
@@ -157,6 +157,6 @@ jobs:
       - name: Add additional label if applicable
         # Note: We only add the label if the issue is still open
         if: steps.additionalLabel.outputs.label != ''
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # v1
         with:
           labels: ${{ steps.additionalLabel.outputs.label }}

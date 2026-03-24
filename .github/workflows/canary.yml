@@ -31,15 +31,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -123,19 +123,19 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@02f6c237bd2518259fed6c71566509edfb3f2b74 # v4
         with:
           version: 9.15.9
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}

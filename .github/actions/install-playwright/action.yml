@@ -18,7 +18,7 @@ runs:
       working-directory: ${{ inputs.cwd }}
 
     - name: Restore cached playwright binaries
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       id: playwright-cache
       with:
         path: |
@@ -43,7 +43,7 @@ runs:
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
       with:
         path: |
