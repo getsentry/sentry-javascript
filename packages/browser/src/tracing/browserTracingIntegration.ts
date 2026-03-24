@@ -736,7 +736,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
-      if (enableInp) {
+      if (enableInp && !spanStreamingEnabled) {
         registerInpInteractionListener();
       }
 
