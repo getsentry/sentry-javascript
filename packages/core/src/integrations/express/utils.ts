@@ -30,7 +30,6 @@
 import type { SpanAttributes } from '../../types-hoist/span';
 import { getStoredLayers } from './request-layer-store';
 import type {
-  ExpressExport,
   ExpressIntegrationOptions,
   ExpressLayer,
   ExpressLayerType,
@@ -253,14 +252,6 @@ const isExpressRouterPrototype = (routerProto?: unknown): routerProto is Express
 
 export const isExpressWithoutRouterPrototype = (express: unknown): express is ExpressExportv4 =>
   isExpressRouterPrototype((express as ExpressExportv4).Router) && !isExpressWithRouterPrototype(express);
-
-// dynamic puts the default on .default, require or normal import are fine
-export const hasDefaultProp = (
-  express: unknown,
-): express is {
-  [k: string]: unknown;
-  default: ExpressExport;
-} => !!express && typeof express === 'object' && 'default' in express && typeof express.default === 'function';
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {
   const statusCode = error.status || error.statusCode || error.status_code || error.output?.statusCode;
