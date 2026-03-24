@@ -19,10 +19,12 @@ export default (nitroApp => {
     // h3 v2 (Nuxt 5): response headers are on event.res.headers
     const isPreRenderedPage =
       Object.keys(nodeResHeadersH3v1).includes('x-nitro-prerender') ||
-      // oxlint-disable-next-line typescript/no-explicit-any
+      // fix   × typescript-eslint(no-unsafe-member-access): Unsafe member access .res on an `any` value.
+      // oxlint-disable-next-line typescript/no-explicit-any,typescript-oxlint/no-unsafe-member-access
       !!(event as any).res?.headers?.has?.('x-nitro-prerender');
 
-    const isSWRCachedPage = event?.context?.cache?.options.swr as boolean | undefined;
+    // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
+    const isSWRCachedPage = event?.context?.cache?.options?.swr as boolean | undefined;
 
     if (!isPreRenderedPage && !isSWRCachedPage) {
       addSentryTracingMetaTags(html.head);
