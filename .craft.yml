@@ -252,6 +252,7 @@ targets:
         onlyIfPresent: /^sentry-effect-\d.*\.tgz$/
       'npm:@sentry/elysia':
         name: 'Sentry Elysia SDK'
+        sdkName: 'sentry.javascript.elysia'
         packageUrl: 'https://www.npmjs.com/package/@sentry/elysia'
         mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/elysia/'
         onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/
