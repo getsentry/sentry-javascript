@@ -12,6 +12,7 @@ Sentry.init({
       collect: {
         cpuUtilization: false,
         cpuTime: false,
+        eventLoopDelayP50: false,
         eventLoopDelayP99: false,
         eventLoopUtilization: false,
         uptime: false,
