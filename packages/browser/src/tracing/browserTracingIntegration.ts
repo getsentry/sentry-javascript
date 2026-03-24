@@ -457,9 +457,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
         _collectWebVitals?.();
+        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !enableStandaloneLcpSpans,
+          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
+          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
         });
