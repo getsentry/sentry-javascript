@@ -36,7 +36,6 @@ describe('double baggage prevention', () => {
         .get('/api/v0', headers => {
           // fetch with manual getTraceData() headers — core reproduction case
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
-          console.log('xx sentry-trace', headers['sentry-trace']);
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^[a-f\d]{32}-[a-f\d]{16}$/));
           expectConsistentTraceId(headers);
         })
