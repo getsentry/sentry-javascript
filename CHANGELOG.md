@@ -17,9 +17,7 @@ Work in this release was contributed by @roli-lpci. Thank you for your contribut
 
   Sentry.init({
     dsn: '...',
-    integrations: [
-      Sentry.nodeRuntimeMetricsIntegration(),
-    ],
+    integrations: [Sentry.nodeRuntimeMetricsIntegration()],
   });
   ```
 
