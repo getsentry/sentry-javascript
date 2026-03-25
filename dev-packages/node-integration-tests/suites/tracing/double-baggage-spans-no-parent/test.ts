@@ -27,33 +27,44 @@ function expectConsistentTraceId(headers: Record<string, string | string[] | und
   expect(sentryTraceData.traceId).toEqual(baggageTraceId);
 }
 
+function expectUserSetTraceId(headers: Record<string, string | string[] | undefined>): void {
+  const xSentryTrace = extractTraceparentData(headers['x-tracedata-sentry-trace'] as string);
+  const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+  expect(xSentryTrace?.traceId).toBe(sentryTrace?.traceId);
+
+  const xBaggage = parseBaggageHeader(headers['x-tracedata-baggage']);
+  const baggage = parseBaggageHeader(headers['baggage']);
+  expect(xBaggage).toEqual(baggage);
+}
+
 describe('double baggage prevention', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('fetch with manual getTraceData() does not duplicate sentry baggage entries', async () => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
-        .get('/api/v0', headers => {
-          // fetch with manual getTraceData() headers — core reproduction case
-          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
+        .get('/api/fetch-custom-headers', headers => {
+          // fetch with manual getTraceData() headers
           expect(headers['sentry-trace']).not.toContain(',');
+          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expectConsistentTraceId(headers);
+          expectUserSetTraceId(headers);
         })
-        .get('/api/v1', headers => {
+        .get('/api/fetch', headers => {
           // fetch without manual headers (baseline)
-          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^[a-f\d]{32}-[a-f\d]{16}(-[01])?$/));
+          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expectConsistentTraceId(headers);
         })
-        .get('/api/v2', headers => {
+        .get('/api/http-custom-headers', headers => {
           // http.request with manual getTraceData() headers
-          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).not.toContain(',');
+          expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expectConsistentTraceId(headers);
+          expectUserSetTraceId(headers);
         })
         .start();
 
       await createRunner()
         .withEnv({ SERVER_URL })
-        // .ignore('transaction')
         .expect({
           event: {
             exception: {

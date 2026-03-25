@@ -2,12 +2,16 @@ import type { LRUMap, SanitizedRequestData } from '@sentry/core';
 import {
   addBreadcrumb,
   debug,
+  dynamicSamplingContextToSentryBaggageHeader,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getSanitizedUrlString,
   getTraceData,
   isError,
+  objectToBaggageHeader,
+  parseBaggageHeader,
   parseUrl,
+  SENTRY_BAGGAGE_KEY_PREFIX,
   shouldPropagateTraceForUrl,
 } from '@sentry/core';
 import type { ClientRequest, IncomingMessage, RequestOptions } from 'http';
@@ -63,7 +67,9 @@ export function addTracePropagationHeadersToOutgoingRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
 
-  if (sentryTrace && !request.getHeader('sentry-trace')) {
+  const hasExistingSentryTraceHeader = request.getHeader('sentry-trace');
+
+  if (sentryTrace && !hasExistingSentryTraceHeader) {
     try {
       request.setHeader('sentry-trace', sentryTrace);
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added sentry-trace header to outgoing request');
@@ -77,7 +83,7 @@ export function addTracePropagationHeadersToOutgoingRequest(
     }
   }
 
-  if (traceparent && !request.getHeader('traceparent')) {
+  if (traceparent && !hasExistingSentryTraceHeader && !request.getHeader('traceparent')) {
     try {
       request.setHeader('traceparent', traceparent);
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added traceparent header to outgoing request');
@@ -91,10 +97,24 @@ export function addTracePropagationHeadersToOutgoingRequest(
     }
   }
 
-  if (baggage) {
+  if (baggage && !hasExistingSentryTraceHeader) {
     const existingBaggage = request.getHeader('baggage');
 
-    const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
+    let cleanedExistingBaggage = existingBaggage;
+
+    // In the edge case that a baggage header with sentry- keys was added
+    // BUT NO sentry-trace header, we overwrite the sentry- keys in the header we attach.
+    // Therefore, we clean the existing baggage header of all sentry- keys.
+    if (existingBaggage) {
+      const tmpBaggage = parseBaggageHeader(existingBaggage);
+      const baggageWithoutSentry = tmpBaggage
+        ? Object.fromEntries(Object.entries(tmpBaggage).filter(([key]) => !key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)))
+        : {};
+      cleanedExistingBaggage = objectToBaggageHeader(baggageWithoutSentry);
+    }
+
+    // If a sentry-trace header was already added, we don't add our baggage at all.
+    const newBaggage = mergeBaggageHeaders(cleanedExistingBaggage, baggage);
     if (newBaggage) {
       try {
         request.setHeader('baggage', newBaggage);

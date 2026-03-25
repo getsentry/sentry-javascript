@@ -28,27 +28,51 @@ function expectConsistentTraceId(headers: Record<string, string | string[] | und
   expect(sentryTraceData.traceId).toEqual(baggageTraceId);
 }
 
+function expectUserSetTraceId(headers: Record<string, string | string[] | undefined>): void {
+  const xSentryTrace = extractTraceparentData(headers['x-tracedata-sentry-trace'] as string);
+  const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+  expect(xSentryTrace?.traceId).toBe(sentryTrace?.traceId);
+
+  const xBaggage = parseBaggageHeader(headers['x-tracedata-baggage']);
+  const baggage = parseBaggageHeader(headers['baggage']);
+  expect(xBaggage).toEqual(baggage);
+}
+
 describe('double baggage prevention - http.client spans with parent span', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    let transactionTraceId = '000';
+    let fetchSpanId = '000';
+    let httpCustomHeadersSpanId = '000';
+    let fetchCustomHeadersSpanId = '000';
+
     test('fetch with manual getTraceData() does not duplicate sentry baggage entries', async () => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
-        .get('/api/v0', headers => {
+        .get('/api/fetch-custom-headers', headers => {
           // fetch with manual getTraceData() headers — core reproduction case
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).not.toContain(',');
           expectConsistentTraceId(headers);
+          expectUserSetTraceId(headers);
+          const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+          transactionTraceId = sentryTrace!.traceId!;
+          fetchCustomHeadersSpanId = sentryTrace!.parentSpanId!;
         })
-        .get('/api/v1', headers => {
+        .get('/api/fetch', headers => {
           // fetch without manual headers (baseline)
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^[a-f\d]{32}-[a-f\d]{16}(-[01])?$/));
           expectConsistentTraceId(headers);
+          const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+          fetchSpanId = sentryTrace!.parentSpanId!;
         })
-        .get('/api/v2', headers => {
+        .get('/api/http-custom-headers', headers => {
           // http.request with manual getTraceData() headers
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).not.toContain(',');
           expectConsistentTraceId(headers);
+          expectUserSetTraceId(headers);
+          const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+          httpCustomHeadersSpanId = sentryTrace!.parentSpanId!;
         })
         .start();
 
@@ -56,34 +80,42 @@ describe('double baggage prevention - http.client spans with parent span', () =>
         .withEnv({ SERVER_URL })
         .ignore('event')
         .expect({
-          transaction: {
-            transaction: 'parent_span',
-            spans: [
-              {
-                op: 'http.client',
-                description: expect.stringMatching(/^GET .*\/api\/v0$/),
-                data: {},
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                start_timestamp: expect.any(Number),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-              },
-              {
-                op: 'http.client',
-                description: expect.stringMatching(/^GET .*\/api\/v1$/),
-                data: {},
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                start_timestamp: expect.any(Number),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-              },
-              {
-                op: 'http.client',
-                description: expect.stringMatching(/^GET .*\/api\/v2$/),
-                data: {},
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                start_timestamp: expect.any(Number),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-              },
-            ],
+          transaction: txn => {
+            expect(transactionTraceId).toMatch(/^[a-f0-9]{32}$/);
+
+            expect(txn).toMatchObject({
+              transaction: 'parent_span',
+              spans: [
+                {
+                  op: 'http.client',
+                  description: expect.stringMatching(/^GET .*\/api\/fetch-custom-headers$/),
+                  data: {},
+                  // span id is expected to be different since users call getTraceData() before the
+                  // http.client span is created
+                  span_id: expect.not.stringContaining(fetchCustomHeadersSpanId),
+                  start_timestamp: expect.any(Number),
+                  trace_id: transactionTraceId,
+                },
+                {
+                  op: 'http.client',
+                  description: expect.stringMatching(/^GET .*\/api\/fetch$/),
+                  data: {},
+                  span_id: fetchSpanId,
+                  start_timestamp: expect.any(Number),
+                  trace_id: transactionTraceId,
+                },
+                {
+                  op: 'http.client',
+                  description: expect.stringMatching(/^GET .*\/api\/http-custom-headers$/),
+                  data: {},
+                  // span id is expected to be different since users call getTraceData() before the
+                  // http.client span is created
+                  span_id: expect.not.stringContaining(httpCustomHeadersSpanId),
+                  start_timestamp: expect.any(Number),
+                  trace_id: transactionTraceId,
+                },
+              ],
+            });
           },
         })
         .start()

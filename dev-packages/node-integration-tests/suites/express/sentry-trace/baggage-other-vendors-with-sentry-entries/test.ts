@@ -1,6 +1,7 @@
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
+import { extractTraceparentData } from '@sentry/core';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -12,7 +13,7 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
+      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv,sentry-sample_rate=0.54',
     },
   });
 
@@ -46,6 +47,11 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
   expect(response).toBeDefined();
 
   const baggage = response?.test_data.baggage?.split(',').sort();
+  const sentryTraceHeader = response?.test_data['sentry-trace'];
+
+  const sentryTrace = extractTraceparentData(sentryTraceHeader);
+
+  expect(sentryTrace?.traceId).toMatch(/^[0-9a-f]{32}$/);
 
   expect(response).toMatchObject({
     test_data: {
@@ -63,7 +69,7 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
     expect.stringMatching(/sentry-sample_rand=\d+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
-    expect.stringMatching(/sentry-trace_id=[\da-f]{32}/),
+    `sentry-trace_id=${sentryTrace?.traceId}`,
     'sentry-transaction=GET%20%2Ftest%2Fexpress',
     'third=party',
   ]);
