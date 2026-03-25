@@ -1,4 +1,4 @@
-import type { INSTRUMENTED_METHODS } from './constants';
+import type { OPENAI_METHOD_REGISTRY } from './constants';
 
 /**
  * Attribute values may be any non-nullish primitive value except an object.
@@ -360,4 +360,4 @@ export interface OpenAiIntegration {
   options: OpenAiOptions;
 }
 
-export type InstrumentedMethod = (typeof INSTRUMENTED_METHODS)[number];
+export type InstrumentedMethod = keyof typeof OPENAI_METHOD_REGISTRY;

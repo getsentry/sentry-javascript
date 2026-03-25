@@ -21,30 +21,25 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
-  getOperationName,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
   wrapPromiseWithMethods,
 } from '../ai/utils';
+import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
-import type {
-  AnthropicAiInstrumentedMethod,
-  AnthropicAiOptions,
-  AnthropicAiResponse,
-  AnthropicAiStreamingEvent,
-  ContentBlock,
-} from './types';
-import { handleResponseError, messagesFromParams, setMessagesAttribute, shouldInstrument } from './utils';
+import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
+import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], methodPath: string, instrumentedMethod: InstrumentedMethodEntry): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: instrumentedMethod.operation,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
@@ -263,19 +258,20 @@ function handleStreamingRequest<T extends unknown[], R>(
  */
 function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => R | Promise<R>,
-  methodPath: AnthropicAiInstrumentedMethod,
+  methodPath: string,
+  instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: AnthropicAiOptions,
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
-      const requestAttributes = extractRequestAttributes(args, methodPath);
+      const requestAttributes = extractRequestAttributes(args, methodPath, instrumentedMethod);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-      const operationName = getOperationName(methodPath);
+      const operationName = instrumentedMethod.operation;
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
-      const isStreamingMethod = methodPath === 'messages.stream';
+      const isStreamingMethod = instrumentedMethod.streaming === true;
 
       if (isStreamRequested || isStreamingMethod) {
         return handleStreamingRequest(
@@ -343,8 +339,9 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      if (typeof value === 'function' && shouldInstrument(methodPath)) {
-        return instrumentMethod(value as (...args: unknown[]) => unknown | Promise<unknown>, methodPath, obj, options);
+      const instrumentedMethod = ANTHROPIC_METHOD_REGISTRY[methodPath];
+      if (typeof value === 'function' && instrumentedMethod) {
+        return instrumentMethod(value as (...args: unknown[]) => unknown | Promise<unknown>, methodPath, instrumentedMethod, obj, options);
       }
 
       if (typeof value === 'function') {

@@ -18,6 +18,24 @@ export interface AIRecordingOptions {
 }
 
 /**
+ * A method registry entry describes a single instrumented method:
+ * which gen_ai operation it maps to and whether it is intrinsically streaming.
+ */
+export interface InstrumentedMethodEntry {
+  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content') */
+  operation: string;
+  /** True if the method itself is always streaming (not param-based) */
+  streaming?: boolean;
+}
+
+/**
+ * Maps method paths to their registry entries.
+ * Used by proxy-based AI client instrumentations to determine which methods
+ * to instrument, what operation name to use, and whether they stream.
+ */
+export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
+
+/**
  * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
  * Precedence: explicit option > sendDefaultPii > false
  */
@@ -30,37 +48,6 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
   } as T & Required<AIRecordingOptions>;
 }
 
-/**
- * Maps AI method paths to OpenTelemetry semantic convention operation names
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export function getOperationName(methodPath: string): string {
-  // OpenAI: chat.completions.create, responses.create, conversations.create
-  // Anthropic: messages.create, messages.stream, completions.create
-  // Google GenAI: chats.create, chat.sendMessage, chat.sendMessageStream
-  if (
-    methodPath.includes('completions') ||
-    methodPath.includes('responses') ||
-    methodPath.includes('conversations') ||
-    methodPath.includes('messages') ||
-    methodPath.includes('chat')
-  ) {
-    return 'chat';
-  }
-  // OpenAI: embeddings.create
-  if (methodPath.includes('embeddings')) {
-    return 'embeddings';
-  }
-  // Google GenAI: models.generateContent, models.generateContentStream (must be before 'models' check)
-  if (methodPath.includes('generateContent')) {
-    return 'generate_content';
-  }
-  // Anthropic: models.get, models.retrieve (metadata retrieval only)
-  if (methodPath.includes('models')) {
-    return 'models';
-  }
-  return methodPath.split('.').pop() || 'unknown';
-}
 
 /**
  * Build method path from current traversal

@@ -1,24 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import { GOOGLE_GENAI_METHOD_REGISTRY } from '../../../src/tracing/google-genai/constants';
 import type { ContentListUnion } from '../../../src/tracing/google-genai/utils';
-import { contentUnionToMessages, isStreamingMethod, shouldInstrument } from '../../../src/tracing/google-genai/utils';
+import { contentUnionToMessages } from '../../../src/tracing/google-genai/utils';
 
-describe('isStreamingMethod', () => {
-  it('detects streaming methods', () => {
-    expect(isStreamingMethod('messageStreamBlah')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContentStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah sendMessageStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContentStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah sendMessageStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContent')).toBe(false);
-    expect(isStreamingMethod('blahblahblah sendMessage')).toBe(false);
-  });
-});
-
-describe('shouldInstrument', () => {
+describe('GOOGLE_GENAI_METHOD_REGISTRY', () => {
   it('detects which methods to instrument', () => {
-    expect(shouldInstrument('models.generateContent')).toBe(true);
-    expect(shouldInstrument('some.path.to.sendMessage')).toBe(true);
-    expect(shouldInstrument('unknown')).toBe(false);
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContent']).toBeDefined();
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessage']).toBeDefined();
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['unknown']).toBeUndefined();
+  });
+
+  it('marks streaming methods', () => {
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContentStream']?.streaming).toBe(true);
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessageStream']?.streaming).toBe(true);
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContent']?.streaming).toBeUndefined();
+    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessage']?.streaming).toBeUndefined();
   });
 });
 
