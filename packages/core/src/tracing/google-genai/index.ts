@@ -29,8 +29,7 @@ import { truncateGenAiMessages } from '../ai/messageTruncation';
 import {
   buildMethodPath,
   extractSystemInstructions,
-  getFinalOperationName,
-  getSpanOperation,
+  getOperationName,
   resolveAIRecordingOptions,
 } from '../ai/utils';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
@@ -111,7 +110,7 @@ function extractRequestAttributes(
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: GOOGLE_GENAI_SYSTEM_NAME,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getFinalOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
@@ -268,7 +267,7 @@ function instrumentMethod<T extends unknown[], R>(
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(methodPath, params, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-      const operationName = getFinalOperationName(methodPath);
+      const operationName = getOperationName(methodPath);
 
       // Check if this is a streaming method
       if (isStreamingMethod(methodPath)) {
@@ -276,7 +275,7 @@ function instrumentMethod<T extends unknown[], R>(
         return startSpanManual(
           {
             name: `${operationName} ${model}`,
-            op: getSpanOperation(methodPath),
+            op: `gen_ai.${operationName}`,
             attributes: requestAttributes,
           },
           async (span: Span) => {
@@ -305,7 +304,7 @@ function instrumentMethod<T extends unknown[], R>(
       return startSpan(
         {
           name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
-          op: getSpanOperation(methodPath),
+          op: `gen_ai.${operationName}`,
           attributes: requestAttributes,
         },
         (span: Span) => {

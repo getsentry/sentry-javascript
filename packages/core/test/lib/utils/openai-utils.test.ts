@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { buildMethodPath } from '../../../src/tracing/ai/utils';
 import {
   getOperationName,
-  getSpanOperation,
   isChatCompletionChunk,
   isChatCompletionResponse,
   isConversationResponse,
@@ -35,14 +34,6 @@ describe('openai-utils', () => {
 
     it('should return unknown for empty path', () => {
       expect(getOperationName('')).toBe('unknown');
-    });
-  });
-
-  describe('getSpanOperation', () => {
-    it('should prefix operation with gen_ai', () => {
-      expect(getSpanOperation('chat.completions.create')).toBe('gen_ai.chat');
-      expect(getSpanOperation('responses.create')).toBe('gen_ai.chat');
-      expect(getSpanOperation('some.custom.operation')).toBe('gen_ai.operation');
     });
   });
 

@@ -34,7 +34,7 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
  * Maps AI method paths to OpenTelemetry semantic convention operation names
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
-export function getFinalOperationName(methodPath: string): string {
+export function getOperationName(methodPath: string): string {
   if (methodPath.includes('messages')) {
     return 'chat';
   }
@@ -53,14 +53,6 @@ export function getFinalOperationName(methodPath: string): string {
     return 'chat';
   }
   return methodPath.split('.').pop() || 'unknown';
-}
-
-/**
- * Get the span operation for AI methods
- * Following Sentry's convention: "gen_ai.{operation_name}"
- */
-export function getSpanOperation(methodPath: string): string {
-  return `gen_ai.${getFinalOperationName(methodPath)}`;
 }
 
 /**

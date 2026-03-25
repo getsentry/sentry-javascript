@@ -16,7 +16,6 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  OPENAI_OPERATIONS,
   OPENAI_RESPONSE_ID_ATTRIBUTE,
   OPENAI_RESPONSE_MODEL_ATTRIBUTE,
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
@@ -40,26 +39,18 @@ import type {
  */
 export function getOperationName(methodPath: string): string {
   if (methodPath.includes('chat.completions')) {
-    return OPENAI_OPERATIONS.CHAT;
+    return 'chat';
   }
   if (methodPath.includes('responses')) {
-    return OPENAI_OPERATIONS.CHAT;
+    return 'chat';
   }
   if (methodPath.includes('embeddings')) {
-    return OPENAI_OPERATIONS.EMBEDDINGS;
+    return 'embeddings';
   }
   if (methodPath.includes('conversations')) {
-    return OPENAI_OPERATIONS.CHAT;
+    return 'chat';
   }
   return methodPath.split('.').pop() || 'unknown';
-}
-
-/**
- * Get the span operation for OpenAI methods
- * Following Sentry's convention: "gen_ai.{operation_name}"
- */
-export function getSpanOperation(methodPath: string): string {
-  return `gen_ai.${getOperationName(methodPath)}`;
 }
 
 /**
