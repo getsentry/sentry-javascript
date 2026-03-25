@@ -2,9 +2,9 @@
 
 _These steps are only relevant to Sentry employees when preparing and publishing a new SDK release._
 
-These have also been documented via [Cursor Rules](../.cursor/rules/publishing-release.mdc).
+These have also been documented as a [skill](../.claude/skills/release/SKILL.md).
 
-You can run a pre-configured command in cursor by just typing `/publish_release` into the chat window to automate the steps below.
+You can run the `/release` skill in Claude Code or Cursor to automate the steps below.
 
 **If you want to release a new SDK for the first time, be sure to follow the
 [New SDK Release Checklist](./new-sdk-release-checklist.md)**
@@ -20,9 +20,8 @@ You can run a pre-configured command in cursor by just typing `/publish_release`
    [Auto Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/auto-release.yml) on master.
 7. A new issue should appear in https://github.com/getsentry/publish/issues.
 8. Wait until the CI check runs have finished successfully (there is a link to them in the issue).
-9. Once CI passes successfully, ask a member of the
-   [@getsentry/releases-approvers](https://github.com/orgs/getsentry/teams/release-approvers) to approve the release. a.
-   Once the release is completed, a sync from `master` ->` develop` will be automatically triggered
+9. Once CI passes successfully, set the `accepted` label on the issue to approve the release.
+   Once the release is completed, a sync from `master` -> `develop` will be automatically triggered
 
 ## Publishing a release for previous majors or prerelease (alpha, beta) versions
 
