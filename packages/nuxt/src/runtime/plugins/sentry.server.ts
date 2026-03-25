@@ -3,12 +3,9 @@ import type { H3Event } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
-import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 
 export default (nitroApp => {
-  nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
-
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
 
   // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
