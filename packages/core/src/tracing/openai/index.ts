@@ -22,6 +22,7 @@ import {
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
+  buildMethodPath,
 } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
@@ -37,7 +38,6 @@ import {
   addConversationAttributes,
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
-  buildMethodPath,
   extractRequestParameters,
   getOperationName,
   getSpanOperation,
