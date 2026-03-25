@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildMethodPath } from '../../../src/tracing/ai/utils';
+import { buildMethodPath, getOperationName } from '../../../src/tracing/ai/utils';
 import {
-  getOperationName,
   isChatCompletionChunk,
   isChatCompletionResponse,
   isConversationResponse,

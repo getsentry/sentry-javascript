@@ -18,6 +18,7 @@ import {
 } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
+  getOperationName,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
@@ -38,7 +39,6 @@ import {
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
   extractRequestParameters,
-  getOperationName,
   isChatCompletionResponse,
   isConversationResponse,
   isEmbeddingsResponse,

@@ -34,26 +34,6 @@ import type {
 } from './types';
 
 /**
- * Maps OpenAI method paths to OpenTelemetry semantic convention operation names
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export function getOperationName(methodPath: string): string {
-  if (methodPath.includes('chat.completions')) {
-    return 'chat';
-  }
-  if (methodPath.includes('responses')) {
-    return 'chat';
-  }
-  if (methodPath.includes('embeddings')) {
-    return 'embeddings';
-  }
-  if (methodPath.includes('conversations')) {
-    return 'chat';
-  }
-  return methodPath.split('.').pop() || 'unknown';
-}
-
-/**
  * Check if a method path should be instrumented
  */
 export function shouldInstrument(methodPath: string): methodPath is InstrumentedMethod {
