@@ -45,7 +45,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v8"
   },
   "dependencies": {
     "@sentry/core": "8.55.1",
