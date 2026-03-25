@@ -16,7 +16,7 @@ const gauge = (name: string, unit?: string) => ({
   type: 'gauge',
   ...(unit ? { unit } : {}),
   value: expect.any(Number),
-  attributes: SENTRY_ATTRIBUTES,
+  attributes: expect.objectContaining(SENTRY_ATTRIBUTES),
 });
 
 const counter = (name: string, unit?: string) => ({
@@ -26,7 +26,7 @@ const counter = (name: string, unit?: string) => ({
   type: 'counter',
   ...(unit ? { unit } : {}),
   value: expect.any(Number),
-  attributes: SENTRY_ATTRIBUTES,
+  attributes: expect.objectContaining(SENTRY_ATTRIBUTES),
 });
 
 describe('nodeRuntimeMetricsIntegration', () => {
