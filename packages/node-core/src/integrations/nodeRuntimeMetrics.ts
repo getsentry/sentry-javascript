@@ -1,5 +1,5 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
-import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
+import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -194,9 +194,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       if (intervalId) {
         clearInterval(intervalId);
       }
-      intervalId = setInterval(collectMetrics, collectionIntervalMs);
-      // Do not keep the process alive solely for metric collection.
-      intervalId.unref();
+      intervalId = _INTERNAL_safeUnref(setInterval(collectMetrics, collectionIntervalMs));
     },
   };
 });
