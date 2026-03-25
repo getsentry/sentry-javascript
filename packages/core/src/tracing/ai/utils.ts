@@ -35,38 +35,29 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 export function getOperationName(methodPath: string): string {
-  // OpenAI: chat.completions must be checked before the generic completions match
-  if (methodPath.includes('chat.completions')) {
+  // OpenAI: chat.completions.create, responses.create, conversations.create, embeddings.create
+  // Anthropic: messages.create, messages.stream, completions.create
+  // Google GenAI: chats.create, sendMessage, sendMessageStream
+  if (
+    methodPath.includes('completions') ||
+    methodPath.includes('responses') ||
+    methodPath.includes('conversations') ||
+    methodPath.includes('messages') ||
+    methodPath.includes('chat')
+  ) {
     return 'chat';
   }
-  if (methodPath.includes('responses')) {
-    return 'chat';
-  }
+  // OpenAI: embeddings.create
   if (methodPath.includes('embeddings')) {
     return 'embeddings';
   }
-  if (methodPath.includes('conversations')) {
-    return 'chat';
-  }
-  // Anthropic: messages.create, messages.stream
-  if (methodPath.includes('messages')) {
-    return 'chat';
-  }
-  // Anthropic: completions.create (after chat.completions check above)
-  if (methodPath.includes('completions')) {
-    return 'text_completion';
-  }
-  // Google GenAI: models.generateContent* (before models check below)
+  // Google GenAI: models.generateContent, models.generateContentStream (must be before 'models' check)
   if (methodPath.includes('generateContent')) {
     return 'generate_content';
   }
-  // Anthropic: models.get/retrieve (metadata retrieval only)
+  // Anthropic: models.get, models.retrieve (metadata retrieval only)
   if (methodPath.includes('models')) {
     return 'models';
-  }
-  // Google GenAI: chats.create, sendMessage
-  if (methodPath.includes('chat')) {
-    return 'chat';
   }
   return methodPath.split('.').pop() || 'unknown';
 }
