@@ -45,8 +45,8 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": ">=3.7.0 || 4.x",
-    "nitro": "3.x"
+    "nuxt": ">=3.7.0 || 4.x || 5.x",
+    "nitro": "2.x || 3.x"
   },
   "peerDependenciesMeta": {
     "nitro": {
@@ -62,7 +62,8 @@
     "@sentry/node-core": "10.45.0",
     "@sentry/rollup-plugin": "^5.1.1",
     "@sentry/vite-plugin": "^5.1.0",
-    "@sentry/vue": "10.45.0"
+    "@sentry/vue": "10.45.0",
+    "local-pkg": "^1.1.2"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
