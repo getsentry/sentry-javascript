@@ -70,14 +70,14 @@ const _elementTimingIntegration = (() => {
           }
 
           if (renderTime) {
-            metrics.distribution(`element_timing.render_time`, renderTime, {
+            metrics.distribution(`ui.element.render_time`, renderTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
             });
           }
 
           if (loadTime) {
-            metrics.distribution(`element_timing.load_time`, loadTime, {
+            metrics.distribution(`ui.element.load_time`, loadTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
             });
@@ -98,7 +98,7 @@ const _elementTimingIntegration = (() => {
  * <p elementtiming="hero-text">Welcome!</p>
  * ```
  *
- * This emits `element_timing.render_time` and `element_timing.load_time` (for images)
+ * This emits `ui.element.render_time` and `ui.element.load_time` (for images)
  * as distribution metrics, tagged with the element's identifier and paint type.
  */
 export const elementTimingIntegration = defineIntegration(_elementTimingIntegration);
