@@ -427,4 +427,14 @@ describe('addOTelCommonJSImportAlias', () => {
 
     expect(nuxtMock.options.alias).toBeUndefined();
   });
+
+  it('does not add alias when in Nitro v3+ (Rolldown incompatibility)', () => {
+    const nuxtMock: Nuxt = {
+      options: { dev: true },
+    } as unknown as Nuxt;
+
+    addOTelCommonJSImportAlias(nuxtMock, true);
+
+    expect(nuxtMock.options.alias).toBeUndefined();
+  });
 });

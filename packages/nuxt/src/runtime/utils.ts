@@ -1,6 +1,5 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
 import { captureException, debug, getClient, getTraceMetaTags } from '@sentry/core';
-import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
@@ -69,7 +68,8 @@ export function reportNuxtError(options: {
 
   if (instance?.$props) {
     const sentryClient = getClient();
-    const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & VueOptions) : null;
+    // `attachProps` is defined in the Vue integration options, but the type is not exported from @sentry/vue, as it's only used internally.
+    const sentryOptions = sentryClient ? (sentryClient.getOptions() as ClientOptions & { attachProps: boolean }) : null;
 
     // `attachProps` is enabled by default and props should only not be attached if explicitly disabled (see DEFAULT_CONFIG in `vueIntegration`).
     // oxlint-disable-next-line typescript/no-unsafe-member-access

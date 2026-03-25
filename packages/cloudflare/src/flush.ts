@@ -48,6 +48,12 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
  * @returns A promise that resolves when flush and dispose are complete
  */
 export async function flushAndDispose(client: Client | undefined, timeout = 2000): Promise<void> {
-  await flush(timeout);
-  client?.dispose();
+  if (!client) {
+    await flush(timeout);
+
+    return;
+  }
+
+  await client.flush(timeout);
+  client.dispose();
 }

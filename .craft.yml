@@ -96,6 +96,9 @@ targets:
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/elysia'
+    includeNames: /^sentry-elysia-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/hono'
     includeNames: /^sentry-hono-\d.*\.tgz$/
   - name: npm
@@ -245,4 +248,11 @@ targets:
         name: 'Sentry Effect SDK'
         sdkName: 'sentry.javascript.effect'
         packageUrl: 'https://www.npmjs.com/package/@sentry/effect'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/effect/'
         onlyIfPresent: /^sentry-effect-\d.*\.tgz$/
+      'npm:@sentry/elysia':
+        name: 'Sentry Elysia SDK'
+        sdkName: 'sentry.javascript.elysia'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/elysia'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/elysia/'
+        onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/

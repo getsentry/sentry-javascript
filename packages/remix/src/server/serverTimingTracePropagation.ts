@@ -1,4 +1,3 @@
-import type { Span } from '@sentry/core';
 import { debug, getTraceData, isNodeEnv } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { isCloudflareEnv } from '../utils/utils';

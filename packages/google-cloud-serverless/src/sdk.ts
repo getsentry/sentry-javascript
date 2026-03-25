@@ -29,7 +29,7 @@ export function init(options: NodeOptions = {}): NodeClient | undefined {
     ...options,
   };
 
-  applySdkMetadata(opts, 'google-cloud-serverless');
+  applySdkMetadata(opts, 'google-cloud-serverless', ['google-cloud-serverless', 'node']);
 
   return initNode(opts);
 }

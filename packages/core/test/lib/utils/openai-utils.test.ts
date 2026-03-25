@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { buildMethodPath } from '../../../src/tracing/ai/utils';
 import {
-  buildMethodPath,
   getOperationName,
   getSpanOperation,
   isChatCompletionChunk,

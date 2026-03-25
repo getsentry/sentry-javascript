@@ -75,7 +75,7 @@
     "eslint-plugin-qunit": "8.0.0",
     "loader.js": "~4.7.0",
     "qunit": "~2.22.0",
-    "qunit-dom": "~3.2.1",
+    "qunit-dom": "~3.5.0",
     "sinon": "21.0.1",
     "webpack": "~5.104.1"
   },

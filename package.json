@@ -61,6 +61,7 @@
     "packages/deno",
     "packages/effect",
     "packages/ember",
+    "packages/elysia",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/feedback",

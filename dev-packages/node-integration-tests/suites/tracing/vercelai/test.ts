@@ -923,4 +923,31 @@ describe('Vercel AI integration', () => {
       await createRunner().expect({ transaction: expectedTransaction }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('does not overwrite conversation id set via Sentry.setConversationId with responseId from provider metadata', async () => {
+      await createRunner()
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                op: 'gen_ai.invoke_agent',
+                data: expect.objectContaining({
+                  'gen_ai.conversation.id': 'conv-a',
+                }),
+              }),
+              expect.objectContaining({
+                op: 'gen_ai.generate_text',
+                data: expect.objectContaining({
+                  'gen_ai.conversation.id': 'conv-a',
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

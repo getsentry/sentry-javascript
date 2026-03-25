@@ -34,7 +34,7 @@ describe('addDatabaseInstrumentation', () => {
       const nitroConfig: NitroConfig = {};
       const moduleOptions: SentryNuxtModuleOptions = { debug: true };
 
-      addDatabaseInstrumentation(nitroConfig, moduleOptions);
+      addDatabaseInstrumentation(nitroConfig, false, moduleOptions);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',
@@ -45,7 +45,7 @@ describe('addDatabaseInstrumentation', () => {
       const nitroConfig: NitroConfig = {};
       const moduleOptions: SentryNuxtModuleOptions = { debug: false };
 
-      addDatabaseInstrumentation(nitroConfig, moduleOptions);
+      addDatabaseInstrumentation(nitroConfig, false, moduleOptions);
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
@@ -53,7 +53,7 @@ describe('addDatabaseInstrumentation', () => {
     it('should not log debug message when moduleOptions is undefined', () => {
       const nitroConfig: NitroConfig = {};
 
-      addDatabaseInstrumentation(nitroConfig, undefined);
+      addDatabaseInstrumentation(nitroConfig, false, undefined);
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
@@ -62,7 +62,7 @@ describe('addDatabaseInstrumentation', () => {
       const nitroConfig: NitroConfig = {};
       const moduleOptions: SentryNuxtModuleOptions = {};
 
-      addDatabaseInstrumentation(nitroConfig, moduleOptions);
+      addDatabaseInstrumentation(nitroConfig, false, moduleOptions);
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
     });
@@ -71,7 +71,7 @@ describe('addDatabaseInstrumentation', () => {
       const nitroConfig: NitroConfig = { experimental: { database: false } };
       const moduleOptions: SentryNuxtModuleOptions = { debug: true };
 
-      addDatabaseInstrumentation(nitroConfig, moduleOptions);
+      addDatabaseInstrumentation(nitroConfig, false, moduleOptions);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',

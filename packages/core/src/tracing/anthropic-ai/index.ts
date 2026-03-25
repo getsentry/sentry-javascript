@@ -3,7 +3,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -28,6 +27,7 @@ import {
   getSpanOperation,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
+  wrapPromiseWithMethods,
 } from '../ai/utils';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
@@ -218,21 +218,30 @@ function handleStreamingRequest<T extends unknown[], R>(
 
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
-    return startSpanManual(spanConfig, async span => {
-      try {
-        if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params);
-        }
-        const result = await originalMethod.apply(context, args);
-        return instrumentAsyncIterableStream(
-          result as AsyncIterable<AnthropicAiStreamingEvent>,
-          span,
-          options.recordOutputs ?? false,
-        ) as unknown as R;
-      } catch (error) {
-        return handleStreamingError(error, span, methodPath);
+    let originalResult!: Promise<R>;
+
+    const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
+      originalResult = originalMethod.apply(context, args) as Promise<R>;
+
+      if (options.recordInputs && params) {
+        addPrivateRequestAttributes(span, params);
       }
+
+      return (async () => {
+        try {
+          const result = await originalResult;
+          return instrumentAsyncIterableStream(
+            result as AsyncIterable<AnthropicAiStreamingEvent>,
+            span,
+            options.recordOutputs ?? false,
+          ) as unknown as R;
+        } catch (error) {
+          return handleStreamingError(error, span, methodPath);
+        }
+      })();
     });
+
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
   } else {
     return startSpanManual(spanConfig, span => {
       try {
@@ -285,19 +294,26 @@ function instrumentMethod<T extends unknown[], R>(
         );
       }
 
-      return startSpan(
+      let originalResult!: Promise<R>;
+
+      const instrumentedPromise = startSpan(
         {
           name: `${operationName} ${model}`,
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {
+          originalResult = target.apply(context, args) as Promise<R>;
+
           if (options.recordInputs && params) {
             addPrivateRequestAttributes(span, params);
           }
 
-          return handleCallbackErrors(
-            () => target.apply(context, args),
+          return originalResult.then(
+            result => {
+              addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+              return result;
+            },
             error => {
               captureException(error, {
                 mechanism: {
@@ -308,12 +324,13 @@ function instrumentMethod<T extends unknown[], R>(
                   },
                 },
               });
+              throw error;
             },
-            () => {},
-            result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
           );
         },
       );
+
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
     },
   }) as (...args: T) => R | Promise<R>;
 }
