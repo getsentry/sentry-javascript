@@ -12,18 +12,18 @@ jobs:
     name: Build packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ github.run_id }}
@@ -34,7 +34,7 @@ jobs:
         if: steps.dependency-cache.outputs.cache-hit != 'true'
       - run: yarn build
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages/*/dist
@@ -45,18 +45,18 @@ jobs:
     name: Typing check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ github.run_id }}
@@ -71,18 +71,18 @@ jobs:
     name: Formatting check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ github.run_id }}
@@ -98,18 +98,18 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ github.run_id }}
@@ -119,7 +119,7 @@ jobs:
         run: yarn --frozen-lockfile --ignore-engines
         if: steps.dependency-cache.outputs.cache-hit != 'true'
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages
@@ -135,12 +135,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
@@ -149,7 +149,7 @@ jobs:
         run: yarn --frozen-lockfile --ignore-engines
         if: steps.dependency-cache.outputs.cache-hit != 'true'
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages
@@ -165,12 +165,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
@@ -179,7 +179,7 @@ jobs:
         run: yarn --frozen-lockfile --ignore-engines
         if: steps.dependency-cache.outputs.cache-hit != 'true'
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages
@@ -198,16 +198,16 @@ jobs:
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.E2E_TESTS_SENTRY_AUTH_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: volta-cli/action@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: volta-cli/action@007b1509d3ea9999dbba62ca34f4eb968363bb78 # v3
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ matrix.target }}-${{ matrix.jobIndex }}-${{ github.run_id }}
@@ -217,7 +217,7 @@ jobs:
         run: yarn --frozen-lockfile --ignore-engines
         if: steps.dependency-cache.outputs.cache-hit != 'true'
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages
@@ -228,18 +228,18 @@ jobs:
     name: Linter check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Use dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
       - name: Use build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .nxcache
           key: build-cache-key-${{ runner.os }}-${{ github.run_id }}
@@ -257,8 +257,8 @@ jobs:
     # Build artifacts are only needed for releasing workflow.
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: "package.json"
       - name: Install dependencies
@@ -266,7 +266,7 @@ jobs:
       - name: pack
         run: yarn build:npm
       - name: archive artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ github.sha }}
           path: |
