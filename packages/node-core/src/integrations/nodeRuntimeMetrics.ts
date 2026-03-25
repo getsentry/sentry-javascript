@@ -128,9 +128,15 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
 
     if (collect.memRss || collect.memHeapUsed || collect.memHeapTotal || collect.memExternal) {
       const mem = process.memoryUsage();
-      if (collect.memRss) metrics.gauge('node.runtime.mem.rss', mem.rss, METRIC_ATTRIBUTES_BYTE);
-      if (collect.memHeapUsed) metrics.gauge('node.runtime.mem.heap_used', mem.heapUsed, METRIC_ATTRIBUTES_BYTE);
-      if (collect.memHeapTotal) metrics.gauge('node.runtime.mem.heap_total', mem.heapTotal, METRIC_ATTRIBUTES_BYTE);
+      if (collect.memRss) {
+        metrics.gauge('node.runtime.mem.rss', mem.rss, METRIC_ATTRIBUTES_BYTE);
+      }
+      if (collect.memHeapUsed) {
+        metrics.gauge('node.runtime.mem.heap_used', mem.heapUsed, METRIC_ATTRIBUTES_BYTE);
+      }
+      if (collect.memHeapTotal) {
+        metrics.gauge('node.runtime.mem.heap_total', mem.heapTotal, METRIC_ATTRIBUTES_BYTE);
+      }
       if (collect.memExternal) {
         metrics.gauge('node.runtime.mem.external', mem.external, METRIC_ATTRIBUTES_BYTE);
         metrics.gauge('node.runtime.mem.array_buffers', mem.arrayBuffers, METRIC_ATTRIBUTES_BYTE);
@@ -138,18 +144,24 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
     }
 
     if (needsEventLoopDelay && eventLoopDelayHistogram) {
-      if (collect.eventLoopDelayMin)
+      if (collect.eventLoopDelayMin) {
         metrics.gauge('node.runtime.event_loop.delay.min', nsToS(eventLoopDelayHistogram.min), METRIC_ATTRIBUTES_SECOND);
-      if (collect.eventLoopDelayMax)
+      }
+      if (collect.eventLoopDelayMax) {
         metrics.gauge('node.runtime.event_loop.delay.max', nsToS(eventLoopDelayHistogram.max), METRIC_ATTRIBUTES_SECOND);
-      if (collect.eventLoopDelayMean)
+      }
+      if (collect.eventLoopDelayMean) {
         metrics.gauge('node.runtime.event_loop.delay.mean', nsToS(eventLoopDelayHistogram.mean), METRIC_ATTRIBUTES_SECOND);
-      if (collect.eventLoopDelayP50)
+      }
+      if (collect.eventLoopDelayP50) {
         metrics.gauge('node.runtime.event_loop.delay.p50', nsToS(eventLoopDelayHistogram.percentile(50)), METRIC_ATTRIBUTES_SECOND);
-      if (collect.eventLoopDelayP90)
+      }
+      if (collect.eventLoopDelayP90) {
         metrics.gauge('node.runtime.event_loop.delay.p90', nsToS(eventLoopDelayHistogram.percentile(90)), METRIC_ATTRIBUTES_SECOND);
-      if (collect.eventLoopDelayP99)
+      }
+      if (collect.eventLoopDelayP99) {
         metrics.gauge('node.runtime.event_loop.delay.p99', nsToS(eventLoopDelayHistogram.percentile(99)), METRIC_ATTRIBUTES_SECOND);
+      }
 
       eventLoopDelayHistogram.reset();
     }
