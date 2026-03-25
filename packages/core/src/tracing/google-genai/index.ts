@@ -26,12 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
-import {
-  buildMethodPath,
-  extractSystemInstructions,
-  getOperationName,
-  resolveAIRecordingOptions,
-} from '../ai/utils';
+import { buildMethodPath, extractSystemInstructions, getOperationName, resolveAIRecordingOptions } from '../ai/utils';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {

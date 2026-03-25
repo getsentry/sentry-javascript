@@ -37,7 +37,7 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
 export function getOperationName(methodPath: string): string {
   // OpenAI: chat.completions.create, responses.create, conversations.create
   // Anthropic: messages.create, messages.stream, completions.create
-  // Google GenAI: chats.create
+  // Google GenAI: chats.create, chat.sendMessage, chat.sendMessageStream
   if (
     methodPath.includes('completions') ||
     methodPath.includes('responses') ||
