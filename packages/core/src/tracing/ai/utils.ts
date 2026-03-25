@@ -35,9 +35,9 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 export function getOperationName(methodPath: string): string {
-  // OpenAI: chat.completions.create, responses.create, conversations.create, embeddings.create
+  // OpenAI: chat.completions.create, responses.create, conversations.create
   // Anthropic: messages.create, messages.stream, completions.create
-  // Google GenAI: chats.create, sendMessage, sendMessageStream
+  // Google GenAI: chats.create
   if (
     methodPath.includes('completions') ||
     methodPath.includes('responses') ||
