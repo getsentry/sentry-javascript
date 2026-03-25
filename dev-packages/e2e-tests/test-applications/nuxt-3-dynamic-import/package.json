@@ -25,5 +25,8 @@
   "overrides": {
     "nitropack": "~2.9.7",
     "ofetch": "^1.4.0"
+  },
+  "sentryTest": {
+    "optional": true
   }
 }
