@@ -104,13 +104,17 @@ describe('nodeRuntimeMetricsIntegration', () => {
     });
   });
 
+  const ORIGIN = { attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
+  const BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
+  const SECOND = { unit: 'second', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
+
   describe('metric collection — defaults', () => {
     it('emits cpu utilization (default on)', () => {
       const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.any(Number));
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.utilization', expect.any(Number), ORIGIN);
     });
 
     it('does not emit cpu.user / cpu.system by default (opt-in)', () => {
@@ -130,8 +134,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.user', expect.any(Number), { unit: 'second' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.system', expect.any(Number), { unit: 'second' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.user', expect.any(Number), SECOND);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.cpu.system', expect.any(Number), SECOND);
     });
 
     it('emits mem.rss, mem.heap_used, mem.heap_total (default on)', () => {
@@ -139,9 +143,9 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.rss', 50_000_000, { unit: 'byte' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_used', 20_000_000, { unit: 'byte' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_total', 30_000_000, { unit: 'byte' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.rss', 50_000_000, BYTE);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_used', 20_000_000, BYTE);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.heap_total', 30_000_000, BYTE);
     });
 
     it('does not emit mem.external / mem.array_buffers by default (opt-in)', () => {
@@ -161,8 +165,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.external', 1_000_000, { unit: 'byte' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.array_buffers', 500_000, { unit: 'byte' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.external', 1_000_000, BYTE);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.array_buffers', 500_000, BYTE);
     });
 
     it('emits event_loop.delay.p50 and p99 (default on) and resets histogram', () => {
@@ -170,12 +174,8 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), {
-        unit: 'second',
-      });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p99', expect.any(Number), {
-        unit: 'second',
-      });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p99', expect.any(Number), SECOND);
       expect(mockHistogram.reset).toHaveBeenCalledOnce();
     });
 
@@ -207,13 +207,11 @@ describe('nodeRuntimeMetricsIntegration', () => {
       vi.advanceTimersByTime(1_000);
 
       // min: (2_000_000 - 10_000_000) clamped to 0 → 0s
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.min', 0, { unit: 'second' });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.min', 0, SECOND);
       // max: (20_000_000 - 10_000_000) / 1e9 → 0.01s
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.max', 0.01, { unit: 'second' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.mean', 0, { unit: 'second' });
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p90', expect.any(Number), {
-        unit: 'second',
-      });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.max', 0.01, SECOND);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.mean', 0, SECOND);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p90', expect.any(Number), SECOND);
     });
 
     it('emits event loop utilization metric', () => {
@@ -221,7 +219,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3);
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.utilization', 0.3, ORIGIN);
     });
 
     it('emits uptime counter', () => {
@@ -229,7 +227,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
       integration.setup();
       vi.advanceTimersByTime(1_000);
 
-      expect(countSpy).toHaveBeenCalledWith('node.runtime.process.uptime', expect.any(Number), { unit: 'second' });
+      expect(countSpy).toHaveBeenCalledWith('node.runtime.process.uptime', expect.any(Number), SECOND);
     });
 
     it('does not emit event loop delay metrics if monitorEventLoopDelay threw', () => {
@@ -303,9 +301,7 @@ describe('nodeRuntimeMetricsIntegration', () => {
         expect.anything(),
         expect.anything(),
       );
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), {
-        unit: 'second',
-      });
+      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.event_loop.delay.p50', expect.any(Number), SECOND);
     });
 
     it('skips event loop utilization when eventLoopUtilization is false', () => {
