@@ -537,3 +537,4 @@ export {
   safeMathRandom as _INTERNAL_safeMathRandom,
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
+export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
