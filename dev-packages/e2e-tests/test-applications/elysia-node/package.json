@@ -11,7 +11,6 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@elysiajs/opentelemetry": "^1.4.10",
     "@sentry/elysia": "latest || *",
     "elysia": "latest",
     "@elysiajs/node": "^1.4.5"
