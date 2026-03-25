@@ -213,11 +213,14 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
 
     setup(): void {
       if (needsEventLoopDelay) {
+        // Disable any previous histogram before overwriting (prevents native resource leak on re-init).
+        eventLoopDelayHistogram?.disable();
         try {
           eventLoopDelayHistogram = monitorEventLoopDelay({ resolution: EVENT_LOOP_DELAY_RESOLUTION_MS });
           eventLoopDelayHistogram.enable();
         } catch {
           // Not available in all runtimes (e.g. Bun throws NotImplementedError).
+          eventLoopDelayHistogram = undefined;
         }
       }
 
