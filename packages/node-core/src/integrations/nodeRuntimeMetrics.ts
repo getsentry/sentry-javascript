@@ -1,5 +1,5 @@
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
-import { _INTERNAL_safeDateNow, defineIntegration, flushIfServerless, metrics } from '@sentry/core';
+import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -94,7 +94,6 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
   const needsCpu = collect.cpuUtilization || collect.cpuTime;
 
   let intervalId: ReturnType<typeof setInterval> | undefined;
-  let beforeExitListener: (() => void) | undefined;
   let prevCpuUsage: NodeJS.CpuUsage | undefined;
   let prevElu: ReturnType<typeof performance.eventLoopUtilization> | undefined;
   let prevFlushTime: number = 0;
@@ -193,26 +192,13 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       }
       prevFlushTime = _INTERNAL_safeDateNow();
 
-      // Guard against double setup (e.g. re-init): clean up previous resources.
+      // Guard against double setup (e.g. re-init).
       if (intervalId) {
         clearInterval(intervalId);
       }
-      if (beforeExitListener) {
-        process.off('beforeExit', beforeExitListener);
-      }
-
       intervalId = setInterval(collectMetrics, collectionIntervalMs);
       // Do not keep the process alive solely for metric collection.
       intervalId.unref();
-
-      // Collect and flush at the end of every invocation. Uses process.on (not once) so
-      // that serverless warm starts (e.g. Lambda) trigger a flush on every invocation.
-      // In non-serverless environments flushIfServerless is a no-op.
-      beforeExitListener = () => {
-        collectMetrics();
-        void flushIfServerless();
-      };
-      process.on('beforeExit', beforeExitListener);
     },
   };
 });

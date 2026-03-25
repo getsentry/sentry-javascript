@@ -38,10 +38,7 @@ vi.mock('perf_hooks', () => ({
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
-  return {
-    ...actual,
-    flushIfServerless: vi.fn(),
-  };
+  return { ...actual };
 });
 
 describe('nodeRuntimeMetricsIntegration', () => {
@@ -338,19 +335,4 @@ describe('nodeRuntimeMetricsIntegration', () => {
     });
   });
 
-  describe('serverless flush', () => {
-    it('collects metrics and calls flushIfServerless on beforeExit', async () => {
-      const { flushIfServerless } = await import('@sentry/core');
-      const flushSpy = vi.mocked(flushIfServerless);
-
-      const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: 60_000 });
-      integration.setup();
-
-      // Interval has not fired yet — beforeExit should still trigger a collection + flush.
-      process.emit('beforeExit', 0);
-
-      expect(gaugeSpy).toHaveBeenCalledWith('node.runtime.mem.rss', expect.any(Number), { unit: 'byte' });
-      expect(flushSpy).toHaveBeenCalled();
-    });
-  });
 });
