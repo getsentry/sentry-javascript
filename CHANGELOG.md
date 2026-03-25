@@ -6,6 +6,21 @@
 
 Work in this release was contributed by @roli-lpci. Thank you for your contributions!
 
+### Important Changes
+
+- **feat(node): Add `nodeRuntimeMetricsIntegration` for automatic Node.js runtime metrics ([#19923](https://github.com/getsentry/sentry-javascript/pull/19923))**
+
+  The new `nodeRuntimeMetricsIntegration` automatically collects Node.js runtime health metrics and sends them to Sentry. Eight metrics are emitted by default every 30 seconds: memory (RSS, heap used/total), CPU utilization, event loop delay (p50, p99), event loop utilization, and process uptime. Additional metrics are available as opt-in.
+
+  ```ts
+  import * as Sentry from '@sentry/node';
+
+  Sentry.init({
+    dsn: '...',
+    integrations: [Sentry.nodeRuntimeMetricsIntegration()],
+  });
+  ```
+
 ## 10.45.0
 
 ### Important Changes

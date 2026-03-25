@@ -84,6 +84,8 @@ export {
   lruMemoizerIntegration,
   makeNodeTransport,
   modulesIntegration,
+  nodeRuntimeMetricsIntegration,
+  type NodeRuntimeMetricsOptions,
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
