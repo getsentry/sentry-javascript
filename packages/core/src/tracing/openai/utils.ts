@@ -70,13 +70,6 @@ export function shouldInstrument(methodPath: string): methodPath is Instrumented
 }
 
 /**
- * Build method path from current traversal
- */
-export function buildMethodPath(currentPath: string, prop: string): string {
-  return currentPath ? `${currentPath}.${prop}` : prop;
-}
-
-/**
  * Check if response is a Chat Completion object
  */
 export function isChatCompletionResponse(response: unknown): response is OpenAiChatCompletionObject {

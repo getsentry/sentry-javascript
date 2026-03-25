@@ -125,7 +125,7 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
   const spans = transactionEvent.spans || [];
 
   // Elysia should produce lifecycle spans enriched with sentry attributes
-  const elysiaSpans = spans.filter(span => span.origin === 'auto.http.otel.elysia');
+  const elysiaSpans = spans.filter(span => span.origin === 'auto.http.elysia');
   expect(elysiaSpans.length).toBeGreaterThan(0);
 
   // The Handle span should be present as a request handler
@@ -133,30 +133,35 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
     expect.objectContaining({
       description: 'Handle',
       op: 'request_handler.elysia',
-      origin: 'auto.http.otel.elysia',
+      origin: 'auto.http.elysia',
     }),
   );
 });
 
-test('Filters out empty anonymous Elysia spans but keeps all other spans', async ({ baseURL, request }) => {
+test('Names anonymous handler spans as "anonymous" instead of "<unknown>"', async ({ baseURL, request }) => {
   const transactionEventPromise = waitForTransaction('elysia-node', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /with-middleware/test'
     );
   });
 
-  await request.get(`${baseURL}/test-success`);
+  // Use a route with middleware so there are child handler spans
+  await request.get(`${baseURL}/with-middleware/test`);
 
   const transactionEvent = await transactionEventPromise;
   const spans = transactionEvent.spans || [];
 
-  // Elysia produces empty anonymous spans for arrow function handlers that show up as <unknown>.
-  // These should be filtered out by our beforeSendEvent hook.
+  // No <unknown> spans should exist — we name them 'anonymous' instead
   const unknownSpans = spans.filter(span => span.description === '<unknown>');
   expect(unknownSpans).toHaveLength(0);
 
-  // But named Elysia lifecycle spans should still be present
-  expect(spans.filter(span => span.origin === 'auto.http.otel.elysia').length).toBeGreaterThan(0);
+  // Anonymous handler spans should be named 'anonymous'
+  const anonymousSpans = spans.filter(span => span.description === 'anonymous' && span.origin === 'auto.http.elysia');
+  expect(anonymousSpans.length).toBeGreaterThan(0);
+
+  // Named Elysia lifecycle spans should still be present
+  expect(spans.filter(span => span.origin === 'auto.http.elysia').length).toBeGreaterThan(0);
 });
 
 test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, request }) => {
@@ -177,7 +182,7 @@ test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, 
     expect.objectContaining({
       description: 'BeforeHandle',
       op: 'middleware.elysia',
-      origin: 'auto.http.otel.elysia',
+      origin: 'auto.http.elysia',
     }),
   );
 });

@@ -1,13 +1,15 @@
 import type { ErrorContext } from 'elysia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Capture the handlers registered by withElysia
+// Capture handlers registered by withElysia
 let onAfterHandleHandler: (context: unknown) => void;
 let onErrorHandler: (context: unknown) => void;
 
 function createMockApp() {
   const app: Record<string, unknown> = {};
   app.use = vi.fn().mockReturnValue(app);
+  app.wrap = vi.fn().mockReturnValue(app);
+  app.trace = vi.fn().mockReturnValue(app);
   app.onRequest = vi.fn(() => app);
   app.onAfterHandle = vi.fn((_opts: unknown, handler: (context: unknown) => void) => {
     onAfterHandleHandler = handler;
@@ -35,10 +37,6 @@ const mockGetTraceData = vi.fn(() => ({
   baggage: 'sentry-environment=test,sentry-trace_id=abc123',
 }));
 
-vi.mock('@elysiajs/opentelemetry', () => ({
-  opentelemetry: vi.fn(() => 'otel-plugin'),
-}));
-
 vi.mock('@sentry/core', async importActual => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const actual = await importActual<typeof import('@sentry/core')>();
@@ -63,15 +61,11 @@ describe('withElysia', () => {
     vi.clearAllMocks();
   });
 
-  it('registers opentelemetry plugin', () => {
+  it('registers .wrap(), .trace(), and lifecycle hooks', () => {
     // @ts-expect-error - mock app
     withElysia(mockApp);
-    expect(mockApp.use).toHaveBeenCalledWith('otel-plugin');
-  });
-
-  it('registers onRequest, onAfterHandle, and onError hooks', () => {
-    // @ts-expect-error - mock app
-    withElysia(mockApp);
+    expect(mockApp.wrap).toHaveBeenCalledWith(expect.any(Function));
+    expect(mockApp.trace).toHaveBeenCalledWith({ as: 'global' }, expect.any(Function));
     expect(mockApp.onRequest).toHaveBeenCalled();
     expect(mockApp.onAfterHandle).toHaveBeenCalledWith({ as: 'global' }, expect.any(Function));
     expect(mockApp.onError).toHaveBeenCalledWith({ as: 'global' }, expect.any(Function));
