@@ -330,5 +330,4 @@ describe('nodeRuntimeMetricsIntegration', () => {
       expect(countSpy).not.toHaveBeenCalledWith('node.runtime.process.uptime', expect.anything(), expect.anything());
     });
   });
-
 });
