@@ -65,9 +65,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const existingBaggageHeader = getExistingBaggage(carrier);
     const existingSentryTraceHeader = getExistingSentryTrace(carrier);
 
-    console.log('xx existingSentryTraceHeader', existingSentryTraceHeader);
-    console.log('xx existingBaggageHeader', existingBaggageHeader);
-
     let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
 
     const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
