@@ -12,7 +12,12 @@ const DEFAULT_INTERVAL_MS = 30_000;
  */
 type BunCollectOptions = Omit<
   NonNullable<NodeRuntimeMetricsOptions['collect']>,
-  'eventLoopDelayMin' | 'eventLoopDelayMax' | 'eventLoopDelayMean' | 'eventLoopDelayP50' | 'eventLoopDelayP90' | 'eventLoopDelayP99'
+  | 'eventLoopDelayMin'
+  | 'eventLoopDelayMax'
+  | 'eventLoopDelayMean'
+  | 'eventLoopDelayP50'
+  | 'eventLoopDelayP90'
+  | 'eventLoopDelayP99'
 >;
 
 export interface BunRuntimeMetricsOptions {
@@ -94,11 +99,7 @@ export const bunRuntimeMetricsIntegration = defineIntegration((options: BunRunti
         metrics.gauge('bun.runtime.cpu.system', delta.system / 1e6, METRIC_ATTRIBUTES_SECOND);
       }
       if (collect.cpuUtilization && elapsed > 0) {
-        metrics.gauge(
-          'bun.runtime.cpu.utilization',
-          (delta.user + delta.system) / (elapsed * 1000),
-          METRIC_ATTRIBUTES,
-        );
+        metrics.gauge('bun.runtime.cpu.utilization', (delta.user + delta.system) / (elapsed * 1000), METRIC_ATTRIBUTES);
       }
 
       prevCpuUsage = process.cpuUsage();

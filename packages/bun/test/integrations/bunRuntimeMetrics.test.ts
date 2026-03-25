@@ -115,11 +115,7 @@ describe('bunRuntimeMetricsIntegration', () => {
       jest.advanceTimersByTime(1_000);
 
       expect(gaugeSpy).not.toHaveBeenCalledWith('bun.runtime.mem.external', expect.anything(), expect.anything());
-      expect(gaugeSpy).not.toHaveBeenCalledWith(
-        'bun.runtime.mem.array_buffers',
-        expect.anything(),
-        expect.anything(),
-      );
+      expect(gaugeSpy).not.toHaveBeenCalledWith('bun.runtime.mem.array_buffers', expect.anything(), expect.anything());
     });
 
     it('emits mem.external / mem.array_buffers when opted in', () => {
