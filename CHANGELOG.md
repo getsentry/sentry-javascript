@@ -4,6 +4,73 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.46.0
+
+### Important Changes
+
+- **feat(elysia): `@sentry/elysia` - Alpha Release ([#19509](https://github.com/getsentry/sentry-javascript/pull/19509))**
+
+  New Sentry SDK for the [Elysia](https://elysiajs.com/) web framework, supporting both Bun and Node.js runtimes.
+
+  > **Note:** This is an alpha release. Please report any issues or feedback on [GitHub](https://github.com/getsentry/sentry-javascript/issues).
+
+  **Features**
+  - **Automatic error capturing** — 5xx errors captured via global `onError` hook; 3xx/4xx ignored by default. Customizable with `shouldHandleError`.
+  - **Automatic tracing** — Lifecycle spans for every Elysia phase (Request, Parse, Transform, BeforeHandle, Handle, AfterHandle, MapResponse, AfterResponse, Error) with parameterized route names (e.g. `GET /users/:id`).
+  - **Distributed tracing** — `sentry-trace` and `baggage` headers propagated automatically on incoming/outgoing requests.
+
+  **Usage**
+
+  ```javascript
+  import * as Sentry from '@sentry/elysia';
+  import { Elysia } from 'elysia';
+
+  Sentry.init({ dsn: '__DSN__', tracesSampleRate: 1.0 });
+
+  const app = Sentry.withElysia(new Elysia());
+  app.get('/', () => 'Hello World');
+  app.listen(3000);
+  ```
+
+### Other Changes
+
+- feat(nuxt): Conditionally use plugins based on Nitro version (v2/v3) ([#19955](https://github.com/getsentry/sentry-javascript/pull/19955))
+- fix(cloudflare): Forward `ctx` argument to `Workflow.do` user callback ([#19891](https://github.com/getsentry/sentry-javascript/pull/19891))
+- fix(cloudflare): Send correct events in local development ([#19900](https://github.com/getsentry/sentry-javascript/pull/19900))
+- fix(core): Do not overwrite user provided conversation id in Vercel ([#19903](https://github.com/getsentry/sentry-javascript/pull/19903))
+- fix(core): Preserve `.withResponse()` on Anthropic instrumentation ([#19935](https://github.com/getsentry/sentry-javascript/pull/19935))
+- fix(core): Send `internal_error` as span status for Vercel error spans ([#19921](https://github.com/getsentry/sentry-javascript/pull/19921))
+- fix(core): Truncate content array format in Vercel ([#19911](https://github.com/getsentry/sentry-javascript/pull/19911))
+- fix(deps): bump fast-xml-parser to 5.5.8 in @azure/core-xml chain ([#19918](https://github.com/getsentry/sentry-javascript/pull/19918))
+- fix(deps): bump socket.io-parser to 4.2.6 to fix CVE-2026-33151 ([#19880](https://github.com/getsentry/sentry-javascript/pull/19880))
+- fix(nestjs): Add `node` to nest metadata ([#19875](https://github.com/getsentry/sentry-javascript/pull/19875))
+- fix(serverless): Add node to metadata ([#19878](https://github.com/getsentry/sentry-javascript/pull/19878))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(ci): Fix "Gatbsy" typo in issue package label workflow ([#19905](https://github.com/getsentry/sentry-javascript/pull/19905))
+- chore(claude): Enable Claude Code Intelligence (LSP) ([#19930](https://github.com/getsentry/sentry-javascript/pull/19930))
+- chore(deps): bump mongodb-memory-server-global from 10.1.4 to 11.0.1 ([#19888](https://github.com/getsentry/sentry-javascript/pull/19888))
+- chore(deps-dev): bump @react-router/node from 7.13.0 to 7.13.1 ([#19544](https://github.com/getsentry/sentry-javascript/pull/19544))
+- chore(deps-dev): bump effect from 3.19.19 to 3.20.0 ([#19926](https://github.com/getsentry/sentry-javascript/pull/19926))
+- chore(deps-dev): bump qunit-dom from 3.2.1 to 3.5.0 ([#19546](https://github.com/getsentry/sentry-javascript/pull/19546))
+- chore(node-integration-tests): Remove unnecessary `file-type` dependency ([#19824](https://github.com/getsentry/sentry-javascript/pull/19824))
+- chore(remix): Replace glob with native recursive fs walk ([#19531](https://github.com/getsentry/sentry-javascript/pull/19531))
+- feat(deps): bump stacktrace-parser from 0.1.10 to 0.1.11 ([#19887](https://github.com/getsentry/sentry-javascript/pull/19887))
+- fix(craft): Add missing mainDocsUrl for @sentry/effect SDK ([#19860](https://github.com/getsentry/sentry-javascript/pull/19860))
+- fix(deps): bump next to 15.5.14 in nextjs-15 and nextjs-15-intl E2E test apps ([#19917](https://github.com/getsentry/sentry-javascript/pull/19917))
+- fix(deps): update lockfile to resolve h3@1.15.10 ([#19933](https://github.com/getsentry/sentry-javascript/pull/19933))
+- ref(core): Remove duplicate `buildMethodPath` utility from openai ([#19969](https://github.com/getsentry/sentry-javascript/pull/19969))
+- ref(elysia): Drop `@elysiajs/opentelemetry` dependency ([#19947](https://github.com/getsentry/sentry-javascript/pull/19947))
+- ref(nuxt): Extract core logic for storage/database to prepare for Nuxt v5 ([#19920](https://github.com/getsentry/sentry-javascript/pull/19920))
+- ref(nuxt): Extract handler patching to extra plugin for Nitro v2/v3 ([#19915](https://github.com/getsentry/sentry-javascript/pull/19915))
+- ref(sveltekit): Replace recast + @babel/parser with acorn ([#19533](https://github.com/getsentry/sentry-javascript/pull/19533))
+- test(astro): Re-enable server island tracing e2e test in Astro 6 ([#19872](https://github.com/getsentry/sentry-javascript/pull/19872))
+- test(cloudflare): Enable multi-worker tests for CF integration tests ([#19938](https://github.com/getsentry/sentry-javascript/pull/19938))
+
+</details>
+
 Work in this release was contributed by @roli-lpci. Thank you for your contributions!
 
 ## 10.45.0
