@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.55.1
+
+- fix(v8/browser): Ensure that performance.measure spans have a positive duration ([#19959](https://github.com/getsentry/sentry-javascript/pull/19959))
+- fix(v8/core): Filter `gmo` error and Facebook mobile error ([#15447](https://github.com/getsentry/sentry-javascript/pull/15447))
+
 ## 8.55.0
 
 ### Important Changes
@@ -120,7 +125,6 @@ Work in this release was contributed by @jahands, @jrandolf, and @nathankleyn. T
 
   This release adds a compatibility API to add support for Prisma version 6.
   To capture performance data for Prisma version 6:
-
   1. Install the `@prisma/instrumentation` package on version 6.
   1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option:
 
@@ -390,7 +394,6 @@ Work in this release was contributed by @lsmurray. Thank you for your contributi
 - **feat(nuxt): Deprecate `tracingOptions` in favor of `vueIntegration` ([#14530](https://github.com/getsentry/sentry-javascript/pull/14530))**
 
   Currently it is possible to configure tracing options in two places in the Sentry Nuxt SDK:
-
   - In `Sentry.init()`
   - Inside `tracingOptions` in `Sentry.init()`
 
@@ -471,7 +474,6 @@ The following deprecations will _potentially_ affect you:
 - **feat(vue): Deprecate configuring Vue tracing options anywhere else other than through the `vueIntegration`'s `tracingOptions` option ([#14385](https://github.com/getsentry/sentry-javascript/pull/14385))**
 
   Currently it is possible to configure tracing options in various places in the Sentry Vue SDK:
-
   - In `Sentry.init()`
   - Inside `tracingOptions` in `Sentry.init()`
   - In the `vueIntegration()` options
@@ -1774,7 +1776,6 @@ Work in this release contributed by @dohooo, @mohd-akram, and @ykzts. Thank you 
 - **feat(metrics): Add `timings` method to metrics (#12226)**
 
   This introduces a new method, `metrics.timing()`, which can be used in two ways:
-
   1. With a numeric value, to simplify creating a distribution metric. This will default to `second` as unit:
 
   ```js
