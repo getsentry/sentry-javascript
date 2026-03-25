@@ -120,7 +120,11 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
       if (collect.cpuUtilization && elapsed > 0) {
         // Ratio of CPU time to wall-clock time. Can exceed 1.0 on multi-core systems.
         // TODO: In cluster mode, add a runtime_id/process_id attribute to disambiguate per-worker metrics.
-        metrics.gauge('node.runtime.cpu.utilization', (delta.user + delta.system) / (elapsed * 1000), METRIC_ATTRIBUTES);
+        metrics.gauge(
+          'node.runtime.cpu.utilization',
+          (delta.user + delta.system) / (elapsed * 1000),
+          METRIC_ATTRIBUTES,
+        );
       }
 
       prevCpuUsage = process.cpuUsage();
@@ -145,22 +149,46 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
 
     if (needsEventLoopDelay && eventLoopDelayHistogram) {
       if (collect.eventLoopDelayMin) {
-        metrics.gauge('node.runtime.event_loop.delay.min', nsToS(eventLoopDelayHistogram.min), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.min',
+          nsToS(eventLoopDelayHistogram.min),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
       if (collect.eventLoopDelayMax) {
-        metrics.gauge('node.runtime.event_loop.delay.max', nsToS(eventLoopDelayHistogram.max), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.max',
+          nsToS(eventLoopDelayHistogram.max),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
       if (collect.eventLoopDelayMean) {
-        metrics.gauge('node.runtime.event_loop.delay.mean', nsToS(eventLoopDelayHistogram.mean), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.mean',
+          nsToS(eventLoopDelayHistogram.mean),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
       if (collect.eventLoopDelayP50) {
-        metrics.gauge('node.runtime.event_loop.delay.p50', nsToS(eventLoopDelayHistogram.percentile(50)), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.p50',
+          nsToS(eventLoopDelayHistogram.percentile(50)),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
       if (collect.eventLoopDelayP90) {
-        metrics.gauge('node.runtime.event_loop.delay.p90', nsToS(eventLoopDelayHistogram.percentile(90)), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.p90',
+          nsToS(eventLoopDelayHistogram.percentile(90)),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
       if (collect.eventLoopDelayP99) {
-        metrics.gauge('node.runtime.event_loop.delay.p99', nsToS(eventLoopDelayHistogram.percentile(99)), METRIC_ATTRIBUTES_SECOND);
+        metrics.gauge(
+          'node.runtime.event_loop.delay.p99',
+          nsToS(eventLoopDelayHistogram.percentile(99)),
+          METRIC_ATTRIBUTES_SECOND,
+        );
       }
 
       eventLoopDelayHistogram.reset();
