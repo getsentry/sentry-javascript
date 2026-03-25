@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.55.1
+
+- fix(v8/browser): Ensure that performance.measure spans have a positive duration ([#19959](https://github.com/getsentry/sentry-javascript/pull/19959))
+- fix(v8/core): Filter `gmo` error and Facebook mobile error ([#15447](https://github.com/getsentry/sentry-javascript/pull/15447))
+
 ## 8.55.0
 
 ### Important Changes
