@@ -46,6 +46,7 @@ export function patchLayer(options: ExpressPatchLayerOptions, layer?: ExpressLay
   Object.defineProperty(layer, 'handle', {
     enumerable: true,
     configurable: true,
+    writable: true,
     value: function layerHandlePatched(
       this: ExpressLayer,
       req: ExpressRequest,
