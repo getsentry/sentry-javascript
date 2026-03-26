@@ -1,5 +1,3 @@
-import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
-
 export interface AnthropicAiOptions {
   /**
    * Enable or disable input recording.
@@ -83,8 +81,6 @@ export interface AnthropicAiIntegration {
   name: string;
   options: AnthropicAiOptions;
 }
-
-export type AnthropicAiInstrumentedMethod = keyof typeof ANTHROPIC_METHOD_REGISTRY;
 
 /**
  * Message type for Anthropic AI
