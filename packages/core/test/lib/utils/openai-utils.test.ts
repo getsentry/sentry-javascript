@@ -1,54 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildMethodPath, getOperationName } from '../../../src/tracing/ai/utils';
+import { buildMethodPath } from '../../../src/tracing/ai/utils';
 import {
   isChatCompletionChunk,
   isChatCompletionResponse,
   isConversationResponse,
   isResponsesApiResponse,
   isResponsesApiStreamEvent,
-  shouldInstrument,
 } from '../../../src/tracing/openai/utils';
 
 describe('openai-utils', () => {
-  describe('getOperationName', () => {
-    it('should return chat for chat.completions methods', () => {
-      expect(getOperationName('chat.completions.create')).toBe('chat');
-      expect(getOperationName('some.path.chat.completions.method')).toBe('chat');
-    });
-
-    it('should return chat for responses methods', () => {
-      expect(getOperationName('responses.create')).toBe('chat');
-      expect(getOperationName('some.path.responses.method')).toBe('chat');
-    });
-
-    it('should return chat for conversations methods', () => {
-      expect(getOperationName('conversations.create')).toBe('chat');
-      expect(getOperationName('some.path.conversations.method')).toBe('chat');
-    });
-
-    it('should return the last part of path for unknown methods', () => {
-      expect(getOperationName('some.unknown.method')).toBe('method');
-      expect(getOperationName('create')).toBe('create');
-    });
-
-    it('should return unknown for empty path', () => {
-      expect(getOperationName('')).toBe('unknown');
-    });
-  });
-
-  describe('shouldInstrument', () => {
-    it('should return true for instrumented methods', () => {
-      expect(shouldInstrument('responses.create')).toBe(true);
-      expect(shouldInstrument('chat.completions.create')).toBe(true);
-      expect(shouldInstrument('conversations.create')).toBe(true);
-    });
-
-    it('should return false for non-instrumented methods', () => {
-      expect(shouldInstrument('unknown.method')).toBe(false);
-      expect(shouldInstrument('')).toBe(false);
-    });
-  });
-
   describe('buildMethodPath', () => {
     it('should build method path correctly', () => {
       expect(buildMethodPath('', 'chat')).toBe('chat');

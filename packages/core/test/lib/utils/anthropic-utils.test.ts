@@ -3,7 +3,6 @@ import {
   mapAnthropicErrorToStatusMessage,
   messagesFromParams,
   setMessagesAttribute,
-  shouldInstrument,
 } from '../../../src/tracing/anthropic-ai/utils';
 import type { Span } from '../../../src/types-hoist/span';
 
@@ -26,16 +25,6 @@ describe('anthropic-ai-utils', () => {
 
     it('falls back to internal_error for undefined', () => {
       expect(mapAnthropicErrorToStatusMessage(undefined)).toBe('internal_error');
-    });
-  });
-
-  describe('shouldInstrument', () => {
-    it('should instrument known methods', () => {
-      expect(shouldInstrument('models.get')).toBe(true);
-    });
-
-    it('should not instrument unknown methods', () => {
-      expect(shouldInstrument('models.unknown.thing')).toBe(false);
     });
   });
 

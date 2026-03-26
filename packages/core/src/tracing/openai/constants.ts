@@ -1,16 +1,18 @@
+import type { InstrumentedMethodRegistry } from '../ai/utils';
+
 export const OPENAI_INTEGRATION_NAME = 'OpenAI';
 
 // https://platform.openai.com/docs/quickstart?api-mode=responses
 // https://platform.openai.com/docs/quickstart?api-mode=chat
 // https://platform.openai.com/docs/api-reference/conversations
-export const INSTRUMENTED_METHODS = [
-  'responses.create',
-  'chat.completions.create',
-  'embeddings.create',
+export const OPENAI_METHOD_REGISTRY = {
+  'responses.create': { operation: 'chat' },
+  'chat.completions.create': { operation: 'chat' },
+  'embeddings.create': { operation: 'embeddings' },
   // Conversations API - for conversation state management
   // https://platform.openai.com/docs/guides/conversation-state
-  'conversations.create',
-] as const;
+  'conversations.create': { operation: 'chat' },
+} as const satisfies InstrumentedMethodRegistry;
 export const RESPONSES_TOOL_CALL_EVENT_TYPES = [
   'response.output_item.added',
   'response.function_call_arguments.delta',
