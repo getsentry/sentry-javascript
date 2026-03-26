@@ -1,3 +1,5 @@
+import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
+
 export interface GoogleGenAIOptions {
   /**
    * Enable or disable input recording.
@@ -176,6 +178,11 @@ export interface GoogleGenAIChat {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
 }
+
+/**
+ * @deprecated This type is no longer used and will be removed in the next major version.
+ */
+export type GoogleGenAIIstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
 
 // Export the response type for use in instrumentation
 export type GoogleGenAIResponse = GenerateContentResponse;
