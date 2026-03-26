@@ -2,7 +2,30 @@
 
 ## Unreleased
 
-- feat(bun): Add `bunRuntimeMetricsIntegration` ([#19979](https://github.com/getsentry/sentry-javascript/pull/19979))
+### Important Changes
+
+- **feat(node, bun): Add runtime metrics integrations for Node.js and Bun ([#19923](https://github.com/getsentry/sentry-javascript/pull/19923), [#19979](https://github.com/getsentry/sentry-javascript/pull/19979))**
+
+  New `nodeRuntimeMetricsIntegration` and `bunRuntimeMetricsIntegration` automatically collect runtime health metrics and send them to Sentry on a configurable interval (default: 30s). Collected metrics include memory (RSS, heap used/total), CPU utilization, event loop utilization, and process uptime. Node additionally collects event loop delay percentiles (p50, p99). Extra metrics like CPU time and external memory are available as opt-in.
+
+  ```ts
+  // Node.js
+  import * as Sentry from '@sentry/node';
+
+  Sentry.init({
+    dsn: '...',
+    integrations: [Sentry.nodeRuntimeMetricsIntegration()],
+  });
+
+  // Bun
+  import * as Sentry from '@sentry/bun';
+
+  Sentry.init({
+    dsn: '...',
+    integrations: [Sentry.bunRuntimeMetricsIntegration()],
+  });
+  ```
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 10.46.0
