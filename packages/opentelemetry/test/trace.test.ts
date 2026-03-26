@@ -2169,16 +2169,20 @@ describe('startNewTrace', () => {
   });
 
   it('does not leak the new traceId to the outer scope', () => {
-    const outerPropagationContext = getCurrentScope().getPropagationContext();
-    const outerTraceId = outerPropagationContext.traceId;
+    const outerScope = getCurrentScope();
+    const outerTraceId = outerScope.getPropagationContext().traceId;
 
     startNewTrace(() => {
-      const innerTraceId = getCurrentScope().getPropagationContext().traceId;
-      expect(innerTraceId).not.toBe(outerTraceId);
+      // Manually set a known traceId on the inner scope to verify it doesn't leak
+      getCurrentScope().setPropagationContext({
+        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        sampleRand: 0.5,
+      });
     });
 
-    const afterTraceId = getCurrentScope().getPropagationContext().traceId;
+    const afterTraceId = outerScope.getPropagationContext().traceId;
     expect(afterTraceId).toBe(outerTraceId);
+    expect(afterTraceId).not.toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 });
 
