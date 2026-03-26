@@ -1,84 +1,15 @@
-import type { Page, Request, Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Envelope } from '@sentry/core';
+import type { SerializedMetric } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  properFullEnvelopeRequestParser,
-  shouldSkipMetricsTest,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { shouldSkipMetricsTest, shouldSkipTracingTest, waitForMetricRequest } from '../../../../utils/helpers';
 
-type MetricItem = Record<string, unknown> & {
-  name: string;
-  type: string;
-  value: number;
-  unit?: string;
-  attributes: Record<string, { value: string | number; type: string }>;
-};
-
-function extractMetricsFromRequest(req: Request): MetricItem[] {
-  try {
-    const envelope = properFullEnvelopeRequestParser<Envelope>(req);
-    const items = envelope[1];
-    const metrics: MetricItem[] = [];
-    for (const item of items) {
-      const [header] = item;
-      if (header.type === 'trace_metric') {
-        const payload = item[1] as { items?: MetricItem[] };
-        if (payload.items) {
-          metrics.push(...payload.items);
-        }
-      }
-    }
-    return metrics;
-  } catch {
-    return [];
-  }
+function getIdentifier(m: SerializedMetric): unknown {
+  return m.attributes?.['ui.element.identifier']?.value;
 }
 
-/**
- * Collects element timing metrics from envelope requests on the page.
- * Returns a function to get all collected metrics so far and a function
- * that waits until all expected identifiers have been seen in render_time metrics.
- */
-function createMetricCollector(page: Page) {
-  const collectedRequests: Request[] = [];
-
-  page.on('request', req => {
-    if (!req.url().includes('/api/1337/envelope/')) return;
-    const metrics = extractMetricsFromRequest(req);
-    if (metrics.some(m => m.name.startsWith('ui.element.'))) {
-      collectedRequests.push(req);
-    }
-  });
-
-  function getAll(): MetricItem[] {
-    return collectedRequests.flatMap(req => extractMetricsFromRequest(req));
-  }
-
-  async function waitForIdentifiers(identifiers: string[], timeout = 30_000): Promise<void> {
-    const deadline = Date.now() + timeout;
-    while (Date.now() < deadline) {
-      const all = getAll().filter(m => m.name === 'ui.element.render_time');
-      const seen = new Set(all.map(m => m.attributes['ui.element.identifier']?.value));
-      if (identifiers.every(id => seen.has(id))) {
-        return;
-      }
-      await page.waitForTimeout(500);
-    }
-    // Final check with assertion for clear error message
-    const all = getAll().filter(m => m.name === 'ui.element.render_time');
-    const seen = all.map(m => m.attributes['ui.element.identifier']?.value);
-    for (const id of identifiers) {
-      expect(seen).toContain(id);
-    }
-  }
-
-  function reset(): void {
-    collectedRequests.length = 0;
-  }
-
-  return { getAll, waitForIdentifiers, reset };
+function getPaintType(m: SerializedMetric): unknown {
+  return m.attributes?.['ui.element.paint_type']?.value;
 }
 
 sentryTest(
@@ -91,19 +22,23 @@ sentryTest(
     serveAssets(page);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
-    const collector = createMetricCollector(page);
 
-    await page.goto(url);
+    const expectedIdentifiers = ['image-fast', 'text1', 'button1', 'image-slow', 'lazy-image', 'lazy-text'];
 
-    // Wait until all expected element identifiers have been flushed as metrics
-    await collector.waitForIdentifiers(['image-fast', 'text1', 'button1', 'image-slow', 'lazy-image', 'lazy-text']);
+    // Wait for all expected element identifiers to arrive as metrics
+    const [allMetrics] = await Promise.all([
+      waitForMetricRequest(page, metrics => {
+        const seen = new Set(metrics.filter(m => m.name === 'ui.element.render_time').map(getIdentifier));
+        return expectedIdentifiers.every(id => seen.has(id));
+      }),
+      page.goto(url),
+    ]);
 
-    const allMetrics = collector.getAll().filter(m => m.name.startsWith('ui.element.'));
     const renderTimeMetrics = allMetrics.filter(m => m.name === 'ui.element.render_time');
     const loadTimeMetrics = allMetrics.filter(m => m.name === 'ui.element.load_time');
 
-    const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
-    const loadIdentifiers = loadTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
+    const renderIdentifiers = renderTimeMetrics.map(getIdentifier);
+    const loadIdentifiers = loadTimeMetrics.map(getIdentifier);
 
     // All text and image elements should have render_time
     expect(renderIdentifiers).toContain('image-fast');
@@ -124,18 +59,18 @@ sentryTest(
     expect(loadIdentifiers).not.toContain('lazy-text');
 
     // Validate metric structure for image-fast
-    const imageFastRender = renderTimeMetrics.find(m => m.attributes['ui.element.identifier']?.value === 'image-fast');
+    const imageFastRender = renderTimeMetrics.find(m => getIdentifier(m) === 'image-fast');
     expect(imageFastRender).toMatchObject({
       name: 'ui.element.render_time',
       type: 'distribution',
       unit: 'millisecond',
       value: expect.any(Number),
     });
-    expect(imageFastRender!.attributes['ui.element.paint_type']?.value).toBe('image-paint');
+    expect(getPaintType(imageFastRender!)).toBe('image-paint');
 
     // Validate text-paint metric
-    const text1Render = renderTimeMetrics.find(m => m.attributes['ui.element.identifier']?.value === 'text1');
-    expect(text1Render!.attributes['ui.element.paint_type']?.value).toBe('text-paint');
+    const text1Render = renderTimeMetrics.find(m => getIdentifier(m) === 'text1');
+    expect(getPaintType(text1Render!)).toBe('text-paint');
   },
 );
 
@@ -147,25 +82,25 @@ sentryTest('emits element timing metrics after navigation', async ({ getLocalTes
   serveAssets(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const collector = createMetricCollector(page);
 
   await page.goto(url);
 
   // Wait for pageload element timing metrics to arrive before navigating
-  await collector.waitForIdentifiers(['image-fast', 'text1']);
-
-  // Reset so we only capture post-navigation metrics
-  collector.reset();
+  await waitForMetricRequest(page, metrics =>
+    metrics.some(m => m.name === 'ui.element.render_time' && getIdentifier(m) === 'image-fast'),
+  );
 
   // Trigger navigation
   await page.locator('#button1').click();
 
   // Wait for navigation element timing metrics
-  await collector.waitForIdentifiers(['navigation-image', 'navigation-text']);
+  const navigationMetrics = await waitForMetricRequest(page, metrics => {
+    const seen = new Set(metrics.filter(m => m.name === 'ui.element.render_time').map(getIdentifier));
+    return seen.has('navigation-image') && seen.has('navigation-text');
+  });
 
-  const allMetrics = collector.getAll();
-  const renderTimeMetrics = allMetrics.filter(m => m.name === 'ui.element.render_time');
-  const renderIdentifiers = renderTimeMetrics.map(m => m.attributes['ui.element.identifier']?.value);
+  const renderTimeMetrics = navigationMetrics.filter(m => m.name === 'ui.element.render_time');
+  const renderIdentifiers = renderTimeMetrics.map(getIdentifier);
 
   expect(renderIdentifiers).toContain('navigation-image');
   expect(renderIdentifiers).toContain('navigation-text');
