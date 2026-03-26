@@ -21,7 +21,7 @@ import {
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
-import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
+import { continueTrace, startInactiveSpan, startNewTrace, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
@@ -2090,6 +2090,99 @@ describe('span.end() timestamp conversion', () => {
 
     expect(capturedEndTime![0]).toBe(nowSec);
     expect(capturedEndTime![1]).toBe(0);
+  });
+});
+
+describe('startNewTrace', () => {
+  beforeEach(() => {
+    mockSdkInit({ tracesSampleRate: 1 });
+  });
+
+  afterEach(async () => {
+    await cleanupOtel();
+  });
+
+  it('sequential startInactiveSpan calls share the same traceId', () => {
+    startNewTrace(() => {
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      const span1 = startInactiveSpan({ name: 'span-1' });
+      const span2 = startInactiveSpan({ name: 'span-2' });
+      const span3 = startInactiveSpan({ name: 'span-3' });
+
+      const traceId1 = span1.spanContext().traceId;
+      const traceId2 = span2.spanContext().traceId;
+      const traceId3 = span3.spanContext().traceId;
+
+      expect(traceId1).toBe(propagationContext.traceId);
+      expect(traceId2).toBe(propagationContext.traceId);
+      expect(traceId3).toBe(propagationContext.traceId);
+
+      span1.end();
+      span2.end();
+      span3.end();
+    });
+  });
+
+  it('startSpan inside startNewTrace uses the correct traceId', () => {
+    startNewTrace(() => {
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      startSpan({ name: 'parent-span' }, parentSpan => {
+        const parentTraceId = parentSpan.spanContext().traceId;
+        expect(parentTraceId).toBe(propagationContext.traceId);
+
+        const child = startInactiveSpan({ name: 'child-span' });
+        expect(child.spanContext().traceId).toBe(propagationContext.traceId);
+        child.end();
+      });
+    });
+  });
+
+  it('generates a different traceId than the outer trace', () => {
+    startSpan({ name: 'outer-span' }, outerSpan => {
+      const outerTraceId = outerSpan.spanContext().traceId;
+
+      startNewTrace(() => {
+        const innerSpan = startInactiveSpan({ name: 'inner-span' });
+        const innerTraceId = innerSpan.spanContext().traceId;
+
+        expect(innerTraceId).not.toBe(outerTraceId);
+
+        const propagationContext = getCurrentScope().getPropagationContext();
+        expect(innerTraceId).toBe(propagationContext.traceId);
+
+        innerSpan.end();
+      });
+    });
+  });
+
+  it('allows spans to be sampled based on tracesSampleRate', () => {
+    startNewTrace(() => {
+      const span = startInactiveSpan({ name: 'sampled-span' });
+      // tracesSampleRate is 1 in mockSdkInit, so spans should be sampled
+      // This verifies that TraceFlags.NONE on the remote span context does not
+      // cause the sampler to inherit a "not sampled" decision from the parent
+      expect(spanIsSampled(span)).toBe(true);
+      span.end();
+    });
+  });
+
+  it('does not leak the new traceId to the outer scope', () => {
+    const outerScope = getCurrentScope();
+    const outerTraceId = outerScope.getPropagationContext().traceId;
+
+    startNewTrace(() => {
+      // Manually set a known traceId on the inner scope to verify it doesn't leak
+      getCurrentScope().setPropagationContext({
+        traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        sampleRand: 0.5,
+      });
+    });
+
+    const afterTraceId = outerScope.getPropagationContext().traceId;
+    expect(afterTraceId).toBe(outerTraceId);
+    expect(afterTraceId).not.toBe('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 });
 
