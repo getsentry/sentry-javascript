@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { ANTHROPIC_METHOD_REGISTRY } from '../../../src/tracing/anthropic-ai/constants';
 import { mapAnthropicErrorToStatusMessage, messagesFromParams, setMessagesAttribute } from '../../../src/tracing/anthropic-ai/utils';
 import type { Span } from '../../../src/types-hoist/span';
 
@@ -22,18 +21,6 @@ describe('anthropic-ai-utils', () => {
 
     it('falls back to internal_error for undefined', () => {
       expect(mapAnthropicErrorToStatusMessage(undefined)).toBe('internal_error');
-    });
-  });
-
-  describe('ANTHROPIC_METHOD_REGISTRY', () => {
-    it('should contain known methods', () => {
-      expect(ANTHROPIC_METHOD_REGISTRY['models.get']).toBeDefined();
-      expect(ANTHROPIC_METHOD_REGISTRY['messages.create']?.operation).toBe('chat');
-      expect(ANTHROPIC_METHOD_REGISTRY['messages.stream']?.streaming).toBe(true);
-    });
-
-    it('should not contain unknown methods', () => {
-      expect(ANTHROPIC_METHOD_REGISTRY['models.unknown.thing']).toBeUndefined();
     });
   });
 

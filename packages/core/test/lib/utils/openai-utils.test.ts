@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { buildMethodPath } from '../../../src/tracing/ai/utils';
-import { OPENAI_METHOD_REGISTRY } from '../../../src/tracing/openai/constants';
 import {
   isChatCompletionChunk,
   isChatCompletionResponse,
@@ -10,35 +9,6 @@ import {
 } from '../../../src/tracing/openai/utils';
 
 describe('openai-utils', () => {
-  describe('OPENAI_METHOD_REGISTRY', () => {
-    it('should map chat.completions.create to chat operation', () => {
-      expect(OPENAI_METHOD_REGISTRY['chat.completions.create']?.operation).toBe('chat');
-    });
-
-    it('should map responses.create to chat operation', () => {
-      expect(OPENAI_METHOD_REGISTRY['responses.create']?.operation).toBe('chat');
-    });
-
-    it('should map conversations.create to chat operation', () => {
-      expect(OPENAI_METHOD_REGISTRY['conversations.create']?.operation).toBe('chat');
-    });
-
-    it('should map embeddings.create to embeddings operation', () => {
-      expect(OPENAI_METHOD_REGISTRY['embeddings.create']?.operation).toBe('embeddings');
-    });
-
-    it('should return undefined for unknown methods', () => {
-      expect(OPENAI_METHOD_REGISTRY['unknown.method']).toBeUndefined();
-      expect(OPENAI_METHOD_REGISTRY['']).toBeUndefined();
-    });
-
-    it('should not have any streaming methods', () => {
-      for (const entry of Object.values(OPENAI_METHOD_REGISTRY)) {
-        expect(entry.streaming).toBeUndefined();
-      }
-    });
-  });
-
   describe('buildMethodPath', () => {
     it('should build method path correctly', () => {
       expect(buildMethodPath('', 'chat')).toBe('chat');

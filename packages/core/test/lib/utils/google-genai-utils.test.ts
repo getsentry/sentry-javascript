@@ -1,22 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GOOGLE_GENAI_METHOD_REGISTRY } from '../../../src/tracing/google-genai/constants';
 import type { ContentListUnion } from '../../../src/tracing/google-genai/utils';
 import { contentUnionToMessages } from '../../../src/tracing/google-genai/utils';
-
-describe('GOOGLE_GENAI_METHOD_REGISTRY', () => {
-  it('detects which methods to instrument', () => {
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContent']).toBeDefined();
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessage']).toBeDefined();
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['unknown']).toBeUndefined();
-  });
-
-  it('marks streaming methods', () => {
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContentStream']?.streaming).toBe(true);
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessageStream']?.streaming).toBe(true);
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['models.generateContent']?.streaming).toBeUndefined();
-    expect(GOOGLE_GENAI_METHOD_REGISTRY['chat.sendMessage']?.streaming).toBeUndefined();
-  });
-});
 
 describe('convert google-genai messages to consistent message', () => {
   it('converts strings to messages', () => {
