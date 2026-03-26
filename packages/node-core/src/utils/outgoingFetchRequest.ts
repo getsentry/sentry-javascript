@@ -121,7 +121,29 @@ function _deduplicateHeaders(request: UndiciRequest): void {
   if (Array.isArray(request.headers)) {
     _deduplicateArrayHeaders(request.headers);
   } else {
-    request.headers = _deduplicateStringHeaders(request.headers);
+    const headersArray = request.headers.split('\r\n');
+    const headers: string[] = [];
+    for (const header of headersArray) {
+      try {
+        const [key, value] = header.split(':').map(part => part.trim());
+        if (key != null && value != null) {
+          headers.push(key, value);
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    _deduplicateArrayHeaders(headers);
+
+    const headerPairs: string[] = [];
+    for (let i = 0; i < headers.length; i += 2) {
+      headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
+    }
+    const concatenated = headerPairs.join('\r\n');
+    if (concatenated) {
+      request.headers = concatenated.concat('\r\n');
+    }
   }
 }
 
@@ -159,31 +181,6 @@ function _deduplicateArrayHeader(headers: string[], headerName: string): void {
     headers.splice(i, 2);
     i -= 2;
   }
-}
-
-function _deduplicateStringHeaders(input: string): string {
-  // Deduplicate sentry-trace — keep only the first occurrence
-  let sentryTraceCount = 0;
-  let result = input.replace(/sentry-trace: .*\r\n/g, match => {
-    return ++sentryTraceCount === 1 ? match : '';
-  });
-
-  // Deduplicate baggage — merge all occurrences into one but preserve initial sentry- values
-  let mergedBaggage: string | undefined;
-  result = result.replace(/baggage: (.*)\r\n/g, (_match, value: string) => {
-    if (!mergedBaggage) {
-      mergedBaggage = value;
-    } else {
-      mergedBaggage = mergeBaggageHeaders(value, mergedBaggage) || mergedBaggage;
-    }
-    return '';
-  });
-
-  if (mergedBaggage) {
-    result += `${SENTRY_BAGGAGE_HEADER}: ${mergedBaggage}\r\n`;
-  }
-
-  return result;
 }
 
 /** Add a breadcrumb for an outgoing fetch/undici request. */

@@ -304,5 +304,26 @@ describe('addTracePropagationHeadersToFetchRequest', () => {
         );
       });
     });
+
+    it("doesn't dedupe nearly-sentry-tracing headers", () => {
+      const request = {
+        headers:
+          'sentry-trace: user-trace_id-xyz-1\r\n' +
+          'baggage: sentry-trace_id=user-trace_id,sentry-sampled=true,sentry-environment=user\r\n' +
+          'x-sentry-trace: custom-trace_id-abc-1\r\n' +
+          'x-baggage: sentry-trace_id=undici-trace_id-abc-1,sentry-sampled=true,sentry-environment=undici\r\n',
+        origin: 'https://some-service.com',
+        path: '/api/test',
+      } as UndiciRequest;
+
+      addTracePropagationHeadersToFetchRequest(request, new LRUMap<string, boolean>(100));
+
+      expect(request.headers).toBe(
+        'sentry-trace: user-trace_id-xyz-1\r\n' +
+          'baggage: sentry-trace_id=user-trace_id,sentry-sampled=true,sentry-environment=user\r\n' +
+          'x-sentry-trace: custom-trace_id-abc-1\r\n' +
+          'x-baggage: sentry-trace_id=undici-trace_id-abc-1,sentry-sampled=true,sentry-environment=undici\r\n',
+      );
+    });
   });
 });

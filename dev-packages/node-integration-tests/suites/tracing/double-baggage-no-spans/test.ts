@@ -45,6 +45,7 @@ describe('double baggage prevention', () => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/fetch-custom-headers', headers => {
           // fetch with manual getTraceData() headers
+          // console.log('xx sentry-tace', headers['sentry-trace']);
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^[a-f\d]{32}-[a-f\d]{16}$/));
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expectConsistentTraceId(headers);

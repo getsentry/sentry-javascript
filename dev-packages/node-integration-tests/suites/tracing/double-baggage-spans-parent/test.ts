@@ -49,13 +49,13 @@ describe('double baggage prevention - http.client spans with parent span', () =>
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/fetch-custom-headers', headers => {
           // fetch with manual getTraceData() headers — core reproduction case
+          const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
+          transactionTraceId = sentryTrace!.traceId!;
+          fetchCustomHeadersSpanId = sentryTrace!.parentSpanId!;
           expectNoDuplicateSentryBaggageKeys(headers['baggage']);
           expect(headers['sentry-trace']).not.toContain(',');
           expectConsistentTraceId(headers);
           expectUserSetTraceId(headers);
-          const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
-          transactionTraceId = sentryTrace!.traceId!;
-          fetchCustomHeadersSpanId = sentryTrace!.parentSpanId!;
         })
         .get('/api/fetch', headers => {
           // fetch without manual headers (baseline)
