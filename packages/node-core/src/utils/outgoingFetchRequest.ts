@@ -45,68 +45,74 @@ export function addTracePropagationHeadersToFetchRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = addedHeaders;
 
+  const requestHeaders = Array.isArray(request.headers) ? request.headers : stringToArrayHeaders(request.headers);
+
   // OTel's UndiciInstrumentation calls propagation.inject() which unconditionally
   // appends headers to the request. When the user also sets headers via getTraceData(),
   // this results in duplicate sentry-trace and baggage entries.
   // We clean these up before applying our own logic.
-  _deduplicateHeaders(request);
+  _deduplicateArrayHeaders(requestHeaders);
 
   // We do not want to overwrite existing headers here
   // If the core UndiciInstrumentation is registered, it will already have set the headers
   // We do not want to add any then
-  if (Array.isArray(request.headers)) {
-    const requestHeaders = request.headers;
+  const hasExistingSentryTraceHeader = requestHeaders.includes(SENTRY_TRACE_HEADER);
 
-    const hasExistingSentryTraceHeader = requestHeaders.includes(SENTRY_TRACE_HEADER);
-
-    // We do not want to set any headers if we already have an existing sentry-trace header.
-    // This is still the source of truth, otherwise we risk mixing up baggage and sentry-trace values.
-    if (!hasExistingSentryTraceHeader) {
-      if (sentryTrace) {
-        requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
-      }
-
-      if (traceparent && !requestHeaders.includes('traceparent')) {
-        requestHeaders.push('traceparent', traceparent);
-      }
-
-      // For baggage, we make sure to merge this into a possibly existing header
-      const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
-      if (baggage && existingBaggagePos === -1) {
-        requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
-      } else if (baggage) {
-        // headers in format [key_0, value_0, key_1, value_1, ...], hence the +1 here
-        const existingBaggage = requestHeaders[existingBaggagePos + 1];
-        const merged = mergeBaggageHeaders(existingBaggage, baggage);
-        if (merged) {
-          requestHeaders[existingBaggagePos + 1] = merged;
-        }
-      }
+  // We do not want to set any headers if we already have an existing sentry-trace header.
+  // sentry-trace is still the source of truth, otherwise we risk mixing up baggage and sentry-trace values.
+  if (!hasExistingSentryTraceHeader) {
+    if (sentryTrace) {
+      requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
     }
-  } else {
-    // We do not want to overwrite existing header here, if it was already set
-    const hasExistingSentryTraceHeader = request.headers.includes(`${SENTRY_TRACE_HEADER}:`);
 
-    if (!hasExistingSentryTraceHeader) {
-      if (sentryTrace) {
-        request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
-      }
+    if (traceparent && !requestHeaders.includes('traceparent')) {
+      requestHeaders.push('traceparent', traceparent);
+    }
 
-      if (traceparent && !request.headers.includes('traceparent:')) {
-        request.headers += `traceparent: ${traceparent}\r\n`;
-      }
-
-      const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
-      if (baggage && !existingBaggage) {
-        request.headers += `${SENTRY_BAGGAGE_HEADER}: ${baggage}\r\n`;
-      } else if (baggage) {
-        const merged = mergeBaggageHeaders(existingBaggage, baggage);
-        if (merged) {
-          request.headers = request.headers.replace(BAGGAGE_HEADER_REGEX, `baggage: ${merged}\r\n`);
-        }
+    // For baggage, we make sure to merge this into a possibly existing header
+    const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
+    if (baggage && existingBaggagePos === -1) {
+      requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
+    } else if (baggage) {
+      // headers in format [key_0, value_0, key_1, value_1, ...], hence the +1 here
+      const existingBaggage = requestHeaders[existingBaggagePos + 1];
+      const merged = mergeBaggageHeaders(existingBaggage, baggage);
+      if (merged) {
+        requestHeaders[existingBaggagePos + 1] = merged;
       }
     }
   }
+
+  if (!Array.isArray(request.headers)) {
+    // For orginal string request headers, we need to wrote them back to the request
+    request.headers = arrayToStringHeaders(requestHeaders);
+  }
+}
+
+function stringToArrayHeaders(requestHeaders: string): string[] {
+  const headersArray = requestHeaders.split('\r\n');
+  const headers: string[] = [];
+  for (const header of headersArray) {
+    try {
+      const [key, value] = header.split(':').map(part => part.trim());
+      if (key != null && value != null) {
+        headers.push(key, value);
+      }
+    } catch {}
+  }
+  return headers;
+}
+
+function arrayToStringHeaders(headers: string[]): string {
+  const headerPairs: string[] = [];
+  for (let i = 0; i < headers.length; i += 2) {
+    headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
+  }
+  if (!headerPairs.length) {
+    return '';
+  }
+
+  return headerPairs.join('\r\n').concat('\r\n');
 }
 
 /**
@@ -115,37 +121,9 @@ export function addTracePropagationHeadersToFetchRequest(
  * OTel's UndiciInstrumentation unconditionally appends headers via propagation.inject(),
  * which can create duplicates when the user has already set these headers (e.g. via getTraceData()).
  * For sentry-trace, we keep the first occurrence (user-set).
- * For baggage, we merge all occurrences into one to preserve both sentry and non-sentry entries.
+ * For baggage, we merge all occurrences into one header to preserve non-sentry entries. For Sentry
+ * entries, we keep the first occurance.
  */
-function _deduplicateHeaders(request: UndiciRequest): void {
-  if (Array.isArray(request.headers)) {
-    _deduplicateArrayHeaders(request.headers);
-  } else {
-    const headersArray = request.headers.split('\r\n');
-    const headers: string[] = [];
-    for (const header of headersArray) {
-      try {
-        const [key, value] = header.split(':').map(part => part.trim());
-        if (key != null && value != null) {
-          headers.push(key, value);
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    _deduplicateArrayHeaders(headers);
-
-    const headerPairs: string[] = [];
-    for (let i = 0; i < headers.length; i += 2) {
-      headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
-    }
-    const concatenated = headerPairs.join('\r\n');
-    if (concatenated) {
-      request.headers = concatenated.concat('\r\n');
-    }
-  }
-}
 
 function _deduplicateArrayHeaders(headers: string[]): void {
   _deduplicateArrayHeader(headers, SENTRY_TRACE_HEADER);
