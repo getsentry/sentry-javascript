@@ -274,7 +274,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
 
       const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath];
       if (typeof value === 'function' && instrumentedMethod) {
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, instrumentedMethod, obj, options);
+        return instrumentMethod(
+          value as (...args: unknown[]) => Promise<unknown>,
+          methodPath,
+          instrumentedMethod,
+          obj,
+          options,
+        );
       }
 
       if (typeof value === 'function') {

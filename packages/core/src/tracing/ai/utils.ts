@@ -48,7 +48,6 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
   } as T & Required<AIRecordingOptions>;
 }
 
-
 /**
  * Build method path from current traversal
  */

@@ -338,7 +338,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       if (typeof value === 'function' && instrumentedMethod) {
         // Special case: chats.create is synchronous but needs both instrumentation AND result proxying
         if (methodPath === CHATS_CREATE_METHOD) {
-          const wrappedMethod = instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, instrumentedMethod, t, options);
+          const wrappedMethod = instrumentMethod(
+            value as (...args: unknown[]) => unknown,
+            methodPath,
+            instrumentedMethod,
+            t,
+            options,
+          );
           return function instrumentedAndProxiedCreate(...args: unknown[]): unknown {
             const result = wrappedMethod(...args);
             // If the result is an object (like a chat instance), proxy it too
@@ -349,7 +355,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
           };
         }
 
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, instrumentedMethod, t, options);
+        return instrumentMethod(
+          value as (...args: unknown[]) => Promise<unknown>,
+          methodPath,
+          instrumentedMethod,
+          t,
+          options,
+        );
       }
 
       if (typeof value === 'function') {

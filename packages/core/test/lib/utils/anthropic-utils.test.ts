@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { mapAnthropicErrorToStatusMessage, messagesFromParams, setMessagesAttribute } from '../../../src/tracing/anthropic-ai/utils';
+import {
+  mapAnthropicErrorToStatusMessage,
+  messagesFromParams,
+  setMessagesAttribute,
+} from '../../../src/tracing/anthropic-ai/utils';
 import type { Span } from '../../../src/types-hoist/span';
 
 describe('anthropic-ai-utils', () => {
