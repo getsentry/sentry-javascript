@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(bun): Add `bunRuntimeMetricsIntegration` ([#19979](https://github.com/getsentry/sentry-javascript/pull/19979))
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 10.46.0
