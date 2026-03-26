@@ -69,14 +69,14 @@ const _elementTimingIntegration = (() => {
             metricAttributes['ui.element.height'] = elementEntry.naturalHeight;
           }
 
-          if (renderTime) {
+          if (renderTime > 0) {
             metrics.distribution(`ui.element.render_time`, renderTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
             });
           }
 
-          if (loadTime) {
+          if (loadTime > 0) {
             metrics.distribution(`ui.element.load_time`, loadTime, {
               unit: 'millisecond',
               attributes: metricAttributes,
