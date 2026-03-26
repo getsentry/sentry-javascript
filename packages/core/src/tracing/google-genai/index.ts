@@ -346,28 +346,25 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const registryEntry = GOOGLE_GENAI_METHOD_REGISTRY[methodPath];
-      if (typeof value === 'function' && registryEntry) {
-        if (registryEntry.operation) {
-          return instrumentMethod(
-            value as (...args: unknown[]) => Promise<unknown>,
-            methodPath,
-            registryEntry,
-            t,
-            options,
-          );
+      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath];
+      if (typeof value === 'function' && instrumentedMethod) {
+        // If an operation is specified, we need to instrument the method itself
+        const wrappedMethod = instrumentedMethod.operation
+          ? instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, instrumentedMethod, t, options)
+          : value.bind(t);
+
+        if (!instrumentedMethod.proxyResultPath) {
+          return wrappedMethod;
         }
 
-        if (registryEntry.proxyResultPath) {
-          const proxyPath = registryEntry.proxyResultPath;
-          return function proxyFactory(this: unknown, ...args: unknown[]): unknown {
-            const result = (value as (...a: unknown[]) => unknown).apply(t, args);
-            if (result && typeof result === 'object') {
-              return createDeepProxy(result as object, proxyPath, options);
-            }
-            return result;
-          };
-        }
+        // If a proxyResultPath is specified, we need to proxy the result of the method
+        return function (...args: unknown[]): unknown {
+          const result = wrappedMethod(...args);
+          if (result && typeof result === 'object') {
+            return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
+          }
+          return result;
+        };
       }
 
       if (typeof value === 'function') {
