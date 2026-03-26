@@ -97,7 +97,7 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
       }
       const key = header.slice(0, colonIndex).trim();
       const value = header.slice(colonIndex + 1).trim();
-      if (key != null && value != null) {
+      if (key && value) {
         headers.push(key, value);
       }
     } catch {}

@@ -112,7 +112,6 @@ export function addTracePropagationHeadersToOutgoingRequest(
       cleanedExistingBaggage = objectToBaggageHeader(baggageWithoutSentry);
     }
 
-    // If a sentry-trace header was already added, we don't add our baggage at all.
     const newBaggage = mergeBaggageHeaders(cleanedExistingBaggage, baggage);
     if (newBaggage) {
       try {

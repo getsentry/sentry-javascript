@@ -75,6 +75,9 @@ export class SentryPropagator extends W3CBaggagePropagator {
       if (baggageEntries) {
         Object.entries(baggageEntries).forEach(([key, value]) => {
           if (!existingSentryTraceHeader && key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+            // Edge case: A baggage header with sentry- keys was added previously but no
+            // sentry-trace header. In this case we remove the old sentry-keys and add new
+            // ones below.
             return;
           }
           baggage = baggage.setEntry(key, { value });
