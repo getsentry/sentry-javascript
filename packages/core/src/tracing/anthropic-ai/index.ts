@@ -36,10 +36,10 @@ import { handleResponseError, messagesFromParams, setMessagesAttribute } from '.
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string, instrumentedMethod: InstrumentedMethodEntry): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], methodPath: string, operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: instrumentedMethod.operation,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
@@ -265,9 +265,9 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
-      const requestAttributes = extractRequestAttributes(args, methodPath, instrumentedMethod);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
       const operationName = instrumentedMethod.operation;
+      const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
