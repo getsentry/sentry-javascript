@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^15.0.5",
-    "@testing-library/react-hooks": "^7.0.2",
+    "@testing-library/react-hooks": "^8.0.1",
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
     "@types/node-fetch": "^2.6.11",
