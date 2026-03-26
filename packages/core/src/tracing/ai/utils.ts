@@ -22,10 +22,12 @@ export interface AIRecordingOptions {
  * which gen_ai operation it maps to and whether it is intrinsically streaming.
  */
 export interface InstrumentedMethodEntry {
-  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content') */
-  operation: string;
+  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content'). Omit for factory methods that only need result proxying. */
+  operation?: string;
   /** True if the method itself is always streaming (not param-based) */
   streaming?: boolean;
+  /** When set, the method's return value is re-proxied with this as the base path */
+  proxyResultPath?: string;
 }
 
 /**

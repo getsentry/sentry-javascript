@@ -30,7 +30,7 @@ import {
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { buildMethodPath, extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
-import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
+import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
@@ -253,8 +253,8 @@ function addResponseAttributes(span: Span, response: GoogleGenAIResponse, record
 }
 
 /**
- * Instrument any async or synchronous genai method with Sentry spans
- * Handles operations like models.generateContent and chat.sendMessage and chats.create
+ * Instrument any async genai method with Sentry spans
+ * Handles operations like models.generateContent and chat.sendMessage
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
  */
 function instrumentMethod<T extends unknown[], R>(
@@ -264,12 +264,11 @@ function instrumentMethod<T extends unknown[], R>(
   context: unknown,
   options: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
-  const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
   const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
-      const operationName = instrumentedMethod.operation;
+      const operationName = instrumentedMethod.operation as string;
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(operationName, params, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
@@ -305,10 +304,10 @@ function instrumentMethod<T extends unknown[], R>(
           },
         );
       }
-      // Single span for both sync and async operations
+
       return startSpan(
         {
-          name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
+          name: `${operationName} ${model}`,
           op: `gen_ai.${operationName}`,
           attributes: requestAttributes,
         },
@@ -326,8 +325,8 @@ function instrumentMethod<T extends unknown[], R>(
             },
             () => {},
             result => {
-              // Only add response attributes for content-producing methods, not for chats.create or embeddings
-              if (!isSyncCreate && !isEmbeddings) {
+              // Only add response attributes for content-producing methods, not for embeddings
+              if (!isEmbeddings) {
                 addResponseAttributes(span, result, options.recordOutputs);
               }
             },
@@ -340,7 +339,6 @@ function instrumentMethod<T extends unknown[], R>(
 
 /**
  * Create a deep proxy for Google GenAI client instrumentation
- * Recursively instruments methods and handles special cases like chats.create
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
   return new Proxy(target, {
@@ -348,34 +346,28 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath as keyof typeof GOOGLE_GENAI_METHOD_REGISTRY];
-      if (typeof value === 'function' && instrumentedMethod) {
-        // Special case: chats.create is synchronous but needs both instrumentation AND result proxying
-        if (methodPath === CHATS_CREATE_METHOD) {
-          const wrappedMethod = instrumentMethod(
-            value as (...args: unknown[]) => unknown,
+      const registryEntry = GOOGLE_GENAI_METHOD_REGISTRY[methodPath];
+      if (typeof value === 'function' && registryEntry) {
+        if (registryEntry.operation) {
+          return instrumentMethod(
+            value as (...args: unknown[]) => Promise<unknown>,
             methodPath,
-            instrumentedMethod,
+            registryEntry,
             t,
             options,
           );
-          return function instrumentedAndProxiedCreate(...args: unknown[]): unknown {
-            const result = wrappedMethod(...args);
-            // If the result is an object (like a chat instance), proxy it too
+        }
+
+        if (registryEntry.proxyResultPath) {
+          const proxyPath = registryEntry.proxyResultPath;
+          return function proxyFactory(this: unknown, ...args: unknown[]): unknown {
+            const result = (value as (...a: unknown[]) => unknown).apply(t, args);
             if (result && typeof result === 'object') {
-              return createDeepProxy(result, CHAT_PATH, options);
+              return createDeepProxy(result as object, proxyPath, options);
             }
             return result;
           };
         }
-
-        return instrumentMethod(
-          value as (...args: unknown[]) => Promise<unknown>,
-          methodPath,
-          instrumentedMethod,
-          t,
-          options,
-        );
       }
 
       if (typeof value === 'function') {
