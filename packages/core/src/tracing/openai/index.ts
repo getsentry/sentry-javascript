@@ -65,10 +65,10 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], instrumentedMethod: InstrumentedMethodEntry): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: instrumentedMethod.operation,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
@@ -180,9 +180,9 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
-    const requestAttributes = extractRequestAttributes(args, instrumentedMethod);
-    const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = instrumentedMethod.operation;
+    const requestAttributes = extractRequestAttributes(args, operationName);
+    const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;

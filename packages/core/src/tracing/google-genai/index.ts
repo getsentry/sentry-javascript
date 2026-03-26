@@ -94,13 +94,13 @@ function extractConfigAttributes(config: Record<string, unknown>): Record<string
  * Builds the base attributes for span creation including system info, model, and config
  */
 function extractRequestAttributes(
-  instrumentedMethod: InstrumentedMethodEntry,
+  operationName: string,
   params?: Record<string, unknown>,
   context?: unknown,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: GOOGLE_GENAI_SYSTEM_NAME,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: instrumentedMethod.operation,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
@@ -255,10 +255,10 @@ function instrumentMethod<T extends unknown[], R>(
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
-      const params = args[0] as Record<string, unknown> | undefined;
-      const requestAttributes = extractRequestAttributes(instrumentedMethod, params, context);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
       const operationName = instrumentedMethod.operation;
+      const params = args[0] as Record<string, unknown> | undefined;
+      const requestAttributes = extractRequestAttributes(operationName, params, context);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       // Check if this is a streaming method
       if (instrumentedMethod.streaming) {
