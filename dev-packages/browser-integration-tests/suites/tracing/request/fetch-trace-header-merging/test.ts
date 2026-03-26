@@ -42,7 +42,7 @@ async function assertRequests({
     expect(headers['sentry-trace']).toBe('12312012123120121231201212312012-1121201211212012-1');
 
     // No multiple baggage entries
-    expect(headers['baggage'].match(/sentry-release/g) ?? []).toHaveLength(1);
+    expect(headers['baggage']).toBe('sentry-release=4.2.0');
   });
 }
 
