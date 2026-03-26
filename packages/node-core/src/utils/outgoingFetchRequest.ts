@@ -97,7 +97,7 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
       }
       const key = header.slice(0, colonIndex).trim();
       const value = header.slice(colonIndex + 1).trim();
-      if (key && value) {
+      if (key) {
         headers.push(key, value);
       }
     } catch {}
@@ -107,9 +107,13 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
 
 function arrayToStringHeaders(headers: string[]): string {
   const headerPairs: string[] = [];
-  for (let i = 0; i < headers.length; i += 2) {
-    headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
-  }
+
+  try {
+    for (let i = 0; i < headers.length; i += 2) {
+      headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
+    }
+  } catch {}
+
   if (!headerPairs.length) {
     return '';
   }

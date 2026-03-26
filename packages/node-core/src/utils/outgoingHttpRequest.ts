@@ -66,7 +66,7 @@ export function addTracePropagationHeadersToOutgoingRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
 
-  const hasExistingSentryTraceHeader = request.getHeader('sentry-trace');
+  const hasExistingSentryTraceHeader = !!request.getHeader('sentry-trace');
 
   if (sentryTrace && !hasExistingSentryTraceHeader) {
     try {
