@@ -12,3 +12,4 @@ packages/**/yarn.lock
 
 .DS_Store
 packages/bundler-plugin-core/src/version.ts
+packages/integration-tests-next/fixtures/**/pnpm-lock.yaml

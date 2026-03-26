@@ -37,7 +37,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist-artifacts-${{ github.run_id }}
-          path: packages/*/dist
+          path: |
+            packages/*/dist
+            packages/*/*.tgz
           retention-days: 1
 
   type-check:
@@ -169,6 +171,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        with:
+          version: 10
       - name: Use dependency cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: dependency-cache

@@ -64,6 +64,48 @@ function bumpVersions(rootDir, newVersion) {
   return workspacePackages.length;
 }
 
+/**
+ * The test fixtures have their own pnpm installs with overrides that point to the local tarballs.
+ * We need to update those overrides to point to the correct version's tarball.
+ */
+function bumpTestFixtureVersions(rootDir, newVersion) {
+  const fixturesDir = path.join(rootDir, "packages", "integration-tests-next", "fixtures");
+  const entries = fs.readdirSync(fixturesDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const pkgPath = path.join(fixturesDir, entry.name, "package.json");
+    if (!fs.existsSync(pkgPath)) {
+      continue;
+    }
+
+    const pkg = readJson(pkgPath);
+    if (!pkg.dependencies) {
+      continue;
+    }
+
+    for (const dep of Object.keys(pkg.dependencies)) {
+      if (dep.startsWith("@sentry/")) {
+        pkg.dependencies[dep] = newVersion;
+      }
+    }
+
+    if (pkg?.pnpm?.overrides) {
+      for (const dep of Object.keys(pkg.pnpm.overrides)) {
+        if (dep.startsWith("@sentry/")) {
+          const orig = pkg.pnpm.overrides[dep];
+          pkg.pnpm.overrides[dep] = orig.replace(/-\d*\.\d*\..+?\.tgz/, `-${newVersion}.tgz`);
+        }
+      }
+    }
+
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+  }
+}
+
 // CLI entry point
 if (require.main === module) {
   const newVersion = process.argv[2];
@@ -75,6 +117,7 @@ if (require.main === module) {
 
   const rootDir = path.join(__dirname, "..");
   const updatedCount = bumpVersions(rootDir, newVersion);
+  bumpTestFixtureVersions(rootDir, newVersion);
 
   // Write a .version file used by the gitflow sync workflow to detect version bumps
   const versionFile = {

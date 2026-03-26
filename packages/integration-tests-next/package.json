@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "test": "vitest run --pool threads",
+    "test": "node setup.mjs && vitest run --pool threads",
     "lint": "eslint .",
     "check:types": "tsc --project ./tsconfig.json --noEmit",
     "clean": "run-s clean:build",

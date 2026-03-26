@@ -30,7 +30,7 @@
   "module": "dist/esm/index.mjs",
   "types": "dist/types/index.d.ts",
   "scripts": {
-    "build": "premove ./out && run-p build:rollup build:types",
+    "build": "premove ./out && run-p build:rollup build:types && run-s build:npm",
     "build:watch": "run-p build:rollup:watch build:types:watch",
     "build:rollup": "rolldown --config rollup.config.mjs",
     "build:rollup:watch": "rolldown --config rollup.config.mjs --watch --no-watch.clearScreen",

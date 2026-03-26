@@ -1,7 +1,7 @@
-diff --git a/node_modules/@sentry/cli/js/helper.js b/node_modules/@sentry/cli/js/helper.js
-index 56f95c9..b97e41b 100644
---- a/node_modules/@sentry/cli/js/helper.js
-+++ b/node_modules/@sentry/cli/js/helper.js
+diff --git a/js/helper.js b/js/helper.js
+index 56f95c9784d32a48e98b8341bfa336f0ed61a6e7..b97e41b4dcf96b9dcd9e171b91b575898b6cfbc3 100644
+--- a/js/helper.js
++++ b/js/helper.js
 @@ -295,6 +295,13 @@ function execute(args_1, live_1, silent_1, configFile_1) {
          if (config.vcsRemote) {
              env.SENTRY_VCS_REMOTE = config.vcsRemote;

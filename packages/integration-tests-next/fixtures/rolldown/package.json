@@ -4,7 +4,18 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@sentry/rollup-plugin": "5.1.1",
     "react": "^19.2.4",
     "rolldown": "^1.0.0-rc.6"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sentry/bundler-plugin-core": "file:../../../bundler-plugin-core/sentry-bundler-plugin-core-5.1.1.tgz",
+      "@sentry/rollup-plugin": "file:../../../rollup-plugin/sentry-rollup-plugin-5.1.1.tgz",
+      "@sentry/babel-plugin-component-annotate": "file:../../../babel-plugin-component-annotate/sentry-babel-plugin-component-annotate-5.1.1.tgz"
+    },
+    "patchedDependencies": {
+      "@sentry/cli": "../patches/@sentry__cli.patch"
+    }
   }
 }
