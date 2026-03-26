@@ -165,11 +165,7 @@ export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/lang
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions } from './tracing/openai/types';
-export type {
-  AnthropicAiClient,
-  AnthropicAiOptions,
-  AnthropicAiResponse,
-} from './tracing/anthropic-ai/types';
+export type { AnthropicAiClient, AnthropicAiOptions, AnthropicAiResponse } from './tracing/anthropic-ai/types';
 export type { GoogleGenAIClient, GoogleGenAIChat, GoogleGenAIOptions } from './tracing/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
