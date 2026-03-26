@@ -2,9 +2,9 @@
 // by running `wrangler types`
 declare namespace Cloudflare {
   interface GlobalProps {
-    mainModule: typeof import("./src/index");
-	}
-	interface Env {
+    mainModule: typeof import('./src/index');
+  }
+  interface Env {
     E2E_TEST_DSN: '';
     MY_DURABLE_OBJECT: DurableObjectNamespace;
   }
