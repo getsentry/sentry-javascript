@@ -23,8 +23,7 @@ import {
 } from '../ai/gen-ai-attributes';
 import {
   buildMethodPath,
-  getFinalOperationName,
-  getSpanOperation,
+  getOperationName,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
   wrapPromiseWithMethods,
@@ -45,7 +44,7 @@ import { handleResponseError, messagesFromParams, setMessagesAttribute, shouldIn
 function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getFinalOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
@@ -212,7 +211,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model}`,
-    op: getSpanOperation(methodPath),
+    op: `gen_ai.${operationName}`,
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
 
@@ -272,7 +271,7 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, thisArg, args: T): R | Promise<R> {
       const requestAttributes = extractRequestAttributes(args, methodPath);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-      const operationName = getFinalOperationName(methodPath);
+      const operationName = getOperationName(methodPath);
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
@@ -299,7 +298,7 @@ function instrumentMethod<T extends unknown[], R>(
       const instrumentedPromise = startSpan(
         {
           name: `${operationName} ${model}`,
-          op: getSpanOperation(methodPath),
+          op: `gen_ai.${operationName}`,
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {

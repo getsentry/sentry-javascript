@@ -313,19 +313,6 @@ export const OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'openai.usage.completion
 export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens';
 
 // =============================================================================
-// OPENAI OPERATIONS
-// =============================================================================
-
-/**
- * OpenAI API operations following OpenTelemetry semantic conventions
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export const OPENAI_OPERATIONS = {
-  CHAT: 'chat',
-  EMBEDDINGS: 'embeddings',
-} as const;
-
-// =============================================================================
 // ANTHROPIC AI OPERATIONS
 // =============================================================================
 

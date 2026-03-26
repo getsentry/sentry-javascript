@@ -15,10 +15,10 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
 import {
   extractSystemInstructions,
+  getOperationName,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
@@ -39,8 +39,6 @@ import {
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
   extractRequestParameters,
-  getOperationName,
-  getSpanOperation,
   isChatCompletionResponse,
   isConversationResponse,
   isEmbeddingsResponse,
@@ -127,7 +125,7 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
   // Store embeddings input on a separate attribute and do not truncate it
-  if (operationName === OPENAI_OPERATIONS.EMBEDDINGS && 'input' in params) {
+  if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
 
     // No input provided
@@ -197,7 +195,7 @@ function instrumentMethod<T extends unknown[], R>(
 
     const spanConfig = {
       name: `${operationName} ${model}`,
-      op: getSpanOperation(methodPath),
+      op: `gen_ai.${operationName}`,
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
 
