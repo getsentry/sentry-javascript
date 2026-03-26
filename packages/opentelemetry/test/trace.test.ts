@@ -2005,6 +2005,94 @@ describe('suppressTracing', () => {
   });
 });
 
+describe('span.end() timestamp conversion', () => {
+  beforeEach(() => {
+    mockSdkInit({ tracesSampleRate: 1 });
+  });
+
+  afterEach(async () => {
+    await cleanupOtel();
+  });
+
+  it('converts seconds to milliseconds for startInactiveSpan', () => {
+    // Use a timestamp in seconds that is after the span start (i.e. in the future)
+    // OTel resets endTime to startTime if endTime < startTime
+    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    const span = startInactiveSpan({ name: 'test' });
+    span.end(nowSec);
+
+    const endTime = getSpanEndTime(span);
+    // ensureTimestampInMilliseconds converts seconds (< 9999999999) to ms by * 1000
+    // OTel then converts ms to HrTime [seconds, nanoseconds]
+    expect(endTime![0]).toBe(nowSec);
+    expect(endTime![1]).toBe(0);
+  });
+
+  it('keeps milliseconds as-is for startInactiveSpan', () => {
+    // Timestamp already in milliseconds (> 9999999999 threshold)
+    const nowMs = Date.now() + 1000;
+    const nowSec = Math.floor(nowMs / 1000);
+    const span = startInactiveSpan({ name: 'test' });
+    span.end(nowMs);
+
+    const endTime = getSpanEndTime(span);
+    expect(endTime![0]).toBe(nowSec);
+  });
+
+  it('handles Date input for startInactiveSpan', () => {
+    const nowMs = Date.now() + 1000;
+    const nowSec = Math.floor(nowMs / 1000);
+    const span = startInactiveSpan({ name: 'test' });
+    span.end(new Date(nowMs));
+
+    const endTime = getSpanEndTime(span);
+    expect(endTime![0]).toBe(nowSec);
+  });
+
+  it('handles no-arg end for startInactiveSpan', () => {
+    const span = startInactiveSpan({ name: 'test' });
+    span.end();
+
+    const endTime = getSpanEndTime(span);
+    expect(endTime).toBeDefined();
+    expect(endTime![0]).not.toBe(0);
+  });
+
+  it('handles HrTime input for startInactiveSpan', () => {
+    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    const span = startInactiveSpan({ name: 'test' });
+    span.end([nowSec, 500000000] as [number, number]);
+
+    const endTime = getSpanEndTime(span);
+    expect(endTime![0]).toBe(nowSec);
+    expect(endTime![1]).toBe(500000000);
+  });
+
+  it('converts seconds to milliseconds for startSpanManual callback span', () => {
+    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    startSpanManual({ name: 'test' }, span => {
+      span.end(nowSec);
+
+      const endTime = getSpanEndTime(span);
+      expect(endTime![0]).toBe(nowSec);
+      expect(endTime![1]).toBe(0);
+    });
+  });
+
+  it('converts seconds to milliseconds for startSpan child span', () => {
+    const nowSec = Math.floor(Date.now() / 1000) + 1;
+    let capturedEndTime: [number, number] | undefined;
+    startSpan({ name: 'outer' }, () => {
+      const innerSpan = startInactiveSpan({ name: 'inner' });
+      innerSpan.end(nowSec);
+      capturedEndTime = getSpanEndTime(innerSpan);
+    });
+
+    expect(capturedEndTime![0]).toBe(nowSec);
+    expect(capturedEndTime![1]).toBe(0);
+  });
+});
+
 function getSpanName(span: AbstractSpan): string | undefined {
   return spanHasName(span) ? span.name : undefined;
 }
