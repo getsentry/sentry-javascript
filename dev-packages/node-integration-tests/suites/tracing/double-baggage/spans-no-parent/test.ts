@@ -1,41 +1,7 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
-import { createEsmAndCjsTests } from '../../../utils/runner';
-import { extractTraceparentData, parseBaggageHeader, TRACEPARENT_REGEXP } from '@sentry/core';
-
-function expectNoDuplicateSentryBaggageKeys(baggage: string | string[] | undefined): void {
-  expect(baggage).toBeDefined();
-  const baggageStr = Array.isArray(baggage) ? baggage.join(',') : (baggage as string);
-  const sentryKeyNames = Object.keys(parseBaggageHeader(baggageStr) || {});
-  const uniqueKeyNames = [...new Set(sentryKeyNames)];
-  expect(sentryKeyNames).toEqual(uniqueKeyNames);
-}
-
-function expectConsistentTraceId(headers: Record<string, string | string[] | undefined>): void {
-  const sentryTrace = headers['sentry-trace'];
-  expect(sentryTrace).toMatch(TRACEPARENT_REGEXP);
-
-  const sentryTraceData = extractTraceparentData(sentryTrace as string)!;
-  expect(sentryTraceData.traceId).toMatch(/^[a-f\d]{32}$/);
-
-  const baggage = parseBaggageHeader(headers['baggage']);
-
-  const baggageTraceId = baggage!['sentry-trace_id'];
-  expect(baggageTraceId).toBeDefined();
-  expect(baggageTraceId).toMatch(/^[a-f\d]{32}$/);
-
-  expect(sentryTraceData.traceId).toEqual(baggageTraceId);
-}
-
-function expectUserSetTraceId(headers: Record<string, string | string[] | undefined>): void {
-  const xSentryTrace = extractTraceparentData(headers['x-tracedata-sentry-trace'] as string);
-  const sentryTrace = extractTraceparentData(headers['sentry-trace'] as string);
-  expect(xSentryTrace?.traceId).toBe(sentryTrace?.traceId);
-
-  const xBaggage = parseBaggageHeader(headers['x-tracedata-baggage']);
-  const baggage = parseBaggageHeader(headers['baggage']);
-  expect(xBaggage).toEqual(baggage);
-}
+import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { expectConsistentTraceId, expectNoDuplicateSentryBaggageKeys, expectUserSetTraceId } from '../expects';
 
 describe('double baggage prevention', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {

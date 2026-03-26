@@ -28,7 +28,7 @@ export function mergeBaggageHeaders<Existing extends string | string[] | number 
     key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX),
   );
 
-  const oldBaggageEntriesWithoutSentry = existingBaggageEntries
+  const existingBaggageEntriesWithoutSentry = existingBaggageEntries
     ? Object.entries(existingBaggageEntries).filter(([key]) => !key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
     : [];
 
@@ -36,10 +36,8 @@ export function mergeBaggageHeaders<Existing extends string | string[] | number 
   // otherwise, we keep old sentry- values. If we don't remove old sentry- values, we end
   // up with an inconsistent dynamic sampling context propagation.
   const mergedBaggageEntries = newSentryBaggageEntries.length
-    ? Object.fromEntries(oldBaggageEntriesWithoutSentry)
-    : existingBaggageEntries
-      ? Object.fromEntries(Object.entries(existingBaggageEntries))
-      : {};
+    ? Object.fromEntries(existingBaggageEntriesWithoutSentry)
+    : (existingBaggageEntries ?? {});
 
   Object.entries(newBaggageEntries).forEach(([key, value]) => {
     // Sentry-specific keys always take precedence from new baggage

@@ -14,9 +14,6 @@ import { mergeBaggageHeaders } from './baggage';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
 
-// For baggage, we make sure to merge this into a possibly existing header
-const BAGGAGE_HEADER_REGEX = /baggage: (.*)\r\n/;
-
 /**
  * Add trace propagation headers to an outgoing fetch/undici request.
  *
@@ -84,7 +81,7 @@ export function addTracePropagationHeadersToFetchRequest(
   }
 
   if (!Array.isArray(request.headers)) {
-    // For orginal string request headers, we need to wrote them back to the request
+    // For original string request headers, we need to write them back to the request
     request.headers = arrayToStringHeaders(requestHeaders);
   }
 }
@@ -94,7 +91,12 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
   const headers: string[] = [];
   for (const header of headersArray) {
     try {
-      const [key, value] = header.split(':').map(part => part.trim());
+      const colonIndex = header.indexOf(':');
+      if (colonIndex === -1) {
+        continue;
+      }
+      const key = header.slice(0, colonIndex).trim();
+      const value = header.slice(colonIndex + 1).trim();
       if (key != null && value != null) {
         headers.push(key, value);
       }
@@ -122,7 +124,7 @@ function arrayToStringHeaders(headers: string[]): string {
  * which can create duplicates when the user has already set these headers (e.g. via getTraceData()).
  * For sentry-trace, we keep the first occurrence (user-set).
  * For baggage, we merge all occurrences into one header to preserve non-sentry entries. For Sentry
- * entries, we keep the first occurance.
+ * entries, we keep the first occurrence.
  */
 
 function _deduplicateArrayHeaders(headers: string[]): void {
@@ -134,7 +136,7 @@ function _deduplicateArrayHeaders(headers: string[]): void {
  * For a given header name, if there are multiple entries in the [key, value, key, value, ...] array,
  * keep the first entry and remove the rest.
  * For baggage, values are merged to preserve all entries but to dedupe sentry- values, and always
- * keept the first occurance of them
+ * keep the first occurrence of them
  */
 function _deduplicateArrayHeader(headers: string[], headerName: string): void {
   let firstIndex = -1;
@@ -149,7 +151,7 @@ function _deduplicateArrayHeader(headers: string[], headerName: string): void {
     }
 
     if (headerName === SENTRY_BAGGAGE_HEADER) {
-      // merge the initial entry into the later occurance so that we keep the initial sentry- values around.
+      // merge the initial entry into the later occurrence so that we keep the initial sentry- values around.
       // all other non-sentry values are merged
       const merged = mergeBaggageHeaders(headers[i + 1] as string, headers[firstIndex + 1] as string);
       if (merged) {

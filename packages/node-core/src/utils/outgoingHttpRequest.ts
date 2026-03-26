@@ -2,7 +2,6 @@ import type { LRUMap, SanitizedRequestData } from '@sentry/core';
 import {
   addBreadcrumb,
   debug,
-  dynamicSamplingContextToSentryBaggageHeader,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getSanitizedUrlString,

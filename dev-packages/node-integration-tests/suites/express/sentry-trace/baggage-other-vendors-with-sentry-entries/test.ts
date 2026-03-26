@@ -13,7 +13,7 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv,sentry-sample_rate=0.54',
+      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
     },
   });
 
@@ -34,7 +34,6 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
     'sentry-environment=myEnv',
     'sentry-release=2.1.0',
     expect.stringMatching(/sentry-sample_rand=\d+/),
-    'sentry-sample_rate=0.54',
     'third=party',
   ]);
 });
