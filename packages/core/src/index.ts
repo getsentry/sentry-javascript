@@ -164,11 +164,10 @@ export type { LangChainOptions, LangChainIntegration } from './tracing/langchain
 export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
+export type { OpenAiClient, OpenAiOptions } from './tracing/openai/types';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
-  AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
 } from './tracing/anthropic-ai/types';
 export type {
