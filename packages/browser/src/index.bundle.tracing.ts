@@ -1,6 +1,7 @@
 import { registerSpanErrorInstrumentation } from '@sentry/core';
 import {
   consoleLoggingIntegrationShim,
+  elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
   replayIntegrationShim,
@@ -30,6 +31,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { elementTimingIntegrationShim as elementTimingIntegration };
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { reportPageLoaded } from './tracing/reportPageLoaded';
