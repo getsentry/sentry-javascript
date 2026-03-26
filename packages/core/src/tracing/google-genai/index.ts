@@ -357,7 +357,10 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
           return wrappedMethod;
         }
 
-        // If a proxyResultPath is specified, we need to proxy the result of the method
+        // If a proxyResultPath is specified, we need to proxy the result of the method.
+        // Note: This currently only properly handles synchronous methods. For async methods,
+        // the Promise itself would be proxied instead of the resolved value. Currently we
+        // don't have a case where this is needed, so I'll keep it simple for now.
         return function (...args: unknown[]): unknown {
           const result = wrappedMethod(...args);
           if (result && typeof result === 'object') {
