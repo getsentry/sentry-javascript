@@ -334,7 +334,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath];
+      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath as keyof typeof GOOGLE_GENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
         // Special case: chats.create is synchronous but needs both instrumentation AND result proxying
         if (methodPath === CHATS_CREATE_METHOD) {

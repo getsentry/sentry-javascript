@@ -339,7 +339,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = ANTHROPIC_METHOD_REGISTRY[methodPath];
+      const instrumentedMethod = ANTHROPIC_METHOD_REGISTRY[methodPath as keyof typeof ANTHROPIC_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
         return instrumentMethod(
           value as (...args: unknown[]) => unknown | Promise<unknown>,
