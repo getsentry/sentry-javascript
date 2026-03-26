@@ -34,7 +34,7 @@
     "@angular/core": "^14.3.0",
     "@angular/platform-browser": "^14.3.0",
     "@angular/platform-browser-dynamic": "^14.3.0",
-    "@angular/router": "^14.3.0",
+    "@angular/router": "^21.2.6",
     "@types/node": "^14.8.0",
     "ng-packagr": "^14.2.2",
     "rxjs": "7.8.2",
