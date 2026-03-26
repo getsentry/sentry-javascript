@@ -1,19 +1,29 @@
 import { debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { H3Event } from 'h3';
 
+type MatchedRoute = { path?: string; route?: string };
+type EventWithMatchedRoute = Pick<H3Event, 'context'> & Partial<Pick<H3Event, 'path' | '_path'>>;
+
+function getMatchedRoutePath(event: EventWithMatchedRoute): string | undefined {
+  const matchedRoute = (event.context as { matchedRoute?: MatchedRoute }).matchedRoute;
+  // Nuxt 4 with h3 v1 uses `path`, Nuxt 5 with h3 v2 uses `route`
+  return matchedRoute?.path ?? matchedRoute?.route;
+}
+
 /**
  * Update the root span (transaction) name for routes with parameters based on the matched route.
  */
-export function updateRouteBeforeResponse(event: H3Event): void {
+export function updateRouteBeforeResponse(event: EventWithMatchedRoute): void {
   if (!event.context.matchedRoute) {
     return;
   }
 
-  const matchedRoutePath = event.context.matchedRoute.path;
+  const matchedRoutePath = getMatchedRoutePath(event);
+  const requestPath = event.path ?? event._path;
 
   // If the matched route path is defined and differs from the event's path, it indicates a parametrized route
   // Example: Matched route is "/users/:id" and the event's path is "/users/123",
-  if (matchedRoutePath && matchedRoutePath !== event._path) {
+  if (matchedRoutePath && matchedRoutePath !== requestPath) {
     if (matchedRoutePath === '/**') {
       // If page is server-side rendered, the whole path gets transformed to `/**` (Example : `/users/123` becomes `/**` instead of `/users/:id`).
       return; // Skip if the matched route is a catch-all route (handled in `route-detector.server.ts`)

@@ -20,6 +20,7 @@ import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getOperationName,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,

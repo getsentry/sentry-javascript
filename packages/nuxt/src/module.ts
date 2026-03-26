@@ -83,8 +83,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (serverConfigFile) {
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
       } else {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
       }
 
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
