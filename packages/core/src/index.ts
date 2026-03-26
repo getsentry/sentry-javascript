@@ -170,12 +170,7 @@ export type {
   AnthropicAiOptions,
   AnthropicAiResponse,
 } from './tracing/anthropic-ai/types';
-export type {
-  GoogleGenAIClient,
-  GoogleGenAIChat,
-  GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
-} from './tracing/google-genai/types';
+export type { GoogleGenAIClient, GoogleGenAIChat, GoogleGenAIOptions } from './tracing/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
