@@ -3,9 +3,14 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
@@ -15,12 +20,7 @@ import type {
   ResponseFunctionCall,
   ResponseStreamingEvent,
 } from './types';
-import {
-  isChatCompletionChunk,
-  isResponsesApiStreamEvent,
-  setCommonResponseAttributes,
-  setTokenUsageAttributes,
-} from './utils';
+import { isChatCompletionChunk, isResponsesApiStreamEvent } from './utils';
 
 /**
  * State object used to accumulate information from a stream of OpenAI events/chunks.
@@ -240,35 +240,31 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    setCommonResponseAttributes(span, state.responseId, state.responseModel);
-    setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
-
-    span.setAttributes({
+    const attrs: Record<string, string | number | boolean> = {
+      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
+      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
       [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    });
+    };
+
+    if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
+    if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
+    if (state.totalTokens !== undefined) attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
 
     if (state.finishReasons.length) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
-      });
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
     }
 
     if (recordOutputs && state.responseTexts.length) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
-      });
+      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
     }
 
-    // Set tool calls attribute if any were accumulated
     const chatCompletionToolCallsArray = Object.values(state.chatCompletionToolCalls);
     const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiToolCalls];
-
     if (allToolCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(allToolCalls),
-      });
+      attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(allToolCalls);
     }
 
+    span.setAttributes(attrs);
     span.end();
   }
 }
