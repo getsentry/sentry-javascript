@@ -3,6 +3,9 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- feat(core): Support embedding APIs in google-genai ([#19797](https://github.com/getsentry/sentry-javascript/pull/19797))
+
+  Adds instrumentation for the Google GenAI [`embedContent`](https://ai.google.dev/gemini-api/docs/embeddings) API, creating `gen_ai.embeddings` spans.
 
 ## 10.46.0
 

@@ -78,6 +78,19 @@ it('traces Google GenAI chat creation and message sending', async () => {
             op: 'gen_ai.generate_content',
             origin: 'auto.ai.google_genai',
           }),
+          // Fourth span - models.embedContent
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+            }),
+            description: 'embeddings text-embedding-004',
+            op: 'gen_ai.embeddings',
+            origin: 'auto.ai.google_genai',
+          }),
         ]),
       );
     })
