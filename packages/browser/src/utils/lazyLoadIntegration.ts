@@ -30,7 +30,8 @@ const LAZY_LOADABLE_NAMES = [
   'createLangChainCallbackHandler',
 ] as const;
 
-type LazyLoadableIntegrationName = (typeof LAZY_LOADABLE_NAMES)[number];
+type ElementOf<T extends readonly unknown[]> = T[number];
+type LazyLoadableIntegrationName = ElementOf<typeof LAZY_LOADABLE_NAMES>;
 
 const HYPHENATED_BUNDLES: Partial<Record<LazyLoadableIntegrationName, string>> = {
   replayCanvasIntegration: 'replay-canvas',
