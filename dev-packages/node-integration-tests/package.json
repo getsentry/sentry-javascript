@@ -46,7 +46,7 @@
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "ai": "^4.3.16",
-    "amqplib": "^0.10.7",
+    "amqplib": "^0.10.9",
     "body-parser": "^2.2.2",
     "connect": "^3.7.0",
     "consola": "^3.2.3",
