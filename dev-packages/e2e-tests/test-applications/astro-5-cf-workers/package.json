@@ -20,11 +20,6 @@
   "devDependencies": {
     "wrangler": "^4.63.0"
   },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.24.0"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }
