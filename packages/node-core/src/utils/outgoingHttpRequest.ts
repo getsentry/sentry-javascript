@@ -7,10 +7,7 @@ import {
   getSanitizedUrlString,
   getTraceData,
   isError,
-  objectToBaggageHeader,
-  parseBaggageHeader,
   parseUrl,
-  SENTRY_BAGGAGE_KEY_PREFIX,
   shouldPropagateTraceForUrl,
 } from '@sentry/core';
 import type { ClientRequest, IncomingMessage, RequestOptions } from 'http';
