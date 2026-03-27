@@ -253,8 +253,8 @@ function addResponseAttributes(span: Span, response: GoogleGenAIResponse, record
 }
 
 /**
- * Instrument any async genai method with Sentry spans
- * Handles operations like models.generateContent and chat.sendMessage
+ * Instrument any async or synchronous genai method with Sentry spans
+ * Handles operations like models.generateContent and chat.sendMessage and chats.create
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
  */
 function instrumentMethod<T extends unknown[], R>(
@@ -304,7 +304,7 @@ function instrumentMethod<T extends unknown[], R>(
           },
         );
       }
-
+      // Single span for both sync and async operations
       return startSpan(
         {
           name: `${operationName} ${model}`,
@@ -339,6 +339,7 @@ function instrumentMethod<T extends unknown[], R>(
 
 /**
  * Create a deep proxy for Google GenAI client instrumentation
+ * Recursively instruments methods and handles special cases like chats.create
  */
 function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
   return new Proxy(target, {
