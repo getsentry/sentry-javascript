@@ -147,10 +147,12 @@ function _deduplicateArrayHeader(headers: string[], headerName: string): void {
       continue;
     }
 
-    if (headerName === SENTRY_BAGGAGE_HEADER) {
-      // merge the initial entry into the later occurrence so that we keep the initial sentry- values around.
-      // all other non-sentry values are merged
-      const merged = mergeBaggageHeaders(headers[i + 1] as string, headers[firstIndex + 1] as string);
+    const firstHeaderValue = headers[firstIndex + 1];
+    if (headerName === SENTRY_BAGGAGE_HEADER && firstHeaderValue) {
+      // mergeBaggageHeaders always takes sentry- values from the new baggage (2nd param) and merges
+      // it with the existing one (1st param). Here, we want to keep the first header's existing
+      // sentry- values in favor of the new ones. Hence we swap the parameters.
+      const merged = mergeBaggageHeaders(headers[i + 1], firstHeaderValue);
       if (merged) {
         headers[firstIndex + 1] = merged;
       }

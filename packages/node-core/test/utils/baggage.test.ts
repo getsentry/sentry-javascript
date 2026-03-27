@@ -158,4 +158,10 @@ describe('mergeBaggageHeaders', () => {
     const result = mergeBaggageHeaders(existing, newBaggage);
     expect(result).toBe('non-sentry=keep,sentry-trace_id=new,sentry-environment=new');
   });
+
+  it('preserves existing sentry entries when new baggage has no sentry entries', () => {
+    const result = mergeBaggageHeaders('sentry-release=1.0.0,foo=bar', 'baz=qux');
+
+    expect(result).toBe('sentry-release=1.0.0,foo=bar,baz=qux');
+  });
 });
