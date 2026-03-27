@@ -10,7 +10,7 @@ import {
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
 import { mergeBaggageHeaders } from './baggage';
-
+import { debug } from '@sentry/core';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
 const W3C_TRACEPARENT_HEADER = 'traceparent';
@@ -104,7 +104,9 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
       if (key) {
         headers.push(key, value);
       }
-    } catch {}
+    } catch {
+      debug.warn(`Failed to convert string request header to array header: ${header}`);
+    }
   }
   return headers;
 }
