@@ -2,7 +2,7 @@ import type { Page, Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { SerializedMetric } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipMetricsTest, shouldSkipTracingTest, waitForMetricRequest } from '../../../../utils/helpers';
+import { shouldSkipMetricsTest, shouldSkipTracingTest, waitForMetrics } from '../../../../utils/helpers';
 
 function getIdentifier(m: SerializedMetric): unknown {
   return m.attributes?.['ui.element.identifier']?.value;
@@ -27,7 +27,7 @@ sentryTest(
 
     // Wait for all expected element identifiers to arrive as metrics
     const [allMetrics] = await Promise.all([
-      waitForMetricRequest(page, metrics => {
+      waitForMetrics(page, metrics => {
         const seen = new Set(metrics.filter(m => m.name === 'ui.element.render_time').map(getIdentifier));
         return expectedIdentifiers.every(id => seen.has(id));
       }),
@@ -83,21 +83,27 @@ sentryTest('emits element timing metrics after navigation', async ({ getLocalTes
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
+  // Start listening before navigation to avoid missing metrics
+  const pageloadMetricsPromise = waitForMetrics(page, metrics =>
+    metrics.some(m => m.name === 'ui.element.render_time' && getIdentifier(m) === 'image-fast'),
+  );
+
   await page.goto(url);
 
   // Wait for pageload element timing metrics to arrive before navigating
-  await waitForMetricRequest(page, metrics =>
-    metrics.some(m => m.name === 'ui.element.render_time' && getIdentifier(m) === 'image-fast'),
-  );
+  await pageloadMetricsPromise;
+
+  // Start listening before click to avoid missing metrics
+  const navigationMetricsPromise = waitForMetrics(page, metrics => {
+    const seen = new Set(metrics.filter(m => m.name === 'ui.element.render_time').map(getIdentifier));
+    return seen.has('navigation-image') && seen.has('navigation-text');
+  });
 
   // Trigger navigation
   await page.locator('#button1').click();
 
   // Wait for navigation element timing metrics
-  const navigationMetrics = await waitForMetricRequest(page, metrics => {
-    const seen = new Set(metrics.filter(m => m.name === 'ui.element.render_time').map(getIdentifier));
-    return seen.has('navigation-image') && seen.has('navigation-text');
-  });
+  const navigationMetrics = await navigationMetricsPromise;
 
   const renderTimeMetrics = navigationMetrics.filter(m => m.name === 'ui.element.render_time');
   const renderIdentifiers = renderTimeMetrics.map(getIdentifier);

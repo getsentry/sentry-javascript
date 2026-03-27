@@ -290,7 +290,7 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
  * and resolves when the callback returns true for the full set of collected metrics.
  * If no callback is provided, resolves on the first request containing metrics.
  */
-export function waitForMetricRequest(
+export function waitForMetrics(
   page: Page,
   callback?: (metrics: SerializedMetric[]) => boolean,
 ): Promise<SerializedMetric[]> {
