@@ -8,8 +8,10 @@ updates:
       prefix: ci
       prefix-development: ci
       include: scope
+
   - package-ecosystem: 'npm'
-    directory: '/'
+    directories:
+      - '/packages/*'
     schedule:
       interval: 'weekly'
     ignore:
@@ -27,6 +29,21 @@ updates:
     commit-message:
       prefix: feat
       prefix-development: chore
+      include: scope
+
+  - package-ecosystem: 'npm'
+    directories:
+      - '/'
+      - '/dev-packages/*'
+    schedule:
+      interval: 'weekly'
+    ignore:
+      - dependency-name: '@opentelemetry/instrumentation'
+      - dependency-name: '@opentelemetry/instrumentation-*'
+      - dependency-name: 'typescript'
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
       include: scope
     exclude-paths:
       - 'dev-packages/e2e-tests/test-applications/**'
