@@ -7,9 +7,9 @@ export default defineNuxtPlugin(nuxtApp => {
   nuxtApp.hooks.hook('app:rendered', async renderContext => {
     let buildTimePagesData: NuxtPageSubset[];
     try {
-      // Virtual module registered via addServerTemplate in module.ts (Nuxt v4+)
-      // @ts-expect-error - This is a virtual module
-      const { default: importedPagesData } = await import('#sentry/nuxt-pages-data.mjs');
+      // This is a common Nuxt pattern to import build-time generated data (until Nuxt v3): https://nuxt.com/docs/4.x/api/kit/templates#creating-a-virtual-file-for-runtime-plugin
+      // @ts-expect-error This import is dynamically resolved at build time (`addTemplate` in module.ts)
+      const { default: importedPagesData } = await import('#build/sentry--nuxt-pages-data.mjs');
       buildTimePagesData = importedPagesData || [];
       debug.log('Imported build-time pages data:', buildTimePagesData);
     } catch (error) {
