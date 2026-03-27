@@ -9,7 +9,7 @@ Sentry.init({
   transport: loggingTransport,
   beforeSendTransaction: event => {
     // Filter out mock express server transactions
-    if (event.transaction.includes('/v1/messages')) {
+    if (event.transaction.includes('/v1/messages') || event.transaction.includes('/v1/embeddings')) {
       return null;
     }
     return event;

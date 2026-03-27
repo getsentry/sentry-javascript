@@ -13,6 +13,7 @@ import {
   GOOGLE_GENAI_INTEGRATION_NAME,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
+  wrapEmbeddingMethod,
 } from '@sentry/core';
 
 const supportedVersions = ['>=0.1.0 <2.0.0'];
@@ -165,7 +166,7 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
   }
 
   /**
-   * Core patch logic - patches chat model methods to inject Sentry callbacks
+   * Core patch logic - patches chat model and embedding methods
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
@@ -177,12 +178,18 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       GOOGLE_GENAI_INTEGRATION_NAME,
     ]);
 
-    // Create a shared handler instance
-    const sentryHandler = createLangChainCallbackHandler(this.getConfig());
+    const config = this.getConfig();
+
+    // Create a shared handler instance for chat model callbacks
+    const sentryHandler = createLangChainCallbackHandler(config);
 
     // Patch Runnable methods to inject callbacks at request time
     // This directly manipulates options.callbacks that LangChain uses
     this._patchRunnableMethods(exports, sentryHandler);
+
+    // Patch embedding methods to create spans directly
+    // Embeddings don't use the callback system, so we wrap the methods themselves
+    this._patchEmbeddingsMethods(exports, config);
 
     return exports;
   }
@@ -235,6 +242,57 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
           methodName,
         );
       }
+    }
+  }
+
+  /**
+   * Patches embedding class methods (embedQuery, embedDocuments) to create Sentry spans.
+   *
+   * Unlike chat models which use LangChain's callback system, the Embeddings base class
+   * has no callback support. We wrap the methods directly on the prototype.
+   *
+   * Uses duck-type detection: finds any exported class whose prototype has both
+   * embedQuery and embedDocuments as functions.
+   */
+  private _patchEmbeddingsMethods(exports: PatchedLangChainExports, options: LangChainOptions): void {
+    const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
+
+    const embeddingClass = Object.values(exportsToPatch).find(exp => {
+      if (typeof exp !== 'function' || !exp.prototype) {
+        return false;
+      }
+      const proto = exp.prototype as Record<string, unknown>;
+      return typeof proto.embedQuery === 'function' && typeof proto.embedDocuments === 'function';
+    }) as { prototype: Record<string, unknown> } | undefined;
+
+    if (!embeddingClass) {
+      return;
+    }
+
+    const targetProto = embeddingClass.prototype;
+
+    // Separate dedup guard from chat model patching
+    if (targetProto.__sentry_patched_embeddings__) {
+      return;
+    }
+    targetProto.__sentry_patched_embeddings__ = true;
+
+    const embedQuery = targetProto.embedQuery;
+    if (typeof embedQuery === 'function') {
+      targetProto.embedQuery = wrapEmbeddingMethod(
+        embedQuery as (...args: unknown[]) => Promise<unknown>,
+        'embed',
+        options,
+      );
+    }
+
+    const embedDocuments = targetProto.embedDocuments;
+    if (typeof embedDocuments === 'function') {
+      targetProto.embedDocuments = wrapEmbeddingMethod(
+        embedDocuments as (...args: unknown[]) => Promise<unknown>,
+        'embed_many',
+        options,
+      );
     }
   }
 }

@@ -70,6 +70,7 @@ export {
   instrumentGoogleGenAIClient,
   instrumentLangGraph,
   createLangChainCallbackHandler,
+  wrapLangChainEmbeddings,
   logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';

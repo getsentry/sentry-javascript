@@ -102,6 +102,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
+  wrapLangChainEmbeddings,
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
