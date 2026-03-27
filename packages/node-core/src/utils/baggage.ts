@@ -24,28 +24,39 @@ export function mergeBaggageHeaders<Existing extends string | string[] | number 
     return existing;
   }
 
-  const newSentryBaggageEntries = Object.entries(newBaggageEntries).filter(([key]) =>
-    key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX),
-  );
+  // Single pass over new entries to partition sentry vs non-sentry
+  const newSentryEntries: Record<string, string> = {};
+  const newNonSentryEntries: Record<string, string> = {};
+  for (const [key, value] of Object.entries(newBaggageEntries)) {
+    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+      newSentryEntries[key] = value;
+    } else {
+      newNonSentryEntries[key] = value;
+    }
+  }
 
-  const existingBaggageEntriesWithoutSentry = existingBaggageEntries
-    ? Object.entries(existingBaggageEntries).filter(([key]) => !key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
-    : [];
+  const hasNewSentryEntries = Object.keys(newSentryEntries).length > 0;
 
   // If new baggage contains at least one sentry- value, we remove all old sentry- values
   // otherwise, we keep old sentry- values. If we don't remove old sentry- values, we end
   // up with an inconsistent dynamic sampling context propagation.
-  const mergedBaggageEntries = newSentryBaggageEntries.length
-    ? Object.fromEntries(existingBaggageEntriesWithoutSentry)
-    : (existingBaggageEntries ?? {});
-
-  Object.entries(newBaggageEntries).forEach(([key, value]) => {
-    // Sentry-specific keys always take precedence from new baggage
-    // Non-Sentry keys only added if not already present
-    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX) || !mergedBaggageEntries[key]) {
+  const mergedBaggageEntries: Record<string, string> = {};
+  if (existingBaggageEntries) {
+    for (const [key, value] of Object.entries(existingBaggageEntries)) {
+      if (hasNewSentryEntries && key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+        continue;
+      }
       mergedBaggageEntries[key] = value;
     }
-  });
+  }
+
+  // Sentry entries from new baggage always overwrite; non-sentry only if not already present
+  Object.assign(mergedBaggageEntries, newSentryEntries);
+  for (const [key, value] of Object.entries(newNonSentryEntries)) {
+    if (!mergedBaggageEntries[key]) {
+      mergedBaggageEntries[key] = value;
+    }
+  }
 
   return objectToBaggageHeader(mergedBaggageEntries);
 }
