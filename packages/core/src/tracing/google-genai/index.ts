@@ -268,7 +268,7 @@ function instrumentMethod<T extends unknown[], R>(
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
-      const operationName = instrumentedMethod.operation as string;
+      const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const requestAttributes = extractRequestAttributes(operationName, params, context);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
