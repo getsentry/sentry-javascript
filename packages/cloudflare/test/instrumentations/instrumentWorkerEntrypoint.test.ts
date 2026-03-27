@@ -195,18 +195,25 @@ describe('instrumentWorkerEntrypoint', () => {
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
-    vi.useFakeTimers();
-    onTestFinished(() => {
-      vi.useRealTimers();
+    let testClientFlushCount = 0;
+    let testClient: SentryCore.Client | undefined;
+
+    vi.spyOn(SentryCore.Client.prototype, 'flush').mockImplementation(function (this: SentryCore.Client) {
+      if (this === testClient) {
+        testClientFlushCount++;
+      }
+      return Promise.resolve(true);
     });
 
-    const before = flush.mock.calls.length;
+    let resolveWaitUntil!: () => void;
+    const deferred = new Promise<void>(res => {
+      resolveWaitUntil = res;
+    });
 
     const waitUntil = vi.fn();
     const TestClass = vi.fn((context: ExecutionContext) => ({
       fetch: () => {
-        context.waitUntil(new Promise(res => setTimeout(res)));
+        context.waitUntil(deferred);
         return new Response('test');
       },
     }));
@@ -215,21 +222,17 @@ describe('instrumentWorkerEntrypoint', () => {
     const worker = Reflect.construct(instrumented, [context, {}]);
 
     const responsePromise = worker.fetch(new Request('https://example.com'));
+    testClient = SentryCore.getClient();
 
-    vi.advanceTimersByTime(30);
     const response = await responsePromise;
-
     await response.text();
 
     expect(waitUntil).toHaveBeenCalled();
 
-    vi.advanceTimersToNextTimer();
+    resolveWaitUntil();
     await Promise.all(waitUntil.mock.calls.map(([p]) => p));
 
-    const after = flush.mock.calls.length;
-    const delta = after - before;
-
-    expect(delta).toBe(1);
+    expect(testClientFlushCount).toBe(1);
   });
 
   describe('instrumentPrototypeMethods option', () => {
