@@ -29,3 +29,26 @@ sentryTest('manual Google GenAI instrumentation sends gen_ai transactions', asyn
     'gen_ai.request.model': 'gemini-1.5-pro',
   });
 });
+
+sentryTest('manual Google GenAI instrumentation sends embeddings transactions', async ({ getLocalTestUrl, page }) => {
+  const transactionPromise = waitForTransactionRequest(page, event => {
+    return !!event.transaction?.includes('text-embedding-004');
+  });
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+
+  const req = await transactionPromise;
+
+  const eventData = envelopeRequestParser(req);
+
+  // Verify it's a gen_ai embeddings transaction
+  expect(eventData.transaction).toBe('embeddings text-embedding-004');
+  expect(eventData.contexts?.trace?.op).toBe('gen_ai.embeddings');
+  expect(eventData.contexts?.trace?.origin).toBe('auto.ai.google_genai');
+  expect(eventData.contexts?.trace?.data).toMatchObject({
+    'gen_ai.operation.name': 'embeddings',
+    'gen_ai.system': 'google_genai',
+    'gen_ai.request.model': 'text-embedding-004',
+  });
+});

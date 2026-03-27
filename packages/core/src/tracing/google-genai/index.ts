@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
