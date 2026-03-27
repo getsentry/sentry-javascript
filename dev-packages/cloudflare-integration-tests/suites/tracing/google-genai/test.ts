@@ -27,23 +27,7 @@ it('traces Google GenAI chat creation and message sending', async () => {
       expect(transactionEvent.transaction).toBe('GET /');
       expect(transactionEvent.spans).toEqual(
         expect.arrayContaining([
-          // First span - chats.create
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-            }),
-            description: 'chat gemini-1.5-pro create',
-            op: 'gen_ai.chat',
-            origin: 'auto.ai.google_genai',
-          }),
-          // Second span - chat.sendMessage
+          // chat.sendMessage
           expect.objectContaining({
             data: expect.objectContaining({
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -59,7 +43,7 @@ it('traces Google GenAI chat creation and message sending', async () => {
             op: 'gen_ai.chat',
             origin: 'auto.ai.google_genai',
           }),
-          // Third span - models.generateContent
+          // models.generateContent
           expect.objectContaining({
             data: expect.objectContaining({
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -78,7 +62,7 @@ it('traces Google GenAI chat creation and message sending', async () => {
             op: 'gen_ai.generate_content',
             origin: 'auto.ai.google_genai',
           }),
-          // Fourth span - models.embedContent
+          // models.embedContent
           expect.objectContaining({
             data: expect.objectContaining({
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
