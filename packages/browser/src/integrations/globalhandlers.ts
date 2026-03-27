@@ -159,22 +159,27 @@ export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
 function _enhanceEventWithInitialFrame(
   event: Event,
   url: string | undefined,
-  line: number | undefined,
-  column: number | undefined,
+  lineno: number | undefined,
+  colno: number | undefined,
 ): Event {
+  // event.exception
   const e = (event.exception = event.exception || {});
+  // event.exception.values
   const ev = (e.values = e.values || []);
+  // event.exception.values[0]
   const ev0 = (ev[0] = ev[0] || {});
+  // event.exception.values[0].stacktrace
   const ev0s = (ev0.stacktrace = ev0.stacktrace || {});
+  // event.exception.values[0].stacktrace.frames
   const ev0sf = (ev0s.frames = ev0s.frames || []);
 
   if (ev0sf.length === 0) {
     ev0sf.push({
-      colno: column,
+      colno,
+      lineno,
       filename: getFilenameFromUrl(url) ?? getLocationHref(),
       function: UNKNOWN_FUNCTION,
       in_app: true,
-      lineno: line,
     });
   }
 

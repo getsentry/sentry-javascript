@@ -3,47 +3,43 @@ import { getClient, SDK_VERSION } from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
-// Integration names that can be lazy-loaded from the CDN.
+// Single source of truth: as const array provides both the runtime list and the type.
 // Bundle file names are derived: strip 'Integration' suffix, lowercase.
-// Exceptions (hyphenated bundle names) are listed separately.
-// Using comma-separated string + split for smaller bundle size.
-const LAZY_LOADABLE_NAMES =
-  'replayIntegration,replayCanvasIntegration,feedbackIntegration,feedbackModalIntegration,feedbackScreenshotIntegration,captureConsoleIntegration,contextLinesIntegration,linkedErrorsIntegration,dedupeIntegration,extraErrorDataIntegration,graphqlClientIntegration,httpClientIntegration,reportingObserverIntegration,rewriteFramesIntegration,browserProfilingIntegration,moduleMetadataIntegration,instrumentAnthropicAiClient,instrumentOpenAiClient,instrumentGoogleGenAIClient,instrumentLangGraph,createLangChainCallbackHandler'.split(
-    ',',
-  );
+// Exceptions (hyphenated bundle names) are listed in HYPHENATED_BUNDLES.
+const LAZY_LOADABLE_NAMES = [
+  'replayIntegration',
+  'replayCanvasIntegration',
+  'feedbackIntegration',
+  'feedbackModalIntegration',
+  'feedbackScreenshotIntegration',
+  'captureConsoleIntegration',
+  'contextLinesIntegration',
+  'linkedErrorsIntegration',
+  'dedupeIntegration',
+  'extraErrorDataIntegration',
+  'graphqlClientIntegration',
+  'httpClientIntegration',
+  'reportingObserverIntegration',
+  'rewriteFramesIntegration',
+  'browserProfilingIntegration',
+  'moduleMetadataIntegration',
+  'instrumentAnthropicAiClient',
+  'instrumentOpenAiClient',
+  'instrumentGoogleGenAIClient',
+  'instrumentLangGraph',
+  'createLangChainCallbackHandler',
+] as const;
 
-// Bundle names that don't follow the simple lowercase derivation pattern
-const HYPHENATED_BUNDLES: Record<string, string> = {
+type LazyLoadableIntegrationName = (typeof LAZY_LOADABLE_NAMES)[number];
+
+const HYPHENATED_BUNDLES: Partial<Record<LazyLoadableIntegrationName, string>> = {
   replayCanvasIntegration: 'replay-canvas',
   feedbackModalIntegration: 'feedback-modal',
   feedbackScreenshotIntegration: 'feedback-screenshot',
 };
 
-type LazyLoadableIntegrationName =
-  | 'replayIntegration'
-  | 'replayCanvasIntegration'
-  | 'feedbackIntegration'
-  | 'feedbackModalIntegration'
-  | 'feedbackScreenshotIntegration'
-  | 'captureConsoleIntegration'
-  | 'contextLinesIntegration'
-  | 'linkedErrorsIntegration'
-  | 'dedupeIntegration'
-  | 'extraErrorDataIntegration'
-  | 'graphqlClientIntegration'
-  | 'httpClientIntegration'
-  | 'reportingObserverIntegration'
-  | 'rewriteFramesIntegration'
-  | 'browserProfilingIntegration'
-  | 'moduleMetadataIntegration'
-  | 'instrumentAnthropicAiClient'
-  | 'instrumentOpenAiClient'
-  | 'instrumentGoogleGenAIClient'
-  | 'instrumentLangGraph'
-  | 'createLangChainCallbackHandler';
-
 function getBundleName(name: string): string {
-  return HYPHENATED_BUNDLES[name] || name.replace('Integration', '').toLowerCase();
+  return HYPHENATED_BUNDLES[name as LazyLoadableIntegrationName] || name.replace('Integration', '').toLowerCase();
 }
 
 const WindowWithMaybeIntegration = WINDOW as {
