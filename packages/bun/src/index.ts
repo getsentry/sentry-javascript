@@ -192,4 +192,5 @@ export type { BunOptions } from './types';
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';
