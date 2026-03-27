@@ -346,7 +346,8 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath];
+      const instrumentedMethod: InstrumentedMethodEntry | undefined =
+        GOOGLE_GENAI_METHOD_REGISTRY[methodPath as keyof typeof GOOGLE_GENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
         // If an operation is specified, we need to instrument the method itself
         const wrappedMethod = instrumentedMethod.operation
