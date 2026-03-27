@@ -245,7 +245,7 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    setCommonResponseAttributes(span, state.responseId, state.responseModel, state.responseTimestamp);
+    setCommonResponseAttributes(span, state.responseId, state.responseModel);
     setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
 
     span.setAttributes({

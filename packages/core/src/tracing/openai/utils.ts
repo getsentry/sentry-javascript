@@ -16,11 +16,6 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  OPENAI_RESPONSE_ID_ATTRIBUTE,
-  OPENAI_RESPONSE_MODEL_ATTRIBUTE,
-  OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
-  OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
-  OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type {
   ChatCompletionChunk,
@@ -116,7 +111,7 @@ export function addChatCompletionAttributes(
   response: OpenAiChatCompletionObject,
   recordOutputs?: boolean,
 ): void {
-  setCommonResponseAttributes(span, response.id, response.model, response.created);
+  setCommonResponseAttributes(span, response.id, response.model);
   if (response.usage) {
     setTokenUsageAttributes(
       span,
@@ -155,7 +150,7 @@ export function addChatCompletionAttributes(
  * Add attributes for Responses API responses
  */
 export function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
-  setCommonResponseAttributes(span, response.id, response.model, response.created_at);
+  setCommonResponseAttributes(span, response.id, response.model);
   if (response.status) {
     span.setAttributes({
       [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
@@ -195,7 +190,6 @@ export function addResponsesApiAttributes(span: Span, response: OpenAIResponseOb
  */
 export function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbeddingsObject): void {
   span.setAttributes({
-    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
     [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
   });
 
@@ -209,20 +203,13 @@ export function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbedd
  * @see https://platform.openai.com/docs/api-reference/conversations
  */
 export function addConversationAttributes(span: Span, response: OpenAIConversationObject): void {
-  const { id, created_at } = response;
+  const { id } = response;
 
   span.setAttributes({
-    [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
     [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
     // The conversation id is used to link messages across API calls
     [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: id,
   });
-
-  if (created_at) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(created_at * 1000).toISOString(),
-    });
-  }
 }
 
 /**
@@ -240,13 +227,11 @@ export function setTokenUsageAttributes(
 ): void {
   if (promptTokens !== undefined) {
     span.setAttributes({
-      [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: promptTokens,
       [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
     });
   }
   if (completionTokens !== undefined) {
     span.setAttributes({
-      [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: completionTokens,
       [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
     });
   }
@@ -262,19 +247,13 @@ export function setTokenUsageAttributes(
  * @param span - The span to add attributes to
  * @param id - The response id
  * @param model - The response model
- * @param timestamp - The response timestamp
  */
-export function setCommonResponseAttributes(span: Span, id: string, model: string, timestamp: number): void {
+export function setCommonResponseAttributes(span: Span, id: string, model: string): void {
   span.setAttributes({
-    [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
     [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
   });
   span.setAttributes({
-    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
     [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
-  });
-  span.setAttributes({
-    [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
   });
 }
 
