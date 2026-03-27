@@ -1,28 +1,19 @@
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
+  extractRequestAttributes,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
   wrapPromiseWithMethods,
@@ -31,42 +22,6 @@ import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
-
-/**
- * Extract request attributes from method arguments
- */
-function extractRequestAttributes(args: unknown[], methodPath: string, operationName: string): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
-  };
-
-  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
-    const params = args[0] as Record<string, unknown>;
-    if (params.tools && Array.isArray(params.tools)) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(params.tools);
-    }
-
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
-    if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-    if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
-    if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
-    if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = params.top_k;
-    if ('frequency_penalty' in params)
-      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-    if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = params.max_tokens;
-  } else {
-    if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
-      // models.retrieve(model-id) and models.get(model-id)
-      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = args[0];
-    } else {
-      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
-    }
-  }
-
-  return attributes;
-}
 
 /**
  * Add private request attributes to spans.
@@ -254,7 +209,13 @@ function instrumentMethod<T extends unknown[], R>(
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation;
-      const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
+      const requestAttributes = extractRequestAttributes('anthropic', 'auto.ai.anthropic', operationName, args);
+
+      // Anthropic models.retrieve/models.get take model ID as positional string arg
+      if ((methodPath === 'models.retrieve' || methodPath === 'models.get') && typeof args[0] === 'string') {
+        requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = args[0];
+      }
+
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;

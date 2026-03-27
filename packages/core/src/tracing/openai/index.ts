@@ -1,23 +1,18 @@
-import { DEBUG_BUILD } from '../../debug-build';
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { debug } from '../../utils/debug-logger';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
+  extractRequestAttributes,
   extractSystemInstructions,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
@@ -26,56 +21,7 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
-import { addResponseAttributes, extractRequestParameters } from './utils';
-
-/**
- * Extract available tools from request parameters
- */
-function extractAvailableTools(params: Record<string, unknown>): string | undefined {
-  const tools = Array.isArray(params.tools) ? params.tools : [];
-  const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
-  const webSearchOptions = hasWebSearchOptions
-    ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
-    : [];
-
-  const availableTools = [...tools, ...webSearchOptions];
-  if (availableTools.length === 0) {
-    return undefined;
-  }
-
-  try {
-    return JSON.stringify(availableTools);
-  } catch (error) {
-    DEBUG_BUILD && debug.error('Failed to serialize OpenAI tools:', error);
-    return undefined;
-  }
-}
-
-/**
- * Extract request attributes from method arguments
- */
-function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
-  };
-
-  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
-    const params = args[0] as Record<string, unknown>;
-
-    const availableTools = extractAvailableTools(params);
-    if (availableTools) {
-      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = availableTools;
-    }
-
-    Object.assign(attributes, extractRequestParameters(params));
-  } else {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
-  }
-
-  return attributes;
-}
+import { addResponseAttributes } from './utils';
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
@@ -143,7 +89,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation;
-    const requestAttributes = extractRequestAttributes(args, operationName);
+    const requestAttributes = extractRequestAttributes('openai', 'auto.ai.openai', operationName, args);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
