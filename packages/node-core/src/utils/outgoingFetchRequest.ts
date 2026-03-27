@@ -13,7 +13,7 @@ import { mergeBaggageHeaders } from './baggage';
 
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
-
+const W3C_TRACEPARENT_HEADER = 'traceparent';
 /**
  * Add trace propagation headers to an outgoing fetch/undici request.
  *
@@ -46,14 +46,18 @@ export function addTracePropagationHeadersToFetchRequest(
 
   // OTel's UndiciInstrumentation calls propagation.inject() which unconditionally
   // appends headers to the request. When the user also sets headers via getTraceData(),
-  // this results in duplicate sentry-trace and baggage entries.
+  // this results in duplicate sentry-trace and baggage (and optionally traceparent) entries.
   // We clean these up before applying our own logic.
-  _deduplicateArrayHeaders(requestHeaders);
+  _deduplicateArrayHeader(requestHeaders, SENTRY_TRACE_HEADER);
+  _deduplicateArrayHeader(requestHeaders, SENTRY_BAGGAGE_HEADER);
+  if (propagateTraceparent) {
+    _deduplicateArrayHeader(requestHeaders, W3C_TRACEPARENT_HEADER);
+  }
 
   // We do not want to overwrite existing headers here
   // If the core UndiciInstrumentation is registered, it will already have set the headers
   // We do not want to add any then
-  const hasExistingSentryTraceHeader = requestHeaders.includes(SENTRY_TRACE_HEADER);
+  const hasExistingSentryTraceHeader = _findExistingHeaderIndex(requestHeaders, SENTRY_TRACE_HEADER) !== -1;
 
   // We do not want to set any headers if we already have an existing sentry-trace header.
   // sentry-trace is still the source of truth, otherwise we risk mixing up baggage and sentry-trace values.
@@ -62,20 +66,20 @@ export function addTracePropagationHeadersToFetchRequest(
       requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
     }
 
-    if (traceparent && !requestHeaders.includes('traceparent')) {
+    if (traceparent && _findExistingHeaderIndex(requestHeaders, 'traceparent') === -1) {
       requestHeaders.push('traceparent', traceparent);
     }
 
     // For baggage, we make sure to merge this into a possibly existing header
-    const existingBaggagePos = requestHeaders.findIndex(header => header === SENTRY_BAGGAGE_HEADER);
-    if (baggage && existingBaggagePos === -1) {
+    const existingBaggageIndex = _findExistingHeaderIndex(requestHeaders, SENTRY_BAGGAGE_HEADER);
+    if (baggage && existingBaggageIndex === -1) {
       requestHeaders.push(SENTRY_BAGGAGE_HEADER, baggage);
     } else if (baggage) {
       // headers in format [key_0, value_0, key_1, value_1, ...], hence the +1 here
-      const existingBaggage = requestHeaders[existingBaggagePos + 1];
-      const merged = mergeBaggageHeaders(existingBaggage, baggage);
+      const existingBaggageValue = requestHeaders[existingBaggageIndex + 1];
+      const merged = mergeBaggageHeaders(existingBaggageValue, baggage);
       if (merged) {
-        requestHeaders[existingBaggagePos + 1] = merged;
+        requestHeaders[existingBaggageIndex + 1] = merged;
       }
     }
   }
@@ -108,32 +112,21 @@ function stringToArrayHeaders(requestHeaders: string): string[] {
 function arrayToStringHeaders(headers: string[]): string {
   const headerPairs: string[] = [];
 
-  try {
-    for (let i = 0; i < headers.length; i += 2) {
-      headerPairs.push(`${headers[i]}: ${headers[i + 1]}`);
+  for (let i = 0; i < headers.length; i += 2) {
+    const key = headers[i];
+    const value = headers[i + 1];
+    if (!key || value == null) {
+      // skip falsy keys but only null/undefined values
+      continue;
     }
-  } catch {}
+    headerPairs.push(`${key}: ${value}`);
+  }
 
   if (!headerPairs.length) {
     return '';
   }
 
   return headerPairs.join('\r\n').concat('\r\n');
-}
-
-/**
- * Remove duplicate sentry-trace and baggage headers from the request.
- *
- * OTel's UndiciInstrumentation unconditionally appends headers via propagation.inject(),
- * which can create duplicates when the user has already set these headers (e.g. via getTraceData()).
- * For sentry-trace, we keep the first occurrence (user-set).
- * For baggage, we merge all occurrences into one header to preserve non-sentry entries. For Sentry
- * entries, we keep the first occurrence.
- */
-
-function _deduplicateArrayHeaders(headers: string[]): void {
-  _deduplicateArrayHeader(headers, SENTRY_TRACE_HEADER);
-  _deduplicateArrayHeader(headers, SENTRY_BAGGAGE_HEADER);
 }
 
 /**
@@ -165,6 +158,15 @@ function _deduplicateArrayHeader(headers: string[], headerName: string): void {
     headers.splice(i, 2);
     i -= 2;
   }
+}
+
+/**
+ * Find the index of an existing header in an array of headers.
+ * Only take even indices, because headers are in format [key_0, value_0, key_1, value_1, ...]
+ * otherwise we could match a header _value_ with @param name
+ */
+function _findExistingHeaderIndex(headers: string[], name: string): number {
+  return headers.findIndex((header, i) => i % 2 === 0 && header === name);
 }
 
 /** Add a breadcrumb for an outgoing fetch/undici request. */
