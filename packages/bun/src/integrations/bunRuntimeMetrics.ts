@@ -7,17 +7,19 @@ const DEFAULT_INTERVAL_MS = 30_000;
 
 /**
  * Which metrics to collect in the Bun runtime metrics integration.
- * This is the same as `NodeRuntimeMetricsOptions['collect']` but without event loop
- * delay percentiles, which require `monitorEventLoopDelay` (unavailable in Bun).
+ * Explicitly picks the metrics available in Bun from `NodeRuntimeMetricsOptions['collect']`.
+ * Event loop delay percentiles are excluded because `monitorEventLoopDelay` is unavailable in Bun.
  */
-type BunCollectOptions = Omit<
+type BunCollectOptions = Pick<
   NonNullable<NodeRuntimeMetricsOptions['collect']>,
-  | 'eventLoopDelayMin'
-  | 'eventLoopDelayMax'
-  | 'eventLoopDelayMean'
-  | 'eventLoopDelayP50'
-  | 'eventLoopDelayP90'
-  | 'eventLoopDelayP99'
+  | 'cpuUtilization'
+  | 'cpuTime'
+  | 'memHeapUsed'
+  | 'memHeapTotal'
+  | 'memRss'
+  | 'memExternal'
+  | 'eventLoopUtilization'
+  | 'uptime'
 >;
 
 export interface BunRuntimeMetricsOptions {
