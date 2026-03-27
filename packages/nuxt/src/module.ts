@@ -166,7 +166,7 @@ export default defineNuxtModule<ModuleOptions>({
         return;
       }
 
-      if (serverConfigFile && !isNitroV3) {
+      if (serverConfigFile) {
         addMiddlewareInstrumentation(nitro);
       }
 
