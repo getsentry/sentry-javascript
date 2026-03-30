@@ -1,6 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
@@ -48,7 +47,6 @@ const _denoServeIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      setAsyncLocalStorageAsyncContextStrategy();
       Deno.serve = new Proxy(Deno.serve, {
         apply(target, thisArg, args: ServeParams) {
           if (isSimpleHandler(args)) {
