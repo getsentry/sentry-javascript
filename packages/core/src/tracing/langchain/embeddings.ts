@@ -16,8 +16,6 @@ import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type { LangChainOptions } from './types';
 
-type EmbeddingOperationName = 'embed' | 'embed_many';
-
 /**
  * Infers the AI provider system name from the embedding class constructor name.
  */
@@ -36,19 +34,16 @@ function inferSystemFromClassName(name: string): string | undefined {
 /**
  * Extracts span attributes from a LangChain embedding class instance.
  */
-function extractEmbeddingAttributes(
-  instance: unknown,
-  operationName: EmbeddingOperationName,
-): Record<string, SpanAttributeValue> {
-  const inst = (instance ?? {}) as Record<string, unknown>;
+function extractEmbeddingAttributes(instance: unknown): Record<string, SpanAttributeValue> {
+  const embeddingsInstance = (instance ?? {}) as Record<string, unknown>;
 
   const attributes: Record<string, SpanAttributeValue> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
   };
 
-  const modelName = inst.model ?? inst.modelName ?? 'unknown';
+  const modelName = embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown';
   attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = String(modelName);
 
   const ctorName = (instance as { constructor?: { name?: string } }).constructor?.name ?? '';
@@ -57,14 +52,14 @@ function extractEmbeddingAttributes(
     attributes[GEN_AI_SYSTEM_ATTRIBUTE] = system;
   }
 
-  if (inst.dimensions != null) {
-    const n = Number(inst.dimensions);
+  if (embeddingsInstance.dimensions != null) {
+    const n = Number(embeddingsInstance.dimensions);
     if (!Number.isNaN(n)) {
       attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = n;
     }
   }
 
-  const encodingFormat = inst.encodingFormat ?? inst.encoding_format;
+  const encodingFormat = embeddingsInstance.encodingFormat ?? embeddingsInstance.encoding_format;
   if (encodingFormat != null) {
     attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = String(encodingFormat);
   }
@@ -79,14 +74,13 @@ function extractEmbeddingAttributes(
  */
 export function wrapEmbeddingMethod(
   originalMethod: (...args: unknown[]) => Promise<unknown>,
-  operationName: EmbeddingOperationName,
   options: LangChainOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const attributes = extractEmbeddingAttributes(thisArg, operationName);
+      const attributes = extractEmbeddingAttributes(thisArg);
       const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
 
       if (recordInputs) {
@@ -98,7 +92,7 @@ export function wrapEmbeddingMethod(
 
       return startSpan(
         {
-          name: `${operationName} ${modelName}`,
+          name: `embeddings ${modelName}`,
           op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           attributes,
         },
@@ -142,20 +136,18 @@ export function wrapEmbeddingMethod(
  * ```
  */
 export function wrapLangChainEmbeddings<T extends object>(instance: T, options?: LangChainOptions): T {
-  const inst = instance as Record<string, unknown>;
+  const embeddingsInstance = instance as Record<string, unknown>;
 
-  if (typeof inst.embedQuery === 'function') {
-    inst.embedQuery = wrapEmbeddingMethod(
-      inst.embedQuery as (...args: unknown[]) => Promise<unknown>,
-      'embed',
+  if (typeof embeddingsInstance.embedQuery === 'function') {
+    embeddingsInstance.embedQuery = wrapEmbeddingMethod(
+      embeddingsInstance.embedQuery as (...args: unknown[]) => Promise<unknown>,
       options,
     );
   }
 
-  if (typeof inst.embedDocuments === 'function') {
-    inst.embedDocuments = wrapEmbeddingMethod(
-      inst.embedDocuments as (...args: unknown[]) => Promise<unknown>,
-      'embed_many',
+  if (typeof embeddingsInstance.embedDocuments === 'function') {
+    embeddingsInstance.embedDocuments = wrapEmbeddingMethod(
+      embeddingsInstance.embedDocuments as (...args: unknown[]) => Promise<unknown>,
       options,
     );
   }

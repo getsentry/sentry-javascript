@@ -444,14 +444,14 @@ describe('LangChain integration', () => {
       // embedQuery span
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
           [GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]: 1536,
         }),
-        description: 'embed text-embedding-3-small',
+        description: 'embeddings text-embedding-3-small',
         op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
@@ -459,13 +459,13 @@ describe('LangChain integration', () => {
       // embedDocuments span
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed_many',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
         }),
-        description: 'embed_many text-embedding-3-small',
+        description: 'embeddings text-embedding-3-small',
         op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
@@ -473,13 +473,13 @@ describe('LangChain integration', () => {
       // Error span
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
         }),
-        description: 'embed error-model',
+        description: 'embeddings error-model',
         op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'internal_error',
@@ -493,14 +493,14 @@ describe('LangChain integration', () => {
       // embedQuery span with input recorded
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
           [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'Hello world',
         }),
-        description: 'embed text-embedding-3-small',
+        description: 'embeddings text-embedding-3-small',
         op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
@@ -508,10 +508,10 @@ describe('LangChain integration', () => {
       // embedDocuments span with input recorded
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed_many',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
           [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: JSON.stringify(['First document', 'Second document']),
         }),
-        description: 'embed_many text-embedding-3-small',
+        description: 'embeddings text-embedding-3-small',
         op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',

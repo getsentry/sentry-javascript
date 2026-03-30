@@ -5295,6 +5295,15 @@
     "@langchain/langgraph-sdk" "~1.0.0"
     uuid "^10.0.0"
 
+"@langchain/openai@^0.5.0":
+  version "0.5.18"
+  resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-0.5.18.tgz#59ebbf48044d711ce9503d3b9854a3533cb54683"
+  integrity sha512-CX1kOTbT5xVFNdtLjnM0GIYNf+P7oMSu+dGCFxxWRa3dZwWiuyuBXCm+dToUGxDLnsHuV1bKBtIzrY1mLq/A1Q==
+  dependencies:
+    js-tiktoken "^1.0.12"
+    openai "^5.3.0"
+    zod "^3.25.32"
+
 "@leichtgewicht/ip-codec@^2.0.1":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.4.tgz#b2ac626d6cb9c8718ab459166d4bb405b8ffa78b"
@@ -23796,6 +23805,11 @@ openai@5.18.1:
   version "5.18.1"
   resolved "https://registry.yarnpkg.com/openai/-/openai-5.18.1.tgz#1c4884aefcada7ec684771e03c860c381f1902c1"
   integrity sha512-iXSOfLlOL+jgnFr5CGrB2SEZw5C92o1nrFW2SasoAXj4QxGhfeJPgg8zkX+vaCfX80cT6CWjgaGnq7z9XzbyRw==
+
+openai@^5.3.0:
+  version "5.23.2"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-5.23.2.tgz#f13e2dc2ef6b88aab6a9b97cdc68d41a1d083c68"
+  integrity sha512-MQBzmTulj+MM5O8SKEk/gL8a7s5mktS9zUtAkU257WjvobGc9nKcBuVwjyEEcb9SI8a8Y2G/mzn3vm9n1Jlleg==
 
 opener@^1.5.2:
   version "1.5.2"

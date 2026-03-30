@@ -280,13 +280,11 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     // Duck-type detection already verified these are functions
     targetProto.embedQuery = wrapEmbeddingMethod(
       targetProto.embedQuery as (...args: unknown[]) => Promise<unknown>,
-      'embed',
       options,
     );
 
     targetProto.embedDocuments = wrapEmbeddingMethod(
       targetProto.embedDocuments as (...args: unknown[]) => Promise<unknown>,
-      'embed_many',
       options,
     );
   }

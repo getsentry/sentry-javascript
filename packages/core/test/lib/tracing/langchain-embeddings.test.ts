@@ -50,15 +50,15 @@ describe('wrapEmbeddingMethod', () => {
 
   it('creates a span with correct attributes for embedQuery', async () => {
     const original = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed');
+    const wrapped = wrapEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small', dimensions: 1536 };
     await wrapped.call(instance, 'Hello world');
 
     expect(capturedSpanConfig).toBeDefined();
-    expect(capturedSpanConfig!.name).toBe('embed text-embedding-3-small');
+    expect(capturedSpanConfig!.name).toBe('embeddings text-embedding-3-small');
     expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('text-embedding-3-small');
     expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('openai');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBe(1536);
@@ -67,20 +67,20 @@ describe('wrapEmbeddingMethod', () => {
 
   it('creates a span with correct attributes for embedDocuments', async () => {
     const original = vi.fn().mockResolvedValue([[0.1], [0.2]]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed_many');
+    const wrapped = wrapEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'MistralAIEmbeddings' }, model: 'mistral-embed', encodingFormat: 'float' };
     await wrapped.call(instance, ['doc1', 'doc2']);
 
-    expect(capturedSpanConfig!.name).toBe('embed_many mistral-embed');
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed_many');
+    expect(capturedSpanConfig!.name).toBe('embeddings mistral-embed');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
     expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('mistralai');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toBe('float');
   });
 
   it('records input when recordInputs is true (string)', async () => {
     const original = vi.fn().mockResolvedValue([0.1]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed', { recordInputs: true });
+    const wrapped = wrapEmbeddingMethod(original, { recordInputs: true });
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small' };
     await wrapped.call(instance, 'Hello world');
@@ -90,7 +90,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('records input when recordInputs is true (array)', async () => {
     const original = vi.fn().mockResolvedValue([[0.1]]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed_many', { recordInputs: true });
+    const wrapped = wrapEmbeddingMethod(original, { recordInputs: true });
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small' };
     await wrapped.call(instance, ['doc1', 'doc2']);
@@ -101,7 +101,7 @@ describe('wrapEmbeddingMethod', () => {
   it('sets error status on failure', async () => {
     const error = new Error('API error');
     const original = vi.fn().mockRejectedValue(error);
-    const wrapped = wrapEmbeddingMethod(original, 'embed');
+    const wrapped = wrapEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'error-model' };
     await expect(wrapped.call(instance, 'test')).rejects.toThrow('API error');
@@ -124,7 +124,7 @@ describe('wrapEmbeddingMethod', () => {
     ];
 
     for (const { className, expected } of testCases) {
-      const wrapped = wrapEmbeddingMethod(original, 'embed');
+      const wrapped = wrapEmbeddingMethod(original);
       const instance = { constructor: { name: className }, model: 'test-model' };
       await wrapped.call(instance, 'test');
 
@@ -134,11 +134,11 @@ describe('wrapEmbeddingMethod', () => {
 
   it('handles missing instance properties gracefully', async () => {
     const original = vi.fn().mockResolvedValue([0.1]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed');
+    const wrapped = wrapEmbeddingMethod(original);
 
     await wrapped.call({}, 'test');
 
-    expect(capturedSpanConfig!.name).toBe('embed unknown');
+    expect(capturedSpanConfig!.name).toBe('embeddings unknown');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('unknown');
     expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBeUndefined();
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBeUndefined();
@@ -165,13 +165,10 @@ describe('wrapLangChainEmbeddings', () => {
     const wrapped = wrapLangChainEmbeddings(instance);
     expect(wrapped).toBe(instance); // Returns the same instance
 
-    // embedQuery should be wrapped
     await wrapped.embedQuery('test');
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
 
-    // embedDocuments should be wrapped
     await wrapped.embedDocuments(['doc1']);
-    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed_many');
+    expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embeddings');
   });
-
 });
