@@ -45,8 +45,10 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
   };
 
   attributes[GEN_AI_SYSTEM_ATTRIBUTE] = inferSystemFromInstance(embeddingsInstance);
-  if ('dimensions' in embeddingsInstance) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
-  if ('encodingFormat' in embeddingsInstance) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = embeddingsInstance.encodingFormat;
+  if ('dimensions' in embeddingsInstance)
+    attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
+  if ('encodingFormat' in embeddingsInstance)
+    attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = embeddingsInstance.encodingFormat;
 
   return attributes;
 }
