@@ -81,7 +81,7 @@ export function instrumentEmbeddingMethod(
           attributes: attributes as Record<string, SpanAttributeValue>,
         },
         () => {
-          return (Reflect.apply(target, thisArg, args) as Promise<unknown>).then(undefined, error => {
+          return Reflect.apply(target, thisArg, args).then(undefined, error => {
             captureException(error, {
               mechanism: { handled: false, type: 'auto.ai.langchain' },
             });

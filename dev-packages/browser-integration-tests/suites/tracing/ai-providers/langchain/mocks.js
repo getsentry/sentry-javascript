@@ -5,7 +5,7 @@ export class MockOpenAIEmbeddings {
     this.dimensions = params.dimensions;
   }
 
-  async embedQuery(text) {
+  async embedQuery(_text) {
     await new Promise(resolve => setTimeout(resolve, 10));
     return [0.1, 0.2, 0.3];
   }
