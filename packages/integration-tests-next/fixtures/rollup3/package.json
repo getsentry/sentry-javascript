@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "react": "^19.2.4",
-    "rollup": "^3.30.0",
-    "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-node-resolve": "^15.2.3",
+    "react": "19.2.4",
+    "rollup": "3.30.0",
+    "@rollup/plugin-babel": "6.0.4",
+    "@rollup/plugin-node-resolve": "15.2.3",
     "@sentry/rollup-plugin": "5.1.1"
   },
   "pnpm": {

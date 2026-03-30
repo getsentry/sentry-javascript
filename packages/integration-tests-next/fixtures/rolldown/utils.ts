@@ -27,7 +27,7 @@ export function test(url: string, callback: TestCallback) {
   rmSync(outDir, { recursive: true, force: true });
 
   // Rolldown requires Node 20+
-  if (NODE_MAJOR_VERSION <= 18) {
+  if (NODE_MAJOR_VERSION < 20) {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     vitestTest.skip(testName);
   } else {
