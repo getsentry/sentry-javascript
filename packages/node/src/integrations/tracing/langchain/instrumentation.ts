@@ -277,22 +277,17 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     }
     targetProto.__sentry_patched_embeddings__ = true;
 
-    const embedQuery = targetProto.embedQuery;
-    if (typeof embedQuery === 'function') {
-      targetProto.embedQuery = wrapEmbeddingMethod(
-        embedQuery as (...args: unknown[]) => Promise<unknown>,
-        'embed',
-        options,
-      );
-    }
+    // Duck-type detection already verified these are functions
+    targetProto.embedQuery = wrapEmbeddingMethod(
+      targetProto.embedQuery as (...args: unknown[]) => Promise<unknown>,
+      'embed',
+      options,
+    );
 
-    const embedDocuments = targetProto.embedDocuments;
-    if (typeof embedDocuments === 'function') {
-      targetProto.embedDocuments = wrapEmbeddingMethod(
-        embedDocuments as (...args: unknown[]) => Promise<unknown>,
-        'embed_many',
-        options,
-      );
-    }
+    targetProto.embedDocuments = wrapEmbeddingMethod(
+      targetProto.embedDocuments as (...args: unknown[]) => Promise<unknown>,
+      'embed_many',
+      options,
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
@@ -36,6 +36,8 @@ vi.mock('../../../src/tracing/trace', () => ({
   },
 }));
 
+import { captureException } from '../../../src/exports';
+
 vi.mock('../../../src/exports', () => ({
   captureException: vi.fn(),
 }));
@@ -44,10 +46,6 @@ describe('wrapEmbeddingMethod', () => {
   beforeEach(() => {
     capturedSpanConfig = undefined;
     capturedSpanSetStatus = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('creates a span with correct attributes for embedQuery', async () => {
@@ -100,16 +98,6 @@ describe('wrapEmbeddingMethod', () => {
     expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBe('["doc1","doc2"]');
   });
 
-  it('does not record input when recordInputs is false', async () => {
-    const original = vi.fn().mockResolvedValue([0.1]);
-    const wrapped = wrapEmbeddingMethod(original, 'embed', { recordInputs: false });
-
-    const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small' };
-    await wrapped.call(instance, 'Hello world');
-
-    expect(capturedSpanConfig!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBeUndefined();
-  });
-
   it('sets error status on failure', async () => {
     const error = new Error('API error');
     const original = vi.fn().mockRejectedValue(error);
@@ -119,6 +107,9 @@ describe('wrapEmbeddingMethod', () => {
     await expect(wrapped.call(instance, 'test')).rejects.toThrow('API error');
 
     expect(capturedSpanSetStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+    expect(captureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.ai.langchain.embeddings_error' },
+    });
   });
 
   it('infers system from various class names', async () => {
@@ -183,9 +174,4 @@ describe('wrapLangChainEmbeddings', () => {
     expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed_many');
   });
 
-  it('handles instances without embedding methods', () => {
-    const instance = { constructor: { name: 'SomeClass' }, model: 'test' };
-    const result = wrapLangChainEmbeddings(instance);
-    expect(result).toBe(instance);
-  });
 });

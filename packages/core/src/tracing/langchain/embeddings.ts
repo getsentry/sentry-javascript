@@ -40,20 +40,15 @@ function extractEmbeddingAttributes(
   instance: unknown,
   operationName: EmbeddingOperationName,
 ): Record<string, SpanAttributeValue> {
+  const inst = (instance ?? {}) as Record<string, unknown>;
+
   const attributes: Record<string, SpanAttributeValue> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
   };
 
-  if (!instance || typeof instance !== 'object') {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
-    return attributes;
-  }
-
-  const inst = instance as Record<string, unknown>;
-
-  const modelName = inst.model ?? inst.modelName ?? inst.modelId ?? 'unknown';
+  const modelName = inst.model ?? inst.modelName ?? 'unknown';
   attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = String(modelName);
 
   const ctorName = (instance as { constructor?: { name?: string } }).constructor?.name ?? '';
@@ -87,10 +82,10 @@ export function wrapEmbeddingMethod(
   operationName: EmbeddingOperationName,
   options: LangChainOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
+  const { recordInputs } = resolveAIRecordingOptions(options);
+
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const { recordInputs } = resolveAIRecordingOptions(options);
-
       const attributes = extractEmbeddingAttributes(thisArg, operationName);
       const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
 
