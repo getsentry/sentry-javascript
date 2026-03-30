@@ -6,10 +6,7 @@ import {
   instrumentSupabaseClient,
   translateFiltersIntoMethods,
 } from '../../../src/integrations/supabase';
-import type {
-  PostgRESTQueryBuilder,
-  SupabaseClientInstance,
-} from '../../../src/integrations/supabase';
+import type { PostgRESTQueryBuilder, SupabaseClientInstance } from '../../../src/integrations/supabase';
 
 // Mock tracing to avoid needing full SDK setup
 vi.mock('../../../src/tracing', () => ({
