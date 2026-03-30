@@ -20,7 +20,7 @@ import type {
   RouteSectionProps,
   StaticRouter,
 } from '@solidjs/router';
-import { useBeforeLeave, useLocation } from '@solidjs/router';
+import { useBeforeLeave, useCurrentMatches, useLocation } from '@solidjs/router';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createEffect, mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
@@ -66,31 +66,60 @@ function SentryDefaultRoot(props: ParentProps): JSX.Element {
  */
 function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<RouteSectionProps> {
   const SentryRouterRoot = (props: RouteSectionProps): JSX.Element => {
-    // TODO: This is a rudimentary first version of handling navigation spans
-    // It does not
-    // - use query params
-    // - parameterize the route
+    // Tracks the target of a pending navigation, so the effect can skip
+    // stale updates during <Navigate> redirects where the location signal
+    // hasn't caught up to the navigation span yet.
+    let pendingNavigationTarget: string | undefined;
 
     useBeforeLeave(({ to }: BeforeLeaveEventArgs) => {
-      // `to` could be `-1` if the browser back-button was used
-      handleNavigation(to.toString());
+      const target = to.toString();
+      pendingNavigationTarget = target;
+      handleNavigation(target);
     });
 
     const location = useLocation();
+    const matches = useCurrentMatches();
+
     createEffect(() => {
       const name = location.pathname;
       const rootSpan = getActiveRootSpan();
+      if (!rootSpan) {
+        return;
+      }
 
-      if (rootSpan) {
+      // During <Navigate> redirects, the effect can fire before the router
+      // transition completes. In that case, location.pathname still points
+      // to the old route while the active span is already the navigation span.
+      // Skip the update to avoid overwriting the span with stale route data.
+      // `-1` is solid router's representation of a browser back-button
+      // navigation, where we don't know the target URL upfront.
+      if (pendingNavigationTarget && pendingNavigationTarget !== '-1' && name !== pendingNavigationTarget) {
+        return;
+      }
+      pendingNavigationTarget = undefined;
+
+      const currentMatches = matches();
+      const lastMatch = currentMatches[currentMatches.length - 1];
+
+      if (lastMatch) {
+        const parametrizedRoute = lastMatch.route.pattern || name;
+        rootSpan.updateName(parametrizedRoute);
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+        const params = lastMatch.params;
+        for (const [key, value] of Object.entries(params)) {
+          if (value !== undefined) {
+            rootSpan.setAttribute(`url.path.parameter.${key}`, value);
+            rootSpan.setAttribute(`params.${key}`, value);
+          }
+        }
+      } else {
+        // No matched route - update back-button navigations and set source to url
         const { op, description } = spanToJSON(rootSpan);
-
-        // We only need to update navigation spans that have been created by
-        // a browser back-button navigation (stored as `-1` by solid router)
-        // everything else was already instrumented correctly in `useBeforeLeave`
         if (op === 'navigation' && description === '-1') {
           rootSpan.updateName(name);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
         }
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
       }
     });
 

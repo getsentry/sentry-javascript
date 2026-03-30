@@ -1,18 +1,7 @@
-import type { SpanAttributes } from '@sentry/core';
-import {
-  browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  spanToJSON,
-  startSpan,
-  timestampInSeconds,
-} from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
+import { browserPerformanceTimeOrigin, defineIntegration, metrics } from '@sentry/core';
 import { addPerformanceInstrumentationHandler } from './instrument';
-import { getBrowserPerformanceAPI, msToSec } from './utils';
+import { getBrowserPerformanceAPI } from './utils';
 
 // ElementTiming interface based on the W3C spec
 interface PerformanceElementTiming extends PerformanceEntry {
@@ -27,95 +16,96 @@ interface PerformanceElementTiming extends PerformanceEntry {
   url?: string;
 }
 
+const INTEGRATION_NAME = 'ElementTiming';
+
+const _elementTimingIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    setup() {
+      const performance = getBrowserPerformanceAPI();
+      if (!performance || !browserPerformanceTimeOrigin()) {
+        return;
+      }
+
+      addPerformanceInstrumentationHandler('element', ({ entries }) => {
+        for (const entry of entries) {
+          const elementEntry = entry as PerformanceElementTiming;
+
+          if (!elementEntry.identifier) {
+            continue;
+          }
+
+          const identifier = elementEntry.identifier;
+          const paintType = elementEntry.name as 'image-paint' | 'text-paint' | undefined;
+          const renderTime = elementEntry.renderTime;
+          const loadTime = elementEntry.loadTime;
+
+          const metricAttributes: Record<string, string | number> = {
+            'sentry.origin': 'auto.ui.browser.element_timing',
+            'ui.element.identifier': identifier,
+          };
+
+          if (paintType) {
+            metricAttributes['ui.element.paint_type'] = paintType;
+          }
+
+          if (elementEntry.id) {
+            metricAttributes['ui.element.id'] = elementEntry.id;
+          }
+
+          if (elementEntry.element) {
+            metricAttributes['ui.element.type'] = elementEntry.element.tagName.toLowerCase();
+          }
+
+          if (elementEntry.url) {
+            metricAttributes['ui.element.url'] = elementEntry.url;
+          }
+
+          if (elementEntry.naturalWidth) {
+            metricAttributes['ui.element.width'] = elementEntry.naturalWidth;
+          }
+
+          if (elementEntry.naturalHeight) {
+            metricAttributes['ui.element.height'] = elementEntry.naturalHeight;
+          }
+
+          if (renderTime > 0) {
+            metrics.distribution(`ui.element.render_time`, renderTime, {
+              unit: 'millisecond',
+              attributes: metricAttributes,
+            });
+          }
+
+          if (loadTime > 0) {
+            metrics.distribution(`ui.element.load_time`, loadTime, {
+              unit: 'millisecond',
+              attributes: metricAttributes,
+            });
+          }
+        }
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
 /**
- * Start tracking ElementTiming performance entries.
+ * Captures [Element Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
+ * data as Sentry metrics.
+ *
+ * To mark an element for tracking, add the `elementtiming` HTML attribute:
+ * ```html
+ * <img src="hero.jpg" elementtiming="hero-image" />
+ * <p elementtiming="hero-text">Welcome!</p>
+ * ```
+ *
+ * This emits `ui.element.render_time` and `ui.element.load_time` (for images)
+ * as distribution metrics, tagged with the element's identifier and paint type.
+ */
+export const elementTimingIntegration = defineIntegration(_elementTimingIntegration);
+
+/**
+ * @deprecated Use `elementTimingIntegration` instead. This function is a no-op and will be removed in a future version.
  */
 export function startTrackingElementTiming(): () => void {
-  const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin()) {
-    return addPerformanceInstrumentationHandler('element', _onElementTiming);
-  }
-
   return () => undefined;
 }
-
-/**
- * exported only for testing
- */
-export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): void => {
-  const activeSpan = getActiveSpan();
-  const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-  const transactionName = rootSpan
-    ? spanToJSON(rootSpan).description
-    : getCurrentScope().getScopeData().transactionName;
-
-  entries.forEach(entry => {
-    const elementEntry = entry as PerformanceElementTiming;
-
-    // Skip entries without identifier (elementtiming attribute)
-    if (!elementEntry.identifier) {
-      return;
-    }
-
-    // `name` contains the type of the element paint. Can be `'image-paint'` or `'text-paint'`.
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming#instance_properties
-    const paintType = elementEntry.name as 'image-paint' | 'text-paint' | undefined;
-
-    const renderTime = elementEntry.renderTime;
-    const loadTime = elementEntry.loadTime;
-
-    // starting the span at:
-    // - `loadTime` if available (should be available for all "image-paint" entries, 0 otherwise)
-    // - `renderTime` if available (available for all entries, except 3rd party images, but these should be covered by `loadTime`, 0 otherwise)
-    // - `timestampInSeconds()` as a safeguard
-    // see https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming/renderTime#cross-origin_image_render_time
-    const [spanStartTime, spanStartTimeSource] = loadTime
-      ? [msToSec(loadTime), 'load-time']
-      : renderTime
-        ? [msToSec(renderTime), 'render-time']
-        : [timestampInSeconds(), 'entry-emission'];
-
-    const duration =
-      paintType === 'image-paint'
-        ? // for image paints, we can acually get a duration because image-paint entries also have a `loadTime`
-          // and `renderTime`. `loadTime` is the time when the image finished loading and `renderTime` is the
-          // time when the image finished rendering.
-          msToSec(Math.max(0, (renderTime ?? 0) - (loadTime ?? 0)))
-        : // for `'text-paint'` entries, we can't get a duration because the `loadTime` is always zero.
-          0;
-
-    const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.elementtiming',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.elementtiming',
-      // name must be user-entered, so we can assume low cardinality
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-      // recording the source of the span start time, as it varies depending on available data
-      'sentry.span_start_time_source': spanStartTimeSource,
-      'sentry.transaction_name': transactionName,
-      'element.id': elementEntry.id,
-      'element.type': elementEntry.element?.tagName?.toLowerCase() || 'unknown',
-      'element.size':
-        elementEntry.naturalWidth && elementEntry.naturalHeight
-          ? `${elementEntry.naturalWidth}x${elementEntry.naturalHeight}`
-          : undefined,
-      'element.render_time': renderTime,
-      'element.load_time': loadTime,
-      // `url` is `0`(number) for text paints (hence we fall back to undefined)
-      'element.url': elementEntry.url || undefined,
-      'element.identifier': elementEntry.identifier,
-      'element.paint_type': paintType,
-    };
-
-    startSpan(
-      {
-        name: `element[${elementEntry.identifier}]`,
-        attributes,
-        startTime: spanStartTime,
-        onlyIfParent: true,
-      },
-      span => {
-        span.end(spanStartTime + duration);
-      },
-    );
-  });
-};

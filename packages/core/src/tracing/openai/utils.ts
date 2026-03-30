@@ -22,23 +22,14 @@ import {
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { INSTRUMENTED_METHODS } from './constants';
 import type {
   ChatCompletionChunk,
-  InstrumentedMethod,
   OpenAiChatCompletionObject,
   OpenAIConversationObject,
   OpenAICreateEmbeddingsObject,
   OpenAIResponseObject,
   ResponseStreamingEvent,
 } from './types';
-
-/**
- * Check if a method path should be instrumented
- */
-export function shouldInstrument(methodPath: string): methodPath is InstrumentedMethod {
-  return INSTRUMENTED_METHODS.includes(methodPath as InstrumentedMethod);
-}
 
 /**
  * Check if response is a Chat Completion object

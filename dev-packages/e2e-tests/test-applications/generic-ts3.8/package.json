@@ -20,6 +20,11 @@
     "@sentry-internal/replay": "latest || *",
     "@sentry/wasm": "latest || *"
   },
+  "pnpm": {
+    "overrides": {
+      "@opentelemetry/api": "1.9.0"
+    }
+  },
   "volta": {
     "extends": "../../package.json"
   }

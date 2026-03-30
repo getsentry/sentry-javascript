@@ -7,6 +7,8 @@ export { logger, consoleLoggingIntegration } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
 
+export { elementTimingIntegration } from '@sentry-internal/browser-utils';
+
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
