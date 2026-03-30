@@ -58,6 +58,21 @@
 
   Adds instrumentation for the Google GenAI [`embedContent`](https://ai.google.dev/gemini-api/docs/embeddings) API, creating `gen_ai.embeddings` spans.
 
+- feat(langchain): Support embeddings APIs in LangChain ([#20017](https://github.com/getsentry/sentry-javascript/pull/20017))
+
+  Adds instrumentation for LangChain embeddings (`embedQuery`, `embedDocuments`), creating `gen_ai.embeddings` spans. In Node.js, embedding classes from `@langchain/openai`, `@langchain/google-genai`, `@langchain/mistralai`, and `@langchain/google-vertexai` are auto-instrumented. For other runtimes, use the new `instrumentLangChainEmbeddings` API:
+
+  ```javascript
+  import * as Sentry from '@sentry/cloudflare';
+  import { OpenAIEmbeddings } from '@langchain/openai';
+
+  const embeddings = Sentry.instrumentLangChainEmbeddings(
+    new OpenAIEmbeddings({ model: 'text-embedding-3-small' }),
+  );
+
+  await embeddings.embedQuery('Hello world');
+  ```
+
 ## 10.46.0
 
 ### Important Changes
