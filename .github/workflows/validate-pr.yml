@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
+      contents: write
     steps:
       - uses: getsentry/github-workflows/validate-pr@4ff40ada546d4a31b852a4279828b989a6193497
         with:
