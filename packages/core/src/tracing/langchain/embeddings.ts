@@ -17,9 +17,10 @@ import { LANGCHAIN_ORIGIN } from './constants';
 import type { LangChainOptions } from './types';
 
 /**
- * Infers the AI provider system name from the embedding class constructor name.
+ * Infers the AI provider system name from the embedding class instance.
  */
-function inferSystemFromClassName(name: string): string | undefined {
+function inferSystemFromInstance(instance: Record<string, unknown>): string | undefined {
+  const name = (instance.constructor as { name?: string })?.name ?? '';
   if (name.includes('OpenAI')) return 'openai';
   if (name.includes('Google')) return 'google_genai';
   if (name.includes('Mistral')) return 'mistralai';
@@ -44,8 +45,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: String(embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown'),
   };
 
-  const ctorName = (instance as { constructor?: { name?: string } })?.constructor?.name ?? '';
-  const system = inferSystemFromClassName(ctorName);
+  const system = inferSystemFromInstance(embeddingsInstance);
   if (system) attributes[GEN_AI_SYSTEM_ATTRIBUTE] = system;
   if ('dimensions' in embeddingsInstance) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
   if ('encodingFormat' in embeddingsInstance) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = embeddingsInstance.encodingFormat;
