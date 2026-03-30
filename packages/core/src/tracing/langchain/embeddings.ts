@@ -1,6 +1,5 @@
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan } from '../../tracing/trace';
 import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
@@ -81,21 +80,13 @@ export function instrumentEmbeddingMethod(
           op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           attributes: attributes as Record<string, SpanAttributeValue>,
         },
-        async span => {
-          try {
-            return await Reflect.apply(target, thisArg, args);
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-
+        () => {
+          return (Reflect.apply(target, thisArg, args) as Promise<unknown>).then(undefined, error => {
             captureException(error, {
-              mechanism: {
-                handled: false,
-                type: `${LANGCHAIN_ORIGIN}.embeddings_error`,
-              },
+              mechanism: { handled: false, type: 'auto.ai.langchain' },
             });
-
             throw error;
-          }
+          });
         },
       );
     },

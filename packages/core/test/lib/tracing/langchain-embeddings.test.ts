@@ -106,9 +106,8 @@ describe('instrumentEmbeddingMethod', () => {
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'error-model' };
     await expect(wrapped.call(instance, 'test')).rejects.toThrow('API error');
 
-    expect(capturedSpanSetStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'auto.ai.langchain.embeddings_error' },
+      mechanism: { handled: false, type: 'auto.ai.langchain' },
     });
   });
 
