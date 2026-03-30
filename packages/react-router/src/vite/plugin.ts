@@ -1,4 +1,5 @@
 import type { ConfigEnv, Plugin } from 'vite';
+import { makeAutoInstrumentRSCPlugin } from './makeAutoInstrumentRSCPlugin';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
@@ -20,6 +21,10 @@ export async function sentryReactRouter(
 
   plugins.push(makeConfigInjectorPlugin(options));
   plugins.push(makeServerBuildCapturePlugin());
+
+  if (options.experimental_rscAutoInstrumentation?.enabled === true) {
+    plugins.push(makeAutoInstrumentRSCPlugin({ ...options.experimental_rscAutoInstrumentation, debug: options.debug }));
+  }
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
     plugins.push(makeEnableSourceMapsPlugin(options));

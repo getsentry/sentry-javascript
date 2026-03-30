@@ -1,0 +1,11 @@
+node_modules
+
+/.cache
+/build
+.env
+.react-router
+
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
