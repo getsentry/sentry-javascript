@@ -8,7 +8,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../../../src/tracing/ai/gen-ai-attributes';
-import { wrapEmbeddingMethod, wrapLangChainEmbeddings } from '../../../src/tracing/langchain/embeddings';
+import { instrumentEmbeddingMethod, instrumentLangChainEmbeddings } from '../../../src/tracing/langchain/embeddings';
 
 // Mock resolveAIRecordingOptions to control recordInputs
 vi.mock('../../../src/tracing/ai/utils', () => ({
@@ -42,7 +42,7 @@ vi.mock('../../../src/exports', () => ({
   captureException: vi.fn(),
 }));
 
-describe('wrapEmbeddingMethod', () => {
+describe('instrumentEmbeddingMethod', () => {
   beforeEach(() => {
     capturedSpanConfig = undefined;
     capturedSpanSetStatus = vi.fn();
@@ -50,7 +50,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('creates a span with correct attributes for embedQuery', async () => {
     const original = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
-    const wrapped = wrapEmbeddingMethod(original);
+    const wrapped = instrumentEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small', dimensions: 1536 };
     await wrapped.call(instance, 'Hello world');
@@ -67,7 +67,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('creates a span with correct attributes for embedDocuments', async () => {
     const original = vi.fn().mockResolvedValue([[0.1], [0.2]]);
-    const wrapped = wrapEmbeddingMethod(original);
+    const wrapped = instrumentEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'MistralAIEmbeddings' }, model: 'mistral-embed', encodingFormat: 'float' };
     await wrapped.call(instance, ['doc1', 'doc2']);
@@ -80,7 +80,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('records input when recordInputs is true (string)', async () => {
     const original = vi.fn().mockResolvedValue([0.1]);
-    const wrapped = wrapEmbeddingMethod(original, { recordInputs: true });
+    const wrapped = instrumentEmbeddingMethod(original, { recordInputs: true });
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small' };
     await wrapped.call(instance, 'Hello world');
@@ -90,7 +90,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('records input when recordInputs is true (array)', async () => {
     const original = vi.fn().mockResolvedValue([[0.1]]);
-    const wrapped = wrapEmbeddingMethod(original, { recordInputs: true });
+    const wrapped = instrumentEmbeddingMethod(original, { recordInputs: true });
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'text-embedding-3-small' };
     await wrapped.call(instance, ['doc1', 'doc2']);
@@ -101,7 +101,7 @@ describe('wrapEmbeddingMethod', () => {
   it('sets error status on failure', async () => {
     const error = new Error('API error');
     const original = vi.fn().mockRejectedValue(error);
-    const wrapped = wrapEmbeddingMethod(original);
+    const wrapped = instrumentEmbeddingMethod(original);
 
     const instance = { constructor: { name: 'OpenAIEmbeddings' }, model: 'error-model' };
     await expect(wrapped.call(instance, 'test')).rejects.toThrow('API error');
@@ -124,7 +124,7 @@ describe('wrapEmbeddingMethod', () => {
     ];
 
     for (const { className, expected } of testCases) {
-      const wrapped = wrapEmbeddingMethod(original);
+      const wrapped = instrumentEmbeddingMethod(original);
       const instance = { constructor: { name: className }, model: 'test-model' };
       await wrapped.call(instance, 'test');
 
@@ -134,7 +134,7 @@ describe('wrapEmbeddingMethod', () => {
 
   it('handles missing instance properties gracefully', async () => {
     const original = vi.fn().mockResolvedValue([0.1]);
-    const wrapped = wrapEmbeddingMethod(original);
+    const wrapped = instrumentEmbeddingMethod(original);
 
     await wrapped.call({}, 'test');
 
@@ -145,7 +145,7 @@ describe('wrapEmbeddingMethod', () => {
   });
 });
 
-describe('wrapLangChainEmbeddings', () => {
+describe('instrumentLangChainEmbeddings', () => {
   beforeEach(() => {
     capturedSpanConfig = undefined;
     capturedSpanSetStatus = vi.fn();
@@ -162,7 +162,7 @@ describe('wrapLangChainEmbeddings', () => {
       embedDocuments: mockEmbedDocuments,
     };
 
-    const wrapped = wrapLangChainEmbeddings(instance);
+    const wrapped = instrumentLangChainEmbeddings(instance);
     expect(wrapped).toBe(instance); // Returns the same instance
 
     await wrapped.embedQuery('test');

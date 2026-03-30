@@ -13,7 +13,7 @@ import {
   GOOGLE_GENAI_INTEGRATION_NAME,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
-  wrapEmbeddingMethod,
+  instrumentEmbeddingMethod,
 } from '@sentry/core';
 
 const supportedVersions = ['>=0.1.0 <2.0.0'];
@@ -278,12 +278,12 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     targetProto.__sentry_patched_embeddings__ = true;
 
     // Duck-type detection already verified these are functions
-    targetProto.embedQuery = wrapEmbeddingMethod(
+    targetProto.embedQuery = instrumentEmbeddingMethod(
       targetProto.embedQuery as (...args: unknown[]) => Promise<unknown>,
       options,
     );
 
-    targetProto.embedDocuments = wrapEmbeddingMethod(
+    targetProto.embedDocuments = instrumentEmbeddingMethod(
       targetProto.embedDocuments as (...args: unknown[]) => Promise<unknown>,
       options,
     );

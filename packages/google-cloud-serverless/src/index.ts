@@ -44,7 +44,7 @@ export {
   getSentryRelease,
   createGetModuleFromFilename,
   createLangChainCallbackHandler,
-  wrapLangChainEmbeddings,
+  instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation

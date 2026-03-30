@@ -141,7 +141,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   createLangChainCallbackHandler,
-  wrapLangChainEmbeddings,
+  instrumentLangChainEmbeddings,
   instrumentLangGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';

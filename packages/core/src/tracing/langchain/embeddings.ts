@@ -58,7 +58,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
  *
  * Used internally by the Node.js auto-instrumentation to patch embedding class prototypes.
  */
-export function wrapEmbeddingMethod(
+export function instrumentEmbeddingMethod(
   originalMethod: (...args: unknown[]) => Promise<unknown>,
   options: LangChainOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
@@ -113,7 +113,7 @@ export function wrapEmbeddingMethod(
  * import * as Sentry from '@sentry/cloudflare';
  * import { OpenAIEmbeddings } from '@langchain/openai';
  *
- * const embeddings = Sentry.wrapLangChainEmbeddings(
+ * const embeddings = Sentry.instrumentLangChainEmbeddings(
  *   new OpenAIEmbeddings({ model: 'text-embedding-3-small' })
  * );
  *
@@ -121,18 +121,18 @@ export function wrapEmbeddingMethod(
  * await embeddings.embedDocuments(['doc1', 'doc2']);
  * ```
  */
-export function wrapLangChainEmbeddings<T extends object>(instance: T, options?: LangChainOptions): T {
+export function instrumentLangChainEmbeddings<T extends object>(instance: T, options?: LangChainOptions): T {
   const embeddingsInstance = instance as Record<string, unknown>;
 
   if (typeof embeddingsInstance.embedQuery === 'function') {
-    embeddingsInstance.embedQuery = wrapEmbeddingMethod(
+    embeddingsInstance.embedQuery = instrumentEmbeddingMethod(
       embeddingsInstance.embedQuery as (...args: unknown[]) => Promise<unknown>,
       options,
     );
   }
 
   if (typeof embeddingsInstance.embedDocuments === 'function') {
-    embeddingsInstance.embedDocuments = wrapEmbeddingMethod(
+    embeddingsInstance.embedDocuments = instrumentEmbeddingMethod(
       embeddingsInstance.embedDocuments as (...args: unknown[]) => Promise<unknown>,
       options,
     );
