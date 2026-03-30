@@ -18,14 +18,14 @@ test('sends a pageload transaction', async ({ page }) => {
     },
     transaction: '/',
     transaction_info: {
-      source: 'url',
+      source: 'route',
     },
   });
 });
 
-test('sends a navigation transaction', async ({ page }) => {
+test('sends a navigation transaction with parametrized route', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return transactionEvent?.transaction === '/users/5' && transactionEvent.contexts?.trace?.op === 'navigation';
+    return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -39,9 +39,9 @@ test('sends a navigation transaction', async ({ page }) => {
         origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
-    transaction: '/users/5',
+    transaction: '/users/:id',
     transaction_info: {
-      source: 'url',
+      source: 'route',
     },
   });
 });
@@ -51,7 +51,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.
   const navigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return transactionEvent?.transaction === '/users/6' && transactionEvent.contexts?.trace?.op === 'navigation';
+    return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/back-navigation`);
@@ -65,9 +65,9 @@ test('updates the transaction when using the back button', async ({ page }) => {
         origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
-    transaction: '/users/6',
+    transaction: '/users/:id',
     transaction_info: {
-      source: 'url',
+      source: 'route',
     },
   });
 
@@ -89,7 +89,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     },
     transaction: '/back-navigation',
     transaction_info: {
-      source: 'url',
+      source: 'route',
     },
   });
 });
