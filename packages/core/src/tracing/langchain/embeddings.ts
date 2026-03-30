@@ -19,7 +19,7 @@ import type { LangChainOptions } from './types';
 /**
  * Infers the AI provider system name from the embedding class instance.
  */
-function inferSystemFromInstance(instance: Record<string, unknown>): string | undefined {
+function inferSystemFromInstance(instance: Record<string, unknown>): string {
   const name = (instance.constructor as { name?: string })?.name ?? '';
   if (name.includes('OpenAI')) return 'openai';
   if (name.includes('Google')) return 'google_genai';
@@ -29,7 +29,7 @@ function inferSystemFromInstance(instance: Record<string, unknown>): string | un
   if (name.includes('Ollama')) return 'ollama';
   if (name.includes('Cloudflare')) return 'cloudflare';
   if (name.includes('Cohere')) return 'cohere';
-  return undefined;
+  return 'langchain';
 }
 
 /**
@@ -45,8 +45,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: String(embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown'),
   };
 
-  const system = inferSystemFromInstance(embeddingsInstance);
-  if (system) attributes[GEN_AI_SYSTEM_ATTRIBUTE] = system;
+  attributes[GEN_AI_SYSTEM_ATTRIBUTE] = inferSystemFromInstance(embeddingsInstance);
   if ('dimensions' in embeddingsInstance) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
   if ('encodingFormat' in embeddingsInstance) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = embeddingsInstance.encodingFormat;
 

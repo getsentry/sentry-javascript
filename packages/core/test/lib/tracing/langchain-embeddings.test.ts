@@ -140,7 +140,7 @@ describe('instrumentEmbeddingMethod', () => {
 
     expect(capturedSpanConfig!.name).toBe('embeddings unknown');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('unknown');
-    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBeUndefined();
+    expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('langchain');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toBeUndefined();
   });
 });
