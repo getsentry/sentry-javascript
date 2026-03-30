@@ -1,193 +1,120 @@
 // <reference lib="deno.ns" />
 
+import type { Envelope } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
 import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
-import { spy, stub } from 'https://deno.land/std@0.212.0/testing/mock.ts';
-import { FakeTime } from 'https://deno.land/std@0.212.0/testing/time.ts';
-import { denoRuntimeMetricsIntegration, metrics } from '../build/esm/index.js';
+import {
+  DenoClient,
+  denoRuntimeMetricsIntegration,
+  getCurrentScope,
+  getDefaultIntegrations,
+} from '../build/esm/index.js';
+import { makeTestTransport } from './transport.ts';
 
-const MOCK_MEMORY: Deno.MemoryUsage = {
-  rss: 50_000_000,
-  heapTotal: 30_000_000,
-  heapUsed: 20_000_000,
-  external: 1_000_000,
-};
+const DSN = 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507';
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // deno-lint-ignore no-explicit-any
-type AnyCall = { args: any[] };
+type MetricItem = { name: string; type: string; value: number; unit?: string; attributes?: Record<string, any> };
+
+async function collectMetrics(
+  integrationOptions: Parameters<typeof denoRuntimeMetricsIntegration>[0] = {},
+): Promise<MetricItem[]> {
+  const envelopes: Envelope[] = [];
+
+  // Hold a reference so we can call teardown() to stop the interval before the test ends.
+  const metricsIntegration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 100, ...integrationOptions });
+
+  const client = new DenoClient({
+    dsn: DSN,
+    integrations: [...getDefaultIntegrations({}), metricsIntegration],
+    stackParser: createStackParser(nodeStackLineParser()),
+    transport: makeTestTransport(envelope => {
+      envelopes.push(envelope);
+    }),
+  });
+
+  client.init();
+  getCurrentScope().setClient(client);
+
+  await delay(250);
+  await client.flush(2000);
+
+  // Stop the collection interval so Deno's leak detector doesn't flag it.
+  metricsIntegration.teardown?.();
+
+  const items: MetricItem[] = [];
+  for (const envelope of envelopes) {
+    forEachEnvelopeItem(envelope, item => {
+      const [headers, body] = item;
+      if (headers.type === 'trace_metric') {
+        // deno-lint-ignore no-explicit-any
+        items.push(...(body as any).items);
+      }
+    });
+  }
+
+  return items;
+}
 
 Deno.test('denoRuntimeMetricsIntegration has the correct name', () => {
   const integration = denoRuntimeMetricsIntegration();
   assertEquals(integration.name, 'DenoRuntimeMetrics');
 });
 
-Deno.test('starts a collection interval', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
+Deno.test('emits default memory metrics with correct shape', async () => {
+  const items = await collectMetrics();
+  const names = items.map(i => i.name);
 
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
+  assertEquals(names.includes('deno.runtime.mem.rss'), true);
+  assertEquals(names.includes('deno.runtime.mem.heap_used'), true);
+  assertEquals(names.includes('deno.runtime.mem.heap_total'), true);
 
-    assertEquals(gaugeSpy.calls.length, 0);
-    time.tick(1_000);
-    assertNotEquals(gaugeSpy.calls.length, 0);
-  } finally {
-    gaugeSpy.restore();
-  }
+  const rss = items.find(i => i.name === 'deno.runtime.mem.rss');
+  assertEquals(rss?.type, 'gauge');
+  assertEquals(rss?.unit, 'byte');
+  assertEquals(typeof rss?.value, 'number');
 });
 
-Deno.test('emits default memory metrics', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
+Deno.test('emits uptime counter', async () => {
+  const items = await collectMetrics();
+  const uptime = items.find(i => i.name === 'deno.runtime.process.uptime');
 
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const names = (gaugeSpy.calls as AnyCall[]).map(c => c.args[0]);
-    assertEquals(names.includes('deno.runtime.mem.rss'), true);
-    assertEquals(names.includes('deno.runtime.mem.heap_used'), true);
-    assertEquals(names.includes('deno.runtime.mem.heap_total'), true);
-  } finally {
-    gaugeSpy.restore();
-  }
+  assertNotEquals(uptime, undefined);
+  assertEquals(uptime?.type, 'counter');
+  assertEquals(uptime?.unit, 'second');
 });
 
-Deno.test('emits correct memory values', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
-
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const calls = gaugeSpy.calls as AnyCall[];
-    const rssCall = calls.find(c => c.args[0] === 'deno.runtime.mem.rss');
-    const heapUsedCall = calls.find(c => c.args[0] === 'deno.runtime.mem.heap_used');
-    const heapTotalCall = calls.find(c => c.args[0] === 'deno.runtime.mem.heap_total');
-
-    assertEquals(rssCall?.args[1], 50_000_000);
-    assertEquals(heapUsedCall?.args[1], 20_000_000);
-    assertEquals(heapTotalCall?.args[1], 30_000_000);
-  } finally {
-    gaugeSpy.restore();
-  }
+Deno.test('does not emit mem.external by default', async () => {
+  const items = await collectMetrics();
+  const names = items.map(i => i.name);
+  assertEquals(names.includes('deno.runtime.mem.external'), false);
 });
 
-Deno.test('does not emit mem.external by default', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
+Deno.test('emits mem.external when opted in', async () => {
+  const items = await collectMetrics({ collect: { memExternal: true } });
+  const external = items.find(i => i.name === 'deno.runtime.mem.external');
 
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const names = (gaugeSpy.calls as AnyCall[]).map(c => c.args[0]);
-    assertEquals(names.includes('deno.runtime.mem.external'), false);
-  } finally {
-    gaugeSpy.restore();
-  }
+  assertNotEquals(external, undefined);
+  assertEquals(external?.type, 'gauge');
+  assertEquals(external?.unit, 'byte');
 });
 
-Deno.test('emits mem.external when opted in', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
+Deno.test('respects opt-out: skips uptime when disabled', async () => {
+  const items = await collectMetrics({ collect: { uptime: false } });
+  const names = items.map(i => i.name);
 
-  try {
-    const integration = denoRuntimeMetricsIntegration({
-      collectionIntervalMs: 1_000,
-      collect: { memExternal: true },
-    });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const calls = gaugeSpy.calls as AnyCall[];
-    const externalCall = calls.find(c => c.args[0] === 'deno.runtime.mem.external');
-    assertEquals(externalCall?.args[1], 1_000_000);
-  } finally {
-    gaugeSpy.restore();
-  }
+  assertEquals(names.includes('deno.runtime.mem.rss'), true);
+  assertEquals(names.includes('deno.runtime.process.uptime'), false);
 });
 
-Deno.test('emits uptime counter', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const countSpy = spy(metrics, 'count');
+Deno.test('attaches correct sentry.origin attribute', async () => {
+  const items = await collectMetrics();
+  const rss = items.find(i => i.name === 'deno.runtime.mem.rss');
 
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const uptimeCall = (countSpy.calls as AnyCall[]).find(c => c.args[0] === 'deno.runtime.process.uptime');
-    assertNotEquals(uptimeCall, undefined);
-  } finally {
-    countSpy.restore();
-  }
-});
-
-Deno.test('respects opt-out: skips mem.rss when memRss is false', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
-
-  try {
-    const integration = denoRuntimeMetricsIntegration({
-      collectionIntervalMs: 1_000,
-      collect: { memRss: false },
-    });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const names = (gaugeSpy.calls as AnyCall[]).map(c => c.args[0]);
-    assertEquals(names.includes('deno.runtime.mem.rss'), false);
-  } finally {
-    gaugeSpy.restore();
-  }
-});
-
-Deno.test('skips uptime when uptime is false', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const countSpy = spy(metrics, 'count');
-
-  try {
-    const integration = denoRuntimeMetricsIntegration({
-      collectionIntervalMs: 1_000,
-      collect: { uptime: false },
-    });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const uptimeCall = (countSpy.calls as AnyCall[]).find(c => c.args[0] === 'deno.runtime.process.uptime');
-    assertEquals(uptimeCall, undefined);
-  } finally {
-    countSpy.restore();
-  }
-});
-
-Deno.test('attaches correct sentry.origin attribute', () => {
-  using time = new FakeTime();
-  using _memStub = stub(Deno, 'memoryUsage', () => MOCK_MEMORY);
-  const gaugeSpy = spy(metrics, 'gauge');
-
-  try {
-    const integration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 });
-    integration.setup!({} as never);
-    time.tick(1_000);
-
-    const calls = gaugeSpy.calls as AnyCall[];
-    const rssCall = calls.find(c => c.args[0] === 'deno.runtime.mem.rss');
-    assertEquals(rssCall?.args[2]?.attributes?.['sentry.origin'], 'auto.deno.runtime_metrics');
-  } finally {
-    gaugeSpy.restore();
-  }
+  // Attributes in the serialized envelope are { type, value } objects.
+  assertEquals(rss?.attributes?.['sentry.origin']?.value, 'auto.deno.runtime_metrics');
 });

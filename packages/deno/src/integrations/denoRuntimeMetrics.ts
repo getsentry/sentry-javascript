@@ -102,5 +102,12 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
       }
       intervalId = _INTERNAL_safeUnref(setInterval(collectMetrics, collectionIntervalMs));
     },
+
+    teardown(): void {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    },
   };
 });
