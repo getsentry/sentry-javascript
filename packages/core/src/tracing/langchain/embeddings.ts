@@ -4,7 +4,7 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan } from '../../tracing/trace';
 import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
-  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -44,7 +44,7 @@ function extractEmbeddingAttributes(
 
   const attributes: Record<string, SpanAttributeValue> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
   };
 
@@ -99,7 +99,7 @@ export function wrapEmbeddingMethod(
       return startSpan(
         {
           name: `${operationName} ${modelName}`,
-          op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+          op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           attributes,
         },
         async span => {

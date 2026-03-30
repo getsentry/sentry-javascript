@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
-  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
@@ -445,14 +445,14 @@ describe('LangChain integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
           [GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]: 1536,
         }),
         description: 'embed text-embedding-3-small',
-        op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+        op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -460,13 +460,13 @@ describe('LangChain integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed_many',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
         }),
         description: 'embed_many text-embedding-3-small',
-        op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+        op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -474,13 +474,13 @@ describe('LangChain integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
         }),
         description: 'embed error-model',
-        op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+        op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
@@ -494,14 +494,14 @@ describe('LangChain integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embed',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-3-small',
           [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'Hello world',
         }),
         description: 'embed text-embedding-3-small',
-        op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+        op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -512,7 +512,7 @@ describe('LangChain integration', () => {
           [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: JSON.stringify(['First document', 'Second document']),
         }),
         description: 'embed_many text-embedding-3-small',
-        op: GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+        op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -530,7 +530,7 @@ describe('LangChain integration', () => {
         .expect({
           transaction: event => {
             const spans = event.spans || [];
-            const embeddingSpans = spans.filter(span => span.op === GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE);
+            const embeddingSpans = spans.filter(span => span.op === GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
             // The scenario makes 3 embedding calls (2 successful + 1 error).
             expect(embeddingSpans).toHaveLength(3);
           },

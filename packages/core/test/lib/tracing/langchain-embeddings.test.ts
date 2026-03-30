@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -57,7 +57,7 @@ describe('wrapEmbeddingMethod', () => {
 
     expect(capturedSpanConfig).toBeDefined();
     expect(capturedSpanConfig!.name).toBe('embed text-embedding-3-small');
-    expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE);
+    expect(capturedSpanConfig!.op).toBe(GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE);
     expect(capturedSpanConfig!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toBe('embed');
     expect(capturedSpanConfig!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toBe('text-embedding-3-small');
     expect(capturedSpanConfig!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toBe('openai');
