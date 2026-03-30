@@ -1,4 +1,4 @@
-import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
+import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -57,7 +57,7 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
     ...options.collect,
   };
 
-  let intervalId: number | undefined;
+  let intervalId: ReturnType<typeof setInterval> | undefined;
   let prevFlushTime: number = 0;
 
   const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.deno.runtime_metrics' } };
@@ -100,12 +100,7 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
       if (intervalId) {
         clearInterval(intervalId);
       }
-      // In Deno, setInterval returns a number, so _INTERNAL_safeUnref is a no-op.
-      // Use Deno.unrefTimer so the interval doesn't prevent the process from exiting.
-      // Cast to number since the tsconfig.types.json build context resolves setInterval
-      // to Node's NodeJS.Timeout rather than the Deno/browser number type.
-      intervalId = setInterval(collectMetrics, collectionIntervalMs) as unknown as number;
-      Deno.unrefTimer(intervalId);
+      intervalId = _INTERNAL_safeUnref(setInterval(collectMetrics, collectionIntervalMs));
     },
 
     teardown(): void {
