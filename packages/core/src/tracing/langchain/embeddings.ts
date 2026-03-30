@@ -42,7 +42,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: String(embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown'),
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: embeddingsInstance.model ?? 'unknown',
   };
 
   attributes[GEN_AI_SYSTEM_ATTRIBUTE] = inferSystemFromInstance(embeddingsInstance);
