@@ -15,6 +15,14 @@ export const SENTRY_TRACE_STATE_SAMPLE_RATE = 'sentry.sample_rate';
  */
 export const SENTRY_TRACE_STATE_IGNORED = 'sentry.ignored';
 
+/**
+ *  A flag marking a segment span as ignored because it matched the `ignoreSpans` filter.
+ *  Unlike `SENTRY_TRACE_STATE_IGNORED` (used for child spans), this flag is NOT consumed
+ *  by the context manager for re-parenting. Instead, it propagates to child spans so they
+ *  can record the correct client report outcome (`ignored` instead of `sample_rate`).
+ */
+export const SENTRY_TRACE_STATE_SEGMENT_IGNORED = 'sentry.segment_ignored';
+
 export const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
 
 export const SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY = createContextKey('sentry_fork_isolation_scope');

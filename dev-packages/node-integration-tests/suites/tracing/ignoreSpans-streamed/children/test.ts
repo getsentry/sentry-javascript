@@ -1,5 +1,5 @@
-import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 
 describe('filtering child spans with ignoreSpans (streaming)', () => {
@@ -7,9 +7,21 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
     cleanupChildProcesses();
   });
 
-  describe('CJS', () => {
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
     test('child spans are dropped and remaining spans correctly parented', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+      const runner = createRunner()
+        .unignore('client_report')
+        .expect({
+          client_report: {
+            discarded_events: [
+              {
+                category: 'span',
+                quantity: 2,
+                reason: 'ignored',
+              },
+            ],
+          },
+        })
         .expect({
           span: container => {
             // 5 spans: 1 root, 2 middleware, 1 request handler, 1 custom
@@ -36,28 +48,6 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             expect(queryMiddlewareSpan?.parent_span_id).toBe(httpServerSpan?.span_id);
             expect(corsMiddlewareSpan?.parent_span_id).toBe(httpServerSpan?.span_id);
             expect(httpServerSpan?.parent_span_id).toBeUndefined();
-          },
-        })
-        .start();
-
-      runner.makeRequest('get', '/test/express');
-
-      await runner.completed();
-    });
-
-    test('client report contains discarded spans', async () => {
-      const runner = createRunner(__dirname, 'server.js')
-        .ignore('span')
-        .unignore('client_report')
-        .expect({
-          client_report: {
-            discarded_events: [
-              {
-                category: 'span',
-                quantity: 2,
-                reason: 'ignored',
-              },
-            ],
           },
         })
         .start();

@@ -4,7 +4,11 @@ import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_REQUEST_METHOD } from '@opentelemetry/semantic-conventions';
 import { generateSpanId, generateTraceId } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SENTRY_TRACE_STATE_IGNORED, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../src/constants';
+import {
+  SENTRY_TRACE_STATE_IGNORED,
+  SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
+  SENTRY_TRACE_STATE_SEGMENT_IGNORED,
+} from '../src/constants';
 import { SentrySampler } from '../src/sampler';
 import { cleanupOtel } from './helpers/mockSdkInit';
 import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
@@ -63,7 +67,8 @@ describe('SentrySampler', () => {
       decision: SamplingDecision.NOT_RECORD,
       traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
     });
-    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
 
     spyOnDroppedEvent.mockReset();
   });
@@ -216,6 +221,62 @@ describe('SentrySampler', () => {
 
     expect(actual.decision).toBe(SamplingDecision.RECORD_AND_SAMPLED);
     expect(actual.traceState?.get(SENTRY_TRACE_STATE_IGNORED)).toBeUndefined();
+  });
+
+  it('sets sentry.segment_ignored traceState for root span matching ignoreSpans', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] }));
+    const sampler = new SentrySampler(client);
+
+    const ctx = context.active();
+    const traceId = generateTraceId();
+    const spanName = 'GET /health';
+    const spanKind = SpanKind.SERVER;
+    const spanAttributes = {};
+
+    const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, undefined);
+    expect(actual.decision).toBe(SamplingDecision.NOT_RECORD);
+    expect(actual.traceState?.get(SENTRY_TRACE_STATE_SEGMENT_IGNORED)).toBe('1');
+    expect(actual.traceState?.get(SENTRY_TRACE_STATE_IGNORED)).toBeUndefined();
+  });
+
+  it('records ignored outcome for child span of ignored segment', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] }));
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+    const sampler = new SentrySampler(client);
+
+    const traceId = generateTraceId();
+    const ctx = trace.setSpanContext(context.active(), {
+      spanId: generateSpanId(),
+      traceId,
+      traceFlags: 0,
+      traceState: new TraceState()
+        .set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1')
+        .set(SENTRY_TRACE_STATE_SEGMENT_IGNORED, '1'),
+    });
+
+    const actual = sampler.shouldSample(ctx, traceId, 'db.query SELECT 1', SpanKind.CLIENT, {}, undefined);
+    expect(actual.decision).toBe(SamplingDecision.NOT_RECORD);
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('records sample_rate outcome for child span of negatively sampled segment', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 0 }));
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+    const sampler = new SentrySampler(client);
+
+    const traceId = generateTraceId();
+    const ctx = trace.setSpanContext(context.active(), {
+      spanId: generateSpanId(),
+      traceId,
+      traceFlags: 0,
+      traceState: new TraceState().set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
+    });
+
+    const actual = sampler.shouldSample(ctx, traceId, 'db.query SELECT 1', SpanKind.CLIENT, {}, undefined);
+    expect(actual.decision).toBe(SamplingDecision.NOT_RECORD);
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
   });
 
   it('ignores local http client root spans', () => {
