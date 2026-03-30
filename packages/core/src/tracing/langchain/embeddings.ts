@@ -34,35 +34,21 @@ function inferSystemFromClassName(name: string): string | undefined {
 /**
  * Extracts span attributes from a LangChain embedding class instance.
  */
-function extractEmbeddingAttributes(instance: unknown): Record<string, SpanAttributeValue> {
+function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> {
   const embeddingsInstance = (instance ?? {}) as Record<string, unknown>;
 
-  const attributes: Record<string, SpanAttributeValue> = {
+  const attributes: Record<string, unknown> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: String(embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown'),
   };
 
-  const modelName = embeddingsInstance.model ?? embeddingsInstance.modelName ?? 'unknown';
-  attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = String(modelName);
-
-  const ctorName = (instance as { constructor?: { name?: string } }).constructor?.name ?? '';
+  const ctorName = (instance as { constructor?: { name?: string } })?.constructor?.name ?? '';
   const system = inferSystemFromClassName(ctorName);
-  if (system) {
-    attributes[GEN_AI_SYSTEM_ATTRIBUTE] = system;
-  }
-
-  if (embeddingsInstance.dimensions != null) {
-    const n = Number(embeddingsInstance.dimensions);
-    if (!Number.isNaN(n)) {
-      attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = n;
-    }
-  }
-
-  const encodingFormat = embeddingsInstance.encodingFormat ?? embeddingsInstance.encoding_format;
-  if (encodingFormat != null) {
-    attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = String(encodingFormat);
-  }
+  if (system) attributes[GEN_AI_SYSTEM_ATTRIBUTE] = system;
+  if ('dimensions' in embeddingsInstance) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = embeddingsInstance.dimensions;
+  if ('encodingFormat' in embeddingsInstance) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = embeddingsInstance.encodingFormat;
 
   return attributes;
 }
@@ -94,7 +80,7 @@ export function wrapEmbeddingMethod(
         {
           name: `embeddings ${modelName}`,
           op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-          attributes,
+          attributes: attributes as Record<string, SpanAttributeValue>,
         },
         async span => {
           try {
