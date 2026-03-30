@@ -403,7 +403,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     span.end();
                   }
 
-                  if (res.error) {
+                  if (res && res.error) {
                     const err = new Error(res.error.message) as SupabaseError;
                     if (res.error.code) {
                       err.code = res.error.code;
