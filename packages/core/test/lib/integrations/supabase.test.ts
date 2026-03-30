@@ -2,13 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbModule from '../../../src/breadcrumbs';
 import * as exportsModule from '../../../src/exports';
 import {
-  DB_OPERATIONS_TO_INSTRUMENT,
   extractOperation,
   instrumentSupabaseClient,
   translateFiltersIntoMethods,
 } from '../../../src/integrations/supabase';
 import type {
-  PostgRESTFilterBuilder,
   PostgRESTQueryBuilder,
   SupabaseClientInstance,
 } from '../../../src/integrations/supabase';
