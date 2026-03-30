@@ -1,5 +1,5 @@
-import { createLangChainCallbackHandler } from '@sentry/browser';
-import { MockChatAnthropic } from './mocks.js';
+import { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from '@sentry/browser';
+import { MockChatAnthropic, MockOpenAIEmbeddings } from './mocks.js';
 
 const callbackHandler = createLangChainCallbackHandler({
   recordInputs: false,
@@ -20,3 +20,11 @@ const response = await chatModel.invoke('What is the capital of France?', {
 });
 
 console.log('Received response', response);
+
+// Test embeddings instrumentation
+const embeddings = instrumentLangChainEmbeddings(
+  new MockOpenAIEmbeddings({ model: 'text-embedding-3-small', dimensions: 1536 }),
+);
+
+const embedding = await embeddings.embedQuery('Hello world');
+console.log('Received embedding', embedding);

@@ -1,3 +1,21 @@
+// Mock LangChain Embeddings for browser testing
+export class MockOpenAIEmbeddings {
+  constructor(params) {
+    this.model = params.model;
+    this.dimensions = params.dimensions;
+  }
+
+  async embedQuery(text) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return [0.1, 0.2, 0.3];
+  }
+
+  async embedDocuments(documents) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return documents.map(() => [0.1, 0.2, 0.3]);
+  }
+}
+
 // Mock LangChain Chat Model for browser testing
 export class MockChatAnthropic {
   constructor(params) {
