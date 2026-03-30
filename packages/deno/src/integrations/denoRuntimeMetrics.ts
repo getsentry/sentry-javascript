@@ -100,9 +100,11 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
       if (intervalId) {
         clearInterval(intervalId);
       }
-      intervalId = setInterval(collectMetrics, collectionIntervalMs);
       // In Deno, setInterval returns a number, so _INTERNAL_safeUnref is a no-op.
       // Use Deno.unrefTimer so the interval doesn't prevent the process from exiting.
+      // Cast to number since the tsconfig.types.json build context resolves setInterval
+      // to Node's NodeJS.Timeout rather than the Deno/browser number type.
+      intervalId = setInterval(collectMetrics, collectionIntervalMs) as unknown as number;
       Deno.unrefTimer(intervalId);
     },
 
