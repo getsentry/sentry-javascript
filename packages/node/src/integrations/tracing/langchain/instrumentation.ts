@@ -251,8 +251,7 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * Unlike chat models which use LangChain's callback system, the Embeddings base class
    * has no callback support. We wrap the methods directly on the prototype.
    *
-   * Uses duck-type detection: finds any exported class whose prototype has both
-   * embedQuery and embedDocuments as functions.
+   * Instruments any exported class whose prototype has both embedQuery and embedDocuments as functions.
    */
   private _patchEmbeddingsMethods(exports: PatchedLangChainExports, options: LangChainOptions): void {
     const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
@@ -271,11 +270,10 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
 
     const targetProto = embeddingClass.prototype;
 
-    // Separate dedup guard from chat model patching
-    if (targetProto.__sentry_patched_embeddings__) {
+    if (targetProto.__sentry_patched__) {
       return;
     }
-    targetProto.__sentry_patched_embeddings__ = true;
+    targetProto.__sentry_patched__ = true;
 
     instrumentLangChainEmbeddings(targetProto, options);
   }
