@@ -59,6 +59,23 @@ describe('instrumentQueue', () => {
     vi.clearAllMocks();
   });
 
+  test('does not double-wrap when withSentry is called twice', async () => {
+    const originalQueue = vi.fn();
+    const handler = {
+      queue: originalQueue,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler1 = withSentry(optionsCallback, handler);
+    const firstQueue = wrappedHandler1.queue;
+
+    const wrappedHandler2 = withSentry(optionsCallback, handler);
+    const secondQueue = wrappedHandler2.queue;
+
+    expect(firstQueue).toBe(secondQueue);
+  });
+
   test('executes options callback with env', async () => {
     const handler = {
       queue(_batch, _env, _context) {

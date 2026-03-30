@@ -1,6 +1,6 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isInstrumented } from '../src/instrument';
+import { getInstrumented } from '../src/instrument';
 import * as sdk from '../src/sdk';
 import { wrapMethodWithSentry } from '../src/wrapMethodWithSentry';
 
@@ -115,11 +115,11 @@ describe('wrapMethodWithSentry', () => {
         context: createMockContext(),
       };
 
-      expect(isInstrumented(handler)).toBeUndefined();
+      expect(getInstrumented(handler)).toBe(undefined);
 
       wrapMethodWithSentry(options, handler);
 
-      expect(isInstrumented(handler)).toBe(true);
+      expect(getInstrumented(handler)).toBeDefined();
     });
 
     it('does not re-wrap already instrumented handler', () => {
@@ -134,6 +134,7 @@ describe('wrapMethodWithSentry', () => {
 
       // Should return the same wrapped function
       expect(wrapped2).toBe(wrapped1);
+      expect(getInstrumented(handler)).toBe(wrapped1);
     });
 
     it('does not mark handler when noMark is true', () => {
@@ -145,7 +146,7 @@ describe('wrapMethodWithSentry', () => {
 
       wrapMethodWithSentry(options, handler, undefined, true);
 
-      expect(isInstrumented(handler)).toBeFalsy();
+      expect(getInstrumented(handler)).toBeUndefined();
     });
   });
 

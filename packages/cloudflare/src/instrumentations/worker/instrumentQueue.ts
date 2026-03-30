@@ -9,7 +9,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -69,21 +69,23 @@ export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, an
   handler: T,
   optionsCallback: (env: Parameters<NonNullable<T['queue']>>[1]) => CloudflareOptions | undefined,
 ): void {
-  if (!('queue' in handler) || typeof handler.queue !== 'function' || isInstrumented(handler.queue)) {
+  if (!('queue' in handler) || typeof handler.queue !== 'function') {
     return;
   }
 
-  handler.queue = new Proxy(handler.queue, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['queue']>>) {
-      const [batch, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.queue = ensureInstrumented(
+    handler.queue,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['queue']>>) {
+          const [batch, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapQueueHandler(batch, options, context, () => target.apply(thisArg, args));
-    },
-  });
-
-  markAsInstrumented(handler.queue);
+          return wrapQueueHandler(batch, options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
 }

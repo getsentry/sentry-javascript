@@ -8,7 +8,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -65,21 +65,23 @@ export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any
   handler: T,
   optionsCallback: (env: Parameters<NonNullable<T['scheduled']>>[1]) => CloudflareOptions | undefined,
 ): void {
-  if (!('scheduled' in handler) || typeof handler.scheduled !== 'function' || isInstrumented(handler.scheduled)) {
+  if (!('scheduled' in handler) || typeof handler.scheduled !== 'function') {
     return;
   }
 
-  handler.scheduled = new Proxy(handler.scheduled, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['scheduled']>>) {
-      const [controller, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.scheduled = ensureInstrumented(
+    handler.scheduled,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['scheduled']>>) {
+          const [controller, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapScheduledHandler(controller, options, context, () => target.apply(thisArg, args));
-    },
-  });
-
-  markAsInstrumented(handler.scheduled);
+          return wrapScheduledHandler(controller, options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
 }
