@@ -256,25 +256,20 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
   private _patchEmbeddingsMethods(exports: PatchedLangChainExports, options: LangChainOptions): void {
     const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
 
-    const embeddingClass = Object.values(exportsToPatch).find(exp => {
+    for (const exp of Object.values(exportsToPatch)) {
       if (typeof exp !== 'function' || !exp.prototype) {
-        return false;
+        continue;
       }
       const proto = exp.prototype as Record<string, unknown>;
-      return typeof proto.embedQuery === 'function' && typeof proto.embedDocuments === 'function';
-    }) as { prototype: Record<string, unknown> } | undefined;
+      if (typeof proto.embedQuery !== 'function' || typeof proto.embedDocuments !== 'function') {
+        continue;
+      }
+      if (proto.__sentry_patched__) {
+        continue;
+      }
+      proto.__sentry_patched__ = true;
 
-    if (!embeddingClass) {
-      return;
+      instrumentLangChainEmbeddings(proto, options);
     }
-
-    const targetProto = embeddingClass.prototype;
-
-    if (targetProto.__sentry_patched__) {
-      return;
-    }
-    targetProto.__sentry_patched__ = true;
-
-    instrumentLangChainEmbeddings(targetProto, options);
   }
 }
