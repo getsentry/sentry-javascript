@@ -6,5 +6,6 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.spanStreamingIntegration()],
   ignoreSpans: [/ignore/],
+  parentSpanIsAlwaysRootSpan: false,
   tracesSampleRate: 1,
 });

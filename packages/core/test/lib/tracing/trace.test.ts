@@ -2411,7 +2411,7 @@ describe('startNewTrace', () => {
   });
 });
 
-describe('ignoreSpans (core path)', () => {
+describe('ignoreSpans (core path, streaming)', () => {
   beforeEach(() => {
     registerSpanErrorInstrumentation();
     getCurrentScope().clear();
@@ -2425,7 +2425,11 @@ describe('ignoreSpans (core path)', () => {
   });
 
   it('returns SentryNonRecordingSpan for root span matching ignoreSpans', () => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] });
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['GET /health'],
+    });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -2444,7 +2448,11 @@ describe('ignoreSpans (core path)', () => {
   });
 
   it('returns SentryNonRecordingSpan for child span matching ignoreSpans', () => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-child'] });
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-child'],
+    });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -2460,7 +2468,11 @@ describe('ignoreSpans (core path)', () => {
   });
 
   it('children of ignored child spans parent to grandparent', () => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-span'],
+    });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -2478,7 +2490,11 @@ describe('ignoreSpans (core path)', () => {
   });
 
   it('does not ignore non-matching spans', () => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['GET /health'] });
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['GET /health'],
+    });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -2490,12 +2506,112 @@ describe('ignoreSpans (core path)', () => {
   });
 
   it('returns SentryNonRecordingSpan for startInactiveSpan matching ignoreSpans', () => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-span'],
+    });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
 
     const span = startInactiveSpan({ name: 'ignored-span' });
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+  });
+
+  it('does not apply ignoreSpans on the static (non-streaming) path', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      ignoreSpans: ['GET /health'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'GET /health' }, span => {
+      expect(span).toBeInstanceOf(SentrySpan);
+      expect(spanIsSampled(span)).toBe(true);
+    });
+  });
+
+  it('records ignored outcome for root span and all child spans', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['GET /health'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'GET /health' }, () => {
+      startSpan({ name: 'db.query' }, () => {
+        startSpan({ name: 'cache.lookup' }, () => {});
+      });
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(3);
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'ignored', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'ignored', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(3, 'ignored', 'span');
+  });
+
+  it('records sample_rate outcome for unsampled root span and all child spans when streaming', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 0,
+      traceLifecycle: 'stream',
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'GET /foo' }, () => {
+      startSpan({ name: 'db.query' }, () => {});
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(2);
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
+  });
+
+  it('records sample_rate/transaction for unsampled root span on static path', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 0,
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'GET /foo' }, () => {
+      startSpan({ name: 'db.query' }, () => {});
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'transaction');
+  });
+
+  it('records only one ignored outcome for directly ignored child span', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored-child'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'root' }, () => {
+      startSpan({ name: 'ignored-child' }, () => {});
+      startSpan({ name: 'normal-child' }, normalChild => {
+        expect(normalChild).toBeInstanceOf(SentrySpan);
+      });
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
   });
 });
