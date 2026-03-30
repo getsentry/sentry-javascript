@@ -11,9 +11,9 @@ import {
   ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
   GOOGLE_GENAI_INTEGRATION_NAME,
+  instrumentLangChainEmbeddings,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
-  instrumentEmbeddingMethod,
 } from '@sentry/core';
 
 const supportedVersions = ['>=0.1.0 <2.0.0'];
@@ -277,15 +277,6 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     }
     targetProto.__sentry_patched_embeddings__ = true;
 
-    // Duck-type detection already verified these are functions
-    targetProto.embedQuery = instrumentEmbeddingMethod(
-      targetProto.embedQuery as (...args: unknown[]) => Promise<unknown>,
-      options,
-    );
-
-    targetProto.embedDocuments = instrumentEmbeddingMethod(
-      targetProto.embedDocuments as (...args: unknown[]) => Promise<unknown>,
-      options,
-    );
+    instrumentLangChainEmbeddings(targetProto, options);
   }
 }
