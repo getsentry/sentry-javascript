@@ -1,6 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -601,4 +602,124 @@ describe('Google GenAI integration', () => {
       });
     },
   );
+
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embedContent with string contents
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+        },
+        description: 'embeddings text-embedding-004',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'ok',
+      }),
+      // Second span - embedContent error model
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'internal_error',
+      }),
+      // Third span - embedContent with array contents
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+        },
+        description: 'embeddings text-embedding-004',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embedContent with PII
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+          [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'What is the capital of France?',
+        },
+        description: 'embeddings text-embedding-004',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'ok',
+      }),
+      // Second span - embedContent error model with PII
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+          [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]: 'This will fail',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'internal_error',
+      }),
+      // Third span - embedContent with array contents and PII
+      expect.objectContaining({
+        data: {
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+          [GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]:
+            '[{"role":"user","parts":[{"text":"First input text"}]},{"role":"user","parts":[{"text":"Second input text"}]}]',
+        },
+        description: 'embeddings text-embedding-004',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.google_genai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates google genai embeddings spans with sendDefaultPii: false', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates google genai embeddings spans with sendDefaultPii: true', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS })
+        .start()
+        .completed();
+    });
+  });
 });

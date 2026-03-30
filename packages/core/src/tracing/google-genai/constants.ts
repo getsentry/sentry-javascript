@@ -9,6 +9,7 @@ export const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI';
 export const GOOGLE_GENAI_METHOD_REGISTRY = {
   'models.generateContent': { operation: 'generate_content' },
   'models.generateContentStream': { operation: 'generate_content', streaming: true },
+  'models.embedContent': { operation: 'embeddings' },
   'chats.create': { operation: 'chat' },
   // chat.* paths are built by createDeepProxy when it proxies the chat instance with CHAT_PATH as base
   'chat.sendMessage': { operation: 'chat' },
