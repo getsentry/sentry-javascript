@@ -3,7 +3,6 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import { endStreamSpan } from '../ai/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
-import { setCommonResponseAttributes, setTokenUsageAttributes } from './utils';
 import type {
   ChatCompletionChunk,
   ChatCompletionToolCall,
@@ -236,8 +235,6 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    setCommonResponseAttributes(span, state.responseId, state.responseModel, state.responseTimestamp);
-    setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
     const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
     endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
