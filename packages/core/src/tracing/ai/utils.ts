@@ -105,7 +105,7 @@ export function setTokenUsageAttributes(
   }
 }
 
-export interface StreamSpanState {
+export interface StreamResponseState {
   responseId?: string;
   responseModel?: string;
   finishReasons: string[];
@@ -119,10 +119,14 @@ export interface StreamSpanState {
 }
 
 /**
- * Finalizes a streaming span by setting all accumulated response attributes and ending the span.
+ * Ends a streaming span by setting all accumulated response attributes and ending the span.
  * Shared across OpenAI, Anthropic, and Google GenAI streaming implementations.
  */
-export function finalizeStreamSpan(span: Span, state: StreamSpanState, recordOutputs: boolean): void {
+export function endStreamSpan(span: Span, state: StreamResponseState, recordOutputs: boolean): void {
+  if (!span.isRecording()) {
+    return;
+  }
+
   const attrs: Record<string, string | number | boolean> = {
     [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
   };
@@ -155,7 +159,7 @@ export function finalizeStreamSpan(span: Span, state: StreamSpanState, recordOut
   if (recordOutputs && state.responseTexts.length) {
     attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
   }
-  if (state.toolCalls.length) {
+  if (recordOutputs && state.toolCalls.length) {
     attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
   }
 

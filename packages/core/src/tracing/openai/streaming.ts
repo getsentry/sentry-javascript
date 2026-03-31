@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { finalizeStreamSpan } from '../ai/utils';
+import { endStreamSpan } from '../ai/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -236,6 +236,6 @@ export async function* instrumentStream<T>(
     }
   } finally {
     const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
-    finalizeStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
 }

@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { finalizeStreamSpan } from '../ai/utils';
+import { endStreamSpan } from '../ai/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -229,7 +229,7 @@ export async function* instrumentAsyncIterableStream(
       yield event;
     }
   } finally {
-    finalizeStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs);
   }
 }
 
@@ -261,7 +261,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   // The event fired when a message is done being streamed by the API. Corresponds to the message_stop SSE event.
   // @see https://github.com/anthropics/anthropic-sdk-typescript/blob/d3be31f5a4e6ebb4c0a2f65dbb8f381ae73a9166/helpers.md?plain=1#L42-L44
   stream.on('message', () => {
-    finalizeStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs);
   });
 
   stream.on('error', (error: unknown) => {

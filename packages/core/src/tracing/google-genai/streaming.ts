@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { finalizeStreamSpan } from '../ai/utils';
+import { endStreamSpan } from '../ai/utils';
 import type { GoogleGenAIResponse } from './types';
 
 /**
@@ -127,6 +127,6 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
-    finalizeStreamSpan(span, state, recordOutputs);
+    endStreamSpan(span, state, recordOutputs);
   }
 }
