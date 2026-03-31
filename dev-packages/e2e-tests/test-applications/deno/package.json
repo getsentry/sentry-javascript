@@ -5,7 +5,7 @@
   "scripts": {
     "start": "deno run --allow-net --allow-env --allow-read src/app.ts",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install",
     "test:assert": "pnpm test"
   },

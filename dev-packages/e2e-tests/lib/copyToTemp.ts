@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
 import { join } from 'path';
 
@@ -8,6 +8,21 @@ export async function copyToTemp(originalPath: string, tmpDirPath: string): Prom
   await cp(originalPath, tmpDirPath, { recursive: true });
 
   fixPackageJson(tmpDirPath);
+
+  // On develop/master, we want to ignore the lock file to always test with fresh dependencies
+  if (process.env.E2E_IGNORE_LOCKFILE === 'true') {
+    deleteLockfile(tmpDirPath);
+  }
+}
+
+function deleteLockfile(cwd: string): void {
+  const lockfilePath = join(cwd, 'pnpm-lock.yaml');
+  try {
+    unlinkSync(lockfilePath);
+    console.log(`Deleted lockfile at ${lockfilePath} (E2E_IGNORE_LOCKFILE=true)`);
+  } catch {
+    // Lock file doesn't exist, that's fine
+  }
 }
 
 function fixPackageJson(cwd: string): void {

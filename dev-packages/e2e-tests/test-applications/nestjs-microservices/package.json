@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nest build",
     "start": "nest start",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/schematics@latest && pnpm build",

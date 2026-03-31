@@ -7,7 +7,7 @@
     "build": "vite build && cp instrument.server.mjs .output/server",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
     "test:assert": "pnpm test"

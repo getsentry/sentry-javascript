@@ -1,0 +1,129 @@
+name: 'Update E2E Lockfiles'
+
+on:
+  schedule:
+    # Run every day at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      sentry_only:
+        description: 'Only update @sentry/* packages'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      sentry_only:
+        description: 'Only update @sentry/* packages'
+        type: boolean
+        default: true
+
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+
+jobs:
+  update-lockfiles:
+    name: Update E2E Lockfiles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Check out develop branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Build tarballs
+        run: yarn build:tarball
+
+      - name: Get node version
+        id: versions
+        run: |
+          echo "node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
+
+      - name: Validate Verdaccio
+        run: yarn test:validate
+        working-directory: dev-packages/e2e-tests
+
+      - name: Prepare Verdaccio
+        run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+        env:
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
+
+      - name: Update lockfiles
+        working-directory: dev-packages/e2e-tests
+        run: |
+          for dir in test-applications/*/; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Updating: $dir"
+              if [ "${{ inputs.sentry_only }}" = "true" ]; then
+                (cd "$dir" && pnpm update "@sentry/*" --ignore-scripts) || echo "Failed: $dir"
+              else
+                # Update all dependencies (including transitives) to latest within allowed ranges
+                # --no-save keeps package.json unchanged, only updates the lockfile
+                (cd "$dir" && pnpm update --no-save --ignore-scripts) || echo "Failed: $dir"
+              fi
+            fi
+          done
+
+      - name: Set PR metadata
+        id: pr-meta
+        run: |
+          if [ "${{ inputs.sentry_only }}" = "true" ]; then
+            echo "title=chore(e2e): Update @sentry/* in lockfiles" >> $GITHUB_OUTPUT
+            echo "commit=chore(e2e): update @sentry/* in lockfiles" >> $GITHUB_OUTPUT
+            echo "body=Automated update of @sentry/* packages in E2E test application lockfiles after release." >> $GITHUB_OUTPUT
+          else
+            echo "title=chore(e2e): Update pnpm lockfiles" >> $GITHUB_OUTPUT
+            echo "commit=chore(e2e): update pnpm lockfiles" >> $GITHUB_OUTPUT
+            echo "body=Automated daily update of E2E test application lockfiles." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-e2e-lockfiles
+          delete-branch: true
+          title: ${{ steps.pr-meta.outputs.title }}
+          body: |
+            ${{ steps.pr-meta.outputs.body }}
+
+            This PR updates the `pnpm-lock.yaml` files in all E2E test applications.
+          commit-message: ${{ steps.pr-meta.outputs.commit }}
+          labels: |
+            CI & Build
+
+      - name: Enable squash automerge for PR
+        if: steps.create-pr.outputs.pull-request-number != ''
+        run: gh pr merge --squash --auto "${{ steps.create-pr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto approve PR
+        if: steps.create-pr.outputs.pull-request-number != ''
+        uses: hmarr/auto-approve-action@v4
+        with:
+          pull-request-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          review-message: 'Auto approved automated PR'

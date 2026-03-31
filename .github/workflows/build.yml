@@ -1008,6 +1008,9 @@ jobs:
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
+        env:
+          # On develop/master, ignore lockfiles to test with fresh dependencies
+          E2E_IGNORE_LOCKFILE: ${{ github.event_name != 'pull_request' }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
@@ -1134,6 +1137,9 @@ jobs:
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
+        env:
+          # On develop/master, ignore lockfiles to test with fresh dependencies
+          E2E_IGNORE_LOCKFILE: ${{ github.event_name != 'pull_request' }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application

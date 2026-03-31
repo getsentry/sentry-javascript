@@ -2,5 +2,5 @@
 tmp
 .tmp_build_stdout
 .tmp_build_stderr
-pnpm-lock.yaml
 .last-run.json
+./pnpm-lock.yaml

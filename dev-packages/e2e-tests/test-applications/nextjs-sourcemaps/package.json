@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node start-mock-sentry-server.mjs & next build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm ts-node --script-mode assert-build.ts"
   },

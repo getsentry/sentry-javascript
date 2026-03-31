@@ -7,7 +7,7 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "build": "next build",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "clean": "npx rimraf node_modules .tmp_dev_server_logs",
     "start": "pnpm cf:preview",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",

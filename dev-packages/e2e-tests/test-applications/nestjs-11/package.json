@@ -8,7 +8,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test": "playwright test",
     "test:build": "pnpm install",
     "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/testing@latest && pnpm build",

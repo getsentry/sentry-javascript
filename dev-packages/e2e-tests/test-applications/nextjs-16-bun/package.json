@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun --bun next dev",
     "build": "bun --bun next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "clean": "npx rimraf node_modules .tmp_dev_server_logs",
     "start": "bun --bun next start",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",

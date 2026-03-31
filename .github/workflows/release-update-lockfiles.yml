@@ -1,0 +1,11 @@
+name: 'Release: Update E2E Lockfiles'
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-lockfiles:
+    uses: ./.github/workflows/update-e2e-lockfiles.yml
+    with:
+      sentry_only: true
