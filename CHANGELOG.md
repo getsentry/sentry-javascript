@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **ref(core): Remove provider-specific AI span attributes in favor of `gen_ai` attributes in sentry conventions**
+- **ref(core): Remove provider-specific AI span attributes in favor of `gen_ai` attributes in sentry conventions ([#20011](https://github.com/getsentry/sentry-javascript/pull/20011))**
 
   The following provider-specific span attributes have been removed from the OpenAI and Anthropic AI integrations. Use the standardized `gen_ai.*` equivalents instead:
 
