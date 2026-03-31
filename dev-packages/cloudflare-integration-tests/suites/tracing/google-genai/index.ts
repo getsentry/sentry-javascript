@@ -55,7 +55,13 @@ export default Sentry.withSentry(
         ],
       });
 
-      return new Response(JSON.stringify({ chatResponse, modelResponse }));
+      // Test 3: models.embedContent
+      const embedResponse = await client.models.embedContent({
+        model: 'text-embedding-004',
+        contents: 'Hello world',
+      });
+
+      return new Response(JSON.stringify({ chatResponse, modelResponse, embedResponse }));
     },
   },
 );

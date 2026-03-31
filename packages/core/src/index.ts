@@ -41,6 +41,9 @@ export {
   withIsolationScope,
   getClient,
   getTraceContextFromScope,
+  registerExternalPropagationContext,
+  getExternalPropagationContext,
+  hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
@@ -49,7 +52,7 @@ export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
-export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
+export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
 export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';

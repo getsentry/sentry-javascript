@@ -8,7 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   // debug: true,
-  integrations: [Sentry.vercelAIIntegration()],
+  integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;
