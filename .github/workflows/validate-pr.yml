@@ -1,0 +1,16 @@
+name: Validate PR
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: getsentry/github-workflows/validate-pr@0b52fc6a867b744dcbdf5d25c18bc8d1c95710e1
+        with:
+          app-id: ${{ vars.SDK_MAINTAINER_BOT_APP_ID }}
+          private-key: ${{ secrets.SDK_MAINTAINER_BOT_PRIVATE_KEY }}

@@ -1,6 +1,7 @@
 import type { ProfilingIntegration, Transport } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { expect, it, vi } from 'vitest';
+import { CpuProfilerBindings } from '@sentry-internal/node-cpu-profiler';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 // Mock the modules before the import, so that the value is initialized before the module is loaded
@@ -12,7 +13,7 @@ vi.mock('worker_threads', () => {
 });
 vi.setConfig({ testTimeout: 10_000 });
 
-function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
+function makeClient(options: Partial<Sentry.NodeOptions> = {}): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
@@ -28,48 +29,69 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
           return undefined;
         },
       }),
+    ...options,
   });
 
   return [client, client.getTransport() as Transport];
 }
 
-it('worker threads context', () => {
-  const [client, transport] = makeContinuousProfilingClient();
-  Sentry.setCurrentClient(client);
-  client.init();
-
-  const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-  const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-  nonProfiledTransaction.end();
-
-  expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).not.toMatchObject({
-    contexts: {
-      profile: {},
-    },
+describe('worker threads', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
-  if (!integration) {
-    throw new Error('Profiling integration not found');
-  }
+  it('does not start continuous profiling in worker threads', () => {
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-  integration._profiler.start();
-  const profiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-  profiledTransaction.end();
-  integration._profiler.stop();
+    const [client] = makeClient();
+    Sentry.setCurrentClient(client);
+    client.init();
 
-  expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
-    contexts: {
-      trace: {
-        data: expect.objectContaining({
-          ['thread.id']: '9999',
-          ['thread.name']: 'worker',
-        }),
-      },
-      profile: {
-        profiler_id: expect.any(String),
-      },
-    },
+    const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
+    if (!integration) {
+      throw new Error('Profiling integration not found');
+    }
+
+    // Calling start should be a no-op in a worker thread
+    integration._profiler.start();
+
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    transaction.end();
+
+    // The native profiler should never have been called
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+
+    integration._profiler.stop();
+  });
+
+  it('does not start span profiling in worker threads', () => {
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+
+    const [client] = makeClient({ profilesSampleRate: 1 });
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    transaction.end();
+
+    // The native profiler should never have been called even with profilesSampleRate set
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not start trace lifecycle profiling in worker threads', () => {
+    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+
+    const [client] = makeClient({
+      profileSessionSampleRate: 1.0,
+      profileLifecycle: 'trace',
+    });
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    transaction.end();
+
+    // The native profiler should never have been called
+    expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 });

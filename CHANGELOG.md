@@ -4,6 +4,33 @@
 
 ### Important Changes
 
+- **feat(node-core): Add OTLP integration for node-core/light ([#19729](https://github.com/getsentry/sentry-javascript/pull/19729))**
+
+  Added `otlpIntegration` at `@sentry/node-core/light/otlp` for users who manage
+  their own OpenTelemetry setup and want to send trace data to Sentry without
+  adopting the full `@sentry/node` SDK.
+
+  ```js
+  import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+  import * as Sentry from '@sentry/node-core/light';
+  import { otlpIntegration } from '@sentry/node-core/light/otlp';
+
+  const provider = new NodeTracerProvider();
+  provider.register();
+
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [
+      otlpIntegration({
+        // Export OTel spans to Sentry via OTLP (default: true)
+        setupOtlpTracesExporter: true,
+      }),
+    ],
+  });
+  ```
+
+  The integration links Sentry errors to OTel traces and exports spans to Sentry via OTLP.
+
 - **feat(node, bun): Add runtime metrics integrations for Node.js and Bun ([#19923](https://github.com/getsentry/sentry-javascript/pull/19923), [#19979](https://github.com/getsentry/sentry-javascript/pull/19979))**
 
   New `nodeRuntimeMetricsIntegration` and `bunRuntimeMetricsIntegration` automatically collect runtime health metrics and send them to Sentry on a configurable interval (default: 30s). Collected metrics include memory (RSS, heap used/total), CPU utilization, event loop utilization, and process uptime. Node additionally collects event loop delay percentiles (p50, p99). Extra metrics like CPU time and external memory are available as opt-in.
@@ -30,6 +57,21 @@
 - feat(core): Support embedding APIs in google-genai ([#19797](https://github.com/getsentry/sentry-javascript/pull/19797))
 
   Adds instrumentation for the Google GenAI [`embedContent`](https://ai.google.dev/gemini-api/docs/embeddings) API, creating `gen_ai.embeddings` spans.
+
+- **ref(core): Remove provider-specific AI span attributes in favor of `gen_ai` attributes in sentry conventions ([#20011](https://github.com/getsentry/sentry-javascript/pull/20011))**
+
+  The following provider-specific span attributes have been removed from the OpenAI and Anthropic AI integrations. Use the standardized `gen_ai.*` equivalents instead:
+
+  | Removed attribute                | Replacement                  |
+  | -------------------------------- | ---------------------------- |
+  | `openai.response.id`             | `gen_ai.response.id`         |
+  | `openai.response.model`          | `gen_ai.response.model`      |
+  | `openai.usage.prompt_tokens`     | `gen_ai.usage.input_tokens`  |
+  | `openai.usage.completion_tokens` | `gen_ai.usage.output_tokens` |
+  | `openai.response.timestamp`      | _(removed, no replacement)_  |
+  | `anthropic.response.timestamp`   | _(removed, no replacement)_  |
+
+  If you reference these attributes in hooks (e.g. `beforeSendTransaction`), update them to the `gen_ai.*` equivalents.
 
 ## 10.46.0
 

@@ -26,8 +26,6 @@ interface StreamingState {
   responseId: string;
   /** The model name. */
   responseModel: string;
-  /** The timestamp of the response. */
-  responseTimestamp: number;
   /** Number of prompt/input tokens used. */
   promptTokens: number | undefined;
   /** Number of completion/output tokens used. */
@@ -89,7 +87,6 @@ function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], sta
 function processChatCompletionChunk(chunk: ChatCompletionChunk, state: StreamingState, recordOutputs: boolean): void {
   state.responseId = chunk.id ?? state.responseId;
   state.responseModel = chunk.model ?? state.responseModel;
-  state.responseTimestamp = chunk.created ?? state.responseTimestamp;
 
   if (chunk.usage) {
     // For stream responses, the input tokens remain constant across all events in the stream.
@@ -173,7 +170,6 @@ function processResponsesApiEvent(
     const { response } = event as { response: OpenAIResponseObject };
     state.responseId = response.id ?? state.responseId;
     state.responseModel = response.model ?? state.responseModel;
-    state.responseTimestamp = response.created_at ?? state.responseTimestamp;
 
     if (response.usage) {
       // For stream responses, the input tokens remain constant across all events in the stream.
@@ -217,7 +213,6 @@ export async function* instrumentStream<T>(
     finishReasons: [],
     responseId: '',
     responseModel: '',
-    responseTimestamp: 0,
     promptTokens: undefined,
     completionTokens: undefined,
     totalTokens: undefined,

@@ -65,9 +65,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/instrumentation": "^0.213.0",
-    "@opentelemetry/instrumentation-aws-sdk": "0.68.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/instrumentation": "^0.214.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.69.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@sentry/core": "10.46.0",
     "@sentry/node": "10.46.0",
