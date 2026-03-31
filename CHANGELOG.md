@@ -8,14 +8,14 @@
 
   The following provider-specific span attributes have been removed from the OpenAI and Anthropic AI integrations. Use the standardized `gen_ai.*` equivalents instead:
 
-  | Removed attribute                  | Replacement                   |
-  | ---------------------------------- | ----------------------------- |
-  | `openai.response.id`               | `gen_ai.response.id`          |
-  | `openai.response.model`            | `gen_ai.response.model`       |
-  | `openai.usage.prompt_tokens`       | `gen_ai.usage.input_tokens`   |
-  | `openai.usage.completion_tokens`   | `gen_ai.usage.output_tokens`  |
-  | `openai.response.timestamp`        | _(removed, no replacement)_   |
-  | `anthropic.response.timestamp`     | _(removed, no replacement)_   |
+  | Removed attribute                | Replacement                  |
+  | -------------------------------- | ---------------------------- |
+  | `openai.response.id`             | `gen_ai.response.id`         |
+  | `openai.response.model`          | `gen_ai.response.model`      |
+  | `openai.usage.prompt_tokens`     | `gen_ai.usage.input_tokens`  |
+  | `openai.usage.completion_tokens` | `gen_ai.usage.output_tokens` |
+  | `openai.response.timestamp`      | _(removed, no replacement)_  |
+  | `anthropic.response.timestamp`   | _(removed, no replacement)_  |
 
   If you reference these attributes in hooks (e.g. `beforeSendTransaction`), update them to the `gen_ai.*` equivalents.
 
