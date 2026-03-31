@@ -90,8 +90,13 @@ function instrumentedEventHandler(handlerOrObject) {
   return eventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));
 }
 
+function defineInstrumentedHandler(handlerOrObject) {
+  return defineHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));
+}
+
 ${originalCode
   .replace(/defineEventHandler\(/g, 'defineInstrumentedEventHandler(')
-  .replace(/eventHandler\(/g, 'instrumentedEventHandler(')}
+  .replace(/eventHandler\(/g, 'instrumentedEventHandler(')
+  .replace(/defineHandler\(/g, 'defineInstrumentedHandler(')}
 `;
 }

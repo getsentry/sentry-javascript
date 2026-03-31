@@ -18,6 +18,7 @@ import { addStorageInstrumentation } from './vite/storageConfig';
 import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
+type NuxtPageSubset = { file?: string; path: string };
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -79,20 +80,25 @@ export default defineNuxtModule<ModuleOptions>({
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
     const isNitroV3 = (await getNitroMajorVersion()) >= 3;
+    const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
+    const isMinNuxtV4 = nuxtMajor >= 4;
 
     if (serverConfigFile) {
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
       } else {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
+        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
       }
 
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
-      addPlugin({
-        src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
-        mode: 'server',
-      });
+      if (isMinNuxtV4) {
+        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
+      } else {
+        addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
+      }
 
       // Preps the middleware instrumentation module.
       addMiddlewareImports();
@@ -106,25 +112,34 @@ export default defineNuxtModule<ModuleOptions>({
 
     addOTelCommonJSImportAlias(nuxt, isNitroV3);
 
-    const pagesDataTemplate = addTemplate({
-      filename: 'sentry--nuxt-pages-data.mjs',
-      // Initial empty array (later filled in pages:extend hook)
-      // Template needs to be created in the root-level of the module to work
-      getContents: () => 'export default [];',
-    });
+    let pagesData: NuxtPageSubset[] = [];
 
     nuxt.hooks.hook('pages:extend', pages => {
-      pagesDataTemplate.getContents = () => {
-        const pagesSubset = pages
-          .map(page => ({ file: page.file, path: page.path }))
-          .filter(page => {
-            // Check for dynamic parameter (e.g., :userId or [userId])
-            return page.path.includes(':') || page?.file?.includes('[');
-          });
-
-        return `export default ${JSON.stringify(pagesSubset, null, 2)};`;
-      };
+      pagesData = pages
+        .map(page => ({ file: page.file, path: page.path }))
+        .filter(page => {
+          // Check for dynamic parameter (e.g., :userId or [userId])
+          return page.path.includes(':') || page?.file?.includes('[');
+        });
     });
+
+    if (isMinNuxtV4) {
+      const pagesDataVirtualModuleId = '#sentry/nuxt-pages-data.mjs';
+
+      // Vite virtual plugin (for the Vite SSR build, where addPlugin mode:'server' plugins are bundled)
+      addVitePlugin({
+        name: 'sentry-nuxt-pages-data-virtual',
+        resolveId: id => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
+        load: id =>
+          id === `\0${pagesDataVirtualModuleId}` ? `export default ${JSON.stringify(pagesData, null, 2)};` : undefined,
+      });
+    } else {
+      // Nuxt v3: register as a build template (accessible via #build/)
+      addTemplate({
+        filename: 'sentry--nuxt-pages-data.mjs',
+        getContents: () => `export default ${JSON.stringify(pagesData, null, 2)};`,
+      });
+    }
 
     // Add the sentry config file to the include array
     nuxt.hook('prepare:types', options => {
@@ -151,7 +166,7 @@ export default defineNuxtModule<ModuleOptions>({
         return;
       }
 
-      if (serverConfigFile && !isNitroV3) {
+      if (serverConfigFile) {
         addMiddlewareInstrumentation(nitro);
       }
 

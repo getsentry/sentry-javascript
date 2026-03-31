@@ -18,6 +18,24 @@ export interface AIRecordingOptions {
 }
 
 /**
+ * A method registry entry describes a single instrumented method:
+ * which gen_ai operation it maps to and whether it is intrinsically streaming.
+ */
+export interface InstrumentedMethodEntry {
+  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content') */
+  operation: string;
+  /** True if the method itself is always streaming (not param-based) */
+  streaming?: boolean;
+}
+
+/**
+ * Maps method paths to their registry entries.
+ * Used by proxy-based AI client instrumentations to determine which methods
+ * to instrument, what operation name to use, and whether they stream.
+ */
+export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
+
+/**
  * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
  * Precedence: explicit option > sendDefaultPii > false
  */
@@ -28,39 +46,6 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
     recordInputs: options?.recordInputs ?? sendDefaultPii,
     recordOutputs: options?.recordOutputs ?? sendDefaultPii,
   } as T & Required<AIRecordingOptions>;
-}
-
-/**
- * Maps AI method paths to OpenTelemetry semantic convention operation names
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export function getFinalOperationName(methodPath: string): string {
-  if (methodPath.includes('messages')) {
-    return 'chat';
-  }
-  if (methodPath.includes('completions')) {
-    return 'text_completion';
-  }
-  // Google GenAI: models.generateContent* -> generate_content (actually generates AI responses)
-  if (methodPath.includes('generateContent')) {
-    return 'generate_content';
-  }
-  // Anthropic: models.get/retrieve -> models (metadata retrieval only)
-  if (methodPath.includes('models')) {
-    return 'models';
-  }
-  if (methodPath.includes('chat')) {
-    return 'chat';
-  }
-  return methodPath.split('.').pop() || 'unknown';
-}
-
-/**
- * Get the span operation for AI methods
- * Following Sentry's convention: "gen_ai.{operation_name}"
- */
-export function getSpanOperation(methodPath: string): string {
-  return `gen_ai.${getFinalOperationName(methodPath)}`;
 }
 
 /**

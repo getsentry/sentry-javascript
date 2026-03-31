@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",
-    "@apollo/server": "^5.4.0",
+    "@apollo/server": "^5.5.0",
     "@aws-sdk/client-s3": "^3.993.0",
     "@google/genai": "^1.20.0",
     "@growthbook/growthbook": "^1.6.1",
@@ -46,7 +46,7 @@
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "ai": "^4.3.16",
-    "amqplib": "^0.10.7",
+    "amqplib": "^0.10.9",
     "body-parser": "^2.2.2",
     "connect": "^3.7.0",
     "consola": "^3.2.3",

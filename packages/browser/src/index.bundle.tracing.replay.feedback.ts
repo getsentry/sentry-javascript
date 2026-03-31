@@ -1,5 +1,9 @@
 import { registerSpanErrorInstrumentation } from '@sentry/core';
-import { consoleLoggingIntegrationShim, loggerShim } from '@sentry-internal/integration-shims';
+import {
+  consoleLoggingIntegrationShim,
+  elementTimingIntegrationShim,
+  loggerShim,
+} from '@sentry-internal/integration-shims';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
@@ -26,6 +30,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { elementTimingIntegrationShim as elementTimingIntegration };
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { reportPageLoaded } from './tracing/reportPageLoaded';

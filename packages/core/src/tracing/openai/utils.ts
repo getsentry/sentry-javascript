@@ -16,58 +16,20 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  OPENAI_OPERATIONS,
   OPENAI_RESPONSE_ID_ATTRIBUTE,
   OPENAI_RESPONSE_MODEL_ATTRIBUTE,
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { INSTRUMENTED_METHODS } from './constants';
 import type {
   ChatCompletionChunk,
-  InstrumentedMethod,
   OpenAiChatCompletionObject,
   OpenAIConversationObject,
   OpenAICreateEmbeddingsObject,
   OpenAIResponseObject,
   ResponseStreamingEvent,
 } from './types';
-
-/**
- * Maps OpenAI method paths to OpenTelemetry semantic convention operation names
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export function getOperationName(methodPath: string): string {
-  if (methodPath.includes('chat.completions')) {
-    return OPENAI_OPERATIONS.CHAT;
-  }
-  if (methodPath.includes('responses')) {
-    return OPENAI_OPERATIONS.CHAT;
-  }
-  if (methodPath.includes('embeddings')) {
-    return OPENAI_OPERATIONS.EMBEDDINGS;
-  }
-  if (methodPath.includes('conversations')) {
-    return OPENAI_OPERATIONS.CHAT;
-  }
-  return methodPath.split('.').pop() || 'unknown';
-}
-
-/**
- * Get the span operation for OpenAI methods
- * Following Sentry's convention: "gen_ai.{operation_name}"
- */
-export function getSpanOperation(methodPath: string): string {
-  return `gen_ai.${getOperationName(methodPath)}`;
-}
-
-/**
- * Check if a method path should be instrumented
- */
-export function shouldInstrument(methodPath: string): methodPath is InstrumentedMethod {
-  return INSTRUMENTED_METHODS.includes(methodPath as InstrumentedMethod);
-}
 
 /**
  * Check if response is a Chat Completion object

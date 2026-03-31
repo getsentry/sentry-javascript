@@ -1,4 +1,4 @@
-import type { ANTHROPIC_AI_INSTRUMENTED_METHODS } from './constants';
+import type { ANTHROPIC_METHOD_REGISTRY } from './constants';
 
 export interface AnthropicAiOptions {
   /**
@@ -84,7 +84,10 @@ export interface AnthropicAiIntegration {
   options: AnthropicAiOptions;
 }
 
-export type AnthropicAiInstrumentedMethod = (typeof ANTHROPIC_AI_INSTRUMENTED_METHODS)[number];
+/**
+ * @deprecated This type is no longer used and will be removed in the next major version.
+ */
+export type AnthropicAiInstrumentedMethod = keyof typeof ANTHROPIC_METHOD_REGISTRY;
 
 /**
  * Message type for Anthropic AI

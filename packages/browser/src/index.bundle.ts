@@ -1,6 +1,7 @@
 import {
   browserTracingIntegrationShim,
   consoleLoggingIntegrationShim,
+  elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
   replayIntegrationShim,
@@ -13,6 +14,7 @@ export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim 
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
+  elementTimingIntegrationShim as elementTimingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
   replayIntegrationShim as replayIntegration,

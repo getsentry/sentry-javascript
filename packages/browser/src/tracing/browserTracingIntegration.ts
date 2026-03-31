@@ -11,6 +11,7 @@ import type {
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
+  consoleSandbox,
   dateTimestampInSeconds,
   debug,
   generateSpanId,
@@ -39,7 +40,6 @@ import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
-  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -146,12 +146,10 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
-   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
-   * information and add it to the corresponding transaction.
-   *
-   * Default: true
+   * @deprecated This option is no longer used. Element timing is now tracked via the standalone
+   * `elementTimingIntegration`. Add it to your `integrations` array to collect element timing metrics.
    */
-  enableElementTiming: boolean;
+  enableElementTiming?: boolean;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -337,7 +335,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
-  enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   detectRedirects: true,
@@ -358,6 +355,15 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
+  if ('enableElementTiming' in options) {
+    consoleSandbox(() => {
+      // oxlint-disable-next-line no-console
+      console.warn(
+        '[Sentry] `enableElementTiming` is deprecated and no longer has any effect. Use the standalone `elementTimingIntegration` instead.',
+      );
+    });
+  }
+
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
@@ -371,7 +377,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const {
     enableInp,
-    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
     _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
@@ -517,10 +522,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (enableInp) {
         startTrackingINP();
-      }
-
-      if (enableElementTiming) {
-        startTrackingElementTiming();
       }
 
       if (

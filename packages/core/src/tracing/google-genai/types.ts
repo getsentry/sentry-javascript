@@ -1,4 +1,4 @@
-import type { GOOGLE_GENAI_INSTRUMENTED_METHODS } from './constants';
+import type { GOOGLE_GENAI_METHOD_REGISTRY } from './constants';
 
 export interface GoogleGenAIOptions {
   /**
@@ -163,6 +163,8 @@ export interface GoogleGenAIClient {
     // https://googleapis.github.io/js-genai/release_docs/classes/models.Models.html#generatecontentstream
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generateContentStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
+    // https://googleapis.github.io/js-genai/release_docs/classes/models.Models.html#embedcontent
+    embedContent: (...args: unknown[]) => Promise<unknown>;
   };
   chats: {
     create: (...args: unknown[]) => GoogleGenAIChat;
@@ -179,7 +181,10 @@ export interface GoogleGenAIChat {
   sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
 }
 
-export type GoogleGenAIIstrumentedMethod = (typeof GOOGLE_GENAI_INSTRUMENTED_METHODS)[number];
+/**
+ * @deprecated This type is no longer used and will be removed in the next major version.
+ */
+export type GoogleGenAIIstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
 
 // Export the response type for use in instrumentation
 export type GoogleGenAIResponse = GenerateContentResponse;

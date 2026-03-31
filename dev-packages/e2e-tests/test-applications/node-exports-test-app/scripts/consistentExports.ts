@@ -55,6 +55,9 @@ const DEPENDENTS: Dependent[] = [
       'childProcessIntegration',
       'systemErrorIntegration',
       'pinoIntegration',
+      // Bun will get its own runtime metrics integration
+      'nodeRuntimeMetricsIntegration',
+      'NodeRuntimeMetricsOptions',
     ],
   },
   {

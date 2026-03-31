@@ -15,37 +15,28 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
+import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
+  buildMethodPath,
   extractSystemInstructions,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
-  buildMethodPath,
 } from '../ai/utils';
+import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
-import type {
-  ChatCompletionChunk,
-  InstrumentedMethod,
-  OpenAiOptions,
-  OpenAiResponse,
-  OpenAIStream,
-  ResponseStreamingEvent,
-} from './types';
+import type { ChatCompletionChunk, OpenAiOptions, OpenAiResponse, OpenAIStream, ResponseStreamingEvent } from './types';
 import {
   addChatCompletionAttributes,
   addConversationAttributes,
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
   extractRequestParameters,
-  getOperationName,
-  getSpanOperation,
   isChatCompletionResponse,
   isConversationResponse,
   isEmbeddingsResponse,
   isResponsesApiResponse,
-  shouldInstrument,
 } from './utils';
 
 /**
@@ -74,10 +65,10 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
@@ -127,7 +118,7 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
   // Store embeddings input on a separate attribute and do not truncate it
-  if (operationName === OPENAI_OPERATIONS.EMBEDDINGS && 'input' in params) {
+  if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
 
     // No input provided
@@ -183,21 +174,22 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
  */
 function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
-  methodPath: InstrumentedMethod,
+  methodPath: string,
+  instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
-  return function instrumentedMethod(...args: T): Promise<R> {
-    const requestAttributes = extractRequestAttributes(args, methodPath);
+  return function instrumentedCall(...args: T): Promise<R> {
+    const operationName = instrumentedMethod.operation;
+    const requestAttributes = extractRequestAttributes(args, operationName);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
-    const operationName = getOperationName(methodPath);
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
     const spanConfig = {
       name: `${operationName} ${model}`,
-      op: getSpanOperation(methodPath),
+      op: `gen_ai.${operationName}`,
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
 
@@ -280,8 +272,15 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      if (typeof value === 'function' && shouldInstrument(methodPath)) {
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
+      const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
+      if (typeof value === 'function' && instrumentedMethod) {
+        return instrumentMethod(
+          value as (...args: unknown[]) => Promise<unknown>,
+          methodPath,
+          instrumentedMethod,
+          obj,
+          options,
+        );
       }
 
       if (typeof value === 'function') {

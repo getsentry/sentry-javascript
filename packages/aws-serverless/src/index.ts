@@ -61,6 +61,8 @@ export {
   langChainIntegration,
   langGraphIntegration,
   modulesIntegration,
+  nodeRuntimeMetricsIntegration,
+  type NodeRuntimeMetricsOptions,
   contextLinesIntegration,
   nodeContextIntegration,
   localVariablesIntegration,

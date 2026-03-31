@@ -468,6 +468,99 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
     });
   });
 
+  describe('h3 v2 (Nitro v3) middleware array wrapping', () => {
+    it('should wrap middleware array handlers correctly', async () => {
+      const baseHandler: EventHandler = vi.fn().mockResolvedValue('handler-result');
+      const middlewareHandler1 = vi.fn().mockResolvedValue(undefined);
+      const middlewareHandler2 = vi.fn().mockResolvedValue(undefined);
+      const handlerObject = {
+        handler: baseHandler,
+        middleware: [middlewareHandler1, middlewareHandler2],
+      };
+
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject as any, 'v2-middleware');
+
+      expect(wrapped).toHaveProperty('middleware');
+      expect(Array.isArray((wrapped as any).middleware)).toBe(true);
+      expect((wrapped as any).middleware).toHaveLength(2);
+
+      await (wrapped as any).middleware[0](mockEvent);
+      await (wrapped as any).middleware[1](mockEvent);
+
+      expect(middlewareHandler1).toHaveBeenCalledWith(mockEvent);
+      expect(middlewareHandler2).toHaveBeenCalledWith(mockEvent);
+
+      expect(SentryCore.startSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'v2-middleware.middleware',
+          attributes: expect.objectContaining({
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
+            'nuxt.middleware.name': 'v2-middleware',
+            'nuxt.middleware.hook.name': 'middleware',
+            'nuxt.middleware.hook.index': 0,
+          }),
+        }),
+        expect.any(Function),
+      );
+      expect(SentryCore.startSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'v2-middleware.middleware',
+          attributes: expect.objectContaining({
+            'nuxt.middleware.hook.name': 'middleware',
+            'nuxt.middleware.hook.index': 1,
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('should wrap single-element middleware array with index', async () => {
+      const baseHandler: EventHandler = vi.fn().mockResolvedValue('handler-result');
+      const middlewareHandler = vi.fn().mockResolvedValue(undefined);
+      const handlerObject = {
+        handler: baseHandler,
+        middleware: [middlewareHandler],
+      };
+
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject as any, 'v2-single-middleware');
+
+      await (wrapped as any).middleware[0](mockEvent);
+
+      expect(middlewareHandler).toHaveBeenCalledWith(mockEvent);
+
+      const spanCall = (SentryCore.startSpan as any).mock.calls.find(
+        (call: any) => call[0]?.attributes?.['nuxt.middleware.hook.name'] === 'middleware',
+      );
+      expect(spanCall[0].attributes['nuxt.middleware.hook.index']).toBe(0);
+    });
+
+    it('should handle h3 v2 object without middleware property', async () => {
+      const baseHandler: EventHandler = vi.fn().mockResolvedValue('v2-result');
+      const handlerObject = { handler: baseHandler };
+
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject as any, 'v2-handler-only');
+
+      const result = await (wrapped as any).handler(mockEvent);
+      expect(result).toBe('v2-result');
+      expect(baseHandler).toHaveBeenCalledWith(mockEvent);
+    });
+
+    it('should propagate errors from middleware array handlers', async () => {
+      const baseHandler: EventHandler = vi.fn().mockResolvedValue('success');
+      const error = new Error('Middleware error');
+      const failingMiddleware = vi.fn().mockRejectedValue(error);
+      const handlerObject = {
+        handler: baseHandler,
+        middleware: [failingMiddleware],
+      };
+
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject as any, 'failing-v2-middleware');
+
+      await expect((wrapped as any).middleware[0](mockEvent)).rejects.toThrow('Middleware error');
+      expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.any(Object));
+    });
+  });
+
   describe('Sentry API integration', () => {
     it('should call Sentry APIs with correct parameters', async () => {
       const userHandler: EventHandler = vi.fn().mockResolvedValue('api-test-result');

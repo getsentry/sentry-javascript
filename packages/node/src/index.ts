@@ -188,6 +188,8 @@ export {
   spotlightIntegration,
   childProcessIntegration,
   processSessionIntegration,
+  nodeRuntimeMetricsIntegration,
+  type NodeRuntimeMetricsOptions,
   pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,

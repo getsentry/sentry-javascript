@@ -1,4 +1,5 @@
 import { spanToJSON } from '@sentry/browser';
+import type { Span } from '@sentry/core';
 import {
   createTransport,
   getCurrentScope,
@@ -9,7 +10,7 @@ import {
 } from '@sentry/core';
 import type { MemoryHistory } from '@solidjs/router';
 import { createMemoryHistory, MemoryRouter, Navigate, Route } from '@solidjs/router';
-import { render } from '@solidjs/testing-library';
+import { render, waitFor } from '@solidjs/testing-library';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src/client';
 import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '../../src/client/solidrouter';
@@ -114,39 +115,54 @@ describe('solidRouterBrowserTracingIntegration', () => {
   });
 
   it.each([
-    ['', '/navigate-to-about', '/about'],
-    ['for nested navigation', '/navigate-to-about-us', '/about/us'],
-    ['for navigation with param', '/navigate-to-user', '/user/5'],
-    ['for nested navigation with params', '/navigate-to-user-post', '/user/5/post/12'],
-  ])('starts a navigation span %s', (_itDescription, navigationPath, path) => {
-    const spanStartMock = vi.fn();
+    ['', '/navigate-to-about', '/about', {}],
+    ['for nested navigation', '/navigate-to-about-us', '/about/us', {}],
+    ['for navigation with param', '/navigate-to-user', '/user/:id', { id: '5' }],
+    [
+      'for nested navigation with params',
+      '/navigate-to-user-post',
+      '/user/:id/post/:postId',
+      { id: '5', postId: '12' },
+    ],
+  ])(
+    'starts a parametrized navigation span %s',
+    async (_itDescription, navigationPath, parametrizedRoute, expectedParams) => {
+      const spans: Span[] = [];
 
-    const client = createMockBrowserClient();
-    setCurrentClient(client);
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
 
-    client.on('spanStart', span => {
-      spanStartMock(spanToJSON(span));
-    });
-    client.addIntegration(solidRouterBrowserTracingIntegration());
-    const SentryRouter = withSentryRouterRouting(MemoryRouter);
+      client.on('spanStart', span => {
+        spans.push(span);
+      });
+      client.addIntegration(solidRouterBrowserTracingIntegration());
+      const SentryRouter = withSentryRouterRouting(MemoryRouter);
 
-    const history = createMemoryHistory();
-    history.set({ value: navigationPath });
+      const history = createMemoryHistory();
+      history.set({ value: navigationPath });
 
-    renderRouter(SentryRouter, history);
+      renderRouter(SentryRouter, history);
 
-    expect(spanStartMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        op: 'navigation',
-        description: path,
-        data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      // Wait for the router transition to complete (Navigate redirects are async)
+      await waitFor(() => {
+        const navSpan = spans.find(s => spanToJSON(s).op === 'navigation');
+        expect(navSpan).toBeDefined();
+
+        const span = spanToJSON(navSpan!);
+        expect(span.description).toBe(parametrizedRoute);
+        expect(span.data).toMatchObject({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
-        }),
-      }),
-    );
-  });
+        });
+
+        for (const [key, value] of Object.entries(expectedParams as Record<string, string>)) {
+          expect(span.data![`url.path.parameter.${key}`]).toBe(value);
+          expect(span.data![`params.${key}`]).toBe(value);
+        }
+      });
+    },
+  );
 
   it('skips navigation span, with `instrumentNavigation: false`', () => {
     const spanStartMock = vi.fn();
@@ -172,7 +188,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         op: 'navigation',
         description: '/about',
         data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         }),

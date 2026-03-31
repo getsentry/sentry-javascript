@@ -1,26 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ContentListUnion } from '../../../src/tracing/google-genai/utils';
-import { contentUnionToMessages, isStreamingMethod, shouldInstrument } from '../../../src/tracing/google-genai/utils';
-
-describe('isStreamingMethod', () => {
-  it('detects streaming methods', () => {
-    expect(isStreamingMethod('messageStreamBlah')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContentStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah sendMessageStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContentStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah sendMessageStream')).toBe(true);
-    expect(isStreamingMethod('blahblahblah generateContent')).toBe(false);
-    expect(isStreamingMethod('blahblahblah sendMessage')).toBe(false);
-  });
-});
-
-describe('shouldInstrument', () => {
-  it('detects which methods to instrument', () => {
-    expect(shouldInstrument('models.generateContent')).toBe(true);
-    expect(shouldInstrument('some.path.to.sendMessage')).toBe(true);
-    expect(shouldInstrument('unknown')).toBe(false);
-  });
-});
+import { contentUnionToMessages } from '../../../src/tracing/google-genai/utils';
 
 describe('convert google-genai messages to consistent message', () => {
   it('converts strings to messages', () => {
