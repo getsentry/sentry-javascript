@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **ref(core): Remove provider-specific AI span attributes in favor of `gen_ai` attributes in sentry conventions ([#20011](https://github.com/getsentry/sentry-javascript/pull/20011))**
+
+  The following provider-specific span attributes have been removed from the OpenAI and Anthropic AI integrations. Use the standardized `gen_ai.*` equivalents instead:
+
+  | Removed attribute                | Replacement                  |
+  | -------------------------------- | ---------------------------- |
+  | `openai.response.id`             | `gen_ai.response.id`         |
+  | `openai.response.model`          | `gen_ai.response.model`      |
+  | `openai.usage.prompt_tokens`     | `gen_ai.usage.input_tokens`  |
+  | `openai.usage.completion_tokens` | `gen_ai.usage.output_tokens` |
+  | `openai.response.timestamp`      | _(removed, no replacement)_  |
+  | `anthropic.response.timestamp`   | _(removed, no replacement)_  |
+
+  If you reference these attributes in hooks (e.g. `beforeSendTransaction`), update them to the `gen_ai.*` equivalents.
+
 ## 10.47.0
 
 ### Important Changes
