@@ -7,14 +7,19 @@ import { globFiles } from "../src/glob";
 import { prepareBundleForDebugIdUpload } from "../src/debug-id-upload";
 import { describe, it, expect, afterEach, beforeEach, vi, MockedFunction } from "vitest";
 
-const { mockCliExecute, mockCliUploadSourceMaps, mockCliNewDeploy } = vi.hoisted(() => ({
-  mockCliExecute: vi.fn(),
-  mockCliUploadSourceMaps: vi.fn(),
-  mockCliNewDeploy: vi.fn(),
-}));
+const { mockCliExecute, mockCliUploadSourceMaps, mockCliNewDeploy, mockCliConstructor } =
+  vi.hoisted(() => ({
+    mockCliExecute: vi.fn(),
+    mockCliUploadSourceMaps: vi.fn(),
+    mockCliNewDeploy: vi.fn(),
+    mockCliConstructor: vi.fn(),
+  }));
 
 vi.mock("@sentry/cli", () => ({
   default: class {
+    constructor(...args: unknown[]) {
+      mockCliConstructor(...args);
+    }
     execute = mockCliExecute;
     releases = {
       uploadSourceMaps: mockCliUploadSourceMaps,
@@ -637,6 +642,41 @@ describe("createSentryBuildPluginManager", () => {
         projects: undefined,
         release: "test-release",
       });
+    });
+  });
+
+  describe("telemetry option", () => {
+    it("should not pass sentry-trace or baggage headers to CLI when telemetry is false", async () => {
+      mockCliExecute.mockResolvedValue(undefined);
+
+      const buildPluginManager = createSentryBuildPluginManager(
+        {
+          authToken: "test-token",
+          org: "test-org",
+          project: "test-project",
+          telemetry: false,
+        },
+        {
+          buildTool: "webpack",
+          loggerPrefix: "[sentry-webpack-plugin]",
+        }
+      );
+
+      // Trigger a CLI operation so createCliInstance is called
+      await buildPluginManager.injectDebugIds(["/path/to/bundle"]);
+
+      // Find the CLI constructor call that was made by createCliInstance (not the one from allowedToSendTelemetry)
+      const cliConstructorCalls = mockCliConstructor.mock.calls;
+      expect(cliConstructorCalls.length).toBeGreaterThan(0);
+
+      // Check that none of the CLI instances were created with sentry-trace or baggage headers
+      for (const call of cliConstructorCalls) {
+        const options = call[1] as { headers?: Record<string, string> };
+        if (options?.headers) {
+          expect(options.headers).not.toHaveProperty("sentry-trace");
+          expect(options.headers).not.toHaveProperty("baggage");
+        }
+      }
     });
   });
 
