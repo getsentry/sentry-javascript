@@ -54,13 +54,13 @@ describe('makeCustomSentryVitePlugins', () => {
     expect(plugins?.[0]?.name).toBe('sentry-vite-plugin');
   });
 
-  it('should disable sourcemap upload with "disable-upload" by default', async () => {
+  it('should disable sourcemap upload by default', async () => {
     await makeCustomSentryVitePlugins({});
 
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
-          disable: 'disable-upload',
+          disable: true,
         }),
       }),
     );

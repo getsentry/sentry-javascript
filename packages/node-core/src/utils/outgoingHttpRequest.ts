@@ -63,7 +63,13 @@ export function addTracePropagationHeadersToOutgoingRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
 
-  if (sentryTrace && !request.getHeader('sentry-trace')) {
+  const hasExistingSentryTraceHeader = !!request.getHeader('sentry-trace');
+
+  if (hasExistingSentryTraceHeader) {
+    return;
+  }
+
+  if (sentryTrace) {
     try {
       request.setHeader('sentry-trace', sentryTrace);
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added sentry-trace header to outgoing request');
@@ -92,7 +98,8 @@ export function addTracePropagationHeadersToOutgoingRequest(
   }
 
   if (baggage) {
-    const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
+    const existingBaggage = request.getHeader('baggage');
+    const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
     if (newBaggage) {
       try {
         request.setHeader('baggage', newBaggage);

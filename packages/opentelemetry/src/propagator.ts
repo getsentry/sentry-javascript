@@ -63,6 +63,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     const existingBaggageHeader = getExistingBaggage(carrier);
+    const existingSentryTraceHeader = getExistingSentryTrace(carrier);
+
     let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
 
     const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
@@ -72,12 +74,18 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
       if (baggageEntries) {
         Object.entries(baggageEntries).forEach(([key, value]) => {
+          if (!existingSentryTraceHeader && key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+            // Edge case: A baggage header with sentry- keys was added previously but no
+            // sentry-trace header. In this case we remove the old sentry-keys and add new
+            // ones below.
+            return;
+          }
           baggage = baggage.setEntry(key, { value });
         });
       }
     }
 
-    if (dynamicSamplingContext) {
+    if (!existingSentryTraceHeader && dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
         if (dscValue) {
           return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });
@@ -87,7 +95,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
-    if (traceId && traceId !== INVALID_TRACEID) {
+    if (!existingSentryTraceHeader && traceId && traceId !== INVALID_TRACEID) {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
 
       if (propagateTraceparent) {
@@ -243,6 +251,14 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   try {
     const baggage = (carrier as Record<string, string | string[]>)[SENTRY_BAGGAGE_HEADER];
     return Array.isArray(baggage) ? baggage.join(',') : baggage;
+  } catch {
+    return undefined;
+  }
+}
+
+function getExistingSentryTrace(carrier: unknown): string | string[] | undefined {
+  try {
+    return (carrier as Record<string, string | string[]>)[SENTRY_TRACE_HEADER];
   } catch {
     return undefined;
   }
