@@ -134,3 +134,18 @@ Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
   assertStringIncludes(warnings[0]!, 'collectionIntervalMs');
   assertStringIncludes(warnings[0]!, '1000');
 });
+
+Deno.test('warns and clamps collectionIntervalMs when NaN', () => {
+  const warnings: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (msg: string) => warnings.push(msg);
+
+  try {
+    denoRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assertEquals(warnings.length, 1);
+  assertStringIncludes(warnings[0]!, 'collectionIntervalMs');
+});
