@@ -358,6 +358,13 @@ module.exports = [
     gzip: true,
     limit: '114 KB',
   },
+  // Cloudflare SDK (ESM) - informational only, no limit enforced
+  {
+    name: '@sentry/cloudflare',
+    path: 'packages/cloudflare/build/esm/index.js',
+    import: createImport('withSentry', 'instrumentDurableObjectWithSentry', 'instrumentWorkflowWithSentry'),
+    gzip: true,
+  },
 ];
 
 function createImport(...args) {
