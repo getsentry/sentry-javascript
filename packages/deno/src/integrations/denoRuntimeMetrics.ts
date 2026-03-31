@@ -2,6 +2,7 @@ import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core'
 
 const INTEGRATION_NAME = 'DenoRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
+const MIN_INTERVAL_MS = 1_000;
 
 export interface DenoRuntimeMetricsOptions {
   /**
@@ -45,7 +46,14 @@ export interface DenoRuntimeMetricsOptions {
  * ```
  */
 export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRuntimeMetricsOptions = {}) => {
-  const collectionIntervalMs = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
+  const rawInterval = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
+  if (rawInterval < MIN_INTERVAL_MS) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_INTERVAL_MS}ms. Clamping to ${MIN_INTERVAL_MS}ms.`,
+    );
+  }
+  const collectionIntervalMs = Math.max(rawInterval, MIN_INTERVAL_MS);
   const collect = {
     // Default on
     memRss: true,

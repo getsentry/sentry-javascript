@@ -2,7 +2,7 @@
 
 import type { Envelope } from '@sentry/core';
 import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
-import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertNotEquals, assertStringIncludes } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import {
   DenoClient,
   denoRuntimeMetricsIntegration,
@@ -26,7 +26,7 @@ async function collectMetrics(
   const envelopes: Envelope[] = [];
 
   // Hold a reference so we can call teardown() to stop the interval before the test ends.
-  const metricsIntegration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 100, ...integrationOptions });
+  const metricsIntegration = denoRuntimeMetricsIntegration({ collectionIntervalMs: 1000, ...integrationOptions });
 
   const client = new DenoClient({
     dsn: DSN,
@@ -40,7 +40,7 @@ async function collectMetrics(
   client.init();
   getCurrentScope().setClient(client);
 
-  await delay(250);
+  await delay(2500);
   await client.flush(2000);
 
   // Stop the collection interval so Deno's leak detector doesn't flag it.
@@ -117,4 +117,20 @@ Deno.test('attaches correct sentry.origin attribute', async () => {
 
   // Attributes in the serialized envelope are { type, value } objects.
   assertEquals(rss?.attributes?.['sentry.origin']?.value, 'auto.deno.runtime_metrics');
+});
+
+Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
+  const warnings: string[] = [];
+  const originalWarn = console.warn;
+  console.warn = (msg: string) => warnings.push(msg);
+
+  try {
+    denoRuntimeMetricsIntegration({ collectionIntervalMs: 100 });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assertEquals(warnings.length, 1);
+  assertStringIncludes(warnings[0]!, 'collectionIntervalMs');
+  assertStringIncludes(warnings[0]!, '1000');
 });
