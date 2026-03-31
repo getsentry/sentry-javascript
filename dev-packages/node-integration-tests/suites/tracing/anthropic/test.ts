@@ -1,7 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -84,7 +83,6 @@ describe('Anthropic integration', () => {
       // Fourth span - models.retrieve
       expect.objectContaining({
         data: expect.objectContaining({
-          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
@@ -212,7 +210,6 @@ describe('Anthropic integration', () => {
       // Fourth - models.retrieve with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'claude-3-haiku-20240307',
