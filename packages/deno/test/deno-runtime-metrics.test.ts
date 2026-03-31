@@ -121,13 +121,13 @@ Deno.test('attaches correct sentry.origin attribute', async () => {
 
 Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
   const warnings: string[] = [];
-  const originalWarn = console.warn;
-  console.warn = (msg: string) => warnings.push(msg);
+  const originalWarn = globalThis.console.warn;
+  globalThis.console.warn = (msg: string) => warnings.push(msg);
 
   try {
     denoRuntimeMetricsIntegration({ collectionIntervalMs: 100 });
   } finally {
-    console.warn = originalWarn;
+    globalThis.console.warn = originalWarn;
   }
 
   assertEquals(warnings.length, 1);
@@ -137,13 +137,13 @@ Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
 
 Deno.test('warns and clamps collectionIntervalMs when NaN', () => {
   const warnings: string[] = [];
-  const originalWarn = console.warn;
-  console.warn = (msg: string) => warnings.push(msg);
+  const originalWarn = globalThis.console.warn;
+  globalThis.console.warn = (msg: string) => warnings.push(msg);
 
   try {
     denoRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
   } finally {
-    console.warn = originalWarn;
+    globalThis.console.warn = originalWarn;
   }
 
   assertEquals(warnings.length, 1);
