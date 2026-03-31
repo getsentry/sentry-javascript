@@ -211,12 +211,10 @@ describe('eventFromUnknownInput', () => {
 
     const syntheticException = new Error('Test message');
     const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, false);
-    expect(event.exception?.values?.[0]).toEqual(
-      {
-        type: 'Error',
-        value: 'SyntaxError: The string did not match the expected pattern.',
-      },
-    );
+    expect(event.exception?.values?.[0]).toEqual({
+      type: 'Error',
+      value: 'SyntaxError: The string did not match the expected pattern.',
+    });
   });
 
   it("doesn't add a synthetic stack trace to DOMException with stack traces if attachStacktrace is true", async () => {
@@ -231,8 +229,8 @@ describe('eventFromUnknownInput', () => {
           frames: [
             {
               colno: 2,
-              filename: "<anonymous>",
-              function: "?",
+              filename: '<anonymous>',
+              function: '?',
               in_app: true,
               lineno: 1,
             },
