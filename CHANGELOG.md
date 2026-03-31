@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.47.0
+
 ### Important Changes
 
 - **feat(node-core): Add OTLP integration for node-core/light ([#19729](https://github.com/getsentry/sentry-javascript/pull/19729))**
@@ -53,10 +57,67 @@
   });
   ```
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-- feat(core): Support embedding APIs in google-genai ([#19797](https://github.com/getsentry/sentry-javascript/pull/19797))
+- **feat(core): Support embedding APIs in google-genai ([#19797](https://github.com/getsentry/sentry-javascript/pull/19797))**
 
   Adds instrumentation for the Google GenAI [`embedContent`](https://ai.google.dev/gemini-api/docs/embeddings) API, creating `gen_ai.embeddings` spans.
+
+- **feat(browser): Add `elementTimingIntegration` for tracking element render and load times ([#19869](https://github.com/getsentry/sentry-javascript/pull/19869))**
+
+  The new `elementTimingIntegration` captures Element Timing API data as Sentry metrics. It emits `element_timing.render_time` and `element_timing.load_time` distribution metrics for elements annotated with the `elementtiming` HTML attribute.
+
+  ```ts
+  import * as Sentry from '@sentry/browser';
+
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [Sentry.browserTracingIntegration(), Sentry.elementTimingIntegration()],
+  });
+  ```
+
+  ```html
+  <img src="hero.jpg" elementtiming="hero-image" />
+  ```
+
+### Other Changes
+
+- feat(nuxt): Add middleware instrumentation compatibility for Nuxt 5 ([#19968](https://github.com/getsentry/sentry-javascript/pull/19968))
+- feat(nuxt): Support parametrized SSR routes in Nuxt 5 ([#19977](https://github.com/getsentry/sentry-javascript/pull/19977))
+- feat(solid): Add route parametrization for Solid Router ([#20031](https://github.com/getsentry/sentry-javascript/pull/20031))
+- fix(core): Guard nullish response in supabase PostgREST handler ([#20033](https://github.com/getsentry/sentry-javascript/pull/20033))
+- fix(node): Deduplicate `sentry-trace` and `baggage` headers on outgoing requests ([#19960](https://github.com/getsentry/sentry-javascript/pull/19960))
+- fix(node): Ensure startNewTrace propagates traceId in OTel environments ([#19963](https://github.com/getsentry/sentry-javascript/pull/19963))
+- fix(nuxt): Use virtual module for Nuxt pages data (SSR route parametrization) ([#20020](https://github.com/getsentry/sentry-javascript/pull/20020))
+- fix(opentelemetry): Convert seconds timestamps in span.end() to milliseconds ([#19958](https://github.com/getsentry/sentry-javascript/pull/19958))
+- fix(profiling): Disable profiling in worker threads ([#20040](https://github.com/getsentry/sentry-javascript/pull/20040))
+- fix(react-router): Disable debug ID injection in Vite plugin to prevent double injection ([#19890](https://github.com/getsentry/sentry-javascript/pull/19890))
+- refactor(browser): Reduce browser package bundle size ([#19856](https://github.com/getsentry/sentry-javascript/pull/19856))
+- feat(deps): Bump OpenTelemetry dependencies ([#20046](https://github.com/getsentry/sentry-javascript/pull/20046))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add shared validate-pr composite action ([#20025](https://github.com/getsentry/sentry-javascript/pull/20025))
+- chore: Update validate-pr action to latest version ([#20027](https://github.com/getsentry/sentry-javascript/pull/20027))
+- chore(deps): Bump @apollo/server from 5.4.0 to 5.5.0 ([#20007](https://github.com/getsentry/sentry-javascript/pull/20007))
+- chore(deps): Bump amqplib from 0.10.7 to 0.10.9 ([#20000](https://github.com/getsentry/sentry-javascript/pull/20000))
+- chore(deps): Bump srvx from 0.11.12 to 0.11.13 ([#20001](https://github.com/getsentry/sentry-javascript/pull/20001))
+- chore(deps-dev): Bump node-forge from 1.3.2 to 1.4.0 ([#20012](https://github.com/getsentry/sentry-javascript/pull/20012))
+- chore(deps-dev): Bump yaml from 2.8.2 to 2.8.3 ([#19985](https://github.com/getsentry/sentry-javascript/pull/19985))
+- ci(deps): Bump actions/upload-artifact from 6 to 7 ([#19569](https://github.com/getsentry/sentry-javascript/pull/19569))
+- docs(release): Update publishing-a-release.md ([#19982](https://github.com/getsentry/sentry-javascript/pull/19982))
+- feat(deps): Bump babel-loader from 10.0.0 to 10.1.1 ([#19997](https://github.com/getsentry/sentry-javascript/pull/19997))
+- feat(deps): Bump handlebars from 4.7.7 to 4.7.9 ([#20008](https://github.com/getsentry/sentry-javascript/pull/20008))
+- fix(browser-tests): Pin axios to 1.13.5 to avoid compromised 1.14.1 ([#20047](https://github.com/getsentry/sentry-javascript/pull/20047))
+- fix(ci): Update validate-pr action to remove draft enforcement ([#20035](https://github.com/getsentry/sentry-javascript/pull/20035))
+- fix(ci): Update validate-pr action to remove draft enforcement ([#20037](https://github.com/getsentry/sentry-javascript/pull/20037))
+- fix(e2e): Pin @opentelemetry/api to 1.9.0 in ts3.8 test app ([#19992](https://github.com/getsentry/sentry-javascript/pull/19992))
+- ref(browser-tests): Add waitForMetricRequest helper ([#20002](https://github.com/getsentry/sentry-javascript/pull/20002))
+- ref(core): Consolidate getOperationName into one shared utility ([#19971](https://github.com/getsentry/sentry-javascript/pull/19971))
+- ref(core): Introduce instrumented method registry for AI integrations ([#19981](https://github.com/getsentry/sentry-javascript/pull/19981))
+- test(deno): Expand Deno E2E test coverage ([#19957](https://github.com/getsentry/sentry-javascript/pull/19957))
+- test(e2e): Add e2e tests for `nodeRuntimeMetricsIntegration` ([#19989](https://github.com/getsentry/sentry-javascript/pull/19989))
+
+</details>
 
 ## 10.46.0
 
