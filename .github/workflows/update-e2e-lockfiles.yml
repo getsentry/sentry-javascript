@@ -78,7 +78,7 @@ jobs:
             if [ -f "$dir/package.json" ]; then
               echo "Updating: $dir"
               if [ "${{ inputs.sentry_only }}" = "true" ]; then
-                (cd "$dir" && pnpm update "@sentry/*" --ignore-scripts) || echo "Failed: $dir"
+                (cd "$dir" && pnpm update "@sentry/*" --no-save --ignore-scripts) || echo "Failed: $dir"
               else
                 # Update all dependencies (including transitives) to latest within allowed ranges
                 # --no-save keeps package.json unchanged, only updates the lockfile
