@@ -25,7 +25,7 @@ import {
 } from '@sentry/core';
 import {
   SENTRY_TRACE_STATE_DSC,
-  SENTRY_TRACE_STATE_IGNORED,
+  SENTRY_TRACE_STATE_CHILD_IGNORED,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
   SENTRY_TRACE_STATE_SAMPLE_RATE,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
@@ -284,7 +284,7 @@ export function wrapSamplingDecision({
   }
 
   if (ignoredSpan) {
-    traceState = traceState.set(SENTRY_TRACE_STATE_IGNORED, '1');
+    traceState = traceState.set(SENTRY_TRACE_STATE_CHILD_IGNORED, '1');
   }
 
   if (ignoredSegmentSpan) {

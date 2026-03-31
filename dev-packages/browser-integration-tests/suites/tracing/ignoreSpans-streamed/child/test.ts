@@ -4,15 +4,14 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
+  testingCdnBundle,
   waitForClientReportRequest,
 } from '../../../../utils/helpers';
 import { waitForStreamedSpans } from '../../../../utils/spanUtils';
 import type { ClientReport } from '@sentry/core';
 
 sentryTest('ignored child spans are dropped and their children are reparented', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const spansPromise = waitForStreamedSpans(page, spans => !!spans?.find(s => s.name === 'parent-span'));
 

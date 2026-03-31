@@ -8,7 +8,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
   SENTRY_SCOPES_CONTEXT_KEY,
-  SENTRY_TRACE_STATE_IGNORED,
+  SENTRY_TRACE_STATE_CHILD_IGNORED,
 } from './constants';
 import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
@@ -62,7 +62,9 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       // Remove ignored spans from context so children naturally parent to the grandparent
       const span = trace.getSpan(context);
       const effectiveContext =
-        span?.spanContext().traceState?.get(SENTRY_TRACE_STATE_IGNORED) === '1' ? trace.deleteSpan(context) : context;
+        span?.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1'
+          ? trace.deleteSpan(context)
+          : context;
 
       const currentScopes = getScopesFromContext(effectiveContext);
       const currentScope = currentScopes?.scope || getCurrentScope();

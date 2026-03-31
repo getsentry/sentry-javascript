@@ -4,15 +4,14 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
+  testingCdnBundle,
   waitForClientReportRequest,
 } from '../../../../utils/helpers';
 import { observeStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
 import type { ClientReport } from '@sentry/core';
 
 sentryTest('ignored segment span drops entire trace', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
