@@ -28,7 +28,7 @@ export interface DenoRuntimeMetricsOptions {
   };
   /**
    * How often to collect metrics, in milliseconds.
-   * Values below 1000ms are clamped to 1000ms.
+   * Minimum allowed value is 1000ms.
    * @default 30000
    * @minimum 1000
    */
@@ -52,7 +52,7 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
   if (!Number.isFinite(rawInterval) || rawInterval < MIN_INTERVAL_MS) {
     // eslint-disable-next-line no-console
     console.warn(
-      `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_INTERVAL_MS}ms. Clamping to ${MIN_INTERVAL_MS}ms.`,
+      `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_INTERVAL_MS}ms. Using minimum of ${MIN_INTERVAL_MS}ms.`,
     );
   }
   const collectionIntervalMs = Number.isFinite(rawInterval) ? Math.max(rawInterval, MIN_INTERVAL_MS) : MIN_INTERVAL_MS;

@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
-import type { NodeRuntimeMetricsOptions } from '@sentry/node';
+import { _INTERNAL_normalizeCollectionInterval, type NodeRuntimeMetricsOptions } from '@sentry/node';
 
 const INTEGRATION_NAME = 'BunRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -44,7 +44,9 @@ export interface BunRuntimeMetricsOptions {
   collect?: BunCollectOptions;
   /**
    * How often to collect metrics, in milliseconds.
+   * Minimum allowed value is 1000ms.
    * @default 30000
+   * @minimum 1000
    */
   collectionIntervalMs?: number;
 }
@@ -62,7 +64,10 @@ export interface BunRuntimeMetricsOptions {
  * ```
  */
 export const bunRuntimeMetricsIntegration = defineIntegration((options: BunRuntimeMetricsOptions = {}) => {
-  const collectionIntervalMs = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
+  const collectionIntervalMs = _INTERNAL_normalizeCollectionInterval(
+    options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS,
+    INTEGRATION_NAME,
+  );
   const collect = {
     // Default on
     cpuUtilization: true,
