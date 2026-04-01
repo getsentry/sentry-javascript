@@ -31,13 +31,13 @@ app.get('/test/express', (_req, res) => {
     },
   );
 
-  Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {}),
-  Sentry.startSpan(
-    // sentry.op attribute has precedence over top op argument
-    { name: 'name-passes-but-op-not-span-2', /*op: 'keep',*/ attributes: { 'sentry.op': 'ignored-op' } },
-    () => {},
-  ),
-  res.send({ response: 'response 1' });
+  (Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {}),
+    Sentry.startSpan(
+      // sentry.op attribute has precedence over top op argument
+      { name: 'name-passes-but-op-not-span-2', /*op: 'keep',*/ attributes: { 'sentry.op': 'ignored-op' } },
+      () => {},
+    ),
+    res.send({ response: 'response 1' }));
 });
 
 Sentry.setupExpressErrorHandler(app);

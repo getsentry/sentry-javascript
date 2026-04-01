@@ -489,7 +489,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     sampled,
   });
 
-  if (!sampled && client) {
+  if (!sampled && client && !scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
@@ -533,7 +533,7 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
       // record a client outcome for the child.
       childSpan.dropReason = parentSpan.dropReason;
       client.recordDroppedEvent(parentSpan.dropReason, 'span');
-    } else {
+    } else if (!scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]) {
       // Otherwise, the child is not sampled due to sampling of the parent span,
       // hence we record a sample_rate client outcome for the child.
       childSpan.dropReason = 'sample_rate';

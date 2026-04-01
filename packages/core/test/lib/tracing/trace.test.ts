@@ -573,12 +573,15 @@ describe('startSpan', () => {
 
   describe('onlyIfParent', () => {
     it('starts a non recording span if there is no parent', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
       const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
         return span;
       });
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+      expect(spyOnDroppedEvent).not.toHaveBeenCalled();
     });
 
     it('creates a span if there is a parent', () => {
@@ -2305,7 +2308,7 @@ describe('suppressTracing', () => {
     vi.clearAllMocks();
   });
 
-  it('works for a root span', () => {
+  it('suppresses a root span', () => {
     const span = suppressTracing(() => {
       return startInactiveSpan({ name: 'span' });
     });
@@ -2314,7 +2317,7 @@ describe('suppressTracing', () => {
     expect(spanIsSampled(span)).toBe(false);
   });
 
-  it('works for a child span', () => {
+  it('suppresses a child span', () => {
     startSpan({ name: 'outer' }, span => {
       expect(span.isRecording()).toBe(true);
       expect(spanIsSampled(span)).toBe(true);
@@ -2333,7 +2336,7 @@ describe('suppressTracing', () => {
     });
   });
 
-  it('works for a child span with forceTransaction=true', () => {
+  it('suppresses a child span with forceTransaction=true', () => {
     startSpan({ name: 'outer' }, span => {
       expect(span.isRecording()).toBe(true);
       expect(spanIsSampled(span)).toBe(true);
@@ -2345,6 +2348,42 @@ describe('suppressTracing', () => {
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
     });
+  });
+
+  it("doesn't record a client outcome for suppressed spans", () => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    const span1 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    expect(span1.isRecording()).toBe(false);
+    expect(spanIsSampled(span1)).toBe(false);
+
+    startSpan({ name: 'outer' }, span => {
+      expect(span.isRecording()).toBe(true);
+      expect(spanIsSampled(span)).toBe(true);
+
+      const child = suppressTracing(() => {
+        return startInactiveSpan({ name: 'span' });
+      });
+
+      expect(child.isRecording()).toBe(false);
+      expect(spanIsSampled(child)).toBe(false);
+    });
+
+    expect(spyOnDroppedEvent).not.toHaveBeenCalled();
   });
 
   it('works with parallel processes', async () => {
