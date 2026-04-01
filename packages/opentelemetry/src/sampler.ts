@@ -104,7 +104,7 @@ export class SentrySampler implements Sampler {
                 decision: SamplingDecision.NOT_RECORD,
                 context,
                 spanAttributes,
-                ignoredSpan: true,
+                ignoredChildSpan: true,
               });
             }
           }
@@ -265,7 +265,7 @@ export function wrapSamplingDecision({
   spanAttributes,
   sampleRand,
   downstreamTraceSampleRate,
-  ignoredSpan,
+  ignoredChildSpan,
   ignoredSegmentSpan,
 }: {
   decision: SamplingDecision | undefined;
@@ -274,7 +274,7 @@ export function wrapSamplingDecision({
   sampleRand?: number;
   downstreamTraceSampleRate?: number;
   // flags for ignored streamed spans (only set for span streaming)
-  ignoredSpan?: boolean;
+  ignoredChildSpan?: boolean;
   ignoredSegmentSpan?: boolean;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
@@ -291,7 +291,7 @@ export function wrapSamplingDecision({
     traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);
   }
 
-  if (ignoredSpan) {
+  if (ignoredChildSpan) {
     traceState = traceState.set(SENTRY_TRACE_STATE_CHILD_IGNORED, '1');
   }
 
