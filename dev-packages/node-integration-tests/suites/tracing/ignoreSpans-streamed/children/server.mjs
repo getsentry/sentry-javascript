@@ -19,16 +19,24 @@ app.get('/test/express', (_req, res) => {
           name: 'custom',
           op: 'custom',
         },
-        () => {},
+        () => {
+          Sentry.startSpan({ name: 'custom-grandchild', op: 'custom' }, () => {
+            Sentry.startSpan({ name: 'custom-to-drop-grand-grandchild', op: 'custom' }, () => {
+              Sentry.startSpan({ name: 'custom-grand-grand-grandchild', op: 'custom' }, () => {});
+            });
+          });
+          Sentry.startSpan({ name: 'custom-grandchild-2', op: 'custom' }, () => {});
+        },
       );
     },
-    Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {}),
-    Sentry.startSpan(
-      // sentry.op attribute has precedence over top op argument
-      { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { 'sentry.op': 'ignored-op' } },
-      () => {},
-    ),
   );
+
+  Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {}),
+  Sentry.startSpan(
+    // sentry.op attribute has precedence over top op argument
+    { name: 'name-passes-but-op-not-span-2', /*op: 'keep',*/ attributes: { 'sentry.op': 'ignored-op' } },
+    () => {},
+  ),
   res.send({ response: 'response 1' });
 });
 

@@ -59,12 +59,19 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
-      // Remove ignored spans from context so children naturally parent to the grandparent
+      // Remove ignored spans from context and restore the parent span so children
+      // naturally parent to the grandparent instead of starting a new trace.
+      // At this point, this.active() still holds the outer context (before super.with()
+      // updates AsyncLocalStorage), which has the grandparent span we want to restore.
       const span = trace.getSpan(context);
-      const effectiveContext =
-        span?.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1'
-          ? trace.deleteSpan(context)
-          : context;
+      let effectiveContext: Context;
+      if (span?.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1') {
+        const contextWithoutSpan = trace.deleteSpan(context);
+        const parentSpan = trace.getSpan(this.active());
+        effectiveContext = parentSpan ? trace.setSpan(contextWithoutSpan, parentSpan) : contextWithoutSpan;
+      } else {
+        effectiveContext = context;
+      }
 
       const currentScopes = getScopesFromContext(effectiveContext);
       const currentScope = currentScopes?.scope || getCurrentScope();

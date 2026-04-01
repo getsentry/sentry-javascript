@@ -16,7 +16,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             discarded_events: [
               {
                 category: 'span',
-                quantity: 4,
+                quantity: 5,
                 reason: 'ignored',
               },
             ],
@@ -26,7 +26,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
           span: container => {
             // 5 spans: 1 root, 2 middleware, 1 request handler, 1 custom
             // Would be 7 if we didn't ignore the 'middleware - expressInit' and 'custom-to-drop' spans
-            expect(container.items).toHaveLength(5);
+            expect(container.items).toHaveLength(8);
             const getSpan = (name: string, op: string) =>
               container.items.find(
                 item => item.name === name && item.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === op,
@@ -36,13 +36,22 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             const requestHandlerSpan = getSpan('/test/express', 'request_handler.express');
             const httpServerSpan = getSpan('GET /test/express', 'http.server');
             const customSpan = getSpan('custom', 'custom');
+            const customGrandchildSpan = getSpan('custom-grandchild', 'custom');
+            const customGrandchild2Span = getSpan('custom-grandchild-2', 'custom');
+            const customGrandGrandGrandChildSpan = getSpan('custom-grand-grand-grandchild', 'custom');
 
             expect(queryMiddlewareSpan).toBeDefined();
             expect(corsMiddlewareSpan).toBeDefined();
             expect(requestHandlerSpan).toBeDefined();
             expect(httpServerSpan).toBeDefined();
             expect(customSpan).toBeDefined();
+            expect(customGrandchildSpan).toBeDefined();
+            expect(customGrandchild2Span).toBeDefined();
+            expect(customGrandGrandGrandChildSpan).toBeDefined();
 
+            expect(customGrandchildSpan?.parent_span_id).toBe(customSpan?.span_id);
+            expect(customGrandchild2Span?.parent_span_id).toBe(customSpan?.span_id);
+            expect(customGrandGrandGrandChildSpan?.parent_span_id).toBe(customGrandchildSpan?.span_id);
             expect(customSpan?.parent_span_id).toBe(requestHandlerSpan?.span_id);
             expect(requestHandlerSpan?.parent_span_id).toBe(httpServerSpan?.span_id);
             expect(queryMiddlewareSpan?.parent_span_id).toBe(httpServerSpan?.span_id);
