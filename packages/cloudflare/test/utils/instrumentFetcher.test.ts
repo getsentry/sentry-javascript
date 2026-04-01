@@ -1,6 +1,26 @@
-import * as SentryCore from '@sentry/core';
+import type { RequestInfo } from '@cloudflare/workers-types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentFetcher } from '../../src/instrumentations/worker/instrumentFetcher';
+
+const { getTraceDataMock } = vi.hoisted(() => ({
+  getTraceDataMock: vi.fn(),
+}));
+
+/**
+ * `getTracingHeadersForFetchRequest` imports `getTraceData` from this module, not from the
+ * `@sentry/core` barrel — spying on `SentryCore.getTraceData` does not affect it.
+ */
+vi.mock('../../../core/build/esm/utils/traceData.js', () => ({
+  getTraceData: getTraceDataMock,
+}));
+vi.mock('../../../core/build/cjs/utils/traceData.js', () => ({
+  getTraceData: getTraceDataMock,
+}));
+
+/** Vitest's `Request` is not typed identically to Workers `RequestInfo`. */
+function workerRequest(r: Request): RequestInfo {
+  return r as unknown as RequestInfo;
+}
 
 describe('instrumentFetcher', () => {
   beforeEach(() => {
@@ -8,7 +28,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('calls the original fetch with the input and init', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({});
+    getTraceDataMock.mockReturnValue({});
 
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
     const wrapped = instrumentFetcher(mockFetch);
@@ -19,7 +39,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('adds sentry-trace and baggage headers', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -36,7 +56,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('does not overwrite existing sentry-trace header', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': 'auto-generated-trace',
       baggage: 'sentry-environment=production',
     });
@@ -54,7 +74,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('preserves existing custom headers when adding sentry headers', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -80,7 +100,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('preserves headers from a Request object when init has no headers', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -94,18 +114,20 @@ describe('instrumentFetcher', () => {
         'X-Request-Id': '123',
       },
     });
-    await wrapped(request);
+    await wrapped(workerRequest(request));
 
-    const [, init] = mockFetch.mock.calls[0]!;
-    const headers = new Headers(init?.headers);
-    expect(headers.get('Authorization')).toBe('Bearer request-token');
-    expect(headers.get('X-Request-Id')).toBe('123');
-    expect(headers.get('sentry-trace')).toBe('12345678901234567890123456789012-1234567890123456-1');
-    expect(headers.get('baggage')).toBe('sentry-environment=production');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [passed] = mockFetch.mock.calls[0]!;
+    expect(passed).toBeInstanceOf(Request);
+    expect(mockFetch.mock.calls[0]).toHaveLength(1);
+    expect((passed as Request).headers.get('Authorization')).toBe('Bearer request-token');
+    expect((passed as Request).headers.get('X-Request-Id')).toBe('123');
+    expect((passed as Request).headers.get('sentry-trace')).toBe('12345678901234567890123456789012-1234567890123456-1');
+    expect((passed as Request).headers.get('baggage')).toBe('sentry-environment=production');
   });
 
   it('does not overwrite sentry-trace from a Request object', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': 'auto-generated-trace',
       baggage: 'sentry-environment=production',
     });
@@ -116,15 +138,16 @@ describe('instrumentFetcher', () => {
     const request = new Request('https://example.com', {
       headers: { 'sentry-trace': 'request-trace-value' },
     });
-    await wrapped(request);
+    await wrapped(workerRequest(request));
 
-    const [, init] = mockFetch.mock.calls[0]!;
-    const headers = new Headers(init?.headers);
-    expect(headers.get('sentry-trace')).toBe('request-trace-value');
+    const [passed] = mockFetch.mock.calls[0]!;
+    expect(passed).toBeInstanceOf(Request);
+    expect(mockFetch.mock.calls[0]).toHaveLength(1);
+    expect((passed as Request).headers.get('sentry-trace')).toBe('request-trace-value');
   });
 
   it('preserves custom headers alongside existing sentry-trace in init', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': 'auto-generated-trace',
       baggage: 'sentry-environment=production',
     });
@@ -148,7 +171,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('works with Headers object in init', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -171,7 +194,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('works with array-of-tuples headers in init', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -195,7 +218,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('preserves baggage from Request object and appends sentry baggage', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -206,15 +229,42 @@ describe('instrumentFetcher', () => {
     const request = new Request('https://example.com', {
       headers: { baggage: 'custom-key=custom-value' },
     });
-    await wrapped(request);
+    await wrapped(workerRequest(request));
 
-    const [, init] = mockFetch.mock.calls[0]!;
-    const headers = new Headers(init?.headers);
-    expect(headers.get('baggage')).toBe('custom-key=custom-value,sentry-environment=production');
+    const [passed] = mockFetch.mock.calls[0]!;
+    expect(passed).toBeInstanceOf(Request);
+    expect(mockFetch.mock.calls[0]).toHaveLength(1);
+    expect((passed as Request).headers.get('baggage')).toBe('custom-key=custom-value,sentry-environment=production');
+  });
+
+  it('when Request and init are both passed, tracing headers are merged into init', async () => {
+    getTraceDataMock.mockReturnValue({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage: 'sentry-environment=production',
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
+    const wrapped = instrumentFetcher(mockFetch);
+
+    const request = new Request('https://example.com', {
+      headers: { Authorization: 'Bearer from-request' },
+    });
+    await wrapped(workerRequest(request), {
+      headers: { 'X-From-Init': '1' },
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [arg0, arg1] = mockFetch.mock.calls[0]!;
+    expect(arg0).toBe(request);
+    const headers = new Headers(arg1?.headers);
+    expect(headers.get('X-From-Init')).toBe('1');
+    expect(headers.get('Authorization')).toBeNull();
+    expect(headers.get('sentry-trace')).toBe('12345678901234567890123456789012-1234567890123456-1');
+    expect(headers.get('baggage')).toBe('sentry-environment=production');
   });
 
   it('appends baggage to existing non-sentry baggage', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -232,7 +282,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('does not duplicate sentry baggage values', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -250,7 +300,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('passes through original init options', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+    getTraceDataMock.mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production',
     });
@@ -266,7 +316,7 @@ describe('instrumentFetcher', () => {
   });
 
   it('works when getTraceData returns empty object', async () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({});
+    getTraceDataMock.mockReturnValue({});
 
     const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
     const wrapped = instrumentFetcher(mockFetch);

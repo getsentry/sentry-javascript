@@ -1,5 +1,5 @@
 import type { Fetcher } from '@cloudflare/workers-types';
-import { addTraceHeaders } from '../../utils/addTraceHeaders';
+import { getTracingHeadersForFetchRequest } from '@sentry/core';
 
 /**
  * Wraps a fetch-like function to create a span and propagate trace headers
@@ -10,8 +10,25 @@ import { addTraceHeaders } from '../../utils/addTraceHeaders';
  */
 export function instrumentFetcher(fetchFn: Fetcher['fetch']): Fetcher['fetch'] {
   return function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const newInit = addTraceHeaders(input, init);
+    const headers = getTracingHeadersForFetchRequest(input, { headers: init?.headers });
 
-    return fetchFn(input, newInit);
+    if (input instanceof Request && init === undefined) {
+      if (!headers) {
+        return fetchFn(input);
+      }
+
+      // Newly created headers already include the previous headers from the original request
+      // so we can clone the request and pass in all headers.
+      const requestWithTracing = new Request(input, { headers: headers as HeadersInit });
+
+      return fetchFn(requestWithTracing);
+    }
+
+    const mergedInit = {
+      ...init,
+      ...(headers ? { headers } : {}),
+    } as NonNullable<Parameters<Fetcher['fetch']>[1]>;
+
+    return fetchFn(input, mergedInit);
   };
 }
