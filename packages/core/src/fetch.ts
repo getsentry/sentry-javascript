@@ -240,28 +240,28 @@ export function getTracingHeadersForFetchRequest(
     }
 
     return newHeaders;
-  } else if (Array.isArray(originalHeaders)) {
-    const newHeaders = [...originalHeaders];
+  } else if (Array.isArray(originalHeaders) || isIterable(originalHeaders)) {
+    const headersArray: [string, string][] = Array.isArray(originalHeaders)
+      ? [...originalHeaders]
+      : Array.from(originalHeaders);
 
-    if (!originalHeaders.find(header => header[0] === 'sentry-trace')) {
-      newHeaders.push(['sentry-trace', sentryTrace]);
+    if (!headersArray.find(header => header[0] === 'sentry-trace')) {
+      headersArray.push(['sentry-trace', sentryTrace]);
     }
 
-    if (propagateTraceparent && traceparent && !originalHeaders.find(header => header[0] === 'traceparent')) {
-      newHeaders.push(['traceparent', traceparent]);
+    if (propagateTraceparent && traceparent && !headersArray.find(header => header[0] === 'traceparent')) {
+      headersArray.push(['traceparent', traceparent]);
     }
 
-    const prevBaggageHeaderWithSentryValues = originalHeaders.find(
+    const prevBaggageHeaderWithSentryValues = headersArray.find(
       header => header[0] === 'baggage' && baggageHeaderHasSentryBaggageValues(header[1]),
     );
 
     if (baggage && !prevBaggageHeaderWithSentryValues) {
-      // If there are multiple entries with the same key, the browser will merge the values into a single request header.
-      // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.push(['baggage', baggage]);
+      headersArray.push(['baggage', baggage]);
     }
 
-    return newHeaders as PolymorphicRequestHeaders;
+    return headersArray as PolymorphicRequestHeaders;
   } else {
     const existingSentryTraceHeader = 'sentry-trace' in originalHeaders ? originalHeaders['sentry-trace'] : undefined;
     const existingTraceparentHeader = 'traceparent' in originalHeaders ? originalHeaders.traceparent : undefined;
@@ -325,6 +325,10 @@ function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
 
 function isHeaders(headers: unknown): headers is Headers {
   return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
+}
+
+function isIterable(headers: unknown): headers is Iterable<[string, string]> {
+  return typeof headers === 'object' && headers !== null && Symbol.iterator in headers;
 }
 
 function getSpanStartOptions(

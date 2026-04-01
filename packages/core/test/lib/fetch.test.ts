@@ -85,9 +85,41 @@ describe('getTracingHeadersForFetchRequest', () => {
           headers: [['custom-header', 'custom-value']],
         });
 
+        // expect(Array.isArray(returnedHeaders)).toBe(true);
+        expect(returnedHeaders).toEqual([
+          ['custom-header', 'custom-value'],
+          ['sentry-trace', DEFAULT_SENTRY_TRACE],
+          ['baggage', DEFAULT_BAGGAGE],
+        ]);
+      });
+
+      it('attaches sentry headers to an iterable (Map entries)', () => {
+        const headersMap = new Map([['custom-header', 'custom-value']]);
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headersMap.entries(),
+        });
+
+        // expect(Array.isArray(returnedHeaders)).toBe(true);
+        expect(returnedHeaders).toEqual([
+          ['custom-header', 'custom-value'],
+          ['sentry-trace', DEFAULT_SENTRY_TRACE],
+          ['baggage', DEFAULT_BAGGAGE],
+        ]);
+      });
+
+      it('attaches sentry headers to a generator iterable', () => {
+        function* headerGenerator(): Generator<[string, string]> {
+          yield ['custom-header', 'custom-value'];
+          yield ['another-header', 'another-value'];
+        }
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headerGenerator(),
+        });
+
         expect(Array.isArray(returnedHeaders)).toBe(true);
         expect(returnedHeaders).toEqual([
           ['custom-header', 'custom-value'],
+          ['another-header', 'another-value'],
           ['sentry-trace', DEFAULT_SENTRY_TRACE],
           ['baggage', DEFAULT_BAGGAGE],
         ]);
@@ -120,6 +152,38 @@ describe('getTracingHeadersForFetchRequest', () => {
 
         expect(returnedHeaders).toEqual([
           ['baggage', 'custom-baggage=1,someVal=bar'],
+          ['sentry-trace', DEFAULT_SENTRY_TRACE],
+          ['baggage', DEFAULT_BAGGAGE],
+        ]);
+      });
+
+      it('adds additional sentry baggage values to an iterable (Map entries)', () => {
+        const headersMap = new Map([['baggage', 'custom-baggage=1,someVal=bar']]);
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headersMap.entries(),
+        });
+
+        expect(Array.isArray(returnedHeaders)).toBe(true);
+        expect(returnedHeaders).toEqual([
+          ['baggage', 'custom-baggage=1,someVal=bar'],
+          ['sentry-trace', DEFAULT_SENTRY_TRACE],
+          ['baggage', DEFAULT_BAGGAGE],
+        ]);
+      });
+
+      it('adds additional sentry baggage values to a generator iterable', () => {
+        function* headerGenerator(): Generator<[string, string]> {
+          yield ['baggage', 'custom-baggage=1,someVal=bar'];
+          yield ['custom-header', 'custom-value'];
+        }
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headerGenerator(),
+        });
+
+        expect(Array.isArray(returnedHeaders)).toBe(true);
+        expect(returnedHeaders).toEqual([
+          ['baggage', 'custom-baggage=1,someVal=bar'],
+          ['custom-header', 'custom-value'],
           ['sentry-trace', DEFAULT_SENTRY_TRACE],
           ['baggage', DEFAULT_BAGGAGE],
         ]);
@@ -187,6 +251,42 @@ describe('getTracingHeadersForFetchRequest', () => {
 
         expect(Array.isArray(returnedHeaders)).toBe(true);
 
+        expect(returnedHeaders).toEqual([
+          ['sentry-trace', CUSTOM_SENTRY_TRACE],
+          ['baggage', CUSTOM_BAGGAGE],
+          ['custom-header', 'custom-value'],
+        ]);
+      });
+
+      it('does not override them (Map entries iterable)', () => {
+        const headersMap = new Map([
+          ['sentry-trace', CUSTOM_SENTRY_TRACE],
+          ['baggage', CUSTOM_BAGGAGE],
+          ['custom-header', 'custom-value'],
+        ]);
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headersMap.entries(),
+        });
+
+        expect(Array.isArray(returnedHeaders)).toBe(true);
+        expect(returnedHeaders).toEqual([
+          ['sentry-trace', CUSTOM_SENTRY_TRACE],
+          ['baggage', CUSTOM_BAGGAGE],
+          ['custom-header', 'custom-value'],
+        ]);
+      });
+
+      it('does not override them (generator iterable)', () => {
+        function* headerGenerator(): Generator<[string, string]> {
+          yield ['sentry-trace', CUSTOM_SENTRY_TRACE];
+          yield ['baggage', CUSTOM_BAGGAGE];
+          yield ['custom-header', 'custom-value'];
+        }
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: headerGenerator(),
+        });
+
+        expect(Array.isArray(returnedHeaders)).toBe(true);
         expect(returnedHeaders).toEqual([
           ['sentry-trace', CUSTOM_SENTRY_TRACE],
           ['baggage', CUSTOM_BAGGAGE],
