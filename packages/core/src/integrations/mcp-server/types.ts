@@ -87,17 +87,29 @@ export type JsonRpcMessage = JsonRpcRequest | JsonRpcNotification | JsonRpcRespo
 
 /**
  * MCP server instance interface
- * @description MCP server methods for registering handlers
+ * @description MCP server methods for registering handlers.
+ * Supports both the legacy API (`tool`, `resource`, `prompt`) used in SDK 1.x
+ * and the newer API (`registerTool`, `registerResource`, `registerPrompt`) introduced in SDK 1.x
+ * and made the only option in SDK 2.x.
  */
 export interface MCPServerInstance {
-  /** Register a resource handler */
-  resource: (name: string, ...args: unknown[]) => void;
+  /** Register a resource handler (legacy API) */
+  resource?: (name: string, ...args: unknown[]) => void;
 
-  /** Register a tool handler */
-  tool: (name: string, ...args: unknown[]) => void;
+  /** Register a tool handler (legacy API) */
+  tool?: (name: string, ...args: unknown[]) => void;
 
-  /** Register a prompt handler */
-  prompt: (name: string, ...args: unknown[]) => void;
+  /** Register a prompt handler (legacy API) */
+  prompt?: (name: string, ...args: unknown[]) => void;
+
+  /** Register a resource handler (new API, SDK >=1.x / 2.x) */
+  registerResource?: (name: string, ...args: unknown[]) => void;
+
+  /** Register a tool handler (new API, SDK >=1.x / 2.x) */
+  registerTool?: (name: string, ...args: unknown[]) => void;
+
+  /** Register a prompt handler (new API, SDK >=1.x / 2.x) */
+  registerPrompt?: (name: string, ...args: unknown[]) => void;
 
   /** Connect the server to a transport */
   connect(transport: MCPTransport): Promise<void>;
