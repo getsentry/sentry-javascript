@@ -23,8 +23,6 @@ import {
   hasSpansEnabled,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SentryNonRecordingSpan,
-  shouldIgnoreSpan,
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
@@ -49,16 +47,6 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
   const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
   return wrapper(() => {
-    const client = getClient();
-    const ignoreSpans = client?.getOptions().ignoreSpans;
-    if (ignoreSpans?.length) {
-      const op = options.op || options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
-      if (shouldIgnoreSpan({ description: name, op }, ignoreSpans)) {
-        client?.recordDroppedEvent('ignored', 'span');
-        return callback(new SentryNonRecordingSpan());
-      }
-    }
-
     const activeCtx = getContext(options.scope, options.forceTransaction);
     const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
     const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
@@ -162,16 +150,6 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
   const wrapper = getActiveSpanWrapper<Span>(customParentSpan);
 
   return wrapper(() => {
-    const client = getClient();
-    const ignoreSpans = client?.getOptions().ignoreSpans;
-    if (ignoreSpans?.length) {
-      const op = options.op || options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
-      if (shouldIgnoreSpan({ description: name, op }, ignoreSpans)) {
-        client?.recordDroppedEvent('ignored', 'span');
-        return new SentryNonRecordingSpan();
-      }
-    }
-
     const activeCtx = getContext(options.scope, options.forceTransaction);
     const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
     let ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;

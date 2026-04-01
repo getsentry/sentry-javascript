@@ -2190,55 +2190,6 @@ function getSpanName(span: AbstractSpan): string | undefined {
   return spanHasName(span) ? span.name : undefined;
 }
 
-describe('trace (ignoreSpans)', () => {
-  afterEach(async () => {
-    await cleanupOtel();
-  });
-
-  it('returns a non-recording span for an ignored span via startSpan', () => {
-    mockSdkInit({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
-
-    startSpan({ name: 'root' }, () => {
-      startSpan({ name: 'ignored-span' }, span => {
-        expect(spanIsSampled(span)).toBe(false);
-        expect(span.isRecording()).toBe(false);
-      });
-    });
-  });
-
-  it('children of ignored spans parent to grandparent via startSpan', () => {
-    mockSdkInit({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
-
-    startSpan({ name: 'root' }, rootSpan => {
-      const rootSpanId = rootSpan.spanContext().spanId;
-
-      startSpan({ name: 'ignored-span' }, () => {
-        startSpan({ name: 'grandchild' }, grandchildSpan => {
-          const parentId = getSpanParentSpanId(grandchildSpan);
-          expect(parentId).toBe(rootSpanId);
-        });
-      });
-    });
-  });
-
-  it('returns a non-recording span for an ignored span via startInactiveSpan', () => {
-    mockSdkInit({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
-
-    const span = startInactiveSpan({ name: 'ignored-span' });
-    expect(spanIsSampled(span)).toBe(false);
-    expect(span.isRecording()).toBe(false);
-  });
-
-  it('does not ignore non-matching spans', () => {
-    mockSdkInit({ tracesSampleRate: 1, ignoreSpans: ['ignored-span'] });
-
-    startSpan({ name: 'normal-span' }, span => {
-      expect(spanIsSampled(span)).toBe(true);
-      expect(span.isRecording()).toBe(true);
-    });
-  });
-});
-
 function getSpanEndTime(span: AbstractSpan): [number, number] | undefined {
   return (span as ReadableSpan).endTime;
 }
