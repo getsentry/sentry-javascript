@@ -10949,9 +10949,9 @@
     tslib "^2.6.3"
 
 "@xmldom/xmldom@^0.8.0":
-  version "0.8.3"
-  resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.3.tgz#beaf980612532aa9a3004aff7e428943aeaa0711"
-  integrity sha512-Lv2vySXypg4nfa51LY1nU8yDAGo/5YwF+EY/rUZgIbfvwVARcd67ttCM8SMsTeJy51YhHYavEq+FS6R0hW9PFQ==
+  version "0.8.12"
+  resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.12.tgz#cf488a5435fa06c7374ad1449c69cea0f823624b"
+  integrity sha512-9k/gHF6n/pAi/9tqr3m3aqkuiNosYTurLLUtc7xQ9sxB/wm7WPygCv8GYa6mS0fLJEHhqMC1ATYhz++U/lRHqg==
 
 "@xstate/fsm@^1.4.0":
   version "1.6.5"
