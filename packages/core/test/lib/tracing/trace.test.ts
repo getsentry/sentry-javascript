@@ -2739,4 +2739,42 @@ describe('ignoreSpans (core path, streaming)', () => {
 
     expect(getActiveSpan()).toBeUndefined();
   });
+
+  it("doesn't record a client outcome for a suppressed and ignored span", () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    suppressTracing(() => {
+      startInactiveSpan({ name: 'ignored-inactive-span' });
+      startSpan({ name: 'ignored-active-span' }, () => {});
+      startSpanManual({ name: 'ignored-manual-span' }, () => {});
+    });
+
+    expect(spyOnDroppedEvent).not.toHaveBeenCalled();
+  });
+
+  it('sets the propagation context trace on ignored segment spans', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    getCurrentScope().setPropagationContext({ traceId: 'abc', propagationSpanId: 'xxx', sampleRand: 0.5 });
+
+    const span = startInactiveSpan({ name: 'ignored-segment' });
+    expect(span.spanContext().traceId).toBe(getCurrentScope().getPropagationContext().traceId);
+    expect(span.spanContext().traceId).toBe('abc');
+  });
 });

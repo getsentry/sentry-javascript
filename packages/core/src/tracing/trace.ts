@@ -212,7 +212,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
       // purposefully not passing in the scope here because we don't want to set an
       // inactive span onto the scope (no exception for ignored spans)
-      return _createIgnoredSpan(client, parentSpan);
+      return _createIgnoredSpan(client, parentSpan, scope, false);
     }
 
     const shouldSkipSpan = options.onlyIfParent && !parentSpan;
@@ -469,9 +469,9 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
   const currentPropagationContext = scope.getPropagationContext();
-  const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
-    SUPPRESS_TRACING_KEY
-  ]
+  const isTracingSuppressed = _isTracingSuppressed(scope);
+
+  const [sampled, sampleRate, localSampleRateWasApplied] = isTracingSuppressed
     ? [false]
     : sampleSpan(
         options,
@@ -495,7 +495,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     sampled,
   });
 
-  if (!sampled && client && !scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]) {
+  if (!sampled && client && !isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
@@ -513,7 +513,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
  */
 function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySpanArguments): Span {
   const { spanId, traceId } = parentSpan.spanContext();
-  const sampled = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] ? false : spanIsSampled(parentSpan);
+  const isTracingSuppressed = _isTracingSuppressed(scope);
+  const sampled = isTracingSuppressed ? false : spanIsSampled(parentSpan);
 
   const childSpan = sampled
     ? new SentrySpan({
@@ -539,7 +540,7 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
       // record a client outcome for the child.
       childSpan.dropReason = parentSpan.dropReason;
       client.recordDroppedEvent(parentSpan.dropReason, 'span');
-    } else if (!scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]) {
+    } else if (!isTracingSuppressed) {
       // Otherwise, the child is not sampled due to sampling of the parent span,
       // hence we record a sample_rate client outcome for the child.
       childSpan.dropReason = 'sample_rate';
@@ -612,17 +613,22 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
 function _createIgnoredSpan(
   client: Client | undefined,
   parentSpan: SentrySpan | undefined,
-  scope?: Scope | undefined,
+  scope: Scope,
+  setSpanOnScope: boolean = true,
 ): SentryNonRecordingSpan {
-  client?.recordDroppedEvent('ignored', 'span');
+  if (!_isTracingSuppressed(scope)) {
+    // if someone actively suppressed tracing,
+    // we don't want to record a client outcome for the ignored span
+    client?.recordDroppedEvent('ignored', 'span');
+  }
 
   const nonRecordingSpan = new SentryNonRecordingSpan({
     dropReason: 'ignored',
     // if there is a parent span, set the traceId of the parent span
-    traceId: parentSpan?.spanContext().traceId,
+    traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
   });
 
-  if (scope && !parentSpan) {
+  if (setSpanOnScope && !parentSpan) {
     // Put the ignored non-recording segment span onto the scope so that `getActiveSpan()` returns it
     // For child spans, we don't do this because there _is_ an active span on the scope. We can change
     // this if necessary.
@@ -632,6 +638,10 @@ function _createIgnoredSpan(
   return nonRecordingSpan;
 }
 
-function _isIgnoredSpan(span: Span): boolean {
+function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
   return span instanceof SentryNonRecordingSpan && span.dropReason === 'ignored';
+}
+
+function _isTracingSuppressed(scope: Scope): boolean {
+  return scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true;
 }
