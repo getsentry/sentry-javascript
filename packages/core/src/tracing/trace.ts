@@ -88,7 +88,9 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             scope,
           });
 
-      _setSpanForScope(scope, activeSpan);
+      if (!_isIgnoredSpan(activeSpan)) {
+        _setSpanForScope(scope, activeSpan);
+      }
 
       return handleCallbackErrors(
         () => callback(activeSpan),
@@ -154,7 +156,9 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             scope,
           });
 
-      _setSpanForScope(scope, activeSpan);
+      if (!_isIgnoredSpan(activeSpan)) {
+        _setSpanForScope(scope, activeSpan);
+      }
 
       return handleCallbackErrors(
         // We pass the `finish` function to the callback, so the user can finish the span manually
@@ -206,7 +210,9 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
 
     const client = getClient();
     if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
-      return _createIgnoredSpan(client, parentSpan, scope);
+      // purposefully not passing in the scope here because we don't want to set an
+      // inactive span onto the scope (no exception for ignored spans)
+      return _createIgnoredSpan(client, parentSpan);
     }
 
     const shouldSkipSpan = options.onlyIfParent && !parentSpan;
@@ -606,15 +612,26 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
 function _createIgnoredSpan(
   client: Client | undefined,
   parentSpan: SentrySpan | undefined,
-  scope: Scope,
+  scope?: Scope | undefined,
 ): SentryNonRecordingSpan {
   client?.recordDroppedEvent('ignored', 'span');
-  const nonRecordingSpan = new SentryNonRecordingSpan({ dropReason: 'ignored' });
-  if (!parentSpan) {
+
+  const nonRecordingSpan = new SentryNonRecordingSpan({
+    dropReason: 'ignored',
+    // if there is a parent span, set the traceId of the parent span
+    traceId: parentSpan?.spanContext().traceId,
+  });
+
+  if (scope && !parentSpan) {
     // Put the ignored non-recording segment span onto the scope so that `getActiveSpan()` returns it
     // For child spans, we don't do this because there _is_ an active span on the scope. We can change
     // this if necessary.
     _setSpanForScope(scope, nonRecordingSpan);
   }
+
   return nonRecordingSpan;
+}
+
+function _isIgnoredSpan(span: Span): boolean {
+  return span instanceof SentryNonRecordingSpan && span.dropReason === 'ignored';
 }

@@ -2653,4 +2653,90 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
   });
+
+  it('sets ignored segment span onto the scope', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'ignored-segment' }, ignoredSegmentSpan => {
+      expect(ignoredSegmentSpan).toBeInstanceOf(SentryNonRecordingSpan);
+      expect(getActiveSpan()).toBe(ignoredSegmentSpan);
+
+      startSpan({ name: 'child' }, () => {
+        expect(getActiveSpan()).toBe(ignoredSegmentSpan);
+      });
+    });
+  });
+
+  it("doesn't set ignored child span onto the scope", () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'segment' }, segmentSpan => {
+      expect(getActiveSpan()).toBe(segmentSpan);
+
+      startSpan({ name: 'ignored-child' }, () => {
+        expect(getActiveSpan()).toBe(segmentSpan);
+
+        startSpan({ name: 'ignored-child-2' }, () => {
+          expect(getActiveSpan()).toBe(segmentSpan);
+
+          startSpan({ name: 'normal-child-2' }, normalChild2Span => {
+            expect(getActiveSpan()).toBe(normalChild2Span);
+          });
+        });
+
+        startSpan({ name: 'normal-child' }, normalChildSpan => {
+          expect(getActiveSpan()).toBe(normalChildSpan);
+        });
+      });
+    });
+  });
+
+  it("assigns the parent span's trace id to the ignored segment span", () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startSpan({ name: 'ignored-segment' }, ignoredSegmentSpan => {
+      startSpan({ name: 'child' }, childSpan => {
+        expect(childSpan.spanContext().traceId).toBe(ignoredSegmentSpan.spanContext().traceId);
+      });
+    });
+  });
+
+  it("doesn't set inactive ignored segment spans onto the scope", () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: ['ignored'],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startInactiveSpan({ name: 'ignored-segment' });
+    expect(getActiveSpan()).toBeUndefined();
+
+    span.end();
+
+    expect(getActiveSpan()).toBeUndefined();
+  });
 });
