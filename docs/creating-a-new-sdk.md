@@ -25,12 +25,12 @@ As a rule of thumb, we should follow these two ideas:
 
 Make sure all the boilerplate for your package is set up correctly. This can include, depending on the package:
 
-* `tsconfig.json`, `tsconfig.test.json`, `tsconfig.types.json`, `test/tsconfig.json`
-* `oxlintsc.json`
-* `rollup.*.config.mjs`
-* `LICENSE`
-* `README.md`
-* `vite.config.ts`
+- `tsconfig.json`, `tsconfig.test.json`, `tsconfig.types.json`, `test/tsconfig.json`
+- `oxlintsc.json`
+- `rollup.*.config.mjs`
+- `LICENSE`
+- `README.md`
+- `vite.config.ts`
 
 ## 1. Browser SDKs
 
