@@ -41,6 +41,23 @@ describe('instrumentScheduled', () => {
     vi.clearAllMocks();
   });
 
+  test('does not double-wrap when withSentry is called twice', async () => {
+    const originalScheduled = vi.fn();
+    const handler = {
+      scheduled: originalScheduled,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler1 = withSentry(optionsCallback, handler);
+    const firstScheduled = wrappedHandler1.scheduled;
+
+    const wrappedHandler2 = withSentry(optionsCallback, handler);
+    const secondScheduled = wrappedHandler2.scheduled;
+
+    expect(firstScheduled).toBe(secondScheduled);
+  });
+
   test('executes options callback with env', async () => {
     const handler = {
       scheduled(_controller, _env, _context) {
