@@ -6276,15 +6276,6 @@
   dependencies:
     "@opentelemetry/instrumentation" "^0.214.0"
 
-"@opentelemetry/instrumentation-express@0.62.0":
-  version "0.62.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-express/-/instrumentation-express-0.62.0.tgz#c03e353caf04b7074004ce899faf759dec210b8d"
-  integrity sha512-Tvx+vgAZKEQxU3Rx+xWLiR0mLxHwmk69/8ya04+VsV9WYh8w6Lhx5hm5yAMvo1wy0KqWgFKBLwSeo3sHCwdOww==
-  dependencies:
-    "@opentelemetry/core" "^2.0.0"
-    "@opentelemetry/instrumentation" "^0.214.0"
-    "@opentelemetry/semantic-conventions" "^1.27.0"
-
 "@opentelemetry/instrumentation-fs@0.33.0":
   version "0.33.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fs/-/instrumentation-fs-0.33.0.tgz#75f2ccf653b772801b398cc2ad0974e8785f2e3d"

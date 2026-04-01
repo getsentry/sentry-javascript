@@ -1,15 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import {
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
-import { setTokenUsageAttributes } from '../ai/utils';
+import { endStreamSpan } from '../ai/utils';
 import type { AnthropicAiStreamingEvent } from './types';
 import { mapAnthropicErrorToStatusMessage } from './utils';
 
@@ -209,60 +201,6 @@ function processEvent(
 }
 
 /**
- * Finalizes span attributes when stream processing completes
- */
-function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: boolean): void {
-  if (!span.isRecording()) {
-    return;
-  }
-
-  // Set common response attributes if available
-  if (state.responseId) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
-    });
-  }
-  if (state.responseModel) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-    });
-  }
-
-  setTokenUsageAttributes(
-    span,
-    state.promptTokens,
-    state.completionTokens,
-    state.cacheCreationInputTokens,
-    state.cacheReadInputTokens,
-  );
-
-  span.setAttributes({
-    [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-  });
-
-  if (state.finishReasons.length > 0) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
-    });
-  }
-
-  if (recordOutputs && state.responseTexts.length > 0) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
-    });
-  }
-
-  // Set tool calls if any were captured
-  if (recordOutputs && state.toolCalls.length > 0) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(state.toolCalls),
-    });
-  }
-
-  span.end();
-}
-
-/**
  * Instruments an async iterable stream of Anthropic events, updates the span with
  * streaming attributes and (optionally) the aggregated output text, and yields
  * each event from the input stream unchanged.
@@ -291,50 +229,7 @@ export async function* instrumentAsyncIterableStream(
       yield event;
     }
   } finally {
-    // Set common response attributes if available
-    if (state.responseId) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
-      });
-    }
-    if (state.responseModel) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-      });
-    }
-
-    setTokenUsageAttributes(
-      span,
-      state.promptTokens,
-      state.completionTokens,
-      state.cacheCreationInputTokens,
-      state.cacheReadInputTokens,
-    );
-
-    span.setAttributes({
-      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    });
-
-    if (state.finishReasons.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
-      });
-    }
-
-    if (recordOutputs && state.responseTexts.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
-      });
-    }
-
-    // Set tool calls if any were captured
-    if (recordOutputs && state.toolCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(state.toolCalls),
-      });
-    }
-
-    span.end();
+    endStreamSpan(span, state, recordOutputs);
   }
 }
 
@@ -366,7 +261,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   // The event fired when a message is done being streamed by the API. Corresponds to the message_stop SSE event.
   // @see https://github.com/anthropics/anthropic-sdk-typescript/blob/d3be31f5a4e6ebb4c0a2f65dbb8f381ae73a9166/helpers.md?plain=1#L42-L44
   stream.on('message', () => {
-    finalizeStreamSpan(state, span, recordOutputs);
+    endStreamSpan(span, state, recordOutputs);
   });
 
   stream.on('error', (error: unknown) => {
