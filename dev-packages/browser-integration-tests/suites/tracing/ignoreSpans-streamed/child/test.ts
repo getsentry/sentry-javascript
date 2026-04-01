@@ -52,7 +52,7 @@ sentryTest('ignored child spans are dropped and their children are reparented', 
   expect(clientReport.discarded_events).toEqual([
     {
       category: 'span',
-      quantity: 3, // 3 ignored child spans
+      quantity: 5, // 5 ignored child spans
       reason: 'ignored',
     },
   ]);

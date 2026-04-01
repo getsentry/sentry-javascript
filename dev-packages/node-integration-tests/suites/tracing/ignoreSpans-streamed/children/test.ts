@@ -16,7 +16,7 @@ describe('filtering child spans with ignoreSpans (streaming)', () => {
             discarded_events: [
               {
                 category: 'span',
-                quantity: 2,
+                quantity: 4,
                 reason: 'ignored',
               },
             ],

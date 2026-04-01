@@ -5,7 +5,7 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.spanStreamingIntegration()],
-  ignoreSpans: [/ignore/],
+  ignoreSpans: [/ignore/, { op: 'ignored-op' }],
   parentSpanIsAlwaysRootSpan: false,
   tracesSampleRate: 1,
 });

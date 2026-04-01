@@ -18,6 +18,14 @@ Sentry.startSpan({ name: 'parent-span' }, () => {
     Sentry.startSpan({ name: 'grandchild-2' }, () => {});
   });
 
+  // both dropped
+  Sentry.startSpan({ name: 'name-passes-but-op-not-span-1', op: 'ignored-op' }, () => {});
+  Sentry.startSpan(
+    // sentry.op attribute has precedence over top op argument
+    { name: 'name-passes-but-op-not-span-2', op: 'keep', attributes: { 'sentry.op': 'ignored-op' } },
+    () => {},
+  );
+
   // kept
   Sentry.startSpan({ name: 'another-keeper' }, () => {});
 });
