@@ -81,19 +81,23 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  * @param requestId - Request identifier
  * @param result - Execution result for attribute extraction
  * @param options - Resolved MCP options
+ * @param hasError - Whether the JSON-RPC response contained an error
  */
 export function completeSpanWithResults(
   transport: MCPTransport,
   requestId: RequestId,
   result: unknown,
   options: ResolvedMcpOptions,
+  hasError = false,
 ): void {
   const spanMap = getOrCreateSpanMap(transport);
   const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
 
-    if (method === 'initialize') {
+    if (hasError) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    } else if (method === 'initialize') {
       const sessionData = extractSessionDataFromInitializeResponse(result);
       const serverAttributes = buildServerAttributesFromInfo(sessionData.serverInfo);
 
