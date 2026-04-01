@@ -9,5 +9,4 @@ Sentry.init({
   traceLifecycle: 'stream',
   ignoreSpans: ['middleware - expressInit', /custom-to-drop/, { op: 'ignored-op' }],
   clientReportFlushInterval: 1_000,
-  debug: true,
 });
