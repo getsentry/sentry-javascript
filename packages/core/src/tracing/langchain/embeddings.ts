@@ -62,14 +62,9 @@ export function instrumentEmbeddingMethod(
   originalMethod: (...args: unknown[]) => Promise<unknown>,
   options: LangChainOptions = {},
 ): (...args: unknown[]) => Promise<unknown> {
-  // Already instrumented
-  if ((originalMethod as { __sentry_wrapped__?: boolean }).__sentry_wrapped__) {
-    return originalMethod;
-  }
-
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const proxy = new Proxy(originalMethod, {
+  return new Proxy(originalMethod, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       const attributes = extractEmbeddingAttributes(thisArg);
       const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] || 'unknown';
@@ -98,10 +93,6 @@ export function instrumentEmbeddingMethod(
       );
     },
   }) as (...args: unknown[]) => Promise<unknown>;
-
-  (proxy as { __sentry_wrapped__?: boolean }).__sentry_wrapped__ = true;
-
-  return proxy;
 }
 
 /**
