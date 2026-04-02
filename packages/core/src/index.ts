@@ -168,7 +168,7 @@ export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants'
 export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
-export { createLangChainCallbackHandler } from './tracing/langchain';
+export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
 export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';

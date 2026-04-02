@@ -334,3 +334,5 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
   return handler;
 }
+
+export { instrumentLangChainEmbeddings } from './embeddings';
