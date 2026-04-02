@@ -680,7 +680,7 @@ describe('ThirdPartyErrorFilter', () => {
   // contain long lines (e.g. from minified bundles with long URLs/identifiers).
   describe('metadata stack parsing with long stack lines', () => {
     it('resolves metadata for frames whose filenames appear in module metadata stacks with long URLs', () => {
-      const longFilename = 'https://example.com/_next/static/chunks/' + 'a'.repeat(200) + '.js';
+      const longFilename = `https://example.com/_next/static/chunks/${'a'.repeat(200)}.js`;
 
       // Simulate a module metadata entry with a realistic stack containing a long filename
       const fakeStack = [`Error: Sentry Module Metadata`, `    at Object.<anonymous> (${longFilename}:1:1)`].join('\n');
