@@ -173,7 +173,6 @@ export {
   unleashIntegration,
   growthbookIntegration,
   metrics,
-  _INTERNAL_normalizeCollectionInterval,
 } from '@sentry/node';
 
 export { init } from './server/sdk';
