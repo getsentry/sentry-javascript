@@ -95,9 +95,9 @@ errorHandler: (err) => {
       },
       {
         name: "rewriteSources",
-        type: "(source: string, map: any) => string",
+        type: "(source: string, map: any, context?: { mapDir: string }) => string",
         fullDescription:
-          "Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map. Effectively, this modifies how files inside the stacktrace will show up in Sentry.\n\nDefaults to making all sources relative to `process.cwd()` while building.",
+          "Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map. Effectively, this modifies how files inside the stacktrace will show up in Sentry.\n\nThe `context.mapDir` parameter provides the directory path of the source map file, which is useful for resolving relative source paths (e.g. `path.resolve(context.mapDir, source)`).\n\nDefaults to making all sources relative to `process.cwd()` while building.",
       },
       {
         name: "resolveSourceMap",

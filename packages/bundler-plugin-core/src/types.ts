@@ -138,6 +138,9 @@ export interface Options {
     /**
      * Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map.
      *
+     * The hook receives the source path, the parsed source map object, and a context object containing `mapDir` -
+     * the directory of the source map file, useful for resolving relative source paths.
+     *
      * Defaults to making all sources relative to `process.cwd()` while building.
      */
     rewriteSources?: RewriteSourcesHook;
@@ -427,7 +430,7 @@ export interface Options {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type RewriteSourcesHook = (source: string, map: any) => string;
+export type RewriteSourcesHook = (source: string, map: any, context?: { mapDir: string }) => string;
 
 export type ResolveSourceMapHook = (
   artifactPath: string,

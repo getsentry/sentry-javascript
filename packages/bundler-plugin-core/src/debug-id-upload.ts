@@ -219,7 +219,10 @@ async function prepareSourceMapForDebugIdUpload(
   }
 
   if (map["sources"] && Array.isArray(map["sources"])) {
-    map["sources"] = map["sources"].map((source: string) => rewriteSourcesHook(source, map));
+    const mapDir = path.dirname(sourceMapPath);
+    map["sources"] = map["sources"].map((source: string) =>
+      rewriteSourcesHook(source, map, { mapDir })
+    );
   }
 
   try {
