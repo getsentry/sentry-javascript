@@ -87,17 +87,53 @@ export type JsonRpcMessage = JsonRpcRequest | JsonRpcNotification | JsonRpcRespo
 
 /**
  * MCP server instance interface
- * @description MCP server methods for registering handlers
+ * @description MCP server methods for registering handlers.
+ * Supports both the legacy API (`tool`, `resource`, `prompt`) used in SDK 1.x
+ * and the newer API (`registerTool`, `registerResource`, `registerPrompt`) introduced in SDK 1.x
+ * and made the only option in SDK 2.x.
  */
 export interface MCPServerInstance {
-  /** Register a resource handler */
-  resource: (name: string, ...args: unknown[]) => void;
+  /**
+   * Register a resource handler.
+   * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerResource`.
+   * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerResource` instead.
+   */
+  resource?: (name: string, ...args: unknown[]) => void;
 
-  /** Register a tool handler */
-  tool: (name: string, ...args: unknown[]) => void;
+  /**
+   * Register a tool handler.
+   * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerTool`.
+   * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerTool` instead.
+   */
+  tool?: (name: string, ...args: unknown[]) => void;
 
-  /** Register a prompt handler */
-  prompt: (name: string, ...args: unknown[]) => void;
+  /**
+   * Register a prompt handler.
+   * Supported in `@modelcontextprotocol/sdk` v1.x alongside `registerPrompt`.
+   * @deprecated Removed in `@modelcontextprotocol/sdk` v2.0.0 — use `registerPrompt` instead.
+   */
+  prompt?: (name: string, ...args: unknown[]) => void;
+
+  /**
+   * Register a resource handler.
+   * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `resource` method)
+   * and the only supported form in v2.0.0+.
+   */
+  registerResource?: (name: string, ...args: unknown[]) => void;
+
+  /**
+   * Register a tool handler.
+   * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `tool` method)
+   * and the only supported form in v2.0.0+.
+   */
+  registerTool?: (name: string, ...args: unknown[]) => void;
+
+  /**
+   * Register a prompt handler.
+   * Available in `@modelcontextprotocol/sdk` v1.x (alongside the legacy `prompt` method)
+   * and the only supported form in v2.0.0+.
+   */
+  registerPrompt?: (name: string, ...args: unknown[]) => void;
 
   /** Connect the server to a transport */
   connect(transport: MCPTransport): Promise<void>;

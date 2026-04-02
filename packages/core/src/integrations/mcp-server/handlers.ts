@@ -96,7 +96,7 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
   try {
     const extraData: Record<string, unknown> = {};
 
-    if (methodName === 'tool') {
+    if (methodName === 'tool' || methodName === 'registerTool') {
       extraData.tool_name = handlerName;
 
       if (
@@ -114,10 +114,10 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
       } else {
         captureError(error, 'tool_execution', extraData);
       }
-    } else if (methodName === 'resource') {
+    } else if (methodName === 'resource' || methodName === 'registerResource') {
       extraData.resource_uri = handlerName;
       captureError(error, 'resource_execution', extraData);
-    } else if (methodName === 'prompt') {
+    } else if (methodName === 'prompt' || methodName === 'registerPrompt') {
       extraData.prompt_name = handlerName;
       captureError(error, 'prompt_execution', extraData);
     }
@@ -127,31 +127,39 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
 }
 
 /**
- * Wraps tool handlers to associate them with request spans
+ * Wraps tool handlers to associate them with request spans.
+ * Instruments both `tool` (legacy API) and `registerTool` (new API) if present.
  * @param serverInstance - MCP server instance
  */
 export function wrapToolHandlers(serverInstance: MCPServerInstance): void {
-  wrapMethodHandler(serverInstance, 'tool');
+  if (typeof serverInstance.tool === 'function') wrapMethodHandler(serverInstance, 'tool');
+  if (typeof serverInstance.registerTool === 'function') wrapMethodHandler(serverInstance, 'registerTool');
 }
 
 /**
- * Wraps resource handlers to associate them with request spans
+ * Wraps resource handlers to associate them with request spans.
+ * Instruments both `resource` (legacy API) and `registerResource` (new API) if present.
  * @param serverInstance - MCP server instance
  */
 export function wrapResourceHandlers(serverInstance: MCPServerInstance): void {
-  wrapMethodHandler(serverInstance, 'resource');
+  if (typeof serverInstance.resource === 'function') wrapMethodHandler(serverInstance, 'resource');
+  if (typeof serverInstance.registerResource === 'function') wrapMethodHandler(serverInstance, 'registerResource');
 }
 
 /**
- * Wraps prompt handlers to associate them with request spans
+ * Wraps prompt handlers to associate them with request spans.
+ * Instruments both `prompt` (legacy API) and `registerPrompt` (new API) if present.
  * @param serverInstance - MCP server instance
  */
 export function wrapPromptHandlers(serverInstance: MCPServerInstance): void {
-  wrapMethodHandler(serverInstance, 'prompt');
+  if (typeof serverInstance.prompt === 'function') wrapMethodHandler(serverInstance, 'prompt');
+  if (typeof serverInstance.registerPrompt === 'function') wrapMethodHandler(serverInstance, 'registerPrompt');
 }
 
 /**
- * Wraps all MCP handler types (tool, resource, prompt) for span correlation
+ * Wraps all MCP handler types for span correlation.
+ * Supports both the legacy API (`tool`, `resource`, `prompt`) and the newer API
+ * (`registerTool`, `registerResource`, `registerPrompt`), instrumenting whichever methods are present.
  * @param serverInstance - MCP server instance
  */
 export function wrapAllMCPHandlers(serverInstance: MCPServerInstance): void {

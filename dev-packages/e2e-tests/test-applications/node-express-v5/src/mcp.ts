@@ -35,6 +35,14 @@ server.tool('echo', { message: z.string() }, async ({ message }, rest) => {
   };
 });
 
+server.registerTool(
+  'echo-register',
+  { description: 'Echo tool (register API)', inputSchema: { message: z.string() } },
+  async ({ message }) => ({
+    content: [{ type: 'text', text: `registerTool echo: ${message}` }],
+  }),
+);
+
 server.prompt('echo', { message: z.string() }, ({ message }, extra) => ({
   messages: [
     {
@@ -102,6 +110,14 @@ streamableServer.tool('echo', { message: z.string() }, async ({ message }) => {
     content: [{ type: 'text', text: `Tool echo: ${message}` }],
   };
 });
+
+streamableServer.registerTool(
+  'echo-register',
+  { description: 'Echo tool (register API)', inputSchema: { message: z.string() } },
+  async ({ message }) => ({
+    content: [{ type: 'text', text: `registerTool echo: ${message}` }],
+  }),
+);
 
 streamableServer.prompt('echo', { message: z.string() }, ({ message }) => ({
   messages: [
