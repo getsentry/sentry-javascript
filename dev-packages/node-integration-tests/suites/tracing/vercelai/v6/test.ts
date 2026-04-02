@@ -601,4 +601,81 @@ describe('Vercel AI integration (V6)', () => {
       },
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-tool-loop-agent.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('creates spans for ToolLoopAgent with tool calls', async () => {
+        const expectedTransaction = {
+          transaction: 'main',
+          spans: expect.arrayContaining([
+            // ToolLoopAgent outer span
+            expect.objectContaining({
+              data: expect.objectContaining({
+                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
+              }),
+              op: 'gen_ai.invoke_agent',
+              origin: 'auto.vercelai.otel',
+              status: 'ok',
+            }),
+            // First doGenerate span (returns tool-calls)
+            expect.objectContaining({
+              data: expect.objectContaining({
+                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
+                [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
+              }),
+              op: 'gen_ai.generate_content',
+              origin: 'auto.vercelai.otel',
+              status: 'ok',
+            }),
+            // Tool execution span
+            expect.objectContaining({
+              data: expect.objectContaining({
+                [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+                [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+                [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
+                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+              }),
+              description: 'execute_tool getWeather',
+              op: 'gen_ai.execute_tool',
+              origin: 'auto.vercelai.otel',
+              status: 'ok',
+            }),
+            // Second doGenerate span (returns final text)
+            expect.objectContaining({
+              data: expect.objectContaining({
+                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
+                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
+                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
+                [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
+              }),
+              op: 'gen_ai.generate_content',
+              origin: 'auto.vercelai.otel',
+              status: 'ok',
+            }),
+          ]),
+        };
+
+        await createRunner().expect({ transaction: expectedTransaction }).start().completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^6.0.0',
+      },
+    },
+  );
 });
