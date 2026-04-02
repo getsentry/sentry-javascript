@@ -12,11 +12,7 @@ import * as logger from './logs/exports';
 
 // Node-core integrations (not OTel-dependent)
 export { nodeContextIntegration } from './integrations/context';
-export {
-  nodeRuntimeMetricsIntegration,
-  type NodeRuntimeMetricsOptions,
-  _INTERNAL_normalizeCollectionInterval,
-} from './integrations/nodeRuntimeMetrics';
+export { nodeRuntimeMetricsIntegration, type NodeRuntimeMetricsOptions } from './integrations/nodeRuntimeMetrics';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { localVariablesIntegration } from './integrations/local-variables';
 export { modulesIntegration } from './integrations/modules';

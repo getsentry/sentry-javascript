@@ -1,9 +1,10 @@
 import { performance } from 'perf_hooks';
 import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics } from '@sentry/core';
-import { _INTERNAL_normalizeCollectionInterval, type NodeRuntimeMetricsOptions } from '@sentry/node';
+import type { NodeRuntimeMetricsOptions } from '@sentry/node';
 
 const INTEGRATION_NAME = 'BunRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
+const MIN_COLLECTION_INTERVAL_MS = 1_000;
 
 /**
  * Which metrics to collect in the Bun runtime metrics integration.
@@ -64,10 +65,16 @@ export interface BunRuntimeMetricsOptions {
  * ```
  */
 export const bunRuntimeMetricsIntegration = defineIntegration((options: BunRuntimeMetricsOptions = {}) => {
-  const collectionIntervalMs = _INTERNAL_normalizeCollectionInterval(
-    options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS,
-    INTEGRATION_NAME,
-  );
+  const rawInterval = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
+  if (!Number.isFinite(rawInterval) || rawInterval < MIN_COLLECTION_INTERVAL_MS) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] ${INTEGRATION_NAME}: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_COLLECTION_INTERVAL_MS}ms. Using minimum of ${MIN_COLLECTION_INTERVAL_MS}ms.`,
+    );
+  }
+  const collectionIntervalMs = Number.isFinite(rawInterval)
+    ? Math.max(rawInterval, MIN_COLLECTION_INTERVAL_MS)
+    : MIN_COLLECTION_INTERVAL_MS;
   const collect = {
     // Default on
     cpuUtilization: true,
