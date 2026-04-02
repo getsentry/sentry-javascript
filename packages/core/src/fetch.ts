@@ -21,6 +21,7 @@ import {
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
   | Array<[string, string]>
+  | Iterable<Iterable<string>>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
       append: (key: string, value: string) => void;
@@ -124,7 +125,7 @@ export function instrumentFetchRequest(
     // Examples: users re-using same options object for multiple fetch calls, frozen objects
     const options: { [key: string]: unknown } = { ...(handlerData.args[1] || {}) };
 
-    const headers = _addTracingHeadersToFetchRequest(
+    const headers = getTracingHeadersForFetchRequest(
       request,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
@@ -176,17 +177,22 @@ export function _callOnRequestSpanEnd(
 }
 
 /**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers.
- * exported only for testing purposes
+ * Builds merged fetch headers that include `sentry-trace` and `baggage` (and optionally `traceparent`)
+ * for the given request and init, without mutating the original request or options.
+ * Returns `undefined` when there is no `sentry-trace` value to attach.
  *
- * When we determine if we should add a baggage header, there are 3 cases:
- * 1. No previous baggage header -> add baggage
- * 2. Previous baggage header has no sentry baggage values -> add our baggage
- * 3. Previous baggage header has sentry baggage values -> do nothing (might have been added manually by users)
+ * @internal Exported for cross-package instrumentation (for example Cloudflare Workers fetcher bindings)
+ * and unit tests
+ * @hidden
+ *
+ * Baggage handling:
+ * 1. No previous baggage header → include Sentry baggage
+ * 2. Previous baggage has no Sentry entries → merge Sentry baggage in
+ * 3. Previous baggage already has Sentry entries → leave as-is (may be user-defined)
  */
 // eslint-disable-next-line complexity -- yup it's this complicated :(
-export function _addTracingHeadersToFetchRequest(
-  request: string | Request,
+export function getTracingHeadersForFetchRequest(
+  request: string | URL | Request,
   fetchOptionsObj: {
     headers?:
       | {
