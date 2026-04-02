@@ -683,10 +683,7 @@ describe('ThirdPartyErrorFilter', () => {
       const longFilename = 'https://example.com/_next/static/chunks/' + 'a'.repeat(200) + '.js';
 
       // Simulate a module metadata entry with a realistic stack containing a long filename
-      const fakeStack = [
-        `Error: Sentry Module Metadata`,
-        `    at Object.<anonymous> (${longFilename}:1:1)`,
-      ].join('\n');
+      const fakeStack = [`Error: Sentry Module Metadata`, `    at Object.<anonymous> (${longFilename}:1:1)`].join('\n');
       GLOBAL_OBJ._sentryModuleMetadata![fakeStack] = { '_sentryBundlerPluginAppKey:long-url-key': true };
 
       const event: Event = {
