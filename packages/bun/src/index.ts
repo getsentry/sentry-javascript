@@ -177,6 +177,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   metrics,
+  _INTERNAL_normalizeCollectionInterval,
 } from '@sentry/node';
 
 export {
