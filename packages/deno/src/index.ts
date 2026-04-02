@@ -96,6 +96,8 @@ export {
   metrics,
   logger,
   consoleLoggingIntegration,
+  patchExpressModule,
+  setupExpressErrorHandler,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

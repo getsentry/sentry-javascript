@@ -21,6 +21,7 @@ import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
+import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 
 /** Get the default integrations for the Deno SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -109,6 +110,8 @@ export function init(options: DenoOptions = {}): Client {
   if (!options.skipOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
+
+  setAsyncLocalStorageAsyncContextStrategy();
 
   return client;
 }
