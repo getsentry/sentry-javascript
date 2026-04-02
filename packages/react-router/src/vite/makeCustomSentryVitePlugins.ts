@@ -19,6 +19,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
   } = options;
 
   const sentryVitePlugins = sentryVitePlugin({
+    ...unstable_sentryVitePluginOptions,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations,
     debug: debug ?? false,
@@ -26,15 +27,16 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     project: project ?? process.env.SENTRY_PROJECT,
     telemetry: telemetry ?? true,
     _metaOptions: {
+      ...unstable_sentryVitePluginOptions?._metaOptions,
       telemetry: {
+        ...unstable_sentryVitePluginOptions?._metaOptions?.telemetry,
         metaFramework: 'react-router',
       },
-      ...unstable_sentryVitePluginOptions?._metaOptions,
     },
     reactComponentAnnotation: {
+      ...unstable_sentryVitePluginOptions?.reactComponentAnnotation,
       enabled: reactComponentAnnotation?.enabled ?? undefined,
       ignoredComponents: reactComponentAnnotation?.ignoredComponents ?? undefined,
-      ...unstable_sentryVitePluginOptions?.reactComponentAnnotation,
     },
     release: {
       ...unstable_sentryVitePluginOptions?.release,
@@ -42,10 +44,9 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     },
     // will be handled in buildEnd hook
     sourcemaps: {
-      disable: true,
       ...unstable_sentryVitePluginOptions?.sourcemaps,
+      disable: true,
     },
-    ...unstable_sentryVitePluginOptions,
   }) as Plugin[];
 
   return sentryVitePlugins;

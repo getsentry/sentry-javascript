@@ -66,7 +66,7 @@ describe('makeCustomSentryVitePlugins', () => {
     );
   });
 
-  it('should allow overriding sourcemaps via unstable_sentryVitePluginOptions', async () => {
+  it('should merge sourcemaps options from unstable_sentryVitePluginOptions', async () => {
     await makeCustomSentryVitePlugins({
       unstable_sentryVitePluginOptions: {
         sourcemaps: {
@@ -75,12 +75,12 @@ describe('makeCustomSentryVitePlugins', () => {
       },
     });
 
-    // unstable_sentryVitePluginOptions is spread last, so it fully overrides sourcemaps
     expect(sentryVitePlugin).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourcemaps: {
+        sourcemaps: expect.objectContaining({
+          disable: true,
           assets: ['dist/**'],
-        },
+        }),
       }),
     );
   });
