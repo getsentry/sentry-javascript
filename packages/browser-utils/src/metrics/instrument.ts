@@ -114,7 +114,6 @@ let _previousCls: Metric | undefined;
 let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
-
 /**
  * Add a callback that will be triggered when a CLS metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
