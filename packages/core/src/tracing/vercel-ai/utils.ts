@@ -4,6 +4,7 @@ import {
   GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
   GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE,
   GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+  GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
@@ -294,7 +295,7 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamText.doStream':
     case 'ai.generateObject.doGenerate':
     case 'ai.streamObject.doStream':
-      return 'gen_ai.generate_content';
+      return GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE;
     case 'ai.embed.doEmbed':
       return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
     case 'ai.embedMany.doEmbed':

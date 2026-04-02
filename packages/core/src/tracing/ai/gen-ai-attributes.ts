@@ -207,6 +207,11 @@ export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_to
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
 
 /**
+ * The span operation name for generating content
+ */
+export const GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE = 'gen_ai.generate_content';
+
+/**
  * The embeddings input
  * Only recorded when recordInputs is enabled
  */

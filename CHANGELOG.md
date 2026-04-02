@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **ref(core): Unify .do\* span ops to `gen_ai.generate_content` ([#20074](https://github.com/getsentry/sentry-javascript/pull/20074))**
+
+  All Vercel AI `do*` spans (`ai.generateText.doGenerate`, `ai.streamText.doStream`, `ai.generateObject.doGenerate`, `ai.streamObject.doStream`) now use a single unified span op `gen_ai.generate_content` instead of separate ops like `gen_ai.generate_text`, `gen_ai.stream_text`, `gen_ai.generate_object`, and `gen_ai.stream_object`.
+
 - **ref(core): Remove provider-specific AI span attributes in favor of `gen_ai` attributes in sentry conventions ([#20011](https://github.com/getsentry/sentry-javascript/pull/20011))**
 
   The following provider-specific span attributes have been removed from the OpenAI and Anthropic AI integrations. Use the standardized `gen_ai.*` equivalents instead:
