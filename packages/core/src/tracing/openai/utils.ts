@@ -1,4 +1,5 @@
 import type { Span } from '../../types-hoist/span';
+import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -12,71 +13,13 @@ import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import type {
-  ChatCompletionChunk,
-  OpenAiChatCompletionObject,
-  OpenAIConversationObject,
-  OpenAICreateEmbeddingsObject,
-  OpenAIResponseObject,
-  ResponseStreamingEvent,
-} from './types';
-
-/**
- * Check if response is a Chat Completion object
- */
-export function isChatCompletionResponse(response: unknown): response is OpenAiChatCompletionObject {
-  return (
-    response !== null &&
-    typeof response === 'object' &&
-    'object' in response &&
-    (response as Record<string, unknown>).object === 'chat.completion'
-  );
-}
-
-/**
- * Check if response is a Responses API object
- */
-export function isResponsesApiResponse(response: unknown): response is OpenAIResponseObject {
-  return (
-    response !== null &&
-    typeof response === 'object' &&
-    'object' in response &&
-    (response as Record<string, unknown>).object === 'response'
-  );
-}
-
-/**
- * Check if response is an Embeddings API object
- */
-export function isEmbeddingsResponse(response: unknown): response is OpenAICreateEmbeddingsObject {
-  if (response === null || typeof response !== 'object' || !('object' in response)) {
-    return false;
-  }
-  const responseObject = response as Record<string, unknown>;
-  return (
-    responseObject.object === 'list' &&
-    typeof responseObject.model === 'string' &&
-    responseObject.model.toLowerCase().includes('embedding')
-  );
-}
-
-/**
- * Check if response is a Conversations API object
- * @see https://platform.openai.com/docs/api-reference/conversations
- */
-export function isConversationResponse(response: unknown): response is OpenAIConversationObject {
-  return (
-    response !== null &&
-    typeof response === 'object' &&
-    'object' in response &&
-    (response as Record<string, unknown>).object === 'conversation'
-  );
-}
+import type { ChatCompletionChunk, ResponseStreamingEvent } from './types';
 
 /**
  * Check if streaming event is from the Responses API
@@ -104,157 +47,108 @@ export function isChatCompletionChunk(event: unknown): event is ChatCompletionCh
 }
 
 /**
- * Add attributes for Chat Completion responses
+ * Add response attributes to a span using duck-typing.
+ * Works for Chat Completions, Responses API, Embeddings, and Conversations API responses.
  */
-export function addChatCompletionAttributes(
-  span: Span,
-  response: OpenAiChatCompletionObject,
-  recordOutputs?: boolean,
-): void {
-  setCommonResponseAttributes(span, response.id, response.model);
-  if (response.usage) {
-    setTokenUsageAttributes(
-      span,
-      response.usage.prompt_tokens,
-      response.usage.completion_tokens,
-      response.usage.total_tokens,
-    );
+export function addResponseAttributes(span: Span, result: unknown, recordOutputs?: boolean): void {
+  if (!result || typeof result !== 'object') return;
+
+  const response = result as Record<string, unknown>;
+  const attrs: Record<string, SpanAttributeValue> = {};
+
+  // Response ID
+  if (typeof response.id === 'string') {
+    attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = response.id;
   }
-  if (Array.isArray(response.choices)) {
-    const finishReasons = response.choices
-      .map(choice => choice.finish_reason)
-      .filter((reason): reason is string => reason !== null);
-    if (finishReasons.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
-      });
+
+  // Response model
+  if (typeof response.model === 'string') {
+    attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = response.model;
+  }
+
+  // Conversation ID (conversation objects use id as conversation link)
+  if (response.object === 'conversation' && typeof response.id === 'string') {
+    attrs[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = response.id;
+  }
+
+  // Token usage — supports both naming conventions (chat: prompt_tokens/completion_tokens, responses: input_tokens/output_tokens)
+  if (response.usage && typeof response.usage === 'object') {
+    const usage = response.usage as Record<string, unknown>;
+
+    const inputTokens = usage.prompt_tokens ?? usage.input_tokens;
+    if (typeof inputTokens === 'number') {
+      attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = inputTokens;
     }
 
-    // Extract tool calls from all choices (only if recordOutputs is true)
+    const outputTokens = usage.completion_tokens ?? usage.output_tokens;
+    if (typeof outputTokens === 'number') {
+      attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = outputTokens;
+    }
+
+    if (typeof usage.total_tokens === 'number') {
+      attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = usage.total_tokens;
+    }
+  }
+
+  // Finish reasons from choices (chat completions)
+  if (Array.isArray(response.choices)) {
+    const choices = response.choices as Array<Record<string, unknown>>;
+    const finishReasons = choices
+      .map(choice => choice.finish_reason)
+      .filter((reason): reason is string => typeof reason === 'string');
+    if (finishReasons.length > 0) {
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(finishReasons);
+    }
+
     if (recordOutputs) {
-      const toolCalls = response.choices
-        .map(choice => choice.message?.tool_calls)
+      // Response text from choices
+      const responseTexts = choices.map(choice => {
+        const message = choice.message as Record<string, unknown> | undefined;
+        return (message?.content as string) || '';
+      });
+      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = JSON.stringify(responseTexts);
+
+      // Tool calls from choices
+      const toolCalls = choices
+        .map(choice => {
+          const message = choice.message as Record<string, unknown> | undefined;
+          return message?.tool_calls;
+        })
         .filter(calls => Array.isArray(calls) && calls.length > 0)
         .flat();
 
       if (toolCalls.length > 0) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
-        });
+        attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(toolCalls);
       }
     }
   }
-}
 
-/**
- * Add attributes for Responses API responses
- */
-export function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
-  setCommonResponseAttributes(span, response.id, response.model);
-  if (response.status) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
-    });
-  }
-  if (response.usage) {
-    setTokenUsageAttributes(
-      span,
-      response.usage.input_tokens,
-      response.usage.output_tokens,
-      response.usage.total_tokens,
-    );
+  // Finish reason from status (responses API)
+  if (typeof response.status === 'string') {
+    // Only set if not already set from choices
+    if (!attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]) {
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify([response.status]);
+    }
   }
 
-  // Extract function calls from output (only if recordOutputs is true)
   if (recordOutputs) {
-    const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
-    if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
-      // Filter for function_call type objects in the output array
-      const functionCalls = responseWithOutput.output.filter(
-        (item): unknown =>
-          // oxlint-disable-next-line typescript/prefer-optional-chain
-          typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
-      );
+    // Response text from output_text (responses API)
+    if (typeof response.output_text === 'string' && !attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]) {
+      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = response.output_text;
+    }
 
+    // Tool calls from output array (responses API)
+    if (Array.isArray(response.output) && response.output.length > 0 && !attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]) {
+      const functionCalls = (response.output as Array<Record<string, unknown>>).filter(
+        item => item?.type === 'function_call',
+      );
       if (functionCalls.length > 0) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
-        });
+        attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(functionCalls);
       }
     }
   }
-}
 
-/**
- * Add attributes for Embeddings API responses
- */
-export function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbeddingsObject): void {
-  span.setAttributes({
-    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
-  });
-
-  if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, undefined, response.usage.total_tokens);
-  }
-}
-
-/**
- * Add attributes for Conversations API responses
- * @see https://platform.openai.com/docs/api-reference/conversations
- */
-export function addConversationAttributes(span: Span, response: OpenAIConversationObject): void {
-  const { id } = response;
-
-  span.setAttributes({
-    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
-    // The conversation id is used to link messages across API calls
-    [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: id,
-  });
-}
-
-/**
- * Set token usage attributes
- * @param span - The span to add attributes to
- * @param promptTokens - The number of prompt tokens
- * @param completionTokens - The number of completion tokens
- * @param totalTokens - The number of total tokens
- */
-export function setTokenUsageAttributes(
-  span: Span,
-  promptTokens?: number,
-  completionTokens?: number,
-  totalTokens?: number,
-): void {
-  if (promptTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
-    });
-  }
-  if (completionTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
-    });
-  }
-  if (totalTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
-    });
-  }
-}
-
-/**
- * Set common response attributes
- * @param span - The span to add attributes to
- * @param id - The response id
- * @param model - The response model
- */
-export function setCommonResponseAttributes(span: Span, id: string, model: string): void {
-  span.setAttributes({
-    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
-  });
-  span.setAttributes({
-    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
-  });
+  span.setAttributes(attrs);
 }
 
 /**
