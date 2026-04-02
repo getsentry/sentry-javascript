@@ -21,6 +21,19 @@ import type {
   H3Event,
 } from 'h3';
 
+type RequestMiddleware = (event: H3Event<EventHandlerRequest>) => void | Promise<void>;
+type HookName = 'onRequest' | 'onBeforeResponse' | 'middleware';
+
+// Broader handler object type covering both h3 v1 and h3 v2 shapes.
+type EventHandlerObjectH3 = EventHandlerObject & {
+  // h3 v1 (Nitro v2): onRequest, onBeforeResponse, handler (required)
+  onRequest?: RequestMiddleware | RequestMiddleware[];
+  onBeforeResponse?: ResponseMiddleware | ResponseMiddleware[];
+
+  // h3 v2 (Nitro v3): middleware[], handler (optional), fetch, meta
+  middleware?: EventHandler[];
+};
+
 /**
  * Wraps a middleware handler with Sentry instrumentation.
  *
@@ -35,36 +48,41 @@ export function wrapMiddlewareHandlerWithSentry<THandler extends EventHandler | 
     return wrapEventHandler(handler, fileName) as THandler;
   }
 
-  const handlerObj = {
-    ...handler,
-    handler: wrapEventHandler(handler.handler, fileName),
+  const handlerObj = handler as EventHandlerObjectH3;
+
+  const result: EventHandlerObjectH3 = {
+    ...handlerObj,
+    ...(handlerObj.handler && { handler: wrapEventHandler(handlerObj.handler, fileName) }),
   };
 
-  if (handlerObj.onRequest) {
-    handlerObj.onRequest = normalizeHandlers(handlerObj.onRequest, (h, index) =>
-      wrapEventHandler(h, fileName, 'onRequest', index),
+  // h3 v1 (Nitro v2): onRequest and response hooks
+  if (result.onRequest) {
+    result.onRequest = normalizeHandlers(result.onRequest, (h, index) =>
+      wrapEventHandler(h as EventHandler, fileName, 'onRequest', index),
     );
   }
 
-  if (handlerObj.onBeforeResponse) {
-    handlerObj.onBeforeResponse = normalizeHandlers(handlerObj.onBeforeResponse, (h, index) =>
+  if (result.onBeforeResponse) {
+    result.onBeforeResponse = normalizeHandlers(result.onBeforeResponse, (h, index) =>
       wrapResponseHandler(h, fileName, index),
     );
   }
 
-  return handlerObj;
+  // h3 v2 (Nitro v3): middleware array replaces onRequest/onBeforeResponse
+  if (result.middleware?.length) {
+    result.middleware = result.middleware.map((h, index) => wrapEventHandler(h, fileName, 'middleware', index));
+  }
+
+  return result as THandler;
 }
 
 /**
  * Wraps a callable event handler with Sentry instrumentation.
- *
- * @param handler The event handler.
- * @param handlerName The name of the event handler to be used for the span name and logging.
  */
 function wrapEventHandler(
   handler: EventHandler,
   middlewareName: string,
-  hookName?: 'onRequest',
+  hookName?: HookName,
   index?: number,
 ): EventHandler {
   return async (event: H3Event<EventHandlerRequest>) => {
@@ -77,7 +95,7 @@ function wrapEventHandler(
 }
 
 /**
- * Wraps a middleware response handler with Sentry instrumentation.
+ * Wraps a middleware response handler with Sentry instrumentation (h3 v1 only).
  */
 function wrapResponseHandler(handler: ResponseMiddleware, middlewareName: string, index?: number): ResponseMiddleware {
   return async (event: H3Event<EventHandlerRequest>, response: EventHandlerResponse) => {
@@ -96,7 +114,7 @@ function withSpan<TResult>(
   handler: () => TResult | Promise<TResult>,
   attributes: SpanAttributes,
   middlewareName: string,
-  hookName?: 'handler' | 'onRequest' | 'onBeforeResponse',
+  hookName?: HookName | 'handler',
 ): Promise<TResult> {
   const spanName = hookName && hookName !== 'handler' ? `${middlewareName}.${hookName}` : middlewareName;
 
@@ -132,10 +150,7 @@ function withSpan<TResult>(
 /**
  * Takes a list of handlers and wraps them with the normalizer function.
  */
-function normalizeHandlers<T extends EventHandler | ResponseMiddleware>(
-  handlers: T | T[],
-  normalizer: (h: T, index?: number) => T,
-): T | T[] {
+function normalizeHandlers<T>(handlers: T | T[], normalizer: (h: T, index?: number) => T): T | T[] {
   return Array.isArray(handlers) ? handlers.map((handler, index) => normalizer(handler, index)) : normalizer(handlers);
 }
 
@@ -145,7 +160,7 @@ function normalizeHandlers<T extends EventHandler | ResponseMiddleware>(
 function getSpanAttributes(
   event: H3Event<EventHandlerRequest>,
   middlewareName: string,
-  hookName?: 'handler' | 'onRequest' | 'onBeforeResponse',
+  hookName?: HookName | 'handler',
   index?: number,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
@@ -161,18 +176,31 @@ function getSpanAttributes(
     attributes['nuxt.middleware.hook.index'] = index;
   }
 
-  // Add HTTP method
-  if (event.method) {
-    attributes['http.request.method'] = event.method;
+  // oxlint-disable-next-line typescript/no-explicit-any
+  const eventH3v2 = event as any;
+  // oxlint-disable-next-line @typescript-oxlint/no-unsafe-member-access
+  const method = event.method ?? eventH3v2?.req?.method;
+  // oxlint-disable-next-line @typescript-oxlint/no-unsafe-member-access
+  const path = event.path ?? eventH3v2?.url?.pathname;
+
+  if (method) {
+    attributes['http.request.method'] = method;
   }
 
-  // Add route information
-  if (event.path) {
-    attributes['http.route'] = event.path;
+  if (path) {
+    attributes['http.route'] = path;
   }
 
-  // Get headers from the Node.js request object
-  const headers = event.node?.req?.headers || {};
+  // h3 v1 (Nuxt 4): headers are on event.node.req.headers
+  // h3 v2 (Nuxt 5): headers are on event.req.headers
+  let headers: Record<string, string | string[] | undefined> = event.node?.req?.headers || {};
+
+  // oxlint-disable-next-line @typescript-oxlint/no-unsafe-member-access
+  if (!Object.keys(headers).length && eventH3v2?.req?.headers instanceof Headers) {
+    // oxlint-disable-next-line @typescript-oxlint/no-unsafe-member-access
+    headers = Object.fromEntries(eventH3v2?.req.headers.entries());
+  }
+
   const headerAttributes = httpHeadersToSpanAttributes(headers, getClient()?.getOptions().sendDefaultPii ?? false);
 
   // Merge header attributes with existing attributes
@@ -182,7 +210,7 @@ function getSpanAttributes(
 }
 
 /**
- * Checks if the handler is an event handler, util for type narrowing.
+ * Checks if the handler is an event handler object, util for type narrowing.
  */
 function isEventHandlerObject(handler: EventHandler | EventHandlerObject): handler is EventHandlerObject {
   return typeof handler !== 'function';

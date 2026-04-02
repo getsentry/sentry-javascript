@@ -21,6 +21,17 @@ As a rule of thumb, we should follow these two ideas:
 2. Instrumentation should follow common patterns for a specific platform. No config is always preferred, but if config
    is unavoidable, it should feel as native as possible to users of the given framework.
 
+### Boilerplate Files
+
+Make sure all the boilerplate for your package is set up correctly. This can include, depending on the package:
+
+- `tsconfig.json`, `tsconfig.test.json`, `tsconfig.types.json`, `test/tsconfig.json`
+- `oxlintsc.json`
+- `rollup.*.config.mjs`
+- `LICENSE`
+- `README.md`
+- `vite.config.ts`
+
 ## 1. Browser SDKs
 
 A purely browser SDK generally should cover the following things:

@@ -61,7 +61,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'express.name': '/test-transaction',
             'express.type': 'request_handler',
             'http.route': '/test-transaction',
-            'sentry.origin': 'auto.http.otel.express',
+            'sentry.origin': 'auto.http.express',
             'sentry.op': 'request_handler.express',
           },
           op: 'request_handler.express',
@@ -72,7 +72,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           status: 'ok',
           timestamp: expect.any(Number),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'auto.http.otel.express',
+          origin: 'auto.http.express',
         },
         {
           data: {

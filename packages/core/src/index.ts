@@ -41,6 +41,9 @@ export {
   withIsolationScope,
   getClient,
   getTraceContextFromScope,
+  registerExternalPropagationContext,
+  getExternalPropagationContext,
+  hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
@@ -49,7 +52,7 @@ export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
-export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
+export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
 export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
@@ -116,6 +119,13 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
+export type {
+  ExpressIntegrationOptions,
+  ExpressHandlerOptions,
+  ExpressMiddleware,
+  ExpressErrorMiddleware,
+} from './integrations/express/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';

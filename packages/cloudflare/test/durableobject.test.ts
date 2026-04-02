@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentDurableObjectWithSentry } from '../src';
-import { isInstrumented } from '../src/instrument';
+import { getInstrumented } from '../src/instrument';
 
 describe('instrumentDurableObjectWithSentry', () => {
   afterEach(() => {
@@ -111,7 +111,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       'webSocketError',
       'rpcMethod',
     ]) {
-      expect(isInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
+      expect(getInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
   });
 
@@ -176,7 +176,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
 
     it('does not instrument prototype methods when option is false', () => {
@@ -189,7 +189,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
 
     it('instruments all prototype methods when option is true', () => {
@@ -205,8 +205,8 @@ describe('instrumentDurableObjectWithSentry', () => {
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.methodOne)).toBeTruthy();
-      expect(isInstrumented(obj.methodTwo)).toBeTruthy();
+      expect(getInstrumented(obj.methodOne)).toBeTruthy();
+      expect(getInstrumented(obj.methodTwo)).toBeTruthy();
     });
 
     it('instruments only specified methods when option is array', () => {
@@ -225,9 +225,9 @@ describe('instrumentDurableObjectWithSentry', () => {
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.methodOne)).toBeTruthy();
-      expect(isInstrumented(obj.methodTwo)).toBeFalsy();
-      expect(isInstrumented(obj.methodThree)).toBeTruthy();
+      expect(getInstrumented(obj.methodOne)).toBeTruthy();
+      expect(getInstrumented(obj.methodTwo)).toBeFalsy();
+      expect(getInstrumented(obj.methodThree)).toBeTruthy();
     });
 
     it('still instruments instance methods regardless of prototype option', () => {
@@ -245,12 +245,12 @@ describe('instrumentDurableObjectWithSentry', () => {
       const obj = Reflect.construct(instrumented, []);
 
       // Instance methods should still be instrumented
-      expect(isInstrumented(obj.propertyFunction)).toBeTruthy();
-      expect(isInstrumented(obj.fetch)).toBeTruthy();
-      expect(isInstrumented(obj.alarm)).toBeTruthy();
-      expect(isInstrumented(obj.webSocketMessage)).toBeTruthy();
-      expect(isInstrumented(obj.webSocketClose)).toBeTruthy();
-      expect(isInstrumented(obj.webSocketError)).toBeTruthy();
+      expect(getInstrumented(obj.propertyFunction)).toBeTruthy();
+      expect(getInstrumented(obj.fetch)).toBeTruthy();
+      expect(getInstrumented(obj.alarm)).toBeTruthy();
+      expect(getInstrumented(obj.webSocketMessage)).toBeTruthy();
+      expect(getInstrumented(obj.webSocketClose)).toBeTruthy();
+      expect(getInstrumented(obj.webSocketError)).toBeTruthy();
     });
   });
 });

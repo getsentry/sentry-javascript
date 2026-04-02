@@ -159,8 +159,8 @@ export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
 function _enhanceEventWithInitialFrame(
   event: Event,
   url: string | undefined,
-  line: number | undefined,
-  column: number | undefined,
+  lineno: number | undefined,
+  colno: number | undefined,
 ): Event {
   // event.exception
   const e = (event.exception = event.exception || {});
@@ -173,18 +173,13 @@ function _enhanceEventWithInitialFrame(
   // event.exception.values[0].stacktrace.frames
   const ev0sf = (ev0s.frames = ev0s.frames || []);
 
-  const colno = column;
-  const lineno = line;
-  const filename = getFilenameFromUrl(url) ?? getLocationHref();
-
-  // event.exception.values[0].stacktrace.frames
   if (ev0sf.length === 0) {
     ev0sf.push({
       colno,
-      filename,
+      lineno,
+      filename: getFilenameFromUrl(url) ?? getLocationHref(),
       function: UNKNOWN_FUNCTION,
       in_app: true,
-      lineno,
     });
   }
 

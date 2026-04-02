@@ -1,7 +1,7 @@
 import type { env } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { isInstrumented, markAsInstrumented } from './instrument';
+import { ensureInstrumented } from './instrument';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
@@ -49,22 +49,19 @@ export function withSentry<
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function instrumentHonoErrorHandler<T extends ExportedHandler<any, any, any>>(handler: T): void {
-  if (
-    'onError' in handler &&
-    'errorHandler' in handler &&
-    typeof handler.errorHandler === 'function' &&
-    !isInstrumented(handler.errorHandler)
-  ) {
-    handler.errorHandler = new Proxy(handler.errorHandler, {
-      apply(target, thisArg, args) {
-        const [err, context] = args;
+  if ('onError' in handler && 'errorHandler' in handler && typeof handler.errorHandler === 'function') {
+    handler.errorHandler = ensureInstrumented(
+      handler.errorHandler,
+      original =>
+        new Proxy(original, {
+          apply(target, thisArg, args) {
+            const [err, context] = args;
 
-        getHonoIntegration()?.handleHonoException(err, context);
+            getHonoIntegration()?.handleHonoException(err, context);
 
-        return Reflect.apply(target, thisArg, args);
-      },
-    });
-
-    markAsInstrumented(handler.errorHandler);
+            return Reflect.apply(target, thisArg, args);
+          },
+        }),
+    );
   }
 }

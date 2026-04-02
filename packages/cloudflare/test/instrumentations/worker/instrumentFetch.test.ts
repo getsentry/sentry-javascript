@@ -32,6 +32,25 @@ describe('instrumentFetch', () => {
     vi.clearAllMocks();
   });
 
+  test('does not double-wrap when withSentry is called twice', async () => {
+    const originalFetch = vi.fn().mockReturnValue(new Response('test'));
+    const handler = {
+      fetch: originalFetch,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    // First call instruments the handler
+    const wrappedHandler1 = withSentry(optionsCallback, handler);
+    const firstFetch = wrappedHandler1.fetch;
+
+    // Second call should reuse the instrumented version
+    const wrappedHandler2 = withSentry(optionsCallback, handler);
+    const secondFetch = wrappedHandler2.fetch;
+
+    expect(firstFetch).toBe(secondFetch);
+  });
+
   test('executes options callback with env', async () => {
     const handler = {
       fetch(_request, _env, _context) {
