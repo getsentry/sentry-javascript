@@ -231,12 +231,20 @@ describe('bunRuntimeMetricsIntegration', () => {
       expect(gaugeSpy).toHaveBeenCalled();
     });
 
-    it('falls back to minimum when NaN', () => {
+    it('falls back to default when NaN', () => {
       const warnSpy = spyOn(globalThis.console, 'warn').mockImplementation(() => {});
 
-      bunRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      const integration = bunRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      integration.setup();
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+
+      // Should fire at the default 30000ms, not at 1000ms
+      jest.advanceTimersByTime(1000);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(29_000);
+      expect(gaugeSpy).toHaveBeenCalled();
     });
   });
 });

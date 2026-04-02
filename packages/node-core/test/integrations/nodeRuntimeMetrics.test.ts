@@ -349,12 +349,20 @@ describe('nodeRuntimeMetricsIntegration', () => {
       warnSpy.mockRestore();
     });
 
-    it('falls back to minimum when collectionIntervalMs is NaN', () => {
+    it('falls back to default when collectionIntervalMs is NaN', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      nodeRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      integration.setup();
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+
+      // Should fire at the default 30000ms, not at 1000ms
+      vi.advanceTimersByTime(1000);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(29_000);
+      expect(gaugeSpy).toHaveBeenCalled();
 
       warnSpy.mockRestore();
     });

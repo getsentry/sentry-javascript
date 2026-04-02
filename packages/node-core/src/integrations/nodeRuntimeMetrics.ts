@@ -8,17 +8,30 @@ const EVENT_LOOP_DELAY_RESOLUTION_MS = 10;
 
 /**
  * Normalizes a `collectionIntervalMs` value, enforcing a minimum of 1000ms.
- * Warns if the value is below the minimum or non-finite (e.g. NaN).
+ * - Non-finite values (NaN, Infinity): warns and falls back to `defaultInterval`.
+ * - Values below the minimum: warns and clamps to 1000ms.
  * @internal
  */
-export function _INTERNAL_normalizeCollectionInterval(rawInterval: number, integrationName: string): number {
-  if (!Number.isFinite(rawInterval) || rawInterval < MIN_COLLECTION_INTERVAL_MS) {
+export function _INTERNAL_normalizeCollectionInterval(
+  rawInterval: number,
+  integrationName: string,
+  defaultInterval: number,
+): number {
+  if (!Number.isFinite(rawInterval)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is invalid. Using default of ${defaultInterval}ms.`,
+    );
+    return defaultInterval;
+  }
+  if (rawInterval < MIN_COLLECTION_INTERVAL_MS) {
     // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_COLLECTION_INTERVAL_MS}ms. Using minimum of ${MIN_COLLECTION_INTERVAL_MS}ms.`,
     );
+    return MIN_COLLECTION_INTERVAL_MS;
   }
-  return Number.isFinite(rawInterval) ? Math.max(rawInterval, MIN_COLLECTION_INTERVAL_MS) : MIN_COLLECTION_INTERVAL_MS;
+  return rawInterval;
 }
 
 export interface NodeRuntimeMetricsOptions {
@@ -83,6 +96,7 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
   const collectionIntervalMs = _INTERNAL_normalizeCollectionInterval(
     options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS,
     INTEGRATION_NAME,
+    DEFAULT_INTERVAL_MS,
   );
   const collect = {
     // Default on

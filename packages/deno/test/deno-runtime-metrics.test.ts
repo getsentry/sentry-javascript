@@ -135,7 +135,7 @@ Deno.test('warns and enforces minimum collectionIntervalMs', () => {
   assertStringIncludes(warnings[0]!, '1000');
 });
 
-Deno.test('warns and falls back to minimum when collectionIntervalMs is NaN', () => {
+Deno.test('warns and falls back to default when collectionIntervalMs is NaN', () => {
   const warnings: string[] = [];
   const originalWarn = globalThis.console.warn;
   globalThis.console.warn = (msg: string) => warnings.push(msg);
@@ -148,4 +148,5 @@ Deno.test('warns and falls back to minimum when collectionIntervalMs is NaN', ()
 
   assertEquals(warnings.length, 1);
   assertStringIncludes(warnings[0]!, 'collectionIntervalMs');
+  assertStringIncludes(warnings[0]!, 'invalid');
 });

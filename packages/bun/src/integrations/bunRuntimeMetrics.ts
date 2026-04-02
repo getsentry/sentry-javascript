@@ -67,6 +67,7 @@ export const bunRuntimeMetricsIntegration = defineIntegration((options: BunRunti
   const collectionIntervalMs = _INTERNAL_normalizeCollectionInterval(
     options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS,
     INTEGRATION_NAME,
+    DEFAULT_INTERVAL_MS,
   );
   const collect = {
     // Default on

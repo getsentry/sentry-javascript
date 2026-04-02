@@ -49,13 +49,22 @@ export interface DenoRuntimeMetricsOptions {
  */
 export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRuntimeMetricsOptions = {}) => {
   const rawInterval = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
-  if (!Number.isFinite(rawInterval) || rawInterval < MIN_INTERVAL_MS) {
+  let collectionIntervalMs: number;
+  if (!Number.isFinite(rawInterval)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is invalid. Using default of ${DEFAULT_INTERVAL_MS}ms.`,
+    );
+    collectionIntervalMs = DEFAULT_INTERVAL_MS;
+  } else if (rawInterval < MIN_INTERVAL_MS) {
     // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_INTERVAL_MS}ms. Using minimum of ${MIN_INTERVAL_MS}ms.`,
     );
+    collectionIntervalMs = MIN_INTERVAL_MS;
+  } else {
+    collectionIntervalMs = rawInterval;
   }
-  const collectionIntervalMs = Number.isFinite(rawInterval) ? Math.max(rawInterval, MIN_INTERVAL_MS) : MIN_INTERVAL_MS;
   const collect = {
     // Default on
     memRss: true,
