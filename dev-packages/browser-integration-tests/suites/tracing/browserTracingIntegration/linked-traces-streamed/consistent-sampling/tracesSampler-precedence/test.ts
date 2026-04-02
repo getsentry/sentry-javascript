@@ -53,7 +53,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         timestamp: expect.any(Number),
         discarded_events: [
           {
-            category: 'transaction',
+            category: 'span',
             quantity: 1,
             reason: 'sample_rate',
           },
@@ -76,7 +76,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         timestamp: expect.any(Number),
         discarded_events: [
           {
-            category: 'transaction',
+            category: 'span',
             quantity: 1,
             reason: 'sample_rate',
           },
