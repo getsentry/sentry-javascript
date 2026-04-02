@@ -142,7 +142,7 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
-    const operationName = instrumentedMethod.operation;
+    const operationName = instrumentedMethod.operation || 'unknown';
     const requestAttributes = extractRequestAttributes(args, operationName);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
 

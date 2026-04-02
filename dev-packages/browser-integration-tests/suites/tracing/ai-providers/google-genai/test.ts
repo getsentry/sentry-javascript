@@ -20,7 +20,7 @@ sentryTest('manual Google GenAI instrumentation sends gen_ai transactions', asyn
   const eventData = envelopeRequestParser(req);
 
   // Verify it's a gen_ai transaction
-  expect(eventData.transaction).toBe('chat gemini-1.5-pro create');
+  expect(eventData.transaction).toBe('chat gemini-1.5-pro');
   expect(eventData.contexts?.trace?.op).toBe('gen_ai.chat');
   expect(eventData.contexts?.trace?.origin).toBe('auto.ai.google_genai');
   expect(eventData.contexts?.trace?.data).toMatchObject({

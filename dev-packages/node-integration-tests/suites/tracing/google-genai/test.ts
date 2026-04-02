@@ -32,24 +32,7 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // First span - chats.create
-      expect.objectContaining({
-        data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-          [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-        },
-        description: 'chat gemini-1.5-pro create',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.google_genai',
-        status: 'ok',
-      }),
-      // Second span - chat.sendMessage (should get model from context)
+      // chat.sendMessage (should get model from context)
       expect.objectContaining({
         data: {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -66,7 +49,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Third span - models.generateContent
+      // models.generateContent
       expect.objectContaining({
         data: {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -86,7 +69,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - error handling
+      // error handling
       expect.objectContaining({
         data: {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -106,25 +89,7 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // First span - chats.create with PII
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-          [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","parts":[{"text":"Hello, how are you?"}]}]',
-        }),
-        description: 'chat gemini-1.5-pro create',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.google_genai',
-        status: 'ok',
-      }),
-      // Second span - chat.sendMessage with PII
+      // chat.sendMessage with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -143,7 +108,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Third span - models.generateContent with PII
+      // models.generateContent with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -165,7 +130,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - error handling with PII
+      // error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -309,7 +274,7 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_STREAMING = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // First span - models.generateContentStream (streaming)
+      // models.generateContentStream (streaming)
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -333,24 +298,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Second span - chat.create
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-          [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-        }),
-        description: 'chat gemini-1.5-pro create',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.google_genai',
-        status: 'ok',
-      }),
-      // Third span - chat.sendMessageStream (streaming)
+      // chat.sendMessageStream (streaming)
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -367,7 +315,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - blocked content streaming
+      // blocked content streaming
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -379,7 +327,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
-      // Fifth span - error handling for streaming
+      // error handling for streaming
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -397,7 +345,7 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_STREAMING_PII_TRUE = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // First span - models.generateContentStream (streaming) with PII
+      // models.generateContentStream (streaming) with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -422,24 +370,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Second span - chat.create
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-          [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-        }),
-        description: 'chat gemini-1.5-pro create',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.google_genai',
-        status: 'ok',
-      }),
-      // Third span - chat.sendMessageStream (streaming) with PII
+      // chat.sendMessageStream (streaming) with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
@@ -461,7 +392,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - blocked content stream with PII
+      // blocked content stream with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
@@ -478,7 +409,7 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
-      // Fifth span - error handling for streaming with PII
+      // error handling for streaming with PII
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
