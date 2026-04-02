@@ -264,6 +264,10 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       if (typeof proto.embedQuery !== 'function' || typeof proto.embedDocuments !== 'function') {
         continue;
       }
+      if (proto.__sentry_patched__) {
+        continue;
+      }
+      proto.__sentry_patched__ = true;
 
       instrumentLangChainEmbeddings(proto, options);
     }
