@@ -121,7 +121,7 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
               }
             }
 
-            completeSpanWithResults(this, message.id, message.result, options);
+            completeSpanWithResults(this, message.id, message.result, options, !!message.error);
           }
         }
 

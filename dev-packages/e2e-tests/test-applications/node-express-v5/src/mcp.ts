@@ -47,6 +47,10 @@ server.prompt('echo', { message: z.string() }, ({ message }, extra) => ({
   ],
 }));
 
+server.tool('always-error', {}, async () => {
+  throw new Error('intentional error for span status testing');
+});
+
 const transports: Record<string, SSEServerTransport> = {};
 
 mcpRouter.get('/sse', async (_, res) => {
