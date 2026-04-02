@@ -1,4 +1,5 @@
-import { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from '@sentry/browser';
+import { createLangChainCallbackHandler } from '@sentry/browser';
+import { instrumentLangChainEmbeddings } from '@sentry/browser';
 import { MockChatAnthropic, MockOpenAIEmbeddings } from './mocks.js';
 
 const callbackHandler = createLangChainCallbackHandler({

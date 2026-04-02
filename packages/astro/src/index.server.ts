@@ -154,6 +154,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentLangChainEmbeddings,
   instrumentLangGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
