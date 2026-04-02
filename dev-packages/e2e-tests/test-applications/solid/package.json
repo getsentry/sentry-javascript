@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build": "vite build",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "clean": "npx rimraf node_modules dist",
     "dev": "vite",
     "preview": "vite preview",
     "start": "vite",

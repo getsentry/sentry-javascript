@@ -9,7 +9,7 @@
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
     "typecheck": "tsc",
     "codegen": "shopify hydrogen codegen",
-    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules dist",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },

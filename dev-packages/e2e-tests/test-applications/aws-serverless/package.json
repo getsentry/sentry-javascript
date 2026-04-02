@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules",
     "test:build": "pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
     "test:assert": "pnpm test"
   },

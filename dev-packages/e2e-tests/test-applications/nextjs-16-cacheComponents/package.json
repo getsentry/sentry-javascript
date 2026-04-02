@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "clean": "npx rimraf node_modules .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
     "build-webpack": "next build --webpack",
     "start": "next start",
