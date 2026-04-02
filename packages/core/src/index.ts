@@ -71,6 +71,8 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
+export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
+export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -84,11 +86,13 @@ export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
@@ -101,6 +105,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { shouldIgnoreSpan } from './utils/should-ignore-span';
 export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -187,6 +192,11 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
 } from './tracing/google-genai/types';
+
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
+
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -401,6 +411,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  StreamedSpanEnvelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -468,6 +479,9 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SerializedStreamedSpan,
+  SerializedStreamedSpanContainer,
+  StreamedSpanJSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
