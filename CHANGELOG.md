@@ -66,9 +66,7 @@
   import * as Sentry from '@sentry/cloudflare';
   import { OpenAIEmbeddings } from '@langchain/openai';
 
-  const embeddings = Sentry.instrumentLangChainEmbeddings(
-    new OpenAIEmbeddings({ model: 'text-embedding-3-small' }),
-  );
+  const embeddings = Sentry.instrumentLangChainEmbeddings(new OpenAIEmbeddings({ model: 'text-embedding-3-small' }));
 
   await embeddings.embedQuery('Hello world');
   ```
