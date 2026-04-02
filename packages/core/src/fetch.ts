@@ -21,6 +21,7 @@ import {
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
   | Array<[string, string]>
+  | Iterable<Iterable<string>>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
       append: (key: string, value: string) => void;
@@ -124,7 +125,7 @@ export function instrumentFetchRequest(
     // Examples: users re-using same options object for multiple fetch calls, frozen objects
     const options: { [key: string]: unknown } = { ...(handlerData.args[1] || {}) };
 
-    const headers = _addTracingHeadersToFetchRequest(
+    const headers = getTracingHeadersForFetchRequest(
       request,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
@@ -176,17 +177,22 @@ export function _callOnRequestSpanEnd(
 }
 
 /**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers.
- * exported only for testing purposes
+ * Builds merged fetch headers that include `sentry-trace` and `baggage` (and optionally `traceparent`)
+ * for the given request and init, without mutating the original request or options.
+ * Returns `undefined` when there is no `sentry-trace` value to attach.
  *
- * When we determine if we should add a baggage header, there are 3 cases:
- * 1. No previous baggage header -> add baggage
- * 2. Previous baggage header has no sentry baggage values -> add our baggage
- * 3. Previous baggage header has sentry baggage values -> do nothing (might have been added manually by users)
+ * @internal Exported for cross-package instrumentation (for example Cloudflare Workers fetcher bindings)
+ * and unit tests
+ * @hidden
+ *
+ * Baggage handling:
+ * 1. No previous baggage header → include Sentry baggage
+ * 2. Previous baggage has no Sentry entries → merge Sentry baggage in
+ * 3. Previous baggage already has Sentry entries → leave as-is (may be user-defined)
  */
 // eslint-disable-next-line complexity -- yup it's this complicated :(
-export function _addTracingHeadersToFetchRequest(
-  request: string | Request,
+export function getTracingHeadersForFetchRequest(
+  request: string | URL | Request,
   fetchOptionsObj: {
     headers?:
       | {
@@ -234,28 +240,28 @@ export function _addTracingHeadersToFetchRequest(
     }
 
     return newHeaders;
-  } else if (Array.isArray(originalHeaders)) {
-    const newHeaders = [...originalHeaders];
+  } else if (Array.isArray(originalHeaders) || isIterable(originalHeaders)) {
+    const headersArray: [string, string][] = Array.isArray(originalHeaders)
+      ? [...originalHeaders]
+      : Array.from(originalHeaders);
 
-    if (!originalHeaders.find(header => header[0] === 'sentry-trace')) {
-      newHeaders.push(['sentry-trace', sentryTrace]);
+    if (!headersArray.find(header => header[0] === 'sentry-trace')) {
+      headersArray.push(['sentry-trace', sentryTrace]);
     }
 
-    if (propagateTraceparent && traceparent && !originalHeaders.find(header => header[0] === 'traceparent')) {
-      newHeaders.push(['traceparent', traceparent]);
+    if (propagateTraceparent && traceparent && !headersArray.find(header => header[0] === 'traceparent')) {
+      headersArray.push(['traceparent', traceparent]);
     }
 
-    const prevBaggageHeaderWithSentryValues = originalHeaders.find(
+    const prevBaggageHeaderWithSentryValues = headersArray.find(
       header => header[0] === 'baggage' && baggageHeaderHasSentryBaggageValues(header[1]),
     );
 
     if (baggage && !prevBaggageHeaderWithSentryValues) {
-      // If there are multiple entries with the same key, the browser will merge the values into a single request header.
-      // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.push(['baggage', baggage]);
+      headersArray.push(['baggage', baggage]);
     }
 
-    return newHeaders as PolymorphicRequestHeaders;
+    return headersArray as PolymorphicRequestHeaders;
   } else {
     const existingSentryTraceHeader = 'sentry-trace' in originalHeaders ? originalHeaders['sentry-trace'] : undefined;
     const existingTraceparentHeader = 'traceparent' in originalHeaders ? originalHeaders.traceparent : undefined;
@@ -319,6 +325,10 @@ function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
 
 function isHeaders(headers: unknown): headers is Headers {
   return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
+}
+
+function isIterable(headers: unknown): headers is Iterable<[string, string]> {
+  return typeof headers === 'object' && headers !== null && Symbol.iterator in headers;
 }
 
 function getSpanStartOptions(

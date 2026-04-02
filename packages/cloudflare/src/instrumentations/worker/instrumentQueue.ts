@@ -14,6 +14,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { instrumentEnv } from './instrumentEnv';
 
 /**
  * Core queue handler logic - wraps execution with Sentry instrumentation.
@@ -80,6 +81,7 @@ export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, an
         apply(target, thisArg, args: Parameters<NonNullable<T['queue']>>) {
           const [batch, env, ctx] = args;
           const context = instrumentContext(ctx);
+          args[1] = instrumentEnv(env);
           args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
