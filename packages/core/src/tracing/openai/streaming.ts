@@ -1,12 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import {
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { endStreamSpan } from '../ai/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -15,12 +10,7 @@ import type {
   ResponseFunctionCall,
   ResponseStreamingEvent,
 } from './types';
-import {
-  isChatCompletionChunk,
-  isResponsesApiStreamEvent,
-  setCommonResponseAttributes,
-  setTokenUsageAttributes,
-} from './utils';
+import { isChatCompletionChunk, isResponsesApiStreamEvent } from './utils';
 
 /**
  * State object used to accumulate information from a stream of OpenAI events/chunks.
@@ -36,8 +26,6 @@ interface StreamingState {
   responseId: string;
   /** The model name. */
   responseModel: string;
-  /** The timestamp of the response. */
-  responseTimestamp: number;
   /** Number of prompt/input tokens used. */
   promptTokens: number | undefined;
   /** Number of completion/output tokens used. */
@@ -99,7 +87,6 @@ function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], sta
 function processChatCompletionChunk(chunk: ChatCompletionChunk, state: StreamingState, recordOutputs: boolean): void {
   state.responseId = chunk.id ?? state.responseId;
   state.responseModel = chunk.model ?? state.responseModel;
-  state.responseTimestamp = chunk.created ?? state.responseTimestamp;
 
   if (chunk.usage) {
     // For stream responses, the input tokens remain constant across all events in the stream.
@@ -183,7 +170,6 @@ function processResponsesApiEvent(
     const { response } = event as { response: OpenAIResponseObject };
     state.responseId = response.id ?? state.responseId;
     state.responseModel = response.model ?? state.responseModel;
-    state.responseTimestamp = response.created_at ?? state.responseTimestamp;
 
     if (response.usage) {
       // For stream responses, the input tokens remain constant across all events in the stream.
@@ -227,7 +213,6 @@ export async function* instrumentStream<T>(
     finishReasons: [],
     responseId: '',
     responseModel: '',
-    responseTimestamp: 0,
     promptTokens: undefined,
     completionTokens: undefined,
     totalTokens: undefined,
@@ -245,35 +230,7 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    setCommonResponseAttributes(span, state.responseId, state.responseModel, state.responseTimestamp);
-    setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
-
-    span.setAttributes({
-      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    });
-
-    if (state.finishReasons.length) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
-      });
-    }
-
-    if (recordOutputs && state.responseTexts.length) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
-      });
-    }
-
-    // Set tool calls attribute if any were accumulated
-    const chatCompletionToolCallsArray = Object.values(state.chatCompletionToolCalls);
-    const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiToolCalls];
-
-    if (allToolCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(allToolCalls),
-      });
-    }
-
-    span.end();
+    const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
+    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
 }

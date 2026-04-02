@@ -8,6 +8,8 @@ import type {
   Event as SentryEvent,
   EventEnvelope,
   EventEnvelopeHeaders,
+  SerializedMetric,
+  SerializedMetricContainer,
   SerializedSession,
   TransactionEvent,
 } from '@sentry/core';
@@ -281,6 +283,56 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
       return false;
     }
   });
+}
+
+/**
+ * Wait for metric requests. Accumulates metrics across all matching requests
+ * and resolves when the callback returns true for the full set of collected metrics.
+ * If no callback is provided, resolves on the first request containing metrics.
+ */
+export function waitForMetrics(
+  page: Page,
+  callback?: (metrics: SerializedMetric[]) => boolean,
+): Promise<SerializedMetric[]> {
+  const collected: SerializedMetric[] = [];
+
+  return page
+    .waitForRequest(req => {
+      const postData = req.postData();
+      if (!postData) {
+        return false;
+      }
+
+      try {
+        const envelope = properFullEnvelopeRequestParser<Envelope>(req);
+        const items = envelope[1];
+        const metrics: SerializedMetric[] = [];
+        for (const item of items) {
+          const [header] = item;
+          if (header.type === 'trace_metric') {
+            const payload = item[1] as SerializedMetricContainer;
+            if (payload.items) {
+              metrics.push(...payload.items);
+            }
+          }
+        }
+
+        if (metrics.length === 0) {
+          return false;
+        }
+
+        collected.push(...metrics);
+
+        if (callback) {
+          return callback(collected);
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    })
+    .then(() => collected);
 }
 
 export async function waitForSession(

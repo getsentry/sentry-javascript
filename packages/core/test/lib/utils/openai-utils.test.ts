@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildMethodPath } from '../../../src/tracing/ai/utils';
-import {
-  isChatCompletionChunk,
-  isChatCompletionResponse,
-  isConversationResponse,
-  isResponsesApiResponse,
-  isResponsesApiStreamEvent,
-} from '../../../src/tracing/openai/utils';
+import { isChatCompletionChunk, isResponsesApiStreamEvent } from '../../../src/tracing/openai/utils';
 
 describe('openai-utils', () => {
   describe('buildMethodPath', () => {
@@ -14,50 +8,6 @@ describe('openai-utils', () => {
       expect(buildMethodPath('', 'chat')).toBe('chat');
       expect(buildMethodPath('chat', 'completions')).toBe('chat.completions');
       expect(buildMethodPath('chat.completions', 'create')).toBe('chat.completions.create');
-    });
-  });
-
-  describe('isChatCompletionResponse', () => {
-    it('should return true for valid chat completion responses', () => {
-      const validResponse = {
-        object: 'chat.completion',
-        id: 'chatcmpl-123',
-        model: 'gpt-4',
-        choices: [],
-      };
-      expect(isChatCompletionResponse(validResponse)).toBe(true);
-    });
-
-    it('should return false for invalid responses', () => {
-      expect(isChatCompletionResponse(null)).toBe(false);
-      expect(isChatCompletionResponse(undefined)).toBe(false);
-      expect(isChatCompletionResponse('string')).toBe(false);
-      expect(isChatCompletionResponse(123)).toBe(false);
-      expect(isChatCompletionResponse({})).toBe(false);
-      expect(isChatCompletionResponse({ object: 'different' })).toBe(false);
-      expect(isChatCompletionResponse({ object: null })).toBe(false);
-    });
-  });
-
-  describe('isResponsesApiResponse', () => {
-    it('should return true for valid responses API responses', () => {
-      const validResponse = {
-        object: 'response',
-        id: 'resp_123',
-        model: 'gpt-4',
-        choices: [],
-      };
-      expect(isResponsesApiResponse(validResponse)).toBe(true);
-    });
-
-    it('should return false for invalid responses', () => {
-      expect(isResponsesApiResponse(null)).toBe(false);
-      expect(isResponsesApiResponse(undefined)).toBe(false);
-      expect(isResponsesApiResponse('string')).toBe(false);
-      expect(isResponsesApiResponse(123)).toBe(false);
-      expect(isResponsesApiResponse({})).toBe(false);
-      expect(isResponsesApiResponse({ object: 'different' })).toBe(false);
-      expect(isResponsesApiResponse({ object: null })).toBe(false);
     });
   });
 
@@ -101,38 +51,6 @@ describe('openai-utils', () => {
       expect(isChatCompletionChunk({})).toBe(false);
       expect(isChatCompletionChunk({ object: 'chat.completion' })).toBe(false);
       expect(isChatCompletionChunk({ object: null })).toBe(false);
-    });
-  });
-
-  describe('isConversationResponse', () => {
-    it('should return true for valid conversation responses', () => {
-      const validConversation = {
-        object: 'conversation',
-        id: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
-        created_at: 1704067200,
-      };
-      expect(isConversationResponse(validConversation)).toBe(true);
-    });
-
-    it('should return true for conversation with metadata', () => {
-      const conversationWithMetadata = {
-        object: 'conversation',
-        id: 'conv_123',
-        created_at: 1704067200,
-        metadata: { user_id: 'user_123' },
-      };
-      expect(isConversationResponse(conversationWithMetadata)).toBe(true);
-    });
-
-    it('should return false for invalid responses', () => {
-      expect(isConversationResponse(null)).toBe(false);
-      expect(isConversationResponse(undefined)).toBe(false);
-      expect(isConversationResponse('string')).toBe(false);
-      expect(isConversationResponse(123)).toBe(false);
-      expect(isConversationResponse({})).toBe(false);
-      expect(isConversationResponse({ object: 'thread' })).toBe(false);
-      expect(isConversationResponse({ object: 'response' })).toBe(false);
-      expect(isConversationResponse({ object: null })).toBe(false);
     });
   });
 });

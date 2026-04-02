@@ -65,6 +65,47 @@ describe('onCreateWebpackConfig', () => {
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(0);
   });
 
+  describe('errorHandler', () => {
+    function getErrorHandler(): (err: Error) => void {
+      const actions = { setWebpackConfig: vi.fn() };
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      onCreateWebpackConfig({ actions, getConfig }, {});
+
+      const pluginOptions = sentryWebpackPlugin.mock.calls[0][0];
+      return pluginOptions.errorHandler;
+    }
+
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('accepts a single error argument (bundler-plugin-core v5 API)', () => {
+      const errorHandler = getErrorHandler();
+      expect(() => errorHandler(new Error('some error'))).toThrow('some error');
+    });
+
+    it('does not throw for missing organization slug', () => {
+      const errorHandler = getErrorHandler();
+      expect(() => errorHandler(new Error('Organization slug is required'))).not.toThrow();
+    });
+
+    it('does not throw for missing project slug', () => {
+      const errorHandler = getErrorHandler();
+      expect(() => errorHandler(new Error('Project slug is required'))).not.toThrow();
+    });
+
+    it('does not throw for missing auth token', () => {
+      const errorHandler = getErrorHandler();
+      expect(() => errorHandler(new Error('Authentication credentials were not provided'))).not.toThrow();
+    });
+
+    it('re-throws unknown errors', () => {
+      const errorHandler = getErrorHandler();
+      expect(() => errorHandler(new Error('Something unexpected'))).toThrow('Something unexpected');
+    });
+  });
+
   describe('delete source maps after upload', () => {
     beforeEach(() => {
       vi.clearAllMocks();

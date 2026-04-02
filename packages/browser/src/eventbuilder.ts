@@ -401,14 +401,5 @@ function getObjectClassName(obj: unknown): string | undefined | void {
 
 /** If a plain object has a property that is an `Error`, return this error. */
 function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
-  for (const prop in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-      const value = obj[prop];
-      if (value instanceof Error) {
-        return value;
-      }
-    }
-  }
-
-  return undefined;
+  return Object.values(obj).find((v): v is Error => v instanceof Error);
 }

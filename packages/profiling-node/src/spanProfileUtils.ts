@@ -3,6 +3,7 @@ import type { CustomSamplingContext, Span } from '@sentry/core';
 import { debug, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { CpuProfilerBindings, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
 import { isValidSampleRate } from './utils';
 
@@ -17,6 +18,13 @@ export function maybeProfileSpan(
   span: Span,
   customSamplingContext?: CustomSamplingContext,
 ): string | undefined {
+  // Profiling is not supported in worker threads as the native CPU profiler's
+  // sampling thread can race with V8's GC across isolates, causing heap corruption.
+  if (!isMainThread) {
+    DEBUG_BUILD && debug.log('[Profiling] Skipping span profiling in worker thread.');
+    return;
+  }
+
   // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
   // the actual multiplication to get the final rate, but we discard the profile if the span was sampled,
   // so anything after this block from here is based on the span sampling.
