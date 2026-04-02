@@ -8,14 +8,14 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.nodeRuntimeMetricsIntegration({
-      collectionIntervalMs: 100,
+      collectionIntervalMs: 1000,
     }),
   ],
 });
 
 async function run(): Promise<void> {
   // Wait long enough for the collection interval to fire at least once.
-  await new Promise<void>(resolve => setTimeout(resolve, 250));
+  await new Promise<void>(resolve => setTimeout(resolve, 1100));
   await Sentry.flush();
 }
 

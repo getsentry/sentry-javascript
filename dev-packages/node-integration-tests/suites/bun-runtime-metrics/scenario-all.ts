@@ -9,7 +9,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     bunRuntimeMetricsIntegration({
-      collectionIntervalMs: 100,
+      collectionIntervalMs: 1000,
       collect: {
         cpuTime: true,
         memExternal: true,
@@ -19,7 +19,7 @@ Sentry.init({
 });
 
 async function run(): Promise<void> {
-  await new Promise<void>(resolve => setTimeout(resolve, 250));
+  await new Promise<void>(resolve => setTimeout(resolve, 1100));
   await Sentry.flush();
 }
 

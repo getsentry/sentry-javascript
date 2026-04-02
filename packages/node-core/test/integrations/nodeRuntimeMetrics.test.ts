@@ -329,5 +329,42 @@ describe('nodeRuntimeMetricsIntegration', () => {
 
       expect(countSpy).not.toHaveBeenCalledWith('node.runtime.process.uptime', expect.anything(), expect.anything());
     });
+
+    it('enforces minimum collectionIntervalMs of 1000ms and warns', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: 100 });
+      integration.setup();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('1000'));
+
+      // Should fire at the minimum 1000ms, not at 100ms
+      vi.advanceTimersByTime(100);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(900);
+      expect(gaugeSpy).toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
+
+    it('falls back to default when collectionIntervalMs is NaN', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const integration = nodeRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      integration.setup();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+
+      // Should fire at the default 30000ms, not at 1000ms
+      vi.advanceTimersByTime(1000);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(29_000);
+      expect(gaugeSpy).toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+    });
   });
 });

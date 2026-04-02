@@ -3,7 +3,36 @@ import { _INTERNAL_safeDateNow, _INTERNAL_safeUnref, defineIntegration, metrics 
 
 const INTEGRATION_NAME = 'NodeRuntimeMetrics';
 const DEFAULT_INTERVAL_MS = 30_000;
+const MIN_COLLECTION_INTERVAL_MS = 1_000;
 const EVENT_LOOP_DELAY_RESOLUTION_MS = 10;
+
+/**
+ * Normalizes a `collectionIntervalMs` value, enforcing a minimum of 1000ms.
+ * - Non-finite values (NaN, Infinity): warns and falls back to `defaultInterval`.
+ * - Values below the minimum: warns and clamps to 1000ms.
+ * @internal
+ */
+export function _INTERNAL_normalizeCollectionInterval(
+  rawInterval: number,
+  integrationName: string,
+  defaultInterval: number,
+): number {
+  if (!Number.isFinite(rawInterval)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is invalid. Using default of ${defaultInterval}ms.`,
+    );
+    return defaultInterval;
+  }
+  if (rawInterval < MIN_COLLECTION_INTERVAL_MS) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_COLLECTION_INTERVAL_MS}ms. Using minimum of ${MIN_COLLECTION_INTERVAL_MS}ms.`,
+    );
+    return MIN_COLLECTION_INTERVAL_MS;
+  }
+  return rawInterval;
+}
 
 export interface NodeRuntimeMetricsOptions {
   /**
@@ -44,7 +73,9 @@ export interface NodeRuntimeMetricsOptions {
   };
   /**
    * How often to collect metrics, in milliseconds.
+   * Minimum allowed value is 1000ms.
    * @default 30000
+   * @minimum 1000
    */
   collectionIntervalMs?: number;
 }
@@ -62,7 +93,11 @@ export interface NodeRuntimeMetricsOptions {
  * ```
  */
 export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRuntimeMetricsOptions = {}) => {
-  const collectionIntervalMs = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
+  const collectionIntervalMs = _INTERNAL_normalizeCollectionInterval(
+    options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS,
+    INTEGRATION_NAME,
+    DEFAULT_INTERVAL_MS,
+  );
   const collect = {
     // Default on
     cpuUtilization: true,
