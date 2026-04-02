@@ -6,7 +6,11 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { ClientOptions } from '../types-hoist/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
@@ -15,6 +19,8 @@ import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { shouldIgnoreSpan } from '../utils/should-ignore-span';
+import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { safeMathRandom } from '../utils/randomSafeContext';
@@ -28,6 +34,7 @@ import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
+import type { Client } from '../client';
 
 const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
@@ -72,7 +79,12 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             scope,
           });
 
-      _setSpanForScope(scope, activeSpan);
+      // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
+      // and descendants are also non-recording. Ignored child spans don't need this because
+      // the parent span is already on scope.
+      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+        _setSpanForScope(scope, activeSpan);
+      }
 
       return handleCallbackErrors(
         () => callback(activeSpan),
@@ -130,7 +142,11 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             scope,
           });
 
-      _setSpanForScope(scope, activeSpan);
+      // We don't set ignored child spans onto the scope because there likely is an active,
+      // unignored span on the scope already.
+      if (!_isIgnoredSpan(activeSpan) || !parentSpan) {
+        _setSpanForScope(scope, activeSpan);
+      }
 
       return handleCallbackErrors(
         // We pass the `finish` function to the callback, so the user can finish the span manually
@@ -335,6 +351,20 @@ function createChildOrRootSpan({
     return span;
   }
 
+  const client = getClient();
+  if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
+    if (!_isTracingSuppressed(scope)) {
+      // if tracing is actively suppressed (Sentry.suppressTracing(...)),
+      // we don't want to record a client outcome for the ignored span
+      client?.recordDroppedEvent('ignored', 'span');
+    }
+
+    return new SentryNonRecordingSpan({
+      dropReason: 'ignored',
+      traceId: parentSpan?.spanContext().traceId ?? scope.getPropagationContext().traceId,
+    });
+  }
+
   const isolationScope = getIsolationScope();
 
   let span: Span;
@@ -434,9 +464,9 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
   const currentPropagationContext = scope.getPropagationContext();
-  const [sampled, sampleRate, localSampleRateWasApplied] = scope.getScopeData().sdkProcessingMetadata[
-    SUPPRESS_TRACING_KEY
-  ]
+  const isTracingSuppressed = _isTracingSuppressed(scope);
+
+  const [sampled, sampleRate, localSampleRateWasApplied] = isTracingSuppressed
     ? [false]
     : sampleSpan(
         options,
@@ -460,9 +490,9 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     sampled,
   });
 
-  if (!sampled && client) {
+  if (!sampled && client && !isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent('sample_rate', 'transaction');
+    client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
   if (client) {
@@ -478,7 +508,8 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
  */
 function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySpanArguments): Span {
   const { spanId, traceId } = parentSpan.spanContext();
-  const sampled = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] ? false : spanIsSampled(parentSpan);
+  const isTracingSuppressed = _isTracingSuppressed(scope);
+  const sampled = isTracingSuppressed ? false : spanIsSampled(parentSpan);
 
   const childSpan = sampled
     ? new SentrySpan({
@@ -492,13 +523,31 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
   addChildSpanToSpan(parentSpan, childSpan);
 
   const client = getClient();
-  if (client) {
-    client.emit('spanStart', childSpan);
-    // If it has an endTimestamp, it's already ended
-    if (spanArguments.endTimestamp) {
-      client.emit('spanEnd', childSpan);
-      client.emit('afterSpanEnd', childSpan);
+
+  if (!client) {
+    return childSpan;
+  }
+
+  if (hasSpanStreamingEnabled(client) && childSpan instanceof SentryNonRecordingSpan) {
+    if (parentSpan instanceof SentryNonRecordingSpan && parentSpan.dropReason) {
+      // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
+      // In this case, the child was also ignored (see `sampled` above) but we need to
+      // record a client outcome for the child.
+      childSpan.dropReason = parentSpan.dropReason;
+      client.recordDroppedEvent(parentSpan.dropReason, 'span');
+    } else if (!isTracingSuppressed) {
+      // Otherwise, the child is not sampled due to sampling of the parent span,
+      // hence we record a sample_rate client outcome for the child.
+      childSpan.dropReason = 'sample_rate';
+      client.recordDroppedEvent('sample_rate', 'span');
     }
+  }
+
+  client.emit('spanStart', childSpan);
+  // If it has an endTimestamp, it's already ended
+  if (spanArguments.endTimestamp) {
+    client.emit('spanEnd', childSpan);
+    client.emit('afterSpanEnd', childSpan);
   }
 
   return childSpan;
@@ -536,4 +585,29 @@ function getActiveSpanWrapper<T>(parentSpan: Span | undefined | null): (callback
         return withActiveSpan(parentSpan, callback);
       }
     : (callback: () => T) => callback();
+}
+
+/* Checks if `ignoreSpans` applies (extracted for bundle size)*/
+function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: SentrySpanArguments): boolean {
+  const ignoreSpans = client?.getOptions().ignoreSpans;
+
+  if (!client || !hasSpanStreamingEnabled(client) || !ignoreSpans?.length) {
+    return false;
+  }
+
+  return shouldIgnoreSpan(
+    {
+      description: spanArguments.name || '',
+      op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+    },
+    ignoreSpans,
+  );
+}
+
+function _isIgnoredSpan(span: Span): span is SentryNonRecordingSpan {
+  return span instanceof SentryNonRecordingSpan && span.dropReason === 'ignored';
+}
+
+function _isTracingSuppressed(scope: Scope): boolean {
+  return scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true;
 }

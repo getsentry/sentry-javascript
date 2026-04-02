@@ -16,16 +16,20 @@ import {
   baggageHeaderToDynamicSamplingContext,
   debug,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
   parseSampleRate,
   sampleSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  shouldIgnoreSpan,
 } from '@sentry/core';
 import {
   SENTRY_TRACE_STATE_DSC,
+  SENTRY_TRACE_STATE_CHILD_IGNORED,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
   SENTRY_TRACE_STATE_SAMPLE_RATE,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
+  SENTRY_TRACE_STATE_SEGMENT_IGNORED,
   SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -39,9 +43,11 @@ import { setIsSetup } from './utils/setupCheck';
  */
 export class SentrySampler implements Sampler {
   private _client: Client;
+  private _isSpanStreaming: boolean;
 
   public constructor(client: Client) {
     this._client = client;
+    this._isSpanStreaming = hasSpanStreamingEnabled(client);
     setIsSetup('SentrySampler');
   }
 
@@ -55,6 +61,7 @@ export class SentrySampler implements Sampler {
     _links: unknown,
   ): SamplingResult {
     const options = this._client.getOptions();
+    const { ignoreSpans } = options;
 
     const parentSpan = getValidSpan(context);
     const parentContext = parentSpan?.spanContext();
@@ -79,6 +86,36 @@ export class SentrySampler implements Sampler {
     // We only sample based on parameters (like tracesSampleRate or tracesSampler) for root spans (which is done in sampleSpan).
     // Non-root-spans simply inherit the sampling decision from their parent.
     if (!isRootSpan) {
+      if (this._isSpanStreaming) {
+        // `ignoreSpans` is only applied at span start for streamed spans.
+        // Static spans/transactions get filtered at transaction end.
+        // Likewise, we only record client outcomes for child spans when streaming
+        if (parentSampled) {
+          if (ignoreSpans?.length) {
+            const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes, spanKind);
+            if (
+              shouldIgnoreSpan(
+                { description: inferredChildName, op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp },
+                ignoreSpans,
+              )
+            ) {
+              this._client.recordDroppedEvent('ignored', 'span');
+              return wrapSamplingDecision({
+                decision: SamplingDecision.NOT_RECORD,
+                context,
+                spanAttributes,
+                ignoredChildSpan: true,
+              });
+            }
+          }
+        }
+
+        if (!parentSampled) {
+          const parentSegmentIgnored = parentContext?.traceState?.get(SENTRY_TRACE_STATE_SEGMENT_IGNORED) === '1';
+          this._client.recordDroppedEvent(parentSegmentIgnored ? 'ignored' : 'sample_rate', 'span');
+        }
+      }
+
       return wrapSamplingDecision({
         decision: parentSampled ? SamplingDecision.RECORD_AND_SAMPLED : SamplingDecision.NOT_RECORD,
         context,
@@ -100,6 +137,23 @@ export class SentrySampler implements Sampler {
 
     if (op) {
       mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
+
+    if (
+      this._isSpanStreaming &&
+      ignoreSpans?.length &&
+      shouldIgnoreSpan(
+        { description: inferredSpanName, op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op },
+        ignoreSpans,
+      )
+    ) {
+      this._client.recordDroppedEvent('ignored', 'span');
+      return wrapSamplingDecision({
+        decision: SamplingDecision.NOT_RECORD,
+        context,
+        spanAttributes,
+        ignoredSegmentSpan: true,
+      });
     }
 
     const mutableSamplingDecision = { decision: true };
@@ -155,7 +209,7 @@ export class SentrySampler implements Sampler {
       parentSampled === undefined
     ) {
       DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-      this._client.recordDroppedEvent('sample_rate', 'transaction');
+      this._client.recordDroppedEvent('sample_rate', this._isSpanStreaming ? 'span' : 'transaction');
     }
 
     return {
@@ -211,12 +265,17 @@ export function wrapSamplingDecision({
   spanAttributes,
   sampleRand,
   downstreamTraceSampleRate,
+  ignoredChildSpan,
+  ignoredSegmentSpan,
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
   spanAttributes: SpanAttributes;
   sampleRand?: number;
   downstreamTraceSampleRate?: number;
+  // flags for ignored streamed spans (only set for span streaming)
+  ignoredChildSpan?: boolean;
+  ignoredSegmentSpan?: boolean;
 }): SamplingResult {
   let traceState = getBaseTraceState(context, spanAttributes);
 
@@ -230,6 +289,14 @@ export function wrapSamplingDecision({
 
   if (sampleRand !== undefined) {
     traceState = traceState.set(SENTRY_TRACE_STATE_SAMPLE_RAND, `${sampleRand}`);
+  }
+
+  if (ignoredChildSpan) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_CHILD_IGNORED, '1');
+  }
+
+  if (ignoredSegmentSpan) {
+    traceState = traceState.set(SENTRY_TRACE_STATE_SEGMENT_IGNORED, '1');
   }
 
   // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs

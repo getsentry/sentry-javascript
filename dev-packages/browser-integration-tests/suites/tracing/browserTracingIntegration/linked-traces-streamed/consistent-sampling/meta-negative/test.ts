@@ -83,12 +83,14 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
           timestamp: expect.any(Number),
           discarded_events: [
             {
-              category: 'transaction',
-              quantity: 4,
+              category: 'span',
+              quantity: expect.any(Number),
               reason: 'sample_rate',
             },
           ],
         });
+        // exact number depends on performance observer emissions
+        expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(10);
       });
 
       expect(spansReceived).toHaveLength(0);
