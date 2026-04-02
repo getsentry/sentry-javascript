@@ -1,8 +1,72 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
-import { stripSentryFramesAndReverse } from '../../../src/utils/stacktrace';
+import { createStackParser, stripSentryFramesAndReverse } from '../../../src/utils/stacktrace';
 
 describe('Stacktrace', () => {
+  describe('createStackParser()', () => {
+    it('skips lines that contain "Error: " (e.g. "TypeError: foo")', () => {
+      const mockParser = vi.fn().mockReturnValue({ filename: 'test.js', function: 'test', lineno: 1, colno: 1 });
+      const parser = createStackParser([0, mockParser]);
+
+      const stack = ['TypeError: foo is not a function', '    at test (test.js:1:1)'].join('\n');
+
+      const frames = parser(stack);
+
+      // The parser should only be called for the frame line, not the Error line
+      expect(mockParser).toHaveBeenCalledTimes(1);
+      expect(frames).toHaveLength(1);
+    });
+
+    it('skips various Error type lines', () => {
+      const mockParser = vi.fn().mockReturnValue({ filename: 'test.js', function: 'test', lineno: 1, colno: 1 });
+      const parser = createStackParser([0, mockParser]);
+
+      const stack = [
+        'Error: something went wrong',
+        'TypeError: foo is not a function',
+        'RangeError: Maximum call stack size exceeded',
+        'SomeCustomError: custom message',
+        '    at test (test.js:1:1)',
+      ].join('\n');
+
+      const frames = parser(stack);
+
+      // Only the frame line should be parsed, all Error lines should be skipped
+      expect(mockParser).toHaveBeenCalledTimes(1);
+      expect(frames).toHaveLength(1);
+    });
+
+    // Regression test for https://github.com/getsentry/sentry-javascript/issues/20052
+    it('processes long non-whitespace lines without hanging', () => {
+      const mockParser = vi.fn().mockReturnValue(undefined);
+      const parser = createStackParser([0, mockParser]);
+
+      // Long non-whitespace lines (e.g. minified URLs) previously caused O(n²) backtracking
+      const longLine = 'a'.repeat(2000);
+      const stack = [longLine, '    at test (test.js:1:1)'].join('\n');
+
+      // Should complete without hanging (line gets truncated to 1024 chars internally)
+      parser(stack);
+      expect(mockParser).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not skip lines that do not contain "Error: "', () => {
+      const mockParser = vi.fn().mockReturnValue({ filename: 'test.js', function: 'test', lineno: 1, colno: 1 });
+      const parser = createStackParser([0, mockParser]);
+
+      const stack = [
+        '    at foo (test.js:1:1)',
+        '    at bar (test.js:2:1)',
+        'ResizeObserver loop completed with undelivered notifications.',
+      ].join('\n');
+
+      parser(stack);
+
+      // All lines should be attempted by the parser (none contain "Error: ")
+      expect(mockParser).toHaveBeenCalledTimes(3);
+    });
+  });
+
   describe('stripSentryFramesAndReverse()', () => {
     describe('removed top frame if its internally reserved word (public API)', () => {
       it('reserved captureException', () => {
