@@ -288,7 +288,7 @@ export function eventFromUnknownInput(
   if (isDOMError(exception) || isDOMException(exception as DOMException)) {
     const domException = exception as DOMException;
 
-    if ('stack' in (exception as Error)) {
+    if ((exception as Error).stack) {
       event = eventFromError(stackParser, exception as Error);
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');

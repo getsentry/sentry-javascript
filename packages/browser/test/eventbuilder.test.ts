@@ -168,6 +168,79 @@ describe('eventFromUnknownInput', () => {
       },
     });
   });
+
+  it('add a synthetic stack trace to DOMException with empty stack traces if attachStacktrace is true', async () => {
+    const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    exception.stack = '';
+
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, true);
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        stacktrace: {
+          frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
+        },
+        type: 'Error',
+        value: 'SyntaxError: The string did not match the expected pattern.',
+      }),
+    );
+  });
+
+  it('add a synthetic stack trace to DOMException without a stack traces property if attachStacktrace is true', async () => {
+    const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    delete exception.stack;
+
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, true);
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        stacktrace: {
+          frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
+        },
+        type: 'Error',
+        value: 'SyntaxError: The string did not match the expected pattern.',
+      }),
+    );
+  });
+
+  it("doesn't add a synthetic stack trace to DOMException with empty stack traces if attachStacktrace is false", async () => {
+    const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    exception.stack = '';
+
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, false);
+    expect(event.exception?.values?.[0]).toEqual({
+      type: 'Error',
+      value: 'SyntaxError: The string did not match the expected pattern.',
+    });
+  });
+
+  it("doesn't add a synthetic stack trace to DOMException with stack traces if attachStacktrace is true", async () => {
+    const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    exception.stack = 'SyntaxError\n    at <anonymous>:1:2';
+
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, true);
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        stacktrace: {
+          frames: [
+            {
+              colno: 2,
+              filename: '<anonymous>',
+              function: '?',
+              in_app: true,
+              lineno: 1,
+            },
+          ],
+        },
+        type: 'SyntaxError',
+        value: 'The string did not match the expected pattern.',
+      }),
+    );
+  });
 });
 
 describe('extractMessage', () => {
