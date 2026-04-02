@@ -44,7 +44,7 @@ vi.mock('@sentry/node', async () => {
 });
 
 // Default `timeoutWarningLimit` is 500ms so leaving some space for it to trigger when necessary
-const DEFAULT_EXECUTION_TIME = 100;
+const DEFAULT_EXECUTION_TIME = 1000;
 let fakeEvent: { [key: string]: unknown };
 const fakeContext = {
   callbackWaitsForEmptyEventLoop: false,
@@ -76,7 +76,7 @@ function expectScopeSettings() {
       function_name: 'functionName',
       function_version: 'functionVersion',
       invoked_function_arn: 'invokedFunctionArn',
-      remaining_time_in_millis: 100,
+      remaining_time_in_millis: DEFAULT_EXECUTION_TIME,
     }),
   );
 
@@ -167,6 +167,21 @@ describe('AWSLambda', () => {
 
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1m40s');
+    });
+
+    test('captureTimeoutWarning skipped when timeoutWarningLimit exceeds remaining time', async () => {
+      const handler: Handler = (_event, _context, callback) => {
+        setTimeout(() => {
+          callback(null, 42);
+        }, DEFAULT_EXECUTION_TIME);
+      };
+      const wrappedHandler = wrapHandler(handler, {
+        timeoutWarningLimit: 100000,
+      });
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+
+      expect(mockCaptureMessage).not.toBeCalled();
+      expect(mockScope.setTag).not.toBeCalledWith('timeout', expect.anything());
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
