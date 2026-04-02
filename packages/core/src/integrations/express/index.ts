@@ -33,12 +33,10 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type {
   ExpressApplication,
   ExpressErrorMiddleware,
-  ExpressExport,
   ExpressHandlerOptions,
   ExpressIntegrationOptions,
   ExpressLayer,
   ExpressMiddleware,
-  ExpressModuleExport,
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
@@ -49,16 +47,13 @@ import type {
 import {
   defaultShouldHandleError,
   getLayerPath,
-  hasDefaultProp,
   isExpressWithoutRouterPrototype,
   isExpressWithRouterPrototype,
 } from './utils';
 import { wrapMethod } from '../../utils/object';
 import { patchLayer } from './patch-layer';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
-
-const getExpressExport = (express: ExpressModuleExport): ExpressExport =>
-  hasDefaultProp(express) ? express.default : (express as ExpressExport);
+import { getDefaultExport } from '../../utils/get-default-export';
 
 /**
  * This is a portable instrumentatiton function that works in any environment
@@ -73,7 +68,7 @@ const getExpressExport = (express: ExpressModuleExport): ExpressExport =>
  */
 export const patchExpressModule = (options: ExpressIntegrationOptions) => {
   // pass in the require() or import() result of express
-  const express = getExpressExport(options.express);
+  const express = getDefaultExport(options.express);
   const routerProto: ExpressRouterv4 | ExpressRouterv5 | undefined = isExpressWithRouterPrototype(express)
     ? express.Router.prototype // Express v5
     : isExpressWithoutRouterPrototype(express)
