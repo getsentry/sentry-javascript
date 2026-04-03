@@ -1,13 +1,8 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
 import {
-  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
-  GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
-  GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-  GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
@@ -277,35 +272,5 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
       // eslint-disable-next-line no-empty
     } catch {}
-  }
-}
-
-/**
- * Maps a Vercel AI span name to the corresponding Sentry op.
- */
-export function getSpanOpFromName(name: string): string | undefined {
-  switch (name) {
-    case 'ai.generateText':
-    case 'ai.streamText':
-    case 'ai.generateObject':
-    case 'ai.streamObject':
-      return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
-    case 'ai.generateText.doGenerate':
-    case 'ai.streamText.doStream':
-    case 'ai.generateObject.doGenerate':
-    case 'ai.streamObject.doStream':
-      return GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE;
-    case 'ai.embed.doEmbed':
-    case 'ai.embedMany.doEmbed':
-      return GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE;
-    case 'ai.rerank.doRerank':
-      return GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE;
-    case 'ai.toolCall':
-      return GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE;
-    default:
-      if (name.startsWith('ai.stream')) {
-        return 'ai.run';
-      }
-      return undefined;
   }
 }

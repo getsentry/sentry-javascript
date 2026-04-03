@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { getSpanOpFromName } from '../../../src/tracing/vercel-ai/utils';
+import { SPAN_TO_OPERATION_NAME } from '../../../src/tracing/vercel-ai/constants';
 
 describe('vercel-ai rerank support', () => {
-  describe('getSpanOpFromName', () => {
-    it('should not assign a gen_ai op to ai.rerank pipeline span', () => {
-      expect(getSpanOpFromName('ai.rerank')).toBeUndefined();
+  describe('SPAN_TO_OPERATION_NAME', () => {
+    it('should not have a mapping for ai.rerank pipeline span', () => {
+      expect(SPAN_TO_OPERATION_NAME.get('ai.rerank')).toBeUndefined();
     });
 
-    it('should map ai.rerank.doRerank to gen_ai.rerank', () => {
-      expect(getSpanOpFromName('ai.rerank.doRerank')).toBe('gen_ai.rerank');
+    it('should map ai.rerank.doRerank to rerank', () => {
+      expect(SPAN_TO_OPERATION_NAME.get('ai.rerank.doRerank')).toBe('rerank');
     });
   });
 });
