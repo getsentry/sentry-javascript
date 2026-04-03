@@ -93,7 +93,7 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
       }
     }
 
-    // Replace google genai exports with the wrapped constructor
+    // Replace exports with the wrapped constructor
     replaceExports(exports, 'GoogleGenAI', WrappedGoogleGenAI);
 
     return exports;

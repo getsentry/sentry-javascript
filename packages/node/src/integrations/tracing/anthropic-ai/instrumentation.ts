@@ -9,6 +9,7 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   instrumentAnthropicAiClient,
+  replaceExports,
   SDK_VERSION,
 } from '@sentry/core';
 
@@ -76,36 +77,8 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
       }
     }
 
-    // Constructor replacement - handle read-only properties
-    // The Anthropic property might have only a getter, so use defineProperty
-    try {
-      exports.Anthropic = WrappedAnthropic;
-    } catch {
-      // If direct assignment fails, override the property descriptor
-      Object.defineProperty(exports, 'Anthropic', {
-        value: WrappedAnthropic,
-        writable: true,
-        configurable: true,
-        enumerable: true,
-      });
-    }
-
-    // Wrap the default export if it points to the original constructor
-    // Constructor replacement - handle read-only properties
-    // The Anthropic property might have only a getter, so use defineProperty
-    if (exports.default === Original) {
-      try {
-        exports.default = WrappedAnthropic;
-      } catch {
-        // If direct assignment fails, override the property descriptor
-        Object.defineProperty(exports, 'default', {
-          value: WrappedAnthropic,
-          writable: true,
-          configurable: true,
-          enumerable: true,
-        });
-      }
-    }
+    // Replace exports with the wrapped constructor
+    replaceExports(exports, 'Anthropic', WrappedAnthropic);
     return exports;
   }
 }
