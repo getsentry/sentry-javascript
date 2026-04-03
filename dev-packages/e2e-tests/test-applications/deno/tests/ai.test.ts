@@ -31,7 +31,7 @@ test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) =
   const aiSpans = spans.filter(
     (span: any) =>
       span.op === 'gen_ai.invoke_agent' ||
-      span.op === 'gen_ai.generate_text' ||
+      span.op === 'gen_ai.generate_content' ||
       span.op === 'otel.span' ||
       span.description?.includes('ai.generateText'),
   );

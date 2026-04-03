@@ -141,4 +141,3 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
   span.setAttributes(attrs);
 }
-

@@ -46,6 +46,23 @@ describe('instrumentEmail', () => {
     vi.clearAllMocks();
   });
 
+  test('does not double-wrap when withSentry is called twice', async () => {
+    const originalEmail = vi.fn();
+    const handler = {
+      email: originalEmail,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler1 = withSentry(optionsCallback, handler);
+    const firstEmail = wrappedHandler1.email;
+
+    const wrappedHandler2 = withSentry(optionsCallback, handler);
+    const secondEmail = wrappedHandler2.email;
+
+    expect(firstEmail).toBe(secondEmail);
+  });
+
   test('executes options callback with env', async () => {
     const handler = {
       email(_message, _env, _context) {

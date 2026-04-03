@@ -21,6 +21,8 @@ const NODE_EXPORTS_IGNORE = [
   'SentryContextManager',
   'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
+  // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
+  '_INTERNAL_normalizeCollectionInterval',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));

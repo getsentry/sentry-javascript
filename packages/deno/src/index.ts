@@ -109,3 +109,4 @@ export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { denoRuntimeMetricsIntegration, type DenoRuntimeMetricsOptions } from './integrations/denoRuntimeMetrics';

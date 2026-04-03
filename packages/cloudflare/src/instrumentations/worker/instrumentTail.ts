@@ -2,7 +2,7 @@ import type { ExportedHandler } from '@cloudflare/workers-types';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -40,21 +40,23 @@ export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any
   handler: T,
   optionsCallback: (env: Parameters<NonNullable<T['tail']>>[1]) => CloudflareOptions | undefined,
 ): void {
-  if (!('tail' in handler) || typeof handler.tail !== 'function' || isInstrumented(handler.tail)) {
+  if (!('tail' in handler) || typeof handler.tail !== 'function') {
     return;
   }
 
-  handler.tail = new Proxy(handler.tail, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
-      const [, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.tail = ensureInstrumented(
+    handler.tail,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
+          const [, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapTailHandler(options, context, () => target.apply(thisArg, args));
-    },
-  });
-
-  markAsInstrumented(handler.tail);
+          return wrapTailHandler(options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
 }

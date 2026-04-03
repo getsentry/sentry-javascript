@@ -1,9 +1,11 @@
+/* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import type { Span } from '../../types-hoist/span';
 import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -17,20 +19,35 @@ import {
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import type { InstrumentedMethodEntry } from '../ai/utils';
-import { buildMethodPath, extractRequestAttributes, extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
-import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
+import {
+  buildMethodPath,
+  extractRequestAttributes,
+  extractSystemInstructions,
+  resolveAIRecordingOptions,
+} from '../ai/utils';
+import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
 import { contentUnionToMessages } from './utils';
-
 
 /**
  * Add private request attributes to spans.
  * This is only recorded if recordInputs is true.
  * Handles different parameter formats for different Google GenAI methods.
  */
-function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
+function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, isEmbeddings: boolean): void {
+  if (isEmbeddings) {
+    const contents = params.contents;
+    if (contents != null) {
+      span.setAttribute(
+        GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+        typeof contents === 'string' ? contents : JSON.stringify(contents),
+      );
+    }
+    return;
+  }
+
   const messages: Message[] = [];
 
   // config.systemInstruction: ContentUnion
@@ -149,13 +166,19 @@ function instrumentMethod<T extends unknown[], R>(
   context: unknown,
   options: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
-  const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
+  const isEmbeddings = instrumentedMethod.operation === 'embeddings';
 
   return new Proxy(originalMethod, {
     apply(target, _, args: T): R | Promise<R> {
-      const operationName = instrumentedMethod.operation;
+      const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      const requestAttributes = extractRequestAttributes(GOOGLE_GENAI_SYSTEM_NAME, 'auto.ai.google_genai', operationName, args, context);
+      const requestAttributes = extractRequestAttributes(
+        GOOGLE_GENAI_SYSTEM_NAME,
+        'auto.ai.google_genai',
+        operationName,
+        args,
+        context,
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       // Check if this is a streaming method
@@ -170,7 +193,7 @@ function instrumentMethod<T extends unknown[], R>(
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params);
+                addPrivateRequestAttributes(span, params, isEmbeddings);
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -192,13 +215,13 @@ function instrumentMethod<T extends unknown[], R>(
       // Single span for both sync and async operations
       return startSpan(
         {
-          name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
+          name: `${operationName} ${model}`,
           op: `gen_ai.${operationName}`,
           attributes: requestAttributes,
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params);
+            addPrivateRequestAttributes(span, params, isEmbeddings);
           }
 
           return handleCallbackErrors(
@@ -210,8 +233,8 @@ function instrumentMethod<T extends unknown[], R>(
             },
             () => {},
             result => {
-              // Only add response attributes for content-producing methods, not for chats.create
-              if (!isSyncCreate) {
+              // Only add response attributes for content-producing methods, not for embeddings
+              if (!isEmbeddings) {
                 addResponseAttributes(span, result, options.recordOutputs);
               }
             },
@@ -232,34 +255,29 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = GOOGLE_GENAI_METHOD_REGISTRY[methodPath as keyof typeof GOOGLE_GENAI_METHOD_REGISTRY];
+      const instrumentedMethod: InstrumentedMethodEntry | undefined =
+        GOOGLE_GENAI_METHOD_REGISTRY[methodPath as keyof typeof GOOGLE_GENAI_METHOD_REGISTRY];
       if (typeof value === 'function' && instrumentedMethod) {
-        // Special case: chats.create is synchronous but needs both instrumentation AND result proxying
-        if (methodPath === CHATS_CREATE_METHOD) {
-          const wrappedMethod = instrumentMethod(
-            value as (...args: unknown[]) => unknown,
-            methodPath,
-            instrumentedMethod,
-            t,
-            options,
-          );
-          return function instrumentedAndProxiedCreate(...args: unknown[]): unknown {
-            const result = wrappedMethod(...args);
-            // If the result is an object (like a chat instance), proxy it too
-            if (result && typeof result === 'object') {
-              return createDeepProxy(result, CHAT_PATH, options);
-            }
-            return result;
-          };
+        // If an operation is specified, we need to instrument the method itself
+        const wrappedMethod = instrumentedMethod.operation
+          ? instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, instrumentedMethod, t, options)
+          : value.bind(t);
+
+        if (!instrumentedMethod.proxyResultPath) {
+          return wrappedMethod;
         }
 
-        return instrumentMethod(
-          value as (...args: unknown[]) => Promise<unknown>,
-          methodPath,
-          instrumentedMethod,
-          t,
-          options,
-        );
+        // If a proxyResultPath is specified, we need to proxy the result of the method.
+        // Note: This currently only properly handles synchronous methods. For async methods,
+        // the Promise itself would be proxied instead of the resolved value. Currently we
+        // don't have a case where this is needed, so I'll keep it simple for now.
+        return function (...args: unknown[]): unknown {
+          const result = wrappedMethod(...args);
+          if (result && typeof result === 'object') {
+            return createDeepProxy(result as object, instrumentedMethod.proxyResultPath, options);
+          }
+          return result;
+        };
       }
 
       if (typeof value === 'function') {

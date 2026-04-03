@@ -1,17 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import {
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import { endStreamSpan } from '../ai/utils';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type {
   ChatCompletionChunk,
@@ -240,31 +230,7 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    const attrs: Record<string, string | number | boolean> = {
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    };
-
-    if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
-    if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
-    if (state.totalTokens !== undefined) attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
-
-    if (state.finishReasons.length) {
-      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
-    }
-
-    if (recordOutputs && state.responseTexts.length) {
-      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
-    }
-
-    const chatCompletionToolCallsArray = Object.values(state.chatCompletionToolCalls);
-    const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiToolCalls];
-    if (allToolCalls.length > 0) {
-      attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(allToolCalls);
-    }
-
-    span.setAttributes(attrs);
-    span.end();
+    const allToolCalls = [...Object.values(state.chatCompletionToolCalls), ...state.responsesApiToolCalls];
+    endStreamSpan(span, { ...state, toolCalls: allToolCalls }, recordOutputs);
   }
 }

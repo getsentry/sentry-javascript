@@ -1,7 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -88,7 +88,7 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
-    const operationName = instrumentedMethod.operation;
+    const operationName = instrumentedMethod.operation || 'unknown';
     const requestAttributes = extractRequestAttributes('openai', 'auto.ai.openai', operationName, args);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
 
@@ -98,7 +98,7 @@ function instrumentMethod<T extends unknown[], R>(
     const spanConfig = {
       name: `${operationName} ${model}`,
       op: `gen_ai.${operationName}`,
-      attributes: requestAttributes as Record<string, SpanAttributeValue>,
+      attributes: requestAttributes,
     };
 
     if (isStreamRequested) {

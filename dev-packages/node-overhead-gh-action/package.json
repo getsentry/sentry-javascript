@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-overhead-gh-action",
-  "version": "10.46.0",
+  "version": "10.47.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -23,7 +23,7 @@
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware"
   },
   "dependencies": {
-    "@sentry/node": "10.46.0",
+    "@sentry/node": "10.47.0",
     "express": "^4.21.2",
     "mysql2": "^3.19.1"
   },

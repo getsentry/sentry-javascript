@@ -138,7 +138,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   target: (...args: T) => R | Promise<R>,
   context: unknown,
   args: T,
-  requestAttributes: Record<string, unknown>,
+  requestAttributes: Record<string, SpanAttributeValue>,
   operationName: string,
   methodPath: string,
   params: Record<string, unknown> | undefined,
@@ -150,7 +150,7 @@ function handleStreamingRequest<T extends unknown[], R>(
   const spanConfig = {
     name: `${operationName} ${model}`,
     op: `gen_ai.${operationName}`,
-    attributes: requestAttributes as Record<string, SpanAttributeValue>,
+    attributes: requestAttributes,
   };
 
   // messages.stream() always returns a sync MessageStream, even with stream: true param
@@ -208,7 +208,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
-      const operationName = instrumentedMethod.operation;
+      const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes('anthropic', 'auto.ai.anthropic', operationName, args);
 
       // Anthropic models.retrieve/models.get take model ID as positional string arg
@@ -244,7 +244,7 @@ function instrumentMethod<T extends unknown[], R>(
         {
           name: `${operationName} ${model}`,
           op: `gen_ai.${operationName}`,
-          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+          attributes: requestAttributes,
         },
         span => {
           originalResult = target.apply(context, args) as Promise<R>;

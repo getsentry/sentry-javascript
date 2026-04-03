@@ -20,6 +20,12 @@ import {
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -37,10 +43,12 @@ export interface AIRecordingOptions {
  * which gen_ai operation it maps to and whether it is intrinsically streaming.
  */
 export interface InstrumentedMethodEntry {
-  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content') */
-  operation: string;
+  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content'). Omit for factory methods that only need result proxying. */
+  operation?: string;
   /** True if the method itself is always streaming (not param-based) */
   streaming?: boolean;
+  /** When set, the method's return value is re-proxied with this as the base path */
+  proxyResultPath?: string;
 }
 
 /**
@@ -116,7 +124,8 @@ function extractTools(params: Record<string, unknown>, config: Record<string, un
   // Google GenAI: tools contain functionDeclarations
   if ('tools' in config && Array.isArray(config.tools)) {
     const hasDeclarations = config.tools.some(
-      (tool: unknown) => tool && typeof tool === 'object' && 'functionDeclarations' in (tool as Record<string, unknown>),
+      (tool: unknown) =>
+        tool && typeof tool === 'object' && 'functionDeclarations' in (tool as Record<string, unknown>),
     );
     if (hasDeclarations) {
       const declarations = (config.tools as Array<{ functionDeclarations?: unknown[] }>).flatMap(
@@ -165,9 +174,10 @@ export function extractRequestAttributes(
   args: unknown[],
   context?: unknown,
 ): Record<string, SpanAttributeValue> {
-  const params = args.length > 0 && typeof args[0] === 'object' && args[0] !== null
-    ? (args[0] as Record<string, unknown>)
-    : undefined;
+  const params =
+    args.length > 0 && typeof args[0] === 'object' && args[0] !== null
+      ? (args[0] as Record<string, unknown>)
+      : undefined;
 
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: system,
@@ -181,9 +191,10 @@ export function extractRequestAttributes(
   }
 
   // Google GenAI nests generation params under config; OpenAI/Anthropic are flat
-  const config = ('config' in params && typeof params.config === 'object' && params.config)
-    ? (params.config as Record<string, unknown>)
-    : params;
+  const config =
+    'config' in params && typeof params.config === 'object' && params.config
+      ? (params.config as Record<string, unknown>)
+      : params;
 
   // Generation parameters — handles both snake_case (OpenAI/Anthropic) and camelCase (Google GenAI)
   extractIfPresent(attributes, config, 'temperature', GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE);
@@ -258,6 +269,68 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
     });
   }
+}
+
+export interface StreamResponseState {
+  responseId?: string;
+  responseModel?: string;
+  finishReasons: string[];
+  responseTexts: string[];
+  toolCalls: unknown[];
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
+}
+
+/**
+ * Ends a streaming span by setting all accumulated response attributes and ending the span.
+ * Shared across OpenAI, Anthropic, and Google GenAI streaming implementations.
+ */
+export function endStreamSpan(span: Span, state: StreamResponseState, recordOutputs: boolean): void {
+  if (!span.isRecording()) {
+    return;
+  }
+
+  const attrs: Record<string, string | number | boolean> = {
+    [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+  };
+
+  if (state.responseId) attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = state.responseId;
+  if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = state.responseModel;
+
+  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
+  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
+
+  // Use explicit total if provided (OpenAI, Google), otherwise compute from cache tokens (Anthropic)
+  if (state.totalTokens !== undefined) {
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
+  } else if (
+    state.promptTokens !== undefined ||
+    state.completionTokens !== undefined ||
+    state.cacheCreationInputTokens !== undefined ||
+    state.cacheReadInputTokens !== undefined
+  ) {
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
+      (state.promptTokens ?? 0) +
+      (state.completionTokens ?? 0) +
+      (state.cacheCreationInputTokens ?? 0) +
+      (state.cacheReadInputTokens ?? 0);
+  }
+
+  if (state.finishReasons.length) {
+    attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
+  }
+  if (recordOutputs && state.responseTexts.length) {
+    attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
+  }
+  if (recordOutputs && state.toolCalls.length) {
+    attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
+  }
+
+  span.setAttributes(attrs);
+  span.end();
 }
 
 /**

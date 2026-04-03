@@ -102,5 +102,25 @@ describe('withSentry', () => {
       honoApp.errorHandler?.(error);
       expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
+
+    test('does not double-wrap errorHandler when withSentry is called twice', async () => {
+      const honoApp: HonoLikeApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {},
+        errorHandler(err: Error) {
+          return new Response(`Error: ${err.message}`, { status: 500 });
+        },
+      };
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+      const firstErrorHandler = honoApp.errorHandler;
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+      const secondErrorHandler = honoApp.errorHandler;
+
+      expect(firstErrorHandler).toBe(secondErrorHandler);
+    });
   });
 });

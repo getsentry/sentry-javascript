@@ -14,6 +14,7 @@ import {
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
@@ -62,6 +63,14 @@ class ContinuousProfiler {
    * @param client
    */
   public initialize(client: NodeClient): void {
+    if (!isMainThread) {
+      DEBUG_BUILD &&
+        debug.warn(
+          '[Profiling] nodeProfilingIntegration() does not support worker threads — profiling will be disabled for this thread.',
+        );
+      return;
+    }
+
     this._client = client;
     const options = client.getOptions();
 
