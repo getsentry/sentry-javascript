@@ -9,6 +9,7 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   instrumentOpenAiClient,
   OPENAI_INTEGRATION_NAME,
+  replaceExports,
   SDK_VERSION,
 } from '@sentry/core';
 
@@ -90,36 +91,8 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstr
       }
     }
 
-    // Constructor replacement - handle read-only properties
-    // The OpenAI property might have only a getter, so use defineProperty
-    try {
-      exports[exportKey] = WrappedOpenAI;
-    } catch {
-      // If direct assignment fails, override the property descriptor
-      Object.defineProperty(exports, exportKey, {
-        value: WrappedOpenAI,
-        writable: true,
-        configurable: true,
-        enumerable: true,
-      });
-    }
-
-    // Wrap the default export if it points to the original constructor
-    // Constructor replacement - handle read-only properties
-    // The OpenAI property might have only a getter, so use defineProperty
-    if (exports.default === Original) {
-      try {
-        exports.default = WrappedOpenAI;
-      } catch {
-        // If direct assignment fails, override the property descriptor
-        Object.defineProperty(exports, 'default', {
-          value: WrappedOpenAI,
-          writable: true,
-          configurable: true,
-          enumerable: true,
-        });
-      }
-    }
+    // Replace exports with the wrapped constructor
+    replaceExports(exports, exportKey, WrappedOpenAI);
     return exports;
   }
 }
