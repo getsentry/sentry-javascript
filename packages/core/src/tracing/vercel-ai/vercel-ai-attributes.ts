@@ -47,51 +47,11 @@ export const AI_SCHEMA_ATTRIBUTE = 'ai.schema';
  * `generateObject` function - `ai.generateObject` span
  * `streamObject` function - `ai.streamObject` span
  *
- * The name of the schema that was passed into the function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
- */
-export const AI_SCHEMA_NAME_ATTRIBUTE = 'ai.schema.name';
-
-/**
- * `generateObject` function - `ai.generateObject` span
- * `streamObject` function - `ai.streamObject` span
- *
- * The description of the schema that was passed into the function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
- */
-export const AI_SCHEMA_DESCRIPTION_ATTRIBUTE = 'ai.schema.description';
-
-/**
- * `generateObject` function - `ai.generateObject` span
- * `streamObject` function - `ai.streamObject` span
- *
  * The object that was generated (stringified JSON)
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
  */
 export const AI_RESPONSE_OBJECT_ATTRIBUTE = 'ai.response.object';
-
-/**
- * `generateObject` function - `ai.generateObject` span
- * `streamObject` function - `ai.streamObject` span
- *
- * The object generation mode, e.g. `json`
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
- */
-export const AI_SETTINGS_MODE_ATTRIBUTE = 'ai.settings.mode';
-
-/**
- * `generateObject` function - `ai.generateObject` span
- * `streamObject` function - `ai.streamObject` span
- *
- * The output type that was used, e.g. `object` or `no-schema`
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generateobject-function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamobject-function
- */
-export const AI_SETTINGS_OUTPUT_ATTRIBUTE = 'ai.settings.output';
 
 /**
  * `embed` function - `ai.embed.doEmbed` span
@@ -102,16 +62,6 @@ export const AI_SETTINGS_OUTPUT_ATTRIBUTE = 'ai.settings.output';
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embedmany-function
  */
 export const AI_VALUES_ATTRIBUTE = 'ai.values';
-
-/**
- * `embed` function - `ai.embed.doEmbed` span
- * `embedMany` function - `ai.embedMany` span
- *
- * An array of JSON-stringified embeddings
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embedmany-function
- */
-export const AI_EMBEDDINGS_ATTRIBUTE = 'ai.embeddings';
 
 // =============================================================================
 // GENERATETEXT FUNCTION - UNIQUE ATTRIBUTES
@@ -152,14 +102,6 @@ export const AI_SETTINGS_MAX_STEPS_ATTRIBUTE = 'ai.settings.maxSteps';
 /**
  * `generateText` function - `ai.generateText.doGenerate` span
  *
- * The format of the prompt
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
- */
-export const AI_PROMPT_FORMAT_ATTRIBUTE = 'ai.prompt.format';
-
-/**
- * `generateText` function - `ai.generateText.doGenerate` span
- *
  * The messages that were passed into the provider
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
  */
@@ -173,74 +115,9 @@ export const AI_PROMPT_MESSAGES_ATTRIBUTE = 'ai.prompt.messages';
  */
 export const AI_PROMPT_TOOLS_ATTRIBUTE = 'ai.prompt.tools';
 
-/**
- * `generateText` function - `ai.generateText.doGenerate` span
- *
- * The stringified tool choice setting (JSON)
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#generatetext-function
- */
-export const AI_PROMPT_TOOL_CHOICE_ATTRIBUTE = 'ai.prompt.toolChoice';
-
-// =============================================================================
-// STREAMTEXT FUNCTION - UNIQUE ATTRIBUTES
-// =============================================================================
-
-/**
- * `streamText` function - `ai.streamText.doStream` span
- *
- * The time it took to receive the first chunk in milliseconds
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
- */
-export const AI_RESPONSE_MS_TO_FIRST_CHUNK_ATTRIBUTE = 'ai.response.msToFirstChunk';
-
-/**
- * `streamText` function - `ai.streamText.doStream` span
- *
- * The time it took to receive the finish part of the LLM stream in milliseconds
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
- */
-export const AI_RESPONSE_MS_TO_FINISH_ATTRIBUTE = 'ai.response.msToFinish';
-
-/**
- * `streamText` function - `ai.streamText.doStream` span
- *
- * The average completion tokens per second
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#streamtext-function
- */
-export const AI_RESPONSE_AVG_COMPLETION_TOKENS_PER_SECOND_ATTRIBUTE = 'ai.response.avgCompletionTokensPerSecond';
-
-// =============================================================================
-// EMBED FUNCTION - UNIQUE ATTRIBUTES
-// =============================================================================
-
-/**
- * `embed` function - `ai.embed` span
- *
- * The value that was passed into the `embed` function
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
- */
-export const AI_VALUE_ATTRIBUTE = 'ai.value';
-
-/**
- * `embed` function - `ai.embed` span
- *
- * A JSON-stringified embedding
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#embed-function
- */
-export const AI_EMBEDDING_ATTRIBUTE = 'ai.embedding';
-
 // =============================================================================
 // BASIC LLM SPAN INFORMATION
 // =============================================================================
-
-/**
- * Basic LLM span information
- * Multiple spans
- *
- * The functionId that was set through `telemetry.functionId`
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
- */
-export const RESOURCE_NAME_ATTRIBUTE = 'resource.name';
 
 /**
  * Basic LLM span information
@@ -255,37 +132,10 @@ export const AI_MODEL_ID_ATTRIBUTE = 'ai.model.id';
  * Basic LLM span information
  * Multiple spans
  *
- * The provider of the model
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
- */
-export const AI_MODEL_PROVIDER_ATTRIBUTE = 'ai.model.provider';
-
-/**
- * Basic LLM span information
- * Multiple spans
- *
- * The request headers that were passed in through `headers`
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
- */
-export const AI_REQUEST_HEADERS_ATTRIBUTE = 'ai.request.headers';
-
-/**
- * Basic LLM span information
- * Multiple spans
- *
  * Provider specific metadata returned with the generation response
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
 export const AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE = 'ai.response.providerMetadata';
-
-/**
- * Basic LLM span information
- * Multiple spans
- *
- * The maximum number of retries that were set
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
- */
-export const AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'ai.settings.maxRetries';
 
 /**
  * Basic LLM span information
@@ -303,15 +153,6 @@ export const AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE = 'ai.usage.cachedInputToken
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
 export const AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE = 'ai.telemetry.functionId';
-
-/**
- * Basic LLM span information
- * Multiple spans
- *
- * The metadata that was passed in through `telemetry.metadata`
- * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
- */
-export const AI_TELEMETRY_METADATA_ATTRIBUTE = 'ai.telemetry.metadata';
 
 /**
  * Basic LLM span information
