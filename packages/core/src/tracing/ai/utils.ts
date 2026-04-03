@@ -3,15 +3,30 @@
  */
 import { captureException } from '../../exports';
 import { getClient } from '../../currentScopes';
-import type { Span } from '../../types-hoist/span';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { isThenable } from '../../utils/is';
 import {
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
+  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
+  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -61,6 +76,155 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
  */
 export function buildMethodPath(currentPath: string, prop: string): string {
   return currentPath ? `${currentPath}.${prop}` : prop;
+}
+
+/**
+ * Extract model from params or context.
+ * params.model covers OpenAI/Anthropic, context.model/modelVersion covers Google GenAI chat instances.
+ */
+export function extractModel(params: Record<string, unknown> | undefined, context?: unknown): string {
+  if (params && 'model' in params && typeof params.model === 'string') {
+    return params.model;
+  }
+  // Google GenAI chat instances store the model on the context object
+  if (context && typeof context === 'object') {
+    const ctx = context as Record<string, unknown>;
+    if (typeof ctx.model === 'string') return ctx.model;
+    if (typeof ctx.modelVersion === 'string') return ctx.modelVersion;
+  }
+  return 'unknown';
+}
+
+/**
+ * Set an attribute if the key exists in the source object.
+ */
+function extractIfPresent(
+  attributes: Record<string, SpanAttributeValue>,
+  source: Record<string, unknown>,
+  key: string,
+  attribute: string,
+): void {
+  if (key in source) {
+    attributes[attribute] = source[key] as SpanAttributeValue;
+  }
+}
+
+/**
+ * Extract available tools from request parameters.
+ * Handles OpenAI (params.tools + web_search_options), Anthropic (params.tools),
+ * and Google GenAI (config.tools[].functionDeclarations).
+ */
+function extractTools(params: Record<string, unknown>, config: Record<string, unknown>): string | undefined {
+  // OpenAI: web_search_options are treated as tools
+  const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
+  const webSearchOptions = hasWebSearchOptions
+    ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
+    : [];
+
+  // Google GenAI: tools contain functionDeclarations
+  if ('tools' in config && Array.isArray(config.tools)) {
+    const hasDeclarations = config.tools.some(
+      (tool: unknown) =>
+        tool && typeof tool === 'object' && 'functionDeclarations' in (tool as Record<string, unknown>),
+    );
+    if (hasDeclarations) {
+      const declarations = (config.tools as Array<{ functionDeclarations?: unknown[] }>).flatMap(
+        tool => tool.functionDeclarations ?? [],
+      );
+      if (declarations.length > 0) {
+        return JSON.stringify(declarations);
+      }
+      return undefined;
+    }
+  }
+
+  // OpenAI / Anthropic: tools are at the top level
+  const tools = Array.isArray(params.tools) ? params.tools : [];
+  const availableTools = [...tools, ...webSearchOptions];
+
+  if (availableTools.length === 0) {
+    return undefined;
+  }
+
+  return JSON.stringify(availableTools);
+}
+
+/**
+ * Extract conversation ID from request parameters.
+ * Supports OpenAI Conversations API and previous_response_id chaining.
+ */
+function extractConversationId(params: Record<string, unknown>): string | undefined {
+  if ('conversation' in params && typeof params.conversation === 'string') {
+    return params.conversation;
+  }
+  if ('previous_response_id' in params && typeof params.previous_response_id === 'string') {
+    return params.previous_response_id;
+  }
+  return undefined;
+}
+
+/**
+ * Extract request attributes from AI method arguments.
+ * Shared across all AI provider integrations (OpenAI, Anthropic, Google GenAI).
+ */
+export function extractRequestAttributes(
+  system: string,
+  origin: string,
+  operationName: string,
+  args: unknown[],
+  context?: unknown,
+): Record<string, SpanAttributeValue> {
+  const params =
+    args.length > 0 && typeof args[0] === 'object' && args[0] !== null
+      ? (args[0] as Record<string, unknown>)
+      : undefined;
+
+  const attributes: Record<string, SpanAttributeValue> = {
+    [GEN_AI_SYSTEM_ATTRIBUTE]: system,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: extractModel(params, context),
+  };
+
+  if (!params) {
+    return attributes;
+  }
+
+  // Google GenAI nests generation params under config; OpenAI/Anthropic are flat
+  const config =
+    'config' in params && typeof params.config === 'object' && params.config
+      ? (params.config as Record<string, unknown>)
+      : params;
+
+  // Generation parameters — handles both snake_case (OpenAI/Anthropic) and camelCase (Google GenAI)
+  extractIfPresent(attributes, config, 'temperature', GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'top_p', GEN_AI_REQUEST_TOP_P_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'topP', GEN_AI_REQUEST_TOP_P_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'top_k', GEN_AI_REQUEST_TOP_K_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'topK', GEN_AI_REQUEST_TOP_K_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'frequency_penalty', GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'frequencyPenalty', GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'presence_penalty', GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'presencePenalty', GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'max_tokens', GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE);
+  extractIfPresent(attributes, config, 'maxOutputTokens', GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE);
+  extractIfPresent(attributes, params, 'stream', GEN_AI_REQUEST_STREAM_ATTRIBUTE);
+  extractIfPresent(attributes, params, 'encoding_format', GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE);
+  extractIfPresent(attributes, params, 'dimensions', GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE);
+
+  // Tools
+  const tools = extractTools(params, config);
+  if (tools) {
+    attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = tools;
+  }
+
+  // Conversation ID (OpenAI)
+  const conversationId = extractConversationId(params);
+  if (conversationId) {
+    attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = conversationId;
+  }
+
+  return attributes;
 }
 
 /**

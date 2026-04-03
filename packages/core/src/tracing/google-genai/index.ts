@@ -1,27 +1,17 @@
 /* eslint-disable max-lines */
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import type { Span } from '../../types-hoist/span';
 import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -29,105 +19,17 @@ import {
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import type { InstrumentedMethodEntry } from '../ai/utils';
-import { buildMethodPath, extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
+import {
+  buildMethodPath,
+  extractRequestAttributes,
+  extractSystemInstructions,
+  resolveAIRecordingOptions,
+} from '../ai/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
 import { contentUnionToMessages } from './utils';
-
-/**
- * Extract model from parameters or chat context object
- * For chat instances, the model is available on the chat object as 'model' (older versions) or 'modelVersion' (newer versions)
- */
-export function extractModel(params: Record<string, unknown>, context?: unknown): string {
-  if ('model' in params && typeof params.model === 'string') {
-    return params.model;
-  }
-
-  // Try to get model from chat context object (chat instance has model property)
-  if (context && typeof context === 'object') {
-    const contextObj = context as Record<string, unknown>;
-
-    // Check for 'model' property (older versions, and streaming)
-    if ('model' in contextObj && typeof contextObj.model === 'string') {
-      return contextObj.model;
-    }
-
-    // Check for 'modelVersion' property (newer versions)
-    if ('modelVersion' in contextObj && typeof contextObj.modelVersion === 'string') {
-      return contextObj.modelVersion;
-    }
-  }
-
-  return 'unknown';
-}
-
-/**
- * Extract generation config parameters
- */
-function extractConfigAttributes(config: Record<string, unknown>): Record<string, SpanAttributeValue> {
-  const attributes: Record<string, SpanAttributeValue> = {};
-
-  if ('temperature' in config && typeof config.temperature === 'number') {
-    attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = config.temperature;
-  }
-  if ('topP' in config && typeof config.topP === 'number') {
-    attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = config.topP;
-  }
-  if ('topK' in config && typeof config.topK === 'number') {
-    attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = config.topK;
-  }
-  if ('maxOutputTokens' in config && typeof config.maxOutputTokens === 'number') {
-    attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = config.maxOutputTokens;
-  }
-  if ('frequencyPenalty' in config && typeof config.frequencyPenalty === 'number') {
-    attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = config.frequencyPenalty;
-  }
-  if ('presencePenalty' in config && typeof config.presencePenalty === 'number') {
-    attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = config.presencePenalty;
-  }
-
-  return attributes;
-}
-
-/**
- * Extract request attributes from method arguments
- * Builds the base attributes for span creation including system info, model, and config
- */
-function extractRequestAttributes(
-  operationName: string,
-  params?: Record<string, unknown>,
-  context?: unknown,
-): Record<string, SpanAttributeValue> {
-  const attributes: Record<string, SpanAttributeValue> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: GOOGLE_GENAI_SYSTEM_NAME,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-  };
-
-  if (params) {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel(params, context);
-
-    // Extract generation config parameters
-    if ('config' in params && typeof params.config === 'object' && params.config) {
-      const config = params.config as Record<string, unknown>;
-      Object.assign(attributes, extractConfigAttributes(config));
-
-      // Extract available tools from config
-      if ('tools' in config && Array.isArray(config.tools)) {
-        const functionDeclarations = config.tools.flatMap(
-          (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
-        );
-        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(functionDeclarations);
-      }
-    }
-  } else {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel({}, context);
-  }
-
-  return attributes;
-}
 
 /**
  * Add private request attributes to spans.
@@ -270,7 +172,13 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      const requestAttributes = extractRequestAttributes(operationName, params, context);
+      const requestAttributes = extractRequestAttributes(
+        GOOGLE_GENAI_SYSTEM_NAME,
+        'auto.ai.google_genai',
+        operationName,
+        args,
+        context,
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 
       // Check if this is a streaming method
