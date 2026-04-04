@@ -1,18 +1,149 @@
-// Rollup doesn't like if we put the directive regex as a literal (?). No idea why.
-/* oxlint-disable sdk/no-regexp-constructor */
-
 import type { LoaderThis } from './types';
 
 export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
 };
 
-// We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other directive.
-// As an additional complication directives may come after any number of comments.
-// This regex is shamelessly stolen from: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/7f984482c73e4284e8b12a08dfedf23b5a82f0af/packages/bundler-plugin-core/src/index.ts#L535-L539
-export const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
-  // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";?|\'[^\']*\';?)?');
+// We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other
+// directives. A small scanner is easier to reason about than the previous regex and avoids regex backtracking concerns.
+export function findInjectionIndexAfterDirectives(userCode: string): number {
+  let index = 0;
+  let lastDirectiveEndIndex: number | undefined;
+
+  while (true) {
+    const statementStartIndex = skipWhitespaceAndComments(userCode, index);
+
+    const nextDirectiveIndex = skipDirective(userCode, statementStartIndex);
+    if (nextDirectiveIndex === undefined) {
+      return lastDirectiveEndIndex ?? statementStartIndex;
+    }
+
+    const statementEndIndex = skipDirectiveTerminator(userCode, nextDirectiveIndex);
+    if (statementEndIndex === undefined) {
+      return lastDirectiveEndIndex ?? statementStartIndex;
+    }
+
+    index = statementEndIndex;
+    lastDirectiveEndIndex = statementEndIndex;
+  }
+}
+
+function skipWhitespaceAndComments(userCode: string, startIndex: number): number {
+  let index = startIndex;
+
+  while (index < userCode.length) {
+    const char = userCode[index];
+    const nextChar = userCode[index + 1];
+
+    if (char && /\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '/') {
+      index += 2;
+      while (index < userCode.length && userCode[index] !== '\n' && userCode[index] !== '\r') {
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      const commentEndIndex = userCode.indexOf('*/', index + 2);
+      if (commentEndIndex === -1) {
+        return startIndex;
+      }
+
+      index = commentEndIndex + 2;
+      continue;
+    }
+
+    return index;
+  }
+
+  return index;
+}
+
+function skipDirective(userCode: string, startIndex: number): number | undefined {
+  const quote = userCode[startIndex];
+
+  if (quote !== '"' && quote !== "'") {
+    return undefined;
+  }
+
+  let index = startIndex + 1;
+
+  while (index < userCode.length) {
+    const char = userCode[index];
+
+    if (char === '\\') {
+      index += 2;
+      continue;
+    }
+
+    if (char === quote) {
+      index += 1;
+      break;
+    }
+
+    if (char === '\n' || char === '\r') {
+      return undefined;
+    }
+
+    index += 1;
+  }
+
+  if (index > userCode.length || userCode[index - 1] !== quote) {
+    return undefined;
+  }
+
+  return index;
+}
+
+function skipDirectiveTerminator(userCode: string, startIndex: number): number | undefined {
+  let index = startIndex;
+
+  while (index < userCode.length) {
+    const char = userCode[index];
+    const nextChar = userCode[index + 1];
+
+    if (char === ';') {
+      return index + 1;
+    }
+
+    if (char === '\n' || char === '\r' || char === '}') {
+      return index;
+    }
+
+    if (char && /\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '/') {
+      return index;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      const commentEndIndex = userCode.indexOf('*/', index + 2);
+      if (commentEndIndex === -1) {
+        return undefined;
+      }
+
+      const comment = userCode.slice(index + 2, commentEndIndex);
+      if (comment.includes('\n') || comment.includes('\r')) {
+        return index;
+      }
+
+      index = commentEndIndex + 2;
+      continue;
+    }
+
+    return undefined;
+  }
+
+  return index;
+}
 
 /**
  * Set values on the global/window object at the start of a module.
@@ -36,7 +167,6 @@ export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoad
       .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
       .join('');
 
-  return userCode.replace(SKIP_COMMENT_AND_DIRECTIVE_REGEX, match => {
-    return match + injectedCode;
-  });
+  const injectionIndex = findInjectionIndexAfterDirectives(userCode);
+  return `${userCode.slice(0, injectionIndex)}${injectedCode}${userCode.slice(injectionIndex)}`;
 }
