@@ -61,10 +61,7 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
   expect(leakedBreadcrumb).toBeUndefined();
 });
 
-// TODO: @OnWorkerEvent('completed') handlers run outside the isolation scope created by process().
-// They are registered via worker.on() (EventEmitter), so breadcrumbs/tags set there
-// leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent completed lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent completed lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
   const processTransactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
@@ -87,13 +84,10 @@ test('BullMQ @OnWorkerEvent completed lifecycle breadcrumbs currently leak into 
   const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
     (b: any) => b.message === 'leaked-breadcrumb-from-lifecycle-event',
   );
-  // This SHOULD be toBeUndefined() once lifecycle event isolation is implemented.
-  expect(leakedBreadcrumb).toBeDefined();
+  expect(leakedBreadcrumb).toBeUndefined();
 });
 
-// TODO: @OnWorkerEvent('active') handlers run outside the isolation scope created by process().
-// Breadcrumbs set there leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent active lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent active lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
   const processTransactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
@@ -115,13 +109,10 @@ test('BullMQ @OnWorkerEvent active lifecycle breadcrumbs currently leak into sub
   const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
     (b: any) => b.message === 'leaked-breadcrumb-from-active-event',
   );
-  // This SHOULD be toBeUndefined() once lifecycle event isolation is implemented.
-  expect(leakedBreadcrumb).toBeDefined();
+  expect(leakedBreadcrumb).toBeUndefined();
 });
 
-// TODO: @OnWorkerEvent('failed') handlers run outside the isolation scope created by process().
-// Breadcrumbs set there leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent failed lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent failed lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
   const processTransactionPromise = waitForTransaction('nestjs-bullmq', transactionEvent => {
@@ -143,8 +134,7 @@ test('BullMQ @OnWorkerEvent failed lifecycle breadcrumbs currently leak into sub
   const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
     (b: any) => b.message === 'leaked-breadcrumb-from-failed-event',
   );
-  // This SHOULD be toBeUndefined() once lifecycle event isolation is implemented.
-  expect(leakedBreadcrumb).toBeDefined();
+  expect(leakedBreadcrumb).toBeUndefined();
 });
 
 // The 'progress' event does NOT leak breadcrumbs — unlike 'active', 'completed', and 'failed',
