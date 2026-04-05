@@ -50,6 +50,10 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
 
   /** Walk an element */
   function walk(element: HTMLElement, windows: ViewHierarchyWindow[]): void {
+    if (!element) {
+      return;
+    }
+
     // With Web Components, we need to walk into shadow DOMs
     const children = 'shadowRoot' in element && element.shadowRoot ? element.shadowRoot.children : element.children;
 
