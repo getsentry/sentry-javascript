@@ -18,6 +18,7 @@ import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
  * args>)` or `origMethod.apply(this, [<other args>])` (rather than being called directly), again to preserve `this`.
  * @returns void
  */
+
 export function fill(source: { [key: string]: any }, name: string, replacementFactory: (...args: any[]) => any): void {
   if (!(name in source)) {
     return;
@@ -56,7 +57,7 @@ export function addNonEnumerableProperty(obj: object, name: string, value: unkno
   try {
     Object.defineProperty(obj, name, {
       // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
-      value: value,
+      value,
       writable: true,
       configurable: true,
     });
@@ -78,6 +79,37 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
     wrapped.prototype = original.prototype = proto;
     addNonEnumerableProperty(wrapped, '__sentry_original__', original);
   } catch {} // eslint-disable-line no-empty
+}
+
+/**
+ * Wrap a method on an object by name, only if it is not already wrapped.
+ *
+ * Note: to set the wrapped method as a non-enumerable property, pass
+ * false as the `enumerable` argument. This could be detected, but only
+ * by either walking up the prototype chain, or iterating over all fields
+ * in a `for(in)` loop. Neither are an acceptable performance impact for
+ * the rare case where we might patch a non-enumerable method.
+ */
+export function wrapMethod<O extends {}, T extends string & keyof O>(
+  obj: O,
+  field: T,
+  wrapped: WrappedFunction,
+  enumerable: boolean = true,
+): void {
+  const original = obj[field];
+  if (typeof original !== 'function') {
+    throw new Error(`Cannot wrap method: ${field} is not a function`);
+  }
+  if (getOriginalFunction(original)) {
+    throw new Error(`Attempting to wrap method ${field} multiple times`);
+  }
+  markFunctionWrapped(wrapped, original);
+  Object.defineProperty(obj, field, {
+    writable: true,
+    configurable: true,
+    enumerable,
+    value: wrapped,
+  });
 }
 
 /**
@@ -158,16 +190,9 @@ function serializeEventTarget(target: unknown): string {
 /** Filters out all but an object's own properties */
 function getOwnProperties(obj: unknown): { [key: string]: unknown } {
   if (typeof obj === 'object' && obj !== null) {
-    const extractedProps: { [key: string]: unknown } = {};
-    for (const property in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, property)) {
-        extractedProps[property] = (obj as Record<string, unknown>)[property];
-      }
-    }
-    return extractedProps;
-  } else {
-    return {};
+    return Object.fromEntries(Object.entries(obj));
   }
+  return {};
 }
 
 /**

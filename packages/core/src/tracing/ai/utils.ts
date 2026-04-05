@@ -1,44 +1,59 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
+import { captureException } from '../../exports';
+import { getClient } from '../../currentScopes';
 import type { Span } from '../../types-hoist/span';
+import { isThenable } from '../../utils/is';
 import {
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
 import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
-/**
- * Maps AI method paths to OpenTelemetry semantic convention operation names
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export function getFinalOperationName(methodPath: string): string {
-  if (methodPath.includes('messages')) {
-    return 'chat';
-  }
-  if (methodPath.includes('completions')) {
-    return 'text_completion';
-  }
-  // Google GenAI: models.generateContent* -> generate_content (actually generates AI responses)
-  if (methodPath.includes('generateContent')) {
-    return 'generate_content';
-  }
-  // Anthropic: models.get/retrieve -> models (metadata retrieval only)
-  if (methodPath.includes('models')) {
-    return 'models';
-  }
-  if (methodPath.includes('chat')) {
-    return 'chat';
-  }
-  return methodPath.split('.').pop() || 'unknown';
+
+export interface AIRecordingOptions {
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
 }
 
 /**
- * Get the span operation for AI methods
- * Following Sentry's convention: "gen_ai.{operation_name}"
+ * A method registry entry describes a single instrumented method:
+ * which gen_ai operation it maps to and whether it is intrinsically streaming.
  */
-export function getSpanOperation(methodPath: string): string {
-  return `gen_ai.${getFinalOperationName(methodPath)}`;
+export interface InstrumentedMethodEntry {
+  /** Operation name (e.g. 'chat', 'embeddings', 'generate_content'). Omit for factory methods that only need result proxying. */
+  operation?: string;
+  /** True if the method itself is always streaming (not param-based) */
+  streaming?: boolean;
+  /** When set, the method's return value is re-proxied with this as the base path */
+  proxyResultPath?: string;
+}
+
+/**
+ * Maps method paths to their registry entries.
+ * Used by proxy-based AI client instrumentations to determine which methods
+ * to instrument, what operation name to use, and whether they stream.
+ */
+export type InstrumentedMethodRegistry = Record<string, InstrumentedMethodEntry>;
+
+/**
+ * Resolves AI recording options by falling back to the client's `sendDefaultPii` setting.
+ * Precedence: explicit option > sendDefaultPii > false
+ */
+export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?: T): T & Required<AIRecordingOptions> {
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+  return {
+    ...options,
+    recordInputs: options?.recordInputs ?? sendDefaultPii,
+    recordOutputs: options?.recordOutputs ?? sendDefaultPii,
+  } as T & Required<AIRecordingOptions>;
 }
 
 /**
@@ -90,6 +105,68 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
     });
   }
+}
+
+export interface StreamResponseState {
+  responseId?: string;
+  responseModel?: string;
+  finishReasons: string[];
+  responseTexts: string[];
+  toolCalls: unknown[];
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
+}
+
+/**
+ * Ends a streaming span by setting all accumulated response attributes and ending the span.
+ * Shared across OpenAI, Anthropic, and Google GenAI streaming implementations.
+ */
+export function endStreamSpan(span: Span, state: StreamResponseState, recordOutputs: boolean): void {
+  if (!span.isRecording()) {
+    return;
+  }
+
+  const attrs: Record<string, string | number | boolean> = {
+    [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+  };
+
+  if (state.responseId) attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = state.responseId;
+  if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = state.responseModel;
+
+  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
+  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
+
+  // Use explicit total if provided (OpenAI, Google), otherwise compute from cache tokens (Anthropic)
+  if (state.totalTokens !== undefined) {
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
+  } else if (
+    state.promptTokens !== undefined ||
+    state.completionTokens !== undefined ||
+    state.cacheCreationInputTokens !== undefined ||
+    state.cacheReadInputTokens !== undefined
+  ) {
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
+      (state.promptTokens ?? 0) +
+      (state.completionTokens ?? 0) +
+      (state.cacheCreationInputTokens ?? 0) +
+      (state.cacheReadInputTokens ?? 0);
+  }
+
+  if (state.finishReasons.length) {
+    attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
+  }
+  if (recordOutputs && state.responseTexts.length) {
+    attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
+  }
+  if (recordOutputs && state.toolCalls.length) {
+    attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
+  }
+
+  span.setAttributes(attrs);
+  span.end();
 }
 
 /**
@@ -151,4 +228,82 @@ export function extractSystemInstructions(messages: unknown[] | unknown): {
   const filteredMessages = [...messages.slice(0, systemMessageIndex), ...messages.slice(systemMessageIndex + 1)];
 
   return { systemInstructions, filteredMessages };
+}
+
+/**
+ * Creates a wrapped version of .withResponse() that replaces the data field
+ * with the instrumented result while preserving metadata (response, request_id).
+ */
+async function createWithResponseWrapper<T>(
+  originalWithResponse: Promise<unknown>,
+  instrumentedPromise: Promise<T>,
+  mechanismType: string,
+): Promise<unknown> {
+  // Attach catch handler to originalWithResponse immediately to prevent unhandled rejection
+  // If instrumentedPromise rejects first, we still need this handled
+  const safeOriginalWithResponse = originalWithResponse.catch(error => {
+    captureException(error, {
+      mechanism: {
+        handled: false,
+        type: mechanismType,
+      },
+    });
+    throw error;
+  });
+
+  const instrumentedResult = await instrumentedPromise;
+  const originalWrapper = await safeOriginalWithResponse;
+
+  // Combine instrumented result with original metadata
+  if (originalWrapper && typeof originalWrapper === 'object' && 'data' in originalWrapper) {
+    return {
+      ...originalWrapper,
+      data: instrumentedResult,
+    };
+  }
+  return instrumentedResult;
+}
+
+/**
+ * Wraps a promise-like object to preserve additional methods (like .withResponse())
+ * that AI SDK clients (OpenAI, Anthropic) attach to their APIPromise return values.
+ *
+ * Standard Promise methods (.then, .catch, .finally) are routed to the instrumented
+ * promise to preserve Sentry's span instrumentation, while custom SDK methods are
+ * forwarded to the original promise to maintain the SDK's API surface.
+ */
+export function wrapPromiseWithMethods<R>(
+  originalPromiseLike: Promise<R>,
+  instrumentedPromise: Promise<R>,
+  mechanismType: string,
+): Promise<R> {
+  // If the original result is not thenable, return the instrumented promise
+  if (!isThenable(originalPromiseLike)) {
+    return instrumentedPromise;
+  }
+
+  // Create a proxy that forwards Promise methods to instrumentedPromise
+  // and preserves additional methods from the original result
+  return new Proxy(originalPromiseLike, {
+    get(target: object, prop: string | symbol): unknown {
+      // For standard Promise methods (.then, .catch, .finally, Symbol.toStringTag),
+      // use instrumentedPromise to preserve Sentry instrumentation.
+      // For custom methods (like .withResponse()), use the original target.
+      const useInstrumentedPromise = prop in Promise.prototype || prop === Symbol.toStringTag;
+      const source = useInstrumentedPromise ? instrumentedPromise : target;
+
+      const value = Reflect.get(source, prop) as unknown;
+
+      // Special handling for .withResponse() to preserve instrumentation
+      // .withResponse() returns { data: T, response: Response, request_id: string }
+      if (prop === 'withResponse' && typeof value === 'function') {
+        return function wrappedWithResponse(this: unknown): unknown {
+          const originalWithResponse = (value as (...args: unknown[]) => unknown).call(target);
+          return createWithResponseWrapper(originalWithResponse, instrumentedPromise, mechanismType);
+        };
+      }
+
+      return typeof value === 'function' ? value.bind(source) : value;
+    },
+  }) as Promise<R>;
 }

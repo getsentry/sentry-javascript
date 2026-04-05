@@ -13,7 +13,7 @@ type ServerRouteManifest = ServerBuild['routes'];
 export async function storeFormDataKeys(
   args: LoaderFunctionArgs | ActionFunctionArgs,
   span: Span,
-  formDataKeys?: Record<string, string | boolean> | undefined,
+  formDataKeys?: Record<string, string | boolean>,
 ): Promise<void> {
   try {
     // We clone the request for Remix be able to read the FormData later.
@@ -107,6 +107,12 @@ export function convertRemixRouteIdToPath(routeId: string): string {
   // Return with leading slash for consistency with client-side URL paths
   const routePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '/';
   return routePath;
+}
+
+/** Check if running in Cloudflare Workers environment. */
+export function isCloudflareEnv(): boolean {
+  // eslint-disable-next-line no-restricted-globals
+  return typeof navigator !== 'undefined' && navigator?.userAgent?.includes('Cloudflare');
 }
 
 /**

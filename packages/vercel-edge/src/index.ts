@@ -98,6 +98,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   logger,
   metrics,

@@ -11,6 +11,7 @@ import {
   fill,
   markFunctionWrapped,
   objectify,
+  wrapMethod,
 } from '../../../src/utils/object';
 import { testOnlyIfNodeVersionAtLeast } from '../../testutils';
 
@@ -343,6 +344,7 @@ describe('objectify()', () => {
     testOnlyIfNodeVersionAtLeast(10)('bigint', () => {
       // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
       // assignment needs to not even be parsed as code in those versions
+      // oxlint-disable-next-line no-unassigned-vars
       let bigintPrimitive;
       eval('bigintPrimitive = 1231n;');
 
@@ -452,5 +454,49 @@ describe('markFunctionWrapped', () => {
 
     expect(wrappedFunc).toHaveBeenCalledTimes(1);
     expect(originalFunc).not.toHaveBeenCalled();
+  });
+});
+
+describe('wrapMethod', () => {
+  it('can wrap a method on an object', () => {
+    const wrappedEnumerable = () => {};
+    const originalEnumerable = () => {};
+    const wrappedNotEnumerable = () => {};
+    const originalNotEnumerable = () => {};
+    const obj: Record<string, unknown> = {
+      enumerable: originalEnumerable,
+    };
+    Object.defineProperty(obj, 'notEnumerable', {
+      writable: true,
+      configurable: true,
+      enumerable: false,
+      value: originalNotEnumerable,
+    });
+    wrapMethod(obj, 'notEnumerable', wrappedNotEnumerable, false);
+    wrapMethod(obj, 'enumerable', wrappedEnumerable);
+    // does not change enumerability
+    expect(Object.keys(obj)).toStrictEqual(['enumerable']);
+    expect(obj.notEnumerable).toBe(wrappedNotEnumerable);
+    expect((obj.notEnumerable as WrappedFunction).__sentry_original__).toBe(originalNotEnumerable);
+    expect(obj.enumerable).toBe(wrappedEnumerable);
+    expect((obj.enumerable as WrappedFunction).__sentry_original__).toBe(originalEnumerable);
+  });
+
+  it('throws if misused', () => {
+    const wrapped = () => {};
+    const original = () => {};
+    const obj = {
+      get m() {
+        return original;
+      },
+    };
+    wrapMethod(obj, 'm', wrapped);
+    expect(() => {
+      //@ts-expect-error verify type checking prevents this mistake
+      wrapMethod(obj, 'foo', wrapped);
+    }).toThrowError('Cannot wrap method: foo is not a function');
+    expect(() => {
+      wrapMethod(obj, 'm', wrapped);
+    }).toThrowError('Attempting to wrap method m multiple times');
   });
 });

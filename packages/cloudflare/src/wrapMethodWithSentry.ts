@@ -1,7 +1,6 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import {
   captureException,
-  flush,
   getClient,
   isThenable,
   type Scope,
@@ -12,7 +11,8 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { isInstrumented, markAsInstrumented } from './instrument';
+import { flushAndDispose } from './flush';
+import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
@@ -46,120 +46,126 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
   callback?: (...args: Parameters<T>) => void,
   noMark?: true,
 ): T {
-  if (isInstrumented(handler)) {
-    return handler;
-  }
+  return ensureInstrumented(
+    handler,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<T>) {
+          const currentClient = getClient();
+          // if a client is already set, use withScope, otherwise use withIsolationScope
+          const sentryWithScope = currentClient ? withScope : withIsolationScope;
 
-  if (!noMark) {
-    markAsInstrumented(handler);
-  }
+          const wrappedFunction = (scope: Scope): unknown => {
+            // In certain situations, the passed context can become undefined.
+            // For example, for Astro while prerendering pages at build time.
+            // see: https://github.com/getsentry/sentry-javascript/issues/13217
+            const context = wrapperOptions.context as InstrumentedDurableObjectState | undefined;
 
-  return new Proxy(handler, {
-    apply(target, thisArg, args: Parameters<T>) {
-      const currentClient = getClient();
-      // if a client is already set, use withScope, otherwise use withIsolationScope
-      const sentryWithScope = currentClient ? withScope : withIsolationScope;
+            const waitUntil = context?.waitUntil?.bind?.(context);
 
-      const wrappedFunction = (scope: Scope): unknown => {
-        // In certain situations, the passed context can become undefined.
-        // For example, for Astro while prerendering pages at build time.
-        // see: https://github.com/getsentry/sentry-javascript/issues/13217
-        const context = wrapperOptions.context as InstrumentedDurableObjectState | undefined;
-
-        const waitUntil = context?.waitUntil?.bind?.(context);
-
-        const currentClient = scope.getClient();
-        if (!currentClient) {
-          const client = init({ ...wrapperOptions.options, ctx: context as unknown as ExecutionContext | undefined });
-          scope.setClient(client);
-        }
-
-        if (!wrapperOptions.spanName) {
-          try {
-            if (callback) {
-              callback(...args);
+            let currentClient = scope.getClient();
+            // Check if client exists AND is still usable (transport not disposed)
+            // This handles the case where a previous handler disposed the client
+            // but the scope still holds a reference to it (e.g., alarm handlers in Durable Objects)
+            if (!currentClient?.getTransport()) {
+              const client = init({
+                ...wrapperOptions.options,
+                ctx: context as unknown as ExecutionContext | undefined,
+              });
+              scope.setClient(client);
+              currentClient = client;
             }
-            const result = Reflect.apply(target, thisArg, args);
 
-            if (isThenable(result)) {
-              return result.then(
-                (res: unknown) => {
-                  waitUntil?.(flush(2000));
-                  return res;
-                },
-                (e: unknown) => {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
+            const clientToDispose = currentClient;
+
+            if (!wrapperOptions.spanName) {
+              try {
+                if (callback) {
+                  callback(...args);
+                }
+                const result = Reflect.apply(target, thisArg, args);
+
+                if (isThenable(result)) {
+                  return result.then(
+                    (res: unknown) => {
+                      waitUntil?.(flushAndDispose(clientToDispose));
+                      return res;
                     },
-                  });
-                  waitUntil?.(flush(2000));
-                  throw e;
-                },
-              );
-            } else {
-              waitUntil?.(flush(2000));
-              return result;
-            }
-          } catch (e) {
-            captureException(e, {
-              mechanism: {
-                type: 'auto.faas.cloudflare.durable_object',
-                handled: false,
-              },
-            });
-            waitUntil?.(flush(2000));
-            throw e;
-          }
-        }
-
-        const attributes = wrapperOptions.spanOp
-          ? {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
-            }
-          : {};
-
-        return startSpan({ name: wrapperOptions.spanName, attributes }, () => {
-          try {
-            const result = Reflect.apply(target, thisArg, args);
-
-            if (isThenable(result)) {
-              return result.then(
-                (res: unknown) => {
-                  waitUntil?.(flush(2000));
-                  return res;
-                },
-                (e: unknown) => {
-                  captureException(e, {
-                    mechanism: {
-                      type: 'auto.faas.cloudflare.durable_object',
-                      handled: false,
+                    (e: unknown) => {
+                      captureException(e, {
+                        mechanism: {
+                          type: 'auto.faas.cloudflare.durable_object',
+                          handled: false,
+                        },
+                      });
+                      waitUntil?.(flushAndDispose(clientToDispose));
+                      throw e;
                     },
-                  });
-                  waitUntil?.(flush(2000));
-                  throw e;
-                },
-              );
-            } else {
-              waitUntil?.(flush(2000));
-              return result;
+                  );
+                } else {
+                  waitUntil?.(flushAndDispose(clientToDispose));
+                  return result;
+                }
+              } catch (e) {
+                captureException(e, {
+                  mechanism: {
+                    type: 'auto.faas.cloudflare.durable_object',
+                    handled: false,
+                  },
+                });
+                waitUntil?.(flushAndDispose(clientToDispose));
+                throw e;
+              }
             }
-          } catch (e) {
-            captureException(e, {
-              mechanism: {
-                type: 'auto.faas.cloudflare.durable_object',
-                handled: false,
-              },
-            });
-            waitUntil?.(flush(2000));
-            throw e;
-          }
-        });
-      };
 
-      return sentryWithScope(wrappedFunction);
-    },
-  });
+            const attributes = wrapperOptions.spanOp
+              ? {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
+                }
+              : {};
+
+            return startSpan({ name: wrapperOptions.spanName, attributes }, () => {
+              try {
+                const result = Reflect.apply(target, thisArg, args);
+
+                if (isThenable(result)) {
+                  return result.then(
+                    (res: unknown) => {
+                      waitUntil?.(flushAndDispose(clientToDispose));
+                      return res;
+                    },
+                    (e: unknown) => {
+                      captureException(e, {
+                        mechanism: {
+                          type: 'auto.faas.cloudflare.durable_object',
+                          handled: false,
+                        },
+                      });
+                      waitUntil?.(flushAndDispose(clientToDispose));
+                      throw e;
+                    },
+                  );
+                } else {
+                  waitUntil?.(flushAndDispose(clientToDispose));
+                  return result;
+                }
+              } catch (e) {
+                captureException(e, {
+                  mechanism: {
+                    type: 'auto.faas.cloudflare.durable_object',
+                    handled: false,
+                  },
+                });
+                waitUntil?.(flushAndDispose(clientToDispose));
+                throw e;
+              }
+            });
+          };
+
+          return sentryWithScope(wrappedFunction);
+        },
+      }),
+    noMark,
+  );
 }

@@ -1,0 +1,38 @@
+{
+  "name": "nuxt-5",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
+    "clean": "npx nuxi cleanup",
+    "test": "playwright test",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev"
+  },
+  "//": [
+    "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
+    "TODO: remove nitro from dependencies"
+  ],
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.3",
+    "@sentry/nuxt": "latest || *",
+    "nitro": "latest",
+    "nuxt": "npm:nuxt-nightly@5x"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "22.20.0"
+  }
+}

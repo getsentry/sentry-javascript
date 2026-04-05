@@ -46,7 +46,7 @@ export const systemErrorIntegration = defineIntegration((options: Options = {}) 
       const error = hint.originalException;
 
       const errorContext: SystemErrorContext = {
-        ...error,
+        ...(error as SystemErrorContext),
       };
 
       if (!client.getOptions().sendDefaultPii && options.includePaths !== true) {

@@ -713,6 +713,27 @@ export type SentryBuildOptions = {
      * Requires cron jobs to be configured in `vercel.json`.
      */
     vercelCronsMonitoring?: boolean;
+    /**
+     * Application key used by `thirdPartyErrorFilterIntegration` to distinguish
+     * first-party code from third-party code in Turbopack builds.
+     *
+     * When set, a Turbopack loader injects `_sentryModuleMetadata` into every
+     * first-party module, mirroring what `@sentry/webpack-plugin` does for
+     * webpack builds via its `moduleMetadata` / `applicationKey` option.
+     *
+     * Requires Next.js 16+
+     */
+    turbopackApplicationKey?: string;
+    /**
+     * Options for React component name annotation in Turbopack builds.
+     * When enabled, JSX elements are annotated with `data-sentry-component`,
+     * `data-sentry-element`, and `data-sentry-source-file` attributes.
+     * Requires Next.js 16+.
+     */
+    turbopackReactComponentAnnotation?: {
+      enabled?: boolean;
+      ignoredComponents?: string[];
+    };
   }>;
 
   /**

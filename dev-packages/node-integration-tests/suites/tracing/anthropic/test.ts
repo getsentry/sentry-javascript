@@ -1,7 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -84,7 +83,6 @@ describe('Anthropic integration', () => {
       // Fourth span - models.retrieve
       expect.objectContaining({
         data: expect.objectContaining({
-          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
@@ -131,7 +129,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 247,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -164,7 +161,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 15,
           'http.response.status_code': 404,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -198,7 +194,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'POST',
           'http.request.method_original': 'POST',
-          'http.response.header.content-length': 19,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -215,7 +210,6 @@ describe('Anthropic integration', () => {
       // Fourth - models.retrieve with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'claude-3-haiku-20240307',
@@ -233,7 +227,6 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'http.request.method': 'GET',
           'http.request.method_original': 'GET',
-          'http.response.header.content-length': 123,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
@@ -358,6 +351,37 @@ describe('Anthropic integration', () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
+    const chatSpan = (responseId: string) =>
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: responseId,
+        }),
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
+        status: 'ok',
+      });
+
+    test('preserves .withResponse() and .asResponse() for non-streaming and streaming', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              chatSpan('msg_withresponse'),
+              chatSpan('msg_withresponse'),
+              chatSpan('msg_stream_withresponse'),
+            ]),
+          },
+        })
         .start()
         .completed();
     });

@@ -504,7 +504,18 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       );
     }
 
-    Promise.all(flushers).then(callback, callback);
+    const FORCE_FLUSH_TIMEOUT_MS = 2000;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<void>(resolve => {
+      timeoutId = setTimeout(resolve, FORCE_FLUSH_TIMEOUT_MS);
+      timeoutId.unref();
+    });
+    Promise.race([Promise.all(flushers), timeoutPromise])
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timeoutId);
+        callback();
+      });
   }
 
   /**

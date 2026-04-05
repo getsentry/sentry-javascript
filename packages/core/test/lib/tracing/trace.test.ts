@@ -210,6 +210,20 @@ describe('startSpan', () => {
     });
   });
 
+  describe('AsyncContext withScope promise integrity behavior', () => {
+    it('preserves custom thenable methods', async () => {
+      const jqXHR = {
+        then: Promise.resolve(1).then.bind(Promise.resolve(1)),
+        abort: vi.fn(),
+      };
+      expect(jqXHR instanceof Promise).toBe(false);
+      const result = startSpan({ name: 'test' }, () => jqXHR);
+      expect(typeof result.abort).toBe('function');
+      result.abort();
+      expect(jqXHR.abort).toHaveBeenCalled();
+    });
+  });
+
   it('returns a non recording span if tracing is disabled', () => {
     const options = getDefaultTestClientOptions({});
     client = new TestClient(options);

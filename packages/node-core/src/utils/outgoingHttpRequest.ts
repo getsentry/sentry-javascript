@@ -50,7 +50,7 @@ export function addTracePropagationHeadersToOutgoingRequest(
   request: ClientRequest,
   propagationDecisionMap: LRUMap<string, boolean>,
 ): void {
-  const url = getRequestUrl(request);
+  const url = getClientRequestUrl(request);
 
   const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
   const headersToAdd = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
@@ -63,7 +63,13 @@ export function addTracePropagationHeadersToOutgoingRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
 
-  if (sentryTrace && !request.getHeader('sentry-trace')) {
+  const hasExistingSentryTraceHeader = !!request.getHeader('sentry-trace');
+
+  if (hasExistingSentryTraceHeader) {
+    return;
+  }
+
+  if (sentryTrace) {
     try {
       request.setHeader('sentry-trace', sentryTrace);
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'Added sentry-trace header to outgoing request');
@@ -92,7 +98,8 @@ export function addTracePropagationHeadersToOutgoingRequest(
   }
 
   if (baggage) {
-    const newBaggage = mergeBaggageHeaders(request.getHeader('baggage'), baggage);
+    const existingBaggage = request.getHeader('baggage');
+    const newBaggage = mergeBaggageHeaders(existingBaggage, baggage);
     if (newBaggage) {
       try {
         request.setHeader('baggage', newBaggage);
@@ -146,7 +153,10 @@ export function getRequestOptions(request: ClientRequest): RequestOptions {
   };
 }
 
-function getRequestUrl(request: ClientRequest): string {
+/**
+ *
+ */
+export function getClientRequestUrl(request: ClientRequest): string {
   const hostname = request.getHeader('host') || request.host;
   const protocol = request.protocol;
   const path = request.path;

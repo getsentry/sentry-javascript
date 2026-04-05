@@ -78,6 +78,7 @@ export {
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -108,3 +109,4 @@ export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { denoRuntimeMetricsIntegration, type DenoRuntimeMetricsOptions } from './integrations/denoRuntimeMetrics';

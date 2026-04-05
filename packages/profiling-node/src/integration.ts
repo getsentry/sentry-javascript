@@ -14,8 +14,9 @@ import {
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { CpuProfilerBindings, ProfileFormat, type RawThreadCpuProfile } from '@sentry-internal/node-cpu-profiler';
+import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from './debug-build';
-import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
+import { NODE_MAJOR } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import {
   addProfilesToEnvelope,
@@ -62,6 +63,14 @@ class ContinuousProfiler {
    * @param client
    */
   public initialize(client: NodeClient): void {
+    if (!isMainThread) {
+      DEBUG_BUILD &&
+        debug.warn(
+          '[Profiling] nodeProfilingIntegration() does not support worker threads — profiling will be disabled for this thread.',
+        );
+      return;
+    }
+
     this._client = client;
     const options = client.getOptions();
 
@@ -634,7 +643,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
+        `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_MAJOR}).`,
         'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22, 24.',
         'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
         'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',

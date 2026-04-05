@@ -1,5 +1,6 @@
 minVersion: '0.23.1'
-changelogPolicy: simple
+changelog:
+  policy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets
@@ -95,8 +96,17 @@ targets:
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/elysia'
+    includeNames: /^sentry-elysia-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/hono'
+    includeNames: /^sentry-hono-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/nestjs'
     includeNames: /^sentry-nestjs-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/effect'
+    includeNames: /^sentry-effect-\d.*\.tgz$/
 
   ## 6. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm
@@ -197,6 +207,11 @@ targets:
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
       'npm:@sentry/google-cloud-serverless':
         onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/hono':
+        name: 'Sentry Hono SDK'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/hono'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/hono/'
+        onlyIfPresent: /^sentry-hono-\d.*\.tgz$/
       'npm:@sentry/nestjs':
         onlyIfPresent: /^sentry-nestjs-\d.*\.tgz$/
       'npm:@sentry/nextjs':
@@ -229,3 +244,15 @@ targets:
         onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
+      'npm:@sentry/effect':
+        name: 'Sentry Effect SDK'
+        sdkName: 'sentry.javascript.effect'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/effect'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/effect/'
+        onlyIfPresent: /^sentry-effect-\d.*\.tgz$/
+      'npm:@sentry/elysia':
+        name: 'Sentry Elysia SDK'
+        sdkName: 'sentry.javascript.elysia'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/elysia'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/elysia/'
+        onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/

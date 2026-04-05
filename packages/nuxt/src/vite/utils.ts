@@ -4,6 +4,24 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
+ * Gets the major version of the installed nitro package.
+ * Returns 2 as the default if nitro is not found or the version cannot be determined.
+ */
+export async function getNitroMajorVersion(): Promise<number> {
+  try {
+    const { getPackageInfo } = await import('local-pkg');
+    const info = await getPackageInfo('nitro');
+    if (info?.version) {
+      const major = parseInt(info.version.split('.')[0] ?? '2', 10);
+      return isNaN(major) ? 2 : major;
+    }
+  } catch {
+    // If local-pkg is unavailable or nitro is not found, default to v2
+  }
+  return 2;
+}
+
+/**
  *  Find the default SDK init file for the given type (client or server).
  *  The sentry.server.config file is prioritized over the instrument.server file.
  */
@@ -67,7 +85,7 @@ export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
  * Only exported for testing.
  */
 export function removeSentryQueryFromPath(url: string): string {
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const regex = new RegExp(`\\${SENTRY_WRAPPED_ENTRY}.*?\\${QUERY_END_INDICATOR}`);
   return url.replace(regex, '');
 }
@@ -80,11 +98,11 @@ export function removeSentryQueryFromPath(url: string): string {
  */
 export function extractFunctionReexportQueryParameters(query: string): { wrap: string[]; reexport: string[] } {
   // Regex matches the comma-separated params between the functions query
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const wrapRegex = new RegExp(
     `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
   );
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // oxlint-disable-next-line sdk/no-regexp-constructor
   const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR})`);
 
   const wrapMatch = query.match(wrapRegex);
@@ -190,8 +208,8 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
  *
  * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
  */
-export function addOTelCommonJSImportAlias(nuxt: Nuxt): void {
-  if (!nuxt.options.dev) {
+export function addOTelCommonJSImportAlias(nuxt: Nuxt, isNitroV3 = false): void {
+  if (!nuxt.options.dev || isNitroV3) {
     return;
   }
 

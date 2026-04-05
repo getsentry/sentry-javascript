@@ -1,12 +1,9 @@
-import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -23,24 +20,25 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
+import type { InstrumentedMethodEntry } from '../ai/utils';
+import {
+  buildMethodPath,
+  resolveAIRecordingOptions,
+  setTokenUsageAttributes,
+  wrapPromiseWithMethods,
+} from '../ai/utils';
+import { ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
-import type {
-  AnthropicAiInstrumentedMethod,
-  AnthropicAiOptions,
-  AnthropicAiResponse,
-  AnthropicAiStreamingEvent,
-  ContentBlock,
-} from './types';
-import { handleResponseError, messagesFromParams, setMessagesAttribute, shouldInstrument } from './utils';
+import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
+import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], methodPath: string, operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getFinalOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
@@ -129,17 +127,6 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
       [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
     });
 
-    if ('created' in response && typeof response.created === 'number') {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
-      });
-    }
-    if ('created_at' in response && typeof response.created_at === 'number') {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created_at * 1000).toISOString(),
-      });
-    }
-
     if ('usage' in response && response.usage) {
       setTokenUsageAttributes(
         span,
@@ -207,27 +194,36 @@ function handleStreamingRequest<T extends unknown[], R>(
   const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model}`,
-    op: getSpanOperation(methodPath),
+    op: `gen_ai.${operationName}`,
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
 
   // messages.stream() always returns a sync MessageStream, even with stream: true param
   if (isStreamRequested && !isStreamingMethod) {
-    return startSpanManual(spanConfig, async span => {
-      try {
-        if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params);
-        }
-        const result = await originalMethod.apply(context, args);
-        return instrumentAsyncIterableStream(
-          result as AsyncIterable<AnthropicAiStreamingEvent>,
-          span,
-          options.recordOutputs ?? false,
-        ) as unknown as R;
-      } catch (error) {
-        return handleStreamingError(error, span, methodPath);
+    let originalResult!: Promise<R>;
+
+    const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
+      originalResult = originalMethod.apply(context, args) as Promise<R>;
+
+      if (options.recordInputs && params) {
+        addPrivateRequestAttributes(span, params);
       }
+
+      return (async () => {
+        try {
+          const result = await originalResult;
+          return instrumentAsyncIterableStream(
+            result as AsyncIterable<AnthropicAiStreamingEvent>,
+            span,
+            options.recordOutputs ?? false,
+          ) as unknown as R;
+        } catch (error) {
+          return handleStreamingError(error, span, methodPath);
+        }
+      })();
     });
+
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
   } else {
     return startSpanManual(spanConfig, span => {
       try {
@@ -250,19 +246,20 @@ function handleStreamingRequest<T extends unknown[], R>(
  */
 function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => R | Promise<R>,
-  methodPath: AnthropicAiInstrumentedMethod,
+  methodPath: string,
+  instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: AnthropicAiOptions,
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
-      const requestAttributes = extractRequestAttributes(args, methodPath);
+      const operationName = instrumentedMethod.operation || 'unknown';
+      const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-      const operationName = getFinalOperationName(methodPath);
 
       const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
       const isStreamRequested = Boolean(params?.stream);
-      const isStreamingMethod = methodPath === 'messages.stream';
+      const isStreamingMethod = instrumentedMethod.streaming === true;
 
       if (isStreamRequested || isStreamingMethod) {
         return handleStreamingRequest(
@@ -280,19 +277,26 @@ function instrumentMethod<T extends unknown[], R>(
         );
       }
 
-      return startSpan(
+      let originalResult!: Promise<R>;
+
+      const instrumentedPromise = startSpan(
         {
           name: `${operationName} ${model}`,
-          op: getSpanOperation(methodPath),
+          op: `gen_ai.${operationName}`,
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
         span => {
+          originalResult = target.apply(context, args) as Promise<R>;
+
           if (options.recordInputs && params) {
             addPrivateRequestAttributes(span, params);
           }
 
-          return handleCallbackErrors(
-            () => target.apply(context, args),
+          return originalResult.then(
+            result => {
+              addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs);
+              return result;
+            },
             error => {
               captureException(error, {
                 mechanism: {
@@ -303,12 +307,13 @@ function instrumentMethod<T extends unknown[], R>(
                   },
                 },
               });
+              throw error;
             },
-            () => {},
-            result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
           );
         },
       );
+
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.anthropic');
     },
   }) as (...args: T) => R | Promise<R>;
 }
@@ -322,8 +327,15 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      if (typeof value === 'function' && shouldInstrument(methodPath)) {
-        return instrumentMethod(value as (...args: unknown[]) => unknown | Promise<unknown>, methodPath, obj, options);
+      const instrumentedMethod = ANTHROPIC_METHOD_REGISTRY[methodPath as keyof typeof ANTHROPIC_METHOD_REGISTRY];
+      if (typeof value === 'function' && instrumentedMethod) {
+        return instrumentMethod(
+          value as (...args: unknown[]) => unknown | Promise<unknown>,
+          methodPath,
+          instrumentedMethod,
+          obj,
+          options,
+        );
       }
 
       if (typeof value === 'function') {
@@ -350,12 +362,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * @returns The instrumented client with the same type as the input
  */
 export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-
-  const _options = {
-    recordInputs: sendDefaultPii,
-    recordOutputs: sendDefaultPii,
-    ...options,
-  };
-  return createDeepProxy(anthropicAiClient, '', _options);
+  return createDeepProxy(anthropicAiClient, '', resolveAIRecordingOptions(options));
 }

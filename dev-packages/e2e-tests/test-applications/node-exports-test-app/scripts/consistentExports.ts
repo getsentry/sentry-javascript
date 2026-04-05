@@ -21,6 +21,8 @@ const NODE_EXPORTS_IGNORE = [
   'SentryContextManager',
   'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
+  // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
+  '_INTERNAL_normalizeCollectionInterval',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));
@@ -41,6 +43,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Astro
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {
@@ -54,6 +57,9 @@ const DEPENDENTS: Dependent[] = [
       'childProcessIntegration',
       'systemErrorIntegration',
       'pinoIntegration',
+      // Bun will get its own runtime metrics integration
+      'nodeRuntimeMetricsIntegration',
+      'NodeRuntimeMetricsOptions',
     ],
   },
   {
@@ -75,6 +81,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {
@@ -84,6 +91,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      'withElysia',
     ],
   },
   {

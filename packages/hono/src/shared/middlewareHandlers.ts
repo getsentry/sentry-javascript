@@ -1,9 +1,10 @@
-import { getIsolationScope } from '@sentry/cloudflare';
 import {
   getActiveSpan,
   getClient,
   getDefaultIsolationScope,
+  getIsolationScope,
   getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
@@ -32,12 +33,18 @@ export function responseHandler(context: Context): void {
   const activeSpan = getActiveSpan();
   if (activeSpan) {
     activeSpan.updateName(`${context.req.method} ${routePath(context)}`);
-    updateSpanName(getRootSpan(activeSpan), `${context.req.method} ${routePath(context)}`);
+    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+    const rootSpan = getRootSpan(activeSpan);
+    updateSpanName(rootSpan, `${context.req.method} ${routePath(context)}`);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
 
   getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
 
   if (context.error) {
-    getClient()?.captureException(context.error);
+    getClient()?.captureException(context.error, {
+      mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+    });
   }
 }

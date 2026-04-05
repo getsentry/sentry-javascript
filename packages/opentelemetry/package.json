@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry",
-  "version": "10.40.0",
+  "version": "10.47.0",
   "description": "Official Sentry utilities for OpenTelemetry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry",
@@ -39,7 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.40.0"
+    "@sentry/core": "10.47.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -49,11 +49,11 @@
     "@opentelemetry/semantic-conventions": "^1.39.0"
   },
   "devDependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-async-hooks": "^2.5.1",
-    "@opentelemetry/core": "^2.5.1",
-    "@opentelemetry/sdk-trace-base": "^2.5.1",
-    "@opentelemetry/semantic-conventions": "^1.39.0"
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/context-async-hooks": "^2.6.1",
+    "@opentelemetry/core": "^2.6.1",
+    "@opentelemetry/sdk-trace-base": "^2.6.1",
+    "@opentelemetry/semantic-conventions": "^1.40.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -68,8 +68,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-opentelemetry-*.tgz",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

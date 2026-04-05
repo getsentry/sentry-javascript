@@ -140,7 +140,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
                 }
 
-                return startSpan(getMiddlewareSpanOptions(target), () => {
+                return startSpan(getMiddlewareSpanOptions(target, undefined, 'guard'), () => {
                   return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
                 });
               },
@@ -162,7 +162,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   return originalTransform.apply(thisArgTransform, argsTransform);
                 }
 
-                return startSpan(getMiddlewareSpanOptions(target), () => {
+                return startSpan(getMiddlewareSpanOptions(target, undefined, 'pipe'), () => {
                   return originalTransform.apply(thisArgTransform, argsTransform);
                 });
               },
@@ -192,74 +192,82 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   return originalIntercept.apply(thisArgIntercept, argsIntercept);
                 }
 
-                return startSpanManual(getMiddlewareSpanOptions(target), (beforeSpan: Span) => {
-                  // eslint-disable-next-line @typescript-eslint/unbound-method
-                  next.handle = new Proxy(next.handle, {
-                    apply: (originalHandle, thisArgHandle, argsHandle) => {
-                      beforeSpan.end();
+                return startSpanManual(
+                  getMiddlewareSpanOptions(target, undefined, 'interceptor'),
+                  (beforeSpan: Span) => {
+                    // eslint-disable-next-line @typescript-eslint/unbound-method
+                    next.handle = new Proxy(next.handle, {
+                      apply: (originalHandle, thisArgHandle, argsHandle) => {
+                        beforeSpan.end();
 
-                      if (parentSpan) {
-                        return withActiveSpan(parentSpan, () => {
+                        if (parentSpan) {
+                          return withActiveSpan(parentSpan, () => {
+                            const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+
+                            if (!SeenNestjsContextSet.has(context)) {
+                              SeenNestjsContextSet.add(context);
+                              afterSpan = startInactiveSpan(
+                                getMiddlewareSpanOptions(target, 'Interceptors - After Route', 'interceptor'),
+                              );
+                            }
+
+                            return handleReturnObservable;
+                          });
+                        } else {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                           if (!SeenNestjsContextSet.has(context)) {
                             SeenNestjsContextSet.add(context);
                             afterSpan = startInactiveSpan(
-                              getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
+                              getMiddlewareSpanOptions(target, 'Interceptors - After Route', 'interceptor'),
                             );
                           }
 
                           return handleReturnObservable;
-                        });
-                      } else {
-                        const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-
-                        if (!SeenNestjsContextSet.has(context)) {
-                          SeenNestjsContextSet.add(context);
-                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
                         }
+                      },
+                    });
 
-                        return handleReturnObservable;
-                      }
-                    },
-                  });
+                    let returnedObservableInterceptMaybePromise: Observable<unknown> | Promise<Observable<unknown>>;
 
-                  let returnedObservableInterceptMaybePromise: Observable<unknown> | Promise<Observable<unknown>>;
+                    try {
+                      returnedObservableInterceptMaybePromise = originalIntercept.apply(
+                        thisArgIntercept,
+                        argsIntercept,
+                      );
+                    } catch (e) {
+                      beforeSpan.end();
+                      afterSpan?.end();
+                      throw e;
+                    }
 
-                  try {
-                    returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
-                  } catch (e) {
-                    beforeSpan.end();
-                    afterSpan?.end();
-                    throw e;
-                  }
+                    if (!afterSpan) {
+                      return returnedObservableInterceptMaybePromise;
+                    }
 
-                  if (!afterSpan) {
+                    // handle async interceptor
+                    if (isThenable(returnedObservableInterceptMaybePromise)) {
+                      return returnedObservableInterceptMaybePromise.then(
+                        observable => {
+                          instrumentObservable(observable, afterSpan ?? parentSpan);
+                          return observable;
+                        },
+                        e => {
+                          beforeSpan.end();
+                          afterSpan?.end();
+                          throw e;
+                        },
+                      );
+                    }
+
+                    // handle sync interceptor
+                    if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
+                      instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan);
+                    }
+
                     return returnedObservableInterceptMaybePromise;
-                  }
-
-                  // handle async interceptor
-                  if (isThenable(returnedObservableInterceptMaybePromise)) {
-                    return returnedObservableInterceptMaybePromise.then(
-                      observable => {
-                        instrumentObservable(observable, afterSpan ?? parentSpan);
-                        return observable;
-                      },
-                      e => {
-                        beforeSpan.end();
-                        afterSpan?.end();
-                        throw e;
-                      },
-                    );
-                  }
-
-                  // handle sync interceptor
-                  if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
-                    instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan);
-                  }
-
-                  return returnedObservableInterceptMaybePromise;
-                });
+                  },
+                );
               },
             });
           }
@@ -293,7 +301,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 }
 
-                return startSpan(getMiddlewareSpanOptions(target), () => {
+                return startSpan(getMiddlewareSpanOptions(target, undefined, 'exception_filter'), () => {
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 });
               },

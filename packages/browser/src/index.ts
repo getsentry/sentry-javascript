@@ -40,6 +40,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { elementTimingIntegration } from '@sentry-internal/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
@@ -70,6 +71,7 @@ export {
   instrumentGoogleGenAIClient,
   instrumentLangGraph,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';

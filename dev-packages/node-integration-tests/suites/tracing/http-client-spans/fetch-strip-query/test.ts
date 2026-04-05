@@ -28,7 +28,6 @@ test('strips and handles query params in spans of outgoing fetch requests', asyn
             'http.query': 'id=1',
             'http.request.method': 'GET',
             'http.request.method_original': 'GET',
-            'http.response.header.content-length': 0,
             'http.response.status_code': 200,
             'network.peer.address': '::1',
             'network.peer.port': expect.any(Number),

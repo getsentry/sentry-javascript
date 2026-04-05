@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nestjs",
-  "version": "10.40.0",
+  "version": "10.47.0",
   "description": "Official Sentry SDK for NestJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs",
@@ -44,13 +44,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^2.5.1",
-    "@opentelemetry/instrumentation": "^0.211.0",
-    "@opentelemetry/instrumentation-nestjs-core": "0.57.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@sentry/core": "10.40.0",
-    "@sentry/node": "10.40.0"
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/core": "^2.6.1",
+    "@opentelemetry/instrumentation": "^0.214.0",
+    "@opentelemetry/instrumentation-nestjs-core": "0.60.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@sentry/core": "10.47.0",
+    "@sentry/node": "10.47.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
@@ -75,8 +75,8 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
     "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
-    "fix": "eslint . --format stylish --fix",
-    "lint": "eslint . --format stylish",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

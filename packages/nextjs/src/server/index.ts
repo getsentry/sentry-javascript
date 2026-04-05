@@ -37,6 +37,7 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
+import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
@@ -47,7 +48,6 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
-  _sentryRewritesTunnelPath?: string;
   _sentryRelease?: string;
 };
 
@@ -193,6 +193,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   client?.on('spanStart', handleOnSpanStart);
   client?.on('spanEnd', maybeCompleteCronCheckIn);
+  client?.on('spanEnd', maybeCleanupQueueSpan);
 
   getGlobalScope().addEventProcessor(
     Object.assign(
@@ -202,16 +203,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
           // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
           // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
           if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
-            return null;
-          }
-
-          // Filter out transactions for requests to the tunnel route
-          if (
-            (globalWithInjectedValues._sentryRewritesTunnelPath &&
-              event.transaction === `POST ${globalWithInjectedValues._sentryRewritesTunnelPath}`) ||
-            (process.env._sentryRewritesTunnelPath &&
-              event.transaction === `POST ${process.env._sentryRewritesTunnelPath}`)
-          ) {
             return null;
           }
 

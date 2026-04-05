@@ -9,6 +9,19 @@ Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
 - After cloning: `yarn install && yarn build`
 - Never change Volta, Yarn, or package manager versions unless explicitly asked
 
+### Code Intelligence
+
+Prefer LSP over Grep/Read for code navigation — it's faster, precise, and avoids reading entire files:
+
+- `workspaceSymbol` to find where something is defined
+- `findReferences` to see all usages across the codebase
+- `goToDefinition` / `goToImplementation` to jump to source
+- `hover` for type info without reading the file
+
+Use Grep only when LSP isn't available or for text/pattern searches (comments, strings, config).
+
+After writing or editing code, check LSP diagnostics and fix errors before proceeding.
+
 ## Package Manager
 
 Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
@@ -20,9 +33,12 @@ Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
 | `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
 | `yarn build:bundle`                   | Browser bundles only          |
 | `yarn test`                           | All unit tests                |
-| `yarn lint`                           | ESLint + Oxfmt                |
-| `yarn fix`                            | Auto-fix lint + format        |
-| `yarn format`                         | Auto-fix formatting (Oxfmt)   |
+| `yarn verify`                         | Lint + format check           |
+| `yarn fix`                            | Format + lint fix             |
+| `yarn lint`                           | Lint (Oxlint)                 |
+| `yarn lint:fix`                       | Lint + auto-fix (Oxlint)      |
+| `yarn format`                         | Format files (Oxfmt)          |
+| `yarn format:check`                   | Check formatting (Oxfmt)      |
 
 Single package: `cd packages/<name> && yarn test`
 
@@ -76,7 +92,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `packages/core/src/tracing/{provider}/` — Core instrumentation
 - `packages/node/src/integrations/tracing/{provider}/` — Node.js integration + OTel
 - `packages/cloudflare/src/integrations/tracing/{provider}.ts` — Edge runtime
-- See `.cursor/rules/adding-a-new-ai-integration.mdc` for implementation guide
+- Use `/add-ai-integration` skill when adding or modifying integrations
 
 ### User Experience
 
@@ -91,12 +107,25 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `test-utils/` — Shared test utilities
 - `rollup-utils/` — Build utilities
 
+## Linting & Formatting
+
+- This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
+- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
+- Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
+
 ## Coding Standards
 
 - Follow existing conventions — check neighboring files
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
+
+## Reference Documentation
+
+- [Span Attributes](https://develop.sentry.dev/sdk/telemetry/attributes.md)
+- [Scopes (global, isolation, current)](https://develop.sentry.dev/sdk/telemetry/scopes.md)
 
 ## Skills
 
@@ -115,3 +144,19 @@ Use `/triage-issue` skill. See `.claude/skills/triage-issue/SKILL.md`
 ### CDN Bundles
 
 Use `/add-cdn-bundle` skill. See `.claude/skills/add-cdn-bundle/SKILL.md`
+
+### Publishing a Release
+
+Use `/release` skill. See `.claude/skills/release/SKILL.md`
+
+### Dependency Upgrades
+
+Use `/upgrade-dep` skill. See `.claude/skills/upgrade-dep/SKILL.md`
+
+### OpenTelemetry Instrumentation Upgrades
+
+Use `/upgrade-otel` skill. See `.claude/skills/upgrade-otel/SKILL.md`
+
+### AI Integration
+
+Use `/add-ai-integration` skill. See `.claude/skills/add-ai-integration/SKILL.md`

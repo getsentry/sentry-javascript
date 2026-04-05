@@ -1,6 +1,8 @@
 import { type ExecutionContext } from '@cloudflare/workers-types';
+import * as sentryCore from '@sentry/core';
+import { type Client } from '@sentry/core';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { makeFlushLock } from '../src/flush';
+import { flushAndDispose, makeFlushLock } from '../src/flush';
 
 describe('Flush buffer test', () => {
   const waitUntilPromises: Promise<void>[] = [];
@@ -26,5 +28,37 @@ describe('Flush buffer test', () => {
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntilPromises);
     await expect(lock.ready).resolves.toBeUndefined();
+  });
+});
+
+describe('flushAndDispose', () => {
+  it('should flush and dispose the client when provided', async () => {
+    const mockClient = {
+      flush: vi.fn().mockResolvedValue(true),
+      dispose: vi.fn(),
+    } as unknown as Client;
+
+    await flushAndDispose(mockClient, 3000);
+
+    expect(mockClient.flush).toHaveBeenCalledWith(3000);
+    expect(mockClient.dispose).toHaveBeenCalled();
+  });
+
+  it('should fall back to global flush when no client is provided', async () => {
+    const flushSpy = vi.spyOn(sentryCore, 'flush').mockResolvedValue(true);
+
+    await flushAndDispose(undefined);
+
+    expect(flushSpy).toHaveBeenCalledWith(2000);
+    flushSpy.mockRestore();
+  });
+
+  it('should not call dispose when no client is provided', async () => {
+    const flushSpy = vi.spyOn(sentryCore, 'flush').mockResolvedValue(true);
+
+    await flushAndDispose(undefined);
+
+    expect(flushSpy).toHaveBeenCalled();
+    flushSpy.mockRestore();
   });
 });

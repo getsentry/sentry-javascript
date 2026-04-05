@@ -28,7 +28,7 @@ describe('Vercel AI integration - generateObject', () => {
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         }),
-        description: 'generateObject',
+        description: 'invoke_agent',
         op: 'gen_ai.invoke_agent',
         origin: 'auto.vercelai.otel',
         status: 'ok',
@@ -37,7 +37,7 @@ describe('Vercel AI integration - generateObject', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.origin': 'auto.vercelai.otel',
-          'sentry.op': 'gen_ai.generate_object',
+          'sentry.op': 'gen_ai.generate_content',
           'gen_ai.operation.name': 'generate_content',
           'vercel.ai.operationId': 'ai.generateObject.doGenerate',
           'vercel.ai.model.provider': 'mock-provider',
@@ -51,8 +51,8 @@ describe('Vercel AI integration - generateObject', () => {
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
         }),
-        description: 'generate_object mock-model-id',
-        op: 'gen_ai.generate_object',
+        description: 'generate_content mock-model-id',
+        op: 'gen_ai.generate_content',
         origin: 'auto.vercelai.otel',
         status: 'ok',
       }),

@@ -5,6 +5,31 @@ import { Scope } from './scope';
 import type { TraceContext } from './types-hoist/context';
 import { generateSpanId } from './utils/propagationContext';
 
+let _externalPropagationContextProvider: (() => { traceId: string; spanId: string } | undefined) | undefined;
+
+/**
+ * Register an external propagation context provider function.
+ * When registered, trace context will be read from the external source (e.g. OpenTelemetry)
+ * instead of from the Sentry scope's propagation context.
+ */
+export function registerExternalPropagationContext(fn: () => { traceId: string; spanId: string } | undefined): void {
+  _externalPropagationContextProvider = fn;
+}
+
+/**
+ * Get the external propagation context, if a provider has been registered.
+ */
+export function getExternalPropagationContext(): { traceId: string; spanId: string } | undefined {
+  return _externalPropagationContextProvider?.();
+}
+
+/**
+ * Check if an external propagation context provider has been registered.
+ */
+export function hasExternalPropagationContext(): boolean {
+  return _externalPropagationContextProvider !== undefined;
+}
+
 /**
  * Get the currently active scope.
  */
@@ -125,6 +150,11 @@ export function getClient<C extends Client>(): C | undefined {
  * Get a trace context for the given scope.
  */
 export function getTraceContextFromScope(scope: Scope): TraceContext {
+  const externalContext = getExternalPropagationContext();
+  if (externalContext) {
+    return { trace_id: externalContext.traceId, span_id: externalContext.spanId };
+  }
+
   const propagationContext = scope.getPropagationContext();
 
   const { traceId, parentSpanId, propagationSpanId } = propagationContext;

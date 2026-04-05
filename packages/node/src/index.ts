@@ -141,6 +141,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   instrumentLangGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';
@@ -188,6 +189,8 @@ export {
   spotlightIntegration,
   childProcessIntegration,
   processSessionIntegration,
+  nodeRuntimeMetricsIntegration,
+  type NodeRuntimeMetricsOptions,
   pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
@@ -201,4 +204,5 @@ export {
   cron,
   NODE_VERSION,
   validateOpenTelemetrySetup,
+  _INTERNAL_normalizeCollectionInterval,
 } from '@sentry/node-core';

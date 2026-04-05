@@ -20,6 +20,7 @@ import type {
 } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
@@ -66,24 +67,27 @@ class WrappedWorkflowStep implements WorkflowStep {
     private _step: WorkflowStep,
   ) {}
 
-  public async do<T extends Rpc.Serializable<T>>(name: string, callback: () => Promise<T>): Promise<T>;
+  public async do<T extends Rpc.Serializable<T>>(
+    name: string,
+    callback: (...args: unknown[]) => Promise<T>,
+  ): Promise<T>;
   public async do<T extends Rpc.Serializable<T>>(
     name: string,
     config: WorkflowStepConfig,
-    callback: () => Promise<T>,
+    callback: (...args: unknown[]) => Promise<T>,
   ): Promise<T>;
   public async do<T extends Rpc.Serializable<T>>(
     name: string,
     configOrCallback: WorkflowStepConfig | (() => Promise<T>),
-    maybeCallback?: () => Promise<T>,
+    maybeCallback?: (...args: unknown[]) => Promise<T>,
   ): Promise<T> {
     // Capture the current scope, so parent span (e.g., a startSpan surrounding step.do) is preserved
     const scopeForStep = getCurrentScope();
 
-    const userCallback = (maybeCallback || configOrCallback) as () => Promise<T>;
+    const userCallback = (maybeCallback || configOrCallback) as (...args: unknown[]) => Promise<T>;
     const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
 
-    const instrumentedCallback: () => Promise<T> = async () => {
+    const instrumentedCallback = async (...args: unknown[]): Promise<T> => {
       return startSpan(
         {
           op: 'function.step.do',
@@ -100,7 +104,7 @@ class WrappedWorkflowStep implements WorkflowStep {
         },
         async span => {
           try {
-            const result = await userCallback();
+            const result = await userCallback(...args);
             span.setStatus({ code: 1 });
             return result;
           } catch (error) {
@@ -186,7 +190,7 @@ export function instrumentWorkflowWithSentry<
                       new WrappedWorkflowStep(event.instanceId, context, options, step),
                     );
                   } finally {
-                    context.waitUntil(flush(2000));
+                    context.waitUntil(flushAndDispose(client));
                   }
                 });
               });

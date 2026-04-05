@@ -3,6 +3,7 @@ import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
   startInactiveSpan,
+  startNewTrace,
   startSpan,
   startSpanManual,
   suppressTracing,
@@ -76,4 +77,7 @@ export interface AsyncContextStrategy {
    * and `<meta name="baggage">` HTML tags.
    */
   continueTrace?: typeof continueTrace;
+
+  /** Start a new trace, ensuring all spans in the callback share the same traceId. */
+  startNewTrace?: typeof startNewTrace;
 }

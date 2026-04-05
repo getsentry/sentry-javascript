@@ -339,7 +339,7 @@ describe('createTransport', () => {
 
         try {
           await transport.send(CLIENT_REPORT_ENVELOPE);
-        } catch (e) {
+        } catch (_e) {
           // Expected to throw
         }
 
@@ -383,7 +383,7 @@ describe('createTransport', () => {
 
         try {
           await transport.send(ERROR_ENVELOPE);
-        } catch (e) {
+        } catch (_e) {
           // Expected to throw
         }
 

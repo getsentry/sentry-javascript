@@ -65,59 +65,11 @@ env:
 
 jobs:
   job_get_metadata:
-    name: Get Metadata
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/ci-metadata.yml
+    with:
+      head_commit: ${{ github.event.inputs.commit || github.sha }}
     permissions:
       pull-requests: read
-    steps:
-      - name: Check out current commit
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
-          # also its parents, so that we can pull the commit message from the head commit of the PR
-          fetch-depth: 2
-
-      - name: Get metadata
-        id: get_metadata
-        # We need to try a number of different options for finding the head commit, because each kind of trigger event
-        # stores it in a different location
-        run: |
-          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
-          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
-          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
-
-      # Most changed packages are determined in job_build via Nx
-      - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.1
-        id: changed
-        with:
-          filters: |
-            workflow:
-              - '.github/**'
-            any_code:
-              - '!**/*.md'
-
-      - name: Get PR labels
-        id: pr-labels
-        uses: mydea/pr-labels-action@fn/bump-node20
-
-    outputs:
-      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
-      # Note: These next three have to be checked as strings ('true'/'false')!
-      is_base_branch:
-        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
-      is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
-      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
-
-      # When merging into master, or from master
-      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
-      has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
-      force_skip_cache:
-        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
-        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
   job_build:
     name: Build
@@ -178,7 +130,7 @@ jobs:
         run: yarn build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: build-output
           path: ${{ env.CACHED_BUILD_PATHS }}
@@ -222,7 +174,7 @@ jobs:
       pull-requests: write
     steps:
       - name: PR is opened against master
-        uses: mshick/add-pr-comment@dd126dd8c253650d181ad9538d8b4fa218fc31e8
+        uses: mshick/add-pr-comment@e7516d74559b5514092f5b096ed29a629a1237c6
         if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
         with:
           message: |
@@ -308,7 +260,7 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
-        run: yarn lint:eslint
+        run: yarn lint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
@@ -399,7 +351,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}
           retention-days: 90
@@ -636,7 +588,7 @@ jobs:
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name:
@@ -702,7 +654,7 @@ jobs:
           yarn test:loader
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
@@ -1009,7 +961,7 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
-        if: contains(fromJSON('["node-exports-test-app","nextjs-16-bun"]'), matrix.test-application)
+        if: contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless'
@@ -1017,6 +969,11 @@ jobs:
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Deno
+        if: matrix.test-application == 'deno'
+        uses: denoland/setup-deno@v2.0.3
+        with:
+          deno-version: v2.1.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1073,7 +1030,7 @@ jobs:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
@@ -1087,7 +1044,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1200,7 +1157,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})

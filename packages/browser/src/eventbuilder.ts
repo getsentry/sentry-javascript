@@ -165,6 +165,7 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
   // Check for support
   // @ts-expect-error - WebAssembly.Exception is a valid class
+  // oxlint-disable-next-line typescript/prefer-optional-chain
   if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
     // @ts-expect-error - WebAssembly.Exception is a valid class
     return exception instanceof WebAssembly.Exception;
@@ -400,14 +401,5 @@ function getObjectClassName(obj: unknown): string | undefined | void {
 
 /** If a plain object has a property that is an `Error`, return this error. */
 function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
-  for (const prop in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-      const value = obj[prop];
-      if (value instanceof Error) {
-        return value;
-      }
-    }
-  }
-
-  return undefined;
+  return Object.values(obj).find((v): v is Error => v instanceof Error);
 }

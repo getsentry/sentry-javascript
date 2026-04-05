@@ -21,6 +21,17 @@ export type SentryNodeFetchInstrumentationOptions = InstrumentationConfig & {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
+   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's UndiciInstrumentation.
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture breadcrumbs or inject headers for outgoing fetch requests to URLs where the given callback returns `true`.
    * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
    * span creation.
@@ -118,7 +129,9 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       return;
     }
 
-    addTracePropagationHeadersToFetchRequest(request, this._propagationDecisionMap);
+    if (config.tracePropagation !== false) {
+      addTracePropagationHeadersToFetchRequest(request, this._propagationDecisionMap);
+    }
   }
 
   /**

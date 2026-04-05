@@ -25,6 +25,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { extractSystemInstructions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
@@ -60,6 +61,38 @@ function asString(v: unknown): string {
   } catch {
     return String(v);
   }
+}
+
+/**
+ * Converts message content to a string, stripping inline media (base64 images, audio, etc.)
+ * from multimodal content before stringification so downstream media stripping can't miss it.
+ *
+ * @example
+ * // String content passes through unchanged:
+ * normalizeContent("Hello") // => "Hello"
+ *
+ * // Multimodal array content — media is replaced with "[Blob substitute]" before JSON.stringify:
+ * normalizeContent([
+ *   { type: "text", text: "What color?" },
+ *   { type: "image_url", image_url: { url: "data:image/png;base64,iVBOR..." } }
+ * ])
+ * // => '[{"type":"text","text":"What color?"},{"type":"image_url","image_url":{"url":"[Blob substitute]"}}]'
+ *
+ * // Without this, asString() would JSON.stringify the raw array and the base64 blob
+ * // would end up in span attributes, since downstream stripping only works on objects.
+ */
+function normalizeContent(v: unknown): string {
+  if (Array.isArray(v)) {
+    try {
+      const stripped = v.map(part =>
+        part && typeof part === 'object' && isContentMedia(part) ? stripInlineMediaFromSingleMessage(part) : part,
+      );
+      return JSON.stringify(stripped);
+    } catch {
+      return String(v);
+    }
+  }
+  return asString(v);
 }
 
 /**
@@ -123,7 +156,7 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       const messageType = maybeGetType.call(message);
       return {
         role: normalizeMessageRole(messageType),
-        content: asString(message.content),
+        content: normalizeContent(message.content),
       };
     }
 
@@ -136,7 +169,7 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
 
       return {
         role: normalizeMessageRole(role),
-        content: asString(message.kwargs?.content),
+        content: normalizeContent(message.kwargs?.content),
       };
     }
 
@@ -145,7 +178,7 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
       const role = String(message.type).toLowerCase();
       return {
         role: normalizeMessageRole(role),
-        content: asString(message.content),
+        content: normalizeContent(message.content),
       };
     }
 
@@ -154,7 +187,7 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
     if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
-        content: asString(message.content),
+        content: normalizeContent(message.content),
       };
     }
 
@@ -164,14 +197,14 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
     if (ctor && ctor !== 'Object') {
       return {
         role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
-        content: asString(message.content),
+        content: normalizeContent(message.content),
       };
     }
 
     // 6) Fallback: treat as user text
     return {
       role: 'user',
-      content: asString(message.content),
+      content: normalizeContent(message.content),
     };
   });
 }

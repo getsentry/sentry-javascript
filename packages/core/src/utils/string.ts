@@ -72,7 +72,7 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
   }
 
   const output = [];
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
+  // eslint-disable-next-line typescript/prefer-for-of
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     try {
@@ -104,7 +104,7 @@ export function safeJoin(input: unknown[], delimiter?: string): string {
  */
 export function isMatchingPattern(
   value: string,
-  pattern: RegExp | string,
+  pattern: RegExp | string | ((value: string) => boolean),
   requireExactStringMatch: boolean = false,
 ): boolean {
   if (!isString(value)) {
@@ -116,6 +116,9 @@ export function isMatchingPattern(
   }
   if (isString(pattern)) {
     return requireExactStringMatch ? value === pattern : value.includes(pattern);
+  }
+  if (typeof pattern === 'function') {
+    return pattern(value);
   }
 
   return false;
@@ -133,7 +136,7 @@ export function isMatchingPattern(
  */
 export function stringMatchesSomePattern(
   testString: string,
-  patterns: Array<string | RegExp> = [],
+  patterns: Array<string | RegExp | ((value: string) => boolean)> = [],
   requireExactStringMatch: boolean = false,
 ): boolean {
   return patterns.some(pattern => isMatchingPattern(testString, pattern, requireExactStringMatch));

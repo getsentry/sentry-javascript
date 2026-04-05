@@ -500,14 +500,17 @@ describe('SentryPropagator', () => {
       );
     });
 
-    it('should overwrite existing sentry baggage header', () => {
+    it('overwrites existing sentry baggage values and add sentry-trace header if sentry-trace is not set yet', () => {
+      // This is an edeg case where someone set a baggage header with existing sentry- values but no sentry-trace header.
+      // There's no evidence this occurs in real-life but if it does, we can assume that this must be some kind of error
+      // Hence, we overwrite the existing sentry- values with our new ones but keep all other non-sentry values.
       const spanContext = {
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
         spanId: '6e0c63257de34c92',
         traceFlags: TraceFlags.SAMPLED,
       };
 
-      const carrier = {
+      const carrier: Record<string, string> = {
         baggage: 'foo=bar,other=yes,sentry-release=9.9.9,sentry-other=yes',
       };
       const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
@@ -520,11 +523,11 @@ describe('SentryPropagator', () => {
           'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           'sentry-public_key=abc',
           'sentry-environment=production',
-          'sentry-other=yes',
           'sentry-release=1.0.0',
           'sentry-sampled=true',
         ].sort(),
       );
+      expect(carrier[SENTRY_TRACE_HEADER]).toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1');
     });
 
     it('should create baggage without propagation context', () => {
@@ -537,6 +540,7 @@ describe('SentryPropagator', () => {
       expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(
         `foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=${traceId}`,
       );
+      expect(carrier[SENTRY_TRACE_HEADER]).toBeDefined(); // whenever we set baggage, we must also set sentry-trace
     });
 
     it('should NOT set baggage and sentry-trace header if instrumentation is suppressed', () => {
@@ -550,6 +554,86 @@ describe('SentryPropagator', () => {
       propagator.inject(context, carrier, defaultTextMapSetter);
       expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
       expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(undefined);
+    });
+
+    it("doesn't set baggage header if sentry-trace header is already set", () => {
+      const carrier: Record<string, string> = {
+        [SENTRY_TRACE_HEADER]: 'abcdef-xyz-1',
+      };
+      propagator.inject(ROOT_CONTEXT, carrier, defaultTextMapSetter);
+
+      expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(undefined);
+      expect(carrier[SENTRY_TRACE_HEADER]).toBe('abcdef-xyz-1');
+    });
+
+    describe('traceparent header', () => {
+      it("doesn't change baggage header if sentry-trace header is already set", () => {
+        const carrier: Record<string, string> = {
+          [SENTRY_TRACE_HEADER]: 'abcdef-xyz-1',
+          [SENTRY_BAGGAGE_HEADER]: 'foo=bar,other=yes,sentry-release=9.9.9',
+        };
+        propagator.inject(ROOT_CONTEXT, carrier, defaultTextMapSetter);
+
+        expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe('foo=bar,other=yes,sentry-release=9.9.9');
+        expect(carrier[SENTRY_TRACE_HEADER]).toBe('abcdef-xyz-1');
+      });
+
+      it("doesn't set traceparent header if sentry-trace header is already set", () => {
+        mockSdkInit({ propagateTraceparent: true });
+        const carrier: Record<string, string> = {
+          [SENTRY_TRACE_HEADER]: 'abcdef-xyz-1',
+        };
+        propagator.inject(ROOT_CONTEXT, carrier, defaultTextMapSetter);
+
+        expect(carrier['traceparent']).toBe(undefined);
+        expect(carrier[SENTRY_TRACE_HEADER]).toBe('abcdef-xyz-1');
+      });
+
+      it('sets traceparent header if propagateTraceparent is true', () => {
+        mockSdkInit({
+          environment: 'production',
+          release: '1.0.0',
+          tracesSampleRate: 1,
+          dsn: 'https://abc@domain/123',
+          propagateTraceparent: true,
+        });
+
+        const spanContext = {
+          traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+          spanId: '6e0c63257de34c92',
+          traceFlags: TraceFlags.SAMPLED,
+        };
+        const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+        const baggage = propagation.createBaggage({ foo: { value: 'bar' } });
+        propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+
+        expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+          [
+            'foo=bar',
+            'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-public_key=abc',
+            'sentry-environment=production',
+            'sentry-release=1.0.0',
+            'sentry-sampled=true',
+          ].sort(),
+        );
+        expect(carrier['traceparent']).toBe('00-d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-01');
+      });
+
+      it("doesn't set traceparent header if propagateTraceparent is false", () => {
+        mockSdkInit({
+          environment: 'production',
+          release: '1.0.0',
+          tracesSampleRate: 1,
+          dsn: 'https://abc@domain/123',
+          propagateTraceparent: false,
+        });
+        const carrier: Record<string, string> = {};
+        propagator.inject(ROOT_CONTEXT, carrier, defaultTextMapSetter);
+
+        expect(carrier['traceparent']).toBe(undefined);
+        expect(carrier[SENTRY_TRACE_HEADER]).toBeDefined();
+      });
     });
   });
 

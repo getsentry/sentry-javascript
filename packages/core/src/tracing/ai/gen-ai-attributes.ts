@@ -127,6 +127,14 @@ export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'sentry.sdk_meta.
 export const GEN_AI_INPUT_MESSAGES_ATTRIBUTE = 'gen_ai.input.messages';
 
 /**
+ * The model's response messages including text and tool calls
+ * Only recorded when recordOutputs is enabled
+ * Format: stringified array of message objects with role, parts, and finish_reason
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-output-messages
+ */
+export const GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE = 'gen_ai.output.messages';
+
+/**
  * The system instructions extracted from system messages
  * Only recorded when recordInputs is enabled
  * According to OpenTelemetry spec: https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-system-instructions
@@ -199,24 +207,9 @@ export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_to
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
 
 /**
- * The span operation name for generating text
+ * The span operation name for generating content
  */
-export const GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.generate_text';
-
-/**
- * The span operation name for streaming text
- */
-export const GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_text';
-
-/**
- * The span operation name for generating object
- */
-export const GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.generate_object';
-
-/**
- * The span operation name for streaming object
- */
-export const GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_object';
+export const GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE = 'gen_ai.generate_content';
 
 /**
  * The embeddings input
@@ -225,14 +218,19 @@ export const GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream
 export const GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE = 'gen_ai.embeddings.input';
 
 /**
+ * The span operation for embeddings
+ */
+export const GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE = 'gen_ai.embeddings';
+
+/**
  * The span operation name for embedding
  */
-export const GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed';
+export const GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embeddings';
 
 /**
  * The span operation name for embedding many
  */
-export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed_many';
+export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embeddings';
 
 /**
  * The span operation name for reranking
@@ -269,53 +267,8 @@ export const GEN_AI_TOOL_INPUT_ATTRIBUTE = 'gen_ai.tool.input';
  */
 export const GEN_AI_TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.output';
 
-// =============================================================================
-// OPENAI-SPECIFIC ATTRIBUTES
-// =============================================================================
-
 /**
- * The response ID from OpenAI
+ * The description of the tool being used
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-description
  */
-export const OPENAI_RESPONSE_ID_ATTRIBUTE = 'openai.response.id';
-
-/**
- * The response model from OpenAI
- */
-export const OPENAI_RESPONSE_MODEL_ATTRIBUTE = 'openai.response.model';
-
-/**
- * The response timestamp from OpenAI (ISO string)
- */
-export const OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'openai.response.timestamp';
-
-/**
- * The number of completion tokens used
- */
-export const OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'openai.usage.completion_tokens';
-
-/**
- * The number of prompt tokens used
- */
-export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens';
-
-// =============================================================================
-// OPENAI OPERATIONS
-// =============================================================================
-
-/**
- * OpenAI API operations following OpenTelemetry semantic conventions
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-export const OPENAI_OPERATIONS = {
-  CHAT: 'chat',
-  EMBEDDINGS: 'embeddings',
-} as const;
-
-// =============================================================================
-// ANTHROPIC AI OPERATIONS
-// =============================================================================
-
-/**
- * The response timestamp from Anthropic AI (ISO string)
- */
-export const ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'anthropic.response.timestamp';
+export const GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE = 'gen_ai.tool.description';

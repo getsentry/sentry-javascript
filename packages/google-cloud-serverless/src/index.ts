@@ -44,6 +44,7 @@ export {
   getSentryRelease,
   createGetModuleFromFilename,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -61,6 +62,8 @@ export {
   langChainIntegration,
   langGraphIntegration,
   modulesIntegration,
+  nodeRuntimeMetricsIntegration,
+  type NodeRuntimeMetricsOptions,
   contextLinesIntegration,
   nodeContextIntegration,
   localVariablesIntegration,

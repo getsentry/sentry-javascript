@@ -16,8 +16,13 @@ type StorageMethod = (typeof STORAGE_METHODS_TO_INSTRUMENT)[number];
  */
 export function instrumentDurableObjectStorage(storage: DurableObjectStorage): DurableObjectStorage {
   return new Proxy(storage, {
-    get(target, prop, receiver) {
-      const original = Reflect.get(target, prop, receiver);
+    get(target, prop, _receiver) {
+      // Use `target` as the receiver instead of the proxy (`_receiver`).
+      // Native workerd getters (e.g., `storage.sql`) validate `this` via
+      // internal slots. Passing the proxy as receiver breaks that check,
+      // causing "Illegal invocation: function called with incorrect `this`
+      // reference" errors.
+      const original = Reflect.get(target, prop, target);
 
       if (typeof original !== 'function') {
         return original;
