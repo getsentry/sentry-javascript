@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { ViewHierarchyData } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, envelopeParser, shouldSkipTracingTest } from '../../../utils/helpers';
+import { getMultipleSentryEnvelopeRequests, envelopeParser } from '../../../utils/helpers';
 
 sentryTest('Captures view hierarchy as attachment', async ({ getLocalTestUrl, page }) => {
   const bundle = process.env.PW_BUNDLE;
