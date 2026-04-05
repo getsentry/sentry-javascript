@@ -4,8 +4,9 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, envelopeParser, shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest('Captures view hierarchy as attachment', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    return;
+  const bundle = process.env.PW_BUNDLE;
+  if (bundle != null && !bundle.includes('esm') && !bundle.includes('cjs')) {
+    sentryTest.skip();
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
