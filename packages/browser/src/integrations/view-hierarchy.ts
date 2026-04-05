@@ -62,7 +62,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
         continue;
       }
 
-      const componentName = getComponentName(child) || undefined;
+      const componentName = getComponentName(child, 1) || undefined;
       const tagName = child.tagName.toLowerCase();
 
       if (skipHtmlTags.includes(tagName)) {
