@@ -1,9 +1,13 @@
 import { expect } from '@playwright/test';
 import type { ViewHierarchyData } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, envelopeParser } from '../../../utils/helpers';
+import { getMultipleSentryEnvelopeRequests, envelopeParser, shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest('Captures view hierarchy as attachment', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    return;
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [, events] = await Promise.all([
