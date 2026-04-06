@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'node-express',
+  proxyServerName: 'node-express-mcp-v2',
 });
