@@ -26,6 +26,7 @@ test('Should record transactions for MCP handlers using @modelcontextprotocol/sd
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client-v2');
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo-V2');
+    expect(initializeTransaction.contexts?.trace?.data?.['mcp.transport']).toMatch(/NodeStreamableHTTPServerTransport/);
   });
 
   await test.step('registerTool handler', async () => {
@@ -54,6 +55,8 @@ test('Should record transactions for MCP handlers using @modelcontextprotocol/sd
     expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
     expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
     expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo');
+    // Proves span was completed with results (span correlation worked end-to-end)
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.result.content_count']).toEqual(1);
   });
 
   await test.step('registerResource handler', async () => {
