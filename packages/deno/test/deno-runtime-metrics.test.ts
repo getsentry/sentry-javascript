@@ -119,7 +119,7 @@ Deno.test('attaches correct sentry.origin attribute', async () => {
   assertEquals(rss?.attributes?.['sentry.origin']?.value, 'auto.deno.runtime_metrics');
 });
 
-Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
+Deno.test('warns and enforces minimum collectionIntervalMs', () => {
   const warnings: string[] = [];
   const originalWarn = globalThis.console.warn;
   globalThis.console.warn = (msg: string) => warnings.push(msg);
@@ -135,7 +135,7 @@ Deno.test('warns and clamps collectionIntervalMs below 1000ms', () => {
   assertStringIncludes(warnings[0]!, '1000');
 });
 
-Deno.test('warns and clamps collectionIntervalMs when NaN', () => {
+Deno.test('warns and falls back to default when collectionIntervalMs is NaN', () => {
   const warnings: string[] = [];
   const originalWarn = globalThis.console.warn;
   globalThis.console.warn = (msg: string) => warnings.push(msg);
@@ -148,4 +148,5 @@ Deno.test('warns and clamps collectionIntervalMs when NaN', () => {
 
   assertEquals(warnings.length, 1);
   assertStringIncludes(warnings[0]!, 'collectionIntervalMs');
+  assertStringIncludes(warnings[0]!, 'invalid');
 });

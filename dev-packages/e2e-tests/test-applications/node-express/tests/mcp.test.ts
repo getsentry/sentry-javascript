@@ -161,6 +161,23 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     expect(promptTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('prompts/get');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
+
+  await test.step('error tool sets span status to internal_error', async () => {
+    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
+      return transactionEvent.transaction === 'tools/call always-error';
+    });
+
+    try {
+      await client.callTool({ name: 'always-error', arguments: {} });
+    } catch {
+      // Expected: MCP SDK throws when the tool returns a JSON-RPC error
+    }
+
+    const toolTransaction = await toolTransactionPromise;
+    expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(toolTransaction.contexts?.trace?.status).toEqual('internal_error');
+  });
 });
 
 /**

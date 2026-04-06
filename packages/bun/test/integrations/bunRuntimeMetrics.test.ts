@@ -212,4 +212,39 @@ describe('bunRuntimeMetricsIntegration', () => {
       expect(countSpy).not.toHaveBeenCalledWith('bun.runtime.process.uptime', expect.anything(), expect.anything());
     });
   });
+
+  describe('collectionIntervalMs minimum', () => {
+    it('enforces minimum of 1000ms and warns', () => {
+      const warnSpy = spyOn(globalThis.console, 'warn').mockImplementation(() => {});
+
+      const integration = bunRuntimeMetricsIntegration({ collectionIntervalMs: 100 });
+      integration.setup();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('1000'));
+
+      // Should fire at minimum 1000ms, not at 100ms
+      jest.advanceTimersByTime(100);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(900);
+      expect(gaugeSpy).toHaveBeenCalled();
+    });
+
+    it('falls back to default when NaN', () => {
+      const warnSpy = spyOn(globalThis.console, 'warn').mockImplementation(() => {});
+
+      const integration = bunRuntimeMetricsIntegration({ collectionIntervalMs: NaN });
+      integration.setup();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('collectionIntervalMs'));
+
+      // Should fire at the default 30000ms, not at 1000ms
+      jest.advanceTimersByTime(1000);
+      expect(gaugeSpy).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(29_000);
+      expect(gaugeSpy).toHaveBeenCalled();
+    });
+  });
 });

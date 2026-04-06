@@ -26,7 +26,7 @@ test('should create AI spans with correct attributes and error linking', async (
   // because of this, only spans that are manually opted-in at call time will be captured
   // this may be fixed by https://github.com/vercel/ai/pull/6716 in the future
   const aiPipelineSpans = spans.filter(span => span.op === 'gen_ai.invoke_agent');
-  const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_text');
+  const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_content');
   const toolCallSpans = spans.filter(span => span.op === 'gen_ai.execute_tool');
 
   expect(aiPipelineSpans.length).toBeGreaterThanOrEqual(1);
