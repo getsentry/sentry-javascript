@@ -11,6 +11,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.0.0",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",
     "@modelcontextprotocol/node": "2.0.0-alpha.2",
     "@sentry/node": "latest || *",
