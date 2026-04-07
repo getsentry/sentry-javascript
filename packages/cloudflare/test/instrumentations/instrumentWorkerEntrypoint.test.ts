@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
-import { isInstrumented } from '../../src/instrument';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getInstrumented } from '../../src/instrument';
 import {
   instrumentWorkerEntrypoint,
   type WorkerEntrypointConstructor,
@@ -122,8 +122,8 @@ describe('instrumentWorkerEntrypoint', () => {
     );
     const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
 
-    expect(isInstrumented(obj.ctx)).toBeFalsy();
-    expect(isInstrumented(obj.env)).toBeFalsy();
+    expect(getInstrumented(obj.ctx)).toBeFalsy();
+    expect(getInstrumented(obj.env)).toBeFalsy();
   });
 
   it('Overrides obj.ctx with instrumented context so user code using this.ctx.waitUntil works', async () => {
@@ -246,7 +246,7 @@ describe('instrumentWorkerEntrypoint', () => {
       const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
 
     it('does not instrument prototype methods when option is false', () => {
@@ -259,7 +259,7 @@ describe('instrumentWorkerEntrypoint', () => {
       const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
       const obj = Reflect.construct(instrumented, []);
 
-      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
 
     it('does not instrument prototype methods when option is true (instrumentWorkerEntrypoint does not support instrumentPrototypeMethods)', () => {
@@ -275,8 +275,8 @@ describe('instrumentWorkerEntrypoint', () => {
       const instrumented = instrumentWorkerEntrypoint(options, TestClass as unknown as WorkerEntrypointConstructor);
       const obj = Reflect.construct(instrumented, [createMockExecutionContext(), {}]);
 
-      expect(isInstrumented(obj.methodOne)).toBeFalsy();
-      expect(isInstrumented(obj.methodTwo)).toBeFalsy();
+      expect(getInstrumented(obj.methodOne)).toBeFalsy();
+      expect(getInstrumented(obj.methodTwo)).toBeFalsy();
       expect(obj.methodOne()).toBe('one');
       expect(obj.methodTwo()).toBe('two');
     });
