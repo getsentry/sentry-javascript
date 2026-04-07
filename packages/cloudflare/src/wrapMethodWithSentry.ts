@@ -30,17 +30,14 @@ type MethodWrapperOptions = {
   /**
    * If true, starts a fresh trace instead of inheriting from a parent trace.
    * Useful for scheduled/independent invocations like alarms.
-   * @default false
-   */
-  startNewTrace?: boolean;
-  /**
-   * If true, stores the current span context and links to the previous invocation's span.
-   * Requires `startNewTrace` to be true. Uses Durable Object storage to persist the link.
-   * The link is set asynchronously via `span.addLinks()` in a `waitUntil` to avoid blocking.
+   *
+   * If true, it also stores the current span context and links to the previous invocation's span.
+   * Uses Durable Object storage to persist the link. The link is set asynchronously via `span.addLinks()`
+   * in a `waitUntil` to avoid blocking.
    *
    * @default false
    */
-  linkPreviousTrace?: boolean;
+  startNewTrace?: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,7 +65,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     original =>
       new Proxy(original, {
         apply(target, thisArg, args: Parameters<T>) {
-          const { startNewTrace, linkPreviousTrace } = wrapperOptions;
+          const { startNewTrace } = wrapperOptions;
 
           // For startNewTrace, always use withIsolationScope to ensure a fresh scope
           // Otherwise, use existing client's scope or isolation scope
@@ -102,7 +99,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const methodName = wrapperOptions.spanName || 'unknown';
 
             const teardown = async (): Promise<void> => {
-              if (linkPreviousTrace && storage) {
+              if (startNewTrace && storage) {
                 await storeSpanContext(storage, methodName);
               }
               await flushAndDispose(clientToDispose);
@@ -149,7 +146,6 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               }
             }
 
-            const spanName = wrapperOptions.spanName || methodName;
             const attributes = wrapperOptions.spanOp
               ? {
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
@@ -158,10 +154,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               : {};
 
             const executeSpan = (): unknown => {
-              return startSpan({ name: spanName, attributes }, span => {
+              return startSpan({ name: methodName, attributes }, span => {
                 // When linking to previous trace, fetch the stored context and add links asynchronously
                 // This avoids blocking the response while fetching from storage
-                if (linkPreviousTrace && storage) {
+                if (startNewTrace && storage) {
                   waitUntil?.(
                     getStoredSpanContext(storage, methodName).then(storedContext => {
                       if (storedContext) {

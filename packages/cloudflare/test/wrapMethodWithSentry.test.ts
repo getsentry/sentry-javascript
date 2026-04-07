@@ -147,7 +147,7 @@ describe('wrapMethodWithSentry', () => {
       expect(handler).toHaveBeenCalled();
     });
 
-    it('does not change sync/async behavior when linkPreviousTrace is true (links are set via waitUntil)', () => {
+    it('does not change sync/async behavior when startNewTrace is true (links are set via waitUntil)', () => {
       const handler = vi.fn().mockReturnValue('sync-result');
       const mockStorage = {
         get: vi.fn().mockResolvedValue(undefined),
@@ -164,13 +164,12 @@ describe('wrapMethodWithSentry', () => {
         context,
         spanName: 'alarm',
         startNewTrace: true,
-        linkPreviousTrace: true,
       };
 
       const wrapped = wrapMethodWithSentry(options, handler);
       const result = wrapped();
 
-      // linkPreviousTrace does not make the result async - links are set via waitUntil
+      // startNewTrace does not make the result async - links are set via waitUntil
       expect(result).not.toBeInstanceOf(Promise);
       expect(result).toBe('sync-result');
 
@@ -345,8 +344,8 @@ describe('wrapMethodWithSentry', () => {
     });
   });
 
-  describe('linkPreviousTrace option', () => {
-    it('retrieves stored span context when linkPreviousTrace is true', async () => {
+  describe('span linking', () => {
+    it('retrieves stored span context when startNewTrace is true', async () => {
       const storedContext = {
         traceId: 'previous-trace-id-1234567890123456',
         spanId: 'previous-span-id',
@@ -365,7 +364,6 @@ describe('wrapMethodWithSentry', () => {
         options: {},
         context,
         startNewTrace: true,
-        linkPreviousTrace: true,
         spanName: 'alarm',
       };
 
@@ -399,7 +397,6 @@ describe('wrapMethodWithSentry', () => {
         options: {},
         context,
         startNewTrace: true,
-        linkPreviousTrace: true,
         spanName: 'alarm',
       };
 
@@ -423,7 +420,7 @@ describe('wrapMethodWithSentry', () => {
       );
     });
 
-    it('stores span context after execution when linkPreviousTrace is true', async () => {
+    it('stores span context after execution when startNewTrace is true', async () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue({
         spanContext: vi.fn().mockReturnValue({
           traceId: 'current-trace-id-123456789012345678',
@@ -445,7 +442,6 @@ describe('wrapMethodWithSentry', () => {
         options: {},
         context,
         startNewTrace: true,
-        linkPreviousTrace: true,
         spanName: 'alarm',
       };
 
@@ -456,7 +452,7 @@ describe('wrapMethodWithSentry', () => {
       expect(mockStorage.put).toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
     });
 
-    it('does not store span context when linkPreviousTrace is false', async () => {
+    it('does not store span context when startNewTrace is false', async () => {
       vi.mocked(sentryCore.getActiveSpan).mockReturnValue({
         spanContext: vi.fn().mockReturnValue({
           traceId: 'current-trace-id-123456789012345678',
@@ -479,8 +475,7 @@ describe('wrapMethodWithSentry', () => {
       const options = {
         options: {},
         context,
-        startNewTrace: true,
-        linkPreviousTrace: false,
+        startNewTrace: false,
         spanName: 'alarm',
       };
 
@@ -490,7 +485,7 @@ describe('wrapMethodWithSentry', () => {
       // Wait for all waitUntil promises to resolve
       await Promise.all(waitUntilPromises);
 
-      // Should NOT store span context when linkPreviousTrace is false
+      // Should NOT store span context when startNewTrace is false
       expect(mockStorage.put).not.toHaveBeenCalledWith('__SENTRY_TRACE_LINK__alarm', expect.any(Object));
     });
   });
