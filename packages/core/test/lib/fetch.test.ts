@@ -92,6 +92,21 @@ describe('getTracingHeadersForFetchRequest', () => {
           ['baggage', DEFAULT_BAGGAGE],
         ]);
       });
+
+      it('treats array with non-tuple items as headers object', () => {
+        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+          headers: ['not-a-tuple', 'also-not-a-tuple'],
+        });
+
+        // Falls through to the else branch (headers object handling)
+        // since the array items are not [string, string] tuples
+        expect(returnedHeaders).toEqual({
+          '0': 'not-a-tuple',
+          '1': 'also-not-a-tuple',
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+          baggage: DEFAULT_BAGGAGE,
+        });
+      });
     });
 
     describe('and 3rd party baggage header is set', () => {

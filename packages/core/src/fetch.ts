@@ -240,7 +240,7 @@ export function getTracingHeadersForFetchRequest(
     }
 
     return newHeaders;
-  } else if (Array.isArray(originalHeaders)) {
+  } else if (isHeadersInitTupleArray(originalHeaders)) {
     const newHeaders = [...originalHeaders];
 
     if (!originalHeaders.find(header => header[0] === 'sentry-trace')) {
@@ -261,7 +261,7 @@ export function getTracingHeadersForFetchRequest(
       newHeaders.push(['baggage', baggage]);
     }
 
-    return newHeaders as PolymorphicRequestHeaders;
+    return newHeaders;
   } else {
     const existingSentryTraceHeader = 'sentry-trace' in originalHeaders ? originalHeaders['sentry-trace'] : undefined;
     const existingTraceparentHeader = 'traceparent' in originalHeaders ? originalHeaders.traceparent : undefined;
@@ -325,6 +325,18 @@ function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
 
 function isHeaders(headers: unknown): headers is Headers {
   return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
+}
+
+/** `HeadersInit` array form: each entry is a [name, value] pair of strings. */
+function isHeadersInitTupleArray(headers: unknown): headers is [string, string][] {
+  if (!Array.isArray(headers)) {
+    return false;
+  }
+
+  return headers.every(
+    (item): item is [string, string] =>
+      Array.isArray(item) && item.length === 2 && typeof item[0] === 'string' && typeof item[1] === 'string',
+  );
 }
 
 function getSpanStartOptions(
