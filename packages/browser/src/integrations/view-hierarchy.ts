@@ -15,6 +15,13 @@ interface OnElementArgs {
    * The component name of the element.
    */
   componentName?: string;
+
+  /**
+   * The current depth of the element in the view hierarchy. The root element will have a depth of 0.
+   *
+   * This allows you to limit the traversal depth for large DOM trees.
+   */
+  depth?: number;
 }
 
 interface Options {
@@ -49,7 +56,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
   const skipHtmlTags = ['script'];
 
   /** Walk an element */
-  function walk(element: HTMLElement, windows: ViewHierarchyWindow[]): void {
+  function walk(element: HTMLElement, windows: ViewHierarchyWindow[], depth = 0): void {
     if (!element) {
       return;
     }
@@ -69,7 +76,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
         continue;
       }
 
-      const result = options.onElement?.({ element: child, componentName, tagName }) || {};
+      const result = options.onElement?.({ element: child, componentName, tagName, depth }) || {};
 
       if (result === 'skip') {
         continue;
@@ -77,7 +84,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
 
       // Skip this element but include its children
       if (result === 'children') {
-        walk(child, windows);
+        walk(child, windows, depth + 1);
         continue;
       }
 
@@ -99,7 +106,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
       window.children = children;
 
       // Recursively walk the children
-      walk(child, window.children);
+      walk(child, window.children, depth + 1);
 
       windows.push(window);
     }
