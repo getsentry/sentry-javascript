@@ -31,6 +31,9 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
+  "sentryTest": {
+    "optional": true
+  },
   "volta": {
     "extends": "../../package.json",
     "node": "22.20.0"
