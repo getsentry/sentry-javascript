@@ -1,6 +1,8 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import { TraceFlags } from '@opentelemetry/api';
-import { getActiveSpan } from '@sentry/core';
+import type { SpanLink } from '@sentry/core';
+import { debug, getActiveSpan } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 
 /** Storage key prefix for the span context that links consecutive method invocations */
 const SENTRY_TRACE_LINK_KEY_PREFIX = '__SENTRY_TRACE_LINK__';
@@ -10,16 +12,6 @@ export interface StoredSpanContext {
   traceId: string;
   spanId: string;
   sampled: boolean;
-}
-
-/** Span link structure for connecting traces */
-export interface SpanLink {
-  context: {
-    traceId: string;
-    spanId: string;
-    traceFlags: number;
-  };
-  attributes?: Record<string, string>;
 }
 
 /**
@@ -46,8 +38,9 @@ export async function storeSpanContext(originalStorage: DurableObjectStorage, me
       };
       await originalStorage.put(getTraceLinkKey(methodName), storedContext);
     }
-  } catch {
+  } catch (error) {
     // Silently ignore storage errors to prevent internal failures from affecting user code
+    DEBUG_BUILD && debug.log(`[CloudflareClient] Error storing span context for method ${methodName}`, error);
   }
 }
 
