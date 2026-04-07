@@ -74,6 +74,7 @@ function skipDirective(userCode: string, startIndex: number): number | undefined
   }
 
   let index = startIndex + 1;
+  let foundClosingQuote = false;
 
   while (index < userCode.length) {
     const char = userCode[index];
@@ -85,6 +86,7 @@ function skipDirective(userCode: string, startIndex: number): number | undefined
 
     if (char === quote) {
       index += 1;
+      foundClosingQuote = true;
       break;
     }
 
@@ -95,7 +97,7 @@ function skipDirective(userCode: string, startIndex: number): number | undefined
     index += 1;
   }
 
-  if (index > userCode.length || userCode[index - 1] !== quote) {
+  if (!foundClosingQuote) {
     return undefined;
   }
 

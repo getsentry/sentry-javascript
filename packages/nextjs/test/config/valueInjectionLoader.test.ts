@@ -221,6 +221,12 @@ describe('findInjectionIndexAfterDirectives', () => {
     expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
   });
 
+  it('does not treat an escaped quote at EOF as a closed directive', () => {
+    const userCode = '"use client\\"';
+
+    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
+  });
+
   it('treats a block comment without a line break as part of the same statement', () => {
     const userCode = '"use client" /* comment */ + suffix;';
 
