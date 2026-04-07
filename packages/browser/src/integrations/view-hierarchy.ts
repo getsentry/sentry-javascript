@@ -115,7 +115,8 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
   return {
     name: 'ViewHierarchy',
     processEvent: (event, hint) => {
-      if (options.shouldAttach?.(event, hint) === false) {
+      // only capture for error events
+      if (event.type !== undefined || options.shouldAttach?.(event, hint) === false) {
         return event;
       }
 
