@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(cloudflare): Support basic WorkerEntrypoint ([#19884](https://github.com/getsentry/sentry-javascript/pull/19884))**
+
+  `withSentry` now supports instrumenting classes extending Cloudflare's `WorkerEntrypoint`. This instruments `fetch`, `scheduled`, `queue`, and `tail` handlers.
+
+  ```ts
+  import * as Sentry from '@sentry/cloudflare';
+  import { WorkerEntrypoint } from 'cloudflare:workers';
+
+  class MyWorker extends WorkerEntrypoint {
+    async fetch(request: Request): Promise<Response> {
+      return new Response('Hello World!');
+    }
+  }
+
+  export default Sentry.withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }), MyWorker);
+  ```
+
 - **ref(core): Unify .do\* span ops to `gen_ai.generate_content` ([#20074](https://github.com/getsentry/sentry-javascript/pull/20074))**
 
   All Vercel AI `do*` spans (`ai.generateText.doGenerate`, `ai.streamText.doStream`, `ai.generateObject.doGenerate`, `ai.streamObject.doStream`) now use a single unified span op `gen_ai.generate_content` instead of separate ops like `gen_ai.generate_text`, `gen_ai.stream_text`, `gen_ai.generate_object`, and `gen_ai.stream_object`.
