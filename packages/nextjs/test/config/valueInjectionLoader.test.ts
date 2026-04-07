@@ -209,6 +209,12 @@ describe('findInjectionIndexAfterDirectives', () => {
     expect(userCode.slice(findInjectionIndexAfterDirectives(userCode))).toBe("\nimport React from 'react';");
   });
 
+  it('returns the end of the input when the last directive reaches EOF', () => {
+    const userCode = '"use strict";\n"use client";';
+
+    expect(findInjectionIndexAfterDirectives(userCode)).toBe(userCode.length);
+  });
+
   it('does not skip a string literal that is not a directive', () => {
     const userCode = '"use client" + suffix;';
 

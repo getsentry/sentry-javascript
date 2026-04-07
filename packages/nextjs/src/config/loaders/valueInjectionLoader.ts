@@ -10,7 +10,7 @@ export function findInjectionIndexAfterDirectives(userCode: string): number {
   let index = 0;
   let lastDirectiveEndIndex: number | undefined;
 
-  while (true) {
+  while (index < userCode.length) {
     const statementStartIndex = skipWhitespaceAndComments(userCode, index);
 
     const nextDirectiveIndex = skipDirective(userCode, statementStartIndex);
@@ -26,6 +26,8 @@ export function findInjectionIndexAfterDirectives(userCode: string): number {
     index = statementEndIndex;
     lastDirectiveEndIndex = statementEndIndex;
   }
+
+  return lastDirectiveEndIndex ?? index;
 }
 
 function skipWhitespaceAndComments(userCode: string, startIndex: number): number {
