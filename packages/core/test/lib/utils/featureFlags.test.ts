@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { debug } from '../../../src/utils/debug-logger';
 import {
+  _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_insertToFlagBuffer,
   type FeatureFlag,
 } from '../../../src/utils/featureFlags';
+
+import * as currentScopeModule from '../../../src/currentScopes';
+import type { Event } from '../../../src/types-hoist/event';
 
 describe('flags', () => {
   describe('insertFlagToScope()', () => {
@@ -107,6 +111,61 @@ describe('flags', () => {
         { flag: 'feat1', result: true },
         { flag: 'feat2', result: true },
       ]);
+    });
+  });
+
+  describe('copyFlagsFromScopeToEvent()', () => {
+    it.each(['transaction', 'replay_event', 'feedback', 'profile'])('does not add flags context to %s events', type => {
+      vi.spyOn(currentScopeModule, 'getCurrentScope').mockReturnValue({
+        // @ts-expect-error - only returning partial scope data
+        getScopeData: () => ({
+          contexts: {
+            flags: { values: [{ flag: 'feat1', result: true }] },
+          },
+        }),
+      });
+
+      const event = {
+        type: type,
+        spans: [],
+      } as Event;
+
+      const result = _INTERNAL_copyFlagsFromScopeToEvent(event);
+
+      expect(result).toEqual(event);
+      expect(getCurrentScope).not.toHaveBeenCalled();
+    });
+
+    it('adds add flags context to error events', () => {
+      vi.spyOn(currentScopeModule, 'getCurrentScope').mockReturnValue({
+        // @ts-expect-error - only returning partial scope data
+        getScopeData: () => ({
+          contexts: {
+            flags: {
+              values: [
+                { flag: 'feat1', result: true },
+                { flag: 'feat2', result: false },
+              ],
+            },
+          },
+        }),
+      });
+
+      const event: Event = {
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'error message',
+            },
+          ],
+        },
+      };
+
+      const result = _INTERNAL_copyFlagsFromScopeToEvent(event);
+
+      expect(result).toEqual(event);
+      expect(getCurrentScope).toHaveBeenCalled();
     });
   });
 });
