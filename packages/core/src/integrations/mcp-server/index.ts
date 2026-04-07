@@ -14,7 +14,8 @@ const wrappedMcpServerInstances = new WeakSet();
 /**
  * Wraps a MCP Server instance from the `@modelcontextprotocol/sdk` package with Sentry instrumentation.
  *
- * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package.
+ * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package (legacy `tool`/`resource`/`prompt` API)
+ * and versions that expose the newer `registerTool`/`registerResource`/`registerPrompt` API (introduced in 1.x, sole API in 2.x).
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
  *
  * @example

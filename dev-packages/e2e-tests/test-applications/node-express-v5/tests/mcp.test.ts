@@ -60,6 +60,38 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
+  await test.step('registerTool handler', async () => {
+    const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
+      return transactionEvent.transaction === 'POST /messages';
+    });
+    const toolTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
+      return transactionEvent.transaction === 'tools/call echo-register';
+    });
+
+    const toolResult = await client.callTool({
+      name: 'echo-register',
+      arguments: {
+        message: 'foobar',
+      },
+    });
+
+    expect(toolResult).toMatchObject({
+      content: [
+        {
+          text: 'registerTool echo: foobar',
+          type: 'text',
+        },
+      ],
+    });
+
+    const postTransaction = await postTransactionPromise;
+    expect(postTransaction).toBeDefined();
+
+    const toolTransaction = await toolTransactionPromise;
+    expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo-register');
+  });
+
   await test.step('resource handler', async () => {
     const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';

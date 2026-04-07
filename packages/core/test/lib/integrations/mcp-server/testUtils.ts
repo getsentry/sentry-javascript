@@ -1,13 +1,28 @@
 import { vi } from 'vitest';
 
 /**
- * Create a mock MCP server instance for testing
+ * Create a mock MCP server instance for testing (legacy API: tool/resource/prompt)
  */
 export function createMockMcpServer() {
   return {
     resource: vi.fn(),
     tool: vi.fn(),
     prompt: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    server: {
+      setRequestHandler: vi.fn(),
+    },
+  };
+}
+
+/**
+ * Create a mock MCP server instance using the new register* API (SDK >=1.x / 2.x)
+ */
+export function createMockMcpServerWithRegisterApi() {
+  return {
+    registerResource: vi.fn(),
+    registerTool: vi.fn(),
+    registerPrompt: vi.fn(),
     connect: vi.fn().mockResolvedValue(undefined),
     server: {
       setRequestHandler: vi.fn(),
