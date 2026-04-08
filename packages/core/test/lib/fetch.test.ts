@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerDataFetch } from '../../src';
-import { getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
+import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
 import type { Span } from '../../src/types-hoist/span';
 
 const { DEFAULT_SENTRY_TRACE, DEFAULT_BAGGAGE, hasSpansEnabled } = vi.hoisted(() => ({
@@ -31,7 +31,7 @@ vi.mock('../../src/utils/hasSpansEnabled', () => {
   };
 });
 
-describe('getTracingHeadersForFetchRequest', () => {
+describe('_INTERNAL_getTracingHeadersForFetchRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hasSpansEnabled.mockReturnValue(false);
@@ -47,7 +47,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           options: { headers: {} },
         },
       ])('attaches sentry headers (options: $options)', ({ options }) => {
-        expect(getTracingHeadersForFetchRequest('/api/test', options)).toEqual({
+        expect(_INTERNAL_getTracingHeadersForFetchRequest('/api/test', options)).toEqual({
           'sentry-trace': DEFAULT_SENTRY_TRACE,
           baggage: DEFAULT_BAGGAGE,
         });
@@ -56,17 +56,17 @@ describe('getTracingHeadersForFetchRequest', () => {
 
     describe('and request headers are set in options', () => {
       it('attaches sentry headers to headers object', () => {
-        expect(getTracingHeadersForFetchRequest('/api/test', { headers: { 'custom-header': 'custom-value' } })).toEqual(
-          {
-            'sentry-trace': DEFAULT_SENTRY_TRACE,
-            baggage: DEFAULT_BAGGAGE,
-            'custom-header': 'custom-value',
-          },
-        );
+        expect(
+          _INTERNAL_getTracingHeadersForFetchRequest('/api/test', { headers: { 'custom-header': 'custom-value' } }),
+        ).toEqual({
+          'sentry-trace': DEFAULT_SENTRY_TRACE,
+          baggage: DEFAULT_BAGGAGE,
+          'custom-header': 'custom-value',
+        });
       });
 
       it('attaches sentry headers to a Headers instance', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: new Headers({ 'custom-header': 'custom-value' }),
         });
 
@@ -81,7 +81,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('attaches sentry headers to headers array', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: [['custom-header', 'custom-value']],
         });
 
@@ -94,7 +94,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('treats array with non-tuple items as headers object', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: ['not-a-tuple', 'also-not-a-tuple'],
         });
 
@@ -111,7 +111,7 @@ describe('getTracingHeadersForFetchRequest', () => {
 
     describe('and 3rd party baggage header is set', () => {
       it('adds additional sentry baggage values to Headers instance', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: new Headers({
             baggage: 'custom-baggage=1,someVal=bar',
           }),
@@ -127,7 +127,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('adds additional sentry baggage values to headers array', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: [['baggage', 'custom-baggage=1,someVal=bar']],
         });
 
@@ -141,7 +141,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('adds additional sentry baggage values to headers object', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: {
             baggage: 'custom-baggage=1,someVal=bar',
           },
@@ -156,7 +156,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('adds additional sentry baggage values to headers object with arrays', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: {
             baggage: ['custom-baggage=1,someVal=bar', 'other-vendor-key=value'],
           },
@@ -173,7 +173,7 @@ describe('getTracingHeadersForFetchRequest', () => {
 
     describe('and Sentry values are already set', () => {
       it('does not override them (Headers instance)', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: new Headers({
             'sentry-trace': CUSTOM_SENTRY_TRACE,
             baggage: CUSTOM_BAGGAGE,
@@ -192,7 +192,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('does not override them (headers array)', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: [
             ['sentry-trace', CUSTOM_SENTRY_TRACE],
             ['baggage', CUSTOM_BAGGAGE],
@@ -210,7 +210,7 @@ describe('getTracingHeadersForFetchRequest', () => {
       });
 
       it('does not override them (headers object)', () => {
-        const returnedHeaders = getTracingHeadersForFetchRequest('/api/test', {
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest('/api/test', {
           headers: {
             'sentry-trace': CUSTOM_SENTRY_TRACE,
             baggage: CUSTOM_BAGGAGE,
@@ -233,7 +233,7 @@ describe('getTracingHeadersForFetchRequest', () => {
     describe('and no request headers are set', () => {
       it('attaches sentry headers', () => {
         const request = new Request('http://locahlost:3000/api/test');
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -251,7 +251,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           headers: new Headers({ 'custom-header': 'custom-value' }),
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -268,7 +268,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           headers: { 'custom-header': 'custom-value' },
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -285,7 +285,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           headers: [['custom-header', 'custom-value']],
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -307,7 +307,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           }),
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -324,7 +324,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           headers: [['baggage', 'custom-baggage=1,someVal=bar']],
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -342,7 +342,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           },
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -360,7 +360,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           },
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -382,7 +382,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           }),
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -403,7 +403,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           ],
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 
@@ -424,7 +424,7 @@ describe('getTracingHeadersForFetchRequest', () => {
           },
         });
 
-        const returnedHeaders = getTracingHeadersForFetchRequest(request, {});
+        const returnedHeaders = _INTERNAL_getTracingHeadersForFetchRequest(request, {});
 
         expect(returnedHeaders).toBeInstanceOf(Headers);
 

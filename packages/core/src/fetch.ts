@@ -125,7 +125,7 @@ export function instrumentFetchRequest(
     // Examples: users re-using same options object for multiple fetch calls, frozen objects
     const options: { [key: string]: unknown } = { ...(handlerData.args[1] || {}) };
 
-    const headers = getTracingHeadersForFetchRequest(
+    const headers = _INTERNAL_getTracingHeadersForFetchRequest(
       request,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
@@ -191,7 +191,7 @@ export function _callOnRequestSpanEnd(
  * 3. Previous baggage already has Sentry entries → leave as-is (may be user-defined)
  */
 // eslint-disable-next-line complexity -- yup it's this complicated :(
-export function getTracingHeadersForFetchRequest(
+export function _INTERNAL_getTracingHeadersForFetchRequest(
   request: string | URL | Request,
   fetchOptionsObj: {
     headers?:

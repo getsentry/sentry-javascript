@@ -142,7 +142,7 @@ export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
 // eslint-disable-next-line deprecation/deprecation
-export { instrumentFetchRequest, getTracingHeadersForFetchRequest } from './fetch';
+export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
