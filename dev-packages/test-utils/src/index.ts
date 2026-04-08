@@ -8,10 +8,10 @@ export {
   waitForSession,
   waitForPlainRequest,
   waitForMetric,
-  waitForSpanV2,
-  waitForSpansV2,
-  waitForSpanV2Envelope,
-  getSpanV2Op,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+  waitForStreamedSpanEnvelope,
+  getSpanOp,
 } from './event-proxy-server';
 
 export { getPlaywrightConfig } from './playwright-config';

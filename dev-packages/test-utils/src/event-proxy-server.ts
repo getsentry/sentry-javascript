@@ -6,8 +6,8 @@ import type {
   SerializedMetric,
   SerializedMetricContainer,
   SerializedSession,
-  SpanV2Envelope,
-  SpanV2JSON,
+  SerializedStreamedSpan,
+  StreamedSpanEnvelope,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
 import * as fs from 'fs';
@@ -432,11 +432,11 @@ export function waitForMetric(
 /**
  * Check if an envelope item is a Span V2 container item.
  */
-function isSpanV2EnvelopeItem(
+function isStreamedSpanEnvelopeItem(
   envelopeItem: EnvelopeItem,
 ): envelopeItem is [
   { type: 'span'; content_type: 'application/vnd.sentry.items.span.v2+json'; item_count: number },
-  { items: SpanV2JSON[] },
+  { items: SerializedStreamedSpan[] },
 ] {
   const [header] = envelopeItem;
   return (
@@ -466,10 +466,10 @@ function isSpanV2EnvelopeItem(
  * });
  * ```
  */
-export function waitForSpanV2Envelope(
+export function waitForStreamedSpanEnvelope(
   proxyServerName: string,
-  callback?: (spanEnvelope: SpanV2Envelope) => Promise<boolean> | boolean,
-): Promise<SpanV2Envelope> {
+  callback?: (spanEnvelope: StreamedSpanEnvelope) => Promise<boolean> | boolean,
+): Promise<StreamedSpanEnvelope> {
   const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForRequest(
@@ -479,12 +479,12 @@ export function waitForSpanV2Envelope(
         const envelopeItems = envelope[1];
 
         // Check if this is a Span V2 envelope by looking for a Span V2 item
-        const hasSpanV2Item = envelopeItems.some(item => isSpanV2EnvelopeItem(item));
+        const hasSpanV2Item = envelopeItems.some(item => isStreamedSpanEnvelopeItem(item));
         if (!hasSpanV2Item) {
           return false;
         }
 
-        const spanV2Envelope = envelope as SpanV2Envelope;
+        const spanV2Envelope = envelope as StreamedSpanEnvelope;
 
         if (callback) {
           return callback(spanV2Envelope);
@@ -494,7 +494,7 @@ export function waitForSpanV2Envelope(
       },
       timestamp,
     )
-      .then(eventData => resolve(eventData.envelope as SpanV2Envelope))
+      .then(eventData => resolve(eventData.envelope as StreamedSpanEnvelope))
       .catch(reject);
   });
 }
@@ -520,10 +520,10 @@ export function waitForSpanV2Envelope(
  * });
  * ```
  */
-export function waitForSpanV2(
+export function waitForStreamedSpan(
   proxyServerName: string,
-  callback: (span: SpanV2JSON) => Promise<boolean> | boolean,
-): Promise<SpanV2JSON> {
+  callback: (span: SerializedStreamedSpan) => Promise<boolean> | boolean,
+): Promise<SerializedStreamedSpan> {
   const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForRequest(
@@ -533,8 +533,8 @@ export function waitForSpanV2(
         const envelopeItems = envelope[1];
 
         for (const envelopeItem of envelopeItems) {
-          if (!isSpanV2EnvelopeItem(envelopeItem)) {
-            return false
+          if (!isStreamedSpanEnvelopeItem(envelopeItem)) {
+            return false;
           }
 
           const spans = envelopeItem[1].items;
@@ -574,10 +574,10 @@ export function waitForSpanV2(
  * expect(httpSpans.length).toBe(2);
  * ```
  */
-export function waitForSpansV2(
+export function waitForStreamedSpans(
   proxyServerName: string,
-  callback?: (span: SpanV2JSON) => Promise<boolean> | boolean,
-): Promise<SpanV2JSON[]> {
+  callback?: (span: SerializedStreamedSpan) => Promise<boolean> | boolean,
+): Promise<SerializedStreamedSpan[]> {
   const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForRequest(
@@ -587,10 +587,10 @@ export function waitForSpansV2(
         const envelopeItems = envelope[1];
 
         for (const envelopeItem of envelopeItems) {
-          if (isSpanV2EnvelopeItem(envelopeItem)) {
+          if (isStreamedSpanEnvelopeItem(envelopeItem)) {
             const spans = envelopeItem[1].items;
             if (callback) {
-              const matchingSpans: SpanV2JSON[] = [];
+              const matchingSpans: SerializedStreamedSpan[] = [];
               for (const span of spans) {
                 if (await callback(span)) {
                   matchingSpans.push(span);
@@ -623,7 +623,7 @@ export function waitForSpansV2(
  * });
  * ```
  */
-export function getSpanV2Op(span: SpanV2JSON): string | undefined {
+export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
   return span.attributes?.['sentry.op']?.type === 'string' ? span.attributes['sentry.op'].value : undefined;
 }
 
