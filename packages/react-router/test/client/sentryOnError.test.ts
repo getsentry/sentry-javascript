@@ -19,7 +19,9 @@ describe('sentryOnError', () => {
       errorInfo,
     });
 
-    expect(captureReactExceptionSpy).toHaveBeenCalledWith(error, errorInfo);
+    expect(captureReactExceptionSpy).toHaveBeenCalledWith(error, errorInfo, {
+      mechanism: { handled: false, type: 'auto.function.react_router.on_error' },
+    });
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
 
@@ -28,7 +30,9 @@ describe('sentryOnError', () => {
 
     sentryOnError(error, {});
 
-    expect(captureExceptionSpy).toHaveBeenCalledWith(error);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.function.react_router.on_error' },
+    });
     expect(captureReactExceptionSpy).not.toHaveBeenCalled();
   });
 });

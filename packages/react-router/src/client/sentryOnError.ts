@@ -26,9 +26,11 @@ export function sentryOnError(
     errorInfo?: React.ErrorInfo;
   },
 ): void {
+  const mechanism = { handled: false, type: 'auto.function.react_router.on_error' };
+
   if (errorInfo) {
-    captureReactException(error, errorInfo);
+    captureReactException(error, errorInfo, { mechanism });
   } else {
-    captureException(error);
+    captureException(error, { mechanism });
   }
 }
