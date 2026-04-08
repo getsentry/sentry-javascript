@@ -31,3 +31,5 @@ export {
   isNavigateHookInvoked,
   type CreateSentryClientInstrumentationOptions,
 } from './createClientInstrumentation';
+
+export { sentryOnError } from './sentryOnError';
