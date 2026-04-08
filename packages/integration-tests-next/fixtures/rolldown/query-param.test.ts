@@ -16,7 +16,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     		var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
     		e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
     		var n = new e.Error().stack;
-    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "3f33b953-1cf1-4c05-850d-3f5b805fa101", e._sentryDebugIdIdentifier = "sentry-dbid-3f33b953-1cf1-4c05-850d-3f5b805fa101");
+    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
     	} catch (e) {}
     })();
     function add(a, b) {
@@ -30,7 +30,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     		var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
     		e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
     		var n = new e.Error().stack;
-    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "bf11f932-fe2b-4b54-97e0-45abde2a0d81", e._sentryDebugIdIdentifier = "sentry-dbid-bf11f932-fe2b-4b54-97e0-45abde2a0d81");
+    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
     	} catch (e) {}
     })();
     import { t as add } from "./common.js?seP58q4g";
@@ -43,7 +43,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
     		var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
     		e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
     		var n = new e.Error().stack;
-    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "5aaa817b-a0e4-4c91-a4f4-aa8f3c26e66e", e._sentryDebugIdIdentifier = "sentry-dbid-5aaa817b-a0e4-4c91-a4f4-aa8f3c26e66e");
+    		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
     	} catch (e) {}
     })();
     import { t as add } from "./common.js?seP58q4g";

@@ -10,7 +10,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
         var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
         var n = new e.Error().stack;
-        n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "9ba2eb17-5b67-4bb4-bfcf-dca3e3b993b4", e._sentryDebugIdIdentifier = "sentry-dbid-9ba2eb17-5b67-4bb4-bfcf-dca3e3b993b4");
+        n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
       } catch (e2) {
       }
     })();

@@ -71,6 +71,11 @@ export function readAllFiles(
       } else {
         // Normalize Windows line endings for cross-platform snapshots
         contents = contents.replace(/\r\n/g, "\n");
+        // Normalize debug IDs to make snapshots deterministic across environments
+        contents = contents.replace(
+          /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+          "00000000-0000-0000-0000-000000000000"
+        );
       }
       files[entry] = contents;
     }

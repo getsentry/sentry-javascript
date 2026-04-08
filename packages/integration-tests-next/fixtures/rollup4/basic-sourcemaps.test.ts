@@ -6,7 +6,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
   expect(readOutputFiles()).toMatchInlineSnapshot(`
     {
       "basic.js": "// eslint-disable-next-line no-console
-    !function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};e.SENTRY_RELEASE={id:"CURRENT_SHA"};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="252e0338-8927-4f52-bd57-188131defd0f",e._sentryDebugIdIdentifier="sentry-dbid-252e0338-8927-4f52-bd57-188131defd0f");}catch(e){}}();console.log("hello world");
+    !function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};e.SENTRY_RELEASE={id:"CURRENT_SHA"};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="00000000-0000-0000-0000-000000000000",e._sentryDebugIdIdentifier="sentry-dbid-00000000-0000-0000-0000-000000000000");}catch(e){}}();console.log("hello world");
     //# sourceMappingURL=basic.js.map
     ",
       "basic.js.map": "{"version":3,"file":"basic.js","sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;scACA,OAAO,CAAC,GAAG,CAAC,CAAA,KAAA,CAAA,KAAA,CAAa,CAAC"}",
