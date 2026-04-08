@@ -55,6 +55,11 @@
   "peerDependencies": {
     "rollup": ">=3.2.0"
   },
+  "peerDependenciesMeta": {
+    "rollup": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@sentry-internal/eslint-config": "5.1.1",
     "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.1.1",
