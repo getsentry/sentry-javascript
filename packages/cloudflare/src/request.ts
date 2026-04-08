@@ -1,8 +1,7 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { CfProperties, ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import {
   captureException,
   continueTrace,
-  flush,
   getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
@@ -14,14 +13,15 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
+import { flushAndDispose } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
 
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
-  request: Request<unknown, IncomingRequestCfProperties<unknown>>;
-  context: ExecutionContext;
+  request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>;
+  context: ExecutionContext | undefined;
   /**
    * If true, errors will be captured, rethrown and sent to Sentry.
    * Otherwise, errors are rethrown but not captured.
@@ -44,11 +44,7 @@ export function wrapRequestHandler(
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
     const { options, request, captureErrors = true } = wrapperOptions;
-
-    // In certain situations, the passed context can become undefined.
-    // For example, for Astro while prerendering pages at build time.
-    // see: https://github.com/getsentry/sentry-javascript/issues/13217
-    const context = wrapperOptions.context as ExecutionContext | undefined;
+    const context = wrapperOptions.context;
 
     const waitUntil = context?.waitUntil?.bind?.(context);
 
@@ -82,7 +78,10 @@ export function wrapRequestHandler(
     addRequest(isolationScope, request);
     if (request.cf) {
       addCultureContext(isolationScope, request.cf);
-      attributes['network.protocol.name'] = request.cf.httpProtocol;
+
+      if (typeof request.cf.httpProtocol === 'string') {
+        attributes['network.protocol.name'] = request.cf.httpProtocol;
+      }
     }
 
     // Do not capture spans for OPTIONS and HEAD requests
@@ -95,7 +94,7 @@ export function wrapRequestHandler(
         }
         throw e;
       } finally {
-        waitUntil?.(flush(2000));
+        waitUntil?.(flushAndDispose(client));
       }
     }
 
@@ -122,7 +121,7 @@ export function wrapRequestHandler(
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flush(2000));
+            waitUntil?.(flushAndDispose(client));
             throw e;
           }
 
@@ -149,7 +148,7 @@ export function wrapRequestHandler(
                 } finally {
                   reader.releaseLock();
                   span.end();
-                  waitUntil?.(flush(2000));
+                  waitUntil?.(flushAndDispose(client));
                 }
               })();
 
@@ -162,17 +161,25 @@ export function wrapRequestHandler(
                 statusText: res.statusText,
                 headers: res.headers,
               });
-            } catch (e) {
+            } catch (_e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
-              waitUntil?.(flush(2000));
+              waitUntil?.(flushAndDispose(client));
               return res;
             }
           }
 
           // Non-streaming response - end span immediately and return original
           span.end();
-          waitUntil?.(flush(2000));
+
+          // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
+          // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
+          // will still be called and may need the client to capture errors.
+          if (res.status === 101) {
+            waitUntil?.(client?.flush(2000));
+          } else {
+            waitUntil?.(flushAndDispose(client));
+          }
           return res;
         });
       },

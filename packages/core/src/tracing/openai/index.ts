@@ -1,43 +1,32 @@
-import { getClient } from '../../currentScopes';
+import { DEBUG_BUILD } from '../../debug-build';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import { debug } from '../../utils/debug-logger';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
-import { instrumentStream } from './streaming';
-import type {
-  ChatCompletionChunk,
-  InstrumentedMethod,
-  OpenAiOptions,
-  OpenAiResponse,
-  OpenAIStream,
-  ResponseStreamingEvent,
-} from './types';
+import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
-  addChatCompletionAttributes,
-  addConversationAttributes,
-  addEmbeddingsAttributes,
-  addResponsesApiAttributes,
   buildMethodPath,
-  extractRequestParameters,
-  getOperationName,
-  getSpanOperation,
-  isChatCompletionResponse,
-  isConversationResponse,
-  isEmbeddingsResponse,
-  isResponsesApiResponse,
-  shouldInstrument,
-} from './utils';
+  extractSystemInstructions,
+  getTruncatedJsonString,
+  resolveAIRecordingOptions,
+  wrapPromiseWithMethods,
+} from '../ai/utils';
+import { OPENAI_METHOD_REGISTRY } from './constants';
+import { instrumentStream } from './streaming';
+import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
  * Extract available tools from request parameters
@@ -50,16 +39,25 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
     : [];
 
   const availableTools = [...tools, ...webSearchOptions];
-  return availableTools.length > 0 ? JSON.stringify(availableTools) : undefined;
+  if (availableTools.length === 0) {
+    return undefined;
+  }
+
+  try {
+    return JSON.stringify(availableTools);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Failed to serialize OpenAI tools:', error);
+    return undefined;
+  }
 }
 
 /**
  * Extract request attributes from method arguments
  */
-function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
+function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
@@ -79,44 +77,55 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   return attributes;
 }
 
-/**
- * Add response attributes to spans
- * This supports Chat Completion, Responses API, Embeddings, and Conversations API responses
- */
-function addResponseAttributes(span: Span, result: unknown, recordOutputs?: boolean): void {
-  if (!result || typeof result !== 'object') return;
-
-  const response = result as OpenAiResponse;
-
-  if (isChatCompletionResponse(response)) {
-    addChatCompletionAttributes(span, response, recordOutputs);
-    if (recordOutputs && response.choices?.length) {
-      const responseTexts = response.choices.map(choice => choice.message?.content || '');
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts) });
-    }
-  } else if (isResponsesApiResponse(response)) {
-    addResponsesApiAttributes(span, response, recordOutputs);
-    if (recordOutputs && response.output_text) {
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
-    }
-  } else if (isEmbeddingsResponse(response)) {
-    addEmbeddingsAttributes(span, response);
-  } else if (isConversationResponse(response)) {
-    addConversationAttributes(span, response);
-  }
-}
-
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
-  // typically an array, but can be other types. skip if an empty array.
-  const length = Array.isArray(src) ? src.length : undefined;
-  if (src && length !== 0) {
-    const truncatedInput = getTruncatedJsonString(src);
-    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
-    if (length) {
-      span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, length);
+function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // Store embeddings input on a separate attribute and do not truncate it
+  if (operationName === 'embeddings' && 'input' in params) {
+    const input = params.input;
+
+    // No input provided
+    if (input == null) {
+      return;
     }
+
+    // Empty input string
+    if (typeof input === 'string' && input.length === 0) {
+      return;
+    }
+
+    // Empty array input
+    if (Array.isArray(input) && input.length === 0) {
+      return;
+    }
+
+    // Store strings as-is, arrays/objects as JSON
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
+    return;
+  }
+
+  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
+
+  if (!src) {
+    return;
+  }
+
+  if (Array.isArray(src) && src.length === 0) {
+    return;
+  }
+
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
+
+  if (systemInstructions) {
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+  }
+
+  const truncatedInput = getTruncatedJsonString(filteredMessages);
+  span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
+
+  if (Array.isArray(filteredMessages)) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
+  } else {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
   }
 }
 
@@ -127,89 +136,92 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
  */
 function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
-  methodPath: InstrumentedMethod,
+  methodPath: string,
+  instrumentedMethod: InstrumentedMethodEntry,
   context: unknown,
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
-  return async function instrumentedMethod(...args: T): Promise<R> {
-    const requestAttributes = extractRequestAttributes(args, methodPath);
+  return function instrumentedCall(...args: T): Promise<R> {
+    const operationName = instrumentedMethod.operation || 'unknown';
+    const requestAttributes = extractRequestAttributes(args, operationName);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
-    const operationName = getOperationName(methodPath);
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
+    const spanConfig = {
+      name: `${operationName} ${model}`,
+      op: `gen_ai.${operationName}`,
+      attributes: requestAttributes as Record<string, SpanAttributeValue>,
+    };
+
     if (isStreamRequested) {
-      // For streaming responses, use manual span management to properly handle the async generator lifecycle
-      return startSpanManual(
-        {
-          name: `${operationName} ${model} stream-response`,
-          op: getSpanOperation(methodPath),
-          attributes: requestAttributes as Record<string, SpanAttributeValue>,
-        },
-        async (span: Span) => {
+      let originalResult!: Promise<R>;
+
+      const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
+        originalResult = originalMethod.apply(context, args);
+
+        if (options.recordInputs && params) {
+          addRequestAttributes(span, params, operationName);
+        }
+
+        // Return async processing
+        return (async () => {
           try {
-            if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
-            }
-
-            const result = await originalMethod.apply(context, args);
-
+            const result = await originalResult;
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
               options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
-            // For streaming requests that fail before stream creation, we still want to record
-            // them as streaming requests but end the span gracefully
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             captureException(error, {
               mechanism: {
                 handled: false,
                 type: 'auto.ai.openai.stream',
-                data: {
-                  function: methodPath,
-                },
+                data: { function: methodPath },
               },
             });
             span.end();
             throw error;
           }
-        },
-      );
-    } else {
-      //  Non-streaming responses
-      return startSpan(
-        {
-          name: `${operationName} ${model}`,
-          op: getSpanOperation(methodPath),
-          attributes: requestAttributes as Record<string, SpanAttributeValue>,
-        },
-        async (span: Span) => {
-          try {
-            if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
-            }
+        })();
+      });
 
-            const result = await originalMethod.apply(context, args);
-            addResponseAttributes(span, result, options.recordOutputs);
-            return result;
-          } catch (error) {
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.openai',
-                data: {
-                  function: methodPath,
-                },
-              },
-            });
-            throw error;
-          }
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
+    }
+
+    // Non-streaming
+    let originalResult!: Promise<R>;
+
+    const instrumentedPromise = startSpan(spanConfig, (span: Span) => {
+      // Call synchronously to capture the promise
+      originalResult = originalMethod.apply(context, args);
+
+      if (options.recordInputs && params) {
+        addRequestAttributes(span, params, operationName);
+      }
+
+      return originalResult.then(
+        result => {
+          addResponseAttributes(span, result, options.recordOutputs);
+          return result;
+        },
+        error => {
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.ai.openai',
+              data: { function: methodPath },
+            },
+          });
+          throw error;
         },
       );
-    }
+    });
+
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
   };
 }
 
@@ -222,8 +234,15 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      if (typeof value === 'function' && shouldInstrument(methodPath)) {
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
+      const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
+      if (typeof value === 'function' && instrumentedMethod) {
+        return instrumentMethod(
+          value as (...args: unknown[]) => Promise<unknown>,
+          methodPath,
+          instrumentedMethod,
+          obj,
+          options,
+        );
       }
 
       if (typeof value === 'function') {
@@ -246,13 +265,5 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
-
-  const _options = {
-    recordInputs: sendDefaultPii,
-    recordOutputs: sendDefaultPii,
-    ...options,
-  };
-
-  return createDeepProxy(client, '', _options);
+  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

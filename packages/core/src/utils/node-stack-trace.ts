@@ -22,7 +22,7 @@
 //  THE SOFTWARE.
 
 import type { StackLineParser, StackLineParserFn } from '../types-hoist/stacktrace';
-import { UNKNOWN_FUNCTION } from './stacktrace';
+import { normalizeStackTracePath, UNKNOWN_FUNCTION } from './stacktrace';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;
 
@@ -55,7 +55,6 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
   const DATA_URI_MATCH = /at (?:async )?(.+?) \(data:(.*?),/;
 
-  // eslint-disable-next-line complexity
   return (line: string) => {
     const dataUriMatch = line.match(DATA_URI_MATCH);
     if (dataUriMatch) {
@@ -109,21 +108,17 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
         functionName = typeName ? `${typeName}.${methodName}` : methodName;
       }
 
-      let filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
+      let filename = normalizeStackTracePath(lineMatch[2]);
       const isNative = lineMatch[5] === 'native';
-
-      // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
-      if (filename?.match(/\/[A-Z]:/)) {
-        filename = filename.slice(1);
-      }
 
       if (!filename && lineMatch[5] && !isNative) {
         filename = lineMatch[5];
       }
 
+      const maybeDecodedFilename = filename ? _safeDecodeURI(filename) : undefined;
       return {
-        filename: filename ? decodeURI(filename) : undefined,
-        module: getModule ? getModule(filename) : undefined,
+        filename: maybeDecodedFilename ?? filename,
+        module: maybeDecodedFilename && getModule?.(maybeDecodedFilename),
         function: functionName,
         lineno: _parseIntOrUndefined(lineMatch[3]),
         colno: _parseIntOrUndefined(lineMatch[4]),
@@ -153,4 +148,12 @@ export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
 
 function _parseIntOrUndefined(input: string | undefined): number | undefined {
   return parseInt(input || '', 10) || undefined;
+}
+
+function _safeDecodeURI(filename: string): string | undefined {
+  try {
+    return decodeURI(filename);
+  } catch {
+    return undefined;
+  }
 }

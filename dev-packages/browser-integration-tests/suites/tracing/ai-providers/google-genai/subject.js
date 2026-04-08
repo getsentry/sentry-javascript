@@ -30,3 +30,11 @@ const response = await chat.sendMessage({
 });
 
 console.log('Received response', response);
+
+// Test embedContent
+const embedResponse = await client.models.embedContent({
+  model: 'text-embedding-004',
+  contents: 'Hello world',
+});
+
+console.log('Received embed response', embedResponse);

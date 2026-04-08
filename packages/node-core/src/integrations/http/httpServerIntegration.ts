@@ -6,9 +6,11 @@ import type { Socket } from 'node:net';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { AggregationCounts, Client, Integration, IntegrationFn, Scope } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
   debug,
   generateSpanId,
+  generateTraceId,
   getClient,
   getCurrentScope,
   getIsolationScope,
@@ -18,7 +20,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
-import { MAX_BODY_BYTE_LENGTH } from './constants';
+import { patchRequestToCaptureBody } from '../../utils/captureRequestBody';
 
 type ServerEmit = typeof Server.prototype.emit;
 
@@ -128,6 +130,10 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
 /**
  * This integration handles request isolation, trace continuation and other core Sentry functionality around incoming http requests
  * handled via the node `http` module.
+ *
+ * This version uses OpenTelemetry for context propagation and span management.
+ *
+ * @see {@link ../../light/integrations/httpServerIntegration.ts} for the lightweight version without OpenTelemetry
  */
 export const httpServerIntegration = _httpServerIntegration as (
   options?: HttpServerIntegrationOptions,
@@ -189,7 +195,7 @@ function instrumentServer(
 
       const url = request.url || '/';
       if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize);
+        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
       }
 
       // Update the isolation scope, isolate this request
@@ -214,10 +220,19 @@ function instrumentServer(
       }
 
       return withIsolationScope(isolationScope, () => {
-        // Set a new propagationSpanId for this request
-        // We rely on the fact that `withIsolationScope()` will implicitly also fork the current scope
-        // This way we can save an "unnecessary" `withScope()` invocation
-        getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+        const newPropagationContext = {
+          traceId: generateTraceId(),
+          sampleRand: _INTERNAL_safeMathRandom(),
+          propagationSpanId: generateSpanId(),
+        };
+        // - Set a fresh propagation context so each request gets a unique traceId.
+        //   When there are incoming trace headers, propagation.extract() below sets a remote
+        //   span on the OTel context which takes precedence in getTraceContextForScope().
+        // - We can write directly to the current scope here because it is forked implicitly via
+        //   `context.with` in `withIsolationScope` (See `SentryContextManager`).
+        // - explicitly making a deep copy to avoid mutation of original PC on the other scope
+        getCurrentScope().setPropagationContext({ ...newPropagationContext });
+        isolationScope.setPropagationContext({ ...newPropagationContext });
 
         const ctx = propagation
           .extract(context.active(), normalizedRequest.headers)
@@ -314,123 +329,4 @@ export function recordRequestSession(
       }
     }
   });
-}
-
-/**
- * This method patches the request object to capture the body.
- * Instead of actually consuming the streamed body ourselves, which has potential side effects,
- * we monkey patch `req.on('data')` to intercept the body chunks.
- * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
- */
-function patchRequestToCaptureBody(
-  req: IncomingMessage,
-  isolationScope: Scope,
-  maxIncomingRequestBodySize: 'small' | 'medium' | 'always',
-): void {
-  let bodyByteLength = 0;
-  const chunks: Buffer[] = [];
-
-  DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Patching request.on');
-
-  /**
-   * We need to keep track of the original callbacks, in order to be able to remove listeners again.
-   * Since `off` depends on having the exact same function reference passed in, we need to be able to map
-   * original listeners to our wrapped ones.
-   */
-  const callbackMap = new WeakMap();
-
-  const maxBodySize =
-    maxIncomingRequestBodySize === 'small'
-      ? 1_000
-      : maxIncomingRequestBodySize === 'medium'
-        ? 10_000
-        : MAX_BODY_BYTE_LENGTH;
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.on = new Proxy(req.on, {
-      apply: (target, thisArg, args: Parameters<typeof req.on>) => {
-        const [event, listener, ...restArgs] = args;
-
-        if (event === 'data') {
-          DEBUG_BUILD &&
-            debug.log(INTEGRATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
-
-          const callback = new Proxy(listener, {
-            apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              try {
-                const chunk = args[0] as Buffer | string;
-                const bufferifiedChunk = Buffer.from(chunk);
-
-                if (bodyByteLength < maxBodySize) {
-                  chunks.push(bufferifiedChunk);
-                  bodyByteLength += bufferifiedChunk.byteLength;
-                } else if (DEBUG_BUILD) {
-                  debug.log(
-                    INTEGRATION_NAME,
-                    `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
-                  );
-                }
-              } catch (err) {
-                DEBUG_BUILD && debug.error(INTEGRATION_NAME, 'Encountered error while storing body chunk.');
-              }
-
-              return Reflect.apply(target, thisArg, args);
-            },
-          });
-
-          callbackMap.set(listener, callback);
-
-          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
-        }
-
-        return Reflect.apply(target, thisArg, args);
-      },
-    });
-
-    // Ensure we also remove callbacks correctly
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.off = new Proxy(req.off, {
-      apply: (target, thisArg, args: Parameters<typeof req.off>) => {
-        const [, listener] = args;
-
-        const callback = callbackMap.get(listener);
-        if (callback) {
-          callbackMap.delete(listener);
-
-          const modifiedArgs = args.slice();
-          modifiedArgs[1] = callback;
-          return Reflect.apply(target, thisArg, modifiedArgs);
-        }
-
-        return Reflect.apply(target, thisArg, args);
-      },
-    });
-
-    req.on('end', () => {
-      try {
-        const body = Buffer.concat(chunks).toString('utf-8');
-        if (body) {
-          // Using Buffer.byteLength here, because the body may contain characters that are not 1 byte long
-          const bodyByteLength = Buffer.byteLength(body, 'utf-8');
-          const truncatedBody =
-            bodyByteLength > maxBodySize
-              ? `${Buffer.from(body)
-                  .subarray(0, maxBodySize - 3)
-                  .toString('utf-8')}...`
-              : body;
-
-          isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: truncatedBody } });
-        }
-      } catch (error) {
-        if (DEBUG_BUILD) {
-          debug.error(INTEGRATION_NAME, 'Error building captured request body', error);
-        }
-      }
-    });
-  } catch (error) {
-    if (DEBUG_BUILD) {
-      debug.error(INTEGRATION_NAME, 'Error patching request to capture body', error);
-    }
-  }
 }

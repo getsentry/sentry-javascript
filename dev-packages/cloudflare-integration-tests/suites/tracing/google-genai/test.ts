@@ -1,4 +1,16 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -15,55 +27,52 @@ it('traces Google GenAI chat creation and message sending', async () => {
       expect(transactionEvent.transaction).toBe('GET /');
       expect(transactionEvent.spans).toEqual(
         expect.arrayContaining([
-          // First span - chats.create
+          // chat.sendMessage
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-pro',
-              'gen_ai.request.temperature': 0.8,
-              'gen_ai.request.top_p': 0.9,
-              'gen_ai.request.max_tokens': 150,
-            }),
-            description: 'chat gemini-1.5-pro create',
-            op: 'gen_ai.chat',
-            origin: 'auto.ai.google_genai',
-          }),
-          // Second span - chat.sendMessage
-          expect.objectContaining({
-            data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-pro',
-              'gen_ai.usage.input_tokens': 8,
-              'gen_ai.usage.output_tokens': 12,
-              'gen_ai.usage.total_tokens': 20,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
             description: 'chat gemini-1.5-pro',
             op: 'gen_ai.chat',
             origin: 'auto.ai.google_genai',
           }),
-          // Third span - models.generateContent
+          // models.generateContent
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'models',
-              'sentry.op': 'gen_ai.models',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-flash',
-              'gen_ai.request.temperature': 0.7,
-              'gen_ai.request.top_p': 0.9,
-              'gen_ai.request.max_tokens': 100,
-              'gen_ai.usage.input_tokens': 8,
-              'gen_ai.usage.output_tokens': 12,
-              'gen_ai.usage.total_tokens': 20,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
+              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
-            description: 'models gemini-1.5-flash',
-            op: 'gen_ai.models',
+            description: 'generate_content gemini-1.5-flash',
+            op: 'gen_ai.generate_content',
+            origin: 'auto.ai.google_genai',
+          }),
+          // models.embedContent
+          expect.objectContaining({
+            data: expect.objectContaining({
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
+            }),
+            description: 'embeddings text-embedding-004',
+            op: 'gen_ai.embeddings',
             origin: 'auto.ai.google_genai',
           }),
         ]),

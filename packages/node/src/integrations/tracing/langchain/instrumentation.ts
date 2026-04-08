@@ -10,8 +10,8 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   createLangChainCallbackHandler,
-  getClient,
   GOOGLE_GENAI_INTEGRATION_NAME,
+  instrumentLangChainEmbeddings,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
 } from '@sentry/core';
@@ -166,7 +166,7 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
   }
 
   /**
-   * Core patch logic - patches chat model methods to inject Sentry callbacks
+   * Core patch logic - patches chat model and embedding methods
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
@@ -178,23 +178,18 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       GOOGLE_GENAI_INTEGRATION_NAME,
     ]);
 
-    const client = getClient();
-    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-
     const config = this.getConfig();
 
-    const recordInputs = config?.recordInputs ?? defaultPii;
-    const recordOutputs = config?.recordOutputs ?? defaultPii;
-
-    // Create a shared handler instance
-    const sentryHandler = createLangChainCallbackHandler({
-      recordInputs,
-      recordOutputs,
-    });
+    // Create a shared handler instance for chat model callbacks
+    const sentryHandler = createLangChainCallbackHandler(config);
 
     // Patch Runnable methods to inject callbacks at request time
     // This directly manipulates options.callbacks that LangChain uses
     this._patchRunnableMethods(exports, sentryHandler);
+
+    // Patch embedding methods to create spans directly
+    // Embeddings don't use the callback system, so we wrap the methods themselves
+    this._patchEmbeddingsMethods(exports, config);
 
     return exports;
   }
@@ -228,6 +223,12 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
     // Patch directly on chatModelClass.prototype
     const targetProto = chatModelClass.prototype as Record<string, unknown>;
 
+    // Skip if already patched (both file-level and module-level hooks resolve to the same prototype)
+    if (targetProto.__sentry_patched__) {
+      return;
+    }
+    targetProto.__sentry_patched__ = true;
+
     // Patch the methods (invoke, stream, batch)
     // All chat model instances will inherit these patched methods
     const methodsToPatch = ['invoke', 'stream', 'batch'] as const;
@@ -241,6 +242,34 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
           methodName,
         );
       }
+    }
+  }
+
+  /**
+   * Patches embedding class methods (embedQuery, embedDocuments) to create Sentry spans.
+   *
+   * Unlike chat models which use LangChain's callback system, the Embeddings base class
+   * has no callback support. We wrap the methods directly on the prototype.
+   *
+   * Instruments any exported class whose prototype has both embedQuery and embedDocuments as functions.
+   */
+  private _patchEmbeddingsMethods(exports: PatchedLangChainExports, options: LangChainOptions): void {
+    const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
+
+    for (const exp of Object.values(exportsToPatch)) {
+      if (typeof exp !== 'function' || !exp.prototype) {
+        continue;
+      }
+      const proto = exp.prototype as Record<string, unknown>;
+      if (typeof proto.embedQuery !== 'function' || typeof proto.embedDocuments !== 'function') {
+        continue;
+      }
+      if (proto.__sentry_patched__) {
+        continue;
+      }
+      proto.__sentry_patched__ = true;
+
+      instrumentLangChainEmbeddings(proto, options);
     }
   }
 }

@@ -48,7 +48,11 @@ describe('createSentryHandleRequest', () => {
       manifestPath: '/path/to/manifest',
     },
     routeModules: {},
-    future: { unstable_subResourceIntegrity: false, v8_middleware: false },
+    future: {
+      unstable_subResourceIntegrity: false,
+      v8_middleware: false,
+      unstable_trailingSlashAwareDataRequests: false,
+    },
     isSpaMode: false,
     staticHandlerContext: {
       matches: [

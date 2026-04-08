@@ -13,6 +13,13 @@ interface NodeFetchOptions {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture spans or breadcrumbs for outgoing fetch requests to URLs where the given callback returns `true`.
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    */

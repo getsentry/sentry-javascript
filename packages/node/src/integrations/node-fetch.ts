@@ -1,14 +1,25 @@
 import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+  stripDataUrlContent,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import { generateInstrumentOnce, SentryNodeFetchInstrumentation } from '@sentry/node-core';
 import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
-interface NodeFetchOptions extends Pick<UndiciInstrumentationConfig, 'requestHook' | 'responseHook'> {
+interface NodeFetchOptions extends Pick<
+  UndiciInstrumentationConfig,
+  'requestHook' | 'responseHook' | 'headersToSpanAttributes'
+> {
   /**
    * Whether breadcrumbs should be recorded for requests.
    * Defaults to true
@@ -25,6 +36,17 @@ interface NodeFetchOptions extends Pick<UndiciInstrumentationConfig, 'requestHoo
   spans?: boolean;
 
   /**
+   * Whether to inject trace propagation headers (sentry-trace, baggage, traceparent) into outgoing fetch requests.
+   *
+   * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
+   * (if `breadcrumbs` is enabled). This is useful when `skipOpenTelemetrySetup: true` is configured and you want
+   * to avoid duplicate trace headers being injected by both Sentry and OpenTelemetry's UndiciInstrumentation.
+   *
+   * @default `true`
+   */
+  tracePropagation?: boolean;
+
+  /**
    * Do not capture spans or breadcrumbs for outgoing fetch requests to URLs where the given callback returns `true`.
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    */
@@ -35,7 +57,7 @@ const instrumentOtelNodeFetch = generateInstrumentOnce(
   INTEGRATION_NAME,
   UndiciInstrumentation,
   (options: NodeFetchOptions) => {
-    return getConfigWithDefaults(options);
+    return _getConfigWithDefaults(options);
   },
 );
 
@@ -77,7 +99,7 @@ function getAbsoluteUrl(origin: string, path: string = '/'): string {
   }
 
   if (!url.endsWith('/') && !path.startsWith('/')) {
-    return `${url}/${path.slice(1)}`;
+    return `${url}/${path}`;
   }
 
   return `${url}${path}`;
@@ -91,7 +113,8 @@ function _shouldInstrumentSpans(options: NodeFetchOptions, clientOptions: Partia
     : !clientOptions.skipOpenTelemetrySetup && hasSpansEnabled(clientOptions);
 }
 
-function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {
+/** Exported only for tests. */
+export function _getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciInstrumentationConfig {
   const instrumentationConfig = {
     requireParentforSpans: false,
     ignoreRequestHook: request => {
@@ -101,13 +124,27 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
 
       return !!shouldIgnore;
     },
-    startSpanHook: () => {
+    startSpanHook: request => {
+      const url = getAbsoluteUrl(request.origin, request.path);
+
+      // Sanitize data URLs to prevent long base64 strings in span attributes
+      if (url.startsWith('data:')) {
+        const sanitizedUrl = stripDataUrlContent(url);
+        return {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+          'http.url': sanitizedUrl,
+          [SEMANTIC_ATTRIBUTE_URL_FULL]: sanitizedUrl,
+          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: `${request.method || 'GET'} ${sanitizedUrl}`,
+        };
+      }
+
       return {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
       };
     },
     requestHook: options.requestHook,
     responseHook: options.responseHook,
+    headersToSpanAttributes: options.headersToSpanAttributes,
   } satisfies UndiciInstrumentationConfig;
 
   return instrumentationConfig;

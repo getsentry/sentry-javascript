@@ -5,6 +5,7 @@
 
   "compilerOptions": {
     // package-specific options
-    "module": "esnext"
+    "module": "esnext",
+    "moduleResolution": "bundler"
   }
 }

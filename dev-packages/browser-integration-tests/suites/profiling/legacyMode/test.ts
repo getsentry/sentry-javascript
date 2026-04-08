@@ -36,7 +36,9 @@ sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestU
   const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
 
   const req = await waitForTransactionRequestOnUrl(page, url);
+  const transactionEvent = properEnvelopeRequestParser<Event>(req, 0);
   const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
+
   expect(profileEvent).toBeDefined();
 
   const profile = profileEvent.profile;
@@ -54,4 +56,8 @@ sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestU
     minSampleDurationMs: 20,
     isChunkFormat: false,
   });
+
+  // contexts.trace.data must include thread.id to identify which thread is associated with the transaction
+  expect(transactionEvent?.contexts?.trace?.data?.['thread.id']).toBe('0');
+  expect(transactionEvent?.contexts?.trace?.data?.['thread.name']).toBe('main');
 });

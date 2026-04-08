@@ -4,6 +4,7 @@ export class MockGoogleGenAI implements GoogleGenAIClient {
   public models: {
     generateContent: (...args: unknown[]) => Promise<GoogleGenAIResponse>;
     generateContentStream: (...args: unknown[]) => Promise<AsyncGenerator<GoogleGenAIResponse, any, unknown>>;
+    embedContent: (...args: unknown[]) => Promise<{ embeddings: { values: number[] }[] }>;
   };
   public chats: {
     create: (...args: unknown[]) => GoogleGenAIChat;
@@ -47,6 +48,20 @@ export class MockGoogleGenAI implements GoogleGenAIClient {
             candidatesTokenCount: 12,
             totalTokenCount: 20,
           },
+        };
+      },
+      embedContent: async (...args: unknown[]) => {
+        const params = args[0] as { model: string; contents?: unknown };
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        if (params.model === 'error-model') {
+          const error = new Error('Model not found');
+          (error as unknown as { status: number }).status = 404;
+          throw error;
+        }
+
+        return {
+          embeddings: [{ values: [0.1, 0.2, 0.3, 0.4, 0.5] }],
         };
       },
       generateContentStream: async () => {

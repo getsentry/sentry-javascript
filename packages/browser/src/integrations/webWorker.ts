@@ -1,4 +1,4 @@
-import type { Integration, IntegrationFn } from '@sentry/core';
+import type { DebugImage, Integration, IntegrationFn } from '@sentry/core';
 import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
@@ -12,6 +12,7 @@ interface WebWorkerMessage {
   _sentryDebugIds?: Record<string, string>;
   _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
+  _sentryWasmImages?: Array<DebugImage>;
 }
 
 interface SerializedWorkerError {
@@ -133,6 +134,23 @@ function listenForSentryMessages(worker: Worker): void {
           // Module metadata of the main thread have precedence over the worker's in case of a collision.
           ...WINDOW._sentryModuleMetadata,
         };
+      }
+
+      // Handle WASM images from worker
+      if (event.data._sentryWasmImages) {
+        DEBUG_BUILD && debug.log('Sentry WASM images web worker message received', event.data);
+        const existingImages =
+          (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages || [];
+        const newImages = event.data._sentryWasmImages.filter(
+          (newImg: unknown) =>
+            isPlainObject(newImg) &&
+            typeof newImg.code_file === 'string' &&
+            !existingImages.some(existing => existing.code_file === newImg.code_file),
+        );
+        (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages = [
+          ...existingImages,
+          ...newImages,
+        ];
       }
 
       // Handle unhandled rejections forwarded from worker
@@ -270,12 +288,13 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
     return false;
   }
 
-  // Must have at least one of: debug IDs, module metadata, or worker error
+  // Must have at least one of: debug IDs, module metadata, worker error, or WASM images
   const hasDebugIds = '_sentryDebugIds' in eventData;
   const hasModuleMetadata = '_sentryModuleMetadata' in eventData;
   const hasWorkerError = '_sentryWorkerError' in eventData;
+  const hasWasmImages = '_sentryWasmImages' in eventData;
 
-  if (!hasDebugIds && !hasModuleMetadata && !hasWorkerError) {
+  if (!hasDebugIds && !hasModuleMetadata && !hasWorkerError && !hasWasmImages) {
     return false;
   }
 
@@ -294,6 +313,17 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
 
   // Validate worker error if present
   if (hasWorkerError && !isPlainObject(eventData._sentryWorkerError)) {
+    return false;
+  }
+
+  // Validate WASM images if present
+  if (
+    hasWasmImages &&
+    (!Array.isArray(eventData._sentryWasmImages) ||
+      !eventData._sentryWasmImages.every(
+        (img: unknown) => isPlainObject(img) && typeof (img as { code_file?: unknown }).code_file === 'string',
+      ))
+  ) {
     return false;
   }
 

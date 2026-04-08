@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { LogSeverityLevel } from '@sentry/core';
+import { debug } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import { captureLog } from '../logs/capture';
 
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
@@ -25,6 +27,21 @@ interface WinstonTransportOptions {
    * ```
    */
   levels?: Array<LogSeverityLevel>;
+
+  /**
+   * Use this option to map custom levels to Sentry log severity levels.
+   *
+   * @example
+   * ```ts
+   * const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+   *   customLevelMap: {
+   *     myCustomLevel: 'info',
+   *     customError: 'error',
+   *   },
+   * });
+   * ```
+   */
+  customLevelMap?: Record<string, LogSeverityLevel>;
 }
 
 /**
@@ -85,12 +102,20 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         attributes[MESSAGE_SYMBOL] = undefined;
         attributes[SPLAT_SYMBOL] = undefined;
 
-        const logSeverityLevel = WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[levelFromSymbol as string] ?? 'info';
+        const customLevel = sentryWinstonOptions?.customLevelMap?.[levelFromSymbol as string];
+        const winstonLogLevel = WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[levelFromSymbol as string];
+        const logSeverityLevel = customLevel ?? winstonLogLevel ?? 'info';
+
         if (this._levels.has(logSeverityLevel)) {
           captureLog(logSeverityLevel, message as string, {
             ...attributes,
             'sentry.origin': 'auto.log.winston',
           });
+        } else if (!customLevel && !winstonLogLevel) {
+          DEBUG_BUILD &&
+            debug.log(
+              `Winston log level ${levelFromSymbol} is not captured by Sentry. Please add ${levelFromSymbol} to the "customLevelMap" option of the Sentry Winston transport.`,
+            );
         }
       } catch {
         // do nothing

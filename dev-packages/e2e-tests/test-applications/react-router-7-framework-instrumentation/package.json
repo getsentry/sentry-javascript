@@ -1,0 +1,61 @@
+{
+  "name": "react-router-7-framework-instrumentation",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@react-router/node": "latest",
+    "@react-router/serve": "latest",
+    "@sentry/react-router": "latest || *",
+    "isbot": "^5.1.17",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@react-router/dev": "latest",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "scripts": {
+    "build": "react-router build",
+    "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
+    "start": "NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "proxy": "node start-event-proxy.mjs",
+    "typecheck": "react-router typegen && tsc",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:ts": "pnpm typecheck",
+    "test:playwright": "playwright test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}

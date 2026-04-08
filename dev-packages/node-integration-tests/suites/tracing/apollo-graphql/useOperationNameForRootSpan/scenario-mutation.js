@@ -15,7 +15,7 @@ const tracer = client.tracer;
 setInterval(() => {}, 1000);
 
 async function run() {
-  const { gql } = require('apollo-server');
+  const gql = require('graphql-tag');
   const server = require('../apollo-server')();
 
   await tracer.startActiveSpan(

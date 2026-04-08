@@ -12,6 +12,9 @@ import {
  * This is not perfect but handles easy/common use cases.
  */
 export function setupOpenTelemetryTracer(): void {
+  // Clear any pre-existing OTel global registration (e.g. from Supabase Edge Runtime
+  // or Deno's built-in OTel) so Sentry's TracerProvider gets registered successfully.
+  trace.disable();
   trace.setGlobalTracerProvider(new SentryDenoTraceProvider());
 }
 
@@ -35,8 +38,8 @@ class SentryDenoTracer implements Tracer {
     const op = this._mapSpanKindToOp(options?.kind);
 
     return startInactiveSpan({
-      name,
       ...options,
+      name,
       attributes: {
         ...options?.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
@@ -69,8 +72,8 @@ class SentryDenoTracer implements Tracer {
     const op = this._mapSpanKindToOp(opts.kind);
 
     const spanOpts = {
-      name,
       ...opts,
+      name,
       attributes: {
         ...opts.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',

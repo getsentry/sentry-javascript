@@ -1,13 +1,28 @@
 import { vi } from 'vitest';
 
 /**
- * Create a mock MCP server instance for testing
+ * Create a mock MCP server instance for testing (legacy API: tool/resource/prompt)
  */
 export function createMockMcpServer() {
   return {
     resource: vi.fn(),
     tool: vi.fn(),
     prompt: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    server: {
+      setRequestHandler: vi.fn(),
+    },
+  };
+}
+
+/**
+ * Create a mock MCP server instance using the new register* API (SDK >=1.x / 2.x)
+ */
+export function createMockMcpServerWithRegisterApi() {
+  return {
+    registerResource: vi.fn(),
+    registerTool: vi.fn(),
+    registerPrompt: vi.fn(),
     connect: vi.fn().mockResolvedValue(undefined),
     server: {
       setRequestHandler: vi.fn(),
@@ -60,4 +75,76 @@ export function createMockSseTransport() {
   }
 
   return new SSEServerTransport();
+}
+
+/**
+ * Create a mock wrapper transport that simulates the NodeStreamableHTTPServerTransport pattern.
+ *
+ * NodeStreamableHTTPServerTransport wraps WebStandardStreamableHTTPServerTransport and proxies
+ * onmessage, onclose, onerror via getters/setters, while send delegates to the inner transport.
+ * This causes the Sentry instrumentation to see different `this` values in onmessage vs send,
+ * which is the bug we're testing the fix for.
+ *
+ * @see https://github.com/getsentry/sentry-mcp/issues/767
+ */
+export function createMockWrapperTransport(sessionId = 'wrapper-session-123') {
+  // Inner transport (simulates WebStandardStreamableHTTPServerTransport)
+  // Note: onmessage/onclose/onerror must be initialized to functions so that
+  // wrapTransportOnMessage/etc. will wrap them (they check for truthiness)
+  const innerTransport = {
+    onmessage: vi.fn() as ((message: unknown, extra?: unknown) => void) | undefined,
+    onclose: vi.fn() as (() => void) | undefined,
+    onerror: vi.fn() as ((error: Error) => void) | undefined,
+    send: vi.fn().mockResolvedValue(undefined),
+    sessionId: sessionId as string | undefined,
+  };
+
+  // Outer wrapper transport (simulates NodeStreamableHTTPServerTransport)
+  // Uses Object.defineProperty to create getter/setter pairs that proxy to inner transport
+  const wrapperTransport = {
+    send: async (message: unknown, _options?: unknown) => innerTransport.send(message, _options),
+  } as {
+    sessionId: string | undefined;
+    onmessage: ((message: unknown, extra?: unknown) => void) | undefined;
+    onclose: (() => void) | undefined;
+    onerror: ((error: Error) => void) | undefined;
+    send: (message: unknown, options?: unknown) => Promise<void>;
+  };
+
+  // Define getter/setter pairs that proxy to inner transport
+  Object.defineProperty(wrapperTransport, 'sessionId', {
+    get: () => innerTransport.sessionId,
+    enumerable: true,
+  });
+
+  Object.defineProperty(wrapperTransport, 'onmessage', {
+    get: () => innerTransport.onmessage,
+    set: (handler: ((message: unknown, extra?: unknown) => void) | undefined) => {
+      innerTransport.onmessage = handler;
+    },
+    enumerable: true,
+  });
+
+  Object.defineProperty(wrapperTransport, 'onclose', {
+    get: () => innerTransport.onclose,
+    set: (handler: (() => void) | undefined) => {
+      innerTransport.onclose = handler;
+    },
+    enumerable: true,
+  });
+
+  Object.defineProperty(wrapperTransport, 'onerror', {
+    get: () => innerTransport.onerror,
+    set: (handler: ((error: Error) => void) | undefined) => {
+      innerTransport.onerror = handler;
+    },
+    enumerable: true,
+  });
+
+  return {
+    /** The outer wrapper transport (what users pass to server.connect()) */
+    wrapper: wrapperTransport,
+    /** The inner transport (what onmessage actually runs on due to getter/setter) */
+    inner: innerTransport,
+  };
 }

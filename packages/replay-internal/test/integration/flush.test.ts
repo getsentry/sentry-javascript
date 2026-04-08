@@ -489,6 +489,49 @@ describe('Integration | flush', () => {
     await replay.start();
   });
 
+  /**
+   * This tests that when a replay exceeds maxReplayDuration,
+   * the dropped event is recorded with the 'invalid' reason
+   * to distinguish it from actual send errors.
+   */
+  it('records dropped event with invalid reason when session exceeds maxReplayDuration', async () => {
+    const client = SentryUtils.getClient()!;
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    replay.getOptions().maxReplayDuration = 100_000;
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
+    await new Promise(process.nextTick);
+    vi.setSystemTime(BASE_TIMESTAMP);
+
+    replay.eventBuffer!.clear();
+
+    replay.eventBuffer!.hasCheckout = true;
+
+    replay['_addPerformanceEntries'] = () => {
+      return new Promise(resolve => setTimeout(resolve, 140_000));
+    };
+
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + 100 });
+    mockRecord._emitter(TEST_EVENT);
+
+    await vi.advanceTimersByTimeAsync(160_000);
+
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
+
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid', 'replay');
+
+    replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
+    recordDroppedEventSpy.mockRestore();
+
+    await replay.start();
+  });
+
   it('resets flush lock if runFlush rejects/throws', async () => {
     mockRunFlush.mockImplementation(
       () =>

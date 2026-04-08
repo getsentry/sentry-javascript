@@ -38,7 +38,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 type: 'Error',
                 value: 'oh no',
                 mechanism: {
-                  type: 'pino',
+                  type: 'auto.log.pino',
                   handled: true,
                 },
                 stacktrace: {
@@ -116,7 +116,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 type: 'Error',
                 value: 'oh no',
                 mechanism: {
-                  type: 'pino',
+                  type: 'auto.log.pino',
                   handled: true,
                 },
                 stacktrace: {
@@ -311,7 +311,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 type: 'Error',
                 value: 'Custom error key',
                 mechanism: {
-                  type: 'pino',
+                  type: 'auto.log.pino',
                   handled: true,
                 },
                 stacktrace: {

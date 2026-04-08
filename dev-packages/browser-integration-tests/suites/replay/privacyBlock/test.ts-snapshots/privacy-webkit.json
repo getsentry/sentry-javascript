@@ -155,10 +155,15 @@
                   "type": 2,
                   "tagName": "svg",
                   "attributes": {
-                    "style": "width:200px;height:200px",
+                    "style": "width: 200px; height: 200px",
                     "viewBox": "0 0 80 80"
                   },
                   "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 25
+                    },
                     {
                       "type": 2,
                       "tagName": "path",
@@ -167,7 +172,12 @@
                       },
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 25
+                      "id": 26
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 27
                     },
                     {
                       "type": 2,
@@ -175,7 +185,12 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 26
+                      "id": 28
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 29
                     },
                     {
                       "type": 2,
@@ -183,7 +198,12 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 27
+                      "id": 30
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n    ",
+                      "id": 31
                     }
                   ],
                   "isSVG": true,
@@ -192,7 +212,7 @@
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 28
+                  "id": 32
                 },
                 {
                   "type": 2,
@@ -202,22 +222,27 @@
                     "rr_height": "[0-50]px"
                   },
                   "childNodes": [],
-                  "id": 29
+                  "id": 33
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 30
+                  "id": 34
                 },
                 {
                   "type": 2,
                   "tagName": "svg",
                   "attributes": {
-                    "style": "width:200px;height:200px",
+                    "style": "width: 200px; height: 200px",
                     "viewBox": "0 0 80 80",
                     "data-sentry-unblock": ""
                   },
                   "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 36
+                    },
                     {
                       "type": 2,
                       "tagName": "path",
@@ -226,7 +251,12 @@
                       },
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 32
+                      "id": 37
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 38
                     },
                     {
                       "type": 2,
@@ -234,7 +264,12 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 33
+                      "id": 39
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n      ",
+                      "id": 40
                     },
                     {
                       "type": 2,
@@ -242,47 +277,52 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 34
+                      "id": 41
+                    },
+                    {
+                      "type": 3,
+                      "textContent": "\n    ",
+                      "id": 42
                     }
                   ],
                   "isSVG": true,
-                  "id": 31
+                  "id": 35
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 35
+                  "id": 43
                 },
                 {
                   "type": 2,
                   "tagName": "img",
                   "attributes": {
-                    "style": "width:100px;height:100px",
+                    "style": "width: 100px; height: 100px",
                     "src": "file:///none.png"
                   },
                   "childNodes": [],
-                  "id": 36
+                  "id": 44
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 37
+                  "id": 45
                 },
                 {
                   "type": 2,
                   "tagName": "img",
                   "attributes": {
                     "data-sentry-unblock": "",
-                    "style": "width:100px;height:100px",
+                    "style": "width: 100px; height: 100px",
                     "src": "file:///none.png"
                   },
                   "childNodes": [],
-                  "id": 38
+                  "id": 46
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 39
+                  "id": 47
                 },
                 {
                   "type": 2,
@@ -292,12 +332,12 @@
                     "rr_height": "[0-50]px"
                   },
                   "childNodes": [],
-                  "id": 40
+                  "id": 48
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 41
+                  "id": 49
                 },
                 {
                   "type": 2,
@@ -308,17 +348,17 @@
                     "rr_height": "[0-50]px"
                   },
                   "childNodes": [],
-                  "id": 42
+                  "id": 50
                 },
                 {
                   "type": 3,
                   "textContent": "\n  ",
-                  "id": 43
+                  "id": 51
                 },
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 44
+                  "id": 52
                 }
               ],
               "id": 8

@@ -1,7 +1,7 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, hasExternalPropagationContext } from '../currentScopes';
 import { isEnabled } from '../exports';
 import type { Scope } from '../scope';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
@@ -19,6 +19,10 @@ import { generateSentryTraceHeader, generateTraceparentHeader, TRACEPARENT_REGEX
  *
  * This function also applies some validation to the generated sentry-trace and baggage values to ensure that
  * only valid strings are returned.
+ *
+ * When an external propagation context is registered (e.g. via the OTLP integration) and there is no active
+ * Sentry span, this function returns an empty object to defer outgoing request propagation to the external
+ * propagator (e.g. an OpenTelemetry propagator).
  *
  * If (@param options.propagateTraceparent) is `true`, the function will also generate a `traceparent` value,
  * following the W3C traceparent header format.
@@ -42,6 +46,13 @@ export function getTraceData(
 
   const scope = options.scope || getCurrentScope();
   const span = options.span || getActiveSpan();
+
+  // When no active span and external propagation context is registered (e.g. OTLP integration),
+  // return empty to let the OTel propagator handle outgoing request propagation.
+  if (!span && hasExternalPropagationContext()) {
+    return {};
+  }
+
   const sentryTrace = span ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
   const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dsc);

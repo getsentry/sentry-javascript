@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./.oxlintrc.base.json"],
+  "options": {
+    "typeAware": true
+  },
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
+  "categories": {},
+  "rules": {
+    "sdk/no-eq-empty": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "sdk/no-class-field-initializers": "error",
+        "sdk/no-regexp-constructor": "error"
+      }
+    }
+  ],
+  "env": {
+    "es2017": true,
+    "node": true
+  },
+  "globals": {},
+  "ignorePatterns": [
+    "coverage/**",
+    "build/**",
+    "dist/**",
+    "cjs/**",
+    "esm/**",
+    "examples/**",
+    "test/manual/**",
+    "types/**",
+    "scripts/*.js",
+    "node_modules/**"
+  ]
+}

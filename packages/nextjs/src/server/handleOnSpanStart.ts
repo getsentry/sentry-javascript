@@ -15,6 +15,8 @@ import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../co
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
+import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
+import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './vercelQueuesMonitoring';
 
 /**
  * Handles the on span start event for Next.js spans.
@@ -44,6 +46,20 @@ export function handleOnSpanStart(span: Span): void {
       rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
       // Preserving the original attribute despite internally not depending on it
       rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
+
+      // Update the isolation scope's transaction name so that non-transaction events
+      // (e.g. captureMessage, captureException) also get the parameterized route.
+      // eslint-disable-next-line deprecation/deprecation
+      const method = rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD];
+      if (typeof method === 'string') {
+        getIsolationScope().setTransactionName(`${method} ${route}`);
+      }
+
+      // Check if this is a Vercel cron request and start a check-in
+      maybeStartCronCheckIn(rootSpan, route);
+
+      // Enrich queue consumer spans (Vercel Queue push delivery via CloudEvent)
+      maybeEnrichQueueConsumerSpan(rootSpan);
     }
   }
 
@@ -84,4 +100,7 @@ export function handleOnSpanStart(span: Span): void {
   }
 
   maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
+
+  // Enrich outgoing http.client spans targeting the Vercel Queues API (producer)
+  maybeEnrichQueueProducerSpan(span);
 }

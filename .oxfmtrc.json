@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "avoid",
+  "printWidth": 120,
+  "proseWrap": "always",
+  "singleQuote": true,
+  "trailingComma": "all",
+  "experimentalSortPackageJson": false,
+  "ignorePatterns": [
+    "packages/browser/test/loader.js",
+    "packages/replay-worker/examples/worker.min.js",
+    "dev-packages/browser-integration-tests/fixtures",
+    "**/test.ts-snapshots/**",
+    "/.nx/cache",
+    "/.nx/workspace-data"
+  ],
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdc"],
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
+import type { Context, Span, SpanContext, SpanOptions, TimeInput, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, suppressTracing } from '@opentelemetry/core';
 import type {
@@ -10,6 +10,9 @@ import type {
   TraceContext,
 } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
+  generateSpanId,
+  generateTraceId,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -60,6 +63,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
 
       return context.with(suppressedCtx, () => {
         return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
+          patchSpanEnd(span);
           // Restore the original unsuppressed context for the callback execution
           // so that custom OpenTelemetry spans maintain the correct context.
           // We use activeCtx (not ctx) because ctx may be suppressed when onlyIfParent is true
@@ -82,6 +86,7 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
     }
 
     return tracer.startActiveSpan(name, spanOptions, ctx, span => {
+      patchSpanEnd(span);
       return handleCallbackErrors(
         () => callback(span),
         () => {
@@ -155,7 +160,9 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
       ctx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
     }
 
-    return tracer.startSpan(name, spanOptions, ctx);
+    const span = tracer.startSpan(name, spanOptions, ctx);
+    patchSpanEnd(span);
+    return span;
   });
 }
 
@@ -200,6 +207,17 @@ function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
 function ensureTimestampInMilliseconds(timestamp: number): number {
   const isMs = timestamp < 9999999999;
   return isMs ? timestamp * 1000 : timestamp;
+}
+
+/**
+ * Wraps the span's `end()` method so that numeric timestamps passed in seconds
+ * are converted to milliseconds before reaching OTel's native `Span.end()`.
+ */
+function patchSpanEnd(span: Span): void {
+  const originalEnd = span.end.bind(span);
+  span.end = (endTime?: TimeInput) => {
+    return originalEnd(typeof endTime === 'number' ? ensureTimestampInMilliseconds(endTime) : endTime);
+  };
 }
 
 function getContext(scope: Scope | undefined, forceTransaction: boolean | undefined): Context {
@@ -274,6 +292,36 @@ function getContextForScope(scope?: Scope): Context {
  */
 export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0], callback: () => T): T {
   return continueTraceAsRemoteSpan(context.active(), options, callback);
+}
+
+/**
+ * Start a new trace with a unique traceId, ensuring all spans created within the callback
+ * share the same traceId.
+ *
+ * This is a custom version of `startNewTrace` for OTEL-powered environments.
+ * It injects the new traceId as a remote span context into the OTEL context, so that
+ * `startInactiveSpan` and `startSpan` pick it up correctly.
+ */
+export function startNewTrace<T>(callback: () => T): T {
+  const traceId = generateTraceId();
+  const spanId = generateSpanId();
+
+  const spanContext: SpanContext = {
+    traceId,
+    spanId,
+    isRemote: true,
+    traceFlags: TraceFlags.NONE,
+  };
+
+  const ctxWithTrace = trace.setSpanContext(context.active(), spanContext);
+
+  return context.with(ctxWithTrace, () => {
+    getCurrentScope().setPropagationContext({
+      traceId,
+      sampleRand: _INTERNAL_safeMathRandom(),
+    });
+    return callback();
+  });
 }
 
 /**

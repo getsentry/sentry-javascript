@@ -8,7 +8,9 @@ import type {
   Event as SentryEvent,
   EventEnvelope,
   EventEnvelopeHeaders,
-  SessionContext,
+  SerializedMetric,
+  SerializedMetricContainer,
+  SerializedSession,
   TransactionEvent,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
@@ -283,7 +285,60 @@ export function waitForClientReportRequest(page: Page, callback?: (report: Clien
   });
 }
 
-export async function waitForSession(page: Page): Promise<SessionContext> {
+/**
+ * Wait for metric requests. Accumulates metrics across all matching requests
+ * and resolves when the callback returns true for the full set of collected metrics.
+ * If no callback is provided, resolves on the first request containing metrics.
+ */
+export function waitForMetrics(
+  page: Page,
+  callback?: (metrics: SerializedMetric[]) => boolean,
+): Promise<SerializedMetric[]> {
+  const collected: SerializedMetric[] = [];
+
+  return page
+    .waitForRequest(req => {
+      const postData = req.postData();
+      if (!postData) {
+        return false;
+      }
+
+      try {
+        const envelope = properFullEnvelopeRequestParser<Envelope>(req);
+        const items = envelope[1];
+        const metrics: SerializedMetric[] = [];
+        for (const item of items) {
+          const [header] = item;
+          if (header.type === 'trace_metric') {
+            const payload = item[1] as SerializedMetricContainer;
+            if (payload.items) {
+              metrics.push(...payload.items);
+            }
+          }
+        }
+
+        if (metrics.length === 0) {
+          return false;
+        }
+
+        collected.push(...metrics);
+
+        if (callback) {
+          return callback(collected);
+        }
+
+        return true;
+      } catch {
+        return false;
+      }
+    })
+    .then(() => collected);
+}
+
+export async function waitForSession(
+  page: Page,
+  callback?: (session: SerializedSession) => boolean,
+): Promise<SerializedSession> {
   const req = await page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -291,7 +346,11 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
     }
 
     try {
-      const event = envelopeRequestParser<SessionContext>(req);
+      const event = envelopeRequestParser<SerializedSession>(req);
+
+      if (callback) {
+        return callback(event);
+      }
 
       return typeof event.init === 'boolean' && event.started !== undefined;
     } catch {
@@ -299,7 +358,7 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
     }
   });
 
-  return envelopeRequestParser<SessionContext>(req);
+  return envelopeRequestParser<SerializedSession>(req);
 }
 
 /**
@@ -312,6 +371,30 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
 export function shouldSkipTracingTest(): boolean {
   const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test metrics tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain metrics
+ *
+ * @returns `true` if we should skip the metrics test
+ */
+export function shouldSkipMetricsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('metrics') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test logs tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain logs
+ *
+ * @returns `true` if we should skip the logs test
+ */
+export function shouldSkipLogsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('logs') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**

@@ -42,8 +42,8 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 auto instrument plugin + 1 global values injection plugin + 5 source maps plugins
-    expect(plugins).toHaveLength(10);
+    // 1 auto instrument plugin + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(6);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -54,18 +54,12 @@ describe('sentrySvelteKit()', () => {
       'sentry-auto-instrumentation',
       // global values injection plugin:
       'sentry-sveltekit-global-values-injection-plugin',
-      // default source maps plugins:
-      'sentry-telemetry-plugin',
-      'sentry-vite-release-injection-plugin',
-      'sentry-vite-debug-id-injection-plugin',
+      // modified main plugin (writeBundle deferred to closeBundle):
+      'sentry-vite-plugin',
       'sentry-sveltekit-update-source-map-setting-plugin',
       'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
-      // custom release plugin:
-      'sentry-sveltekit-release-management-plugin',
-      // custom source maps plugin:
+      // custom source maps plugin (sorcery flattening + deferred upload):
       'sentry-sveltekit-debug-id-upload-plugin',
-      // custom deletion plugin
-      'sentry-sveltekit-file-deletion-plugin',
     ]);
   });
 
@@ -90,7 +84,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(9); // global values injection + 5 source maps plugins + 3 default plugins
+    expect(plugins).toHaveLength(5); // global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 

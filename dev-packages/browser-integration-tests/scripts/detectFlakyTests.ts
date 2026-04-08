@@ -1,7 +1,7 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as glob from 'glob';
+import { globSync } from 'glob';
 
 /**
  * Assume that each test runs for 3s.
@@ -112,7 +112,7 @@ function getPerTestRunCount(testPaths: string[]) {
 }
 
 function getTestPaths(): string[] {
-  const paths = glob.sync('suites/**/test.{ts,js}', {
+  const paths = globSync('suites/**/test.{ts,js}', {
     cwd: path.join(__dirname, '../'),
   });
 

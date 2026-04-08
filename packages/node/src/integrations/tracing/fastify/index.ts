@@ -1,4 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import { FastifyOtelInstrumentation } from '@fastify/otel';
 import type { Instrumentation, InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
@@ -13,7 +14,6 @@ import {
 } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { FastifyOtelInstrumentation } from './fastify-otel/index';
 import type { FastifyInstance, FastifyMinimal, FastifyReply, FastifyRequest } from './types';
 import { FastifyInstrumentationV3 } from './v3/instrumentation';
 
@@ -169,8 +169,8 @@ export const instrumentFastify = generateInstrumentOnce(`${INTEGRATION_NAME}.v5`
     handleFastifyError.call(handleFastifyError, error, request, reply, 'diagnostics-channel');
   });
 
-  // Returning this as unknown not to deal with the internal types of the FastifyOtelInstrumentation
-  return fastifyOtelInstrumentationInstance as Instrumentation<InstrumentationConfig & FastifyIntegrationOptions>;
+  // Returning this as Instrumentation to avoid leaking @fastify/otel types into the public API
+  return fastifyOtelInstrumentationInstance as unknown as Instrumentation<InstrumentationConfig>;
 });
 
 const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationOptions>) => {
@@ -282,7 +282,7 @@ function addFastifySpanAttributes(span: Span): void {
     return;
   }
 
-  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request-handler' : '<unknown>';
+  const opPrefix = isHook ? 'hook' : isHandler ? 'middleware' : isRequestHandler ? 'request_handler' : '<unknown>';
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.fastify',

@@ -76,7 +76,7 @@ export function makeEnableSourceMapsVitePlugin(options: SentrySolidStartPluginOp
   ];
 }
 
-/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-j avascript/issues/13993)
+/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
  *
  *     1. User explicitly disabled source maps
  *       - keep this setting (emit a warning that errors won't be unminified in Sentry)

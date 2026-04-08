@@ -207,10 +207,9 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       routeName = route;
     }
 
-    Object.assign(
-      attributes,
-      httpHeadersToSpanAttributes(request.headers.toJSON(), getClient()?.getOptions().sendDefaultPii ?? false),
-    );
+    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
+
+    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), sendDefaultPii));
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
@@ -238,10 +237,12 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
               const response = (await target.apply(thisArg, args)) as Response | undefined;
               if (response?.status) {
                 setHttpStatus(span, response.status);
+
                 isolationScope.setContext('response', {
-                  headers: response.headers.toJSON(),
                   status_code: response.status,
                 });
+
+                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), sendDefaultPii, 'response'));
               }
               return response;
             } catch (e) {

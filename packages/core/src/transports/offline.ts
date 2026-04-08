@@ -4,6 +4,7 @@ import type { InternalBaseTransportOptions, Transport, TransportMakeRequestRespo
 import { debug } from '../utils/debug-logger';
 import { envelopeContainsItemType } from '../utils/envelope';
 import { parseRetryAfterHeader } from '../utils/ratelimit';
+import { safeUnref } from '../utils/timer';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
@@ -97,26 +98,24 @@ export function makeOfflineTransport<TO>(
         clearTimeout(flushTimer as ReturnType<typeof setTimeout>);
       }
 
-      flushTimer = setTimeout(async () => {
-        flushTimer = undefined;
-
-        const found = await store.shift();
-        if (found) {
-          log('Attempting to send previously queued event');
-
-          // We should to update the sent_at timestamp to the current time.
-          found[0].sent_at = new Date().toISOString();
-
-          void send(found, true).catch(e => {
-            log('Failed to retry sending', e);
-          });
-        }
-      }, delay) as Timer;
-
       // We need to unref the timer in node.js, otherwise the node process never exit.
-      if (typeof flushTimer !== 'number' && flushTimer.unref) {
-        flushTimer.unref();
-      }
+      flushTimer = safeUnref(
+        setTimeout(async () => {
+          flushTimer = undefined;
+
+          const found = await store.shift();
+          if (found) {
+            log('Attempting to send previously queued event');
+
+            // We should to update the sent_at timestamp to the current time.
+            found[0].sent_at = new Date().toISOString();
+
+            void send(found, true).catch(e => {
+              log('Failed to retry sending', e);
+            });
+          }
+        }, delay),
+      ) as Timer;
     }
 
     function flushWithBackOff(): void {

@@ -1,17 +1,7 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import {
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
+import type { Span } from '../../types-hoist/span';
+import { endStreamSpan } from '../ai/utils';
 import type { GoogleGenAIResponse } from './types';
 
 /**
@@ -46,7 +36,7 @@ function isErrorChunk(chunk: GoogleGenAIResponse, span: Span): boolean {
   const feedback = chunk?.promptFeedback;
   if (feedback?.blockReason) {
     const message = feedback.blockReasonMessage ?? feedback.blockReason;
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: `Content blocked: ${message}` });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     captureException(`Content blocked: ${message}`, {
       mechanism: { handled: false, type: 'auto.ai.google_genai' },
     });
@@ -137,27 +127,6 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
-    const attrs: Record<string, SpanAttributeValue> = {
-      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    };
-
-    if (state.responseId) attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = state.responseId;
-    if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = state.responseModel;
-    if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
-    if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
-    if (state.totalTokens !== undefined) attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
-
-    if (state.finishReasons.length) {
-      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
-    }
-    if (recordOutputs && state.responseTexts.length) {
-      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
-    }
-    if (recordOutputs && state.toolCalls.length) {
-      attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
-    }
-
-    span.setAttributes(attrs);
-    span.end();
+    endStreamSpan(span, state, recordOutputs);
   }
 }

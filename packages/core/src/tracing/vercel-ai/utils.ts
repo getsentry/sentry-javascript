@@ -4,19 +4,21 @@ import {
   GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
   GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE,
   GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
-  GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE,
-  GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE,
+  GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
-  GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
+  GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
-import { toolCallSpanMap } from './constants';
-import type { TokenSummary } from './types';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { toolCallSpanContextMap } from './constants';
+import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
 
 /**
@@ -73,17 +75,72 @@ export function applyAccumulatedTokens(
 }
 
 /**
- * Get the span associated with a tool call ID
+ * Builds a map of tool name -> description from all spans with available_tools.
+ * This avoids O(n²) iteration and repeated JSON parsing.
  */
-export function _INTERNAL_getSpanForToolCallId(toolCallId: string): Span | undefined {
-  return toolCallSpanMap.get(toolCallId);
+function buildToolDescriptionMap(spans: SpanJSON[]): Map<string, string> {
+  const toolDescriptions = new Map<string, string>();
+
+  for (const span of spans) {
+    const availableTools = span.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE];
+    if (typeof availableTools !== 'string') {
+      continue;
+    }
+    try {
+      const tools = JSON.parse(availableTools) as Array<{ name?: string; description?: string }>;
+      for (const tool of tools) {
+        if (tool.name && tool.description && !toolDescriptions.has(tool.name)) {
+          toolDescriptions.set(tool.name, tool.description);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return toolDescriptions;
+}
+
+/**
+ * Applies tool descriptions and accumulated tokens to spans in a single pass.
+ *
+ * - For `gen_ai.execute_tool` spans: looks up tool description from
+ *   `gen_ai.request.available_tools` on sibling spans
+ * - For `gen_ai.invoke_agent` spans: applies accumulated token data from children
+ */
+export function applyToolDescriptionsAndTokens(spans: SpanJSON[], tokenAccumulator: Map<string, TokenSummary>): void {
+  // Build lookup map once to avoid O(n²) iteration and repeated JSON parsing
+  const toolDescriptions = buildToolDescriptionMap(spans);
+
+  for (const span of spans) {
+    if (span.op === 'gen_ai.execute_tool') {
+      const toolName = span.data[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      if (typeof toolName === 'string') {
+        const description = toolDescriptions.get(toolName);
+        if (description) {
+          span.data[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = description;
+        }
+      }
+    }
+
+    if (span.op === 'gen_ai.invoke_agent') {
+      applyAccumulatedTokens(span, tokenAccumulator);
+    }
+  }
+}
+
+/**
+ * Get the span context associated with a tool call ID.
+ */
+export function _INTERNAL_getSpanContextForToolCallId(toolCallId: string): ToolCallSpanContext | undefined {
+  return toolCallSpanContextMap.get(toolCallId);
 }
 
 /**
  * Clean up the span mapping for a tool call ID
  */
-export function _INTERNAL_cleanupToolCallSpan(toolCallId: string): void {
-  toolCallSpanMap.delete(toolCallId);
+export function _INTERNAL_cleanupToolCallSpanContext(toolCallId: string): void {
+  toolCallSpanContextMap.delete(toolCallId);
 }
 
 /**
@@ -104,22 +161,61 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
 }
 
 /**
- * Convert the prompt string to messages array
+ * Filter out invalid entries in messages array
+ * @param input - The input array to filter
+ * @returns The filtered array
  */
-export function convertPromptToMessages(prompt: string): { role: string; content: string }[] {
+function filterMessagesArray(input: unknown[]): { role: string; content: string }[] {
+  return input.filter(
+    (m: unknown): m is { role: string; content: string } =>
+      !!m && typeof m === 'object' && 'role' in m && 'content' in m,
+  );
+}
+
+/**
+ * Normalize the user input (stringified object with prompt, system, messages) to messages array
+ */
+export function convertUserInputToMessagesFormat(userInput: string): { role: string; content: string }[] {
   try {
-    const p = JSON.parse(prompt);
+    const p = JSON.parse(userInput);
     if (!!p && typeof p === 'object') {
+      let { messages } = p;
       const { prompt, system } = p;
-      if (typeof prompt === 'string' || typeof system === 'string') {
-        const messages: { role: string; content: string }[] = [];
-        if (typeof system === 'string') {
-          messages.push({ role: 'system', content: system });
+      const result: { role: string; content: string }[] = [];
+
+      // prepend top-level system instruction if present
+      if (typeof system === 'string') {
+        result.push({ role: 'system', content: system });
+      }
+
+      // stringified messages array
+      if (typeof messages === 'string') {
+        try {
+          messages = JSON.parse(messages);
+        } catch {
+          // ignore parse errors
         }
-        if (typeof prompt === 'string') {
-          messages.push({ role: 'user', content: prompt });
-        }
-        return messages;
+      }
+
+      // messages array format: { messages: [...] }
+      if (Array.isArray(messages)) {
+        result.push(...filterMessagesArray(messages));
+        return result;
+      }
+
+      // prompt array format: { prompt: [...] }
+      if (Array.isArray(prompt)) {
+        result.push(...filterMessagesArray(prompt));
+        return result;
+      }
+
+      // prompt string format: { prompt: "..." }
+      if (typeof prompt === 'string') {
+        result.push({ role: 'user', content: prompt });
+      }
+
+      if (result.length > 0) {
+        return result;
       }
     }
     // eslint-disable-next-line no-empty
@@ -132,31 +228,52 @@ export function convertPromptToMessages(prompt: string): { role: string; content
  * invoke_agent op
  */
 export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
-  if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
-    span.setAttribute('gen_ai.prompt', truncatedPrompt);
-  }
-  const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
-    typeof prompt === 'string' &&
-    !attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] &&
+    typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
+    !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
-    const messages = convertPromptToMessages(prompt);
+    // No messages array is present, so we need to convert the prompt to the proper messages format
+    // This is the case for ai.generateText spans
+    // The ai.prompt attribute is a stringified object with prompt, system, messages attributes
+    // The format of these is described in the vercel docs, for instance: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object#parameters
+    const userInput = attributes[AI_PROMPT_ATTRIBUTE];
+    const messages = convertUserInputToMessagesFormat(userInput);
     if (messages.length) {
+      const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+      if (systemInstructions) {
+        span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+      }
+
+      const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+      const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
       span.setAttributes({
-        [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-        [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
+        [AI_PROMPT_ATTRIBUTE]: truncatedMessages,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+        [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
+    // In this case we already get a properly formatted messages array, this is the preferred way to get the messages
+    // This is the case for ai.generateText.doGenerate spans
     try {
       const messages = JSON.parse(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]);
       if (Array.isArray(messages)) {
+        const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+        if (systemInstructions) {
+          span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+        }
+
+        const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
+        const truncatedMessages = getTruncatedJsonString(filteredMessages);
+
         span.setAttributes({
-          [AI_PROMPT_MESSAGES_ATTRIBUTE]: undefined,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
       // eslint-disable-next-line no-empty
@@ -173,21 +290,18 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamText':
     case 'ai.generateObject':
     case 'ai.streamObject':
-    case 'ai.embed':
-    case 'ai.embedMany':
       return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
     case 'ai.generateText.doGenerate':
-      return GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE;
     case 'ai.streamText.doStream':
-      return GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE;
     case 'ai.generateObject.doGenerate':
-      return GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE;
     case 'ai.streamObject.doStream':
-      return GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE;
+      return GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE;
     case 'ai.embed.doEmbed':
       return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
     case 'ai.embedMany.doEmbed':
       return GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE;
+    case 'ai.rerank.doRerank':
+      return GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE;
     case 'ai.toolCall':
       return GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE;
     default:

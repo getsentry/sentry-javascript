@@ -72,6 +72,7 @@ export const buildFeedbackIntegration = ({
       optionOverrides?: OverrideFeedbackConfiguration,
     ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>>;
     createWidget(optionOverrides?: OverrideFeedbackConfiguration): ActorComponent;
+    setTheme(colorScheme: 'light' | 'dark' | 'system'): void;
     remove(): void;
   }
 > => {
@@ -172,6 +173,7 @@ export const buildFeedbackIntegration = ({
     };
 
     let _shadow: ShadowRoot | null = null;
+    let _mainStyle: HTMLStyleElement | null = null;
     let _subscriptions: Unsubscribe[] = [];
 
     /**
@@ -184,7 +186,8 @@ export const buildFeedbackIntegration = ({
         DOCUMENT.body.appendChild(host);
 
         _shadow = host.attachShadow({ mode: 'open' });
-        _shadow.appendChild(createMainStyles(options));
+        _mainStyle = createMainStyles(options);
+        _shadow.appendChild(_mainStyle);
       }
       return _shadow;
     };
@@ -349,12 +352,29 @@ export const buildFeedbackIntegration = ({
       },
 
       /**
+       * Updates the color scheme of the feedback widget at runtime.
+       */
+      setTheme(colorScheme: 'light' | 'dark' | 'system'): void {
+        _options.colorScheme = colorScheme;
+        if (_shadow) {
+          const newStyle = createMainStyles(_options);
+          if (_mainStyle) {
+            _shadow.replaceChild(newStyle, _mainStyle);
+          } else {
+            _shadow.prepend(newStyle);
+          }
+          _mainStyle = newStyle;
+        }
+      },
+
+      /**
        * Removes the Feedback integration (including host, shadow DOM, and all widgets)
        */
       remove(): void {
         if (_shadow) {
           _shadow.parentElement?.remove();
           _shadow = null;
+          _mainStyle = null;
         }
         // Remove any lingering subscriptions
         _subscriptions.forEach(sub => sub());

@@ -48,6 +48,7 @@ export {
   Scope,
   SDK_VERSION,
   setContext,
+  setConversationId,
   setExtra,
   setExtras,
   setTag,
@@ -66,6 +67,7 @@ export {
   getSentryRelease,
   createGetModuleFromFilename,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -136,6 +138,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   honoIntegration,
@@ -150,6 +153,10 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
@@ -160,6 +167,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   createSentryWinstonTransport,
+  pinoIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,
@@ -185,4 +193,5 @@ export type { BunOptions } from './types';
 export { BunClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';

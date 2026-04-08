@@ -25,6 +25,7 @@ import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';
 import {
   browserTracingIntegration,
+  getServerTiming,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
@@ -72,6 +73,7 @@ describe('browserTracingIntegration', () => {
   afterEach(() => {
     getActiveSpan()?.end();
     vi.useRealTimers();
+    vi.restoreAllMocks();
     performance.clearMarks();
   });
 
@@ -82,6 +84,68 @@ describe('browserTracingIntegration', () => {
     Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
     Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
     Object.defineProperty(WINDOW, 'history', { value: originalGlobalHistory });
+  });
+
+  describe('bot user agent detection', () => {
+    let originalNavigator: Navigator;
+
+    beforeEach(() => {
+      originalNavigator = WINDOW.navigator;
+    });
+
+    afterEach(() => {
+      Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
+    });
+
+    function setUserAgent(ua: string): void {
+      Object.defineProperty(WINDOW, 'navigator', {
+        value: { userAgent: ua },
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    it.each([
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm) Chrome/W.X.Y.Z Safari/537.36',
+      'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)',
+      'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+      'LinkedInBot/1.0 (compatible; Mozilla/5.0)',
+      'Twitterbot/1.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15 (Applebot/0.1)',
+      'Mozilla/5.0 (compatible; Google-InspectionTool/1.0)',
+    ])('skips tracing setup for bot user agent: %s', ua => {
+      setUserAgent(ua);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(getActiveSpan()).toBeUndefined();
+    });
+
+    it('does not skip tracing setup for normal user agents', () => {
+      setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      );
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(getActiveSpan()).toBeDefined();
+    });
   });
 
   it('works with tracing enabled', () => {
@@ -1026,6 +1090,212 @@ describe('browserTracingIntegration', () => {
       expect(propagationContext.traceId).toEqual('12312012123120121231201212312011');
       expect(propagationContext.parentSpanId).toEqual('1121201211212011');
       expect(propagationContext.sampleRand).toEqual(0.123);
+    });
+  });
+
+  describe('getServerTiming', () => {
+    it('retrieves server timing description when available', () => {
+      // Mock the performance API
+      const mockServerTiming = [
+        { name: 'sentry-trace', duration: 0, description: '12312012123120121231201212312012-1121201211212012-1' },
+        { name: 'baggage', duration: 0, description: 'sentry-release=2.1.14,sentry-sample_rand=0.456' },
+      ];
+
+      const mockNavigationEntry = {
+        serverTiming: mockServerTiming,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const sentryTrace = getServerTiming('sentry-trace');
+      const baggage = getServerTiming('baggage');
+
+      expect(sentryTrace).toBe('12312012123120121231201212312012-1121201211212012-1');
+      expect(baggage).toBe('sentry-release=2.1.14,sentry-sample_rand=0.456');
+    });
+
+    it('returns undefined when server timing entry is not found', () => {
+      const mockServerTiming = [{ name: 'other-timing', duration: 0, description: 'some-value' }];
+
+      const mockNavigationEntry = {
+        serverTiming: mockServerTiming,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const result = getServerTiming('sentry-trace');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when performance API is not available', () => {
+      const originalPerformance = WINDOW.performance;
+      // @ts-expect-error - intentionally setting to undefined
+      WINDOW.performance = undefined;
+
+      const result = getServerTiming('sentry-trace');
+
+      expect(result).toBeUndefined();
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore its read only
+      WINDOW.performance = originalPerformance;
+    });
+
+    it('returns undefined when serverTiming is not available', () => {
+      const mockNavigationEntry = {
+        serverTiming: undefined,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const result = getServerTiming('sentry-trace');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('using Server-Timing headers', () => {
+    it('uses Server-Timing headers for pageload span', () => {
+      // Mock the performance API with Server-Timing data
+      const mockServerTiming = [
+        { name: 'sentry-trace', duration: 0, description: '12312012123120121231201212312012-1121201211212012-0' },
+        { name: 'baggage', duration: 0, description: 'sentry-release=2.1.14,foo=bar,sentry-sample_rand=0.123' },
+      ];
+
+      const mockNavigationEntry = {
+        serverTiming: mockServerTiming,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+
+      // pageload transactions are created as part of the browserTracingIntegration's initialization
+      client.init();
+
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
+
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span is correct
+      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
+      expect(spanIsSampled(idleSpan)).toBe(false);
+
+      expect(dynamicSamplingContext).toBeDefined();
+      expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14', sample_rand: '0.123' });
+
+      // Propagation context keeps the Server-Timing trace data for later events on the same route to add them to the trace
+      expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+      expect(propagationContext.sampleRand).toBe(0.123);
+    });
+
+    it('meta tags take precedence over Server-Timing headers', () => {
+      // Set up both meta tags and Server-Timing headers
+      document.head.innerHTML =
+        '<meta name="sentry-trace" content="11111111111111111111111111111111-2222222222222222-1">' +
+        '<meta name="baggage" content="sentry-release=3.0.0,sentry-sample_rand=0.999">';
+
+      const mockServerTiming = [
+        { name: 'sentry-trace', duration: 0, description: '12312012123120121231201212312012-1121201211212012-0' },
+        { name: 'baggage', duration: 0, description: 'sentry-release=2.1.14,sentry-sample_rand=0.123' },
+      ];
+
+      const mockNavigationEntry = {
+        serverTiming: mockServerTiming,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+
+      client.init();
+
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
+
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span should use meta tag data, not Server-Timing data
+      expect(spanToJSON(idleSpan).trace_id).toEqual('11111111111111111111111111111111');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('2222222222222222');
+      expect(spanIsSampled(idleSpan)).toBe(true);
+
+      expect(dynamicSamplingContext).toStrictEqual({ release: '3.0.0', sample_rand: '0.999' });
+
+      expect(propagationContext.traceId).toEqual('11111111111111111111111111111111');
+      expect(propagationContext.parentSpanId).toEqual('2222222222222222');
+      expect(propagationContext.sampleRand).toBe(0.999);
+    });
+
+    it('uses passed in tracing data over Server-Timing headers', () => {
+      const mockServerTiming = [
+        { name: 'sentry-trace', duration: 0, description: '12312012123120121231201212312012-1121201211212012-0' },
+        { name: 'baggage', duration: 0, description: 'sentry-release=2.1.14,sentry-sample_rand=0.123' },
+      ];
+
+      const mockNavigationEntry = {
+        serverTiming: mockServerTiming,
+      };
+
+      vi.spyOn(WINDOW.performance, 'getEntriesByType').mockReturnValue([mockNavigationEntry as any]);
+
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+
+      client.init();
+
+      // manually create a pageload span with tracing data
+      startBrowserTracingPageLoadSpan(
+        client,
+        {
+          name: 'test span',
+        },
+        {
+          sentryTrace: '99999999999999999999999999999999-8888888888888888-1',
+          baggage: 'sentry-release=4.0.0,sentry-sample_rand=0.777',
+        },
+      );
+
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
+
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span should use passed-in data, not Server-Timing data
+      expect(spanToJSON(idleSpan).trace_id).toEqual('99999999999999999999999999999999');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('8888888888888888');
+      expect(spanIsSampled(idleSpan)).toBe(true);
+
+      expect(dynamicSamplingContext).toStrictEqual({ release: '4.0.0', sample_rand: '0.777' });
+
+      expect(propagationContext.traceId).toEqual('99999999999999999999999999999999');
+      expect(propagationContext.parentSpanId).toEqual('8888888888888888');
+      expect(propagationContext.sampleRand).toBe(0.777);
     });
   });
 

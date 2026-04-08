@@ -303,7 +303,7 @@ export function normalizeUrlToBase(url: string, basePath: string): string {
     newUrl
       .replace(/\\/g, '/')
       .replace(/webpack:\/?/g, '') // Remove intermediate base path
-      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+      // oxlint-disable-next-line sdk/no-regexp-constructor
       .replace(new RegExp(`(file://)?/*${escapedBase}/*`, 'ig'), 'app:///')
   );
 }

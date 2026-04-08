@@ -1,0 +1,26 @@
+{
+  "name": "elysia-node-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/elysia": "latest || *",
+    "elysia": "latest",
+    "@elysiajs/node": "^1.4.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "24.11.0"
+  }
+}

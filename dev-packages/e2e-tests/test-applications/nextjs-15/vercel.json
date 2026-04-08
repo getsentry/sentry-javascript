@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron-test",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron-test-error",
+      "schedule": "30 * * * *"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { SDK_VERSION } from '@sentry/core';
 import { join } from 'path';
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 describe('modulesIntegration', () => {
@@ -15,7 +15,7 @@ describe('modulesIntegration', () => {
         event: {
           modules: {
             // exact version comes from require.caches
-            express: '4.21.1',
+            express: expect.stringMatching(/^4\.\d+\.\d+$/),
             // this comes from package.json
             '@sentry/node': SDK_VERSION,
             yargs: '^16.2.0',
@@ -35,7 +35,7 @@ describe('modulesIntegration', () => {
         event: {
           modules: {
             // this comes from package.json
-            express: '^4.21.1',
+            express: expect.stringMatching(/^\^4\.\d+\.\d+$/),
             '@sentry/node': SDK_VERSION,
             yargs: '^16.2.0',
           },

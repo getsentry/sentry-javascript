@@ -1,4 +1,11 @@
 import * as React from 'react';
+import { withProfiler } from '@sentry/react';
+
+function ProfilerTestComponent() {
+  return <div id="profiler-test">withProfiler works</div>;
+}
+ProfilerTestComponent.customStaticMethod = () => 'static method works';
+const ProfiledComponent = withProfiler(ProfilerTestComponent);
 
 const Index = () => {
   const [caughtError, setCaughtError] = React.useState(false);
@@ -7,6 +14,7 @@ const Index = () => {
   return (
     <>
       <div>
+        <ProfiledComponent />
         <SampleErrorBoundary>
           <h1>React 19</h1>
           {caughtError && <Throw error="caught" />}

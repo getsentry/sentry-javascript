@@ -52,10 +52,18 @@ export const ipHeaderNames = [
  * will be returned.
  */
 export function getClientIPAddress(headers: { [key: string]: string | string[] | undefined }): string | null {
+  // Build a map of lowercase header names to their values for case-insensitive lookup
+  // This is needed because headers from different sources may have different casings
+  const lowerCaseHeaders: { [key: string]: string | string[] | undefined } = {};
+
+  for (const key of Object.keys(headers)) {
+    lowerCaseHeaders[key.toLowerCase()] = headers[key];
+  }
+
   // This will end up being Array<string | string[] | undefined | null> because of the various possible values a header
   // can take
   const headerValues = ipHeaderNames.map((headerName: string) => {
-    const rawValue = headers[headerName];
+    const rawValue = lowerCaseHeaders[headerName.toLowerCase()];
     const value = Array.isArray(rawValue) ? rawValue.join(';') : rawValue;
 
     if (headerName === 'Forwarded') {

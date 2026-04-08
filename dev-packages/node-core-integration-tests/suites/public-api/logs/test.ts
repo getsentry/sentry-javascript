@@ -26,9 +26,13 @@ describe('logger public API', () => {
                     type: 'string',
                     value: expect.any(String),
                   },
+                  'sentry.timestamp.sequence': {
+                    type: 'integer',
+                    value: expect.any(Number),
+                  },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',
@@ -63,9 +67,13 @@ describe('logger public API', () => {
                     type: 'string',
                     value: expect.any(String),
                   },
+                  'sentry.timestamp.sequence': {
+                    type: 'integer',
+                    value: expect.any(Number),
+                  },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',
@@ -100,9 +108,13 @@ describe('logger public API', () => {
                     type: 'string',
                     value: expect.any(String),
                   },
+                  'sentry.timestamp.sequence': {
+                    type: 'integer',
+                    value: expect.any(Number),
+                  },
                   'server.address': {
                     type: 'string',
-                    value: 'M6QX4Q5HKV.local',
+                    value: expect.any(String),
                   },
                   'user.name': {
                     type: 'string',

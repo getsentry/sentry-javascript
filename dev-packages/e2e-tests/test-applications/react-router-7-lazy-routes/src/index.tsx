@@ -55,6 +55,28 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
 
 const runtimeConfig = getRuntimeConfig();
 
+// Static manifest for transaction naming when lazy routes are enabled
+const lazyRouteManifest = [
+  '/',
+  '/static',
+  '/delayed-lazy/:id',
+  '/lazy/inner',
+  '/lazy/inner/:id',
+  '/lazy/inner/:id/:anotherId',
+  '/lazy/inner/:id/:anotherId/:someAnotherId',
+  '/another-lazy/sub',
+  '/another-lazy/sub/:id',
+  '/another-lazy/sub/:id/:subId',
+  '/long-running/slow',
+  '/long-running/slow/:id',
+  '/deep/level2',
+  '/deep/level2/level3/:id',
+  '/slow-fetch/:id',
+  '/wildcard-lazy/:id',
+  '/lazy-gql-a/fetch',
+  '/lazy-gql-b/fetch',
+];
+
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
@@ -69,6 +91,7 @@ Sentry.init({
       enableAsyncRouteHandlers: true,
       lazyRouteTimeout: runtimeConfig.lazyRouteTimeout,
       idleTimeout: runtimeConfig.idleTimeout,
+      lazyRouteManifest,
     }),
   ],
   // We recommend adjusting this value in production, or using tracesSampler
@@ -134,6 +157,32 @@ const router = sentryCreateBrowserRouter(
         lazyChildren: () => import('./pages/SlowFetchLazyRoutes').then(module => module.slowFetchRoutes),
       },
     },
+    {
+      // Route with wildcard placeholder that gets replaced by lazy-loaded parameterized routes
+      // This tests that wildcard transaction names get upgraded to parameterized routes
+      path: '/wildcard-lazy',
+      children: [
+        {
+          path: '*', // Catch-all wildcard - will be matched initially before lazy routes load
+          element: <>Loading...</>,
+        },
+      ],
+      handle: {
+        lazyChildren: () => import('./pages/WildcardLazyRoutes').then(module => module.wildcardRoutes),
+      },
+    },
+    {
+      path: '/lazy-gql-a',
+      handle: {
+        lazyChildren: () => import('./pages/LazyFetchRoutes').then(module => module.lazyGqlARoutes),
+      },
+    },
+    {
+      path: '/lazy-gql-b',
+      handle: {
+        lazyChildren: () => import('./pages/LazyFetchSubRoutes').then(module => module.lazyGqlBRoutes),
+      },
+    },
   ],
   {
     async patchRoutesOnNavigation({ matches, patch }: Parameters<PatchRoutesOnNavigationFunction>[0]) {
@@ -145,6 +194,16 @@ const router = sentryCreateBrowserRouter(
     },
   },
 );
+
+// E2E TEST UTILITY: Expose router instance for canary tests
+// This allows tests to verify React Router's route exposure behavior.
+// See tests/react-router-manifest.test.ts for usage.
+declare global {
+  interface Window {
+    __REACT_ROUTER__: typeof router;
+  }
+}
+window.__REACT_ROUTER__ = router;
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(<RouterProvider router={router} />);

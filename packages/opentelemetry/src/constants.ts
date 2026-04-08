@@ -9,10 +9,6 @@ export const SENTRY_TRACE_STATE_URL = 'sentry.url';
 export const SENTRY_TRACE_STATE_SAMPLE_RAND = 'sentry.sample_rand';
 export const SENTRY_TRACE_STATE_SAMPLE_RATE = 'sentry.sample_rate';
 
-// NOTE: `@sentry/nextjs` has a local copy of this context key for Edge bundles:
-// - `packages/nextjs/src/edge/index.ts` (`SENTRY_SCOPES_CONTEXT_KEY`)
-//
-// If you change the key name passed to `createContextKey(...)`, update that file too.
 export const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
 
 export const SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY = createContextKey('sentry_fork_isolation_scope');

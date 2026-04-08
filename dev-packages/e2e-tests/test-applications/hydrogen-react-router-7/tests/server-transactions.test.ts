@@ -13,7 +13,8 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
   const transaction = await transactionPromise;
 
   expect(transaction).toBeDefined();
-  expect(transaction.transaction).toBe('GET /user/123');
+  // Transaction name should be parameterized (route pattern, not actual URL)
+  expect(transaction.transaction).toBe('GET /user/:id');
 });
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {

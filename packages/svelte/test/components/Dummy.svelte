@@ -3,6 +3,7 @@
   import * as Sentry from '../../src/index';
 
   // Pass options to trackComponent as props of this component
+  // oxlint-disable-next-line no-unassigned-vars
   export let options;
 
   Sentry.trackComponent(options);

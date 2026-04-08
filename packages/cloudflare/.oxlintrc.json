@@ -1,0 +1,21 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.base.json"],
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
+  "env": {
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "sdk/no-class-field-initializers": "off"
+      }
+    }
+  ]
+}

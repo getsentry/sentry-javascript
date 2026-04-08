@@ -106,6 +106,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const transactionEnvelopeHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
       const profileChunkEnvelopeHeader = send.mock.calls?.[1]?.[0]?.[1]?.[0]?.[0];
       expect(profileChunkEnvelopeHeader?.type).toBe('profile_chunk');
+      expect(profileChunkEnvelopeHeader?.platform).toBe('javascript');
       expect(transactionEnvelopeHeader?.type).toBe('transaction');
     });
 
@@ -207,6 +208,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       expect(mockConstructor.mock.calls.length).toBe(2);
       const firstChunkHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
       expect(firstChunkHeader?.type).toBe('profile_chunk');
+      expect(firstChunkHeader?.platform).toBe('javascript');
 
       // Second chunk after another 60s
       vi.advanceTimersByTime(60_000);
@@ -679,6 +681,7 @@ describe('Browser Profiling v2 manual lifecycle', () => {
     expect(send).toHaveBeenCalledTimes(1);
     const envelopeHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
     expect(envelopeHeader?.type).toBe('profile_chunk');
+    expect(envelopeHeader?.platform).toBe('javascript');
   });
 
   it('calling start and stop while profile session is running prints warnings', async () => {

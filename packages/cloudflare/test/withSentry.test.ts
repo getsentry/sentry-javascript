@@ -1,0 +1,126 @@
+// Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
+// Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
+
+import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { withSentry } from '../src/withSentry';
+import { markAsInstrumented } from '../src/instrument';
+import * as HonoIntegration from '../src/integrations/hono';
+
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      SENTRY_DSN: string;
+    }
+  }
+}
+
+type HonoLikeApp<Env = Cloudflare.Env, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
+  Env,
+  QueueHandlerMessage,
+  CfHostMetadata
+> & {
+  onError?: () => void;
+  errorHandler?: (err: Error) => Response;
+};
+
+describe('withSentry', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('hono errorHandler', () => {
+    test('calls Hono Integration to handle error captured by the errorHandler', async () => {
+      const error = new Error('test hono error');
+
+      const handleHonoException = vi.fn();
+      vi.spyOn(HonoIntegration, 'getHonoIntegration').mockReturnValue({ handleHonoException } as any);
+
+      const honoApp: HonoLikeApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {},
+        errorHandler(err: Error) {
+          return new Response(`Error: ${err.message}`, { status: 500 });
+        },
+      };
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      const errorHandlerResponse = honoApp.errorHandler?.(error);
+
+      expect(handleHonoException).toHaveBeenCalledTimes(1);
+      expect(handleHonoException).toHaveBeenLastCalledWith(error, undefined);
+      expect(errorHandlerResponse?.status).toBe(500);
+    });
+
+    test('preserves the original errorHandler functionality', async () => {
+      const originalErrorHandlerSpy = vi.fn().mockImplementation((err: Error) => {
+        return new Response(`Error: ${err.message}`, { status: 500 });
+      });
+
+      const error = new Error('test hono error');
+
+      const honoApp: HonoLikeApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {},
+        errorHandler: originalErrorHandlerSpy,
+      };
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      const errorHandlerResponse = honoApp.errorHandler?.(error);
+
+      expect(originalErrorHandlerSpy).toHaveBeenCalledTimes(1);
+      expect(originalErrorHandlerSpy).toHaveBeenLastCalledWith(error);
+      expect(errorHandlerResponse?.status).toBe(500);
+    });
+
+    test('does not instrument an already instrumented errorHandler', async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test hono error');
+
+      const originalErrorHandler = (err: Error) => {
+        return new Response(`Error: ${err.message}`, { status: 500 });
+      };
+
+      markAsInstrumented(originalErrorHandler);
+
+      const honoApp: HonoLikeApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {},
+        errorHandler: originalErrorHandler,
+      };
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+
+      honoApp.errorHandler?.(error);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('does not double-wrap errorHandler when withSentry is called twice', async () => {
+      const honoApp: HonoLikeApp = {
+        fetch(_request, _env, _context) {
+          return new Response('test');
+        },
+        onError() {},
+        errorHandler(err: Error) {
+          return new Response(`Error: ${err.message}`, { status: 500 });
+        },
+      };
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+      const firstErrorHandler = honoApp.errorHandler;
+
+      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+      const secondErrorHandler = honoApp.errorHandler;
+
+      expect(firstErrorHandler).toBe(secondErrorHandler);
+    });
+  });
+});

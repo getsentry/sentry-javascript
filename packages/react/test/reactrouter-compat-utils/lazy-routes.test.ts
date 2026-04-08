@@ -1,9 +1,13 @@
+import { WINDOW } from '@sentry/browser';
 import { addNonEnumerableProperty, debug } from '@sentry/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkRouteForAsyncHandler,
+  clearNavigationContext,
   createAsyncHandlerProxy,
+  getNavigationContext,
   handleAsyncHandlerResult,
+  setNavigationContext,
 } from '../../src/reactrouter-compat-utils';
 import type { RouteObject } from '../../src/types';
 
@@ -21,6 +25,21 @@ vi.mock('@sentry/core', async requireActual => {
 vi.mock('../../src/debug-build', () => ({
   DEBUG_BUILD: true,
 }));
+
+// Create a mutable mock for WINDOW.location that we can modify in tests
+vi.mock('@sentry/browser', async requireActual => {
+  const actual = await requireActual();
+  return {
+    ...(actual as any),
+    WINDOW: {
+      location: {
+        pathname: '/default',
+        search: '',
+        hash: '',
+      },
+    },
+  };
+});
 
 describe('reactrouter-compat-utils/lazy-routes', () => {
   let mockProcessResolvedRoutes: ReturnType<typeof vi.fn>;
@@ -105,10 +124,12 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
 
       proxy();
 
-      // Since handleAsyncHandlerResult is called internally, we verify through its side effects
-      // The third parameter is the captured location (undefined in jsdom test environment)
-      // The fourth parameter is the captured span (undefined since no active span in test)
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(['route1', 'route2'], route, undefined, undefined);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(
+        ['route1', 'route2'],
+        route,
+        expect.objectContaining({ pathname: '/default' }), // Falls back to WINDOW.location
+        undefined,
+      );
     });
 
     it('should handle functions that throw exceptions', () => {
@@ -139,9 +160,12 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       const proxy = createAsyncHandlerProxy(originalFunction, route, handlerKey, mockProcessResolvedRoutes);
       proxy();
 
-      // The third parameter is the captured location (undefined in jsdom test environment)
-      // The fourth parameter is the captured span (undefined since no active span in test)
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith([], route, undefined, undefined);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(
+        [],
+        route,
+        expect.objectContaining({ pathname: '/default' }), // Falls back to WINDOW.location
+        undefined,
+      );
     });
   });
 
@@ -729,6 +753,58 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       expect(typeof route.handle!['0']).toBe('function');
       expect(typeof route.handle!['special-name']).toBe('function');
       expect(typeof route.handle!['with spaces']).toBe('function');
+    });
+  });
+
+  describe('captureCurrentLocation edge cases', () => {
+    afterEach(() => {
+      (WINDOW as any).location = { pathname: '/default', search: '', hash: '' };
+      // Clean up any leaked navigation contexts
+      let ctx;
+      while ((ctx = getNavigationContext()) !== null) {
+        clearNavigationContext((ctx as any).token);
+      }
+    });
+
+    it('should use navigation context targetPath when defined', () => {
+      const token = setNavigationContext('/original-route', undefined);
+      (WINDOW as any).location = { pathname: '/different-route', search: '', hash: '' };
+
+      const originalFunction = vi.fn(() => [{ path: '/child' }]);
+      const route: RouteObject = { path: '/test' };
+
+      const proxy = createAsyncHandlerProxy(originalFunction, route, 'handler', mockProcessResolvedRoutes);
+      proxy();
+
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(
+        [{ path: '/child' }],
+        route,
+        expect.objectContaining({ pathname: '/original-route' }),
+        undefined,
+      );
+
+      clearNavigationContext(token);
+    });
+
+    it('should not fall back to WINDOW.location when targetPath is undefined', () => {
+      // targetPath can be undefined when patchRoutesOnNavigation is called with args.path = undefined
+      const token = setNavigationContext(undefined, undefined);
+      (WINDOW as any).location = { pathname: '/wrong-route-from-window', search: '', hash: '' };
+
+      const originalFunction = vi.fn(() => [{ path: '/child' }]);
+      const route: RouteObject = { path: '/test' };
+
+      const proxy = createAsyncHandlerProxy(originalFunction, route, 'handler', mockProcessResolvedRoutes);
+      proxy();
+
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(
+        [{ path: '/child' }],
+        route,
+        undefined, // Does not fall back to WINDOW.location
+        undefined,
+      );
+
+      clearNavigationContext(token);
     });
   });
 });

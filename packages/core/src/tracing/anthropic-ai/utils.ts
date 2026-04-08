@@ -1,32 +1,59 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import type { SpanStatusType } from '../../types-hoist/spanStatus';
 import {
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
-import { ANTHROPIC_AI_INSTRUMENTED_METHODS } from './constants';
-import type { AnthropicAiInstrumentedMethod, AnthropicAiResponse } from './types';
-
-/**
- * Check if a method path should be instrumented
- */
-export function shouldInstrument(methodPath: string): methodPath is AnthropicAiInstrumentedMethod {
-  return ANTHROPIC_AI_INSTRUMENTED_METHODS.includes(methodPath as AnthropicAiInstrumentedMethod);
-}
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import type { AnthropicAiResponse } from './types';
 
 /**
  * Set the messages and messages original length attributes.
+ * Extracts system instructions before truncation.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {
-  const length = Array.isArray(messages) ? messages.length : undefined;
-  if (length !== 0) {
+  if (Array.isArray(messages) && messages.length === 0) {
+    return;
+  }
+
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
+
+  if (systemInstructions) {
     span.setAttributes({
-      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-      [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: length,
+      [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: systemInstructions,
     });
   }
+
+  const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 1;
+  span.setAttributes({
+    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+  });
+}
+
+const ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS: Record<string, SpanStatusType> = {
+  invalid_request_error: 'invalid_argument',
+  authentication_error: 'unauthenticated',
+  permission_error: 'permission_denied',
+  not_found_error: 'not_found',
+  request_too_large: 'failed_precondition',
+  rate_limit_error: 'resource_exhausted',
+  api_error: 'internal_error',
+  overloaded_error: 'unavailable',
+};
+
+/**
+ * Map an Anthropic API error type to a SpanStatusType value.
+ * @see https://docs.anthropic.com/en/api/errors#error-shapes
+ */
+export function mapAnthropicErrorToStatusMessage(errorType: string | undefined): SpanStatusType {
+  if (!errorType) {
+    return 'internal_error';
+  }
+  return ANTHROPIC_ERROR_TYPE_TO_SPAN_STATUS[errorType] || 'internal_error';
 }
 
 /**
@@ -35,7 +62,7 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
  */
 export function handleResponseError(span: Span, response: AnthropicAiResponse): void {
   if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'internal_error' });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatusMessage(response.error.type) });
 
     captureException(response.error, {
       mechanism: {

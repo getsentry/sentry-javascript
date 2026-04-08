@@ -65,59 +65,11 @@ env:
 
 jobs:
   job_get_metadata:
-    name: Get Metadata
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/ci-metadata.yml
+    with:
+      head_commit: ${{ github.event.inputs.commit || github.sha }}
     permissions:
       pull-requests: read
-    steps:
-      - name: Check out current commit
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
-          # also its parents, so that we can pull the commit message from the head commit of the PR
-          fetch-depth: 2
-
-      - name: Get metadata
-        id: get_metadata
-        # We need to try a number of different options for finding the head commit, because each kind of trigger event
-        # stores it in a different location
-        run: |
-          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
-          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
-          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
-
-      # Most changed packages are determined in job_build via Nx
-      - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.1
-        id: changed
-        with:
-          filters: |
-            workflow:
-              - '.github/**'
-            any_code:
-              - '!**/*.md'
-
-      - name: Get PR labels
-        id: pr-labels
-        uses: mydea/pr-labels-action@fn/bump-node20
-
-    outputs:
-      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
-      # Note: These next three have to be checked as strings ('true'/'false')!
-      is_base_branch:
-        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
-      is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
-      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
-
-      # When merging into master, or from master
-      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
-      has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
-      force_skip_cache:
-        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
-        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
   job_build:
     name: Build
@@ -175,13 +127,10 @@ jobs:
             'nx-never-restore'}}
 
       - name: Build packages
-        # Set the CODECOV_TOKEN for Bundle Analysis
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: build-output
           path: ${{ env.CACHED_BUILD_PATHS }}
@@ -194,6 +143,9 @@ jobs:
       changed_node_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-integration-tests') }}
+      changed_node_core_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-core-integration-tests') }}
       changed_remix:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/remix') }}
@@ -222,7 +174,7 @@ jobs:
       pull-requests: write
     steps:
       - name: PR is opened against master
-        uses: mshick/add-pr-comment@dd126dd8c253650d181ad9538d8b4fa218fc31e8
+        uses: mshick/add-pr-comment@e7516d74559b5514092f5b096ed29a629a1237c6
         if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
         with:
           message: |
@@ -307,16 +259,29 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check for duplicate dependencies in lockfile
-        # Run `yarn dedupe-deps:fix` locally to resolve any duplicates.
-        run: yarn dedupe-deps:check
       - name: Lint source files
-        run: yarn lint:lerna
+        run: yarn lint
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
+  job_check_lockfile:
+    name: Check lockfile
+    needs: [job_get_metadata]
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
       - name: Check that yarn.lock is stable
-        run: yarn && git diff --exit-code yarn.lock
+        run: yarn install --frozen-lockfile --ignore-engines
+      - name: Check for duplicate dependencies in lockfile
+        run: yarn dedupe-deps:check
 
   job_check_format:
     name: Check file formatting
@@ -339,7 +304,7 @@ jobs:
         id: install_dependencies
 
       - name: Check file formatting
-        run: yarn lint:prettier
+        run: yarn format:check
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -386,7 +351,7 @@ jobs:
         run: yarn build:tarball
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}
           retention-days: 90
@@ -431,18 +396,12 @@ jobs:
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
 
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -538,18 +497,13 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
 
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_browser_playwright_tests:
     name:
@@ -566,19 +520,24 @@ jobs:
           - esm
           - bundle
           - bundle_min
+          - bundle_logs_metrics
           - bundle_replay
+          - bundle_replay_logs_metrics
           - bundle_tracing
+          - bundle_tracing_logs_metrics
           - bundle_tracing_replay
+          - bundle_tracing_replay_logs_metrics
           - bundle_tracing_replay_feedback
-          - bundle_tracing_replay_feedback_min
+          - bundle_tracing_replay_feedback_logs_metrics
+          - bundle_tracing_replay_feedback_logs_metrics_min
         project:
           - chromium
         include:
           # Only check all projects for full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
-          - bundle: bundle_tracing_replay_feedback_min
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
             project: chromium
@@ -629,7 +588,7 @@ jobs:
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name:
@@ -639,13 +598,16 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name:
+            browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
+            matrix.shard) || '' }}
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -692,7 +654,7 @@ jobs:
           yarn test:loader
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
@@ -700,13 +662,14 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
+        uses: getsentry/codecov-action@main
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -774,13 +737,65 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: node-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || '' }}
+
+  job_node_core_integration_tests:
+    name:
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Node-Core
+      Integration Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_node_core_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
+        typescript:
+          - false
+        include:
+          # Only check typescript for latest version (to streamline CI)
+          - node: 24
+            typescript: '3.8'
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Overwrite typescript version
+        if: matrix.typescript == '3.8'
+        run: node ./scripts/use-ts-3_8.js
+        working-directory: dev-packages/node-core-integration-tests
+
+      - name: Run integration tests
+        working-directory: dev-packages/node-core-integration-tests
+        run: yarn test
+
+      - name: Parse and Upload Coverage
+        if: cancelled() == false
+        continue-on-error: true
+        uses: getsentry/codecov-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: dev-packages/node-core-integration-tests
+          name:
+            node-core-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || ''}}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -841,13 +856,14 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: packages/remix
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.node }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -945,7 +961,7 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
-        if: matrix.test-application == 'node-exports-test-app'
+        if: contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless'
@@ -953,6 +969,11 @@ jobs:
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Deno
+        if: matrix.test-application == 'deno'
+        uses: denoland/setup-deno@v2.0.3
+        with:
+          deno-version: v2.1.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1009,7 +1030,7 @@ jobs:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
@@ -1023,7 +1044,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1032,13 +1053,14 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Upload test results to Codecov
+      - name: Parse and Upload Coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: dev-packages/e2e-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: e2e-${{ matrix.test-application }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
@@ -1135,7 +1157,7 @@ jobs:
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
@@ -1154,6 +1176,7 @@ jobs:
         job_deno_unit_tests,
         job_node_unit_tests,
         job_node_integration_tests,
+        job_node_core_integration_tests,
         job_cloudflare_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
@@ -1161,6 +1184,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
+        job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
         job_size_check,

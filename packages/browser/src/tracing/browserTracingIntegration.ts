@@ -11,6 +11,7 @@ import type {
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
+  consoleSandbox,
   dateTimestampInSeconds,
   debug,
   generateSpanId,
@@ -39,7 +40,6 @@ import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
-  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -53,6 +53,22 @@ import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
+/**
+ * We don't want to start a bunch of idle timers and PerformanceObservers
+ * for web crawlers, as they may prevent the page from being seen as "idle"
+ * by the crawler's rendering engine (e.g. Googlebot's headless Chromium).
+ */
+const BOT_USER_AGENT_RE =
+  /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
+
+function _isBotUserAgent(): boolean {
+  const nav = WINDOW.navigator as Navigator | undefined;
+  if (!nav?.userAgent) {
+    return false;
+  }
+  return BOT_USER_AGENT_RE.test(nav.userAgent);
+}
 
 interface RouteInfo {
   name: string | undefined;
@@ -130,12 +146,10 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
-   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
-   * information and add it to the corresponding transaction.
-   *
-   * Default: true
+   * @deprecated This option is no longer used. Element timing is now tracked via the standalone
+   * `elementTimingIntegration`. Add it to your `integrations` array to collect element timing metrics.
    */
-  enableElementTiming: boolean;
+  enableElementTiming?: boolean;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -321,7 +335,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
-  enableElementTiming: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   detectRedirects: true,
@@ -342,6 +355,15 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
+  if ('enableElementTiming' in options) {
+    consoleSandbox(() => {
+      // oxlint-disable-next-line no-console
+      console.warn(
+        '[Sentry] `enableElementTiming` is deprecated and no longer has any effect. Use the standalone `elementTimingIntegration` instead.',
+      );
+    });
+  }
+
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
@@ -355,7 +377,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const {
     enableInp,
-    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
     _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
@@ -383,6 +404,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ...options,
   };
+
+  const _isBot = _isBotUserAgent();
 
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
@@ -484,6 +507,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
     setup(client) {
+      if (_isBot) {
+        DEBUG_BUILD && debug.log('[Tracing] Skipping browserTracingIntegration setup for bot user agent.');
+        return;
+      }
+
       registerSpanErrorInstrumentation();
 
       _collectWebVitals = startTrackingWebVitals({
@@ -496,15 +524,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         startTrackingINP();
       }
 
-      if (enableElementTiming) {
-        startTrackingElementTiming();
-      }
-
       if (
         enableLongAnimationFrame &&
         GLOBAL_OBJ.PerformanceObserver &&
-        PerformanceObserver.supportedEntryTypes &&
-        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+        PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')
       ) {
         startTrackingLongAnimationFrames();
       } else if (enableLongTask) {
@@ -594,8 +617,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         }
         maybeEndActiveSpan();
 
-        const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
-        const baggage = traceOptions.baggage || getMetaContent('baggage');
+        const sentryTrace =
+          traceOptions.sentryTrace || getMetaContent('sentry-trace') || getServerTiming('sentry-trace');
+        const baggage = traceOptions.baggage || getMetaContent('baggage') || getServerTiming('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
@@ -629,6 +653,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     },
 
     afterAllSetup(client) {
+      if (_isBot) {
+        return;
+      }
+
       let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
@@ -776,6 +804,13 @@ export function getMetaContent(metaName: string): string | undefined {
 
   const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
   return metaTag?.getAttribute('content') || undefined;
+}
+
+/** Returns the description of a server timing entry */
+export function getServerTiming(name: string): string | undefined {
+  const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
+  const entry = navigation?.serverTiming?.find(entry => entry.name === name);
+  return entry?.description;
 }
 
 /** Start listener for interaction transactions */

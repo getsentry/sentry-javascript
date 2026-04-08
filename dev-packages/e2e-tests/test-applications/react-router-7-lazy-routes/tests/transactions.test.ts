@@ -1228,3 +1228,396 @@ test('Query/hash navigation does not corrupt transaction name', async ({ page })
   const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
   expect(corruptedToRoot.length).toBe(0);
 });
+
+// Regression: Pageload to slow lazy route should get parameterized name even if span ends early
+test('Slow lazy route pageload with early span end still gets parameterized route name (regression)', async ({
+  page,
+}) => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/slow-fetch') ?? false)
+    );
+  });
+
+  // idleTimeout=300 ends span before 500ms lazy route loads, timeout=1000 waits for lazy routes
+  await page.goto('/slow-fetch/123?idleTimeout=300&timeout=1000');
+
+  const event = await transactionPromise;
+
+  expect(event.transaction).toBe('/slow-fetch/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+
+  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  expect(['idleTimeout', 'externalFinish']).toContain(idleSpanFinishReason);
+});
+
+// Regression: Wildcard route names should be upgraded to parameterized routes when lazy routes load
+test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }) => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  await page.goto('/wildcard-lazy/456?idleTimeout=300&timeout=1000');
+
+  const event = await transactionPromise;
+
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+// Regression: Navigation to slow lazy route should get parameterized name even if span ends early.
+// Network activity from dynamic imports extends the idle timeout until lazy routes load.
+test('Slow lazy route navigation with early span end still gets parameterized route name (regression)', async ({
+  page,
+}) => {
+  // Configure short idle timeout (300ms) but longer lazy route timeout (1000ms)
+  await page.goto('/?idleTimeout=300&timeout=1000');
+
+  // Wait for pageload to complete
+  await page.waitForTimeout(500);
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
+  // The dynamic import creates network activity that extends the span lifetime
+  const wildcardLazyLink = page.locator('id=navigation-to-wildcard-lazy');
+  await expect(wildcardLazyLink).toBeVisible();
+  await wildcardLazyLink.click();
+
+  const event = await navigationPromise;
+
+  // The navigation transaction should have the parameterized route name
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
+  page,
+}) => {
+  // Validates fix for race condition where captureCurrentLocation would use stale WINDOW.location.
+  // Navigate to slow route, then quickly to another route before lazy handler resolves.
+  await page.goto('/');
+
+  const allNavigationTransactions: Array<{ name: string; traceId: string }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+      allNavigationTransactions.push({
+        name: transactionEvent.transaction,
+        traceId: transactionEvent.contexts.trace.trace_id || '',
+      });
+    }
+    return allNavigationTransactions.length >= 2;
+  });
+
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await expect(slowFetchLink).toBeVisible();
+  await slowFetchLink.click();
+
+  // Navigate away quickly before slow-fetch's async handler resolves
+  await page.waitForTimeout(50);
+
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+
+  await page.waitForTimeout(2000);
+
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
+  ]).catch(() => {});
+
+  expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // /another-lazy transaction must have correct name (not corrupted by slow-fetch handler)
+  const anotherLazyTransaction = allNavigationTransactions.find(t => t.name.startsWith('/another-lazy/sub'));
+  expect(anotherLazyTransaction).toBeDefined();
+
+  const corruptedToRoot = allNavigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+
+  if (allNavigationTransactions.length >= 2) {
+    const uniqueNames = new Set(allNavigationTransactions.map(t => t.name));
+    expect(uniqueNames.size).toBe(allNavigationTransactions.length);
+  }
+});
+
+test('Second navigation span is not corrupted by first slow lazy handler completing late', async ({ page }) => {
+  // Validates fix for race condition where slow lazy handler would update the wrong span.
+  // Navigate to slow route (which fetches /api/slow-data), then quickly to fast route.
+  // Without fix: second transaction gets wrong name and/or contains leaked spans.
+
+  await page.goto('/');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allNavigationTransactions: Array<{ name: string; traceId: string; spans: any[] }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+      allNavigationTransactions.push({
+        name: transactionEvent.transaction,
+        traceId: transactionEvent.contexts.trace.trace_id || '',
+        spans: transactionEvent.spans || [],
+      });
+    }
+    return false;
+  });
+
+  // Navigate to slow-fetch (500ms lazy delay, fetches /api/slow-data)
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await expect(slowFetchLink).toBeVisible();
+  await slowFetchLink.click();
+
+  // Wait 150ms (before 500ms lazy loading completes), then navigate away
+  await page.waitForTimeout(150);
+
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+
+  // Wait for slow-fetch lazy handler to complete and transactions to be sent
+  await page.waitForTimeout(2000);
+
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
+  ]).catch(() => {});
+
+  expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // /another-lazy transaction must have correct name, not "/slow-fetch/:id"
+  const anotherLazyTransaction = allNavigationTransactions.find(t => t.name.startsWith('/another-lazy/sub'));
+  expect(anotherLazyTransaction).toBeDefined();
+
+  // Key assertion 2: /another-lazy transaction must NOT contain spans from /slow-fetch route
+  // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading
+  if (anotherLazyTransaction) {
+    const leakedSpans = anotherLazyTransaction.spans.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (span: any) => span.description?.includes('slow-data') || span.data?.url?.includes('slow-data'),
+    );
+    expect(leakedSpans.length).toBe(0);
+  }
+
+  // Key assertion 3: If slow-fetch transaction exists, verify it has the correct name
+  // (not corrupted to /another-lazy)
+  const slowFetchTransaction = allNavigationTransactions.find(t => t.name.includes('slow-fetch'));
+  if (slowFetchTransaction) {
+    expect(slowFetchTransaction.name).toMatch(/\/slow-fetch/);
+    // Verify slow-fetch transaction doesn't contain spans that belong to /another-lazy
+    const wrongSpans = slowFetchTransaction.spans.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (span: any) => span.description?.includes('another-lazy') || span.data?.url?.includes('another-lazy'),
+    );
+    expect(wrongSpans.length).toBe(0);
+  }
+});
+
+// lazyRouteManifest: provides parameterized name when lazy routes don't resolve in time
+test('Route manifest provides correct name when navigation span ends before lazy route resolves', async ({ page }) => {
+  // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
+  await page.goto('/?idleTimeout=50&timeout=0');
+
+  // Wait for pageload to complete
+  await page.waitForTimeout(200);
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
+  const wildcardLazyLink = page.locator('id=navigation-to-wildcard-lazy');
+  await expect(wildcardLazyLink).toBeVisible();
+  await wildcardLazyLink.click();
+
+  const event = await navigationPromise;
+
+  // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({ page }) => {
+  // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  await page.goto('/wildcard-lazy/123?idleTimeout=50&timeout=0');
+
+  const event = await pageloadPromise;
+
+  // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('GQL fetch span is attributed to the correct navigation transaction when navigating from index to lazy GQL page', async ({
+  page,
+}) => {
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/'
+    );
+  });
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-a/fetch'
+    );
+  });
+
+  await page.goto('/');
+  const pageloadEvent = await pageloadPromise;
+
+  // Pageload should NOT contain any /api/graphql spans (neither UserAQuery nor UserBQuery)
+  const pageloadSpans = pageloadEvent.spans || [];
+  const pageloadGqlSpans = pageloadSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' &&
+      (span.description?.includes('/api/graphql') || span.data?.url?.includes('/api/graphql')),
+  );
+  expect(pageloadGqlSpans.length).toBe(0);
+
+  // Navigate to lazy GQL page A
+  const gqlLink = page.locator('id=navigation-to-gql-a');
+  await expect(gqlLink).toBeVisible();
+  await gqlLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Verify the lazy GQL page rendered
+  await expect(page.locator('id=gql-page-a')).toBeVisible();
+
+  // Verify the navigation transaction has the correct name
+  expect(navigationEvent.transaction).toBe('/lazy-gql-a/fetch');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+
+  // Verify the UserAQuery GQL fetch span is inside this navigation transaction
+  const navSpans = navigationEvent.spans || [];
+  const userASpans = navSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(userASpans.length).toBe(1);
+
+  // Verify NO UserBQuery spans leaked into this transaction
+  const userBSpans = navSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(userBSpans.length).toBe(0);
+});
+
+test('GQL fetch spans are attributed to correct navigation transactions when navigating between two lazy GQL pages', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.waitForTimeout(500);
+
+  // Navigate to GQL page A
+  const firstNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-a/fetch'
+    );
+  });
+
+  const gqlALink = page.locator('id=navigation-to-gql-a');
+  await expect(gqlALink).toBeVisible();
+  await gqlALink.click();
+
+  const firstNavEvent = await firstNavPromise;
+  await expect(page.locator('id=gql-page-a')).toBeVisible();
+
+  // First navigation should have exactly the UserAQuery span
+  const firstNavSpans = firstNavEvent.spans || [];
+  const firstUserASpans = firstNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(firstUserASpans.length).toBe(1);
+
+  // First navigation must NOT contain UserBQuery spans
+  const firstUserBSpans = firstNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(firstUserBSpans.length).toBe(0);
+
+  // Now navigate from GQL page A to GQL page B
+  const secondNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy-gql-b/fetch'
+    );
+  });
+
+  const gqlBLink = page.locator('id=navigate-to-gql-b');
+  await expect(gqlBLink).toBeVisible();
+  await gqlBLink.click();
+
+  const secondNavEvent = await secondNavPromise;
+  await expect(page.locator('id=gql-page-b')).toBeVisible();
+
+  // Second navigation should have exactly the UserBQuery span
+  const secondNavSpans = secondNavEvent.spans || [];
+  const secondUserBSpans = secondNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserBQuery') || span.data?.url?.includes('UserBQuery')),
+  );
+  expect(secondUserBSpans.length).toBe(1);
+
+  // Second navigation must NOT contain UserAQuery spans (no leaking from first nav)
+  const secondUserASpans = secondNavSpans.filter(
+    (span: { op?: string; description?: string; data?: { url?: string } }) =>
+      span.op === 'http.client' && (span.description?.includes('UserAQuery') || span.data?.url?.includes('UserAQuery')),
+  );
+  expect(secondUserASpans.length).toBe(0);
+
+  // Verify the two transactions have different trace IDs
+  const firstTraceId = firstNavEvent.contexts?.trace?.trace_id;
+  const secondTraceId = secondNavEvent.contexts?.trace?.trace_id;
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(firstTraceId).not.toBe(secondTraceId);
+});

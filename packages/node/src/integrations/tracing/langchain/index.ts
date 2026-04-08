@@ -103,9 +103,10 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
  * ## Supported Events
  *
  * The integration captures the following LangChain lifecycle events:
- * - LLM/Chat Model: start, end, error
- * - Chain: start, end, error
- * - Tool: start, end, error
+ * - LLM/Chat Model: start, end, error (via callbacks)
+ * - Chain: start, end, error (via callbacks)
+ * - Tool: start, end, error (via callbacks)
+ * - Embeddings: embedQuery, embedDocuments (via direct method wrapping)
  *
  */
 export const langChainIntegration = defineIntegration(_langChainIntegration);

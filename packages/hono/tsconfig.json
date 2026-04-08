@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
+  "compilerOptions": {
+    "module": "esnext",
+    "types": ["node", "@cloudflare/workers-types"]
+  }
+}

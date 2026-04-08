@@ -1,4 +1,5 @@
-const { ApolloServer, gql } = require('apollo-server');
+const { ApolloServer } = require('@apollo/server');
+const gql = require('graphql-tag');
 const Sentry = require('@sentry/node');
 
 module.exports = () => {
@@ -29,7 +30,6 @@ module.exports = () => {
         },
       },
       introspection: false,
-      debug: false,
     });
   });
 };

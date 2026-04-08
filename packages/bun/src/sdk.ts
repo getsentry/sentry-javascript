@@ -20,6 +20,7 @@ import {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  processSessionIntegration,
 } from '@sentry/node';
 import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
@@ -47,6 +48,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     contextLinesIntegration(),
     nodeContextIntegration(),
     modulesIntegration(),
+    processSessionIntegration(),
     // Bun Specific
     bunServerIntegration(),
     ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
@@ -103,7 +105,7 @@ export function init(userOptions: BunOptions = {}): NodeClient | undefined {
   const options = {
     ...userOptions,
     platform: 'javascript',
-    runtime: { name: 'bun', version: Bun.version },
+    runtime: { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 

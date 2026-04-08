@@ -9,10 +9,6 @@ import { spanHasAttributes } from './spanTypes';
  * @returns boolean
  */
 export function isSentryRequestSpan(span: AbstractSpan): boolean {
-  // NOTE: `@sentry/nextjs` has a local copy of this helper for Edge bundles:
-  // - `packages/nextjs/src/common/utils/dropMiddlewareTunnelRequests.ts` (`isSentryRequestSpan`)
-  //
-  // If you change supported OTEL attribute keys or request detection logic, update that file too.
   if (!spanHasAttributes(span)) {
     return false;
   }

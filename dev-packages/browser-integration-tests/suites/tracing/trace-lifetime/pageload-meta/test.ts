@@ -64,7 +64,7 @@ sentryTest(
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     // navigation span is head of trace, so there's no parent span:
-    expect(navigationTraceContext?.trace_id).not.toHaveProperty('parent_span_id');
+    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
     expect(navigationTraceHeader).toEqual({
       environment: 'production',

@@ -1,5 +1,5 @@
 import { captureException, flushIfServerless } from '@sentry/core';
-import type { ActionFunctionArgs, HandleErrorFunction, LoaderFunctionArgs } from 'react-router';
+import type { HandleErrorFunction } from 'react-router';
 
 export type SentryHandleErrorOptions = {
   logErrors?: boolean;
@@ -11,10 +11,7 @@ export type SentryHandleErrorOptions = {
  * @returns A Sentry-instrumented handleError function
  */
 export function createSentryHandleError({ logErrors = false }: SentryHandleErrorOptions): HandleErrorFunction {
-  const handleError = async function handleError(
-    error: unknown,
-    args: LoaderFunctionArgs | ActionFunctionArgs,
-  ): Promise<void> {
+  const handleError: HandleErrorFunction = async function handleError(error, args): Promise<void> {
     // React Router may abort some interrupted requests, don't report those
     if (!args.request.signal.aborted) {
       captureException(error, {

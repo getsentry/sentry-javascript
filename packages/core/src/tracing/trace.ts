@@ -291,6 +291,11 @@ export function suppressTracing<T>(callback: () => T): T {
  *            or page will automatically create a new trace.
  */
 export function startNewTrace<T>(callback: () => T): T {
+  const acs = getAcs();
+  if (acs.startNewTrace) {
+    return acs.startNewTrace(callback);
+  }
+
   return withScope(scope => {
     scope.setPropagationContext({
       traceId: generateTraceId(),

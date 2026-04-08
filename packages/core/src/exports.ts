@@ -16,6 +16,7 @@ import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
+import { getCombinedScopeData } from './utils/scopeData';
 import { timestampInSeconds } from './utils/time';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -109,6 +110,15 @@ export function setTag(key: string, value: Primitive): void {
  */
 export function setUser(user: User | null): void {
   getIsolationScope().setUser(user);
+}
+
+/**
+ * Sets the conversation ID for the current isolation scope.
+ *
+ * @param conversationId The conversation ID to set. Pass `null` or `undefined` to unset the conversation ID.
+ */
+export function setConversationId(conversationId: string | null | undefined): void {
+  getIsolationScope().setConversationId(conversationId);
 }
 
 /**
@@ -261,13 +271,14 @@ export function addEventProcessor(callback: EventProcessor): void {
  */
 export function startSession(context?: SessionContext): Session {
   const isolationScope = getIsolationScope();
-  const currentScope = getCurrentScope();
+
+  const { user } = getCombinedScopeData(isolationScope, getCurrentScope());
 
   // Will fetch userAgent if called from browser sdk
   const { userAgent } = GLOBAL_OBJ.navigator || {};
 
   const session = makeSession({
-    user: currentScope.getUser() || isolationScope.getUser(),
+    user,
     ...(userAgent && { userAgent }),
     ...context,
   });

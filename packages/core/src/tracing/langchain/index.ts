@@ -3,7 +3,14 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { GEN_AI_OPERATION_NAME_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
+import { resolveAIRecordingOptions } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -26,8 +33,7 @@ import {
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
-  const recordInputs = options.recordInputs ?? false;
-  const recordOutputs = options.recordOutputs ?? false;
+  const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
@@ -92,10 +98,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       startSpanManual(
         {
           name: `${operationName} ${modelName}`,
-          op: 'gen_ai.pipeline',
+          op: 'gen_ai.chat',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.pipeline',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           },
         },
         span => {
@@ -165,7 +171,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleLLMError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'llm_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 
@@ -178,8 +184,17 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain Start Handler
-    handleChainStart(chain: { name?: string }, inputs: Record<string, unknown>, runId: string, _parentRunId?: string) {
-      const chainName = chain.name || 'unknown_chain';
+    handleChainStart(
+      chain: { name?: string },
+      inputs: Record<string, unknown>,
+      runId: string,
+      _parentRunId?: string,
+      _tags?: string[],
+      _metadata?: Record<string, unknown>,
+      _runType?: string,
+      runName?: string,
+    ) {
+      const chainName = runName || chain.name || 'unknown_chain';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
         'langchain.chain.name': chainName,
@@ -224,7 +239,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChainError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'chain_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 
@@ -241,12 +256,12 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const toolName = tool.name || 'unknown_tool';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-        'gen_ai.tool.name': toolName,
+        [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
       };
 
       // Add input if recordInputs is enabled
       if (recordInputs) {
-        attributes['gen_ai.tool.input'] = input;
+        attributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = input;
       }
 
       startSpanManual(
@@ -272,7 +287,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         // Add output if recordOutputs is enabled
         if (recordOutputs) {
           span.setAttributes({
-            'gen_ai.tool.output': JSON.stringify(output),
+            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: JSON.stringify(output),
           });
         }
         exitSpan(runId);
@@ -283,7 +298,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleToolError(error: Error, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'tool_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
 
@@ -319,3 +334,5 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
   return handler;
 }
+
+export { instrumentLangChainEmbeddings } from './embeddings';

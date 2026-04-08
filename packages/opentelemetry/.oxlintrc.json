@@ -1,0 +1,24 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.base.json"],
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
+  "env": {
+    "node": true
+  },
+  "rules": {
+    "sdk/no-unsafe-random-apis": "error"
+  },
+  "overrides": [
+    {
+      "files": ["test/**/*.ts", "test/**/*.tsx"],
+      "rules": {
+        "sdk/no-unsafe-random-apis": "off"
+      }
+    }
+  ]
+}

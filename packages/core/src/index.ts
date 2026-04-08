@@ -25,6 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
   isInitialized,
   isEnabled,
   startSession,
@@ -40,6 +41,9 @@ export {
   withIsolationScope,
   getClient,
   getTraceContextFromScope,
+  registerExternalPropagationContext,
+  getExternalPropagationContext,
+  hasExternalPropagationContext,
 } from './currentScopes';
 export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
@@ -48,7 +52,7 @@ export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
-export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
+export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
 export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
@@ -61,6 +65,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
+export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -69,6 +74,8 @@ export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
+export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export { handleTunnelRequest } from './utils/tunnel';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 // eslint-disable-next-line deprecation/deprecation
@@ -91,6 +98,7 @@ export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnSco
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export {
@@ -111,15 +119,24 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
+export type {
+  ExpressIntegrationOptions,
+  ExpressHandlerOptions,
+  ExpressMiddleware,
+  ExpressErrorMiddleware,
+} from './integrations/express/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
+export { instrumentPostgresJsSql } from './integrations/postgresjs';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -142,7 +159,8 @@ export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './tracing/vercel-ai';
-export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './tracing/vercel-ai/utils';
+export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
+export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient } from './tracing/openai';
 export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
 export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
@@ -150,7 +168,7 @@ export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants'
 export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
-export { createLangChainCallbackHandler } from './tracing/langchain';
+export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
 export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
@@ -217,6 +235,7 @@ export {
   addExceptionMechanism,
   addExceptionTypeValue,
   checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
   getEventDescription,
   parseSemver,
   uuid4,
@@ -313,6 +332,7 @@ export {
   getHttpSpanDetailsFromUrlObject,
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
 } from './utils/url';
 export {
   eventFromMessage,
@@ -393,7 +413,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
@@ -527,3 +547,4 @@ export {
   safeMathRandom as _INTERNAL_safeMathRandom,
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';
+export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';

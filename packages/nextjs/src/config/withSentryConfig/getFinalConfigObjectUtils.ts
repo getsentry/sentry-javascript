@@ -1,5 +1,8 @@
-import { parseSemver } from '@sentry/core';
+import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { VercelCronsConfig } from '../../common/types';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
@@ -89,13 +92,59 @@ export function maybeCreateRouteManifest(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
+  // Handle deprecated option with warning
+  // eslint-disable-next-line deprecation/deprecation
   if (userSentryOptions.disableManifestInjection) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The `disableManifestInjection` option is deprecated. Use `routeManifestInjection: false` instead.',
+    );
+  }
+
+  // If explicitly disabled, skip
+  if (userSentryOptions.routeManifestInjection === false) {
     return undefined;
   }
 
-  return createRouteManifest({
+  // Still check the deprecated option if the new option is not set
+  // eslint-disable-next-line deprecation/deprecation
+  if (userSentryOptions.routeManifestInjection === undefined && userSentryOptions.disableManifestInjection) {
+    return undefined;
+  }
+
+  const manifest = createRouteManifest({
     basePath: incomingUserNextConfigObject.basePath,
   });
+
+  // Apply route exclusion filter if configured
+  const excludeFilter = userSentryOptions.routeManifestInjection?.exclude;
+  return filterRouteManifest(manifest, excludeFilter);
+}
+
+type ExcludeFilter = ((route: string) => boolean) | (string | RegExp)[] | undefined;
+
+/**
+ * Filters routes from the manifest based on the exclude filter.
+ * (Exported only for testing)
+ */
+export function filterRouteManifest(manifest: RouteManifest, excludeFilter: ExcludeFilter): RouteManifest {
+  if (!excludeFilter) {
+    return manifest;
+  }
+
+  const shouldExclude = (route: string): boolean => {
+    if (typeof excludeFilter === 'function') {
+      return excludeFilter(route);
+    }
+
+    return excludeFilter.some(pattern => isMatchingPattern(route, pattern));
+  };
+
+  return {
+    staticRoutes: manifest.staticRoutes.filter(r => !shouldExclude(r.path)),
+    dynamicRoutes: manifest.dynamicRoutes.filter(r => !shouldExclude(r.path)),
+    isrRoutes: manifest.isrRoutes.filter(r => !shouldExclude(r)),
+  };
 }
 
 /**
@@ -200,4 +249,95 @@ export function getNextMajor(nextJsVersion: string | undefined): number | undefi
 
   const { major } = parseSemver(nextJsVersion);
   return major;
+}
+
+/**
+ * Reads the Vercel crons configuration from vercel.json.
+ * Returns undefined if vercel.json doesn't exist or doesn't contain crons.
+ */
+function readVercelCronsConfig(): VercelCronsConfig {
+  try {
+    const vercelJsonPath = path.join(process.cwd(), 'vercel.json');
+    const vercelJsonContents = fs.readFileSync(vercelJsonPath, 'utf8');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const cronsConfig = JSON.parse(vercelJsonContents).crons as VercelCronsConfig;
+
+    if (cronsConfig && Array.isArray(cronsConfig) && cronsConfig.length > 0) {
+      return cronsConfig;
+    }
+    return undefined;
+  } catch (e) {
+    if ((e as { code: string }).code === 'ENOENT') {
+      return undefined;
+    }
+    debug.error('[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation', e);
+    return undefined;
+  }
+}
+
+/** Strategy for Vercel cron monitoring instrumentation */
+export type VercelCronsStrategy = 'spans' | 'wrapper';
+
+export type VercelCronsConfigResult = {
+  /** The crons configuration from vercel.json, if available */
+  config: VercelCronsConfig;
+  /**
+   * The instrumentation strategy to use:
+   * - `spans`: New span-based approach (works for both App Router and Pages Router)
+   * - `wrapper`: Old wrapper-based approach (Pages Router only)
+   * - `undefined`: No cron monitoring enabled
+   */
+  strategy: VercelCronsStrategy | undefined;
+};
+
+/**
+ * Reads and returns the Vercel crons configuration from vercel.json along with
+ * information about which instrumentation approach to use.
+ *
+ * - `_experimental.vercelCronsMonitoring`: New span-based approach (works for both App Router and Pages Router)
+ * - `automaticVercelMonitors`: Old wrapper-based approach (Pages Router only)
+ *
+ * If both are enabled, the new approach is preferred and a warning is logged.
+ */
+export function maybeGetVercelCronsConfig(userSentryOptions: SentryBuildOptions): VercelCronsConfigResult {
+  const result: VercelCronsConfigResult = { config: undefined, strategy: undefined };
+
+  if (!process.env.VERCEL) {
+    return result;
+  }
+
+  const experimentalEnabled = userSentryOptions._experimental?.vercelCronsMonitoring === true;
+  const legacyEnabled = userSentryOptions.webpack?.automaticVercelMonitors === true;
+
+  if (!experimentalEnabled && !legacyEnabled) {
+    return result;
+  }
+
+  const config = readVercelCronsConfig();
+  if (!config) {
+    return result;
+  }
+
+  result.config = config;
+
+  if (experimentalEnabled && legacyEnabled) {
+    debug.warn(
+      "[@sentry/nextjs] Both '_experimental.vercelCronsMonitoring' and 'webpack.automaticVercelMonitors' are enabled. " +
+        "Using the new span-based approach from '_experimental.vercelCronsMonitoring'. " +
+        "You can remove 'webpack.automaticVercelMonitors' from your config.",
+    );
+    result.strategy = 'spans';
+  } else if (experimentalEnabled) {
+    debug.log(
+      '[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs using span-based instrumentation.',
+    );
+    result.strategy = 'spans';
+  } else {
+    debug.log(
+      "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in your Next.js config.",
+    );
+    result.strategy = 'wrapper';
+  }
+
+  return result;
 }

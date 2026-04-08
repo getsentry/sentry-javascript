@@ -1,3 +1,5 @@
+import { isContentMedia, stripInlineMediaFromSingleMessage } from './mediaStripping';
+
 /**
  * Default maximum size in bytes for GenAI messages.
  * Messages exceeding this limit will be truncated.
@@ -13,40 +15,20 @@ type ContentMessage = {
 };
 
 /**
+ * One block inside OpenAI / Anthropic `content: [...]` arrays (text, image_url, etc.).
+ */
+type ContentArrayBlock = {
+  [key: string]: unknown;
+  type: string;
+};
+
+/**
  * Message format used by OpenAI and Anthropic APIs for media.
  */
 type ContentArrayMessage = {
   [key: string]: unknown;
-  content: {
-    [key: string]: unknown;
-    type: string;
-  }[];
+  content: ContentArrayBlock[];
 };
-
-/**
- * Inline media content source, with a potentially very large base64
- * blob or data: uri.
- */
-type ContentMedia = Record<string, unknown> &
-  (
-    | {
-        media_type: string;
-        data: string;
-      }
-    | {
-        image_url: `data:${string}`;
-      }
-    | {
-        type: 'blob' | 'base64';
-        content: string;
-      }
-    | {
-        b64_json: string;
-      }
-    | {
-        uri: `data:${string}`;
-      }
-  );
 
 /**
  * Message format used by Google GenAI API.
@@ -71,6 +53,11 @@ type MediaPart = {
 };
 
 /**
+ * One element of an array-based message: OpenAI/Anthropic `content[]` or Google `parts`.
+ */
+type ArrayMessageItem = TextPart | MediaPart | ContentArrayBlock;
+
+/**
  * Calculate the UTF-8 byte length of a string.
  */
 const utf8Bytes = (text: string): number => {
@@ -85,12 +72,12 @@ const jsonBytes = (value: unknown): number => {
 };
 
 /**
- * Truncate a string to fit within maxBytes when encoded as UTF-8.
+ * Truncate a string to fit within maxBytes (inclusive) when encoded as UTF-8.
  * Uses binary search for efficiency with multi-byte characters.
  *
  * @param text - The string to truncate
- * @param maxBytes - Maximum byte length (UTF-8 encoded)
- * @returns Truncated string that fits within maxBytes
+ * @param maxBytes - Maximum byte length (inclusive, UTF-8 encoded)
+ * @returns Truncated string whose UTF-8 byte length is at most maxBytes
  */
 function truncateTextByBytes(text: string, maxBytes: number): string {
   if (utf8Bytes(text) <= maxBytes) {
@@ -118,31 +105,33 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
 }
 
 /**
- * Extract text content from a Google GenAI message part.
- * Parts are either plain strings or objects with a text property.
+ * Extract text content from a message item.
+ * Handles plain strings and objects with a text property.
  *
  * @returns The text content
  */
-function getPartText(part: TextPart | MediaPart): string {
-  if (typeof part === 'string') {
-    return part;
+function getItemText(item: ArrayMessageItem): string {
+  if (typeof item === 'string') {
+    return item;
   }
-  if ('text' in part) return part.text;
+  if ('text' in item && typeof item.text === 'string') {
+    return item.text;
+  }
   return '';
 }
 
 /**
- * Create a new part with updated text content while preserving the original structure.
+ * Create a new item with updated text content while preserving the original structure.
  *
- * @param part - Original part (string or object)
+ * @param item - Original item (string or object)
  * @param text - New text content
- * @returns New part with updated text
+ * @returns New item with updated text
  */
-function withPartText(part: TextPart | MediaPart, text: string): TextPart {
-  if (typeof part === 'string') {
+function withItemText(item: ArrayMessageItem, text: string): ArrayMessageItem {
+  if (typeof item === 'string') {
     return text;
   }
-  return { ...part, text };
+  return { ...item, text };
 }
 
 /**
@@ -162,36 +151,6 @@ function isContentMessage(message: unknown): message is ContentMessage {
  */
 function isContentArrayMessage(message: unknown): message is ContentArrayMessage {
   return message !== null && typeof message === 'object' && 'content' in message && Array.isArray(message.content);
-}
-
-/**
- * Check if a content part is an OpenAI/Anthropic media source
- */
-function isContentMedia(part: unknown): part is ContentMedia {
-  if (!part || typeof part !== 'object') return false;
-
-  return (
-    isContentMediaSource(part) ||
-    hasInlineData(part) ||
-    ('media_type' in part && typeof part.media_type === 'string' && 'data' in part) ||
-    ('image_url' in part && typeof part.image_url === 'string' && part.image_url.startsWith('data:')) ||
-    ('type' in part && (part.type === 'blob' || part.type === 'base64')) ||
-    'b64_json' in part ||
-    ('type' in part && 'result' in part && part.type === 'image_generation') ||
-    ('uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:'))
-  );
-}
-function isContentMediaSource(part: NonNullable<unknown>): boolean {
-  return 'type' in part && typeof part.type === 'string' && 'source' in part && isContentMedia(part.source);
-}
-function hasInlineData(part: NonNullable<unknown>): part is { inlineData: { data?: string } } {
-  return (
-    'inlineData' in part &&
-    !!part.inlineData &&
-    typeof part.inlineData === 'object' &&
-    'data' in part.inlineData &&
-    typeof part.inlineData.data === 'string'
-  );
 }
 
 /**
@@ -229,64 +188,87 @@ function truncateContentMessage(message: ContentMessage, maxBytes: number): unkn
 }
 
 /**
- * Truncate a message with `parts: [...]` format (Google GenAI).
- * Keeps as many complete parts as possible, only truncating the first part if needed.
+ * Extracts the array items and their key from an array-based message.
+ * Returns `null` key if neither `parts` nor `content` is a valid array.
+ */
+function getArrayItems(message: PartsMessage | ContentArrayMessage): {
+  key: 'parts' | 'content' | null;
+  items: ArrayMessageItem[];
+} {
+  if ('parts' in message && Array.isArray(message.parts)) {
+    return { key: 'parts', items: message.parts };
+  }
+  if ('content' in message && Array.isArray(message.content)) {
+    return { key: 'content', items: message.content };
+  }
+  return { key: null, items: [] };
+}
+
+/**
+ * Truncate a message with an array-based format.
+ * Handles both `parts: [...]` (Google GenAI) and `content: [...]` (OpenAI/Anthropic multimodal).
+ * Keeps as many complete items as possible, only truncating the first item if needed.
  *
- * @param message - Message with parts array
+ * @param message - Message with parts or content array
  * @param maxBytes - Maximum byte limit
  * @returns Array with truncated message, or empty array if it doesn't fit
  */
-function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[] {
-  const { parts } = message;
+function truncateArrayMessage(message: PartsMessage | ContentArrayMessage, maxBytes: number): unknown[] {
+  const { key, items } = getArrayItems(message);
 
-  // Calculate overhead by creating empty text parts
-  const emptyParts = parts.map(part => withPartText(part, ''));
-  const overhead = jsonBytes({ ...message, parts: emptyParts });
+  if (key === null || items.length === 0) {
+    return [];
+  }
+
+  // Calculate overhead by creating empty text items
+  const emptyItems = items.map(item => withItemText(item, ''));
+  const overhead = jsonBytes({ ...message, [key]: emptyItems });
   let remainingBytes = maxBytes - overhead;
 
   if (remainingBytes <= 0) {
     return [];
   }
 
-  // Include parts until we run out of space
-  const includedParts: (TextPart | MediaPart)[] = [];
+  // Include items until we run out of space
+  const includedItems: ArrayMessageItem[] = [];
 
-  for (const part of parts) {
-    const text = getPartText(part);
+  for (const item of items) {
+    const text = getItemText(item);
     const textSize = utf8Bytes(text);
 
     if (textSize <= remainingBytes) {
-      // Part fits: include it as-is
-      includedParts.push(part);
+      // Item fits: include it as-is
+      includedItems.push(item);
       remainingBytes -= textSize;
-    } else if (includedParts.length === 0) {
-      // First part doesn't fit: truncate it
+    } else if (includedItems.length === 0) {
+      // First item doesn't fit: truncate it
       const truncated = truncateTextByBytes(text, remainingBytes);
       if (truncated) {
-        includedParts.push(withPartText(part, truncated));
+        includedItems.push(withItemText(item, truncated));
       }
       break;
     } else {
-      // Subsequent part doesn't fit: stop here
+      // Subsequent item doesn't fit: stop here
       break;
     }
   }
 
   /* c8 ignore start
    * for type safety only, algorithm guarantees SOME text included */
-  if (includedParts.length <= 0) {
+  if (includedItems.length <= 0) {
     return [];
   } else {
     /* c8 ignore stop */
-    return [{ ...message, parts: includedParts }];
+    return [{ ...message, [key]: includedItems }];
   }
 }
 
 /**
  * Truncate a single message to fit within maxBytes.
  *
- * Supports two message formats:
+ * Supports three message formats:
  * - OpenAI/Anthropic: `{ ..., content: string }`
+ * - Vercel AI/OpenAI multimodal: `{ ..., content: Array<{type, text?, ...}> }`
  * - Google GenAI: `{ ..., parts: Array<string | {text: string} | non-text> }`
  *
  * @param message - The message to truncate
@@ -294,41 +276,28 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
  * @returns Array containing the truncated message, or empty array if truncation fails
  */
 function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
-  /* c8 ignore start - unreachable */
-  if (!message || typeof message !== 'object') {
+  if (!message) return [];
+
+  // Handle plain strings (e.g., embeddings input)
+  if (typeof message === 'string') {
+    const truncated = truncateTextByBytes(message, maxBytes);
+    return truncated ? [truncated] : [];
+  }
+
+  if (typeof message !== 'object') {
     return [];
   }
-  /* c8 ignore stop */
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
   }
 
-  if (isPartsMessage(message)) {
-    return truncatePartsMessage(message, maxBytes);
+  if (isContentArrayMessage(message) || isPartsMessage(message)) {
+    return truncateArrayMessage(message, maxBytes);
   }
 
   // Unknown message format: cannot truncate safely
   return [];
-}
-
-const REMOVED_STRING = '[Filtered]';
-
-const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri'] as const;
-
-function stripInlineMediaFromSingleMessage(part: ContentMedia): ContentMedia {
-  const strip = { ...part };
-  if (isContentMedia(strip.source)) {
-    strip.source = stripInlineMediaFromSingleMessage(strip.source);
-  }
-  // google genai inline data blob objects
-  if (hasInlineData(part)) {
-    strip.inlineData = { ...part.inlineData, data: REMOVED_STRING };
-  }
-  for (const field of MEDIA_FIELDS) {
-    if (typeof strip[field] === 'string') strip[field] = REMOVED_STRING;
-  }
-  return strip;
 }
 
 /**
@@ -374,19 +343,19 @@ function stripInlineMediaFromMessages(messages: unknown[]): unknown[] {
  * Truncate an array of messages to fit within a byte limit.
  *
  * Strategy:
- * - Keeps the newest messages (from the end of the array)
- * - Uses O(n) algorithm: precompute sizes once, then find largest suffix under budget
- * - If no complete messages fit, attempts to truncate the newest single message
+ * - Always keeps only the last (newest) message
+ * - Strips inline media from the message
+ * - Truncates the message content if it exceeds the byte limit
  *
  * @param messages - Array of messages to truncate
- * @param maxBytes - Maximum total byte limit for all messages
- * @returns Truncated array of messages
+ * @param maxBytes - Maximum total byte limit for the message
+ * @returns Array containing only the last message (possibly truncated)
  *
  * @example
  * ```ts
  * const messages = [msg1, msg2, msg3, msg4]; // newest is msg4
  * const truncated = truncateMessagesByBytes(messages, 10000);
- * // Returns [msg3, msg4] if they fit, or [msg4] if only it fits, etc.
+ * // Returns [msg4] (truncated if needed)
  * ```
  */
 function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown[] {
@@ -395,46 +364,26 @@ function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown
     return messages;
   }
 
-  // strip inline media first. This will often get us below the threshold,
-  // while preserving human-readable information about messages sent.
-  const stripped = stripInlineMediaFromMessages(messages);
+  // The result is always a single-element array that callers wrap with
+  // JSON.stringify([message]), so subtract the 2-byte array wrapper ("["  and "]")
+  // to ensure the final serialized value stays under the limit.
+  const effectiveMaxBytes = maxBytes - 2;
 
-  // Fast path: if all messages fit, return as-is
-  const totalBytes = jsonBytes(stripped);
-  if (totalBytes <= maxBytes) {
+  // Always keep only the last message
+  const lastMessage = messages[messages.length - 1];
+
+  // Strip inline media from the single message
+  const stripped = stripInlineMediaFromMessages([lastMessage]);
+  const strippedMessage = stripped[0];
+
+  // Check if it fits
+  const messageBytes = jsonBytes(strippedMessage);
+  if (messageBytes <= effectiveMaxBytes) {
     return stripped;
   }
 
-  // Precompute each message's JSON size once for efficiency
-  const messageSizes = stripped.map(jsonBytes);
-
-  // Find the largest suffix (newest messages) that fits within the budget
-  let bytesUsed = 0;
-  let startIndex = stripped.length; // Index where the kept suffix starts
-
-  for (let i = stripped.length - 1; i >= 0; i--) {
-    const messageSize = messageSizes[i];
-
-    if (messageSize && bytesUsed + messageSize > maxBytes) {
-      // Adding this message would exceed the budget
-      break;
-    }
-
-    if (messageSize) {
-      bytesUsed += messageSize;
-    }
-    startIndex = i;
-  }
-
-  // If no complete messages fit, try truncating just the newest message
-  if (startIndex === stripped.length) {
-    // we're truncating down to one message, so all others dropped.
-    const newestMessage = stripped[stripped.length - 1];
-    return truncateSingleMessage(newestMessage, maxBytes);
-  }
-
-  // Return the suffix that fits
-  return stripped.slice(startIndex);
+  // Truncate the single message if needed
+  return truncateSingleMessage(strippedMessage, effectiveMaxBytes);
 }
 
 /**

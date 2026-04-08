@@ -16,6 +16,9 @@ export class CloudflareClient extends ServerRuntimeClient {
   private _spanCompletionPromise: Promise<void> | null = null;
   private _resolveSpanCompletion: (() => void) | null = null;
 
+  private _unsubscribeSpanStart: (() => void) | null = null;
+  private _unsubscribeSpanEnd: (() => void) | null = null;
+
   /**
    * Creates a new Cloudflare SDK instance.
    * @param options Configuration options for this SDK.
@@ -37,7 +40,7 @@ export class CloudflareClient extends ServerRuntimeClient {
     this._flushLock = flushLock;
 
     // Track span lifecycle to know when to flush
-    this.on('spanStart', span => {
+    this._unsubscribeSpanStart = this.on('spanStart', span => {
       const spanId = span.spanContext().spanId;
       DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
       this._pendingSpans.add(spanId);
@@ -49,7 +52,7 @@ export class CloudflareClient extends ServerRuntimeClient {
       }
     });
 
-    this.on('spanEnd', span => {
+    this._unsubscribeSpanEnd = this.on('spanEnd', span => {
       const spanId = span.spanContext().spanId;
       DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
       this._pendingSpans.delete(spanId);
@@ -97,6 +100,33 @@ export class CloudflareClient extends ServerRuntimeClient {
     }
 
     return super.flush(timeout);
+  }
+
+  /**
+   * Disposes of the client and releases all resources.
+   *
+   * This method clears all Cloudflare-specific state in addition to the base client cleanup.
+   * It unsubscribes from span lifecycle events and clears pending span tracking.
+   *
+   * Call this method after flushing to allow the client to be garbage collected.
+   * After calling dispose(), the client should not be used anymore.
+   */
+  public override dispose(): void {
+    DEBUG_BUILD && debug.log('[CloudflareClient] Disposing client...');
+
+    super.dispose();
+
+    if (this._unsubscribeSpanStart) {
+      this._unsubscribeSpanStart();
+      this._unsubscribeSpanStart = null;
+    }
+    if (this._unsubscribeSpanEnd) {
+      this._unsubscribeSpanEnd();
+      this._unsubscribeSpanEnd = null;
+    }
+
+    this._resetSpanCompletionPromise();
+    (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
   }
 
   /**

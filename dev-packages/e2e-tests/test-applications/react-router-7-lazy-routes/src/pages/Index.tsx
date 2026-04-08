@@ -35,6 +35,14 @@ const Index = () => {
       <Link to="/slow-fetch/123" id="navigation-to-slow-fetch">
         Navigate to Slow Fetch Route (500ms delay with fetch)
       </Link>
+      <br />
+      <Link to="/wildcard-lazy/789" id="navigation-to-wildcard-lazy">
+        Navigate to Wildcard Lazy Route (500ms delay, no fetch)
+      </Link>
+      <br />
+      <Link to="/lazy-gql-a/fetch" id="navigation-to-gql-a">
+        Navigate to GQL Page A
+      </Link>
     </>
   );
 };

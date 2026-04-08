@@ -23,6 +23,7 @@ import {
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
+  stripDataUrlContent,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { XhrHint } from '@sentry-internal/browser-utils';
@@ -199,7 +200,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const fullUrl = getFullURL(handlerData.fetchData.url);
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
         createdSpan.setAttributes({
-          'http.url': fullUrl,
+          'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
           'server.address': host,
         });
 
@@ -331,31 +332,35 @@ function xhrCallback(
 
   const shouldCreateSpanResult = hasSpansEnabled() && shouldCreateSpan(url);
 
-  // check first if the request has finished and is tracked by an existing span which should now end
-  if (handlerData.endTimestamp && shouldCreateSpanResult) {
+  // Handle XHR completion - clean up spans from the record
+  if (handlerData.endTimestamp) {
     const spanId = xhr.__sentry_xhr_span_id__;
     if (!spanId) return;
 
     const span = spans[spanId];
-    if (span && sentryXhrData.status_code !== undefined) {
-      setHttpStatus(span, sentryXhrData.status_code);
-      span.end();
 
-      onRequestSpanEnd?.(span, {
-        headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
-        error: handlerData.error,
-      });
+    if (span) {
+      if (shouldCreateSpanResult && sentryXhrData.status_code !== undefined) {
+        setHttpStatus(span, sentryXhrData.status_code);
+        span.end();
+
+        onRequestSpanEnd?.(span, {
+          headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
+          error: handlerData.error,
+        });
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
+
     return undefined;
   }
 
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
 
-  const urlForSpanName = stripUrlQueryAndFragment(url);
+  const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
   const hasParent = !!getActiveSpan();
 
@@ -364,10 +369,10 @@ function xhrCallback(
       ? startInactiveSpan({
           name: `${method} ${urlForSpanName}`,
           attributes: {
-            url,
+            url: stripDataUrlContent(url),
             type: 'xhr',
             'http.method': method,
-            'http.url': fullUrl,
+            'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',

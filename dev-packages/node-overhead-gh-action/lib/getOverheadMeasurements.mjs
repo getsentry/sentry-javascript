@@ -28,6 +28,7 @@ async function getMeasurements(instrumentFile, autocannonCommand = 'yarn test:ge
     await killAppProcess();
     return result;
   } catch (error) {
+    //oxlint-disable-next-line restrict-template-expressions
     log(`Error running autocannon: ${error}`);
     await killAppProcess();
     throw error;

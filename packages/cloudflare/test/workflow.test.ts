@@ -6,14 +6,16 @@ import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
+const MOCK_STEP_CTX = { attempt: 1 };
+
 const mockStep: WorkflowStep = {
   do: vi
     .fn()
     .mockImplementation(
       async (
         _name: string,
-        configOrCallback: WorkflowStepConfig | (() => Promise<any>),
-        maybeCallback?: () => Promise<any>,
+        configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+        maybeCallback?: (...args: unknown[]) => Promise<any>,
       ) => {
         let count = 0;
 
@@ -22,11 +24,11 @@ const mockStep: WorkflowStep = {
 
           try {
             if (typeof configOrCallback === 'function') {
-              return await configOrCallback();
+              return await configOrCallback(MOCK_STEP_CTX);
             } else {
-              return await (maybeCallback ? maybeCallback() : Promise.resolve());
+              return await (maybeCallback ? maybeCallback(MOCK_STEP_CTX) : Promise.resolve());
             }
-          } catch (error) {
+          } catch {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
@@ -425,6 +427,26 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
         ],
       ],
     ]);
+  });
+
+  test('Forwards step context (ctx) to user callback', async () => {
+    const callbackSpy = vi.fn().mockResolvedValue({ ok: true });
+
+    class CtxTestWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('ctx step', callbackSpy);
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, CtxTestWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as CtxTestWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+    await workflow.run(event, mockStep);
+
+    expect(callbackSpy).toHaveBeenCalledTimes(1);
+    expect(callbackSpy).toHaveBeenCalledWith(MOCK_STEP_CTX);
   });
 
   test('Step.do span becomes child of surrounding custom span', async () => {

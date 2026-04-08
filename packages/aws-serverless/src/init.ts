@@ -109,7 +109,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
     }
   }
 
-  applySdkMetadata(opts, 'aws-serverless', ['aws-serverless'], sdkSource);
+  applySdkMetadata(opts, 'aws-serverless', ['aws-serverless', 'node'], sdkSource);
 
   return initWithoutDefaultIntegrations(opts);
 }

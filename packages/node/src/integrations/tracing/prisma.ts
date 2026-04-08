@@ -58,11 +58,15 @@ interface PrismaOptions {
    * @deprecated This is no longer used, v5 works out of the box.
    */
   prismaInstrumentation?: Instrumentation;
+  /**
+   * Configuration passed through to the {@link PrismaInstrumentation} constructor.
+   */
+  instrumentationConfig?: ConstructorParameters<typeof PrismaInstrumentation>[0];
 }
 
 class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
-  public constructor() {
-    super();
+  public constructor(options?: PrismaOptions) {
+    super(options?.instrumentationConfig);
   }
 
   public enable(): void {
@@ -165,8 +169,8 @@ function engineSpanKindToOTELSpanKind(engineSpanKind: V5EngineSpanKind): SpanKin
   }
 }
 
-export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATION_NAME, _options => {
-  return new SentryPrismaInteropInstrumentation();
+export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATION_NAME, options => {
+  return new SentryPrismaInteropInstrumentation(options);
 });
 
 /**
@@ -201,11 +205,11 @@ export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATIO
  *    }
  *    ```
  */
-export const prismaIntegration = defineIntegration((_options?: PrismaOptions) => {
+export const prismaIntegration = defineIntegration((options?: PrismaOptions) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentPrisma();
+      instrumentPrisma(options);
     },
     setup(client) {
       // If no tracing helper exists, we skip any work here

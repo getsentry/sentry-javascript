@@ -1,0 +1,12 @@
+{
+  "name": "cloudflare-worker-service-binding",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "services": [
+    {
+      "binding": "ANOTHER_WORKER",
+      "service": "cloudflare-service-binding-sub-worker",
+    },
+  ],
+}

@@ -35,3 +35,29 @@ sentryTest('manual LangChain instrumentation sends gen_ai transactions', async (
     'gen_ai.usage.total_tokens': 25,
   });
 });
+
+sentryTest(
+  'manual LangChain embeddings instrumentation sends gen_ai transactions',
+  async ({ getLocalTestUrl, page }) => {
+    const transactionPromise = waitForTransactionRequest(page, event => {
+      return !!event.transaction?.includes('text-embedding-3-small');
+    });
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    await page.goto(url);
+
+    const req = await transactionPromise;
+
+    const eventData = envelopeRequestParser(req);
+
+    expect(eventData.transaction).toBe('embeddings text-embedding-3-small');
+    expect(eventData.contexts?.trace?.op).toBe('gen_ai.embeddings');
+    expect(eventData.contexts?.trace?.origin).toBe('auto.ai.langchain');
+    expect(eventData.contexts?.trace?.data).toMatchObject({
+      'gen_ai.operation.name': 'embeddings',
+      'gen_ai.system': 'openai',
+      'gen_ai.request.model': 'text-embedding-3-small',
+      'gen_ai.request.dimensions': 1536,
+    });
+  },
+);

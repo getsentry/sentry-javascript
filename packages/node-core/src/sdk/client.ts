@@ -38,7 +38,8 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'node',
-      runtime: { name: 'node', version: global.process.version },
+      // Use provided runtime or default to 'node' with current process version
+      runtime: options.runtime || { name: 'node', version: global.process.version },
       serverName,
     };
 

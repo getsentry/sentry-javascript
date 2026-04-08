@@ -9,7 +9,6 @@ faster, so we can get back to enjoying technology. If you want to join us
 [<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
 
 [![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/CI:%20Build%20&%20Test/badge.svg)](https://github.com/getsentry/sentry-javascript/actions)
-[![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/develop/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 
@@ -70,7 +69,9 @@ package. Please refer to the README and instructions of those SDKs for more deta
   native crashes
 - [`@sentry/capacitor`](https://github.com/getsentry/sentry-capacitor): SDK for Capacitor Apps and Ionic with support
   for native crashes
+- [`@sentry/effect`](https://github.com/getsentry/sentry-javascript/tree/master/packages/effect): SDK for Effect (Alpha)
 - [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
+- [`@sentry/elysia`](https://github.com/getsentry/sentry-javascript/tree/master/packages/elysia): SDK for Elysia
 - [`@sentry/deno`](https://github.com/getsentry/sentry-javascript/tree/master/packages/deno): SDK for Deno
 - [`@sentry/cloudflare`](https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare): SDK for
   Cloudflare

@@ -39,7 +39,9 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
       // https://github.com/getsentry/sentry-javascript/issues/7813
       // Skip Error: lines
-      if (cleanedLine.match(/\S*Error: /)) {
+      // Using includes() instead of a regex to avoid O(n²) backtracking on long lines
+      // https://github.com/getsentry/sentry-javascript/issues/20052
+      if (cleanedLine.includes('Error: ')) {
         continue;
       }
 
@@ -176,4 +178,16 @@ export function getVueInternalName(value: VueViewModel | VNode): string {
   const isVNode = '__v_isVNode' in value && value.__v_isVNode;
 
   return isVNode ? '[VueVNode]' : '[VueViewModel]';
+}
+
+/**
+ * Normalizes stack line paths by removing file:// prefix and leading slashes for Windows paths
+ */
+export function normalizeStackTracePath(path: string | undefined): string | undefined {
+  let filename = path?.startsWith('file://') ? path.slice(7) : path;
+  // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
+  if (filename?.match(/\/[A-Z]:/)) {
+    filename = filename.slice(1);
+  }
+  return filename;
 }

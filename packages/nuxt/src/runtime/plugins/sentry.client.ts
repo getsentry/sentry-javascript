@@ -68,7 +68,7 @@ export default defineNuxtPlugin({
     nuxtApp.hook('app:error', error => {
       if (isNuxtError(error)) {
         // Do not report if status code is 3xx or 4xx
-        if (error.statusCode >= 300 && error.statusCode < 500) {
+        if (error?.statusCode && error.statusCode >= 300 && error.statusCode < 500) {
           return;
         }
       }

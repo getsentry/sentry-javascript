@@ -1,11 +1,13 @@
 import { expect } from '@playwright/test';
-import type { ProfileChunkEnvelope } from '@sentry/core';
+import type { Event, ProfileChunkEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   countEnvelopes,
   getMultipleSentryEnvelopeRequests,
+  properEnvelopeRequestParser,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
 } from '../../../utils/helpers';
 import { validateProfile, validateProfilePayloadMetadata } from '../test-utils';
 
@@ -51,7 +53,7 @@ sentryTest(
     const envelopeItemHeader = profileChunkEnvelopeItem[0];
     const envelopeItemPayload1 = profileChunkEnvelopeItem[1];
 
-    expect(envelopeItemHeader).toHaveProperty('type', 'profile_chunk');
+    expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
     expect(envelopeItemPayload1.profile).toBeDefined();
 
     validateProfilePayloadMetadata(envelopeItemPayload1);
@@ -77,7 +79,7 @@ sentryTest(
     const envelopeItemHeader2 = profileChunkEnvelopeItem2[0];
     const envelopeItemPayload2 = profileChunkEnvelopeItem2[1];
 
-    expect(envelopeItemHeader2).toHaveProperty('type', 'profile_chunk');
+    expect(envelopeItemHeader2).toEqual({ type: 'profile_chunk', platform: 'javascript' });
     expect(envelopeItemPayload2.profile).toBeDefined();
 
     validateProfilePayloadMetadata(envelopeItemPayload2);
@@ -94,5 +96,27 @@ sentryTest(
       ],
       isChunkFormat: true,
     });
+  },
+);
+
+sentryTest(
+  'attaches profiler_id and thread data to transaction events (trace mode)',
+  async ({ page, getLocalTestUrl, browserName }) => {
+    if (shouldSkipTracingTest() || browserName !== 'chromium') {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
+
+    const req = await waitForTransactionRequestOnUrl(page, url);
+    const transactionEvent = properEnvelopeRequestParser<Event>(req, 0) as any;
+
+    expect(transactionEvent?.type).toBe('transaction');
+
+    expect(transactionEvent?.contexts?.profile?.profiler_id).toMatch(/^[a-f\d]{32}$/);
+
+    // contexts.trace.data must include thread.id to identify which thread is associated with the transaction
+    expect(transactionEvent?.contexts?.trace?.data?.['thread.id']).toBe('0');
+    expect(transactionEvent?.contexts?.trace?.data?.['thread.name']).toBe('main');
   },
 );

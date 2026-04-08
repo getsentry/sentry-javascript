@@ -78,6 +78,7 @@ export async function materializeFinalWebpackConfig(options: {
     nextJsVersion: options.nextJsVersion,
     useRunAfterProductionCompileHook:
       options.useRunAfterProductionCompileHook ?? options.sentryBuildTimeOptions?.useRunAfterProductionCompileHook,
+    vercelCronsConfigResult: { config: undefined, strategy: undefined },
   });
 
   // call it to get concrete values for comparison

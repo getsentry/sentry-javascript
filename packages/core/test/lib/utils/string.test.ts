@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { isMatchingPattern, stringMatchesSomePattern, truncate } from '../../../src/utils/string';
 
 describe('truncate()', () => {
@@ -55,6 +55,15 @@ describe('isMatchingPattern()', () => {
     expect(isMatchingPattern('foo', '')).toEqual(true);
     expect(isMatchingPattern('bar', '')).toEqual(true);
     expect(isMatchingPattern('', '')).toEqual(true);
+  });
+
+  test('should call a method that returns boolean result', () => {
+    const testTrue = vi.fn(() => true);
+    const testFalse = vi.fn(() => false);
+    expect(isMatchingPattern('x', testTrue)).toEqual(true);
+    expect(testTrue).toHaveBeenCalledExactlyOnceWith('x');
+    expect(isMatchingPattern('y', testFalse)).toEqual(false);
+    expect(testFalse).toHaveBeenCalledExactlyOnceWith('y');
   });
 
   test('should bail out with false when given non-string value', () => {
