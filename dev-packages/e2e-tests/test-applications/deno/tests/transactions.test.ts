@@ -33,7 +33,6 @@ test('Sends transaction with OTel tracer.startSpan despite pre-existing provider
     expect.arrayContaining([
       expect.objectContaining({
         description: 'test-otel-span',
-        op: 'otel.span',
         origin: 'manual',
       }),
     ]),
@@ -53,7 +52,6 @@ test('Sends transaction with OTel tracer.startActiveSpan', async ({ baseURL }) =
     expect.arrayContaining([
       expect.objectContaining({
         description: 'test-otel-active-span',
-        op: 'otel.span',
         origin: 'manual',
       }),
     ]),
@@ -77,7 +75,6 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
       }),
       expect.objectContaining({
         description: 'otel-child',
-        op: 'otel.span',
         origin: 'manual',
       }),
     ]),

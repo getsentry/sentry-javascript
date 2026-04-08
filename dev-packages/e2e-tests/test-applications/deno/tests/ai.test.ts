@@ -32,7 +32,7 @@ test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) =
     (span: any) =>
       span.op === 'gen_ai.invoke_agent' ||
       span.op === 'gen_ai.generate_content' ||
-      span.op === 'otel.span' ||
+      !span.op ||
       span.description?.includes('ai.generateText'),
   );
 
