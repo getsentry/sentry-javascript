@@ -132,6 +132,7 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
+  withStreamedSpan,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

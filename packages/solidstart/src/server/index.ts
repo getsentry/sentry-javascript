@@ -131,6 +131,7 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
+  withStreamedSpan,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

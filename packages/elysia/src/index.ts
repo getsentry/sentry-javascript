@@ -155,6 +155,8 @@ export {
   statsigIntegration,
   unleashIntegration,
   metrics,
+  spanStreamingIntegration,
+  withStreamedSpan,
   bunServerIntegration,
   makeFetchTransport,
 } from '@sentry/bun';

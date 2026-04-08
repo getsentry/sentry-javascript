@@ -161,6 +161,7 @@ export {
   growthbookIntegration,
   metrics,
   spanStreamingIntegration,
+  withStreamedSpan,
 } from '@sentry/node';
 
 export {
