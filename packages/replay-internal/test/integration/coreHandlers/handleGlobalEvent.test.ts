@@ -6,7 +6,12 @@ import '../../utils/mock-internal-setTimeout';
 import type { Event } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
+import {
+  MAX_REPLAY_DURATION,
+  REPLAY_EVENT_NAME,
+  SESSION_IDLE_EXPIRE_DURATION,
+  SESSION_IDLE_PAUSE_DURATION,
+} from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { makeSession } from '../../../src/session/Session';
@@ -434,5 +439,104 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     handleGlobalEventListener(replay)(txEvent, {});
 
     expect(resetReplayIdSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('resets replayId on DSC when replay is paused and session has expired', () => {
+    const now = Date.now();
+
+    replay.session = makeSession({
+      id: 'test-session-id',
+      segmentId: 0,
+      lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      sampled: 'session',
+    });
+
+    replay['_isPaused'] = true;
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    const errorEvent = Error();
+    handleGlobalEventListener(replay)(errorEvent, {});
+
+    // Should have been called even though replay is paused
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reset replayId on DSC when replay is paused but session is still valid', () => {
+    const now = Date.now();
+
+    replay.session = makeSession({
+      id: 'test-session-id',
+      segmentId: 0,
+      lastActivity: now,
+      started: now,
+      sampled: 'session',
+    });
+
+    replay['_isPaused'] = true;
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    const errorEvent = Error();
+    handleGlobalEventListener(replay)(errorEvent, {});
+
+    // Should NOT have been called because session is still valid
+    expect(resetReplayIdSpy).not.toHaveBeenCalled();
+  });
+
+  it('resets replayId on DSC when replay is paused and session exceeds max duration', () => {
+    const now = Date.now();
+
+    replay.session = makeSession({
+      id: 'test-session-id',
+      segmentId: 0,
+      // Recent activity, but session started too long ago
+      lastActivity: now,
+      started: now - MAX_REPLAY_DURATION - 1,
+      sampled: 'session',
+    });
+
+    replay['_isPaused'] = true;
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    const errorEvent = Error();
+    handleGlobalEventListener(replay)(errorEvent, {});
+
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets replayId on DSC when replay is disabled and session has expired', () => {
+    const now = Date.now();
+
+    replay.session = makeSession({
+      id: 'test-session-id',
+      segmentId: 0,
+      lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      sampled: 'session',
+    });
+
+    replay['_isEnabled'] = false;
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    const errorEvent = Error();
+    handleGlobalEventListener(replay)(errorEvent, {});
+
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(1);
   });
 });
