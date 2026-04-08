@@ -227,6 +227,18 @@ describe('findInjectionIndexAfterDirectives', () => {
     expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
   });
 
+  it('returns 0 for an unterminated leading block comment', () => {
+    const userCode = '/* unterminated';
+
+    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
+  });
+
+  it('returns the last complete directive when followed by an unterminated block comment', () => {
+    const userCode = '"use client"; /* unterminated';
+
+    expect(findInjectionIndexAfterDirectives(userCode)).toBe('"use client";'.length);
+  });
+
   it('treats a block comment without a line break as part of the same statement', () => {
     const userCode = '"use client" /* comment */ + suffix;';
 

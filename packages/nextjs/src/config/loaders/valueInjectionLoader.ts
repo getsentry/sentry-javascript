@@ -11,37 +11,16 @@ export function findInjectionIndexAfterDirectives(userCode: string): number {
   let lastDirectiveEndIndex: number | undefined;
 
   while (index < userCode.length) {
-    const scanStartIndex = index;
-
-    // Comments can appear between directive prologue entries, so keep scanning until we reach the next statement.
-    while (index < userCode.length) {
-      const char = userCode[index];
-
-      if (char && /\s/.test(char)) {
-        index += 1;
-        continue;
-      }
-
-      if (userCode.startsWith('//', index)) {
-        const newlineIndex = userCode.indexOf('\n', index + 2);
-        index = newlineIndex === -1 ? userCode.length : newlineIndex + 1;
-        continue;
-      }
-
-      if (userCode.startsWith('/*', index)) {
-        const commentEndIndex = userCode.indexOf('*/', index + 2);
-        if (commentEndIndex === -1) {
-          return lastDirectiveEndIndex ?? scanStartIndex;
-        }
-
-        index = commentEndIndex + 2;
-        continue;
-      }
-
-      break;
+    const statementStartIndex = skipWhitespaceAndComments(userCode, index);
+    if (statementStartIndex === undefined) {
+      return lastDirectiveEndIndex ?? 0;
     }
 
-    const statementStartIndex = index;
+    index = statementStartIndex;
+    if (statementStartIndex === userCode.length) {
+      return lastDirectiveEndIndex ?? statementStartIndex;
+    }
+
     const quote = userCode[statementStartIndex];
     if (quote !== '"' && quote !== "'") {
       return lastDirectiveEndIndex ?? statementStartIndex;
@@ -52,45 +31,8 @@ export function findInjectionIndexAfterDirectives(userCode: string): number {
       return lastDirectiveEndIndex ?? statementStartIndex;
     }
 
-    let statementEndIndex = stringEndIndex;
-
-    // Only a bare string literal followed by a statement terminator counts as a directive.
-    while (statementEndIndex < userCode.length) {
-      const char = userCode[statementEndIndex];
-
-      if (char === ';') {
-        statementEndIndex += 1;
-        break;
-      }
-
-      if (char === '\n' || char === '\r' || char === '}') {
-        break;
-      }
-
-      if (char && /\s/.test(char)) {
-        statementEndIndex += 1;
-        continue;
-      }
-
-      if (userCode.startsWith('//', statementEndIndex)) {
-        break;
-      }
-
-      if (userCode.startsWith('/*', statementEndIndex)) {
-        const commentEndIndex = userCode.indexOf('*/', statementEndIndex + 2);
-        if (commentEndIndex === -1) {
-          return lastDirectiveEndIndex ?? statementStartIndex;
-        }
-
-        const comment = userCode.slice(statementEndIndex + 2, commentEndIndex);
-        if (comment.includes('\n') || comment.includes('\r')) {
-          break;
-        }
-
-        statementEndIndex = commentEndIndex + 2;
-        continue;
-      }
-
+    const statementEndIndex = findDirectiveTerminator(userCode, stringEndIndex);
+    if (statementEndIndex === undefined) {
       return lastDirectiveEndIndex ?? statementStartIndex;
     }
 
@@ -99,6 +41,39 @@ export function findInjectionIndexAfterDirectives(userCode: string): number {
   }
 
   return lastDirectiveEndIndex ?? index;
+}
+
+function skipWhitespaceAndComments(userCode: string, startIndex: number): number | undefined {
+  let index = startIndex;
+
+  while (index < userCode.length) {
+    const char = userCode[index];
+
+    if (char && /\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (userCode.startsWith('//', index)) {
+      const newlineIndex = userCode.indexOf('\n', index + 2);
+      index = newlineIndex === -1 ? userCode.length : newlineIndex + 1;
+      continue;
+    }
+
+    if (userCode.startsWith('/*', index)) {
+      const commentEndIndex = userCode.indexOf('*/', index + 2);
+      if (commentEndIndex === -1) {
+        return undefined;
+      }
+
+      index = commentEndIndex + 2;
+      continue;
+    }
+
+    break;
+  }
+
+  return index;
 }
 
 function findStringLiteralEnd(userCode: string, startIndex: number): number | undefined {
@@ -125,6 +100,51 @@ function findStringLiteralEnd(userCode: string, startIndex: number): number | un
   }
 
   return undefined;
+}
+
+function findDirectiveTerminator(userCode: string, startIndex: number): number | undefined {
+  let index = startIndex;
+
+  // Only a bare string literal followed by a statement terminator counts as a directive.
+  while (index < userCode.length) {
+    const char = userCode[index];
+
+    if (char === ';') {
+      return index + 1;
+    }
+
+    if (char === '\n' || char === '\r' || char === '}') {
+      return index;
+    }
+
+    if (char && /\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    if (userCode.startsWith('//', index)) {
+      return index;
+    }
+
+    if (userCode.startsWith('/*', index)) {
+      const commentEndIndex = userCode.indexOf('*/', index + 2);
+      if (commentEndIndex === -1) {
+        return undefined;
+      }
+
+      const comment = userCode.slice(index + 2, commentEndIndex);
+      if (comment.includes('\n') || comment.includes('\r')) {
+        return index;
+      }
+
+      index = commentEndIndex + 2;
+      continue;
+    }
+
+    return undefined;
+  }
+
+  return index;
 }
 
 /**
