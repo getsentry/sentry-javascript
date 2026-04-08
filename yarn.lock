@@ -22993,14 +22993,7 @@ nock@^13.5.5:
     json-stringify-safe "^5.0.1"
     propagate "^2.0.0"
 
-node-abi@^3.3.0, node-abi@^3.73.0:
-  version "3.75.0"
-  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.75.0.tgz#2f929a91a90a0d02b325c43731314802357ed764"
-  integrity sha512-OhYaY5sDsIka7H7AtijtI9jwGYLyl29eQn/W623DiN/MIv5sUqc4g7BIDThX+gb7di9f6xK02nkp8sdfFWZLTg==
-  dependencies:
-    semver "^7.3.5"
-
-node-abi@^3.89.0:
+node-abi@^3.3.0, node-abi@^3.73.0, node-abi@^3.89.0:
   version "3.89.0"
   resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.89.0.tgz#eea98bf89d4534743bbbf2defa9f4f9bd3bdccfd"
   integrity sha512-6u9UwL0HlAl21+agMN3YAMXcKByMqwGx+pq+P76vii5f7hTPtKDp08/H9py6DY+cfDw7kQNTGEj/rly3IgbNQA==
