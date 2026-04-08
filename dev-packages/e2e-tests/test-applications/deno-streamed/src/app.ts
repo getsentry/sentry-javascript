@@ -13,9 +13,6 @@ trace.setGlobalTracerProvider(fakeProvider as any);
 
 // Sentry.init() must call trace.disable() to clear the fake provider above
 import * as Sentry from '@sentry/deno';
-import { generateText } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
-import { z } from 'zod';
 
 Sentry.init({
   environment: 'qa',
