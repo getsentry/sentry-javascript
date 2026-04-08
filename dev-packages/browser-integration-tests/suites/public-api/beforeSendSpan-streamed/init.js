@@ -21,7 +21,7 @@ Sentry.init({
         },
       ];
       span.attributes['sentry.custom_attribute'] = 'customAttributeValue';
-      span.status = 'something'
+      span.status = 'something';
     }
     return span;
   }),
