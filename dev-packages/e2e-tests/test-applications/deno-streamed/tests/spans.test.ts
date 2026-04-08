@@ -287,7 +287,7 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
   });
 });
 
-test('Outbound fetch inside Sentry span creates transaction', async ({ baseURL }) => {
+test('Outbound fetch inside Sentry span creates span ... does it really?', async ({ baseURL }) => {
   const spansPromise = waitForStreamedSpans('deno-streamed', spans => {
     return spans.some(span => span.name === 'test-outgoing-fetch');
   });
