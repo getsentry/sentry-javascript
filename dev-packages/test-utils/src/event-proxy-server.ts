@@ -554,8 +554,7 @@ export function waitForStreamedSpan(
 }
 
 /**
- * Wait for Span V2 spans to be sent. Returns all matching spans from the first envelope that has at least one match.
- * The callback receives individual spans (not an array), making it consistent with `waitForSpanV2`.
+ * Wait for Span V2 spans to be sent. Returns all spans from the envelope for which the callback returns true.
  * If no callback is provided, returns all spans from the first Span V2 envelope.
  *
  * @example
@@ -568,15 +567,15 @@ export function waitForStreamedSpan(
  * @example
  * ```ts
  * // Filter for specific spans (same callback style as waitForSpanV2)
- * const httpSpans = await waitForSpansV2(PROXY_SERVER_NAME, span => {
- *   return getSpanV2Op(span) === 'http.client';
+ * const httpSpans = await waitForSpansV2(PROXY_SERVER_NAME, spans => {
+ *   return spans.some(span => getSpanV2Op(span) === 'http.client');
  * });
  * expect(httpSpans.length).toBe(2);
  * ```
  */
 export function waitForStreamedSpans(
   proxyServerName: string,
-  callback?: (span: SerializedStreamedSpan) => Promise<boolean> | boolean,
+  callback?: (spans: SerializedStreamedSpan[]) => Promise<boolean> | boolean,
 ): Promise<SerializedStreamedSpan[]> {
   const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
@@ -590,14 +589,8 @@ export function waitForStreamedSpans(
           if (isStreamedSpanEnvelopeItem(envelopeItem)) {
             const spans = envelopeItem[1].items;
             if (callback) {
-              const matchingSpans: SerializedStreamedSpan[] = [];
-              for (const span of spans) {
-                if (await callback(span)) {
-                  matchingSpans.push(span);
-                }
-              }
-              if (matchingSpans.length > 0) {
-                resolve(matchingSpans);
+              if (await callback(spans)) {
+                resolve(spans);
                 return true;
               }
             } else {
