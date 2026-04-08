@@ -60,8 +60,8 @@
     "@sentry/core": "10.47.0",
     "@sentry/node": "10.47.0",
     "@sentry/node-core": "10.47.0",
-    "@sentry/rollup-plugin": "^5.1.1",
-    "@sentry/vite-plugin": "^5.1.0",
+    "@sentry/rollup-plugin": "^5.2.0",
+    "@sentry/vite-plugin": "^5.2.0",
     "@sentry/vue": "10.47.0",
     "local-pkg": "^1.1.2"
   },
