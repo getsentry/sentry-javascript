@@ -1,4 +1,4 @@
-import { captureException, withScope } from '@sentry/browser';
+import { captureException } from '@sentry/browser';
 import { isError } from '@sentry/core';
 import type { ErrorInfo } from 'react';
 import { version } from 'react';
@@ -64,10 +64,7 @@ export function captureReactException(
     setCause(error, errorBoundaryError);
   }
 
-  return withScope(scope => {
-    scope.setContext('react', { componentStack });
-    return captureException(error, hint);
-  });
+  return captureException(error, hint);
 }
 
 /**
