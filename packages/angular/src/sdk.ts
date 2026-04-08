@@ -82,11 +82,3 @@ function checkAndSetAngularVersion(): void {
     setContext('angular', { version: angularVersion });
   }
 }
-
-init({
-  dsn: '__DSN__',
-  traceLifecycle: 'stream',
-  beforeSendSpan: span => {
-    return span;
-  },
-});

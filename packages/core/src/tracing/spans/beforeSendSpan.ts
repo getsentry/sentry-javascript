@@ -37,8 +37,6 @@ export function withStreamedSpan(
  * @param callback - The `beforeSendSpan` callback to check.
  * @returns `true` if the callback was wrapped with {@link withStreamedSpan}.
  */
-export function isStreamedBeforeSendSpanCallback(
-  callback: (ClientOptions['beforeSendSpan'] & { _streamed?: true }) | unknown,
-): callback is BeforeSendStreamedSpanCallback {
+export function isStreamedBeforeSendSpanCallback(callback: unknown): callback is BeforeSendStreamedSpanCallback {
   return !!callback && typeof callback === 'function' && '_streamed' in callback && !!callback._streamed;
 }
