@@ -21,7 +21,10 @@ export function runBundler(command: string, opt: ExecSyncOptions, outDir?: strin
   execSync(command, { stdio: DEBUG ? "inherit" : "ignore", ...opt });
 }
 
-export function readAllFiles(directory: string): Record<string, string> {
+export function readAllFiles(
+  directory: string,
+  customReplacer?: (content: string) => string
+): Record<string, string> {
   const files: Record<string, string> = {};
   const entries = readdirSync(directory);
 
@@ -38,6 +41,10 @@ export function readAllFiles(directory: string): Record<string, string> {
         .replaceAll(/"nodeVersion": \d+/g, `"nodeVersion":"NODE_VERSION"`)
         .replaceAll(/nodeVersion:\d+/g, `nodeVersion:"NODE_VERSION"`)
         .replaceAll(/nodeVersion: \d+/g, `nodeVersion:"NODE_VERSION"`);
+
+      if (customReplacer) {
+        contents = customReplacer(contents);
+      }
 
       // Normalize Windows stuff in .map paths
       if (entry.endsWith(".map")) {
