@@ -1,5 +1,33 @@
 # Changelog
 
+## 5.2.0
+
+### New Features ✨
+
+- (core) Pass `mapDir` to `rewriteSourcesHook` by @chargome in [#908](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/908)
+- Use `crypto.randomUUID` rather than `uuid` by @timfish in [#892](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/892)
+
+### Bug Fixes 🐛
+
+- (core) Conditionally add tracing headers by @chargome in [#907](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/907)
+- (e2e-tests) Pin axios to 1.13.5 to avoid compromised 1.14.1 by @andreiborza in [#906](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/906)
+- (rollup) Make rollup an optional peer dependency by @andreiborza in [#913](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/913)
+- Add missing webpack5 entrypoint in webpack-plugin by @brunodccarvalho in [#905](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/905)
+
+### Internal Changes 🔧
+
+- (deps) Bump vulnerable webpack version by @chargome in [#909](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/909)
+- (tests) Use deterministic debugids by @chargome in [#912](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/912)
+- Add esbuild integration tests by @timfish in [#911](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/911)
+- Vite integration tests by @timfish in [#899](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/899)
+- Webpack integration tests by @timfish in [#904](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/904)
+- Isolate integration test package installs by @timfish in [#902](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/902)
+- Pin GitHub Actions to full-length commit SHAs by @joshuarli in [#900](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/900)
+- Rollup integration tests by @timfish in [#897](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/897)
+- New integration tests by @timfish in [#896](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/896)
+- Remove lerna by @timfish in [#895](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/895)
+- Migrate to Vitest by @timfish in [#894](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/894)
+
 ## 5.1.1
 
 ### Bug Fixes 🐛

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-tests-next",
-  "version": "5.1.1",
+  "version": "5.2.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -13,12 +13,12 @@
     "clean:deps": "premove node_modules"
   },
   "dependencies": {
-    "@sentry-internal/eslint-config": "5.1.1",
-    "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.1.1",
-    "@sentry/esbuild-plugin": "5.1.1",
-    "@sentry/rollup-plugin": "5.1.1",
-    "@sentry/vite-plugin": "5.1.1",
-    "@sentry/webpack-plugin": "5.1.1"
+    "@sentry-internal/eslint-config": "5.2.0",
+    "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.2.0",
+    "@sentry/esbuild-plugin": "5.2.0",
+    "@sentry/rollup-plugin": "5.2.0",
+    "@sentry/vite-plugin": "5.2.0",
+    "@sentry/webpack-plugin": "5.2.0"
   },
   "devDependencies": {
     "premove": "^4.0.0",
