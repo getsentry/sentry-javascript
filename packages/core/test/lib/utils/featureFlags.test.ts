@@ -164,7 +164,30 @@ describe('flags', () => {
 
       const result = _INTERNAL_copyFlagsFromScopeToEvent(event);
 
-      expect(result).toEqual(event);
+      expect(result).toEqual({
+        contexts: {
+          flags: {
+            values: [
+              {
+                flag: 'feat1',
+                result: true,
+              },
+              {
+                flag: 'feat2',
+                result: false,
+              },
+            ],
+          },
+        },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'error message',
+            },
+          ],
+        },
+      });
       expect(getCurrentScope).toHaveBeenCalled();
     });
   });
