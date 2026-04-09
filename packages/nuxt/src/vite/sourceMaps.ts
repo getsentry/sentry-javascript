@@ -216,7 +216,7 @@ export function getPluginOptions(
         : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
           ? fallbackFilesToDelete
           : undefined,
-      rewriteSources: (source: string) => normalizePath(source),
+      rewriteSources: sourcemapsOptions.rewriteSources ?? ((source: string) => normalizePath(source)),
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
     },
   };
