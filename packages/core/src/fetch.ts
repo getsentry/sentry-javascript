@@ -19,9 +19,9 @@ import {
 } from './utils/url';
 
 type PolymorphicRequestHeaders =
-  | Record<string, string | undefined>
-  | Array<[string, string]>
-  | Iterable<Iterable<string>>
+  | Record<string, unknown>
+  | Array<[string, unknown]>
+  | Iterable<Iterable<unknown>>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
       append: (key: string, value: string) => void;
@@ -183,7 +183,6 @@ export function _callOnRequestSpanEnd(
  *
  * @internal Exported for cross-package instrumentation (for example Cloudflare Workers fetcher bindings)
  * and unit tests
- * @hidden
  *
  * Baggage handling:
  * 1. No previous baggage header → include Sentry baggage
@@ -243,16 +242,17 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
   } else if (isHeadersInitTupleArray(originalHeaders)) {
     const newHeaders = [...originalHeaders];
 
-    if (!originalHeaders.find(header => header[0] === 'sentry-trace')) {
+    if (!newHeaders.find(header => header[0] === 'sentry-trace')) {
       newHeaders.push(['sentry-trace', sentryTrace]);
     }
 
-    if (propagateTraceparent && traceparent && !originalHeaders.find(header => header[0] === 'traceparent')) {
+    if (propagateTraceparent && traceparent && !newHeaders.find(header => header[0] === 'traceparent')) {
       newHeaders.push(['traceparent', traceparent]);
     }
 
     const prevBaggageHeaderWithSentryValues = originalHeaders.find(
-      header => header[0] === 'baggage' && baggageHeaderHasSentryBaggageValues(header[1]),
+      header =>
+        header[0] === 'baggage' && typeof header[1] === 'string' && baggageHeaderHasSentryBaggageValues(header[1]),
     );
 
     if (baggage && !prevBaggageHeaderWithSentryValues) {
@@ -319,7 +319,11 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
   span.end();
 }
 
-function baggageHeaderHasSentryBaggageValues(baggageHeader: string): boolean {
+function baggageHeaderHasSentryBaggageValues(baggageHeader: unknown): boolean {
+  if (typeof baggageHeader !== 'string') {
+    return false;
+  }
+
   return baggageHeader.split(',').some(baggageEntry => baggageEntry.trim().startsWith(SENTRY_BAGGAGE_KEY_PREFIX));
 }
 
@@ -328,14 +332,13 @@ function isHeaders(headers: unknown): headers is Headers {
 }
 
 /** `HeadersInit` array form: each entry is a [name, value] pair of strings. */
-function isHeadersInitTupleArray(headers: unknown): headers is [string, string][] {
+function isHeadersInitTupleArray(headers: unknown): headers is [string, unknown][] {
   if (!Array.isArray(headers)) {
     return false;
   }
 
   return headers.every(
-    (item): item is [string, string] =>
-      Array.isArray(item) && item.length === 2 && typeof item[0] === 'string' && typeof item[1] === 'string',
+    (item): item is [string, unknown] => Array.isArray(item) && item.length === 2 && typeof item[0] === 'string',
   );
 }
 
