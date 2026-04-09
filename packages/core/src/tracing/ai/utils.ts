@@ -170,6 +170,17 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
 }
 
 /**
+ * Serialize a value to a JSON string without truncation.
+ * Strings are returned as-is, arrays and objects are JSON-stringified.
+ */
+export function getJsonString<T>(value: T | T[]): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return JSON.stringify(value);
+}
+
+/**
  * Get the truncated JSON string for a string or array of strings.
  *
  * @param value - The string or array of strings to truncate

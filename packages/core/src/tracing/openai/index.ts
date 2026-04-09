@@ -19,6 +19,7 @@ import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
@@ -126,7 +127,7 @@ function addRequestAttributes(
 
   span.setAttribute(
     GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-    enableTruncation ? getTruncatedJsonString(filteredMessages) : JSON.stringify(filteredMessages),
+    enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
   );
 
   if (Array.isArray(filteredMessages)) {

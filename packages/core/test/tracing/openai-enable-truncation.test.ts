@@ -19,6 +19,16 @@ function createMockOpenAiClient() {
         }),
       },
     },
+    responses: {
+      create: async (params: { model: string; input: string }) => ({
+        id: 'resp-test',
+        object: 'response',
+        model: params.model,
+        output_text: 'Response text',
+        status: 'completed',
+        usage: { input_tokens: 5, output_tokens: 3, total_tokens: 8 },
+      }),
+    },
   };
 }
 
@@ -44,7 +54,7 @@ describe('OpenAI enableTruncation option', () => {
 
   async function callWithOptions(
     options: { recordInputs?: boolean; enableTruncation?: boolean },
-    messages: Array<{ role: string; content: string }>,
+    input: Array<{ role: string; content: string }> | string,
   ): Promise<string | undefined> {
     const mockClient = createMockOpenAiClient();
     const instrumented = instrumentOpenAiClient(mockClient as unknown as OpenAiClient, options) as MockClient;
@@ -53,7 +63,11 @@ describe('OpenAI enableTruncation option', () => {
 
     await startSpan({ name: 'test' }, async span => {
       rootSpan = span;
-      await instrumented.chat.completions.create({ model: 'gpt-4', messages });
+      if (typeof input === 'string') {
+        await instrumented.responses.create({ model: 'gpt-4', input });
+      } else {
+        await instrumented.chat.completions.create({ model: 'gpt-4', messages: input });
+      }
     });
 
     const spans = getSpanDescendants(rootSpan!);
@@ -82,5 +96,11 @@ describe('OpenAI enableTruncation option', () => {
 
     const parsed = JSON.parse(inputMessages!);
     expect(parsed).toEqual(messages);
+  });
+
+  it('does not wrap string input in quotes when enableTruncation is false', async () => {
+    const stringInput = 'Translate this to French: Hello';
+    const inputMessages = await callWithOptions({ recordInputs: true, enableTruncation: false }, stringInput);
+    expect(inputMessages).toBe(stringInput);
   });
 });
