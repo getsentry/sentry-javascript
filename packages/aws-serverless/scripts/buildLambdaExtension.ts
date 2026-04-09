@@ -6,9 +6,7 @@ const targetDir = './build/lambda-extension';
 const source = './src/lambda-extension/sentry-extension';
 const target = `${targetDir}/sentry-extension`;
 
-if (!fs.existsSync(targetDir)) {
-  fs.mkdirSync(targetDir, { recursive: true });
-}
+fs.mkdirSync(targetDir, { recursive: true });
 
 fs.copyFileSync(source, target);
 
