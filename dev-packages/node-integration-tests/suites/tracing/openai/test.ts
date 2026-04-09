@@ -345,6 +345,43 @@ describe('OpenAI integration', () => {
     });
   });
 
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Chat completion with long content should not be truncated
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([{ role: 'user', content: longContent }]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+        }),
+      }),
+      // Responses API long string input should not be truncated or wrapped in quotes
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'B'.repeat(50_000),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
+
   const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS = {
     transaction: 'main',
     spans: expect.arrayContaining([
