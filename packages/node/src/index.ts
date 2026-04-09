@@ -205,5 +205,6 @@ export {
   cron,
   NODE_VERSION,
   validateOpenTelemetrySetup,
+  withStreamedSpan,
   _INTERNAL_normalizeCollectionInterval,
 } from '@sentry/node-core';

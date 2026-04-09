@@ -80,6 +80,7 @@ export {
   withIsolationScope,
   withMonitor,
   withScope,
+  withStreamedSpan,
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,

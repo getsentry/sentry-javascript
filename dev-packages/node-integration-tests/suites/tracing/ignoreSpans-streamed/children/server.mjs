@@ -38,6 +38,12 @@ app.get('/test/express', (_req, res) => {
     () => {},
   );
   res.send({ response: 'response 1' });
+
+  setTimeout(() => {
+    // flush to avoid waiting for the span buffer timeout to send spans
+    // but defer it to the next tick to let the SDK finish the http.server span first.
+    Sentry.flush();
+  });
 });
 
 Sentry.setupExpressErrorHandler(app);

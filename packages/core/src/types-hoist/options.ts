@@ -594,7 +594,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: ((span: SpanJSON) => SpanJSON) | BeforeSendStramedSpanCallback;
+  beforeSendSpan?: ((span: SpanJSON) => SpanJSON) & { _streamed?: true };
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
@@ -631,7 +631,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
  *
  * @see {@link StreamedSpanJSON} for the streamed span format used with `traceLifecycle: 'stream'`
  */
-export type BeforeSendStramedSpanCallback = ((span: StreamedSpanJSON) => StreamedSpanJSON) & {
+export type BeforeSendStreamedSpanCallback = ((span: StreamedSpanJSON) => StreamedSpanJSON) & {
   /**
    * When true, indicates this callback is designed to handle the {@link StreamedSpanJSON} format
    * used with `traceLifecycle: 'stream'`. Set this by wrapping your callback with `withStreamedSpan`.

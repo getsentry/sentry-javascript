@@ -1,6 +1,9 @@
-import type { BeforeSendStramedSpanCallback, ClientOptions } from '../../types-hoist/options';
+import type { CoreOptions } from '../../types-hoist/options';
+import type { BeforeSendStreamedSpanCallback } from '../../types-hoist/options';
 import type { StreamedSpanJSON } from '../../types-hoist/span';
 import { addNonEnumerableProperty } from '../../utils/object';
+
+type StaticBeforeSendSpanCallback = CoreOptions['beforeSendSpan'];
 
 /**
  * A wrapper to use the new span format in your `beforeSendSpan` callback.
@@ -23,9 +26,9 @@ import { addNonEnumerableProperty } from '../../utils/object';
  */
 export function withStreamedSpan(
   callback: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): BeforeSendStramedSpanCallback {
+): StaticBeforeSendSpanCallback & { _streamed: true } {
   addNonEnumerableProperty(callback, '_streamed', true);
-  return callback;
+  return callback as unknown as StaticBeforeSendSpanCallback & { _streamed: true };
 }
 
 /**
@@ -34,8 +37,6 @@ export function withStreamedSpan(
  * @param callback - The `beforeSendSpan` callback to check.
  * @returns `true` if the callback was wrapped with {@link withStreamedSpan}.
  */
-export function isStreamedBeforeSendSpanCallback(
-  callback: ClientOptions['beforeSendSpan'],
-): callback is BeforeSendStramedSpanCallback {
-  return !!callback && '_streamed' in callback && !!callback._streamed;
+export function isStreamedBeforeSendSpanCallback(callback: unknown): callback is BeforeSendStreamedSpanCallback {
+  return !!callback && typeof callback === 'function' && '_streamed' in callback && !!callback._streamed;
 }
