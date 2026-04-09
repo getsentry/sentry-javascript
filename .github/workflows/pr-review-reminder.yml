@@ -25,7 +25,12 @@ jobs:
             const { owner, repo } = context.repo;
             const now = new Date();
             const THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
-            const REMINDER_MARKER = '<!-- review-reminder -->';
+
+            // Returns a unique HTML comment marker for a reviewer key (login or "team:slug").
+            // Used for precise per-reviewer deduplication in existing comments.
+            function reminderMarker(key) {
+              return `<!-- review-reminder:${key} -->`;
+            }
 
             // Fetch all open PRs
             const prs = await github.paginate(github.rest.pulls.list, {
@@ -38,20 +43,23 @@ jobs:
             core.info(`Found ${prs.length} open PRs`);
 
             for (const pr of prs) {
-              // Skip draft PRs
+              // Skip draft PRs and PRs opened by bots
               if (pr.draft) continue;
+              if (pr.user?.type === 'Bot') continue;
 
-              // Get currently requested reviewers (only those who haven't reviewed yet)
+              // Get currently requested reviewers (only those who haven't reviewed yet —
+              // GitHub automatically removes a reviewer from this list once they submit a review)
               const { data: requested } = await github.rest.pulls.listRequestedReviewers({
                 owner,
                 repo,
                 pull_number: pr.number,
               });
 
-              const pendingReviewers = requested.reviewers;
-              if (pendingReviewers.length === 0) continue;
+              const pendingReviewers = requested.reviewers; // individual users
+              const pendingTeams = requested.teams; // team reviewers
+              if (pendingReviewers.length === 0 && pendingTeams.length === 0) continue;
 
-              // Get timeline events to find when each review was requested
+              // Fetch the PR timeline to determine when each review was (last) requested
               const timeline = await github.paginate(github.rest.issues.listEventsForTimeline, {
                 owner,
                 repo,
@@ -59,30 +67,7 @@ jobs:
                 per_page: 100,
               });
 
-              // For each pending reviewer, find the most recent review_requested event
-              const overdueReviewers = [];
-              for (const reviewer of pendingReviewers) {
-                const reviewRequestEvents = timeline
-                  .filter(
-                    e =>
-                      e.event === 'review_requested' &&
-                      e.requested_reviewer?.login === reviewer.login,
-                  )
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-                if (reviewRequestEvents.length === 0) continue;
-
-                const requestedAt = new Date(reviewRequestEvents[0].created_at);
-                const age = now - requestedAt;
-
-                if (age >= THRESHOLD_MS) {
-                  overdueReviewers.push(reviewer.login);
-                }
-              }
-
-              if (overdueReviewers.length === 0) continue;
-
-              // Fetch existing comments to avoid double-nagging the same reviewer
+              // Fetch existing comments so we can suppress duplicate reminders
               const comments = await github.paginate(github.rest.issues.listComments, {
                 owner,
                 repo,
@@ -90,29 +75,74 @@ jobs:
                 per_page: 100,
               });
 
-              const reminderComments = comments.filter(
-                c =>
-                  c.user.login === 'github-actions[bot]' && c.body.includes(REMINDER_MARKER),
-              );
+              const botComments = comments.filter(c => c.user?.login === 'github-actions[bot]');
 
-              // Only nag reviewers who haven't been reminded yet on this PR
-              const alreadyReminded = new Set();
-              for (const comment of reminderComments) {
-                for (const login of overdueReviewers) {
-                  if (comment.body.includes(`@${login}`)) {
-                    alreadyReminded.add(login);
-                  }
-                }
+              // Returns the date of the most recent reminder comment that contains the given marker,
+              // or null if no such comment exists.
+              function latestReminderDate(key) {
+                const marker = reminderMarker(key);
+                const matches = botComments
+                  .filter(c => c.body.includes(marker))
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                return matches.length > 0 ? new Date(matches[0].created_at) : null;
               }
 
-              const newOverdueReviewers = overdueReviewers.filter(
-                login => !alreadyReminded.has(login),
-              );
+              // Returns true if a reminder is due for a reviewer/team:
+              // - The review was requested more than 48 hours ago, AND
+              // - No reminder has been posted since the most recent review_requested event
+              //   (this correctly resets the reminder when a new push re-requests the review)
+              function needsReminder(requestedAt, key) {
+                if (now - requestedAt < THRESHOLD_MS) return false;
+                const lastReminded = latestReminderDate(key);
+                if (lastReminded && lastReminded >= requestedAt) return false;
+                return true;
+              }
 
-              if (newOverdueReviewers.length === 0) continue;
+              // Collect overdue individual reviewers
+              const toRemind = []; // { key, mention }
 
-              const mentions = newOverdueReviewers.map(login => `@${login}`).join(', ');
-              const body = `${REMINDER_MARKER}\n👋 ${mentions} — you were requested to review this PR more than 48 hours ago. Could you please take a look when you get a chance? Thank you!`;
+              for (const reviewer of pendingReviewers) {
+                const requestEvents = timeline
+                  .filter(
+                    e =>
+                      e.event === 'review_requested' &&
+                      e.requested_reviewer?.login === reviewer.login,
+                  )
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                if (requestEvents.length === 0) continue;
+
+                const requestedAt = new Date(requestEvents[0].created_at);
+                if (!needsReminder(requestedAt, reviewer.login)) continue;
+
+                toRemind.push({ key: reviewer.login, mention: `@${reviewer.login}` });
+              }
+
+              // Collect overdue team reviewers
+              for (const team of pendingTeams) {
+                const requestEvents = timeline
+                  .filter(
+                    e =>
+                      e.event === 'review_requested' && e.requested_team?.slug === team.slug,
+                  )
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                if (requestEvents.length === 0) continue;
+
+                const requestedAt = new Date(requestEvents[0].created_at);
+                const key = `team:${team.slug}`;
+                if (!needsReminder(requestedAt, key)) continue;
+
+                toRemind.push({ key, mention: `@${owner}/${team.slug}` });
+              }
+
+              if (toRemind.length === 0) continue;
+
+              // Build a single comment that includes per-reviewer markers (for precise dedup
+              // on subsequent runs) and @-mentions all overdue reviewers/teams.
+              const markers = toRemind.map(({ key }) => reminderMarker(key)).join('\n');
+              const mentions = toRemind.map(({ mention }) => mention).join(', ');
+              const body = `${markers}\n👋 ${mentions} — you were requested to review this PR more than 48 hours ago. Could you please take a look when you get a chance? Thank you!`;
 
               await github.rest.issues.createComment({
                 owner,
