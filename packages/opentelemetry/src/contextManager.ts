@@ -1,5 +1,6 @@
 import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { Context, ContextManager } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import type { Scope } from '@sentry/core';
 import { getCurrentScope, getIsolationScope } from '@sentry/core';
 import {
@@ -7,6 +8,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
   SENTRY_SCOPES_CONTEXT_KEY,
+  SENTRY_TRACE_STATE_CHILD_IGNORED,
 } from './constants';
 import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
@@ -57,20 +59,36 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
-      const currentScopes = getScopesFromContext(context);
+      // Remove ignored spans from context and restore the parent span so children
+      // naturally parent to the grandparent instead of starting a new trace.
+      // At this point, this.active() still holds the outer context (before super.with()
+      // updates AsyncLocalStorage), which has the grandparent span we want to restore.
+      const span = trace.getSpan(context);
+      let effectiveContext: Context;
+      if (span?.spanContext().traceState?.get(SENTRY_TRACE_STATE_CHILD_IGNORED) === '1') {
+        const contextWithoutSpan = trace.deleteSpan(context);
+        const parentSpan = trace.getSpan(this.active());
+        effectiveContext = parentSpan ? trace.setSpan(contextWithoutSpan, parentSpan) : contextWithoutSpan;
+      } else {
+        effectiveContext = context;
+      }
+
+      const currentScopes = getScopesFromContext(effectiveContext);
       const currentScope = currentScopes?.scope || getCurrentScope();
       const currentIsolationScope = currentScopes?.isolationScope || getIsolationScope();
 
-      const shouldForkIsolationScope = context.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
-      const scope = context.getValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY) as Scope | undefined;
-      const isolationScope = context.getValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY) as Scope | undefined;
+      const shouldForkIsolationScope = effectiveContext.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
+      const scope = effectiveContext.getValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY) as Scope | undefined;
+      const isolationScope = effectiveContext.getValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY) as
+        | Scope
+        | undefined;
 
       const newCurrentScope = scope || currentScope.clone();
       const newIsolationScope =
         isolationScope || (shouldForkIsolationScope ? currentIsolationScope.clone() : currentIsolationScope);
       const scopes = { scope: newCurrentScope, isolationScope: newIsolationScope };
 
-      const ctx1 = setScopesOnContext(context, scopes);
+      const ctx1 = setScopesOnContext(effectiveContext, scopes);
 
       // Remove the unneeded values again
       const ctx2 = ctx1

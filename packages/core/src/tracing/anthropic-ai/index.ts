@@ -4,7 +4,6 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -127,17 +126,6 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
       [GEN_AI_RESPONSE_ID_ATTRIBUTE]: response.id,
       [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
     });
-
-    if ('created' in response && typeof response.created === 'number') {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
-      });
-    }
-    if ('created_at' in response && typeof response.created_at === 'number') {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created_at * 1000).toISOString(),
-      });
-    }
 
     if ('usage' in response && response.usage) {
       setTokenUsageAttributes(
@@ -265,7 +253,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
     apply(target, thisArg, args: T): R | Promise<R> {
-      const operationName = instrumentedMethod.operation;
+      const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes(args, methodPath, operationName);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
 

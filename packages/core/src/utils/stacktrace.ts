@@ -39,7 +39,9 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
       // https://github.com/getsentry/sentry-javascript/issues/7813
       // Skip Error: lines
-      if (cleanedLine.match(/\S*Error: /)) {
+      // Using includes() instead of a regex to avoid O(n²) backtracking on long lines
+      // https://github.com/getsentry/sentry-javascript/issues/20052
+      if (cleanedLine.includes('Error: ')) {
         continue;
       }
 

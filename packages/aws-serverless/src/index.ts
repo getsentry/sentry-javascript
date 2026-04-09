@@ -44,6 +44,7 @@ export {
   getSentryRelease,
   createGetModuleFromFilename,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -159,6 +160,8 @@ export {
   unleashIntegration,
   growthbookIntegration,
   metrics,
+  spanStreamingIntegration,
+  withStreamedSpan,
 } from '@sentry/node';
 
 export {

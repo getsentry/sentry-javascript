@@ -1,4 +1,5 @@
 import type { EmailMessage, ExportedHandler } from '@cloudflare/workers-types';
+import type { env as cloudflareEnv } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -8,7 +9,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -61,23 +62,25 @@ function wrapEmailHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerEmail<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: Parameters<NonNullable<T['email']>>[1]) => CloudflareOptions | undefined,
+  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
-  if (!('email' in handler) || typeof handler.email !== 'function' || isInstrumented(handler.email)) {
+  if (!('email' in handler) || typeof handler.email !== 'function') {
     return;
   }
 
-  handler.email = new Proxy(handler.email, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['email']>>) {
-      const [emailMessage, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.email = ensureInstrumented(
+    handler.email,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['email']>>) {
+          const [emailMessage, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapEmailHandler(emailMessage, options, context, () => target.apply(thisArg, args));
-    },
-  });
-
-  markAsInstrumented(handler.email);
+          return wrapEmailHandler(emailMessage, options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
 }

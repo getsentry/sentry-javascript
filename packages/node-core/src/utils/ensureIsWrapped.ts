@@ -1,5 +1,13 @@
 import { isWrapped } from '@opentelemetry/instrumentation';
-import { consoleSandbox, getClient, getGlobalScope, hasSpansEnabled, isEnabled } from '@sentry/core';
+import {
+  consoleSandbox,
+  getClient,
+  getOriginalFunction,
+  getGlobalScope,
+  hasSpansEnabled,
+  isEnabled,
+  type WrappedFunction,
+} from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
 import { isCjs } from './detection';
@@ -14,7 +22,10 @@ export function ensureIsWrapped(
   const clientOptions = getClient<NodeClient>()?.getOptions();
   if (
     !clientOptions?.disableInstrumentationWarnings &&
-    !isWrapped(maybeWrappedFunction) &&
+    !(
+      isWrapped(maybeWrappedFunction) ||
+      typeof getOriginalFunction(maybeWrappedFunction as WrappedFunction) === 'function'
+    ) &&
     isEnabled() &&
     hasSpansEnabled(clientOptions)
   ) {

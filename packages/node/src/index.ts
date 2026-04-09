@@ -140,7 +140,9 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  spanStreamingIntegration,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   instrumentLangGraph,
   instrumentStateGraphCompile,
 } from '@sentry/core';
@@ -203,4 +205,6 @@ export {
   cron,
   NODE_VERSION,
   validateOpenTelemetrySetup,
+  withStreamedSpan,
+  _INTERNAL_normalizeCollectionInterval,
 } from '@sentry/node-core';

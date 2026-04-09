@@ -3,7 +3,7 @@ import { captureException } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { isInstrumented, markAsInstrumented } from './instrument';
+import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
@@ -67,16 +67,18 @@ export function instrumentDurableObjectWithSentry<
 
       // Any other public methods on the Durable Object instance are RPC calls.
 
-      if (obj.fetch && typeof obj.fetch === 'function' && !isInstrumented(obj.fetch)) {
-        obj.fetch = new Proxy(obj.fetch, {
-          apply(target, thisArg, args) {
-            return wrapRequestHandler({ options, request: args[0], context }, () =>
-              Reflect.apply(target, thisArg, args),
-            );
-          },
-        });
-
-        markAsInstrumented(obj.fetch);
+      if (obj.fetch && typeof obj.fetch === 'function') {
+        obj.fetch = ensureInstrumented(
+          obj.fetch,
+          original =>
+            new Proxy(original, {
+              apply(target, thisArg, args) {
+                return wrapRequestHandler({ options, request: args[0], context }, () => {
+                  return Reflect.apply(target, thisArg, args);
+                });
+              },
+            }),
+        );
       }
 
       if (obj.alarm && typeof obj.alarm === 'function') {
@@ -177,7 +179,18 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
   methodNames.forEach(methodName => {
     const originalMethod = (proto as Record<string, unknown>)[methodName];
 
-    if (!originalMethod || isInstrumented(originalMethod)) {
+    if (!originalMethod) {
+      return;
+    }
+
+    const existingInstrumented = getInstrumented(originalMethod);
+    if (existingInstrumented) {
+      Object.defineProperty(proto, methodName, {
+        value: existingInstrumented,
+        enumerable: false,
+        writable: true,
+        configurable: true,
+      });
       return;
     }
 
@@ -216,6 +229,11 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
       return wrapper.apply(this, args);
     };
 
+    // Only mark wrappedMethod as instrumented (not originalMethod → wrappedMethod).
+    // originalMethod must stay unmapped because wrappedMethod calls
+    // wrapMethodWithSentry(options, originalMethod) on each invocation to create
+    // a per-instance proxy. If originalMethod mapped to wrappedMethod, that call
+    // would return wrappedMethod itself, causing infinite recursion.
     markAsInstrumented(wrappedMethod);
 
     // Replace the prototype method

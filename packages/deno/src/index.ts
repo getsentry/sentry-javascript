@@ -94,6 +94,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStreamedSpan,
   logger,
   consoleLoggingIntegration,
 } from '@sentry/core';
@@ -109,3 +110,4 @@ export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { denoRuntimeMetricsIntegration, type DenoRuntimeMetricsOptions } from './integrations/denoRuntimeMetrics';

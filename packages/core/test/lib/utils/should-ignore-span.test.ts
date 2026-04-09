@@ -89,6 +89,20 @@ describe('shouldIgnoreSpan', () => {
     expect(shouldIgnoreSpan(span12, ignoreSpans)).toBe(false);
   });
 
+  it('matches inferred HTTP span names', () => {
+    expect(shouldIgnoreSpan({ description: 'GET /health', op: 'http.server' }, ['GET /health'])).toBe(true);
+  });
+
+  it('matches middleware span names with regex', () => {
+    expect(
+      shouldIgnoreSpan({ description: 'middleware - expressInit', op: 'middleware.express' }, [/middleware/]),
+    ).toBe(true);
+  });
+
+  it('matches IgnoreSpanFilter with op only', () => {
+    expect(shouldIgnoreSpan({ description: 'GET /health', op: 'http.server' }, [{ op: 'http.server' }])).toBe(true);
+  });
+
   it('emits a debug log when a span is ignored', () => {
     const debugLogSpy = vi.spyOn(debug, 'log');
     const span = { description: 'testDescription', op: 'testOp' };

@@ -1,4 +1,5 @@
 import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
+import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -9,7 +10,7 @@ import {
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -67,23 +68,47 @@ function wrapQueueHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: Parameters<NonNullable<T['queue']>>[1]) => CloudflareOptions | undefined,
+  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
-  if (!('queue' in handler) || typeof handler.queue !== 'function' || isInstrumented(handler.queue)) {
+  if (!('queue' in handler) || typeof handler.queue !== 'function') {
     return;
   }
 
-  handler.queue = new Proxy(handler.queue, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['queue']>>) {
-      const [batch, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.queue = ensureInstrumented(
+    handler.queue,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['queue']>>) {
+          const [batch, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapQueueHandler(batch, options, context, () => target.apply(thisArg, args));
+          return wrapQueueHandler(batch, options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
+}
+
+/**
+ * Instruments a queue method for WorkerEntrypoint (options/context already available).
+ */
+export function instrumentWorkerEntrypointQueue<T extends WorkerEntrypoint>(
+  instance: T,
+  options: CloudflareOptions,
+  context: ExecutionContext,
+): void {
+  if (!instance.queue) {
+    return;
+  }
+
+  const original = instance.queue.bind(instance);
+  instance.queue = new Proxy(original, {
+    apply(target, thisArg, args: [MessageBatch]) {
+      const [batch] = args;
+
+      return wrapQueueHandler(batch, options, context, () => Reflect.apply(target, thisArg, args));
     },
   });
-
-  markAsInstrumented(handler.queue);
 }

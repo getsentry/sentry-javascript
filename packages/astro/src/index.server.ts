@@ -154,6 +154,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentLangChainEmbeddings,
   instrumentLangGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
@@ -172,6 +173,8 @@ export {
   statsigIntegration,
   unleashIntegration,
   growthbookIntegration,
+  spanStreamingIntegration,
+  withStreamedSpan,
   metrics,
 } from '@sentry/node';
 

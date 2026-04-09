@@ -1,13 +1,18 @@
-import type { env } from 'cloudflare:workers';
+import type { env as cloudflareEnv } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { isInstrumented, markAsInstrumented } from './instrument';
+import { ensureInstrumented } from './instrument';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
 import { getHonoIntegration } from './integrations/hono';
+import { isCloudflareClass } from './utils/isCloudflareClass';
+import {
+  instrumentWorkerEntrypoint,
+  type WorkerEntrypointConstructor,
+} from './instrumentations/instrumentWorkerEntrypoint';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -20,25 +25,37 @@ import { getHonoIntegration } from './integrations/hono';
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
+// TODO(v11): The generic types need to be rewritten to following to improve type safety:
+// T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any>
 export function withSentry<
-  Env = typeof env,
+  Env = typeof cloudflareEnv,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
+  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
     Env,
     QueueHandlerMessage,
     CfHostMetadata
   >,
 >(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+  if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
+    // oxlint-disable-next-line typescript/no-explicit-any
+    return instrumentWorkerEntrypoint(optionsCallback as any, handler);
+  }
+
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {
-    instrumentExportedHandlerFetch(handler, optionsCallback);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerFetch(handler, optionsCallback as any);
     instrumentHonoErrorHandler(handler);
-    instrumentExportedHandlerScheduled(handler, optionsCallback);
-    instrumentExportedHandlerEmail(handler, optionsCallback);
-    instrumentExportedHandlerQueue(handler, optionsCallback);
-    instrumentExportedHandlerTail(handler, optionsCallback);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerScheduled(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerEmail(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerQueue(handler, optionsCallback as any);
+    // oxlint-disable-next-line typescript/no-explicit-any
+    instrumentExportedHandlerTail(handler, optionsCallback as any);
     // This is here because Miniflare sometimes cannot get instrumented
   } catch {
     // Do not console anything here, we don't want to spam the console with errors
@@ -49,22 +66,19 @@ export function withSentry<
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function instrumentHonoErrorHandler<T extends ExportedHandler<any, any, any>>(handler: T): void {
-  if (
-    'onError' in handler &&
-    'errorHandler' in handler &&
-    typeof handler.errorHandler === 'function' &&
-    !isInstrumented(handler.errorHandler)
-  ) {
-    handler.errorHandler = new Proxy(handler.errorHandler, {
-      apply(target, thisArg, args) {
-        const [err, context] = args;
+  if ('onError' in handler && 'errorHandler' in handler && typeof handler.errorHandler === 'function') {
+    handler.errorHandler = ensureInstrumented(
+      handler.errorHandler,
+      original =>
+        new Proxy(original, {
+          apply(target, thisArg, args) {
+            const [err, context] = args;
 
-        getHonoIntegration()?.handleHonoException(err, context);
+            getHonoIntegration()?.handleHonoException(err, context);
 
-        return Reflect.apply(target, thisArg, args);
-      },
-    });
-
-    markAsInstrumented(handler.errorHandler);
+            return Reflect.apply(target, thisArg, args);
+          },
+        }),
+    );
   }
 }

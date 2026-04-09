@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-router/cloudflare';
 import { type LoaderFunctionArgs } from '@shopify/remix-oxygen';
 import {
   Outlet,
@@ -160,8 +159,6 @@ export function ErrorBoundary({ error }: { error: unknown }) {
   let errorMessage = 'Unknown error';
   let errorStatus = 500;
 
-  const eventId = Sentry.captureException(error);
-
   if (isRouteErrorResponse(error)) {
     errorMessage = error?.data?.message ?? error.data;
     errorStatus = error.status;
@@ -177,11 +174,6 @@ export function ErrorBoundary({ error }: { error: unknown }) {
         <fieldset>
           <pre>{errorMessage}</pre>
         </fieldset>
-      )}
-      {eventId && (
-        <h2>
-          Sentry Event ID: <code>{eventId}</code>
-        </h2>
       )}
     </div>
   );

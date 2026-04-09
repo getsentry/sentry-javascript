@@ -60,6 +60,23 @@ describe('instrumentTail', () => {
     vi.clearAllMocks();
   });
 
+  test('does not double-wrap when withSentry is called twice', async () => {
+    const originalTail = vi.fn();
+    const handler = {
+      tail: originalTail,
+    } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+
+    const wrappedHandler1 = withSentry(optionsCallback, handler);
+    const firstTail = wrappedHandler1.tail;
+
+    const wrappedHandler2 = withSentry(optionsCallback, handler);
+    const secondTail = wrappedHandler2.tail;
+
+    expect(firstTail).toBe(secondTail);
+  });
+
   test('executes options callback with env', async () => {
     const handler = {
       tail(_event, _env, _context) {

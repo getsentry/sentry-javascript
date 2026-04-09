@@ -100,7 +100,8 @@ test.describe('client-side errors', () => {
             type: 'Error',
             value: errorMessage,
             mechanism: {
-              handled: true,
+              handled: false,
+              type: 'auto.function.react_router.on_error',
             },
           },
         ],
@@ -127,7 +128,8 @@ test.describe('client-side errors', () => {
             type: 'Error',
             value: errorMessage,
             mechanism: {
-              handled: true,
+              handled: false,
+              type: 'auto.function.react_router.on_error',
             },
           },
         ],

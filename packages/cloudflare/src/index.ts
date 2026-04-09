@@ -102,10 +102,12 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
   metrics,
+  withStreamedSpan,
   instrumentLangGraph,
 } from '@sentry/core';
 

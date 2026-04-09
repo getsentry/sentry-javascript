@@ -71,6 +71,8 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
+export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
+export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -84,11 +86,13 @@ export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
@@ -101,6 +105,7 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { shouldIgnoreSpan } from './utils/should-ignore-span';
 export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -119,6 +124,13 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+export { patchExpressModule, setupExpressErrorHandler, expressErrorHandler } from './integrations/express/index';
+export type {
+  ExpressIntegrationOptions,
+  ExpressHandlerOptions,
+  ExpressMiddleware,
+  ExpressErrorMiddleware,
+} from './integrations/express/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
@@ -161,7 +173,7 @@ export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants'
 export { instrumentGoogleGenAIClient } from './tracing/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
 export type { GoogleGenAIResponse } from './tracing/google-genai/types';
-export { createLangChainCallbackHandler } from './tracing/langchain';
+export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
 export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
@@ -180,6 +192,11 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
 } from './tracing/google-genai/types';
+
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
+
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -394,6 +411,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  StreamedSpanEnvelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -461,6 +479,9 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SerializedStreamedSpan,
+  SerializedStreamedSpanContainer,
+  StreamedSpanJSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';

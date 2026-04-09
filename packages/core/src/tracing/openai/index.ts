@@ -12,7 +12,6 @@ import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
@@ -26,18 +25,8 @@ import {
 } from '../ai/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
-import type { ChatCompletionChunk, OpenAiOptions, OpenAiResponse, OpenAIStream, ResponseStreamingEvent } from './types';
-import {
-  addChatCompletionAttributes,
-  addConversationAttributes,
-  addEmbeddingsAttributes,
-  addResponsesApiAttributes,
-  extractRequestParameters,
-  isChatCompletionResponse,
-  isConversationResponse,
-  isEmbeddingsResponse,
-  isResponsesApiResponse,
-} from './utils';
+import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
  * Extract available tools from request parameters
@@ -86,33 +75,6 @@ function extractRequestAttributes(args: unknown[], operationName: string): Recor
   }
 
   return attributes;
-}
-
-/**
- * Add response attributes to spans
- * This supports Chat Completion, Responses API, Embeddings, and Conversations API responses
- */
-function addResponseAttributes(span: Span, result: unknown, recordOutputs?: boolean): void {
-  if (!result || typeof result !== 'object') return;
-
-  const response = result as OpenAiResponse;
-
-  if (isChatCompletionResponse(response)) {
-    addChatCompletionAttributes(span, response, recordOutputs);
-    if (recordOutputs && response.choices?.length) {
-      const responseTexts = response.choices.map(choice => choice.message?.content || '');
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts) });
-    }
-  } else if (isResponsesApiResponse(response)) {
-    addResponsesApiAttributes(span, response, recordOutputs);
-    if (recordOutputs && response.output_text) {
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
-    }
-  } else if (isEmbeddingsResponse(response)) {
-    addEmbeddingsAttributes(span, response);
-  } else if (isConversationResponse(response)) {
-    addConversationAttributes(span, response);
-  }
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
@@ -180,7 +142,7 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
-    const operationName = instrumentedMethod.operation;
+    const operationName = instrumentedMethod.operation || 'unknown';
     const requestAttributes = extractRequestAttributes(args, operationName);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
 

@@ -1,8 +1,9 @@
-import type { ExportedHandler } from '@cloudflare/workers-types';
+import type { ExportedHandler, TraceItem } from '@cloudflare/workers-types';
+import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -38,23 +39,45 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: Parameters<NonNullable<T['tail']>>[1]) => CloudflareOptions | undefined,
+  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
-  if (!('tail' in handler) || typeof handler.tail !== 'function' || isInstrumented(handler.tail)) {
+  if (!('tail' in handler) || typeof handler.tail !== 'function') {
     return;
   }
 
-  handler.tail = new Proxy(handler.tail, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
-      const [, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.tail = ensureInstrumented(
+    handler.tail,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
+          const [, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapTailHandler(options, context, () => target.apply(thisArg, args));
+          return wrapTailHandler(options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
+}
+
+/**
+ * Instruments a tail method for WorkerEntrypoint (options/context already available).
+ */
+export function instrumentWorkerEntrypointTail<T extends WorkerEntrypoint>(
+  instance: T,
+  options: CloudflareOptions,
+  context: ExecutionContext,
+): void {
+  if (!instance.tail) {
+    return;
+  }
+
+  const original = instance.tail.bind(instance);
+  instance.tail = new Proxy(original, {
+    apply(target, thisArg, args: [TraceItem[]]) {
+      return wrapTailHandler(options, context, () => Reflect.apply(target, thisArg, args));
     },
   });
-
-  markAsInstrumented(handler.tail);
 }

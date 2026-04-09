@@ -672,4 +672,37 @@ describe('ThirdPartyErrorFilter', () => {
       });
     });
   });
+
+  // Regression test for https://github.com/getsentry/sentry-javascript/issues/20052
+  // The thirdPartyErrorFilterIntegration triggers addMetadataToStackFrames on every error event,
+  // which calls ensureMetadataStacksAreParsed to parse all _sentryModuleMetadata stack keys.
+  // This test verifies that metadata is correctly resolved even when the module metadata stacks
+  // contain long lines (e.g. from minified bundles with long URLs/identifiers).
+  describe('metadata stack parsing with long stack lines', () => {
+    it('resolves metadata for frames whose filenames appear in module metadata stacks with long URLs', () => {
+      const longFilename = `https://example.com/_next/static/chunks/${'a'.repeat(200)}.js`;
+
+      // Simulate a module metadata entry with a realistic stack containing a long filename
+      const fakeStack = [`Error: Sentry Module Metadata`, `    at Object.<anonymous> (${longFilename}:1:1)`].join('\n');
+      GLOBAL_OBJ._sentryModuleMetadata![fakeStack] = { '_sentryBundlerPluginAppKey:long-url-key': true };
+
+      const event: Event = {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [{ filename: longFilename, function: 'test', lineno: 1, colno: 1 }],
+              },
+            },
+          ],
+        },
+      };
+
+      addMetadataToStackFrames(stackParser, event);
+
+      // The frame should have module_metadata attached from the parsed metadata stack
+      const frame = event.exception!.values![0]!.stacktrace!.frames![0]!;
+      expect(frame.module_metadata).toEqual({ '_sentryBundlerPluginAppKey:long-url-key': true });
+    });
+  });
 });

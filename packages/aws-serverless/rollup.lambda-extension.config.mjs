@@ -7,7 +7,7 @@ export default [
     outputFileBase: 'index.mjs',
     packageSpecificConfig: {
       output: {
-        dir: 'build/aws/dist-serverless/sentry-extension',
+        dir: 'build/lambda-extension',
         sourcemap: false,
       },
     },

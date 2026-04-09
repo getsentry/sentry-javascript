@@ -1,4 +1,5 @@
 import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
+import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import {
   captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -8,15 +9,12 @@ import {
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
-import { isInstrumented, markAsInstrumented } from '../../instrument';
+import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 
-/**
- * Core scheduled handler logic - wraps execution with Sentry instrumentation.
- */
 function wrapScheduledHandler(
   controller: ScheduledController,
   options: CloudflareOptions,
@@ -63,23 +61,47 @@ function wrapScheduledHandler(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any, any, any>>(
   handler: T,
-  optionsCallback: (env: Parameters<NonNullable<T['scheduled']>>[1]) => CloudflareOptions | undefined,
+  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {
-  if (!('scheduled' in handler) || typeof handler.scheduled !== 'function' || isInstrumented(handler.scheduled)) {
+  if (!('scheduled' in handler) || typeof handler.scheduled !== 'function') {
     return;
   }
 
-  handler.scheduled = new Proxy(handler.scheduled, {
-    apply(target, thisArg, args: Parameters<NonNullable<T['scheduled']>>) {
-      const [controller, env, ctx] = args;
-      const context = instrumentContext(ctx);
-      args[2] = context;
+  handler.scheduled = ensureInstrumented(
+    handler.scheduled,
+    original =>
+      new Proxy(original, {
+        apply(target, thisArg, args: Parameters<NonNullable<T['scheduled']>>) {
+          const [controller, env, ctx] = args;
+          const context = instrumentContext(ctx);
+          args[2] = context;
 
-      const options = getFinalOptions(optionsCallback(env), env);
+          const options = getFinalOptions(optionsCallback(env), env);
 
-      return wrapScheduledHandler(controller, options, context, () => target.apply(thisArg, args));
+          return wrapScheduledHandler(controller, options, context, () => target.apply(thisArg, args));
+        },
+      }),
+  );
+}
+
+/**
+ * Instruments a scheduled method for WorkerEntrypoint (options/context already available).
+ */
+export function instrumentWorkerEntrypointScheduled<T extends WorkerEntrypoint>(
+  instance: T,
+  options: CloudflareOptions,
+  context: ExecutionContext,
+): void {
+  if (!instance.scheduled) {
+    return;
+  }
+
+  const original = instance.scheduled.bind(instance);
+  instance.scheduled = new Proxy(original, {
+    apply(target, thisArg, args: [ScheduledController]) {
+      const [controller] = args;
+
+      return wrapScheduledHandler(controller, options, context, () => Reflect.apply(target, thisArg, args));
     },
   });
-
-  markAsInstrumented(handler.scheduled);
 }
