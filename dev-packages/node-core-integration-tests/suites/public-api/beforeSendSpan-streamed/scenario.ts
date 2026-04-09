@@ -15,8 +15,7 @@ const client = Sentry.init({
         span.attributes = {};
       }
       span.attributes['sentry.custom_attribute'] = 'customAttributeValue';
-      // oxlint-disable-next-line typescript/ban-ts-comment
-      // @ts-expect-error - technically this is something we have to expect, despite types saying it's invalid
+      // @ts-ignore - technically this is something we have to expect, despite types saying it's invalid
       span.status = 'something';
       span.links = [
         {

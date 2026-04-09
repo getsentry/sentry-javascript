@@ -1,5 +1,5 @@
 import type { CoreOptions } from '../../types-hoist/options';
-import type { BeforeSendStreamedSpanCallback, ClientOptions } from '../../types-hoist/options';
+import type { BeforeSendStreamedSpanCallback } from '../../types-hoist/options';
 import type { StreamedSpanJSON } from '../../types-hoist/span';
 import { addNonEnumerableProperty } from '../../utils/object';
 
