@@ -4,6 +4,26 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(aws-serverless): Ship Lambda extension in npm package for container image Lambdas ([#20133](https://github.com/getsentry/sentry-javascript/pull/20133))**
+
+  The Sentry Lambda extension is now included in the npm package, enabling container image-based Lambda functions to use it. Copy the extension files into your Docker image and set the `tunnel` option:
+
+  ```dockerfile
+  RUN mkdir -p /opt/sentry-extension
+  COPY node_modules/@sentry/aws-serverless/build/lambda-extension/sentry-extension /opt/extensions/sentry-extension
+  COPY node_modules/@sentry/aws-serverless/build/lambda-extension/index.mjs /opt/sentry-extension/index.mjs
+  RUN chmod +x /opt/extensions/sentry-extension /opt/sentry-extension/index.mjs
+  ```
+
+  ```js
+  Sentry.init({
+    dsn: '__DSN__',
+    tunnel: 'http://localhost:9000/envelope',
+  });
+  ```
+
+  This works with any Sentry SDK (`@sentry/aws-serverless`, `@sentry/sveltekit`, `@sentry/node`, etc.).
+
 - **feat(cloudflare): Support basic WorkerEntrypoint ([#19884](https://github.com/getsentry/sentry-javascript/pull/19884))**
 
   `withSentry` now supports instrumenting classes extending Cloudflare's `WorkerEntrypoint`. This instruments `fetch`, `scheduled`, `queue`, and `tail` handlers.
