@@ -35,6 +35,14 @@ server.tool('echo', { message: z.string() }, async ({ message }, rest) => {
   };
 });
 
+server.registerTool(
+  'echo-register',
+  { description: 'Echo tool (register API)', inputSchema: { message: z.string() } },
+  async ({ message }) => ({
+    content: [{ type: 'text', text: `registerTool echo: ${message}` }],
+  }),
+);
+
 server.prompt('echo', { message: z.string() }, ({ message }, extra) => ({
   messages: [
     {
@@ -46,6 +54,10 @@ server.prompt('echo', { message: z.string() }, ({ message }, extra) => ({
     },
   ],
 }));
+
+server.tool('always-error', {}, async () => {
+  throw new Error('intentional error for span status testing');
+});
 
 const transports: Record<string, SSEServerTransport> = {};
 
@@ -102,6 +114,14 @@ streamableServer.tool('echo', { message: z.string() }, async ({ message }) => {
     content: [{ type: 'text', text: `Tool echo: ${message}` }],
   };
 });
+
+streamableServer.registerTool(
+  'echo-register',
+  { description: 'Echo tool (register API)', inputSchema: { message: z.string() } },
+  async ({ message }) => ({
+    content: [{ type: 'text', text: `registerTool echo: ${message}` }],
+  }),
+);
 
 streamableServer.prompt('echo', { message: z.string() }, ({ message }) => ({
   messages: [

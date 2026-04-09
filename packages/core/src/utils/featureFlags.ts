@@ -28,6 +28,12 @@ const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
  * Copies feature flags that are in current scope context to the event context
  */
 export function _INTERNAL_copyFlagsFromScopeToEvent(event: Event): Event {
+  if (event.type) {
+    // No need to add the flags context to transaction events.
+    // Spans already get the flag.evaluation attributes.
+    return event;
+  }
+
   const scope = getCurrentScope();
   const flagContext = scope.getScopeData().contexts.flags;
   const flagBuffer = flagContext ? flagContext.values : [];

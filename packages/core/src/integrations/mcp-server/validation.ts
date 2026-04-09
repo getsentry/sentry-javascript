@@ -57,7 +57,10 @@ export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse 
 }
 
 /**
- * Validates MCP server instance with type checking
+ * Validates MCP server instance with type checking.
+ * Accepts both the legacy API (`tool`, `resource`, `prompt`) used in SDK 1.x
+ * and the newer API (`registerTool`, `registerResource`, `registerPrompt`) introduced
+ * alongside the legacy API in SDK 1.x and made the only option in SDK 2.x.
  * @param instance - Object to validate as MCP server instance
  * @returns True if instance has required MCP server methods
  */
@@ -65,10 +68,9 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   if (
     typeof instance === 'object' &&
     instance !== null &&
-    'resource' in instance &&
-    'tool' in instance &&
-    'prompt' in instance &&
-    'connect' in instance
+    'connect' in instance &&
+    (('tool' in instance && 'resource' in instance && 'prompt' in instance) ||
+      ('registerTool' in instance && 'registerResource' in instance && 'registerPrompt' in instance))
   ) {
     return true;
   }

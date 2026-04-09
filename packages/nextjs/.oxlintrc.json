@@ -1,6 +1,12 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../.oxlintrc.json"],
+  "extends": ["../../.oxlintrc.base.json"],
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry-internal/eslint-plugin-sdk"
+    }
+  ],
   "env": {
     "browser": true,
     "node": true
