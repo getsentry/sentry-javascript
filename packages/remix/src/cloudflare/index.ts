@@ -114,5 +114,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';

@@ -121,6 +121,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
+  withStreamedSpan,
   metrics,
   envToBool,
 } from '@sentry/core';

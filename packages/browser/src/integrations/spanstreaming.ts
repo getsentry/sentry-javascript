@@ -19,7 +19,7 @@ export const spanStreamingIntegration = defineIntegration(() => {
       // This avoids the classic double-opt-in problem we'd otherwise have in the browser SDK.
       const clientOptions = client.getOptions();
       if (!clientOptions.traceLifecycle) {
-        DEBUG_BUILD && debug.warn('[SpanStreaming] set `traceLifecycle` to "stream"');
+        DEBUG_BUILD && debug.log('[SpanStreaming] set `traceLifecycle` to "stream"');
         clientOptions.traceLifecycle = 'stream';
       }
     },
