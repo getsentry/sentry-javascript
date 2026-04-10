@@ -35,7 +35,11 @@ async function run() {
     const longContent = 'A'.repeat(50_000);
     await client.models.generateContent({
       model: 'gemini-1.5-flash',
-      contents: [{ role: 'user', parts: [{ text: longContent }] }],
+      contents: [
+        { role: 'user', parts: [{ text: longContent }] },
+        { role: 'model', parts: [{ text: 'Some reply' }] },
+        { role: 'user', parts: [{ text: 'Follow-up question' }] },
+      ],
     });
   });
 }

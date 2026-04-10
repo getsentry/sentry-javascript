@@ -661,8 +661,12 @@ describe('Google GenAI integration', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([{ role: 'user', parts: [{ text: longContent }] }]),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', parts: [{ text: longContent }] },
+            { role: 'model', parts: [{ text: 'Some reply' }] },
+            { role: 'user', parts: [{ text: 'Follow-up question' }] },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
         }),
       }),
     ]),
