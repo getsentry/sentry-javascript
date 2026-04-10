@@ -37,6 +37,11 @@ test('Sends transaction with OTel tracer.startSpan despite pre-existing provider
       }),
     ]),
   );
+
+  const otelSpan = transaction.spans!.find((s: any) => s.description === 'test-otel-span');
+  expect(otelSpan).toBeDefined();
+  // INTERNAL (and other unmapped) kinds must not get a synthetic `otel.span` op
+  expect(otelSpan!.op).toBeUndefined();
 });
 
 test('Sends transaction with OTel tracer.startActiveSpan', async ({ baseURL }) => {
@@ -56,6 +61,10 @@ test('Sends transaction with OTel tracer.startActiveSpan', async ({ baseURL }) =
       }),
     ]),
   );
+
+  const otelSpan = transaction.spans!.find((s: any) => s.description === 'test-otel-active-span');
+  expect(otelSpan).toBeDefined();
+  expect(otelSpan!.op).toBeUndefined();
 });
 
 test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) => {
@@ -84,4 +93,5 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
   const sentrySpan = transaction.spans!.find((s: any) => s.description === 'sentry-parent');
   const otelSpan = transaction.spans!.find((s: any) => s.description === 'otel-child');
   expect(otelSpan!.parent_span_id).toBe(sentrySpan!.span_id);
+  expect(otelSpan!.op).toBeUndefined();
 });
