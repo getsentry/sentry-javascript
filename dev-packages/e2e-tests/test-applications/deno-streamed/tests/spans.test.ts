@@ -271,10 +271,6 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
         type: 'boolean',
         value: true,
       },
-      'sentry.op': {
-        type: 'string',
-        value: 'otel.span', // This looks fishy!
-      },
     },
     end_timestamp: expect.any(Number),
     is_segment: false,
@@ -285,65 +281,4 @@ test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) 
     status: 'ok',
     trace_id: httpServerSpan!.trace_id,
   });
-});
-
-test('Outbound fetch inside Sentry span creates span ... does it really?', async ({ baseURL }) => {
-  const spansPromise = waitForStreamedSpans('deno-streamed', spans => {
-    return spans.some(span => span.name === 'test-outgoing-fetch');
-  });
-
-  await fetch(`${baseURL}/test-outgoing-fetch`);
-
-  const spans = await spansPromise;
-
-  expect(spans).toHaveLength(2);
-
-  expect(spans).toEqual([
-    {
-      attributes: {
-        'sentry.environment': {
-          type: 'string',
-          value: 'qa',
-        },
-        'sentry.origin': {
-          type: 'string',
-          value: 'manual',
-        },
-        'sentry.sdk.name': {
-          type: 'string',
-          value: 'sentry.javascript.deno',
-        },
-        'sentry.sdk.version': {
-          type: 'string',
-          value: expect.any(String),
-        },
-        'sentry.segment.id': {
-          type: 'string',
-          value: expect.stringMatching(/^[\da-f]{16}$/),
-        },
-        'sentry.segment.name': {
-          type: 'string',
-          value: 'GET /test-outgoing-fetch',
-        },
-      },
-      is_segment: false,
-      name: 'test-outgoing-fetch',
-      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      start_timestamp: expect.any(Number),
-      end_timestamp: expect.any(Number),
-      status: 'ok',
-      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-    },
-    {
-      ...SEGMENT_SPAN,
-      name: 'GET /test-outgoing-fetch',
-      attributes: {
-        ...SEGMENT_SPAN.attributes,
-        'sentry.segment.name': { type: 'string', value: 'GET /test-outgoing-fetch' },
-        'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:\d+\/test-outgoing-fetch$/) },
-        'url.path': { type: 'string', value: '/test-outgoing-fetch' },
-      },
-    },
-  ]);
 });

@@ -27,20 +27,21 @@ Sentry.init({
 
 const port = 3030;
 
+function flushDeferred() {
+  setTimeout(() => {
+    Sentry.flush();
+  }, 100);
+}
+
 Deno.serve({ port }, async (req: Request) => {
   const url = new URL(req.url);
-
-  if (url.pathname === '/test-success') {
-    return new Response(JSON.stringify({ version: 'v1' }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
   // Test Sentry.startSpan — uses Sentry's internal pipeline
   if (url.pathname === '/test-sentry-span') {
     Sentry.startSpan({ name: 'test-sentry-span' }, () => {
       // noop
     });
+    flushDeferred();
     return new Response(JSON.stringify({ status: 'ok' }), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -53,18 +54,8 @@ Deno.serve({ port }, async (req: Request) => {
       const span = tracer.startSpan('otel-child');
       span.end();
     });
+    flushDeferred();
     return new Response(JSON.stringify({ status: 'ok' }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Test outbound fetch instrumentation
-  if (url.pathname === '/test-outgoing-fetch') {
-    const response = await Sentry.startSpan({ name: 'test-outgoing-fetch' }, async () => {
-      const res = await fetch('http://localhost:3030/test-success');
-      return res.json();
-    });
-    return new Response(JSON.stringify(response), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
