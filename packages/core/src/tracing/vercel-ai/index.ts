@@ -94,7 +94,7 @@ function mapVercelAiOperationName(operationName: string): string {
  * Post-process spans emitted by the Vercel AI SDK.
  * This is supposed to be used in `client.on('spanStart', ...)
  */
-function onVercelAiSpanStart(span: Span, enableTruncation: boolean): void {
+function onVercelAiSpanStart(span: Span, client: Client): void {
   const { data: attributes, description: name } = spanToJSON(span);
 
   if (!name) {
@@ -113,6 +113,9 @@ function onVercelAiSpanStart(span: Span, enableTruncation: boolean): void {
   if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
   }
+
+  const integration = client.getIntegrationByName('VercelAI') as { options?: { enableTruncation?: boolean } } | undefined;
+  const enableTruncation = integration?.options?.enableTruncation ?? true;
 
   processGenerateSpan(span, name, attributes, enableTruncation);
 }
@@ -444,9 +447,8 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 /**
  * Add event processors to the given client to process Vercel AI spans.
  */
-export function addVercelAiProcessors(client: Client, options?: { enableTruncation?: boolean }): void {
-  const enableTruncation = options?.enableTruncation ?? true;
-  client.on('spanStart', span => onVercelAiSpanStart(span, enableTruncation));
+export function addVercelAiProcessors(client: Client): void {
+  client.on('spanStart', span => onVercelAiSpanStart(span, client));
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
 }
