@@ -41,7 +41,11 @@ async function run() {
 
     // Long content that would normally be truncated
     const longContent = 'A'.repeat(50_000);
-    await model.invoke([{ role: 'user', content: longContent }]);
+    await model.invoke([
+      { role: 'user', content: longContent },
+      { role: 'assistant', content: 'Some reply' },
+      { role: 'user', content: 'Follow-up question' },
+    ]);
   });
 
   await Sentry.flush(2000);

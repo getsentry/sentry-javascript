@@ -10,6 +10,8 @@ Sentry.init({
   integrations: [
     Sentry.langChainIntegration({
       enableTruncation: false,
+      recordInputs: true,
+      recordOutputs: true,
     }),
   ],
   beforeSendTransaction: event => {
