@@ -30,10 +30,11 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       // Note that this can only be detected if the 'Modules' integration is available, and running in CJS mode
       const shouldForce = options.force ?? shouldForceIntegration(client);
 
+      const processorOptions = { enableTruncation: options.enableTruncation };
       if (shouldForce) {
-        addVercelAiProcessors(client);
+        addVercelAiProcessors(client, processorOptions);
       } else {
-        instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
+        instrumentation?.callWhenPatched(() => addVercelAiProcessors(client, processorOptions));
       }
     },
   };

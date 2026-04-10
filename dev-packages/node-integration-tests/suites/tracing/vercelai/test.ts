@@ -950,4 +950,37 @@ describe('Vercel AI integration', () => {
         .completed();
     });
   });
+
+  const longContent = 'A'.repeat(50_000);
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                // Multiple messages should all be preserved (no popping to last message only)
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                      { role: 'user', content: longContent },
+                      { role: 'assistant', content: 'Some reply' },
+                      { role: 'user', content: 'Follow-up question' },
+                    ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

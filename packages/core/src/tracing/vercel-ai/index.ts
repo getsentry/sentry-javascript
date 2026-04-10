@@ -94,7 +94,7 @@ function mapVercelAiOperationName(operationName: string): string {
  * Post-process spans emitted by the Vercel AI SDK.
  * This is supposed to be used in `client.on('spanStart', ...)
  */
-function onVercelAiSpanStart(span: Span): void {
+function onVercelAiSpanStart(span: Span, enableTruncation: boolean): void {
   const { data: attributes, description: name } = spanToJSON(span);
 
   if (!name) {
@@ -114,7 +114,7 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  processGenerateSpan(span, name, attributes);
+  processGenerateSpan(span, name, attributes, enableTruncation);
 }
 
 function vercelAiEventProcessor(event: Event): Event {
@@ -396,7 +396,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   }
 }
 
-function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
+function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes, enableTruncation: boolean): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
@@ -408,7 +408,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
-  requestMessagesFromPrompt(span, attributes);
+  requestMessagesFromPrompt(span, attributes, enableTruncation);
 
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
@@ -444,8 +444,9 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 /**
  * Add event processors to the given client to process Vercel AI spans.
  */
-export function addVercelAiProcessors(client: Client): void {
-  client.on('spanStart', onVercelAiSpanStart);
+export function addVercelAiProcessors(client: Client, options?: { enableTruncation?: boolean }): void {
+  const enableTruncation = options?.enableTruncation ?? true;
+  client.on('spanStart', span => onVercelAiSpanStart(span, enableTruncation));
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
 }
