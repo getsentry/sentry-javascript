@@ -34,6 +34,7 @@ import {
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+  const enableTruncation = options.enableTruncation ?? true;
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
@@ -89,6 +90,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         prompts,
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );
@@ -127,6 +129,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         messages as LangChainMessage[][],
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );

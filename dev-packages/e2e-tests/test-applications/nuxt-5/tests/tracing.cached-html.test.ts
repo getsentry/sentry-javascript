@@ -14,13 +14,11 @@ test.describe('Rendering Modes with Cached HTML', () => {
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-1h-cached-page', 'ISR 1h Cached Page');
   });
 
-  // TODO: Make test work with Nuxt 5
-  test.skip('exclude tracing meta tags on SWR-cached page', async ({ page }) => {
+  test('exclude tracing meta tags on SWR-cached page', async ({ page }) => {
     await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
   });
 
-  // TODO: Make test work with Nuxt 5
-  test.skip('exclude tracing meta tags on SWR 1h cached page', async ({ page }) => {
+  test('exclude tracing meta tags on SWR 1h cached page', async ({ page }) => {
     await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
   });
 

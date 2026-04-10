@@ -2,7 +2,29 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+## 10.48.0
+
+### Important Changes
+
+- **feat(aws-serverless): Ship Lambda extension in npm package for container image Lambdas ([#20133](https://github.com/getsentry/sentry-javascript/pull/20133))**
+
+  The Sentry Lambda extension is now included in the npm package, enabling container image-based Lambda functions to use it. Copy the extension files into your Docker image and set the `tunnel` option:
+
+  ```dockerfile
+  RUN mkdir -p /opt/sentry-extension
+  COPY node_modules/@sentry/aws-serverless/build/lambda-extension/sentry-extension /opt/extensions/sentry-extension
+  COPY node_modules/@sentry/aws-serverless/build/lambda-extension/index.mjs /opt/sentry-extension/index.mjs
+  RUN chmod +x /opt/extensions/sentry-extension /opt/sentry-extension/index.mjs
+  ```
+
+  ```js
+  Sentry.init({
+    dsn: '__DSN__',
+    tunnel: 'http://localhost:9000/envelope',
+  });
+  ```
+
+  This works with any Sentry SDK (`@sentry/aws-serverless`, `@sentry/sveltekit`, `@sentry/node`, etc.).
 
 - **feat(cloudflare): Support basic WorkerEntrypoint ([#19884](https://github.com/getsentry/sentry-javascript/pull/19884))**
 
@@ -40,7 +62,7 @@
 
   If you reference these attributes in hooks (e.g. `beforeSendTransaction`), update them to the `gen_ai.*` equivalents.
 
-- feat(langchain): Support embeddings APIs in LangChain ([#20017](https://github.com/getsentry/sentry-javascript/pull/20017))
+- **feat(core): Support embeddings in LangChain ([#20017](https://github.com/getsentry/sentry-javascript/pull/20017))**
 
   Adds instrumentation for LangChain embeddings (`embedQuery`, `embedDocuments`), creating `gen_ai.embeddings` spans. In Node.js, embedding classes from `@langchain/openai`, `@langchain/google-genai`, `@langchain/mistralai`, and `@langchain/google-vertexai` are auto-instrumented. For other runtimes, use the new `instrumentLangChainEmbeddings` API:
 
@@ -52,6 +74,43 @@
 
   await embeddings.embedQuery('Hello world');
   ```
+
+### Other Changes
+
+- feat(core): Support registerTool/registerResource/registerPrompt in MCP integration ([#20071](https://github.com/getsentry/sentry-javascript/pull/20071))
+- feat(core, node): Portable Express integration ([#19928](https://github.com/getsentry/sentry-javascript/pull/19928))
+- feat(deno): Add `denoRuntimeMetricsIntegration` ([#20023](https://github.com/getsentry/sentry-javascript/pull/20023))
+- feat(deps): Bump bundler plugins to `5.2.0` ([#20122](https://github.com/getsentry/sentry-javascript/pull/20122))
+- feat(deps): bump @hapi/content from 6.0.0 to 6.0.1 ([#20102](https://github.com/getsentry/sentry-javascript/pull/20102))
+- feat(node, bun): Enforce minimum collection interval in runtime metrics integrations ([#20068](https://github.com/getsentry/sentry-javascript/pull/20068))
+- feat(nuxt): Exclude tracing meta tags on cached pages in Nuxt 5 ([#20168](https://github.com/getsentry/sentry-javascript/pull/20168))
+- feat(react-router): Export `sentryOnError` ([#20120](https://github.com/getsentry/sentry-javascript/pull/20120))
+- fix(aws-serverless): Add timeout to \_endSpan forceFlush to prevent Lambda hanging ([#20064](https://github.com/getsentry/sentry-javascript/pull/20064))
+- fix(cloudflare): Ensure every request instruments functions ([#20044](https://github.com/getsentry/sentry-javascript/pull/20044))
+- fix(core): Only attach `flags` context to error events ([#20116](https://github.com/getsentry/sentry-javascript/pull/20116))
+- fix(core): Replace regex with string check in stack parser to prevent main thread blocking ([#20089](https://github.com/getsentry/sentry-javascript/pull/20089))
+- fix(core): set span.status to error when MCP tool returns JSON-RPC error response ([#20082](https://github.com/getsentry/sentry-javascript/pull/20082))
+- fix(gatsby): Fix errorHandler signature to match bundler-plugin-core API ([#20048](https://github.com/getsentry/sentry-javascript/pull/20048))
+- ref(core): Do not emit spans for chats.create in google-genai ([#19990](https://github.com/getsentry/sentry-javascript/pull/19990))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Remove unused `tsconfig-template` folder ([#20067](https://github.com/getsentry/sentry-javascript/pull/20067))
+- chore: Update validate-pr workflow ([#20072](https://github.com/getsentry/sentry-javascript/pull/20072))
+- chore(deps-dev): Bump effect from 3.20.0 to 3.21.0 ([#19999](https://github.com/getsentry/sentry-javascript/pull/19999))
+- chore(deps): Bump @xmldom/xmldom from 0.8.3 to 0.8.12 ([#20066](https://github.com/getsentry/sentry-javascript/pull/20066))
+- chore(deps): Bump lodash.template from 4.5.0 to 4.18.1 ([#20085](https://github.com/getsentry/sentry-javascript/pull/20085))
+- chore(oxlint): Add typeawareness into oxlintrc ([#20075](https://github.com/getsentry/sentry-javascript/pull/20075))
+- ci(deps): Bump getsentry/craft/.github/workflows/changelog-preview.yml from 2.24.1 to 2.25.2 ([#20081](https://github.com/getsentry/sentry-javascript/pull/20081))
+- ci(deps): Bump `mshick/add-pr-comment` ([#20078](https://github.com/getsentry/sentry-javascript/pull/20078))
+- ref(core): Extract shared endStreamSpan for AI integrations ([#20021](https://github.com/getsentry/sentry-javascript/pull/20021))
+- ref(core): Simplify addResponseAttributes in openai integration ([#20013](https://github.com/getsentry/sentry-javascript/pull/20013))
+- test(angular): Bump TypeScript to ~6.0.0 in angular-21 E2E test app ([#20134](https://github.com/getsentry/sentry-javascript/pull/20134))
+- test(nuxt): Make Nuxt 5 (nightly) E2E optional ([#20113](https://github.com/getsentry/sentry-javascript/pull/20113))
+- tests(node): Add node integration tests for Vercel `ToolLoopAgent` ([#20087](https://github.com/getsentry/sentry-javascript/pull/20087))
+
+</details>
 
 ## 10.47.0
 
