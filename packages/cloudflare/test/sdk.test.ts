@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
-import { getClient, Integration } from '@sentry/core';
+import type { Integration } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { init } from '../src/sdk';
