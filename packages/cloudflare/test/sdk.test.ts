@@ -53,7 +53,7 @@ describe('init', () => {
     const customSpanStreamingIntegration: MarkedIntegration = spanStreamingIntegration();
     customSpanStreamingIntegration._custom = true;
 
-    const client = init({ integrations: [customSpanStreamingIntegration] });
+    const client = init({ integrations: [customSpanStreamingIntegration], traceLifecycle: 'stream' });
     const integrations = client?.getOptions().integrations.filter(i => i.name === 'SpanStreaming');
 
     expect(integrations?.length).toBe(1);
