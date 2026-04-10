@@ -1,5 +1,5 @@
-import type { UndiciInstrumentationConfig } from '@opentelemetry/instrumentation-undici';
-import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import type { UndiciInstrumentationConfig } from './vendored/types';
+import { UndiciInstrumentation } from './vendored/undici';
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
@@ -12,7 +12,7 @@ import {
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import { generateInstrumentOnce, SentryNodeFetchInstrumentation } from '@sentry/node-core';
-import type { NodeClientOptions } from '../types';
+import type { NodeClientOptions } from '../../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 

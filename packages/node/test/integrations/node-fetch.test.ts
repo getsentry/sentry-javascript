@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { _getConfigWithDefaults } from '../../src/integrations/node-fetch';
+import { _getConfigWithDefaults } from '../../src/integrations/tracing/node-fetch';
 
 describe('nativeNodeFetchIntegration', () => {
   describe('_getConfigWithDefaults', () => {
