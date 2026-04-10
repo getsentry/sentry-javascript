@@ -94,7 +94,7 @@
     "@opentelemetry/sdk-trace-base": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/instrumentation": "7.6.0",
-    "@fastify/otel": "0.18.0",
+    "@fastify/otel": "0.18.1",
     "@sentry/core": "10.48.0",
     "@sentry/node-core": "10.48.0",
     "@sentry/opentelemetry": "10.48.0",
