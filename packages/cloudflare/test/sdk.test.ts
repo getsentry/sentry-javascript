@@ -1,9 +1,10 @@
 import * as SentryCore from '@sentry/core';
-import { getClient } from '@sentry/core';
+import { getClient, Integration } from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { init } from '../src/sdk';
 import { resetSdk } from './testUtils';
+import { spanStreamingIntegration } from '../src/';
 
 describe('init', () => {
   beforeEach(() => {
@@ -43,5 +44,18 @@ describe('init', () => {
         integrations: expect.not.arrayContaining([expect.objectContaining({ name: 'SpanStreaming' })]),
       }),
     );
+  });
+
+  type MarkedIntegration = Integration & { _custom?: boolean };
+
+  test("doesn't add spanStreamingIntegration if user added it manually", () => {
+    const customSpanStreamingIntegration: MarkedIntegration = spanStreamingIntegration();
+    customSpanStreamingIntegration._custom = true;
+
+    const client = init({ integrations: [customSpanStreamingIntegration] });
+    const integrations = client?.getOptions().integrations.filter(i => i.name === 'SpanStreaming');
+
+    expect(integrations?.length).toBe(1);
+    expect((integrations?.[0] as MarkedIntegration)?._custom).toBe(true);
   });
 });
