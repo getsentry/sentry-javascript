@@ -373,7 +373,11 @@ describe('LangGraph integration', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining(longContent),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', content: longContent },
+            { role: 'assistant', content: 'Some reply' },
+            { role: 'user', content: 'Follow-up question' },
+          ]),
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
         }),
       }),
