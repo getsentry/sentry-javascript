@@ -534,7 +534,7 @@ export function waitForStreamedSpan(
 
         for (const envelopeItem of envelopeItems) {
           if (!isStreamedSpanEnvelopeItem(envelopeItem)) {
-            return false;
+            continue;
           }
 
           const spans = envelopeItem[1].items;
