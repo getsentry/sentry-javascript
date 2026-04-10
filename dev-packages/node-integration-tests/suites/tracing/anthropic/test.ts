@@ -809,11 +809,15 @@ describe('Anthropic integration', () => {
   const EXPECTED_TRANSACTION_NO_TRUNCATION = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // Long array messages should not be truncated
+      // Multiple messages should all be preserved (no popping to last message only)
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([{ role: 'user', content: longContent }]),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', content: longContent },
+            { role: 'assistant', content: 'Some reply' },
+            { role: 'user', content: 'Follow-up question' },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
         }),
       }),
       // Long string input should not be truncated (messagesFromParams wraps it in an array)

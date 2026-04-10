@@ -29,12 +29,16 @@ async function run() {
     const mockClient = new MockAnthropic({ apiKey: 'mock-api-key' });
     const client = instrumentAnthropicAiClient(mockClient, { enableTruncation: false, recordInputs: true });
 
-    // Long array messages (would normally be truncated)
+    // Multiple messages with long content (would normally be truncated and popped to last message only)
     const longContent = 'A'.repeat(50_000);
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 100,
-      messages: [{ role: 'user', content: longContent }],
+      messages: [
+        { role: 'user', content: longContent },
+        { role: 'assistant', content: 'Some reply' },
+        { role: 'user', content: 'Follow-up question' },
+      ],
     });
 
     // Long string input (messagesFromParams wraps it in an array)
