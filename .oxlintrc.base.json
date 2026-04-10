@@ -118,7 +118,7 @@
       }
     },
     {
-      "files": ["**/integrations/tracing/node-fetch/vendored/**/*.ts", "**/integrations/node-fetch/vendored/**/*.ts"],
+      "files": ["**/integrations/node-fetch/vendored/**/*.ts"],
       "rules": {
         "typescript/consistent-type-imports": "off",
         "typescript/no-unnecessary-type-assertion": "off",

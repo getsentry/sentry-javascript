@@ -15,7 +15,7 @@
  */
 
 /**
- * Aligned with upstream Undici request shape; see `packages/node/.../tracing/node-fetch/vendored/types.ts`
+ * Aligned with upstream Undici request shape; see `packages/node/.../node-fetch/vendored/types.ts`
  * (vendored from `@opentelemetry/instrumentation-undici`).
  */
 
