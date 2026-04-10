@@ -12,8 +12,12 @@ import {
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
+import {
+  extractSystemInstructions,
+  getJsonString,
+  getTruncatedJsonString,
+  resolveAIRecordingOptions,
+} from '../ai/utils';
 import type { LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
@@ -146,10 +150,12 @@ function instrumentCompiledGraphInvoke(
                 span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
               }
 
-              const truncatedMessages = truncateGenAiMessages(filteredMessages as unknown[]);
+              const enableTruncation = options.enableTruncation ?? true;
               const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
               span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages),
+                [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
+                  ? getTruncatedJsonString(filteredMessages)
+                  : getJsonString(filteredMessages),
                 [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
               });
             }
