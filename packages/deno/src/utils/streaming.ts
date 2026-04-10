@@ -81,7 +81,10 @@ function monitorStream(
   onDone: () => void,
 ): ReadableStream<Uint8Array<ArrayBufferLike>> {
   const reader = stream.getReader();
-  reader.closed.then(() => onDone(), () => onDone());
+  reader.closed.then(
+    () => onDone(),
+    () => onDone(),
+  );
   return new ReadableStream({
     async start(controller) {
       let result: ReadableStreamReadResult<Uint8Array<ArrayBufferLike>>;
