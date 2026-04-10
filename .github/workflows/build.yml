@@ -970,7 +970,7 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if: matrix.test-application == 'deno'
+        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
         uses: denoland/setup-deno@v2.0.3
         with:
           deno-version: v2.1.5
