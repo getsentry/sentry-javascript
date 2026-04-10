@@ -174,7 +174,7 @@ export default async function run({ github, context, core }) {
       pull_number: pr.number,
     });
 
-    const pendingReviewers = requested.reviewers; // individual users
+    const pendingReviewers = requested.users; // individual users
     const pendingTeams = requested.teams; // team reviewers
     if (pendingReviewers.length === 0 && pendingTeams.length === 0) continue;
 
