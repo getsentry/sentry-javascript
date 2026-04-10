@@ -816,10 +816,10 @@ describe('Anthropic integration', () => {
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
         }),
       }),
-      // Long string input should not be truncated or wrapped in quotes
+      // Long string input should not be truncated (messagesFromParams wraps it in an array)
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: longStringInput,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([longStringInput]),
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
         }),
       }),

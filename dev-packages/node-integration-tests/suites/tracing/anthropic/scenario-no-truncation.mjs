@@ -37,7 +37,7 @@ async function run() {
       messages: [{ role: 'user', content: longContent }],
     });
 
-    // Long string input (should not be wrapped in quotes)
+    // Long string input (messagesFromParams wraps it in an array)
     const longStringInput = 'B'.repeat(50_000);
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
