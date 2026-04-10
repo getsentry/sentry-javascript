@@ -14,6 +14,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { instrumentEnv } from './instrumentEnv';
 
 function wrapScheduledHandler(
   controller: ScheduledController,
@@ -74,6 +75,7 @@ export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any
         apply(target, thisArg, args: Parameters<NonNullable<T['scheduled']>>) {
           const [controller, env, ctx] = args;
           const context = instrumentContext(ctx);
+          args[1] = instrumentEnv(env);
           args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
