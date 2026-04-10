@@ -48,16 +48,15 @@ export class ExpressInstrumentation extends InstrumentationBase<ExpressInstrumen
       SUPPORTED_VERSIONS,
       express => {
         try {
-          patchExpressModule({
+          patchExpressModule(express, () => ({
             ...this.getConfig(),
-            express,
             onRouteResolved(route) {
               const rpcMetadata = getRPCMetadata(context.active());
               if (route && rpcMetadata?.type === RPCType.HTTP) {
                 rpcMetadata.route = route;
               }
             },
-          });
+          }));
         } catch (e) {
           DEBUG_BUILD && debug.error('Failed to patch express module:', e);
         }
@@ -69,8 +68,7 @@ export class ExpressInstrumentation extends InstrumentationBase<ExpressInstrumen
     return module;
   }
 }
-
-const _expressInstrumentation = ((options?: ExpressInstrumentationConfig) => {
+const _expressIntegration = ((options?: ExpressInstrumentationConfig) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -79,4 +77,4 @@ const _expressInstrumentation = ((options?: ExpressInstrumentationConfig) => {
   };
 }) satisfies IntegrationFn;
 
-export const expressIntegration = defineIntegration(_expressInstrumentation);
+export const expressIntegration = defineIntegration(_expressIntegration);
