@@ -62,6 +62,7 @@ Do not flag the issues below if they appear in tests.
   - Only waiting for a request, after an action is performed. Instead, start waiting, perform action, await request promise.
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.
   - Timeouts or sleeps in tests. Instead suggest concrete events or other signals to wait on.
+- Flag usage of `getFirstEnvelope*`, `getMultipleEnvelope*` or related test helpers. These are NOT reliable anymore. Instead suggest helpers like `waitForTransaction`, `waitForError`, `waitForSpans`, etc.
 
 ## Platform-safe code
 
