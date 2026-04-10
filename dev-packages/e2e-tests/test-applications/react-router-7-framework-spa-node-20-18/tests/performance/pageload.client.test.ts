@@ -56,7 +56,8 @@ test.describe('client - pageload performance', () => {
   test('should update pageload transaction for dynamic routes', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
-        transactionEvent.transaction === '/performance/with/:param' && transactionEvent.contexts?.trace?.op === 'pageload'
+        transactionEvent.transaction === '/performance/with/:param' &&
+        transactionEvent.contexts?.trace?.op === 'pageload'
       );
     });
 
