@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { Client } from '../../client';
+import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
@@ -94,7 +95,7 @@ function mapVercelAiOperationName(operationName: string): string {
  * Post-process spans emitted by the Vercel AI SDK.
  * This is supposed to be used in `client.on('spanStart', ...)
  */
-function onVercelAiSpanStart(span: Span, client: Client): void {
+function onVercelAiSpanStart(span: Span): void {
   const { data: attributes, description: name } = spanToJSON(span);
 
   if (!name) {
@@ -114,7 +115,10 @@ function onVercelAiSpanStart(span: Span, client: Client): void {
     return;
   }
 
-  const integration = client.getIntegrationByName('VercelAI') as { options?: { enableTruncation?: boolean } } | undefined;
+  const client = getClient();
+  const integration = client?.getIntegrationByName('VercelAI') as
+    | { options?: { enableTruncation?: boolean } }
+    | undefined;
   const enableTruncation = integration?.options?.enableTruncation ?? true;
 
   processGenerateSpan(span, name, attributes, enableTruncation);
@@ -448,7 +452,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
  * Add event processors to the given client to process Vercel AI spans.
  */
 export function addVercelAiProcessors(client: Client): void {
-  client.on('spanStart', span => onVercelAiSpanStart(span, client));
+  client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
 }
