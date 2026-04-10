@@ -27,11 +27,26 @@ describe('kafkajs', () => {
           transaction: (transaction: TransactionEvent) => {
             receivedTransactions.push(transaction);
 
-            const producer = receivedTransactions.find(t => t.transaction === 'send test-topic');
-            const consumer = receivedTransactions.find(t => t.transaction === 'process test-topic');
+            const producer = receivedTransactions.find(
+              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.producer',
+            );
+            const consumer = receivedTransactions.find(
+              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.kafkajs.otel.consumer',
+            );
 
             expect(producer).toBeDefined();
             expect(consumer).toBeDefined();
+
+            for (const t of [producer, consumer]) {
+              // just to assert on the basic shape (for more straight-forward tests, this is usually done by the runner)
+              expect(t).toMatchObject({
+                event_id: expect.any(String),
+                timestamp: expect.anything(),
+                start_timestamp: expect.anything(),
+                spans: expect.any(Array),
+                type: 'transaction',
+              });
+            }
 
             expect(producer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
