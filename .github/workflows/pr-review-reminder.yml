@@ -7,9 +7,14 @@ on:
     # Saturday/Sunday are never counted as business days.
     - cron: '0 10 * * 1-5'
 
+# pulls.* list + listRequestedReviewers → pull-requests: read
+# issues timeline + comments + createComment → issues: write
+# repos.listCollaborators (outside) → Metadata read on the token (see GitHub App permission map)
+# checkout → contents: read
 permissions:
-  pull-requests: write
+  contents: read
   issues: write
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}
@@ -17,6 +22,8 @@ concurrency:
 
 jobs:
   remind-reviewers:
+    # `schedule` has no `repository` on github.event; forks must be skipped only for workflow_dispatch.
+    if: github.event_name == 'schedule' || github.event.repository.fork != true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

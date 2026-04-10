@@ -5,6 +5,11 @@
  * responded within 2 business days. Re-nags every 2 business days thereafter
  * until the review is submitted (or the request is removed).
  *
+ * @mentions are narrowed as follows:
+ * - Individual users: not [outside collaborators](https://docs.github.com/en/organizations/managing-outside-collaborators)
+ *   on this repo (via `repos.listCollaborators` with `affiliation: outside` — repo-scoped, no extra token).
+ * - Team reviewers: only the org team `team-javascript-sdks` (by slug).
+ *
  * Business days exclude weekends and public holidays for US, CA, and AT
  * (fetched at runtime from the Nager.Date API).
  *
@@ -15,6 +20,33 @@
  *   );
  *   await run({ github, context, core });
  */
+
+// Team @mentions only for this slug. Individuals are filtered using outside-collaborator list (see below).
+const SDK_TEAM_SLUG = 'team-javascript-sdks';
+
+// ---------------------------------------------------------------------------
+// Outside collaborators (repo API — works with default GITHUB_TOKEN).
+// Org members with access via teams or default permissions are not listed here.
+// ---------------------------------------------------------------------------
+
+async function loadOutsideCollaboratorLogins(github, owner, repo, core) {
+  try {
+    const users = await github.paginate(github.rest.repos.listCollaborators, {
+      owner,
+      repo,
+      affiliation: 'outside',
+      per_page: 100,
+    });
+    return new Set(users.map(u => u.login));
+  } catch (e) {
+    const status = e.response?.status;
+    core.warning(
+      `Could not list outside collaborators for ${owner}/${repo} (${status ? `HTTP ${status}` : 'no status'}): ${e.message}. ` +
+        'Skipping @mentions for individual reviewers (team reminders unchanged).',
+    );
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Public holidays (US, Canada, Austria) via Nager.Date — free, no API key.
@@ -110,6 +142,11 @@ export default async function run({ github, context, core }) {
 
   core.info(`Loaded ${publicHolidays.size} public holiday dates for ${currentYear - 1}–${currentYear}`);
 
+  const outsideCollaboratorLogins = await loadOutsideCollaboratorLogins(github, owner, repo, core);
+  if (outsideCollaboratorLogins) {
+    core.info(`Excluding ${outsideCollaboratorLogins.size} outside collaborator login(s) from individual @mentions`);
+  }
+
   // ---------------------------------------------------------------------------
   // Main loop
   // ---------------------------------------------------------------------------
@@ -186,26 +223,45 @@ export default async function run({ github, context, core }) {
 
     for (const reviewer of pendingReviewers) {
       const requestEvents = timeline
-        .filter(
-          e => e.event === 'review_requested' && e.requested_reviewer?.login === reviewer.login,
-        )
+        .filter(e => e.event === 'review_requested' && e.requested_reviewer?.login === reviewer.login)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      if (requestEvents.length === 0) continue;
+      if (requestEvents.length === 0) {
+        core.warning(
+          `PR #${pr.number}: pending reviewer @${reviewer.login} has no matching review_requested timeline event; skipping reminder for them.`,
+        );
+        continue;
+      }
 
       const requestedAt = new Date(requestEvents[0].created_at);
       if (!needsReminder(requestedAt, reviewer.login)) continue;
+
+      if (outsideCollaboratorLogins === null) {
+        continue;
+      }
+      if (outsideCollaboratorLogins.has(reviewer.login)) {
+        continue;
+      }
 
       toRemind.push({ key: reviewer.login, mention: `@${reviewer.login}` });
     }
 
     // Collect overdue team reviewers
     for (const team of pendingTeams) {
+      if (team.slug !== SDK_TEAM_SLUG) {
+        continue;
+      }
+
       const requestEvents = timeline
         .filter(e => e.event === 'review_requested' && e.requested_team?.slug === team.slug)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      if (requestEvents.length === 0) continue;
+      if (requestEvents.length === 0) {
+        core.warning(
+          `PR #${pr.number}: pending team reviewer @${owner}/${team.slug} has no matching review_requested timeline event; skipping reminder for them.`,
+        );
+        continue;
+      }
 
       const requestedAt = new Date(requestEvents[0].created_at);
       const key = `team:${team.slug}`;
@@ -220,7 +276,7 @@ export default async function run({ github, context, core }) {
     // on subsequent runs) and @-mentions all overdue reviewers/teams.
     const markers = toRemind.map(({ key }) => reminderMarker(key)).join('\n');
     const mentions = toRemind.map(({ mention }) => mention).join(', ');
-    const body = `${markers}\n👋 ${mentions} — a friendly reminder that your review on this PR is still pending. Could you please take a look when you get a chance? Thank you!`;
+    const body = `${markers}\n👋 ${mentions} — Please review this PR when you get a chance!`;
 
     await github.rest.issues.createComment({
       owner,
