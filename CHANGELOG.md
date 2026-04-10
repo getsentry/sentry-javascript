@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Other Changes
+
+- fix(core): Emit `flush` event in `Client.flush()` when client has no transport
+
 ## 10.48.0
 
 ### Important Changes
