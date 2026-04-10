@@ -10,8 +10,8 @@
  *   on this repo (via `repos.listCollaborators` with `affiliation: outside` — repo-scoped, no extra token).
  * - Team reviewers: only the org team `team-javascript-sdks` (by slug).
  *
- * Business days exclude weekends and public holidays for US, CA, and AT
- * (fetched at runtime from the Nager.Date API).
+ * Business days exclude weekends and a small set of recurring public holidays
+ * (same calendar date each year) for US, CA, and AT.
  *
  * Intended to be called from a GitHub Actions workflow via actions/github-script:
  *
@@ -49,33 +49,38 @@ async function loadOutsideCollaboratorLogins(github, owner, repo, core) {
 }
 
 // ---------------------------------------------------------------------------
-// Public holidays (US, Canada, Austria) via Nager.Date — free, no API key.
-// See https://date.nager.at/ for documentation and supported countries.
-// We fetch the current year and the previous year so that reviews requested
-// in late December are handled correctly when the workflow runs in January.
-// If the API is unreachable we fall back to weekday-only checking and warn.
+// Recurring public holidays (month–day in UTC, same date every year).
+// A calendar day counts as a holiday if it appears in any country list.
 // ---------------------------------------------------------------------------
 
-const COUNTRY_CODES = ['US', 'CA', 'AT'];
+const RECURRING_PUBLIC_HOLIDAYS_AT = [
+  '01-01',
+  '01-06',
+  '05-01',
+  '08-15',
+  '10-26',
+  '11-01',
+  '12-08',
+  '12-24',
+  '12-25',
+  '12-26',
+  '12-31',
+];
 
-async function fetchHolidaysForYear(year, core) {
-  const dates = new Set();
-  for (const cc of COUNTRY_CODES) {
-    try {
-      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${cc}`);
-      if (!resp.ok) {
-        core.warning(`Nager.Date returned ${resp.status} for ${cc}/${year}`);
-        continue;
-      }
-      const holidays = await resp.json();
-      for (const h of holidays) {
-        dates.add(h.date); // 'YYYY-MM-DD'
-      }
-    } catch (e) {
-      core.warning(`Failed to fetch holidays for ${cc}/${year}: ${e.message}`);
-    }
-  }
-  return dates;
+const RECURRING_PUBLIC_HOLIDAYS_CA = ['01-01', '07-01', '09-30', '11-11', '12-24', '12-25', '12-26', '12-31'];
+
+const RECURRING_PUBLIC_HOLIDAYS_US = ['01-01', '06-19', '07-04', '11-11', '12-24', '12-25', '12-26', '12-31'];
+
+const RECURRING_PUBLIC_HOLIDAY_MM_DD = new Set([
+  ...RECURRING_PUBLIC_HOLIDAYS_AT,
+  ...RECURRING_PUBLIC_HOLIDAYS_CA,
+  ...RECURRING_PUBLIC_HOLIDAYS_US,
+]);
+
+function monthDayUTC(date) {
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${m}-${d}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +95,7 @@ async function fetchHolidaysForYear(year, core) {
 // Tuesday to respond.
 // ---------------------------------------------------------------------------
 
-function countElapsedBusinessDays(requestedAt, now, publicHolidays) {
+function countElapsedBusinessDays(requestedAt, now) {
   // Walk from the day after the request up to (but not including) today.
   const start = new Date(requestedAt);
   start.setUTCHours(0, 0, 0, 0);
@@ -104,8 +109,7 @@ function countElapsedBusinessDays(requestedAt, now, publicHolidays) {
   while (cursor < todayUTC) {
     const dow = cursor.getUTCDay(); // 0 = Sun, 6 = Sat
     if (dow !== 0 && dow !== 6) {
-      const dateStr = cursor.toISOString().slice(0, 10);
-      if (!publicHolidays.has(dateStr)) {
+      if (!RECURRING_PUBLIC_HOLIDAY_MM_DD.has(monthDayUTC(cursor))) {
         count++;
       }
     }
@@ -132,15 +136,7 @@ export default async function run({ github, context, core }) {
   const { owner, repo } = context.repo;
   const now = new Date();
 
-  // Fetch public holidays
-  const currentYear = now.getUTCFullYear();
-  const [currentYearHolidays, previousYearHolidays] = await Promise.all([
-    fetchHolidaysForYear(currentYear, core),
-    fetchHolidaysForYear(currentYear - 1, core),
-  ]);
-  const publicHolidays = new Set([...currentYearHolidays, ...previousYearHolidays]);
-
-  core.info(`Loaded ${publicHolidays.size} public holiday dates for ${currentYear - 1}–${currentYear}`);
+  core.info(`Using ${RECURRING_PUBLIC_HOLIDAY_MM_DD.size} recurring public holiday month–day values (US/CA/AT union)`);
 
   const outsideCollaboratorLogins = await loadOutsideCollaboratorLogins(github, owner, repo, core);
   if (outsideCollaboratorLogins) {
@@ -215,7 +211,7 @@ export default async function run({ github, context, core }) {
     function needsReminder(requestedAt, key) {
       const lastReminded = latestReminderDate(key);
       const anchor = lastReminded && lastReminded > requestedAt ? lastReminded : requestedAt;
-      return countElapsedBusinessDays(anchor, now, publicHolidays) >= 2;
+      return countElapsedBusinessDays(anchor, now) >= 2;
     }
 
     // Collect overdue individual reviewers
