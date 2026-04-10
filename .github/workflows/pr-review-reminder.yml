@@ -173,14 +173,16 @@ jobs:
               }
 
               // Returns true if a reminder is due for a reviewer/team:
-              // - At least 2 business days have fully elapsed since the review was requested, AND
-              // - No reminder has been posted since the most recent review_requested event
-              //   (this correctly resets the reminder when a new push re-requests the review)
+              // - The "anchor" is the later of: the review-request date, or the last
+              //   reminder we already posted for this reviewer. This means the
+              //   2-business-day clock restarts after every reminder (re-nagging), and
+              //   also resets when a new push re-requests the review.
+              // - A reminder fires when ≥ 2 full business days have elapsed since the anchor.
               function needsReminder(requestedAt, key) {
-                if (countElapsedBusinessDays(requestedAt) < 2) return false;
                 const lastReminded = latestReminderDate(key);
-                if (lastReminded && lastReminded >= requestedAt) return false;
-                return true;
+                const anchor =
+                  lastReminded && lastReminded > requestedAt ? lastReminded : requestedAt;
+                return countElapsedBusinessDays(anchor) >= 2;
               }
 
               // Collect overdue individual reviewers
@@ -227,7 +229,7 @@ jobs:
               // on subsequent runs) and @-mentions all overdue reviewers/teams.
               const markers = toRemind.map(({ key }) => reminderMarker(key)).join('\n');
               const mentions = toRemind.map(({ mention }) => mention).join(', ');
-              const body = `${markers}\n👋 ${mentions} — you were requested to review this PR more than 2 business days ago. Could you please take a look when you get a chance? Thank you!`;
+              const body = `${markers}\n👋 ${mentions} — a friendly reminder that your review on this PR is still pending. Could you please take a look when you get a chance? Thank you!`;
 
               await github.rest.issues.createComment({
                 owner,
