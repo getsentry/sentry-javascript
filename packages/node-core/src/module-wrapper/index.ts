@@ -29,13 +29,13 @@ export interface ModuleWrapperFileOptions<TOptions = unknown> {
 }
 
 /** Options for registering a module wrapper */
-export interface ModuleWrapperOptions<TOptions = unknown> {
+export interface ModuleWrapperOptions<TModuleExports = unknown, TOptions = unknown> {
   /** Module name to wrap (e.g., 'express', 'pg', '@prisma/client') */
   moduleName: string;
   /** Semver ranges for supported versions (e.g., ['>=4.0.0 <5.0.0']) */
   supportedVersions: string[];
   /** Function to patch the module's exports. Use getOptions() to access current options at runtime. */
-  patch: (moduleExports: unknown, getOptions: () => TOptions | undefined, version?: string) => unknown;
+  patch: (moduleExports: TModuleExports, getOptions: () => TOptions | undefined, version?: string) => unknown;
   /** Optional array of specific files within the module to patch */
   files?: ModuleWrapperFileOptions<TOptions>[];
   /** Optional configuration options that can be updated on subsequent calls */
@@ -69,7 +69,9 @@ export interface ModuleWrapperOptions<TOptions = unknown> {
  * });
  * ```
  */
-export function registerModuleWrapper<TOptions = unknown>(wrapperOptions: ModuleWrapperOptions<TOptions>): void {
+export function registerModuleWrapper<TModuleExports = unknown, TOptions = unknown>(
+  wrapperOptions: ModuleWrapperOptions<TModuleExports, TOptions>,
+): void {
   const { moduleName, supportedVersions, patch, files, options } = wrapperOptions;
 
   // Always update the stored options (even if already registered)
@@ -102,7 +104,7 @@ export function registerModuleWrapper<TOptions = unknown>(wrapperOptions: Module
             `file hooks: ${files?.map(f => f.name).join(', ')}`,
           );
 
-        return patch(exports, getOptions, version);
+        return patch(exports as TModuleExports, getOptions, version);
       }
     } else if (files) {
       // Check if this is one of the specified files
@@ -157,7 +159,7 @@ export function registerModuleWrapper<TOptions = unknown>(wrapperOptions: Module
             `file hooks: ${files?.map(f => f.name).join(', ')}`,
           );
 
-        return patch(exports, getOptions, version);
+        return patch(exports as TModuleExports, getOptions, version);
       }
     } else if (files) {
       for (const file of files) {
