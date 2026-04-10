@@ -13,6 +13,12 @@ export interface LangChainOptions {
    * @default false (respects sendDefaultPii option)
    */
   recordOutputs?: boolean;
+
+  /**
+   * Enable or disable truncation of recorded input messages.
+   * Defaults to `true`.
+   */
+  enableTruncation?: boolean;
 }
 
 /**

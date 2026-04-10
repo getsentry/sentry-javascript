@@ -549,4 +549,32 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
+
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringContaining(longContent),
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

@@ -237,7 +237,7 @@ describe('extractChatModelRequestAttributes with multimodal content', () => {
       ],
     ];
 
-    const attrs = extractChatModelRequestAttributes(serialized, messages, true);
+    const attrs = extractChatModelRequestAttributes(serialized, messages, true, true);
     const inputMessages = attrs[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] as string | undefined;
 
     expect(inputMessages).toBeDefined();
