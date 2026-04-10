@@ -46,10 +46,20 @@ it.skip('sends child spans on repeated Durable Object calls', async ({ signal })
   // Expect 5 transaction envelopes — one per call.
   const runner = createRunner(__dirname).expectN(5, assertDoWorkEnvelope).start(signal);
 
+  // Small delay between requests to allow waitUntil to process in wrangler dev.
+  // This is needed because wrangler dev may not guarantee waitUntil completion
+  // the same way production Cloudflare does. Without this delay, the last
+  // envelope's HTTP request may not complete before the test moves on.
+  const delay = () => new Promise(resolve => setTimeout(resolve, 50));
+
   await runner.makeRequest('get', '/');
+  await delay();
   await runner.makeRequest('get', '/');
+  await delay();
   await runner.makeRequest('get', '/');
+  await delay();
   await runner.makeRequest('get', '/');
+  await delay();
   await runner.makeRequest('get', '/');
   await runner.completed();
 });
