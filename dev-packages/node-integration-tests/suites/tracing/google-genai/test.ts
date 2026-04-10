@@ -653,4 +653,37 @@ describe('Google GenAI integration', () => {
         .completed();
     });
   });
+
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', parts: [{ text: longContent }] },
+            { role: 'model', parts: [{ text: 'Some reply' }] },
+            { role: 'user', parts: [{ text: 'Follow-up question' }] },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
