@@ -8,6 +8,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { instrumentEnv } from './instrumentEnv';
 
 /**
  * Core tail handler logic - wraps execution with Sentry instrumentation.
@@ -52,6 +53,7 @@ export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any
         apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
           const [, env, ctx] = args;
           const context = instrumentContext(ctx);
+          args[1] = instrumentEnv(env);
           args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
