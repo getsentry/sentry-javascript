@@ -3,8 +3,9 @@ name: 'PR: Review Reminder'
 on:
   workflow_dispatch:
   schedule:
-    # Run every day at 10:00 AM UTC
-    - cron: '0 10 * * *'
+    # Run on weekdays at 10:00 AM UTC. No new reminders can fire on weekends because
+    # Saturday/Sunday are never counted as business days.
+    - cron: '0 10 * * 1-5'
 
 permissions:
   pull-requests: write
@@ -24,13 +25,97 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const now = new Date();
-            const THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+            // ---------------------------------------------------------------------------
+            // Public holidays (US, Canada, Austria) via Nager.Date — free, no API key.
+            // See https://date.nager.at/ for documentation and supported countries.
+            // We fetch the current year and the previous year so that reviews requested
+            // in late December are handled correctly when the workflow runs in January.
+            // If the API is unreachable we fall back to weekday-only checking and warn.
+            // ---------------------------------------------------------------------------
+            const COUNTRY_CODES = ['US', 'CA', 'AT'];
+
+            async function fetchHolidaysForYear(year) {
+              const dates = new Set();
+              for (const cc of COUNTRY_CODES) {
+                try {
+                  const resp = await fetch(
+                    `https://date.nager.at/api/v3/PublicHolidays/${year}/${cc}`,
+                  );
+                  if (!resp.ok) {
+                    core.warning(`Nager.Date returned ${resp.status} for ${cc}/${year}`);
+                    continue;
+                  }
+                  const holidays = await resp.json();
+                  for (const h of holidays) {
+                    dates.add(h.date); // 'YYYY-MM-DD'
+                  }
+                } catch (e) {
+                  core.warning(`Failed to fetch holidays for ${cc}/${year}: ${e.message}`);
+                }
+              }
+              return dates;
+            }
+
+            const currentYear = now.getUTCFullYear();
+            const [currentYearHolidays, previousYearHolidays] = await Promise.all([
+              fetchHolidaysForYear(currentYear),
+              fetchHolidaysForYear(currentYear - 1),
+            ]);
+            const publicHolidays = new Set([...currentYearHolidays, ...previousYearHolidays]);
+
+            core.info(
+              `Loaded ${publicHolidays.size} public holiday dates for ${currentYear - 1}–${currentYear}`,
+            );
+
+            // ---------------------------------------------------------------------------
+            // Business-day counter.
+            // Counts fully-elapsed business days (Mon–Fri, not a public holiday) between
+            // requestedAt and now. "Fully elapsed" means the day has completely passed,
+            // so today is not included — giving the reviewer the rest of today to respond.
+            //
+            // Example: review requested Friday → elapsed complete days include Sat, Sun,
+            // Mon, Tue, … The first two business days are Mon and Tue, so the reminder
+            // fires on Wednesday morning. That gives the reviewer all of Monday and
+            // Tuesday to respond.
+            // ---------------------------------------------------------------------------
+            function countElapsedBusinessDays(requestedAt) {
+              // Walk from the day after the request up to (but not including) today.
+              const start = new Date(requestedAt);
+              start.setUTCHours(0, 0, 0, 0);
+              start.setUTCDate(start.getUTCDate() + 1);
+
+              const todayUTC = new Date(now);
+              todayUTC.setUTCHours(0, 0, 0, 0);
+
+              let count = 0;
+              const cursor = new Date(start);
+              while (cursor < todayUTC) {
+                const dow = cursor.getUTCDay(); // 0 = Sun, 6 = Sat
+                if (dow !== 0 && dow !== 6) {
+                  const dateStr = cursor.toISOString().slice(0, 10);
+                  if (!publicHolidays.has(dateStr)) {
+                    count++;
+                  }
+                }
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+              }
+              return count;
+            }
+
+            // ---------------------------------------------------------------------------
+            // Reminder marker helpers
+            // ---------------------------------------------------------------------------
 
             // Returns a unique HTML comment marker for a reviewer key (login or "team:slug").
             // Used for precise per-reviewer deduplication in existing comments.
             function reminderMarker(key) {
               return `<!-- review-reminder:${key} -->`;
             }
+
+            // ---------------------------------------------------------------------------
+            // Main loop
+            // ---------------------------------------------------------------------------
 
             // Fetch all open PRs
             const prs = await github.paginate(github.rest.pulls.list, {
@@ -88,11 +173,11 @@ jobs:
               }
 
               // Returns true if a reminder is due for a reviewer/team:
-              // - The review was requested more than 48 hours ago, AND
+              // - At least 2 business days have fully elapsed since the review was requested, AND
               // - No reminder has been posted since the most recent review_requested event
               //   (this correctly resets the reminder when a new push re-requests the review)
               function needsReminder(requestedAt, key) {
-                if (now - requestedAt < THRESHOLD_MS) return false;
+                if (countElapsedBusinessDays(requestedAt) < 2) return false;
                 const lastReminded = latestReminderDate(key);
                 if (lastReminded && lastReminded >= requestedAt) return false;
                 return true;
@@ -142,7 +227,7 @@ jobs:
               // on subsequent runs) and @-mentions all overdue reviewers/teams.
               const markers = toRemind.map(({ key }) => reminderMarker(key)).join('\n');
               const mentions = toRemind.map(({ mention }) => mention).join(', ');
-              const body = `${markers}\n👋 ${mentions} — you were requested to review this PR more than 48 hours ago. Could you please take a look when you get a chance? Thank you!`;
+              const body = `${markers}\n👋 ${mentions} — you were requested to review this PR more than 2 business days ago. Could you please take a look when you get a chance? Thank you!`;
 
               await github.rest.issues.createComment({
                 owner,
