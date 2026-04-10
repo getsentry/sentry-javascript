@@ -48,6 +48,9 @@ describe('kafkajs', () => {
               });
             }
 
+            expect(producer!.transaction).toBe('send test-topic');
+            expect(consumer!.transaction).toBe('process test-topic');
+
             expect(producer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
                 op: 'message',
