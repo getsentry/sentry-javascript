@@ -29,10 +29,14 @@ async function run() {
       .addEdge('agent', END)
       .compile({ name: 'weather_assistant' });
 
-    // Long content that would normally be truncated
+    // Multiple messages with long content (would normally be truncated and popped to last message only)
     const longContent = 'A'.repeat(50_000);
     await graph.invoke({
-      messages: [{ role: 'user', content: longContent }],
+      messages: [
+        { role: 'user', content: longContent },
+        { role: 'assistant', content: 'Some reply' },
+        { role: 'user', content: 'Follow-up question' },
+      ],
     });
   });
 

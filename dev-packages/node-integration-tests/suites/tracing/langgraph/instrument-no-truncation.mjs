@@ -9,6 +9,8 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.langGraphIntegration({
+      recordInputs: true,
+      recordOutputs: true,
       enableTruncation: false,
     }),
   ],
