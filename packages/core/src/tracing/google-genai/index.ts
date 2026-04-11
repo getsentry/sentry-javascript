@@ -1,9 +1,7 @@
 /* eslint-disable max-lines */
-import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
@@ -36,6 +34,7 @@ import {
   getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
 } from '../ai/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -299,9 +298,12 @@ function instrumentMethod<T extends unknown[], R>(
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                const client = getClient();
-                const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
-                addPrivateRequestAttributes(span, params, isEmbeddings, enableTruncation);
+                addPrivateRequestAttributes(
+                  span,
+                  params,
+                  isEmbeddings,
+                  shouldEnableTruncation(options.enableTruncation),
+                );
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -329,9 +331,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            const client = getClient();
-            const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
-            addPrivateRequestAttributes(span, params, isEmbeddings, enableTruncation);
+            addPrivateRequestAttributes(span, params, isEmbeddings, shouldEnableTruncation(options.enableTruncation));
           }
 
           return handleCallbackErrors(
