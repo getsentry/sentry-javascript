@@ -585,28 +585,23 @@ describe('LangChain integration', () => {
 
   const streamingLongContent = 'A'.repeat(50_000);
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-no-truncation.mjs',
-    'instrument-streaming.mjs',
-    (createRunner, test) => {
-      test('automatically disables truncation when span streaming is enabled', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const spans = container.items;
+  createEsmAndCjsTests(__dirname, 'scenario-no-truncation.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
 
-              const chatSpan = spans.find(
-                s => s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
-              );
-              expect(chatSpan).toBeDefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 
   createEsmAndCjsTests(
     __dirname,
@@ -621,8 +616,8 @@ describe('LangChain integration', () => {
 
               // With explicit enableTruncation: true, truncation keeps only the last message
               // and drops the long content. The result should NOT contain the full 50k 'A' string.
-              const chatSpan = spans.find(
-                s => s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Follow-up question'),
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Follow-up question'),
               );
               expect(chatSpan).toBeDefined();
               expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).not.toContain(streamingLongContent);
