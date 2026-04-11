@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type { Client } from '../../client';
 import { getClient } from '../../currentScopes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
@@ -119,7 +120,7 @@ function onVercelAiSpanStart(span: Span): void {
   const integration = client?.getIntegrationByName('VercelAI') as
     | { options?: { enableTruncation?: boolean } }
     | undefined;
-  const enableTruncation = integration?.options?.enableTruncation ?? true;
+  const enableTruncation = integration?.options?.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
 
   processGenerateSpan(span, name, attributes, enableTruncation);
 }
