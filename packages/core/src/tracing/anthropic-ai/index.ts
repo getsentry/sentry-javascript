@@ -1,6 +1,8 @@
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
@@ -206,7 +208,9 @@ function handleStreamingRequest<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args) as Promise<R>;
 
       if (options.recordInputs && params) {
-        addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+        const client = getClient();
+        const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+        addPrivateRequestAttributes(span, params, enableTruncation);
       }
 
       return (async () => {
@@ -228,7 +232,9 @@ function handleStreamingRequest<T extends unknown[], R>(
     return startSpanManual(spanConfig, span => {
       try {
         if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+          const client = getClient();
+          const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+          addPrivateRequestAttributes(span, params, enableTruncation);
         }
         const messageStream = target.apply(context, args);
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
@@ -289,7 +295,9 @@ function instrumentMethod<T extends unknown[], R>(
           originalResult = target.apply(context, args) as Promise<R>;
 
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+            const client = getClient();
+            const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+            addPrivateRequestAttributes(span, params, enableTruncation);
           }
 
           return originalResult.then(
