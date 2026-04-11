@@ -1,4 +1,3 @@
-import { getClient } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
@@ -23,9 +22,9 @@ import {
   getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../ai/utils';
-import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
@@ -172,9 +171,7 @@ function instrumentMethod<T extends unknown[], R>(
         originalResult = originalMethod.apply(context, args);
 
         if (options.recordInputs && params) {
-          const client = getClient();
-          const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
-          addRequestAttributes(span, params, operationName, enableTruncation);
+          addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
         }
 
         // Return async processing
@@ -212,9 +209,7 @@ function instrumentMethod<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args);
 
       if (options.recordInputs && params) {
-        const client = getClient();
-        const enableTruncation = options.enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
-        addRequestAttributes(span, params, operationName, enableTruncation);
+        addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
       }
 
       return originalResult.then(
