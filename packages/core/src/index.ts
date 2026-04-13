@@ -135,6 +135,21 @@ export type {
 } from './integrations/express/types';
 export { patchConnectModule, setupConnectErrorHandler } from './integrations/connect/index';
 export type { ConnectIntegrationOptions, ConnectModule } from './integrations/connect/index';
+export { patchHttpModuleClient, patchHttpsModuleClient } from './integrations/http/client-patch';
+export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
+export { getHttpServerSubscriptions } from './integrations/http/server-subscription';
+export {
+  HTTP_ON_REQUEST_ERROR,
+  HTTP_ON_SERVER_REQUEST,
+  HTTP_ON_RESPONSE_FINISH,
+  HTTP_ON_REQUEST_CREATED,
+} from './integrations/http/constants';
+export type {
+  HttpInstrumentationOptions,
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpModuleExport,
+} from './integrations/http/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
