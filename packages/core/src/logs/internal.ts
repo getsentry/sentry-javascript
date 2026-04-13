@@ -7,7 +7,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Integration } from '../types-hoist/integration';
 import type { Log, SerializedLog } from '../types-hoist/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
-import { isParameterizedString } from '../utils/is';
+import { isParameterizedString, isString } from '../utils/is';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
@@ -162,7 +162,7 @@ export function _INTERNAL_captureLog(
   const serializedLog: SerializedLog = {
     timestamp,
     level,
-    body: typeof message === 'string' ? _INTERNAL_removeLoneSurrogates(message) : message,
+    body: isString(message) ? _INTERNAL_removeLoneSurrogates(String(message)) : message,
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: sanitizeLogAttributes({
