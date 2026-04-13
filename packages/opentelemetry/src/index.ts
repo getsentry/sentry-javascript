@@ -41,6 +41,7 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 export { wrapContextManagerClass } from './contextManager';
+export { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
 export type { AsyncLocalStorageLookup } from './contextManager';
 export { SentryPropagator, shouldPropagateTraceForUrl } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';

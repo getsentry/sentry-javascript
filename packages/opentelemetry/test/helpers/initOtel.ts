@@ -1,5 +1,4 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -8,7 +7,7 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { debug, getClient, SDK_VERSION } from '@sentry/core';
-import { wrapContextManagerClass } from '../../src/contextManager';
+import { SentryAsyncLocalStorageContextManager } from '../../src/asyncLocalStorageContextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { SentrySampler } from '../../src/sampler';
@@ -72,12 +71,9 @@ export function setupOtel(client: TestClientInterface): [BasicTracerProvider, Se
     spanProcessors: [spanProcessor],
   });
 
-  // We use a custom context manager to keep context in sync with sentry scope
-  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
-
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryContextManager());
+  context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
 
   return [provider, spanProcessor];
 }
