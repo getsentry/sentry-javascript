@@ -2,6 +2,7 @@
 import type { Client } from '../../client';
 import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
@@ -119,7 +120,7 @@ function onVercelAiSpanStart(span: Span): void {
   const integration = client?.getIntegrationByName('VercelAI') as
     | { options?: { enableTruncation?: boolean } }
     | undefined;
-  const enableTruncation = integration?.options?.enableTruncation ?? true;
+  const enableTruncation = shouldEnableTruncation(integration?.options?.enableTruncation);
 
   processGenerateSpan(span, name, attributes, enableTruncation);
 }
