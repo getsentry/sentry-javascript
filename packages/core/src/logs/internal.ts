@@ -162,7 +162,7 @@ export function _INTERNAL_captureLog(
   const serializedLog: SerializedLog = {
     timestamp,
     level,
-    body: typeof message === 'string' ? _INTERNAL_removeLoneSurrogates(message) : message,
+    body: _INTERNAL_removeLoneSurrogates(String(message)),
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: sanitizeLogAttributes({

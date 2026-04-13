@@ -1280,6 +1280,19 @@ describe('_INTERNAL_captureLog', () => {
       expect(logBuffer?.[0]?.body).toBe('bad surrogate \uFFFD here');
     });
 
+    it('sanitizes lone surrogates in parameterized (fmt) log message body', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const badValue = 'bad\uD800value';
+      _INTERNAL_captureLog({ level: 'error', message: fmt`parameterized ${badValue} message` }, scope);
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('parameterized bad\uFFFDvalue message');
+    });
+
     it('sanitizes lone surrogates in log attribute values', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
       const client = new TestClient(options);
