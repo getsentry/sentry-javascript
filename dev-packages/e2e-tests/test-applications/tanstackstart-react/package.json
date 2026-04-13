@@ -9,8 +9,11 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build:tunnel": "pnpm install && E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert:proxy": "pnpm test",
+    "test:assert": "pnpm test:assert:proxy && E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm build && pnpm test:assert:tunnel",
+    "test:assert:tunnel": "E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm test"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "latest || *",
@@ -35,5 +38,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "tunnel",
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel"
+      }
+    ]
   }
 }
