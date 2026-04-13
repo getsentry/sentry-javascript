@@ -1019,4 +1019,58 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  const streamingLongContent = 'A'.repeat(50_000);
+  const streamingLongString = 'B'.repeat(50_000);
+
+  createEsmAndCjsTests(__dirname, 'scenario-no-truncation.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+
+            const responsesSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongString),
+            );
+            expect(responsesSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-streaming-with-truncation.mjs',
+    (createRunner, test) => {
+      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+
+              // With explicit enableTruncation: true, content should be truncated despite streaming.
+              // Find the chat span by matching the start of the truncated content (the 'A' repeated messages).
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              );
+              expect(chatSpan).toBeDefined();
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongContent.length,
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

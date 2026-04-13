@@ -105,7 +105,6 @@
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils",
-    "dev-packages/node-overhead-gh-action",
     "dev-packages/bundler-tests"
   ],
   "devDependencies": {

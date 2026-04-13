@@ -25,6 +25,7 @@ import {
   buildMethodPath,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
+  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../ai/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -206,7 +207,7 @@ function handleStreamingRequest<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args) as Promise<R>;
 
       if (options.recordInputs && params) {
-        addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+        addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
       }
 
       return (async () => {
@@ -228,7 +229,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     return startSpanManual(spanConfig, span => {
       try {
         if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+          addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
         }
         const messageStream = target.apply(context, args);
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
@@ -289,7 +290,7 @@ function instrumentMethod<T extends unknown[], R>(
           originalResult = target.apply(context, args) as Promise<R>;
 
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, options.enableTruncation ?? true);
+            addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
           }
 
           return originalResult.then(
