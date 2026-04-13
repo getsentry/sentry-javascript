@@ -53,30 +53,24 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
   const node = nodeId && record.mirror.getNode(nodeId);
   const meta = node && record.mirror.getMeta(node);
   const element = meta && isElement(meta) ? meta : null;
-  const liveElement = target instanceof Element && nodeId > -1 ? target : null;
 
   return {
     message,
-    data:
-      element || liveElement
-        ? {
-            nodeId,
-            node: {
-              id: nodeId,
-              tagName: element?.tagName || liveElement?.tagName.toLowerCase() || '',
-              textContent: element
-                ? Array.from(element.childNodes)
-                    .map((node: serializedNodeWithId) => node.type === NodeType.Text && node.textContent)
-                    .filter(Boolean) // filter out empty values
-                    .map(text => (text as string).trim())
-                    .join('')
-                : '',
-              attributes: getAttributesToRecord(
-                liveElement ? getElementAttributes(liveElement) : element?.attributes || {},
-              ),
-            },
-          }
-        : {},
+    data: element
+      ? {
+          nodeId,
+          node: {
+            id: nodeId,
+            tagName: element.tagName,
+            textContent: Array.from(element.childNodes)
+              .map((node: serializedNodeWithId) => node.type === NodeType.Text && node.textContent)
+              .filter(Boolean) // filter out empty values
+              .map(text => (text as string).trim())
+              .join(''),
+            attributes: getAttributesToRecord(element.attributes),
+          },
+        }
+      : {},
   };
 }
 
@@ -112,11 +106,4 @@ function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; messa
 
 function isElement(node: serializedNodeWithId): node is serializedElementNodeWithId {
   return node.type === NodeType.Element;
-}
-
-function getElementAttributes(element: Element): Record<string, string> {
-  return Array.from(element.attributes).reduce<Record<string, string>>((attributes, attribute) => {
-    attributes[attribute.name] = attribute.value;
-    return attributes;
-  }, {});
 }
