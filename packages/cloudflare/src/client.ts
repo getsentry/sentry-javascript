@@ -1,7 +1,6 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 
 /**
@@ -11,7 +10,6 @@ import type { CloudflareTransportOptions } from './transport';
  * @see ServerRuntimeClient for usage documentation.
  */
 export class CloudflareClient extends ServerRuntimeClient {
-  private readonly _flushLock: ReturnType<typeof makeFlushLock> | void;
   private _pendingSpans: Set<string> = new Set();
   private _spanCompletionPromise: Promise<void> | null = null;
   private _resolveSpanCompletion: (() => void) | null = null;
@@ -26,10 +24,9 @@ export class CloudflareClient extends ServerRuntimeClient {
   public constructor(options: CloudflareClientOptions) {
     applySdkMetadata(options, 'cloudflare');
     options._metadata = options._metadata || {};
-    const { flushLock, ...serverOptions } = options;
 
     const clientOptions: ServerRuntimeClientOptions = {
-      ...serverOptions,
+      ...options,
       platform: 'javascript',
       // TODO: Grab version information
       runtime: { name: 'cloudflare' },
@@ -37,7 +34,6 @@ export class CloudflareClient extends ServerRuntimeClient {
     };
 
     super(clientOptions);
-    this._flushLock = flushLock;
 
     // Track span lifecycle to know when to flush
     this._unsubscribeSpanStart = this.on('spanStart', span => {
@@ -76,10 +72,6 @@ export class CloudflareClient extends ServerRuntimeClient {
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
    */
   public async flush(timeout?: number): Promise<boolean> {
-    if (this._flushLock) {
-      await this._flushLock.finalize();
-    }
-
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
       DEBUG_BUILD &&
         debug.log('[CloudflareClient] Waiting for', this._pendingSpans.size, 'pending spans to complete...');
@@ -126,7 +118,6 @@ export class CloudflareClient extends ServerRuntimeClient {
     }
 
     this._resetSpanCompletionPromise();
-    (this as unknown as { _flushLock: ReturnType<typeof makeFlushLock> | void })._flushLock = undefined;
   }
 
   /**
@@ -198,6 +189,4 @@ export interface CloudflareOptions extends Options<CloudflareTransportOptions>, 
  *
  * @see CloudflareClient for more information.
  */
-export interface CloudflareClientOptions extends ClientOptions<CloudflareTransportOptions>, BaseCloudflareOptions {
-  flushLock?: ReturnType<typeof makeFlushLock>;
-}
+export interface CloudflareClientOptions extends ClientOptions<CloudflareTransportOptions>, BaseCloudflareOptions {}

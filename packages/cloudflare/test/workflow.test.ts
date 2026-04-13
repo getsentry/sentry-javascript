@@ -3,6 +3,7 @@ import { startSpan } from '@sentry/core';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
+import { resetSdk } from './testUtils';
 
 vi.mock('../src/instrumentations/worker/instrumentEnv', () => ({
   instrumentEnv: vi.fn((env: unknown) => env),
@@ -77,6 +78,7 @@ const TRACE_ID = INSTANCE_ID.replace(/-/g, '');
 describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('hashStringToUuid hashes a string to a UUID for Sentry trace ID', async () => {

@@ -7,6 +7,7 @@ import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
 import { withSentry } from '../../../src/withSentry';
+import { resetSdk } from '../../testUtils';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
@@ -58,6 +59,7 @@ function addDelayedWaitUntil(context: ExecutionContext) {
 describe('instrumentTail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('does not double-wrap when withSentry is called twice', async () => {
@@ -159,9 +161,10 @@ describe('instrumentTail', () => {
   });
 
   test('creates a cloudflare client and sets it on the handler', async () => {
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    let clientInsideHandler: SentryCore.Client | undefined;
     const handler = {
       tail(_event, _env, _context) {
+        clientInsideHandler = SentryCore.getClient();
         return;
       },
     } satisfies ExportedHandler<typeof MOCK_ENV>;
@@ -169,8 +172,7 @@ describe('instrumentTail', () => {
     const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
     await wrappedHandler.tail?.(createMockTailEvent(), MOCK_ENV, createMockExecutionContext());
 
-    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
-    expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
+    expect(clientInsideHandler).toBeInstanceOf(CloudflareClient);
   });
 
   describe('scope instrumentation', () => {

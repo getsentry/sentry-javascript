@@ -1,7 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
-import { makeFlushLock } from '../src/flush';
 
 const MOCK_CLIENT_OPTIONS: CloudflareClientOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -63,29 +62,6 @@ describe('CloudflareClient', () => {
       expect(privateClient._pendingSpans.size).toBe(0);
       expect(privateClient._spanCompletionPromise).toBeNull();
       expect(privateClient._resolveSpanCompletion).toBeNull();
-    });
-
-    it('clears flushLock reference', () => {
-      const mockContext = {
-        waitUntil: vi.fn(),
-        passThroughOnException: vi.fn(),
-      };
-      const flushLock = makeFlushLock(mockContext as any);
-
-      const client = new CloudflareClient({
-        ...MOCK_CLIENT_OPTIONS,
-        flushLock,
-      });
-
-      const privateClient = client as unknown as {
-        _flushLock: ReturnType<typeof makeFlushLock> | void;
-      };
-
-      expect(privateClient._flushLock).toBeDefined();
-
-      client.dispose();
-
-      expect(privateClient._flushLock).toBeUndefined();
     });
 
     it('clears hooks', () => {

@@ -2,7 +2,7 @@ import type { ExportedHandler, TraceItem } from '@cloudflare/workers-types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
-import { flushAndDispose } from '../../flush';
+import { flushAndDispose, makeFlushLock } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
@@ -18,7 +18,10 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
   return withIsolationScope(async isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
-    const client = init({ ...options, ctx: context });
+    // Create flush lock per-request to track waitUntil promises
+    const flushLock = makeFlushLock(context);
+
+    const client = init(options);
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
@@ -29,7 +32,12 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
       captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.tail' } });
       throw e;
     } finally {
-      waitUntil(flushAndDispose(client));
+      waitUntil(
+        (async () => {
+          await flushLock.finalize();
+          await flushAndDispose(client);
+        })(),
+      );
     }
   });
 }

@@ -8,7 +8,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
-import { flushAndDispose } from '../../flush';
+import { flushAndDispose, makeFlushLock } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
@@ -25,7 +25,10 @@ function wrapScheduledHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
-    const client = init({ ...options, ctx: context });
+    // Create flush lock per-request to track waitUntil promises
+    const flushLock = makeFlushLock(context);
+
+    const client = init(options);
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
@@ -49,7 +52,12 @@ function wrapScheduledHandler(
           captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' } });
           throw e;
         } finally {
-          waitUntil(flushAndDispose(client));
+          waitUntil(
+            (async () => {
+              await flushLock.finalize();
+              await flushAndDispose(client);
+            })(),
+          );
         }
       },
     );

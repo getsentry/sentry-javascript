@@ -12,7 +12,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import { flushAndDispose, makeFlushLock } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
 import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
@@ -81,28 +81,31 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             const waitUntil = context?.waitUntil?.bind?.(context);
             const storage = context && 'originalStorage' in context ? context.originalStorage : undefined;
 
+            // Create flush lock per-request to track waitUntil promises
+            // Only create if context has waitUntil (i.e., it's an ExecutionContext-like object)
+            const flushLock =
+              context && 'waitUntil' in context ? makeFlushLock(context as ExecutionContext) : undefined;
+
             let scopeClient = scope.getClient();
             // Check if client exists AND is still usable (transport not disposed)
             // This handles the case where a previous handler disposed the client
             // but the scope still holds a reference to it (e.g., alarm handlers in Durable Objects)
             // For startNewTrace, always create a fresh client
             if (startNewTrace || !scopeClient?.getTransport()) {
-              const client = init({
-                ...wrapperOptions.options,
-                ctx: context as unknown as ExecutionContext | undefined,
-              });
+              const client = init(wrapperOptions.options);
               scope.setClient(client);
               scopeClient = client;
             }
 
-            const clientToDispose = scopeClient;
+            const clientToFlush = scopeClient;
             const methodName = wrapperOptions.spanName || 'unknown';
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
                 await storeSpanContext(storage, methodName);
               }
-              await flushAndDispose(clientToDispose);
+              await flushLock?.finalize();
+              await flushAndDispose(clientToFlush);
             };
 
             if (!wrapperOptions.spanName) {

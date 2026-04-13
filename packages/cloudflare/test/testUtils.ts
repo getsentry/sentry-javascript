@@ -5,7 +5,9 @@ function resetGlobals(): void {
   getCurrentScope().clear();
   getCurrentScope().setClient(undefined);
   getIsolationScope().clear();
+  getIsolationScope().setClient(undefined);
   getGlobalScope().clear();
+  getGlobalScope().setClient(undefined);
 }
 
 function cleanupOtel(): void {

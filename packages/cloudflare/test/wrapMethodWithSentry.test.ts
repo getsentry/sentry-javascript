@@ -154,8 +154,9 @@ describe('wrapMethodWithSentry', () => {
         put: vi.fn().mockResolvedValue(undefined),
       };
       const waitUntilPromises: Promise<void>[] = [];
+      const originalWaitUntil = vi.fn((p: Promise<void>) => waitUntilPromises.push(p));
       const context = {
-        waitUntil: vi.fn((p: Promise<void>) => waitUntilPromises.push(p)),
+        waitUntil: originalWaitUntil,
         originalStorage: mockStorage,
       } as any;
 
@@ -174,7 +175,8 @@ describe('wrapMethodWithSentry', () => {
       expect(result).toBe('sync-result');
 
       // The link fetching happens via waitUntil, not blocking the response
-      expect(context.waitUntil).toHaveBeenCalled();
+      // Note: makeFlushLock wraps the waitUntil, but the original still gets called
+      expect(waitUntilPromises.length).toBeGreaterThan(0);
     });
 
     it('marks handler as instrumented', () => {

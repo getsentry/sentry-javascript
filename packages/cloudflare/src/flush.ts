@@ -40,12 +40,13 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
 }
 
 /**
- * Flushes the client and then disposes of it to allow garbage collection.
- * This should be called at the end of each request to prevent memory leaks.
+ * Flushes the client to ensure all pending events are sent.
  *
- * @param client - The CloudflareClient instance to flush and dispose
+ * Note: The client is reused across requests, so we only flush without disposing.
+ *
+ * @param client - The CloudflareClient instance to flush
  * @param timeout - Timeout in milliseconds for the flush operation
- * @returns A promise that resolves when flush and dispose are complete
+ * @returns A promise that resolves when flush is complete
  */
 export async function flushAndDispose(client: Client | undefined, timeout = 2000): Promise<void> {
   if (!client) {
@@ -55,5 +56,4 @@ export async function flushAndDispose(client: Client | undefined, timeout = 2000
   }
 
   await client.flush(timeout);
-  client.dispose();
 }

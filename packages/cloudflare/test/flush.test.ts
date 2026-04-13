@@ -32,7 +32,7 @@ describe('Flush buffer test', () => {
 });
 
 describe('flushAndDispose', () => {
-  it('should flush and dispose the client when provided', async () => {
+  it('should flush the client when provided (without disposing for client reuse)', async () => {
     const mockClient = {
       flush: vi.fn().mockResolvedValue(true),
       dispose: vi.fn(),
@@ -41,7 +41,8 @@ describe('flushAndDispose', () => {
     await flushAndDispose(mockClient, 3000);
 
     expect(mockClient.flush).toHaveBeenCalledWith(3000);
-    expect(mockClient.dispose).toHaveBeenCalled();
+    // Note: dispose is no longer called since clients are reused across requests
+    expect(mockClient.dispose).not.toHaveBeenCalled();
   });
 
   it('should fall back to global flush when no client is provided', async () => {

@@ -1,10 +1,15 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentDurableObjectWithSentry } from '../src';
 import { getInstrumented } from '../src/instrument';
+import { resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectWithSentry', () => {
+  beforeEach(() => {
+    resetSdk();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -45,40 +50,37 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(await result).toBe('async-result');
   });
 
-  it('Instruments prototype methods without "sticking" to the options', () => {
+  it('Reuses the same client across multiple instances', () => {
     const mockContext = {
       waitUntil: vi.fn(),
     } as any;
     const mockEnv = {} as any; // Environment mock
-    const initCore = vi.spyOn(SentryCore, 'initAndBind');
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-    const options = vi
-      .fn()
-      .mockReturnValueOnce({
-        orgId: 1,
-        instrumentPrototypeMethods: true,
-      })
-      .mockReturnValueOnce({
-        orgId: 2,
-        instrumentPrototypeMethods: true,
-      });
+    let clientFromInstance1: SentryCore.Client | undefined;
+    let clientFromInstance2: SentryCore.Client | undefined;
+    const options = vi.fn().mockReturnValue({
+      instrumentPrototypeMethods: true,
+    });
     const testClass = class {
-      method() {}
+      method() {
+        return SentryCore.getClient();
+      }
     };
     const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
     ]);
-    instance1.method();
+    clientFromInstance1 = instance1.method();
 
     const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
     ]);
-    instance2.method();
+    clientFromInstance2 = instance2.method();
 
-    expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
-    expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
+    // Client is reused across instances
+    expect(clientFromInstance1).toBeDefined();
+    expect(clientFromInstance2).toBeDefined();
+    expect(clientFromInstance1).toBe(clientFromInstance2);
   });
 
   it('All available durable object methods are instrumented when instrumentPrototypeMethods is enabled', () => {

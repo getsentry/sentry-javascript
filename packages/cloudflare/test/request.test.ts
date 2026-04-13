@@ -9,6 +9,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { wrapRequestHandler } from '../src/request';
+import { resetSdk } from './testUtils';
 
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -25,6 +26,7 @@ describe('withSentry', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('passes through the response from the handler', async () => {
@@ -79,14 +81,16 @@ describe('withSentry', () => {
   });
 
   test('creates a cloudflare client and sets it on the handler', async () => {
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+    let clientInsideHandler: SentryCore.Client | undefined;
     await wrapRequestHandler(
       { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
-      () => new Response('test'),
+      () => {
+        clientInsideHandler = SentryCore.getClient();
+        return new Response('test');
+      },
     );
 
-    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
-    expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
+    expect(clientInsideHandler).toBeInstanceOf(CloudflareClient);
   });
 
   test('flush must be called when all waitUntil are done', async () => {
@@ -378,8 +382,11 @@ function createMockExecutionContext(): ExecutionContext {
   };
 }
 
-describe('flushAndDispose', () => {
-  test('dispose is called after flush completes', async () => {
+describe('client reuse (dispose is not called)', () => {
+  // Note: dispose is no longer called because clients are reused across requests.
+  // These tests verify that flush is called without dispose.
+
+  test('flush is called but dispose is not (client reuse)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
@@ -398,13 +405,13 @@ describe('flushAndDispose', () => {
     await Promise.all(waits);
 
     expect(flushSpy).toHaveBeenCalled();
-    expect(disposeSpy).toHaveBeenCalled();
+    expect(disposeSpy).not.toHaveBeenCalled();
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();
   });
 
-  test('dispose is called after handler throws error', async () => {
+  test('flush is called after handler throws error (without dispose)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
@@ -424,13 +431,14 @@ describe('flushAndDispose', () => {
     // Wait for all waitUntil promises to resolve
     await Promise.all(waits);
 
-    expect(disposeSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+    expect(disposeSpy).not.toHaveBeenCalled();
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();
   });
 
-  test('dispose is called for OPTIONS requests', async () => {
+  test('flush is called for OPTIONS requests (without dispose)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
@@ -451,13 +459,14 @@ describe('flushAndDispose', () => {
     // Wait for all waitUntil promises to resolve
     await Promise.all(waits);
 
-    expect(disposeSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+    expect(disposeSpy).not.toHaveBeenCalled();
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();
   });
 
-  test('dispose is called for HEAD requests', async () => {
+  test('flush is called for HEAD requests (without dispose)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
@@ -478,13 +487,14 @@ describe('flushAndDispose', () => {
     // Wait for all waitUntil promises to resolve
     await Promise.all(waits);
 
-    expect(disposeSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+    expect(disposeSpy).not.toHaveBeenCalled();
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();
   });
 
-  test('dispose is called after streaming response completes', async () => {
+  test('flush is called after streaming response completes (without dispose)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
@@ -512,7 +522,8 @@ describe('flushAndDispose', () => {
     // Wait for all waitUntil promises to resolve
     await Promise.all(waits);
 
-    expect(disposeSpy).toHaveBeenCalled();
+    expect(flushSpy).toHaveBeenCalled();
+    expect(disposeSpy).not.toHaveBeenCalled();
 
     flushSpy.mockRestore();
     disposeSpy.mockRestore();

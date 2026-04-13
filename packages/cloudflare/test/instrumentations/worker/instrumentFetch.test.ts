@@ -6,6 +6,7 @@ import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { withSentry } from '../../../src/withSentry';
+import { resetSdk } from '../../testUtils';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
@@ -30,6 +31,7 @@ function addDelayedWaitUntil(context: ExecutionContext) {
 describe('instrumentFetch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('does not double-wrap when withSentry is called twice', async () => {

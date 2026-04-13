@@ -13,7 +13,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import { flushAndDispose, makeFlushLock } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 import { classifyResponseStreaming } from './utils/streaming';
@@ -48,7 +48,16 @@ export function wrapRequestHandler(
 
     const waitUntil = context?.waitUntil?.bind?.(context);
 
-    const client = init({ ...options, ctx: context });
+    // Create flush lock per-request to track waitUntil promises
+    const flushLock = context ? makeFlushLock(context) : undefined;
+
+    // Helper to finalize flush lock and then flush the client
+    const flushWithLock = async (): Promise<void> => {
+      await flushLock?.finalize();
+      await flushAndDispose(client);
+    };
+
+    const client = init(options);
     isolationScope.setClient(client);
 
     const urlObject = parseStringToURLObject(request.url);
@@ -94,7 +103,7 @@ export function wrapRequestHandler(
         }
         throw e;
       } finally {
-        waitUntil?.(flushAndDispose(client));
+        waitUntil?.(flushWithLock());
       }
     }
 
@@ -121,7 +130,7 @@ export function wrapRequestHandler(
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flushAndDispose(client));
+            waitUntil?.(flushWithLock());
             throw e;
           }
 
@@ -148,7 +157,7 @@ export function wrapRequestHandler(
                 } finally {
                   reader.releaseLock();
                   span.end();
-                  waitUntil?.(flushAndDispose(client));
+                  waitUntil?.(flushWithLock());
                 }
               })();
 
@@ -164,7 +173,7 @@ export function wrapRequestHandler(
             } catch (_e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
-              waitUntil?.(flushAndDispose(client));
+              waitUntil?.(flushWithLock());
               return res;
             }
           }
@@ -178,7 +187,7 @@ export function wrapRequestHandler(
           if (res.status === 101) {
             waitUntil?.(client?.flush(2000));
           } else {
-            waitUntil?.(flushAndDispose(client));
+            waitUntil?.(flushWithLock());
           }
           return res;
         });
