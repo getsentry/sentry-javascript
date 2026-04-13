@@ -138,7 +138,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     });
   });
 
-  test('it prefers live element attributes over stale rrweb mirror metadata', () => {
+  test('prefers live element attributes over stale rrweb mirror metadata', () => {
     const target = document.createElement('button');
     target.setAttribute('id', 'save-note-button');
     target.setAttribute('data-testid', 'save-note-button');
