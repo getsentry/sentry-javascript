@@ -17,7 +17,7 @@ runs:
         key: ${{ inputs.dependency_cache_key }}
 
     - name: Restore build artifacts
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v7
       with:
         name: build-output
 
