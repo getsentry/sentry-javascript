@@ -99,3 +99,47 @@ test('Storage operations create spans in Durable Object transactions', async ({ 
   expect(putSpan?.data?.['db.system.name']).toBe('cloudflare.durable_object.storage');
   expect(putSpan?.data?.['db.operation.name']).toBe('put');
 });
+
+test.describe('Alarm instrumentation', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test('captures error from alarm handler', async ({ baseURL }) => {
+    const errorWaiter = waitForError('cloudflare-workers', event => {
+      return event.exception?.values?.[0]?.value === 'Alarm error captured by Sentry';
+    });
+
+    const response = await fetch(`${baseURL}/pass-to-object/setAlarm?action=throw`);
+    expect(response.status).toBe(200);
+
+    const event = await errorWaiter;
+    expect(event.exception?.values?.[0]?.mechanism?.type).toBe('auto.faas.cloudflare.durable_object');
+  });
+
+  test('creates a transaction for alarm with new trace linked to setAlarm', async ({ baseURL }) => {
+    const setAlarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
+      return event.spans?.some(span => span.description?.includes('storage_setAlarm')) ?? false;
+    });
+
+    const alarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
+      return event.transaction === 'alarm' && event.contexts?.trace?.op === 'function';
+    });
+
+    const response = await fetch(`${baseURL}/pass-to-object/setAlarm`);
+    expect(response.status).toBe(200);
+
+    const setAlarmTransaction = await setAlarmTransactionWaiter;
+    const alarmTransaction = await alarmTransactionWaiter;
+
+    // Alarm creates a transaction with correct attributes
+    expect(alarmTransaction.contexts?.trace?.op).toBe('function');
+    expect(alarmTransaction.contexts?.trace?.origin).toBe('auto.faas.cloudflare.durable_object');
+
+    // Alarm starts a new trace (different trace ID from the request that called setAlarm)
+    expect(alarmTransaction.contexts?.trace?.trace_id).not.toBe(setAlarmTransaction.contexts?.trace?.trace_id);
+
+    // Alarm links to the trace that called setAlarm via sentry.previous_trace attribute
+    const previousTrace = alarmTransaction.contexts?.trace?.data?.['sentry.previous_trace'];
+    expect(previousTrace).toBeDefined();
+    expect(previousTrace).toContain(setAlarmTransaction.contexts?.trace?.trace_id);
+  });
+});
