@@ -1,6 +1,5 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
+import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
 import type { CloudflareTransportOptions } from './transport';
 
 /**
@@ -10,13 +9,6 @@ import type { CloudflareTransportOptions } from './transport';
  * @see ServerRuntimeClient for usage documentation.
  */
 export class CloudflareClient extends ServerRuntimeClient {
-  private _pendingSpans: Set<string> = new Set();
-  private _spanCompletionPromise: Promise<void> | null = null;
-  private _resolveSpanCompletion: (() => void) | null = null;
-
-  private _unsubscribeSpanStart: (() => void) | null = null;
-  private _unsubscribeSpanEnd: (() => void) | null = null;
-
   /**
    * Creates a new Cloudflare SDK instance.
    * @param options Configuration options for this SDK.
@@ -34,99 +26,6 @@ export class CloudflareClient extends ServerRuntimeClient {
     };
 
     super(clientOptions);
-
-    // Track span lifecycle to know when to flush
-    this._unsubscribeSpanStart = this.on('spanStart', span => {
-      const spanId = span.spanContext().spanId;
-      DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
-      this._pendingSpans.add(spanId);
-
-      if (!this._spanCompletionPromise) {
-        this._spanCompletionPromise = new Promise(resolve => {
-          this._resolveSpanCompletion = resolve;
-        });
-      }
-    });
-
-    this._unsubscribeSpanEnd = this.on('spanEnd', span => {
-      const spanId = span.spanContext().spanId;
-      DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
-      this._pendingSpans.delete(spanId);
-
-      // If no more pending spans, resolve the completion promise
-      if (this._pendingSpans.size === 0 && this._resolveSpanCompletion) {
-        DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, resolving promise');
-        this._resolveSpanCompletion();
-        this._resetSpanCompletionPromise();
-      }
-    });
-  }
-
-  /**
-   * Flushes pending operations and ensures all data is processed.
-   * If a timeout is provided, the operation will be completed within the specified time limit.
-   *
-   * It will wait for all pending spans to complete before flushing.
-   *
-   * @param {number} [timeout] - Optional timeout in milliseconds to force the completion of the flush operation.
-   * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
-   */
-  public async flush(timeout?: number): Promise<boolean> {
-    if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
-      DEBUG_BUILD &&
-        debug.log('[CloudflareClient] Waiting for', this._pendingSpans.size, 'pending spans to complete...');
-
-      const timeoutMs = timeout ?? 5000;
-      const spanCompletionRace = Promise.race([
-        this._spanCompletionPromise,
-        new Promise(resolve =>
-          setTimeout(() => {
-            DEBUG_BUILD &&
-              debug.log('[CloudflareClient] Span completion timeout after', timeoutMs, 'ms, flushing anyway');
-            resolve(undefined);
-          }, timeoutMs),
-        ),
-      ]);
-
-      await spanCompletionRace;
-    }
-
-    return super.flush(timeout);
-  }
-
-  /**
-   * Disposes of the client and releases all resources.
-   *
-   * This method clears all Cloudflare-specific state in addition to the base client cleanup.
-   * It unsubscribes from span lifecycle events and clears pending span tracking.
-   *
-   * Call this method after flushing to allow the client to be garbage collected.
-   * After calling dispose(), the client should not be used anymore.
-   */
-  public override dispose(): void {
-    DEBUG_BUILD && debug.log('[CloudflareClient] Disposing client...');
-
-    super.dispose();
-
-    if (this._unsubscribeSpanStart) {
-      this._unsubscribeSpanStart();
-      this._unsubscribeSpanStart = null;
-    }
-    if (this._unsubscribeSpanEnd) {
-      this._unsubscribeSpanEnd();
-      this._unsubscribeSpanEnd = null;
-    }
-
-    this._resetSpanCompletionPromise();
-  }
-
-  /**
-   * Resets the span completion promise and resolve function.
-   */
-  private _resetSpanCompletionPromise(): void {
-    this._pendingSpans.clear();
-    this._spanCompletionPromise = null;
-    this._resolveSpanCompletion = null;
   }
 }
 
