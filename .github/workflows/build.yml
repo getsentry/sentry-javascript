@@ -739,15 +739,6 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/node-integration-tests
-          name: node-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || '' }}
-
   job_node_core_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Node-Core
@@ -788,16 +779,6 @@ jobs:
       - name: Run integration tests
         working-directory: dev-packages/node-core-integration-tests
         run: yarn test
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/node-core-integration-tests
-          name:
-            node-core-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || ''}}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -857,15 +838,6 @@ jobs:
         run: |
           cd packages/remix
           yarn test:integration:ci
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          directory: packages/remix
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: ${{ matrix.node }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -1054,15 +1026,6 @@ jobs:
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          directory: dev-packages/e2e-tests
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: e2e-${{ matrix.test-application }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
