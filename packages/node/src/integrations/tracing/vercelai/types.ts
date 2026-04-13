@@ -62,6 +62,12 @@ export interface VercelAiOptions {
    * If you want to register the span processors even when the ai package usage cannot be detected, you can set `force` to `true`.
    */
   force?: boolean;
+
+  /**
+   * Enable or disable truncation of recorded input messages.
+   * Defaults to `true`.
+   */
+  enableTruncation?: boolean;
 }
 
 export interface VercelAiIntegration extends Integration {

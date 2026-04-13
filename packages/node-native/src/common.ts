@@ -1,4 +1,4 @@
-import type { Contexts, DsnComponents, Primitive, SdkMetadata, Session } from '@sentry/core';
+import type { Contexts, DsnComponents, Primitive, ScopeData, SdkMetadata, Session } from '@sentry/core';
 
 export const POLL_RATIO = 2;
 
@@ -40,5 +40,6 @@ export interface WorkerStartData extends ThreadBlockedIntegrationOptions {
 
 export interface ThreadState {
   session: Session | undefined;
+  scope: ScopeData;
   debugImages: Record<string, string>;
 }

@@ -16,7 +16,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -227,7 +227,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
  * Generate a request.messages JSON array from the prompt field in the
  * invoke_agent op
  */
-export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
@@ -247,11 +247,13 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
 
       const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-      const truncatedMessages = getTruncatedJsonString(filteredMessages);
+      const messagesJson = enableTruncation
+        ? getTruncatedJsonString(filteredMessages)
+        : getJsonString(filteredMessages);
 
       span.setAttributes({
-        [AI_PROMPT_ATTRIBUTE]: truncatedMessages,
-        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+        [AI_PROMPT_ATTRIBUTE]: messagesJson,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
         [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
@@ -268,11 +270,13 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-        const truncatedMessages = getTruncatedJsonString(filteredMessages);
+        const messagesJson = enableTruncation
+          ? getTruncatedJsonString(filteredMessages)
+          : getJsonString(filteredMessages);
 
         span.setAttributes({
-          [AI_PROMPT_MESSAGES_ATTRIBUTE]: truncatedMessages,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }

@@ -64,15 +64,6 @@ vi.mock('@sentry/browser', async requireActual => {
 });
 
 vi.mock('@sentry/core', async requireActual => {
-  return {
-    ...(await requireActual()),
-    getRootSpan: () => {
-      return mockRootSpan;
-    },
-  };
-});
-
-vi.mock('@sentry/core', async requireActual => {
   const actual = (await requireActual()) as any;
   return {
     ...actual,
@@ -81,6 +72,8 @@ vi.mock('@sentry/core', async requireActual => {
     },
     getActiveSpan: () => {
       const span = actual.getActiveSpan();
+
+      if (!span) return undefined;
 
       span.updateName = mockNavigationSpan.updateName;
       span.setAttribute = mockNavigationSpan.setAttribute;

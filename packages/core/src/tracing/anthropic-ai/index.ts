@@ -25,6 +25,7 @@ import {
   buildMethodPath,
   resolveAIRecordingOptions,
   setTokenUsageAttributes,
+  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../ai/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -72,9 +73,9 @@ function extractRequestAttributes(args: unknown[], methodPath: string, operation
  * Add private request attributes to spans.
  * This is only recorded if recordInputs is true.
  */
-function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
+function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, enableTruncation: boolean): void {
   const messages = messagesFromParams(params);
-  setMessagesAttribute(span, messages);
+  setMessagesAttribute(span, messages, enableTruncation);
 
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
@@ -206,7 +207,7 @@ function handleStreamingRequest<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args) as Promise<R>;
 
       if (options.recordInputs && params) {
-        addPrivateRequestAttributes(span, params);
+        addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
       }
 
       return (async () => {
@@ -228,7 +229,7 @@ function handleStreamingRequest<T extends unknown[], R>(
     return startSpanManual(spanConfig, span => {
       try {
         if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params);
+          addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
         }
         const messageStream = target.apply(context, args);
         return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
@@ -289,7 +290,7 @@ function instrumentMethod<T extends unknown[], R>(
           originalResult = target.apply(context, args) as Promise<R>;
 
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params);
+            addPrivateRequestAttributes(span, params, shouldEnableTruncation(options.enableTruncation));
           }
 
           return originalResult.then(

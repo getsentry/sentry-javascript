@@ -102,6 +102,7 @@ export {
   featureFlagsIntegration,
   logger,
   metrics,
+  withStreamedSpan,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

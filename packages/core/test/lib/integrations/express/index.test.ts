@@ -52,8 +52,10 @@ vi.mock('../../../../src/debug-build', () => ({
   DEBUG_BUILD: true,
 }));
 const debugErrors: [string, Error][] = [];
+const debugWarnings: string[] = [];
 vi.mock('../../../../src/utils/debug-logger', () => ({
   debug: {
+    warn: (msg: string) => debugWarnings.push(msg),
     error: (msg: string, er: Error) => {
       debugErrors.push([msg, er]);
     },
@@ -61,12 +63,12 @@ vi.mock('../../../../src/utils/debug-logger', () => ({
 }));
 
 beforeEach(() => (patchLayerCalls.length = 0));
-const patchLayerCalls: [options: ExpressIntegrationOptions, layer: ExpressLayer, layerPath?: string][] = [];
+const patchLayerCalls: [getOptions: () => ExpressIntegrationOptions, layer: ExpressLayer, layerPath?: string][] = [];
 
 vi.mock('../../../../src/integrations/express/patch-layer', () => ({
-  patchLayer: (options: ExpressIntegrationOptions, layer?: ExpressLayer, layerPath?: string) => {
+  patchLayer: (getOptions: () => ExpressIntegrationOptions, layer?: ExpressLayer, layerPath?: string) => {
     if (layer) {
-      patchLayerCalls.push([options, layer, layerPath]);
+      patchLayerCalls.push([getOptions, layer, layerPath]);
     }
   },
 }));
@@ -129,26 +131,34 @@ function getExpress5(): ExpressExportv5 & { spies: ExpressSpies } {
 }
 
 describe('patchExpressModule', () => {
-  it('throws trying to patch/unpatch the wrong thing', () => {
+  it('throws trying to patch the wrong thing', () => {
     expect(() => {
-      patchExpressModule({
-        express: {} as unknown as ExpressModuleExport,
-      } as unknown as ExpressIntegrationOptions);
+      patchExpressModule({} as unknown as ExpressModuleExport, () => ({}));
     }).toThrowError('no valid Express route function to instrument');
   });
 
-  it('can patch and restore expressv4 style module', () => {
+  it('throws trying to patch without a getOptions getter', () => {
+    const express = getExpress4();
+    expect(() => {
+      //@ts-expect-error The type error prevents this, by design
+      patchExpressModule(express);
+    }).toThrowError('`patchExpressModule(moduleExports, getOptions)` requires a `getOptions` callback');
+  });
+
+  it('can patch expressv4 style module', () => {
     for (const useDefault of [false, true]) {
       const express = getExpress4();
-      const module = useDefault ? { default: express } : express;
+      const moduleExports = useDefault ? { default: express } : express;
       const r = express.Router as ExpressRouterv4;
       const a = express.application;
-      const options = { express: module } as unknown as ExpressIntegrationOptions;
       expect((r.use as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((r.route as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((a.use as WrappedFunction).__sentry_original__).toBe(undefined);
 
-      patchExpressModule(options);
+      patchExpressModule({ express: moduleExports });
+      expect(debugWarnings).toStrictEqual([
+        '[Express] `patchExpressModule(options)` is deprecated. Use `patchExpressModule(moduleExports, getOptions)` instead.',
+      ]);
 
       expect(typeof (r.use as WrappedFunction).__sentry_original__).toBe('function');
       expect(typeof (r.route as WrappedFunction).__sentry_original__).toBe('function');
@@ -156,18 +166,23 @@ describe('patchExpressModule', () => {
     }
   });
 
-  it('can patch and restore expressv5 style module', () => {
+  it('can patch expressv5 style module', () => {
     for (const useDefault of [false, true]) {
       const express = getExpress5();
       const r = express.Router as ExpressRouterv5;
       const a = express.application;
-      const module = useDefault ? { default: express } : express;
-      const options = { express: module } as unknown as ExpressIntegrationOptions;
+      const moduleExports = useDefault ? { default: express } : express;
       expect((r.prototype.use as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((r.prototype.route as WrappedFunction).__sentry_original__).toBe(undefined);
       expect((a.use as WrappedFunction).__sentry_original__).toBe(undefined);
 
-      patchExpressModule(options);
+      // verify that the debug warning doesn't fire a second time
+      // vitest doesn't guarantee test ordering, so just verify
+      // in both places that there's only one warning.
+      patchExpressModule({ express: moduleExports });
+      expect(debugWarnings).toStrictEqual([
+        '[Express] `patchExpressModule(options)` is deprecated. Use `patchExpressModule(moduleExports, getOptions)` instead.',
+      ]);
 
       expect(typeof (r.prototype.use as WrappedFunction).__sentry_original__).toBe('function');
       expect(typeof (r.prototype.route as WrappedFunction).__sentry_original__).toBe('function');
@@ -178,8 +193,8 @@ describe('patchExpressModule', () => {
   it('calls patched and original Router.route', () => {
     const expressv4 = getExpress4();
     const { spies } = expressv4;
-    const options = { express: expressv4 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv4, getOptions);
     expressv4.Router.route('a');
     expect(spies.routerRoute).toHaveBeenCalledExactlyOnceWith('a');
   });
@@ -187,18 +202,18 @@ describe('patchExpressModule', () => {
   it('calls patched and original Router.use', () => {
     const expressv4 = getExpress4();
     const { spies } = expressv4;
-    const options = { express: expressv4 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv4, getOptions);
     expressv4.Router.use('a');
-    expect(patchLayerCalls).toStrictEqual([[options, { name: 'layerFinal' }, 'a']]);
+    expect(patchLayerCalls).toStrictEqual([[getOptions, { name: 'layerFinal' }, 'a']]);
     expect(spies.routerUse).toHaveBeenCalledExactlyOnceWith('a');
   });
 
   it('skips patchLayer call in Router.use if no layer in the stack', () => {
     const expressv4 = getExpress4();
     const { spies } = expressv4;
-    const options = { express: expressv4 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv4, getOptions);
     const { stack } = expressv4.Router;
     expressv4.Router.stack = [];
     expressv4.Router.use('a');
@@ -210,28 +225,28 @@ describe('patchExpressModule', () => {
   it('calls patched and original application.use', () => {
     const expressv4 = getExpress4();
     const { spies } = expressv4;
-    const options = { express: expressv4 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv4, getOptions);
     expressv4.application.use('a');
-    expect(patchLayerCalls).toStrictEqual([[options, { name: 'layerFinal' }, 'a']]);
+    expect(patchLayerCalls).toStrictEqual([[getOptions, { name: 'layerFinal' }, 'a']]);
     expect(spies.appUse).toHaveBeenCalledExactlyOnceWith('a');
   });
 
   it('calls patched and original application.use on express v5', () => {
     const expressv5 = getExpress5();
     const { spies } = expressv5;
-    const options = { express: expressv5 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv5, getOptions);
     expressv5.application.use('a');
-    expect(patchLayerCalls).toStrictEqual([[options, { name: 'layerFinal' }, 'a']]);
+    expect(patchLayerCalls).toStrictEqual([[getOptions, { name: 'layerFinal' }, 'a']]);
     expect(spies.appUse).toHaveBeenCalledExactlyOnceWith('a');
   });
 
   it('skips patchLayer on application.use if no router found', () => {
     const expressv4 = getExpress4();
     const { spies } = expressv4;
-    const options = { express: expressv4 };
-    patchExpressModule(options);
+    const getOptions = () => ({});
+    patchExpressModule(expressv4, getOptions);
     const app = expressv4.application as {
       _router?: ExpressRoute;
     };
@@ -246,8 +261,9 @@ describe('patchExpressModule', () => {
 
   it('debug error when patching fails', () => {
     const expressv5 = getExpress5();
-    patchExpressModule({ express: expressv5 });
-    patchExpressModule({ express: expressv5 });
+    const getOptions = () => ({});
+    patchExpressModule(expressv5, getOptions);
+    patchExpressModule(expressv5, getOptions);
     expect(debugErrors).toStrictEqual([
       ['Failed to patch express route method:', new Error('Attempting to wrap method route multiple times')],
       ['Failed to patch express use method:', new Error('Attempting to wrap method use multiple times')],

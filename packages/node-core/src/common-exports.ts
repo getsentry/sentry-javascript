@@ -120,6 +120,8 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  spanStreamingIntegration,
+  withStreamedSpan,
   metrics,
   envToBool,
 } from '@sentry/core';

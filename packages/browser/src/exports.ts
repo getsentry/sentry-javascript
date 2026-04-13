@@ -70,6 +70,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  withStreamedSpan,
   metrics,
 } from '@sentry/core';
 

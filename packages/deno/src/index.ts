@@ -94,6 +94,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStreamedSpan,
   logger,
   consoleLoggingIntegration,
 } from '@sentry/core';

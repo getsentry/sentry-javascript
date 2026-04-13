@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 import type { Client } from '../../client';
+import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
@@ -114,7 +116,13 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  processGenerateSpan(span, name, attributes);
+  const client = getClient();
+  const integration = client?.getIntegrationByName('VercelAI') as
+    | { options?: { enableTruncation?: boolean } }
+    | undefined;
+  const enableTruncation = shouldEnableTruncation(integration?.options?.enableTruncation);
+
+  processGenerateSpan(span, name, attributes, enableTruncation);
 }
 
 function vercelAiEventProcessor(event: Event): Event {
@@ -396,7 +404,7 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   }
 }
 
-function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
+function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes, enableTruncation: boolean): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.vercelai.otel');
 
   const nameWthoutAi = name.replace('ai.', '');
@@ -408,7 +416,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
-  requestMessagesFromPrompt(span, attributes);
+  requestMessagesFromPrompt(span, attributes, enableTruncation);
 
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
