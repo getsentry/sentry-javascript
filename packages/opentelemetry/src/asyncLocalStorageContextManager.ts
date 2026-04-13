@@ -99,7 +99,6 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   }
 
   private _bindFunction(context: Context, target: ListenerFn): ListenerFn {
-    // oxlint-disable-next-line @typescript-eslint/no-this-alias -- need stable ref for non-arrow wrapper
     const managerWith = this.with.bind(this);
     const contextWrapper = function (this: never, ...args: unknown[]) {
       return managerWith(context, () => target.apply(this, args));
