@@ -287,11 +287,10 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
       'sentry-trace': string;
       baggage: string | undefined;
       traceparent?: string;
-    } = {
-      ...originalHeaders,
+    } = Object.assign({}, originalHeaders, {
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
-    };
+    });
 
     if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
       newHeaders.traceparent = traceparent;

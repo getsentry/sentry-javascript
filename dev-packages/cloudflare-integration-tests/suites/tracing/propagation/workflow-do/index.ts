@@ -9,7 +9,7 @@ interface Env {
 }
 
 class MyDurableObjectBase extends DurableObject<Env> {
-  async fetch(request: Request) {
+  async fetch(_request: Request) {
     return new Response('DO is fine');
   }
 }
