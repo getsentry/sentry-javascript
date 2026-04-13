@@ -485,6 +485,7 @@ export type {
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
+export type { SpanLink } from './types-hoist/link';
 export type {
   Metric,
   MetricType,
