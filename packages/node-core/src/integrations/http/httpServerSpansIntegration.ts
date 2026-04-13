@@ -11,7 +11,16 @@ import {
   SEMATTRS_NET_HOST_PORT,
   SEMATTRS_NET_PEER_IP,
 } from '@opentelemetry/semantic-conventions';
-import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type {
+  Event,
+  HttpIncomingMessage,
+  Integration,
+  IntegrationFn,
+  Span,
+  SpanAttributes,
+  SpanStatus,
+  HttpServerResponse,
+} from '@sentry/core';
 import {
   debug,
   getIsolationScope,
@@ -43,7 +52,7 @@ export interface HttpServerSpansIntegrationOptions {
    * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
    * You can use it to filter on additional properties like method, headers, etc.
    */
-  ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
 
   /**
    * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
@@ -66,12 +75,12 @@ export interface HttpServerSpansIntegrationOptions {
    * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
    */
   instrumentation?: {
-    requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
-    responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
+    requestHook?: (span: Span, req: ClientRequest | HttpIncomingMessage) => void;
+    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
     applyCustomAttributesOnSpan?: (
       span: Span,
-      request: ClientRequest | IncomingMessage,
-      response: IncomingMessage | ServerResponse,
+      request: ClientRequest | HttpIncomingMessage,
+      response: IncomingMessage | HttpServerResponse,
     ) => void;
   };
 
@@ -79,7 +88,7 @@ export interface HttpServerSpansIntegrationOptions {
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */
-  onSpanCreated?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
@@ -104,11 +113,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
         return;
       }
 
-      client.on('httpServerRequest', (_request, _response, normalizedRequest) => {
-        // Type-casting this here because we do not want to put the node types into core
-        const request = _request as IncomingMessage;
-        const response = _response as ServerResponse;
-
+      client.on('httpServerRequest', (request, response, normalizedRequest) => {
         const startSpan = (next: () => void): void => {
           if (
             shouldIgnoreSpansForIncomingRequest(request, {
@@ -127,7 +132,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const userAgent = headers['user-agent'];
           const ips = headers['x-forwarded-for'];
           const httpVersion = request.httpVersion;
-          const host = headers.host;
+          const host = headers.host as undefined | string;
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
 
           const tracer = client.tracer;
@@ -168,6 +173,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           requestHook?.(span, request);
           responseHook?.(span, response);
           applyCustomAttributesOnSpan?.(span, request, response);
+
           onSpanCreated?.(span, request, response);
 
           const rpcMetadata: RPCMetadata = {
@@ -264,7 +270,7 @@ export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   processEvent: (event: Event) => Event | null;
 };
 
-function isKnownPrefetchRequest(req: IncomingMessage): boolean {
+function isKnownPrefetchRequest(req: HttpIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
   return req.headers['next-router-prefetch'] === '1';
 }
@@ -290,13 +296,13 @@ export function isStaticAssetRequest(urlPath: string): boolean {
 }
 
 function shouldIgnoreSpansForIncomingRequest(
-  request: IncomingMessage,
+  request: HttpIncomingMessage,
   {
     ignoreStaticAssets,
     ignoreIncomingRequests,
   }: {
     ignoreStaticAssets?: boolean;
-    ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+    ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
   },
 ): boolean {
   if (isTracingSuppressed(context.active())) {
@@ -325,7 +331,7 @@ function shouldIgnoreSpansForIncomingRequest(
   return false;
 }
 
-function getRequestContentLengthAttribute(request: IncomingMessage): SpanAttributes {
+function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
   const length = getContentLength(request.headers);
   if (length == null) {
     return {};
@@ -358,7 +364,10 @@ function isCompressed(headers: IncomingHttpHeaders): boolean {
   return !!encoding && encoding !== 'identity';
 }
 
-function getIncomingRequestAttributesOnResponse(request: IncomingMessage, response: ServerResponse): SpanAttributes {
+function getIncomingRequestAttributesOnResponse(
+  request: IncomingMessage | HttpIncomingMessage,
+  response: ServerResponse | HttpServerResponse,
+): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
   const { socket } = request;

@@ -1,7 +1,7 @@
 import { subscribe } from 'node:diagnostics_channel';
-import type { IncomingMessage, RequestOptions } from 'node:http';
-import { context, createContextKey, propagation } from '@opentelemetry/api';
-import type { HttpInstrumentationOptions, Integration, IntegrationFn } from '@sentry/core';
+import type { RequestOptions } from 'node:http';
+import { context, propagation } from '@opentelemetry/api';
+import type { HttpIncomingMessage, HttpInstrumentationOptions, Integration, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
@@ -18,11 +18,10 @@ interface WeakRefImpl<T> {
 }
 
 type StartSpanCallback = (next: () => void) => void;
-type RequestWithOptionalStartSpanCallback = IncomingMessage & {
+type RequestWithOptionalStartSpanCallback = HttpIncomingMessage & {
   _startSpanCallback?: WeakRefImpl<StartSpanCallback>;
 };
 
-const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
 const INTEGRATION_NAME = 'Http.Server';
 
 export interface HttpServerIntegrationOptions {
@@ -84,7 +83,6 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     wrapServerEmitRequest(request, response, normalizedRequest, next) {
       const ctx = propagation
         .extract(context.active(), normalizedRequest.headers)
-        .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
 
       const client = getClient();
       if (!client) return next();

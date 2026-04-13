@@ -148,6 +148,7 @@ export type {
   HttpInstrumentationOptions,
   HttpClientRequest,
   HttpIncomingMessage,
+  HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
 export { dedupeIntegration } from './integrations/dedupe';
@@ -158,7 +159,8 @@ export { instrumentPostgresJsSql } from './integrations/postgresjs';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
-export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export type { FeatureFlagsIntegration } from './integrations/featureFlags';
+export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 
@@ -575,9 +577,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export type { RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner } from './utils/randomSafeContext';
 export {
   withRandomSafeContext as _INTERNAL_withRandomSafeContext,
-  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
   safeMathRandom as _INTERNAL_safeMathRandom,
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';

@@ -24,19 +24,38 @@ import { stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
-import { markFunctionWrapped, getOriginalFunction } from '../../utils/object';
 
 const INTEGRATION_NAME = 'Http.Server';
 
 export type HttpServerSubscriptions = Record<ServerSubscriptionName, ChannelListener>;
 
+const instrumentedServers = new WeakSet<HttpServer>()
+
+const kRequestMark = Symbol.for('sentry_http_server_instrumented');
+type MarkedRequest = HttpIncomingMessage & {
+  [kRequestMark]?: boolean;
+};
+
+/** return true if it is NOT already marked */
+function markRequest (request: MarkedRequest): boolean {
+  return !request[kRequestMark] && (request[kRequestMark] = true);
+}
+
 export function instrumentServer(options: HttpInstrumentationOptions, server: HttpServer): void {
+  // Use a proxy and a WeakSet of server objects here, rather than a
+  // wrappedFunction, because NestJS has been observed to "fork" emit
+  // methods, including copying properties, leading to false positives.
+  // Furthermore, we mark the Request object so that if two copies of this
+  // instrumentation both are run on forked emit() methods for the same
+  // request, we still only ever create a single root span. Previously,
+  // this was done with a flag on the OTEL context, but in this non-OTEL
+  // version, we mark the Request itself with a non-enumerable prop instead.
+
   const originalEmit = server.emit;
-  // guard against double-wrapping, even if we have multiple copies of
-  // this instrumentation running in the same environment.
-  if (getOriginalFunction(originalEmit)) {
+  if (instrumentedServers.has(server)) {
     return;
   }
+  instrumentedServers.add(server);
 
   const newEmit = new Proxy(originalEmit, {
     apply(target, thisArg, args: unknown[]) {
@@ -46,15 +65,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       }
 
       const client = getClient();
+      const [request, response] = data as [HttpIncomingMessage, HttpServerResponse];
 
-      if (!client) {
+      if (!client || !markRequest(request)) {
         return target.apply(thisArg, args);
       }
 
       DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
       const isolationScope = getIsolationScope().clone();
-
-      const [request, response] = data as [HttpIncomingMessage, HttpServerResponse];
 
       const ipAddress = request.socket?.remoteAddress;
       const url = request.url || '/';
@@ -121,7 +139,6 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
     },
   });
 
-  markFunctionWrapped(newEmit, originalEmit);
   server.emit = newEmit;
 }
 
@@ -130,31 +147,6 @@ export function getHttpServerSubscriptions(options: HttpInstrumentationOptions):
     const { server } = data as { server: HttpServer };
     instrumentServer(options, server);
   };
-
-  // the callback is assigned by the httpServerSpansIntegration When
-  // we wmit the 'httpServerRequest' event. But! That *could* just be
-  // passed in as an option on the HttpInstrumentationOptions, and
-  // called conditionally that way, as it's all synchronous
-
-  //         // this is the bit that is the thing replaced by the light bits
-  //         // needs to be a callback passed in or something, because this
-  //         // much in here must remain otel-free and strictly sentry only
-  //         const ctx = propagation
-  //           .extract(context.active(), normalizedRequest.headers)
-  //           .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
-  //
-  //         return context.with(ctx, () => {
-  //           // This is used (optionally) by the httpServerSpansIntegration to attach _startSpanCallback to the request object
-  //           client.emit('httpServerRequest', request, response, normalizedRequest);
-  //
-  //           const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback?.deref();
-  //           if (callback) {
-  //             return callback(() => target.apply(thisArg, args));
-  //           }
-  //           return target.apply(thisArg, args);
-  //         });
-  //       });
-  //   };
 
   return { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest };
 }

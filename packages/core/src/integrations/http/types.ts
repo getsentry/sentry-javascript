@@ -49,8 +49,11 @@ export interface HttpClientRequest {
 
 // TODO: fill this in with bits from node's ServerResponse
 export interface HttpServerResponse {
+  statusCode: number;
+  statusMessage: string;
   once(ev: string, ...data: unknown[]): this;
   once(ev: 'close'): this;
+  on(ev: string | symbol, handler: (...data: unknown[]) => void): this;
 }
 export interface HttpServer {
   emit(ev: string, ...data: unknown[]): this;
@@ -60,6 +63,8 @@ export interface HttpServer {
 export interface HttpSocket {
   remoteAddress?: string;
   remotePort?: number;
+  localAddress?: string;
+  localPort?: number;
 }
 
 /** Minimal interface for a Node.js http.IncomingMessage */

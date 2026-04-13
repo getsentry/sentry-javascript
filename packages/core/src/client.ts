@@ -6,6 +6,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import { HttpIncomingMessage, HttpServerResponse } from './integrations/http/types';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
@@ -848,7 +849,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(
     hook: 'httpServerRequest',
-    callback: (request: unknown, response: unknown, normalizedRequest: RequestEventData) => void,
+    callback: (request: HttpIncomingMessage, response: HttpServerResponse, normalizedRequest: RequestEventData) => void,
   ): () => void;
 
   /**
@@ -1100,8 +1101,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(
     hook: 'httpServerRequest',
-    request: unknown,
-    response: unknown,
+    request: HttpIncomingMessage,
+    response: HttpServerResponse,
     normalizedRequest: RequestEventData,
   ): void;
 
