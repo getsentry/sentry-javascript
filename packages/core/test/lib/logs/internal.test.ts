@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fmt, Scope } from '../../../src';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_getLogBuffer } from '../../../src/logs/internal';
+import {
+  _INTERNAL_captureLog,
+  _INTERNAL_flushLogsBuffer,
+  _INTERNAL_getLogBuffer,
+  _INTERNAL_removeLoneSurrogates,
+} from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
@@ -1260,5 +1265,135 @@ describe('_INTERNAL_captureLog', () => {
       const buffer2 = _INTERNAL_getLogBuffer(client2);
       expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
     });
+  });
+
+  describe('lone surrogate sanitization', () => {
+    it('sanitizes lone surrogates in log message body', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog({ level: 'error', message: 'bad surrogate \uD800 here' }, scope);
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('bad surrogate \uFFFD here');
+    });
+
+    it('sanitizes lone surrogates in log attribute values', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'error',
+          message: 'test',
+          attributes: { bad: '{"a":"\uD800"}' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.attributes?.['bad']).toEqual({
+        value: '{"a":"\uFFFD"}',
+        type: 'string',
+      });
+    });
+
+    it('sanitizes lone surrogates in log attribute keys', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'error',
+          message: 'test',
+          attributes: { ['bad\uD800key']: 'value' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.attributes?.['bad\uFFFDkey']).toEqual({
+        value: 'value',
+        type: 'string',
+      });
+    });
+
+    it('preserves valid emoji in log messages and attributes', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'hello 😀 world',
+          attributes: { emoji: '🎉 party' },
+        },
+        scope,
+      );
+
+      const logBuffer = _INTERNAL_getLogBuffer(client);
+      expect(logBuffer?.[0]?.body).toBe('hello 😀 world');
+      expect(logBuffer?.[0]?.attributes?.['emoji']).toEqual({
+        value: '🎉 party',
+        type: 'string',
+      });
+    });
+  });
+});
+
+describe('_INTERNAL_removeLoneSurrogates', () => {
+  it('returns the same string when there are no surrogates', () => {
+    expect(_INTERNAL_removeLoneSurrogates('hello world')).toBe('hello world');
+  });
+
+  it('returns the same string for empty input', () => {
+    expect(_INTERNAL_removeLoneSurrogates('')).toBe('');
+  });
+
+  it('preserves valid surrogate pairs (emoji)', () => {
+    expect(_INTERNAL_removeLoneSurrogates('hello 😀 world')).toBe('hello 😀 world');
+  });
+
+  it('replaces a lone high surrogate with U+FFFD', () => {
+    expect(_INTERNAL_removeLoneSurrogates('before\uD800after')).toBe('before\uFFFDafter');
+  });
+
+  it('replaces a lone low surrogate with U+FFFD', () => {
+    expect(_INTERNAL_removeLoneSurrogates('before\uDC00after')).toBe('before\uFFFDafter');
+  });
+
+  it('replaces lone high surrogate at end of string', () => {
+    expect(_INTERNAL_removeLoneSurrogates('end\uD800')).toBe('end\uFFFD');
+  });
+
+  it('replaces lone low surrogate at start of string', () => {
+    expect(_INTERNAL_removeLoneSurrogates('\uDC00start')).toBe('\uFFFDstart');
+  });
+
+  it('replaces multiple lone surrogates', () => {
+    expect(_INTERNAL_removeLoneSurrogates('\uD800\uD801\uDC00')).toBe('\uFFFD\uD801\uDC00');
+  });
+
+  it('handles two consecutive lone high surrogates', () => {
+    expect(_INTERNAL_removeLoneSurrogates('\uD800\uD800')).toBe('\uFFFD\uFFFD');
+  });
+
+  it('handles mixed valid pairs and lone surrogates', () => {
+    expect(_INTERNAL_removeLoneSurrogates('\uD83D\uDE00\uD800')).toBe('😀\uFFFD');
+  });
+
+  it('handles the exact reproduction case from issue #5186', () => {
+    const badValue = '{"a":"\uD800"}';
+    const result = _INTERNAL_removeLoneSurrogates(badValue);
+    expect(result).toBe('{"a":"\uFFFD"}');
+    expect(() => JSON.parse(result)).not.toThrow();
   });
 });

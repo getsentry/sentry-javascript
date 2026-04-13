@@ -1,3 +1,4 @@
+import type { Attributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
@@ -161,14 +162,14 @@ export function _INTERNAL_captureLog(
   const serializedLog: SerializedLog = {
     timestamp,
     level,
-    body: message,
+    body: typeof message === 'string' ? _INTERNAL_removeLoneSurrogates(message) : message,
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
-    attributes: {
+    attributes: sanitizeLogAttributes({
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
       [sequenceAttr.key]: sequenceAttr.value,
-    },
+    }),
   };
 
   captureSerializedLog(client, serializedLog);
@@ -219,4 +220,80 @@ export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | u
 function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
   // The reference to the Client <> LogBuffer map is stored on the carrier to ensure it's always the same
   return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
+}
+
+/**
+ * Sanitizes serialized log attributes by replacing lone surrogates in both
+ * keys and string values with U+FFFD.
+ */
+function sanitizeLogAttributes(attributes: Attributes): Attributes {
+  const sanitized: Attributes = {};
+  for (const [key, attr] of Object.entries(attributes)) {
+    const sanitizedKey = _INTERNAL_removeLoneSurrogates(key);
+    if (attr.type === 'string') {
+      sanitized[sanitizedKey] = { ...attr, value: _INTERNAL_removeLoneSurrogates(attr.value as string) };
+    } else {
+      sanitized[sanitizedKey] = attr;
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * Replaces unpaired UTF-16 surrogates with U+FFFD (replacement character).
+ *
+ * Lone surrogates (U+D800–U+DFFF not part of a valid pair) cause `serde_json`
+ * on the server to reject the entire log/span batch when they appear in
+ * JSON-escaped form (e.g. `\uD800`). Replacing them at the SDK level ensures
+ * only the offending characters are lost instead of the whole payload.
+ */
+export function _INTERNAL_removeLoneSurrogates(str: string): string {
+  // Use native toWellFormed() when available (Node 20+, Safari 15.4+, Chrome 111+)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = str as any;
+  if (typeof s.isWellFormed === 'function') {
+    return s.isWellFormed() ? str : s.toWellFormed();
+  }
+
+  // Fast path – scan without allocating. Most strings have no surrogates at all.
+  let hasLoneSurrogate = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdfff) {
+      if (code <= 0xdbff && i + 1 < str.length) {
+        const next = str.charCodeAt(i + 1);
+        if (next >= 0xdc00 && next <= 0xdfff) {
+          // Valid surrogate pair – skip the low surrogate
+          i++;
+          continue;
+        }
+      }
+      hasLoneSurrogate = true;
+      break;
+    }
+  }
+
+  if (!hasLoneSurrogate) {
+    return str;
+  }
+
+  // Slow path – build a new string, replacing lone surrogates with U+FFFD.
+  const chars: string[] = [];
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = i + 1 < str.length ? str.charCodeAt(i + 1) : 0;
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        chars.push(str.charAt(i), str.charAt(i + 1));
+        i++;
+      } else {
+        chars.push('\uFFFD');
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      chars.push('\uFFFD');
+    } else {
+      chars.push(str.charAt(i));
+    }
+  }
+  return chars.join('');
 }
