@@ -61,7 +61,7 @@ jobs:
 
       # Most changed packages are determined in job_build via Nx
       - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.1
+        uses: dorny/paths-filter@v4
         id: changed
         with:
           filters: |
