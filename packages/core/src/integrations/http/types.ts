@@ -1,0 +1,189 @@
+/**
+ * Platform-portable HTTP(S) outgoing-request integration – type definitions.
+ *
+ * @module
+ *
+ * This Sentry integration is a derivative work based on the OpenTelemetry
+ * HTTP instrumentation.
+ *
+ * <https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation-http>
+ *
+ * Extended under the terms of the Apache 2.0 license linked below:
+ *
+ * ----
+ *
+ * Copyright The OpenTelemetry Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { RequestEventData } from '../../types-hoist/request';
+import type { Span } from '../../types-hoist/span';
+
+/** Minimal interface for a Node.js http.ClientRequest */
+export interface HttpClientRequest {
+  method?: string;
+  path?: string;
+  host?: string;
+  protocol?: string;
+  end(): void;
+  getHeader(name: string): string | string[] | number | undefined;
+  setHeader(name: string, value: string | string[] | number): void;
+  removeHeader(name: string): void;
+  prependListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  on(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  once(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  listenerCount(event: string | symbol): number;
+  removeListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
+}
+
+// TODO: fill this in with bits from node's ServerResponse
+export interface HttpServerResponse {
+  once(ev: string, ...data: unknown[]): this;
+  once(ev: 'close'): this;
+}
+export interface HttpServer {
+  emit(ev: string, ...data: unknown[]): this;
+  emit(ev: 'request', request: HttpIncomingMessage, response: HttpServerResponse): this;
+}
+
+export interface HttpSocket {
+  remoteAddress?: string;
+  remotePort?: number;
+}
+
+/** Minimal interface for a Node.js http.IncomingMessage */
+export interface HttpIncomingMessage {
+  statusCode?: number;
+  statusMessage?: string;
+  httpVersion?: string;
+  url?: string;
+  method?: string;
+  headers: Record<string, string | string[] | undefined>;
+  socket?: HttpSocket;
+  aborted?: boolean;
+  complete?: boolean;
+  resume(): void;
+  on(event: string | symbol, listener: (...args: unknown[]) => void): this;
+}
+
+/** Minimal interface for a Node.js http / https module export */
+export interface HttpExport {
+  request: (...args: unknown[]) => HttpClientRequest;
+  get: (...args: unknown[]) => HttpClientRequest;
+  // TODO: Server, createServer
+  [key: symbol | string]: unknown;
+}
+
+export type HttpModuleExport = HttpExport | (HttpExport & { default: HttpExport });
+
+export interface HttpInstrumentationOptions {
+  /**
+   * Whether to create spans for outgoing HTTP requests.
+   * @default true
+   */
+  spans?: boolean;
+
+  /**
+   * Whether to inject distributed trace propagation headers
+   * (`sentry-trace`, `baggage`, `traceparent`) into outgoing requests.
+   * @default false
+   */
+  propagateTrace?: boolean;
+
+  /**
+   * Skip span / breadcrumb creation for requests to matching URLs.
+   * Receives the full URL string and the outgoing request object.
+   */
+  ignoreOutgoingRequests?: (url: string, request: HttpClientRequest) => boolean;
+
+  /**
+   * Whether breadcrumbs should be recorded for outgoing requests.
+   * @default true
+   */
+  breadcrumbs?: boolean;
+
+  /**
+   * Called after the outgoing-request span is created by the client.
+   * Use this to add custom attributes to the span.
+   */
+  outgoingRequestHook?: (span: Span, request: HttpClientRequest) => void;
+
+  /**
+   * Called when the response is received by the client.
+   */
+  outgoingResponseHook?: (span: Span, response: HttpIncomingMessage) => void;
+
+  /**
+   * Called when both the request and response are available (after the
+   * response ends).  Useful for adding attributes based on both objects.
+   */
+  applyCustomAttributesOnSpan?: (span: Span, request: HttpClientRequest, response: HttpIncomingMessage) => void;
+
+  /**
+   * Symbol to use for observing errors on EventEmitters without consuming
+   * them.  Pass `EventEmitter.errorMonitor` from Node.js `events` module.
+   * Falls back to the plain `'error'` event string when not provided.
+   *
+   * Using the real `errorMonitor` symbol ensures that Sentry does not
+   * swallow errors before they reach user-supplied `'error'` handlers.
+   */
+  errorMonitor?: symbol | string;
+
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   *
+   * Available options:
+   * - 'none': No request bodies will be attached
+   * - 'small': Request bodies up to 1,000 bytes will be attached
+   * - 'medium': Request bodies up to 10,000 bytes will be attached (default)
+   * - 'always': Request bodies will always be attached
+   *
+   * Note that even with 'always' setting, bodies exceeding 1MB will never be attached
+   * for performance and security reasons.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
+   * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
+   * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
+   *
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
+   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
+   */
+  ignoreRequestBody?: (url: string, request: HttpIncomingMessage) => boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
+   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
+   *
+   * Defaults to `true`.
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
+
+  /**
+   * Optional callback that can be used by integrations to emit the 'request'
+   * event within an OTEL context, possibly after creating a span, as in the
+   * HttpServerSpansIntegration.
+   */
+  wrapServerEmitRequest?: (request: HttpIncomingMessage, rsponse: HttpServerResponse, normalizedRequest: RequestEventData, next: () => void) => void;
+}

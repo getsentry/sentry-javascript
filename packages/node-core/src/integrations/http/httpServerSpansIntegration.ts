@@ -109,7 +109,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
         const request = _request as IncomingMessage;
         const response = _response as ServerResponse;
 
-        const startSpan = (next: () => boolean): boolean => {
+        const startSpan = (next: () => void): void => {
           if (
             shouldIgnoreSpansForIncomingRequest(request, {
               ignoreStaticAssets,
