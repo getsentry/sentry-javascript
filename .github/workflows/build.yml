@@ -605,6 +605,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          enable-coverage: false
           name:
             browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
             matrix.shard) || '' }}
@@ -669,6 +670,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          enable-coverage: false
           name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
