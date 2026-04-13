@@ -6,6 +6,10 @@ on:
     branches:
       - develop
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   check-merge-conflicts:
     name: Detect merge conflicts in gitflow PRs
