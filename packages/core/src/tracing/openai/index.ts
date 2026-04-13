@@ -22,6 +22,7 @@ import {
   getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../ai/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
@@ -170,7 +171,7 @@ function instrumentMethod<T extends unknown[], R>(
         originalResult = originalMethod.apply(context, args);
 
         if (options.recordInputs && params) {
-          addRequestAttributes(span, params, operationName, options.enableTruncation ?? true);
+          addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
         }
 
         // Return async processing
@@ -208,7 +209,7 @@ function instrumentMethod<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args);
 
       if (options.recordInputs && params) {
-        addRequestAttributes(span, params, operationName, options.enableTruncation ?? true);
+        addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
       }
 
       return originalResult.then(

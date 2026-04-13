@@ -75,6 +75,8 @@ async function run() {
     });
   });
 
+  // Flush is required when span streaming is enabled to ensure streamed spans are sent before the process exits
+  await Sentry.flush();
   server.close();
 }
 
