@@ -27,6 +27,7 @@ export {
 
 export {
   browserTracingIntegration,
+  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
