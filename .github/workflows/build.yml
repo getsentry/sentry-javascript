@@ -1147,7 +1147,7 @@ jobs:
               per_page: 100
             });
 
-            const failedJobs = jobs.filter(job => job.conclusion === 'failure');
+            const failedJobs = jobs.filter(job => job.conclusion === 'failure' && !job.name.includes('(optional)'));
 
             if (failedJobs.length === 0) {
               console.log('No failed jobs found');
