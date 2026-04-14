@@ -322,7 +322,13 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   // Rename AI SDK attributes to standardized gen_ai attributes
   // Map operation.name to OpenTelemetry semantic convention values
   if (attributes[OPERATION_NAME_ATTRIBUTE]) {
-    const operationName = mapVercelAiOperationName(attributes[OPERATION_NAME_ATTRIBUTE] as string);
+    // V6+ sets ai.operationId to the bare operation (e.g. "ai.streamText") while
+    // operation.name appends functionId (e.g. "ai.streamText myAgent").
+    // When ai.operationId is present, use it for correct mapping.
+    const rawOperationName = attributes[AI_OPERATION_ID_ATTRIBUTE]
+      ? (attributes[AI_OPERATION_ID_ATTRIBUTE] as string)
+      : (attributes[OPERATION_NAME_ATTRIBUTE] as string);
+    const operationName = mapVercelAiOperationName(rawOperationName);
     attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete attributes[OPERATION_NAME_ATTRIBUTE];
