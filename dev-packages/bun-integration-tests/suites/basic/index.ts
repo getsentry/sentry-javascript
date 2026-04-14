@@ -21,8 +21,7 @@ const server = Bun.serve({
 
     return new Response('Hello from Bun!');
   },
-  error(error) {
-    Sentry.captureException(error);
+  error(_err) {
     return new Response('Internal Server Error', { status: 500 });
   },
 });
