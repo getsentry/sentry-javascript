@@ -19,10 +19,8 @@ const _conversationIdIntegration = (() => {
         const conversationId = scopeData.conversationId || isolationScopeData.conversationId;
 
         if (conversationId) {
-          const { op } = spanToJSON(span);
-
           // Only apply conversation ID to gen_ai spans
-          if (!op?.startsWith('gen_ai.')) {
+          if (!spanToJSON(span).op?.startsWith('gen_ai.')) {
             return;
           }
 
