@@ -20,6 +20,7 @@ import type {
   SpanAttributes,
   SpanStatus,
   HttpServerResponse,
+  HttpInstrumentationOptions,
 } from '@sentry/core';
 import {
   debug,
@@ -41,7 +42,7 @@ const INTEGRATION_NAME = 'Http.ServerSpans';
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
-export interface HttpServerSpansIntegrationOptions {
+export interface HttpServerSpansIntegrationOptions extends HttpInstrumentationOptions {
   /**
    * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
    * Spans will be non recording if tracing is disabled.

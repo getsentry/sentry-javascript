@@ -1,15 +1,12 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
-import { diag } from '@opentelemetry/api';
-import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import type { Span } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
 import {
   defineIntegration,
-  getClient,
   hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_URL_FULL,
   stripDataUrlContent,
 } from '@sentry/core';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
 import {
   addOriginToSpan,
@@ -17,21 +14,10 @@ import {
   getRequestUrl,
   httpServerIntegration,
   httpServerSpansIntegration,
-  NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
-import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'Http';
-
-const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
-
-// The `http.client.request.created` diagnostics channel, needed for trace propagation,
-// was added in Node 22.12.0 (backported from 23.2.0). Earlier 22.x versions don't have it.
-const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
-  (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
-  (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
-  NODE_VERSION.major >= 24;
 
 interface HttpOptions {
   /**
@@ -174,65 +160,6 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
   },
 );
 
-export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
-  const instrumentation = new HttpInstrumentation({
-    ...config,
-    // This is hard-coded and can never be overridden by the user
-    disableIncomingRequestInstrumentation: true,
-  });
-
-  // We want to update the logger namespace so we can better identify what is happening here
-  try {
-    instrumentation['_diag'] = diag.createComponentLogger({
-      namespace: INSTRUMENTATION_NAME,
-    });
-    // @ts-expect-error We are writing a read-only property here...
-    instrumentation.instrumentationName = INSTRUMENTATION_NAME;
-  } catch {
-    // ignore errors here...
-  }
-
-  // The OTel HttpInstrumentation (>=0.213.0) has a guard (`_httpPatched`/`_httpsPatched`)
-  // that prevents patching `http`/`https` when loaded by both CJS `require()` and ESM `import`.
-  // In environments like AWS Lambda, the runtime loads `http` via CJS first (for the Runtime API),
-  // and then the user's ESM handler imports `node:http`. The guard blocks ESM patching after CJS,
-  // which breaks HTTP spans for ESM handlers. We disable this guard to allow both to be patched.
-  // TODO(andrei): Remove once https://github.com/open-telemetry/opentelemetry-js/issues/6489 is fixed.
-  try {
-    const noopDescriptor = { get: () => false, set: () => {} };
-    Object.defineProperty(instrumentation, '_httpPatched', noopDescriptor);
-    Object.defineProperty(instrumentation, '_httpsPatched', noopDescriptor);
-  } catch {
-    // ignore errors here...
-  }
-
-  return instrumentation;
-});
-
-/** Exported only for tests. */
-export function _shouldUseOtelHttpInstrumentation(
-  options: HttpOptions,
-  clientOptions: Partial<NodeClientOptions> = {},
-): boolean {
-  // If `spans` is passed in, it takes precedence
-  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
-  if (typeof options.spans === 'boolean') {
-    return options.spans;
-  }
-
-  if (clientOptions.skipOpenTelemetrySetup) {
-    return false;
-  }
-
-  // IMPORTANT: We only disable span instrumentation when spans are not enabled _and_ we are on a Node version
-  // that fully supports the necessary diagnostics channels for trace propagation
-  if (!hasSpansEnabled(clientOptions) && FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL) {
-    return false;
-  }
-
-  return true;
-}
-
 /**
  * The http integration instruments Node's internal http and https modules.
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
@@ -271,44 +198,25 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       }
     },
     setupOnce() {
-      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) satisfies Partial<NodeClientOptions>;
-      const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
-
       server.setupOnce();
 
-      const sentryHttpInstrumentationOptions = {
+      const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
-        propagateTraceInOutgoingRequests:
-          typeof options.tracePropagation === 'boolean'
-            ? options.tracePropagation
-            : FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL || !useOtelHttpInstrumentation,
-        createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
         spans: options.spans,
+        propagateTraceInOutgoingRequests: options.tracePropagation,
+        createSpansForOutgoingRequests: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
         outgoingRequestHook: (span: Span, request: ClientRequest) => {
-          // Sanitize data URLs to prevent long base64 strings in span attributes
-          const url = getRequestUrl(request);
-          if (url.startsWith('data:')) {
-            const sanitizedUrl = stripDataUrlContent(url);
-            span.setAttribute('http.url', sanitizedUrl);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
-            span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
-          }
-
           options.instrumentation?.requestHook?.(span, request);
         },
         outgoingResponseHook: options.instrumentation?.responseHook,
         outgoingRequestApplyCustomAttributes: options.instrumentation?.applyCustomAttributesOnSpan,
-      } satisfies SentryHttpInstrumentationOptions;
+      };
 
       // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
+      // It uses the diagnostic channels on node versions that support it,
+      // falling back to monkey-patching when needed.
       instrumentSentryHttp(sentryHttpInstrumentationOptions);
-
-      // This is the "regular" OTEL instrumentation that emits outgoing request spans
-      if (useOtelHttpInstrumentation) {
-        const instrumentationConfig = getConfigWithDefaults(options);
-        instrumentOtelHttp(instrumentationConfig);
-      }
     },
     processEvent(event) {
       // Note: We always run this, even if spans are disabled
@@ -317,53 +225,3 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     },
   };
 });
-
-function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrumentationConfig {
-  const instrumentationConfig = {
-    // This is handled by the SentryHttpInstrumentation on Node 22+
-    disableOutgoingRequestInstrumentation: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
-
-    ignoreOutgoingRequestHook: request => {
-      const url = getRequestUrl(request);
-
-      if (!url) {
-        return false;
-      }
-
-      const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-      if (_ignoreOutgoingRequests?.(url, request)) {
-        return true;
-      }
-
-      return false;
-    },
-
-    requireParentforOutgoingSpans: false,
-    requestHook: (span, req) => {
-      addOriginToSpan(span, 'auto.http.otel.http');
-
-      // Sanitize data URLs to prevent long base64 strings in span attributes
-      const url = getRequestUrl(req as ClientRequest);
-      if (url.startsWith('data:')) {
-        const sanitizedUrl = stripDataUrlContent(url);
-        span.setAttribute('http.url', sanitizedUrl);
-        span.setAttribute(SEMANTIC_ATTRIBUTE_URL_FULL, sanitizedUrl);
-        span.updateName(`${(req as ClientRequest).method || 'GET'} ${sanitizedUrl}`);
-      }
-
-      options.instrumentation?.requestHook?.(span, req);
-    },
-    responseHook: (span, res) => {
-      options.instrumentation?.responseHook?.(span, res);
-    },
-    applyCustomAttributesOnSpan: (
-      span: Span,
-      request: ClientRequest | HTTPModuleRequestIncomingMessage,
-      response: HTTPModuleRequestIncomingMessage | ServerResponse,
-    ) => {
-      options.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
-    },
-  } satisfies HttpInstrumentationConfig;
-
-  return instrumentationConfig;
-}

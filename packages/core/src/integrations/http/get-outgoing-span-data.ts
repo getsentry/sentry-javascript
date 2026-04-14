@@ -1,8 +1,6 @@
 import type { Span, SpanAttributes } from '../../types-hoist/span';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
 } from '../../semanticAttributes';
 import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
@@ -28,9 +26,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
     name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
       'otel.kind': 'CLIENT',
-      [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
       'http.url': url,
       'http.method': request.method,
       'http.target': request.path || '/',

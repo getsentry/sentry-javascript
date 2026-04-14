@@ -188,7 +188,9 @@ export function getHttpSpanDetailsFromUrlObject(
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = urlObject.href;
+      const full = stripDataUrlContent(urlObject.href)
+      attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = full;
+      attributes['http.url'] = full;
       if (urlObject.port) {
         attributes['url.port'] = urlObject.port;
       }
