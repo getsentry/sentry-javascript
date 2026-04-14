@@ -139,7 +139,7 @@ export function syncMirrorAttributesFromMutationEvent(event: RecordingEvent): vo
     const node = record.mirror.getNode(mutation.id);
     const meta = node && record.mirror.getMeta(node);
 
-    if (!meta || meta.type !== NodeType.Element) {
+    if (meta?.type !== NodeType.Element) {
       continue;
     }
 
