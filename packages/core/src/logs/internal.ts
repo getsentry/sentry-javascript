@@ -252,8 +252,9 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * On older runtimes without native support, returns the string as-is.
  */
 export function _INTERNAL_removeLoneSurrogates(str: string): string {
-  if (typeof str['isWellFormed'] === 'function') {
-    return str['isWellFormed']() ? str : str['toWellFormed']();
+  const s = str as unknown as { isWellFormed?: () => boolean; toWellFormed?: () => string };
+  if (typeof s.isWellFormed === 'function') {
+    return s.isWellFormed() ? str : (s.toWellFormed as () => string)();
   }
   return str;
 }
