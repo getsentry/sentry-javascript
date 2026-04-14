@@ -132,7 +132,12 @@ test.describe('database integration', () => {
     });
 
     const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
+      return (
+        transactionEvent.transaction === 'GET /api/db-test' &&
+        !!transactionEvent.spans?.some(
+          span => span.op === 'db.query' && span.description?.includes('SELECT * FROM nonexistent_table'),
+        )
+      );
     });
 
     await request.get('/api/db-test?method=error').catch(() => {
