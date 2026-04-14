@@ -1,4 +1,4 @@
-import type { Client, SpanAttributes } from '@sentry/core';
+import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -7,30 +7,31 @@ import {
   getRootSpan,
   htmlTreeAsString,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
+  spanToStreamedSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
-import { INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
+import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
 import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
-import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
-
+import type { WebVitalReportEvent } from './utils';
+import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
+import type { PerformanceEventTiming } from './instrument';
 interface WebVitalSpanOptions {
   name: string;
   op: string;
   origin: string;
-  metricName: string;
+  metricName: 'lcp' | 'cls' | 'inp';
   value: number;
   unit: string;
   attributes?: SpanAttributes;
-  pageloadSpanId?: string;
+  parentSpan?: Span;
+  reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
 }
@@ -45,9 +46,9 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     origin,
     metricName,
     value,
-    unit,
     attributes: passedAttributes,
-    pageloadSpanId,
+    parentSpan,
+    reportEvent,
     startTime,
     endTime,
   } = options;
@@ -59,28 +60,32 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
-    transaction: routeName,
+    'sentry.transaction': routeName,
     // Web vital score calculation relies on the user agent
     'user_agent.original': WINDOW.navigator?.userAgent,
     ...passedAttributes,
   };
 
-  if (pageloadSpanId) {
-    attributes['sentry.pageload.span_id'] = pageloadSpanId;
+  if (parentSpan && spanToStreamedSpanJSON(parentSpan).attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
+    // for LCP and CLS, we collect the pageload span id as an attribute
+    attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
+  }
+
+  if (reportEvent) {
+    attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
   }
 
   const span = startInactiveSpan({
     name,
     attributes,
     startTime,
+    // if we have a pageload span, we let the web vital span start as its parent. This ensures that
+    // it is not started as a segment span, without having to manually set it to a "standalone" v2 span
+    // that has `segment: false` but no actual parent span.
+    parentSpan: parentSpan,
   });
 
   if (span) {
-    span.addEvent(metricName, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: unit,
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: value,
-    });
-
     span.end(endTime ?? startTime);
   }
 }
@@ -105,8 +110,8 @@ export function trackLcpAsSpan(client: Client): void {
     lcpEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (_reportEvent, pageloadSpanId) => {
-    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpanId);
+  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent);
     cleanupLcpHandler();
   });
 }
@@ -117,7 +122,8 @@ export function trackLcpAsSpan(client: Client): void {
 export function _sendLcpSpan(
   lcpValue: number,
   entry: LargestContentfulPaint | undefined,
-  pageloadSpanId: string,
+  pageloadSpan?: Span,
+  reportEvent?: WebVitalReportEvent,
 ): void {
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
@@ -128,14 +134,12 @@ export function _sendLcpSpan(
 
   const attributes: SpanAttributes = {};
 
-  if (entry) {
-    entry.element && (attributes['browser.web_vital.lcp.element'] = htmlTreeAsString(entry.element));
-    entry.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
-    entry.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
-    entry.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
-    entry.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
-    entry.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);
-  }
+  entry?.element && (attributes['browser.web_vital.lcp.element'] = htmlTreeAsString(entry.element));
+  entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
+  entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
+  entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
+  entry?.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
+  entry?.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);
 
   _emitWebVitalSpan({
     name,
@@ -145,7 +149,8 @@ export function _sendLcpSpan(
     value: lcpValue,
     unit: 'millisecond',
     attributes,
-    pageloadSpanId,
+    parentSpan: pageloadSpan,
+    reportEvent,
     startTime: timeOrigin,
     endTime,
   });
@@ -171,8 +176,8 @@ export function trackClsAsSpan(client: Client): void {
     clsEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (_reportEvent, pageloadSpanId) => {
-    _sendClsSpan(clsValue, clsEntry, pageloadSpanId);
+  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent);
     cleanupClsHandler();
   });
 }
@@ -180,7 +185,12 @@ export function trackClsAsSpan(client: Client): void {
 /**
  * Exported only for testing.
  */
-export function _sendClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string): void {
+export function _sendClsSpan(
+  clsValue: number,
+  entry: LayoutShift | undefined,
+  pageloadSpan?: Span,
+  reportEvent?: WebVitalReportEvent,
+): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
   const startTime = entry ? msToSec((browserPerformanceTimeOrigin() || 0) + entry.startTime) : timestampInSeconds();
@@ -202,22 +212,34 @@ export function _sendClsSpan(clsValue: number, entry: LayoutShift | undefined, p
     value: clsValue,
     unit: '',
     attributes,
-    pageloadSpanId,
+    parentSpan: pageloadSpan,
+    reportEvent,
     startTime,
   });
 }
 
 /**
  * Tracks INP as a streamed span.
+ *
+ * This mirrors the standalone INP tracking logic (`startTrackingINP`) but emits
+ * spans through the streaming pipeline instead of as standalone spans.
+ * Requires `registerInpInteractionListener()` to be called separately for
+ * cached element names and root spans per interaction.
  */
-export function trackInpAsSpan(_client: Client): void {
+export function trackInpAsSpan(): void {
+  const performance = getBrowserPerformanceAPI();
+  if (!performance || !browserPerformanceTimeOrigin()) {
+    return;
+  }
+
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
     if (metric.value == null) {
       return;
     }
 
-    // Guard against unrealistically long INP values (matching standalone INP handler)
-    if (msToSec(metric.value) > MAX_PLAUSIBLE_INP_DURATION) {
+    const duration = msToSec(metric.value);
+
+    if (duration > MAX_PLAUSIBLE_INP_DURATION) {
       return;
     }
 
@@ -236,18 +258,20 @@ export function trackInpAsSpan(_client: Client): void {
 /**
  * Exported only for testing.
  */
-export function _sendInpSpan(
-  inpValue: number,
-  entry: { name: string; startTime: number; duration: number; target?: unknown | null },
-): void {
+export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + entry.startTime);
+  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  const duration = msToSec(inpValue);
   const interactionType = INP_ENTRY_MAP[entry.name];
+
+  const cachedContext = getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-  const routeName = rootSpan ? spanToJSON(rootSpan).description : getCurrentScope().getScopeData().transactionName;
-  const name = htmlTreeAsString(entry.target);
+
+  const spanToUse = cachedContext?.span || rootSpan;
+  const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
+  const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
 
   _emitWebVitalSpan({
     name,
@@ -258,9 +282,10 @@ export function _sendInpSpan(
     unit: 'millisecond',
     attributes: {
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-      transaction: routeName,
+      'sentry.transaction': routeName,
     },
     startTime,
-    endTime: startTime + msToSec(entry.duration),
+    endTime: startTime + duration,
+    parentSpan: spanToUse,
   });
 }

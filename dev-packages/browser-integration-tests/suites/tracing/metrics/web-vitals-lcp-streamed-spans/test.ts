@@ -1,7 +1,7 @@
-import type { Page, Route } from '@playwright/test';
+import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
@@ -11,12 +11,6 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
 
   await page.setViewportSize({ width: 800, height: 1200 });
 });
-
-function hidePage(page: Page): Promise<void> {
-  return page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
-}
 
 sentryTest('captures LCP as a streamed span with element attributes', async ({ getLocalTestUrl, page }) => {
   page.route('**', route => route.continue());
@@ -29,6 +23,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const lcpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.lcp');
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
   await page.goto(url);
 
@@ -38,6 +33,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   await hidePage(page);
 
   const lcpSpan = await lcpSpanPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   expect(lcpSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
   expect(lcpSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
@@ -52,15 +48,18 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   expect(lcpSpan.attributes?.['browser.web_vital.lcp.size']?.value).toEqual(expect.any(Number));
 
   // Check web vital value attribute
-  expect(lcpSpan.attributes?.['browser.web_vital.lcp.value']?.type).toBe('double');
+  expect(lcpSpan.attributes?.['browser.web_vital.lcp.value']?.type).toMatch(/^(double)|(integer)$/);
   expect(lcpSpan.attributes?.['browser.web_vital.lcp.value']?.value).toBeGreaterThan(0);
 
   // Check pageload span id is present
-  expect(lcpSpan.attributes?.['sentry.pageload.span_id']?.value).toMatch(/[\da-f]{16}/);
+  expect(lcpSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
 
   // Span should have meaningful duration (navigation start -> LCP event)
   expect(lcpSpan.end_timestamp).toBeGreaterThan(lcpSpan.start_timestamp);
 
   expect(lcpSpan.span_id).toMatch(/^[\da-f]{16}$/);
   expect(lcpSpan.trace_id).toMatch(/^[\da-f]{32}$/);
+
+  expect(lcpSpan.parent_span_id).toBe(pageloadSpan.span_id);
+  expect(lcpSpan.trace_id).toBe(pageloadSpan.trace_id);
 });

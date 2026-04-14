@@ -156,6 +156,14 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
 };
 
 /**
+ * Look up a cached interaction context (element name + root span) by interactionId.
+ * Returns undefined if no context was cached for this interaction.
+ */
+export function getCachedInteractionContext(interactionId: number | undefined): InteractionContext | undefined {
+  return interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+}
+
+/**
  * Register a listener to cache route information for INP interactions.
  */
 export function registerInpInteractionListener(): void {

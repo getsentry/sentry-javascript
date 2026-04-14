@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as inpModule from '../../src/metrics/inp';
 import { _emitWebVitalSpan, _sendClsSpan, _sendInpSpan, _sendLcpSpan } from '../../src/metrics/webVitalSpans';
 
 vi.mock('@sentry/core', async () => {
@@ -51,9 +52,9 @@ describe('_emitWebVitalSpan', () => {
   it('creates a non-standalone span with correct attributes', () => {
     _emitWebVitalSpan({
       name: 'Test Vital',
-      op: 'ui.webvital.test',
-      origin: 'auto.http.browser.test',
-      metricName: 'test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
       value: 100,
       unit: 'millisecond',
       startTime: 1.5,
@@ -62,11 +63,11 @@ describe('_emitWebVitalSpan', () => {
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
       name: 'Test Vital',
       attributes: {
-        'sentry.origin': 'auto.http.browser.test',
-        'sentry.op': 'ui.webvital.test',
+        'sentry.origin': 'auto.http.browser.lcp',
+        'sentry.op': 'ui.webvital.lcp',
         'sentry.exclusive_time': 0,
-        'browser.web_vital.test.value': 100,
-        transaction: 'test-transaction',
+        'browser.web_vital.lcp.value': 100,
+        'sentry.transaction': 'test-transaction',
         'user_agent.original': 'test-user-agent',
       },
       startTime: 1.5,
@@ -77,7 +78,7 @@ describe('_emitWebVitalSpan', () => {
       expect.objectContaining({ experimental: expect.anything() }),
     );
 
-    expect(mockSpan.addEvent).toHaveBeenCalledWith('test', {
+    expect(mockSpan.addEvent).toHaveBeenCalledWith('lcp', {
       'sentry.measurement_unit': 'millisecond',
       'sentry.measurement_value': 100,
     });
@@ -88,9 +89,9 @@ describe('_emitWebVitalSpan', () => {
   it('includes pageloadSpanId when provided', () => {
     _emitWebVitalSpan({
       name: 'Test',
-      op: 'ui.webvital.test',
-      origin: 'auto.http.browser.test',
-      metricName: 'test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
       value: 50,
       unit: 'millisecond',
       pageloadSpanId: 'abc123',
@@ -106,12 +107,33 @@ describe('_emitWebVitalSpan', () => {
     );
   });
 
+  it('includes reportEvent when provided', () => {
+    _emitWebVitalSpan({
+      name: 'Test',
+      op: 'ui.webvital.cls',
+      origin: 'auto.http.browser.cls',
+      metricName: 'cls',
+      value: 0.1,
+      unit: '',
+      reportEvent: 'pagehide',
+      startTime: 1.0,
+    });
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'browser.web_vital.cls.report_event': 'pagehide',
+        }),
+      }),
+    );
+  });
+
   it('merges additional attributes', () => {
     _emitWebVitalSpan({
       name: 'Test',
-      op: 'ui.webvital.test',
-      origin: 'auto.http.browser.test',
-      metricName: 'test',
+      op: 'ui.webvital.lcp',
+      origin: 'auto.http.browser.lcp',
+      metricName: 'lcp',
       value: 50,
       unit: 'millisecond',
       attributes: { 'custom.attr': 'value' },
@@ -133,9 +155,9 @@ describe('_emitWebVitalSpan', () => {
     expect(() => {
       _emitWebVitalSpan({
         name: 'Test',
-        op: 'ui.webvital.test',
-        origin: 'auto.http.browser.test',
-        metricName: 'test',
+        op: 'ui.webvital.lcp',
+        origin: 'auto.http.browser.lcp',
+        metricName: 'lcp',
         value: 50,
         unit: 'millisecond',
         startTime: 1.0,
@@ -178,7 +200,7 @@ describe('_sendLcpSpan', () => {
       startTime: 200,
     } as LargestContentfulPaint;
 
-    _sendLcpSpan(250, mockEntry, 'pageload-123');
+    _sendLcpSpan(250, mockEntry, 'pageload-123', 'pagehide');
 
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -194,6 +216,8 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,
+          'browser.web_vital.lcp.report_event': 'pagehide',
+          'sentry.transaction': 'test-route',
         }),
         startTime: 1, // timeOrigin: 1000 / 1000
       }),
@@ -266,7 +290,7 @@ describe('_sendClsSpan', () => {
       .mockReturnValueOnce('<div>') // for source 1
       .mockReturnValueOnce('<span>'); // for source 2
 
-    _sendClsSpan(0.1, mockEntry, 'pageload-789');
+    _sendClsSpan(0.1, mockEntry, 'pageload-789', 'navigation');
 
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -277,6 +301,8 @@ describe('_sendClsSpan', () => {
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
           'browser.web_vital.cls.source.2': '<span>',
+          'browser.web_vital.cls.report_event': 'navigation',
+          'sentry.transaction': 'test-route',
         }),
       }),
     );
@@ -325,10 +351,13 @@ describe('_sendInpSpan', () => {
   });
 
   it('sends a streamed INP span with duration matching interaction', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
     const mockEntry = {
       name: 'pointerdown',
       startTime: 500,
       duration: 120,
+      interactionId: 1,
       target: { tagName: 'button' },
     };
 
@@ -343,6 +372,7 @@ describe('_sendInpSpan', () => {
           'sentry.origin': 'auto.http.browser.inp',
           'sentry.op': 'ui.interaction.click',
           'sentry.exclusive_time': 120,
+          'sentry.transaction': 'test-route',
         }),
       }),
     );
@@ -357,10 +387,13 @@ describe('_sendInpSpan', () => {
   });
 
   it('sends a streamed INP span for a keypress interaction', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
     const mockEntry = {
       name: 'keydown',
       startTime: 600,
       duration: 80,
+      interactionId: 2,
       target: { tagName: 'input' },
     };
 
@@ -370,6 +403,36 @@ describe('_sendInpSpan', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.op': 'ui.interaction.press',
+        }),
+      }),
+    );
+  });
+
+  it('uses cached element name and span from registerInpInteractionListener', () => {
+    const mockRootSpan = { spanContext: vi.fn() };
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ description: 'cached-route' } as any);
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
+      elementName: 'body > CachedButton',
+      span: mockRootSpan as any,
+    });
+
+    const mockEntry = {
+      name: 'pointerdown',
+      startTime: 500,
+      duration: 100,
+      interactionId: 42,
+      target: { tagName: 'button' },
+    };
+
+    _sendInpSpan(100, mockEntry);
+
+    expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(42);
+
+    expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'body > CachedButton',
+        attributes: expect.objectContaining({
+          'sentry.transaction': 'cached-route',
         }),
       }),
     );

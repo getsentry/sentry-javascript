@@ -5,7 +5,9 @@ window._testBaseTimestamp = performance.timeOrigin / 1000;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration(), Sentry.spanStreamingIntegration()],
-  traceLifecycle: 'stream',
+  integrations: [
+    Sentry.browserTracingIntegration({ idleTimeout: 4000 }),
+    Sentry.spanStreamingIntegration(),
+  ],
   tracesSampleRate: 1,
 });

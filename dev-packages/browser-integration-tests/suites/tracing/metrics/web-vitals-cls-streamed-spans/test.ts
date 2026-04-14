@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
@@ -20,22 +20,18 @@ function waitForLayoutShift(page: Page): Promise<void> {
   });
 }
 
-function hidePage(page: Page): Promise<void> {
-  return page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
-}
-
 sentryTest('captures CLS as a streamed span with source attributes', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const clsSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.cls');
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
   await page.goto(`${url}#0.15`);
   await waitForLayoutShift(page);
   await hidePage(page);
 
   const clsSpan = await clsSpanPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   expect(clsSpan.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
   expect(clsSpan.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
@@ -48,13 +44,16 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   );
 
   // Check pageload span id is present
-  expect(clsSpan.attributes?.['sentry.pageload.span_id']?.value).toMatch(/[\da-f]{16}/);
+  expect(clsSpan.attributes?.['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
 
   // CLS is a point-in-time metric
   expect(clsSpan.start_timestamp).toEqual(clsSpan.end_timestamp);
 
   expect(clsSpan.span_id).toMatch(/^[\da-f]{16}$/);
   expect(clsSpan.trace_id).toMatch(/^[\da-f]{32}$/);
+
+  expect(clsSpan.parent_span_id).toBe(pageloadSpan.span_id);
+  expect(clsSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
 sentryTest('CLS streamed span has web vital value attribute', async ({ getLocalTestUrl, page }) => {

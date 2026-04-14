@@ -531,11 +531,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         trackLcpAsSpan(client);
         trackClsAsSpan(client);
         if (enableInp) {
-          trackInpAsSpan(client);
+          trackInpAsSpan();
         }
-      }
-
-      if (enableInp && !spanStreamingEnabled) {
+      } else if (enableInp) {
         startTrackingINP();
       }
 
@@ -737,7 +735,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
-      if (enableInp && !hasSpanStreamingEnabled(client)) {
+      if (enableInp) {
         registerInpInteractionListener();
       }
 

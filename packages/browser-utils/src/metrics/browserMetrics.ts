@@ -94,6 +94,7 @@ interface StartTrackingWebVitalsOptions {
  * Start tracking web vitals.
  * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
  *
+ * @deprecated this function will be removed and streamlined once we stop supporting standalone v1
  * @returns A function that forces web vitals collection
  */
 export function startTrackingWebVitals({
@@ -108,25 +109,23 @@ export function startTrackingWebVitals({
       WINDOW.performance.mark('sentry-tracing-init');
     }
 
-    const lcpCleanupCallback =
-      recordLcpStandaloneSpans === true
-        ? trackLcpAsStandaloneSpan(client)
-        : recordLcpStandaloneSpans === false
-          ? _trackLCP()
-          : undefined;
+    const lcpCleanupCallback = recordLcpStandaloneSpans
+      ? trackLcpAsStandaloneSpan(client)
+      : recordLcpStandaloneSpans === false
+        ? _trackLCP()
+        : undefined;
 
-    const clsCleanupCallback =
-      recordClsStandaloneSpans === true
-        ? trackClsAsStandaloneSpan(client)
-        : recordClsStandaloneSpans === false
-          ? _trackCLS()
-          : undefined;
+    const clsCleanupCallback = recordClsStandaloneSpans
+      ? trackClsAsStandaloneSpan(client)
+      : recordClsStandaloneSpans === false
+        ? _trackCLS()
+        : undefined;
 
     const ttfbCleanupCallback = _trackTtfb();
 
     return (): void => {
-      lcpCleanupCallback?.();
       ttfbCleanupCallback();
+      lcpCleanupCallback?.();
       clsCleanupCallback?.();
     };
   }
