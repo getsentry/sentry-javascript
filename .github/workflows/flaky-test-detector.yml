@@ -9,6 +9,7 @@ on:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  PLAYWRIGHT_IMAGE: ghcr.io/getsentry/sentry-javascript/playwright:v1.56.1
 
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
@@ -24,6 +25,11 @@ concurrency:
 jobs:
   flaky-detector:
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
@@ -48,9 +54,6 @@ jobs:
 
       - name: Build packages
         run: yarn build
-
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
 
       - name: Determine changed tests
         uses: dorny/paths-filter@v4.0.1

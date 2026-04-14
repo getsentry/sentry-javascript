@@ -27,6 +27,7 @@ concurrency:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  PLAYWRIGHT_IMAGE: ghcr.io/getsentry/sentry-javascript/playwright:v1.56.1
 
   # WARNING: this disables cross os caching as ~ and
   # github.workspace evaluate to differents paths
@@ -482,7 +483,10 @@ jobs:
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
     container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -540,8 +544,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Install yarn
-        run: npm install -g yarn@1.22.22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -584,7 +586,10 @@ jobs:
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -607,8 +612,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Install yarn
-        run: npm install -g yarn@1.22.22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -801,6 +804,11 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -819,9 +827,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
 
       - name: Run integration tests
         env:
@@ -900,6 +905,11 @@ jobs:
       always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -974,10 +984,6 @@ jobs:
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
-        working-directory: ${{ runner.temp }}/test-application
-
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
@@ -1021,6 +1027,11 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1079,10 +1090,6 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
-
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
-        working-directory: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
