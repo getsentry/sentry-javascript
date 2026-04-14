@@ -9,7 +9,7 @@ const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 type ScopeWeakRef = { deref(): Scope | undefined } | Scope;
 
 type SpanWithScopes = Span & {
-  [SCOPE_ON_START_SPAN_FIELD]?: Scope;
+  [SCOPE_ON_START_SPAN_FIELD]?: ScopeWeakRef;
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: ScopeWeakRef;
 };
 
@@ -51,9 +51,7 @@ function unwrapScopeFromWeakRef(scopeRef: ScopeWeakRef | undefined): Scope | und
 export function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
   if (span) {
     addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, wrapScopeWithWeakRef(isolationScope));
-    // We don't wrap the scope with a WeakRef here because webkit aggressively garbage collects
-    // and scopes are not held in memory for long periods of time.
-    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, wrapScopeWithWeakRef(scope));
   }
 }
 
@@ -65,7 +63,7 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
   const spanWithScopes = span as SpanWithScopes;
 
   return {
-    scope: spanWithScopes[SCOPE_ON_START_SPAN_FIELD],
+    scope: unwrapScopeFromWeakRef(spanWithScopes[SCOPE_ON_START_SPAN_FIELD]),
     isolationScope: unwrapScopeFromWeakRef(spanWithScopes[ISOLATION_SCOPE_ON_START_SPAN_FIELD]),
   };
 }

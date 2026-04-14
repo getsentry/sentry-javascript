@@ -27,6 +27,22 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
   }
+
+  /**
+   * Drain the client's promise buffer instead of polling `_numProcessing`.
+   *
+   * The base class polls `_numProcessing` every 1ms until it reaches 0.
+   * With a shared client under sustained load, `_numProcessing` never reaches 0
+   * because new events keep being queued from other concurrent requests, causing
+   * the polling loop to always hit the full timeout (2s by default).
+   *
+   * `_promiseBuffer.drain()` snapshots the current buffer and waits for those
+   * specific tasks to complete via `Promise.allSettled`, without being blocked
+   * by tasks added later from other concurrent requests.
+   */
+  protected override _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    return this._promiseBuffer.drain(timeout) as Promise<boolean>;
+  }
 }
 
 interface BaseCloudflareOptions {

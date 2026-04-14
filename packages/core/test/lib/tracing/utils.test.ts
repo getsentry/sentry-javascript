@@ -44,17 +44,16 @@ describe('tracing utils', () => {
       expect(retrieved.isolationScope).toBeUndefined();
     });
 
-    it('uses WeakRef only for isolation scopes', () => {
+    it('uses WeakRef for both scopes', () => {
       const span = createMockSpan();
       const scope = new Scope();
       const isolationScope = new Scope();
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Check that only isolation scope is wrapped with WeakRef
       const spanWithScopes = span as any;
-      expect(spanWithScopes._sentryScope).toBe(scope); // Regular scope stored directly
-      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef); // Isolation scope wrapped
+      expect(spanWithScopes._sentryScope).toBeInstanceOf(WeakRef);
+      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef);
 
       // Verify we can still retrieve the scopes
       const retrieved = getCapturedScopesOnSpan(span);

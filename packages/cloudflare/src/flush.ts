@@ -12,6 +12,10 @@ type FlushLock = {
  * to monitor pending tasks, and provides a flusher function to ensure all tasks
  * have been completed before executing any subsequent logic.
  *
+ * NOTE: This function mutates context.waitUntil. Do NOT use this for Durable Objects
+ * where the DurableObjectState is reused across method invocations, as it will create
+ * a chain of closures that leak memory.
+ *
  * @param {ExecutionContext} context - The execution context to be enhanced. If no context is provided, the function returns undefined.
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
