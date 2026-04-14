@@ -880,6 +880,38 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(mockSpan.end).toHaveBeenCalled();
     });
 
+    it('should correlate spans correctly for stateless wrapper transports', async () => {
+      const { wrapper, inner } = createMockWrapperTransport('stateless-wrapper-session');
+      inner.sessionId = undefined;
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+
+      await wrappedMcpServer.connect(wrapper);
+
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      inner.onmessage?.call(
+        inner,
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'stateless-wrapper-req-1',
+          params: { name: 'test-tool' },
+        },
+        {},
+      );
+
+      await wrapper.send({
+        jsonrpc: '2.0',
+        id: 'stateless-wrapper-req-1',
+        result: { content: [{ type: 'text', text: 'success' }] },
+      });
+
+      expect(mockSpan.end).toHaveBeenCalled();
+    });
+
     it('should handle initialize request/response with wrapper transport', async () => {
       const { wrapper } = createMockWrapperTransport('init-wrapper-session');
       const mockMcpServer = createMockMcpServer();

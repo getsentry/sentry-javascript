@@ -43,7 +43,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
           if (isInitialize) {
             try {
               initSessionData = extractSessionDataFromInitializeRequest(message);
-              storeSessionDataForTransport(this, initSessionData);
+              storeSessionDataForTransport(transport, initSessionData);
             } catch {
               // noop
             }
@@ -65,7 +65,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
               });
             }
 
-            storeSpanForRequest(this, message.id, span, message.method);
+            storeSpanForRequest(transport, message.id, span, message.method);
 
             return withActiveSpan(span, () => {
               return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
@@ -114,14 +114,14 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
               if (message.result.protocolVersion || message.result.serverInfo) {
                 try {
                   const serverData = extractSessionDataFromInitializeResponse(message.result);
-                  updateSessionDataForTransport(this, serverData);
+                  updateSessionDataForTransport(transport, serverData);
                 } catch {
                   // noop
                 }
               }
             }
 
-            completeSpanWithResults(this, message.id, message.result, options, !!message.error);
+            completeSpanWithResults(transport, message.id, message.result, options, !!message.error);
           }
         }
 
@@ -139,8 +139,8 @@ export function wrapTransportOnClose(transport: MCPTransport): void {
   if (transport.onclose) {
     fill(transport, 'onclose', originalOnClose => {
       return function (this: MCPTransport, ...args: unknown[]) {
-        cleanupPendingSpansForTransport(this);
-        cleanupSessionDataForTransport(this);
+        cleanupPendingSpansForTransport(transport);
+        cleanupSessionDataForTransport(transport);
         return (originalOnClose as (...args: unknown[]) => unknown).call(this, ...args);
       };
     });
