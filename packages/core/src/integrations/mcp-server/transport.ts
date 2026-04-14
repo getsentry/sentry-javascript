@@ -52,7 +52,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
           const isolationScope = getIsolationScope().clone();
 
           return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(message, this, extra as ExtraHandlerData, options);
+            const spanConfig = buildMcpServerSpanConfig(message, transport, extra as ExtraHandlerData, options);
             const span = startInactiveSpan(spanConfig);
 
             // For initialize requests, add client info directly to span (works even for stateless transports)
@@ -74,7 +74,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: Resolve
         }
 
         if (isJsonRpcNotification(message)) {
-          return createMcpNotificationSpan(message, this, extra as ExtraHandlerData, options, () => {
+          return createMcpNotificationSpan(message, transport, extra as ExtraHandlerData, options, () => {
             return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
           });
         }
@@ -99,7 +99,7 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
         const [message] = args;
 
         if (isJsonRpcNotification(message)) {
-          return createMcpOutgoingNotificationSpan(message, this, options, () => {
+          return createMcpOutgoingNotificationSpan(message, transport, options, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
         }

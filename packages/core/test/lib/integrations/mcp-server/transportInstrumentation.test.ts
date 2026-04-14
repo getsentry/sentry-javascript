@@ -912,6 +912,63 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(mockSpan.end).toHaveBeenCalled();
     });
 
+    it('should preserve session metadata for later stateless wrapper spans', async () => {
+      const { wrapper, inner } = createMockWrapperTransport('stateless-wrapper-session');
+      inner.sessionId = undefined;
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+
+      await wrappedMcpServer.connect(wrapper);
+
+      inner.onmessage?.call(
+        inner,
+        {
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 'init-stateless',
+          params: {
+            protocolVersion: '2025-06-18',
+            clientInfo: { name: 'test-client', version: '1.0.0' },
+          },
+        },
+        {},
+      );
+
+      await wrapper.send({
+        jsonrpc: '2.0',
+        id: 'init-stateless',
+        result: {
+          protocolVersion: '2025-06-18',
+          serverInfo: { name: 'test-server', version: '2.0.0' },
+          capabilities: {},
+        },
+      });
+
+      inner.onmessage?.call(
+        inner,
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'stateless-wrapper-req-2',
+          params: { name: 'test-tool' },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.client.name': 'test-client',
+            'mcp.client.version': '1.0.0',
+            'mcp.protocol.version': '2025-06-18',
+            'mcp.server.name': 'test-server',
+            'mcp.server.version': '2.0.0',
+          }),
+        }),
+      );
+    });
+
     it('should handle initialize request/response with wrapper transport', async () => {
       const { wrapper } = createMockWrapperTransport('init-wrapper-session');
       const mockMcpServer = createMockMcpServer();
