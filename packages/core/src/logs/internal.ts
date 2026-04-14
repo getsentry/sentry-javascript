@@ -254,7 +254,7 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
 export function _INTERNAL_removeLoneSurrogates(str: string): string {
   const s = str as unknown as { isWellFormed?: () => boolean; toWellFormed?: () => string };
   if (typeof s.isWellFormed === 'function') {
-    return s.isWellFormed() ? str : (s.toWellFormed as () => string)();
+    return s.isWellFormed() ? str : s.toWellFormed ? s.toWellFormed() : str;
   }
   return str;
 }
