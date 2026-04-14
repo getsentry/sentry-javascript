@@ -252,9 +252,10 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * On older runtimes without native support, returns the string as-is.
  */
 export function _INTERNAL_removeLoneSurrogates(str: string): string {
-  const s = str as unknown as { isWellFormed?: () => boolean; toWellFormed?: () => string };
-  if (typeof s.isWellFormed === 'function') {
-    return s.isWellFormed() ? str : s.toWellFormed ? s.toWellFormed() : str;
+  // isWellFormed/toWellFormed are ES2024 (not in our TS lib target), so we feature-detect via Object().
+  const strObj: Record<string, unknown> = Object(str);
+  if (typeof strObj['isWellFormed'] === 'function') {
+    return (strObj['isWellFormed'] as () => boolean)() ? str : (strObj['toWellFormed'] as () => string)();
   }
   return str;
 }
