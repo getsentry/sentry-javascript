@@ -76,7 +76,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host -e HOME=/root
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
