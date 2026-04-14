@@ -4,8 +4,7 @@ export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
 };
 
-// We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other
-// directives. A small scanner is easier to reason about than the previous regex and avoids regex backtracking concerns.
+// We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other directives.
 export function findInjectionIndexAfterDirectives(userCode: string): number {
   let index = 0;
   let lastDirectiveEndIndex: number | undefined;
