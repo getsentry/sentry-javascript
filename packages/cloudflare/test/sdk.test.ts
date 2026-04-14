@@ -1,7 +1,7 @@
+import * as SentryCore from '@sentry/core';
 import type { Integration } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import { getGlobalScope } from '@sentry/core';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { init } from '../src/sdk';
 import { resetSdk } from './testUtils';
@@ -12,15 +12,17 @@ describe('init', () => {
     resetSdk();
   });
 
-  test('should create a CloudflareClient and set it on the global scope', () => {
+  test('should call initAndBind with the correct options', () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
     const client = init({});
+
+    expect(initAndBindSpy).toHaveBeenCalledWith(CloudflareClient, expect.any(Object));
 
     expect(client).toBeDefined();
     expect(client).toBeInstanceOf(CloudflareClient);
-    expect(getGlobalScope().getClient()).toBe(client);
   });
 
-  test('should reuse existing client from global scope', () => {
+  test('should reuse existing client', () => {
     const client1 = init({});
     const client2 = init({});
 

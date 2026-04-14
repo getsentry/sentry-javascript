@@ -2,11 +2,11 @@ import type { CfProperties, ExecutionContext, IncomingRequestCfProperties } from
 import {
   captureException,
   continueTrace,
-  getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  setCurrentClient,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -50,6 +50,10 @@ export function wrapRequestHandler(
 
     const client = init(options);
     isolationScope.setClient(client);
+    // Also set on current scope so getClient() works in nested wrappers
+    if (client) {
+      setCurrentClient(client);
+    }
 
     const urlObject = parseStringToURLObject(request.url);
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.cloudflare', request);
@@ -68,7 +72,7 @@ export function wrapRequestHandler(
       attributes,
       httpHeadersToSpanAttributes(
         winterCGHeadersToDict(request.headers),
-        getClient()?.getOptions().sendDefaultPii ?? false,
+        client?.getOptions()?.sendDefaultPii ?? false,
       ),
     );
 

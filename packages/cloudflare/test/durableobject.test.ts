@@ -54,7 +54,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     const mockContext = {
       waitUntil: vi.fn(),
     } as any;
-    const mockEnv = {} as any; // Environment mock
+    const mockEnv = {} as any;
     let clientFromInstance1: SentryCore.Client | undefined;
     let clientFromInstance2: SentryCore.Client | undefined;
     const options = vi.fn().mockReturnValue({

@@ -4,12 +4,13 @@ import {
   conversationIdIntegration,
   dedupeIntegration,
   functionToStringIntegration,
-  getCurrentScope,
   getGlobalScope,
   getIntegrationsToSetup,
   inboundFiltersIntegration,
+  initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  setCurrentClient,
   spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
@@ -45,15 +46,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
 /**
  * Initializes the cloudflare SDK.
  *
- * If a client already exists on the global scope, it will be reused.
- * The client is set on the current scope so that it can be retrieved via `getClient()`.
+ * If a client already exists on the global scope, it will be reused and bound to the current scope.
  */
 export function init(options: CloudflareOptions): CloudflareClient | undefined {
-  // Check if we already have a client on the global scope - if so, reuse it
+  // Reuse existing client from global scope - just bind it to the current scope
   const existingClient = getGlobalScope().getClient<CloudflareClient>();
   if (existingClient) {
-    // Set on current scope so getClient() works within the current context
-    getCurrentScope().setClient(existingClient);
+    setCurrentClient(existingClient);
     return existingClient;
   }
 
@@ -87,11 +86,8 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
     setupOpenTelemetryTracer();
   }
 
-  const client = new CloudflareClient(clientOptions);
-  // Set on both global scope (for reuse) and current scope (for getClient())
+  const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+  // Also set on global scope for reuse across requests
   getGlobalScope().setClient(client);
-  getCurrentScope().setClient(client);
-  client.init();
-
   return client;
 }
