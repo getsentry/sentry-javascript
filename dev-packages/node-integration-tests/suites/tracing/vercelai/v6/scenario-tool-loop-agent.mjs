@@ -8,7 +8,7 @@ async function run() {
     let callCount = 0;
 
     const agent = new ToolLoopAgent({
-      experimental_telemetry: { isEnabled: true },
+      experimental_telemetry: { isEnabled: true, functionId: 'weather_agent' },
       model: new MockLanguageModelV3({
         doGenerate: async () => {
           if (callCount++ === 0) {
