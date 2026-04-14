@@ -246,54 +246,14 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  * on the server to reject the entire log/span batch when they appear in
  * JSON-escaped form (e.g. `\uD800`). Replacing them at the SDK level ensures
  * only the offending characters are lost instead of the whole payload.
+ *
+ * Uses the native `String.prototype.toWellFormed()` when available
+ * (Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes).
+ * On older runtimes without native support, returns the string as-is.
  */
 export function _INTERNAL_removeLoneSurrogates(str: string): string {
-  // Use native toWellFormed() when available (Node 20+, Safari 15.4+, Chrome 111+)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const s = str as any;
-  if (typeof s.isWellFormed === 'function') {
-    return s.isWellFormed() ? str : s.toWellFormed();
+  if (typeof str['isWellFormed'] === 'function') {
+    return str['isWellFormed']() ? str : str['toWellFormed']();
   }
-
-  // Fast path – scan without allocating. Most strings have no surrogates at all.
-  let hasLoneSurrogate = false;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code >= 0xd800 && code <= 0xdfff) {
-      if (code <= 0xdbff && i + 1 < str.length) {
-        const next = str.charCodeAt(i + 1);
-        if (next >= 0xdc00 && next <= 0xdfff) {
-          // Valid surrogate pair – skip the low surrogate
-          i++;
-          continue;
-        }
-      }
-      hasLoneSurrogate = true;
-      break;
-    }
-  }
-
-  if (!hasLoneSurrogate) {
-    return str;
-  }
-
-  // Slow path – build a new string, replacing lone surrogates with U+FFFD.
-  const chars: string[] = [];
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code >= 0xd800 && code <= 0xdbff) {
-      const next = i + 1 < str.length ? str.charCodeAt(i + 1) : 0;
-      if (next >= 0xdc00 && next <= 0xdfff) {
-        chars.push(str.charAt(i), str.charAt(i + 1));
-        i++;
-      } else {
-        chars.push('\uFFFD');
-      }
-    } else if (code >= 0xdc00 && code <= 0xdfff) {
-      chars.push('\uFFFD');
-    } else {
-      chars.push(str.charAt(i));
-    }
-  }
-  return chars.join('');
+  return str;
 }
