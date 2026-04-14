@@ -231,7 +231,7 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
   for (const [key, attr] of Object.entries(attributes)) {
     const sanitizedKey = _INTERNAL_removeLoneSurrogates(key);
     if (attr.type === 'string') {
-      sanitized[sanitizedKey] = { ...attr, value: _INTERNAL_removeLoneSurrogates(attr.value as string) };
+      sanitized[sanitizedKey] = { ...attr, value: _INTERNAL_removeLoneSurrogates(attr.value) };
     } else {
       sanitized[sanitizedKey] = attr;
     }
@@ -253,9 +253,11 @@ function sanitizeLogAttributes(attributes: Attributes): Attributes {
  */
 export function _INTERNAL_removeLoneSurrogates(str: string): string {
   // isWellFormed/toWellFormed are ES2024 (not in our TS lib target), so we feature-detect via Object().
-  const strObj: Record<string, unknown> = Object(str);
-  if (typeof strObj['isWellFormed'] === 'function') {
-    return (strObj['isWellFormed'] as () => boolean)() ? str : (strObj['toWellFormed'] as () => string)();
+  const strObj: Record<string, Function> = Object(str);
+  const isWellFormed = strObj['isWellFormed'];
+  const toWellFormed = strObj['toWellFormed'];
+  if (typeof isWellFormed === 'function' && typeof toWellFormed === 'function') {
+    return isWellFormed.call(str) ? str : toWellFormed.call(str);
   }
   return str;
 }
