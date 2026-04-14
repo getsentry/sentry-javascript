@@ -1,3 +1,5 @@
+import type { Scope } from '../scope';
+import { getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
 import type { Event } from '../types-hoist/event';
@@ -10,7 +12,10 @@ import { getFramesFromEvent } from '../utils/stacktrace';
 const INTEGRATION_NAME = 'Dedupe';
 
 const _dedupeIntegration = (() => {
-  let previousEvent: Event | undefined;
+  // Store previousEvent per isolation scope to avoid cross-request interference
+  // when clients are reused (e.g., in Cloudflare Workers).
+  // WeakMap ensures automatic cleanup when scopes are garbage collected.
+  const previousEventByScope = new WeakMap<Scope, Event>();
 
   return {
     name: INTEGRATION_NAME,
@@ -21,6 +26,9 @@ const _dedupeIntegration = (() => {
         return currentEvent;
       }
 
+      const isolationScope = getIsolationScope();
+      const previousEvent = previousEventByScope.get(isolationScope);
+
       // Juuust in case something goes wrong
       try {
         if (_shouldDropEvent(currentEvent, previousEvent)) {
@@ -29,7 +37,8 @@ const _dedupeIntegration = (() => {
         }
       } catch {} // eslint-disable-line no-empty
 
-      return (previousEvent = currentEvent);
+      previousEventByScope.set(isolationScope, currentEvent);
+      return currentEvent;
     },
   };
 }) satisfies IntegrationFn;
