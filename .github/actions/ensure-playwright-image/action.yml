@@ -66,7 +66,9 @@ runs:
 
     - name: Set image reference
       id: image
-      run: echo "ref=ghcr.io/${{ github.repository }}/playwright:v${{ steps.playwright.outputs.version }}" >> $GITHUB_OUTPUT
+      run:
+        echo "ref=ghcr.io/${{ github.repository }}/playwright:v${{ steps.playwright.outputs.version }}" >>
+        $GITHUB_OUTPUT
       shell: bash
 
     - name: Check if image already exists
