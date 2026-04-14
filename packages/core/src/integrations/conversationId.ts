@@ -19,8 +19,13 @@ const _conversationIdIntegration = (() => {
         const conversationId = scopeData.conversationId || isolationScopeData.conversationId;
 
         if (conversationId) {
-          // Only apply conversation ID to gen_ai spans
-          if (!spanToJSON(span).op?.startsWith('gen_ai.')) {
+          const { op, data: attributes, description: name } = spanToJSON(span);
+
+          // Only apply conversation ID to gen_ai spans.
+          // We also check for Vercel AI spans (ai.operationId attribute or ai.* span name)
+          // because the Vercel AI integration sets the gen_ai.* op in its own spanStart handler
+          // which fires after this, so the op is not yet available at this point.
+          if (!op?.startsWith('gen_ai.') && !attributes['ai.operationId'] && !name?.startsWith('ai.')) {
             return;
           }
 
