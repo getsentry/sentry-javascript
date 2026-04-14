@@ -16,40 +16,45 @@ runs:
   steps:
     - name: Get Playwright version
       id: playwright
-      run: echo "version=$(node -p "require('./dev-packages/browser-integration-tests/package.json').devDependencies['@playwright/test'].replace('~', '')")" >> $GITHUB_OUTPUT
+      run: |
+        VERSION=$(node -p "
+          const pkg = require('./dev-packages/browser-integration-tests/package.json');
+          const v = (pkg.dependencies || {})['@playwright/test'] || (pkg.devDependencies || {})['@playwright/test'];
+          v.replace(/[~^]/, '')
+        ")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Verify @playwright/test version consistency
       shell: bash
       run: |
-        CANONICAL=$(node -p "require('./dev-packages/browser-integration-tests/package.json').devDependencies['@playwright/test']")
+        CANONICAL=$(node -p "
+          const pkg = require('./dev-packages/browser-integration-tests/package.json');
+          (pkg.dependencies || {})['@playwright/test'] || (pkg.devDependencies || {})['@playwright/test']
+        ")
+        echo "Canonical @playwright/test version: $CANONICAL"
         MISMATCHES=0
 
-        for pkg in dev-packages/test-utils/package.json; do
-          VERSION=$(node -p "
-            const pkg = require('./$pkg');
+        check_version() {
+          local file="$1"
+          local version
+          version=$(node -p "
+            const pkg = require('./$file');
             (pkg.dependencies || {})['@playwright/test'] ||
             (pkg.devDependencies || {})['@playwright/test'] ||
             (pkg.peerDependencies || {})['@playwright/test'] ||
             'not found'
           ")
-          if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
-            echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
+          if [ "$version" != "not found" ] && [ "$version" != "$CANONICAL" ]; then
+            echo "::error file=$file::@playwright/test version mismatch: $version (expected $CANONICAL)"
             MISMATCHES=$((MISMATCHES + 1))
           fi
-        done
+        }
+
+        check_version "dev-packages/test-utils/package.json"
 
         for pkg in dev-packages/e2e-tests/test-applications/*/package.json; do
-          VERSION=$(node -p "
-            const pkg = require('./$pkg');
-            (pkg.dependencies || {})['@playwright/test'] ||
-            (pkg.devDependencies || {})['@playwright/test'] ||
-            'not found'
-          ")
-          if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
-            echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
-            MISMATCHES=$((MISMATCHES + 1))
-          fi
+          check_version "$pkg"
         done
 
         if [ "$MISMATCHES" -gt 0 ]; then
