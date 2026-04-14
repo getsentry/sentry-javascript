@@ -1,10 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-// TEMPORARY: Guaranteed failure to verify optional test filtering in CI
-test('TEMPORARY - This optional test should fail without creating an issue', () => {
-  expect(true).toBe(false);
-});
-
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
