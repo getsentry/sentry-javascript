@@ -66,10 +66,11 @@ runs:
 
     - name: Set image reference
       id: image
-      run:
-        echo "ref=ghcr.io/${{ github.repository }}/playwright:v${{ steps.playwright.outputs.version }}" >>
-        $GITHUB_OUTPUT
       shell: bash
+      run: |
+        DOCKERFILE_HASH=$(sha256sum .github/docker/playwright.Dockerfile | cut -c1-8)
+        TAG="v${{ steps.playwright.outputs.version }}-${DOCKERFILE_HASH}"
+        echo "ref=ghcr.io/${{ github.repository }}/playwright:${TAG}" >> $GITHUB_OUTPUT
 
     - name: Check if image already exists
       id: check
