@@ -1,0 +1,98 @@
+name: 'Ensure Playwright Docker Image'
+description: 'Checks if the custom Playwright Docker image exists in GHCR. Builds and pushes it if missing.'
+
+inputs:
+  github_token:
+    description: 'GitHub token with packages:write permission'
+    required: true
+
+outputs:
+  image:
+    description: 'The full Docker image reference (e.g. ghcr.io/owner/repo/playwright:v1.56.0)'
+    value: ${{ steps.image.outputs.ref }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get Playwright version
+      id: playwright
+      run: echo "version=$(node -p "require('./dev-packages/browser-integration-tests/package.json').devDependencies['@playwright/test'].replace('~', '')")" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Verify @playwright/test version consistency
+      shell: bash
+      run: |
+        CANONICAL=$(node -p "require('./dev-packages/browser-integration-tests/package.json').devDependencies['@playwright/test']")
+        MISMATCHES=0
+
+        for pkg in dev-packages/test-utils/package.json; do
+          VERSION=$(node -p "
+            const pkg = require('./$pkg');
+            (pkg.dependencies || {})['@playwright/test'] ||
+            (pkg.devDependencies || {})['@playwright/test'] ||
+            (pkg.peerDependencies || {})['@playwright/test'] ||
+            'not found'
+          ")
+          if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
+            echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
+            MISMATCHES=$((MISMATCHES + 1))
+          fi
+        done
+
+        for pkg in dev-packages/e2e-tests/test-applications/*/package.json; do
+          VERSION=$(node -p "
+            const pkg = require('./$pkg');
+            (pkg.dependencies || {})['@playwright/test'] ||
+            (pkg.devDependencies || {})['@playwright/test'] ||
+            'not found'
+          ")
+          if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
+            echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
+            MISMATCHES=$((MISMATCHES + 1))
+          fi
+        done
+
+        if [ "$MISMATCHES" -gt 0 ]; then
+          echo "Found $MISMATCHES package(s) with mismatched @playwright/test versions."
+          echo "All packages must use the same version as dev-packages/browser-integration-tests ($CANONICAL)."
+          exit 1
+        fi
+        echo "All @playwright/test versions are consistent ($CANONICAL)"
+
+    - name: Set image reference
+      id: image
+      run: echo "ref=ghcr.io/${{ github.repository }}/playwright:v${{ steps.playwright.outputs.version }}" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Check if image already exists
+      id: check
+      shell: bash
+      run: |
+        if docker manifest inspect "${{ steps.image.outputs.ref }}" > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Image ${{ steps.image.outputs.ref }} already exists, skipping build."
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Image ${{ steps.image.outputs.ref }} not found, will build."
+        fi
+      env:
+        DOCKER_CLI_EXPERIMENTAL: enabled
+
+    - name: Log in to GHCR
+      if: steps.check.outputs.exists == 'false'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.github_token }}
+
+    - name: Build and push
+      if: steps.check.outputs.exists == 'false'
+      uses: docker/build-push-action@v6
+      with:
+        file: .github/docker/playwright.Dockerfile
+        push: true
+        build-args: |
+          PLAYWRIGHT_VERSION=${{ steps.playwright.outputs.version }}
+        tags: |
+          ${{ steps.image.outputs.ref }}

@@ -11,7 +11,6 @@ on:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
-  PLAYWRIGHT_IMAGE: ghcr.io/getsentry/sentry-javascript/playwright:v1.56.1
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/*.tgz
@@ -24,8 +23,29 @@ env:
 permissions:
   contents: read
   issues: write
+  packages: write
 
 jobs:
+  job_playwright_image:
+    name: Ensure Playwright Image
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.ensure.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+          sparse-checkout: |
+            .github
+            dev-packages/browser-integration-tests/package.json
+            dev-packages/test-utils/package.json
+            dev-packages/e2e-tests/test-applications
+      - name: Ensure Playwright image
+        id: ensure
+        uses: ./.github/actions/ensure-playwright-image
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
   job_e2e_prepare:
     name: Prepare E2E Canary tests
     runs-on: ubuntu-24.04
@@ -54,10 +74,10 @@ jobs:
 
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
-    needs: [job_e2e_prepare]
+    needs: [job_e2e_prepare, job_playwright_image]
     runs-on: ubuntu-24.04
     container:
-      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      image: ${{ needs.job_playwright_image.outputs.image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

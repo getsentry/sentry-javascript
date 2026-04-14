@@ -9,7 +9,6 @@ on:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
-  PLAYWRIGHT_IMAGE: ghcr.io/getsentry/sentry-javascript/playwright:v1.56.1
 
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
@@ -23,10 +22,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  job_playwright_image:
+    name: Ensure Playwright Image
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+    outputs:
+      image: ${{ steps.ensure.outputs.image }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            dev-packages/browser-integration-tests/package.json
+            dev-packages/test-utils/package.json
+            dev-packages/e2e-tests/test-applications
+      - name: Ensure Playwright image
+        id: ensure
+        uses: ./.github/actions/ensure-playwright-image
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
   flaky-detector:
+    needs: [job_playwright_image]
     runs-on: ubuntu-24.04
     container:
-      image: ${{ env.PLAYWRIGHT_IMAGE }}
+      image: ${{ needs.job_playwright_image.outputs.image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
