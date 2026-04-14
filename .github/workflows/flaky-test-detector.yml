@@ -31,12 +31,6 @@ jobs:
       image: ${{ steps.ensure.outputs.image }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          sparse-checkout: |
-            .github
-            dev-packages/browser-integration-tests/package.json
-            dev-packages/test-utils/package.json
-            dev-packages/e2e-tests/test-applications
       - name: Ensure Playwright image
         id: ensure
         uses: ./.github/actions/ensure-playwright-image
