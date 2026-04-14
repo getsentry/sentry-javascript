@@ -9,6 +9,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
@@ -52,10 +53,15 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
   const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
   delete options.ctx;
 
+  const resolvedIntegrations = getIntegrationsToSetup(options);
+  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
+    resolvedIntegrations.push(spanStreamingIntegration());
+  }
+
   const clientOptions: CloudflareClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: resolvedIntegrations,
     transport: options.transport || makeCloudflareTransport,
     flushLock,
   };
