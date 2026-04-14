@@ -26,7 +26,7 @@ describe('ConversationId', () => {
   it('applies conversation ID from current scope to span', () => {
     getCurrentScope().setConversationId('conv_test_123');
 
-    startSpan({ name: 'test-span' }, span => {
+    startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToJSON(span);
       expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_test_123');
     });
@@ -35,7 +35,7 @@ describe('ConversationId', () => {
   it('applies conversation ID from isolation scope when current scope does not have one', () => {
     getIsolationScope().setConversationId('conv_isolation_456');
 
-    startSpan({ name: 'test-span' }, span => {
+    startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToJSON(span);
       expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_isolation_456');
     });
@@ -45,14 +45,14 @@ describe('ConversationId', () => {
     getCurrentScope().setConversationId('conv_current_789');
     getIsolationScope().setConversationId('conv_isolation_999');
 
-    startSpan({ name: 'test-span' }, span => {
+    startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToJSON(span);
       expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_current_789');
     });
   });
 
   it('does not apply conversation ID when not set in scope', () => {
-    startSpan({ name: 'test-span' }, span => {
+    startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToJSON(span);
       expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
     });
@@ -62,7 +62,7 @@ describe('ConversationId', () => {
     getCurrentScope().setConversationId('conv_test_123');
     getCurrentScope().setConversationId(null);
 
-    startSpan({ name: 'test-span' }, span => {
+    startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToJSON(span);
       expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
     });
@@ -71,8 +71,8 @@ describe('ConversationId', () => {
   it('applies conversation ID to nested spans', () => {
     getCurrentScope().setConversationId('conv_nested_abc');
 
-    startSpan({ name: 'parent-span' }, () => {
-      startSpan({ name: 'child-span' }, childSpan => {
+    startSpan({ name: 'parent-span', op: 'gen_ai.invoke_agent' }, () => {
+      startSpan({ name: 'child-span', op: 'gen_ai.chat' }, childSpan => {
         const childJSON = spanToJSON(childSpan);
         expect(childJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_nested_abc');
       });
@@ -85,6 +85,7 @@ describe('ConversationId', () => {
     startSpan(
       {
         name: 'test-span',
+        op: 'gen_ai.chat',
         attributes: {
           [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: 'conv_explicit',
         },
@@ -94,5 +95,14 @@ describe('ConversationId', () => {
         expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_from_scope');
       },
     );
+  });
+
+  it('does not apply conversation ID to non-gen_ai spans', () => {
+    getCurrentScope().setConversationId('conv_test_123');
+
+    startSpan({ name: 'db-query', op: 'db.query' }, span => {
+      const spanJSON = spanToJSON(span);
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+    });
   });
 });

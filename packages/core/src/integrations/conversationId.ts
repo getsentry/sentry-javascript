@@ -4,6 +4,7 @@ import { defineIntegration } from '../integration';
 import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../semanticAttributes';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { Span } from '../types-hoist/span';
+import { spanToJSON } from '../utils/spanUtils';
 
 const INTEGRATION_NAME = 'ConversationId';
 
@@ -18,6 +19,13 @@ const _conversationIdIntegration = (() => {
         const conversationId = scopeData.conversationId || isolationScopeData.conversationId;
 
         if (conversationId) {
+          const { op } = spanToJSON(span);
+
+          // Only apply conversation ID to gen_ai spans
+          if (!op?.startsWith('gen_ai.')) {
+            return;
+          }
+
           span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, conversationId);
         }
       });
