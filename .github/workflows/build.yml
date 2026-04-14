@@ -504,6 +504,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -607,6 +608,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -826,6 +828,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -928,6 +931,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1042,8 +1046,8 @@ jobs:
     if:
       always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_e2e_prepare.result == 'success' &&
       needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
-      && needs.job_playwright_image.result == 'success'
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' &&
+      needs.job_playwright_image.result == 'success'
     needs: [job_get_metadata, job_build, job_e2e_prepare, job_playwright_image]
     runs-on: ubuntu-24.04
     container:
@@ -1051,6 +1055,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
