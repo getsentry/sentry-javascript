@@ -481,6 +481,8 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -538,15 +540,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
+      - name: Install yarn
+        run: npm install -g yarn@1.22.22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: ${{ matrix.project }}
 
       - name: Run Playwright tests
         env:
@@ -584,6 +583,8 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -606,15 +607,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
+      - name: Install yarn
+        run: npm install -g yarn@1.22.22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
 
       - name: Run Playwright Loader tests
         env:
@@ -823,9 +821,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run integration tests
         env:
@@ -979,10 +975,8 @@ jobs:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: ${{ runner.temp }}/test-application
+        run: npx playwright install --with-deps chromium
+        working-directory: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
@@ -1087,10 +1081,8 @@ jobs:
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
       - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: ${{ runner.temp }}/test-application
+        run: npx playwright install --with-deps chromium
+        working-directory: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application

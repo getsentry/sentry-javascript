@@ -50,9 +50,7 @@ jobs:
         run: yarn build
 
       - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: 'chromium'
+        run: npx playwright install --with-deps chromium
 
       - name: Determine changed tests
         uses: dorny/paths-filter@v4.0.1
