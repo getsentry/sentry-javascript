@@ -8,7 +8,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
-import { flushAndDispose, makeFlushLock } from '../../flush';
+import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
@@ -27,9 +27,6 @@ function wrapEmailHandler(
 ): unknown {
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
-
-    // Create flush lock per-request to track waitUntil promises
-    const flushLock = makeFlushLock(context);
 
     const client = init(options);
     isolationScope.setClient(client);
@@ -53,12 +50,7 @@ function wrapEmailHandler(
           captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.email' } });
           throw e;
         } finally {
-          waitUntil(
-            (async () => {
-              await flushLock.finalize();
-              await flushAndDispose(client);
-            })(),
-          );
+          waitUntil(flushAndDispose(client));
         }
       },
     );

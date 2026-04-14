@@ -20,7 +20,7 @@ import type {
 } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose, makeFlushLock } from './flush';
+import { flushAndDispose } from './flush';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
@@ -176,9 +176,6 @@ export function instrumentWorkflowWithSentry<
               setAsyncLocalStorageAsyncContextStrategy();
 
               return withIsolationScope(async isolationScope => {
-                // Create flush lock per-request to track waitUntil promises
-                const flushLock = makeFlushLock(context);
-
                 const client = init({ ...options, enableDedupe: false });
                 isolationScope.setClient(client);
 
@@ -195,12 +192,7 @@ export function instrumentWorkflowWithSentry<
                       new WrappedWorkflowStep(event.instanceId, context, options, step),
                     );
                   } finally {
-                    context.waitUntil(
-                      (async () => {
-                        await flushLock.finalize();
-                        await flushAndDispose(client);
-                      })(),
-                    );
+                    context.waitUntil(flushAndDispose(client));
                   }
                 });
               });

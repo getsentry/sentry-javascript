@@ -4,17 +4,13 @@
 import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
 import { withSentry } from '../../../src/withSentry';
 import { resetSdk } from '../../testUtils';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
-  SENTRY_RELEASE: '1.1.1',
-};
-
-const MOCK_ENV_WITHOUT_DSN = {
   SENTRY_RELEASE: '1.1.1',
 };
 
@@ -31,10 +27,6 @@ function createMockScheduledController(): ScheduledController {
     cron: '0 0 0 * * *',
     noRetry: vi.fn(),
   };
-}
-
-function addDelayedWaitUntil(context: ExecutionContext) {
-  context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
 }
 
 describe('instrumentScheduled', () => {
@@ -270,31 +262,5 @@ describe('instrumentScheduled', () => {
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
-  });
-
-  test('flush must be called when all waitUntil are done', async () => {
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-    vi.useFakeTimers();
-    onTestFinished(() => {
-      vi.useRealTimers();
-    });
-    const handler = {
-      scheduled(_controller, _env, _context) {
-        addDelayedWaitUntil(_context);
-        return;
-      },
-    } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
-
-    const wrappedHandler = withSentry(vi.fn(), handler);
-    const waits: Promise<unknown>[] = [];
-    const waitUntil = vi.fn(promise => waits.push(promise));
-    await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV_WITHOUT_DSN, {
-      waitUntil,
-    } as unknown as ExecutionContext);
-    expect(flush).not.toBeCalled();
-    expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimer().runAllTimers();
-    await Promise.all(waits);
-    expect(flush).toHaveBeenCalledOnce();
   });
 });
