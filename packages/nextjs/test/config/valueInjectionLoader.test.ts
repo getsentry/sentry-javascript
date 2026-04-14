@@ -66,6 +66,23 @@ describe.each([[clientConfigLoaderThis], [instrumentationLoaderThis]])('valueInj
     expect(result).toMatch(';globalThis["foo"] = "bar";');
   });
 
+  it('should correctly insert values with a single-quoted directive', () => {
+    const userCode = `
+      'use client';
+      import * as Sentry from '@sentry/nextjs';
+      Sentry.init();
+    `;
+
+    const result = valueInjectionLoader.call(loaderThis, userCode);
+
+    const injectionIndex = result.indexOf(';globalThis["foo"] = "bar";');
+    const clientDirectiveIndex = result.indexOf("'use client'");
+    const importIndex = result.indexOf("import * as Sentry from '@sentry/nextjs';");
+
+    expect(injectionIndex).toBeGreaterThan(clientDirectiveIndex);
+    expect(injectionIndex).toBeLessThan(importIndex);
+  });
+
   it('should correctly insert values with directive and inline comments', () => {
     const userCode = `
       // test
