@@ -182,6 +182,68 @@ describe('MCP Server Transport Instrumentation', () => {
       // Trigger onclose - should not throw
       expect(() => mockTransport.onclose?.()).not.toThrow();
     });
+
+    it('should set span status to error when JSON-RPC error response is sent', async () => {
+      const mockSpan = {
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+        isRecording: vi.fn().mockReturnValue(true),
+      };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      await wrappedMcpServer.connect(mockTransport);
+
+      // Simulate an incoming tools/call request
+      const jsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'req-err-1',
+        params: { name: 'always-error' },
+      };
+      mockTransport.onmessage?.(jsonRpcRequest, {});
+
+      // Simulate the MCP SDK sending back a JSON-RPC error response
+      const jsonRpcErrorResponse = {
+        jsonrpc: '2.0',
+        id: 'req-err-1',
+        error: { code: -32603, message: 'Internal error: tool threw an exception' },
+      };
+      await mockTransport.send?.(jsonRpcErrorResponse as any);
+
+      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+      expect(mockSpan.end).toHaveBeenCalled();
+    });
+
+    it('should not set error span status for successful JSON-RPC responses', async () => {
+      const mockSpan = {
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+        isRecording: vi.fn().mockReturnValue(true),
+      };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      await wrappedMcpServer.connect(mockTransport);
+
+      const jsonRpcRequest = {
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'req-ok-1',
+        params: { name: 'echo' },
+      };
+      mockTransport.onmessage?.(jsonRpcRequest, {});
+
+      const jsonRpcSuccessResponse = {
+        jsonrpc: '2.0',
+        id: 'req-ok-1',
+        result: { content: [{ type: 'text', text: 'hello' }] },
+      };
+      await mockTransport.send?.(jsonRpcSuccessResponse as any);
+
+      expect(mockSpan.setStatus).not.toHaveBeenCalled();
+      expect(mockSpan.end).toHaveBeenCalled();
+    });
   });
 
   describe('Stdio Transport Tests', () => {

@@ -63,6 +63,40 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
+  await test.step('registerTool handler', async () => {
+    const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
+      return transactionEvent.transaction === 'POST /messages';
+    });
+    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
+      return transactionEvent.transaction === 'tools/call echo-register';
+    });
+
+    const toolResult = await client.callTool({
+      name: 'echo-register',
+      arguments: {
+        message: 'foobar',
+      },
+    });
+
+    expect(toolResult).toMatchObject({
+      content: [
+        {
+          text: 'registerTool echo: foobar',
+          type: 'text',
+        },
+      ],
+    });
+
+    const postTransaction = await postTransactionPromise;
+    expect(postTransaction).toBeDefined();
+
+    const toolTransaction = await toolTransactionPromise;
+    expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo-register');
+  });
+
   await test.step('resource handler', async () => {
     const postTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
@@ -122,6 +156,23 @@ test('Records transactions for mcp handlers', async ({ baseURL }) => {
     expect(promptTransaction).toBeDefined();
 
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
+  });
+
+  await test.step('error tool sets span status to internal_error', async () => {
+    const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
+      return transactionEvent.transaction === 'tools/call always-error';
+    });
+
+    try {
+      await client.callTool({ name: 'always-error', arguments: {} });
+    } catch {
+      // Expected: MCP SDK throws when the tool returns a JSON-RPC error
+    }
+
+    const toolTransaction = await toolTransactionPromise;
+    expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(toolTransaction.contexts?.trace?.status).toEqual('internal_error');
   });
 });
 

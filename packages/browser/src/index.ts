@@ -7,6 +7,7 @@ export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { graphqlClientIntegration } from './integrations/graphqlClient';
+export { viewHierarchyIntegration } from './integrations/view-hierarchy';
 
 export {
   captureConsoleIntegration,
@@ -42,6 +43,7 @@ export {
 export { elementTimingIntegration } from '@sentry-internal/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
+export { spanStreamingIntegration } from './integrations/spanstreaming';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {

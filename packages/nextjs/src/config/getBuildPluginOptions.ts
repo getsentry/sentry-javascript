@@ -326,7 +326,7 @@ export function getBuildPluginOptions({
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
       disable: skipSourcemapsUpload ? true : (sentryBuildOptions.sourcemaps?.disable ?? false),
-      rewriteSources: rewriteWebpackSources,
+      rewriteSources: sentryBuildOptions.sourcemaps?.rewriteSources ?? rewriteWebpackSources,
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,

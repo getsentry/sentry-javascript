@@ -1,4 +1,4 @@
-import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { Scope } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/core';
 
@@ -14,7 +14,7 @@ export function addCloudResourceContext(scope: Scope): void {
 /**
  * Set culture context on scope
  */
-export function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties): void {
+export function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties | CfProperties): void {
   scope.setContext('culture', {
     timezone: cf.timezone,
   });

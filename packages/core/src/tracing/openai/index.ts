@@ -19,8 +19,10 @@ import type { InstrumentedMethodEntry } from '../ai/utils';
 import {
   buildMethodPath,
   extractSystemInstructions,
+  getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
   wrapPromiseWithMethods,
 } from '../ai/utils';
 import { OPENAI_METHOD_REGISTRY } from './constants';
@@ -78,7 +80,12 @@ function extractRequestAttributes(args: unknown[], operationName: string): Recor
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+function addRequestAttributes(
+  span: Span,
+  params: Record<string, unknown>,
+  operationName: string,
+  enableTruncation: boolean,
+): void {
   // Store embeddings input on a separate attribute and do not truncate it
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
@@ -119,8 +126,10 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
   }
 
-  const truncatedInput = getTruncatedJsonString(filteredMessages);
-  span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
+  span.setAttribute(
+    GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+    enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+  );
 
   if (Array.isArray(filteredMessages)) {
     span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
@@ -162,7 +171,7 @@ function instrumentMethod<T extends unknown[], R>(
         originalResult = originalMethod.apply(context, args);
 
         if (options.recordInputs && params) {
-          addRequestAttributes(span, params, operationName);
+          addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
         }
 
         // Return async processing
@@ -200,7 +209,7 @@ function instrumentMethod<T extends unknown[], R>(
       originalResult = originalMethod.apply(context, args);
 
       if (options.recordInputs && params) {
-        addRequestAttributes(span, params, operationName);
+        addRequestAttributes(span, params, operationName, shouldEnableTruncation(options.enableTruncation));
       }
 
       return originalResult.then(

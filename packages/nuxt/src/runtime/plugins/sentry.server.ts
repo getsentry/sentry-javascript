@@ -21,7 +21,9 @@ export default (nitroApp => {
       !!(event as any).res?.headers?.has?.('x-nitro-prerender');
 
     // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
-    const isSWRCachedPage = event?.context?.cache?.options?.swr as boolean | undefined;
+    const isSWRCachedPage = /* Nitro v2 */ (event?.context?.cache?.options?.swr ||
+      // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
+      /* Nitro v3 */ event?.context?.routeRules?.swr) as boolean;
 
     if (!isPreRenderedPage && !isSWRCachedPage) {
       addSentryTracingMetaTags(html.head);

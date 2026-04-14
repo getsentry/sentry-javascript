@@ -43,7 +43,7 @@ This is how you can use this in your app:
 2. Call `setupEventContextTrace(client)`
 3. Add `SentrySampler` as sampler
 4. Add `SentrySpanProcessor` as span processor
-5. Add a context manager wrapped via `wrapContextManagerClass`
+5. Register the Sentry context manager (`SentryAsyncLocalStorageContextManager`, or `wrapContextManagerClass` for a custom base)
 6. Add `SentryPropagator` as propagator
 7. Setup OTEL-powered async context strategy for Sentry via `setOpenTelemetryContextAsyncContextStrategy()`
 
@@ -52,14 +52,13 @@ For example, you could set this up as follows:
 ```js
 import * as Sentry from '@sentry/node';
 import {
+  SentryAsyncLocalStorageContextManager,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
   setupEventContextTrace,
-  wrapContextManagerClass,
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
-import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { context, propagation, trace } from '@opentelemetry/api';
 
 function setupSentry() {
@@ -75,12 +74,10 @@ function setupSentry() {
   });
   provider.addSpanProcessor(new SentrySpanProcessor());
 
-  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
-
   // Initialize the provider
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryContextManager());
+  context.setGlobalContextManager(new SentryAsyncLocalStorageContextManager());
 
   setOpenTelemetryContextAsyncContextStrategy();
 }

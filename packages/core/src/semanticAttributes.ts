@@ -1,7 +1,7 @@
 /**
- * Use this attribute to represent the source of a span.
- * Should be one of: custom, url, route, view, component, task, unknown
- *
+ * Use this attribute to represent the source of a span name.
+ * Must be one of: custom, url, route, view, component, task
+ * TODO(v11): rename this to sentry.span.source'
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
 
@@ -39,6 +39,28 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 
 /** The value of a measurement, which may be stored as a TimedEvent. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
+
+/** The release version of the application */
+export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
+/** The environment name (e.g., "production", "staging", "development") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
+/** The segment name (e.g., "GET /users") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
+/** The id of the segment that this span belongs to. */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
+/** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
+/** The version of the Sentry SDK */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
+
+/** The user ID (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
+/** The user email (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
+/** The user IP address (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
+/** The user username (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
 /**
  * A custom span name set by users guaranteed to be taken over any automatically

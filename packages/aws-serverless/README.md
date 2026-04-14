@@ -73,6 +73,50 @@ export const handler = (event, context, callback) => {
 };
 ```
 
+## Container Image-based Lambda Functions
+
+When using container image-based Lambda functions (e.g., with [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter) for frameworks like SvelteKit, Next.js, or Remix), Lambda layers cannot be attached. Instead, you can install the Sentry Lambda extension directly into your Docker image. The extension tunnels Sentry events through a local proxy, improving event delivery reliability during Lambda freezes.
+
+### Setup
+
+1. Install `@sentry/aws-serverless` as a dependency — even if you use a different Sentry SDK in your application (e.g., `@sentry/sveltekit`), this package contains the extension files needed for the Docker image.
+
+2. Copy the extension files from the npm package into your Docker image:
+
+```dockerfile
+FROM public.ecr.aws/lambda/nodejs:22
+
+# Copy the Sentry Lambda extension
+RUN mkdir -p /opt/sentry-extension
+COPY node_modules/@sentry/aws-serverless/build/lambda-extension/sentry-extension /opt/extensions/sentry-extension
+COPY node_modules/@sentry/aws-serverless/build/lambda-extension/index.mjs /opt/sentry-extension/index.mjs
+RUN chmod +x /opt/extensions/sentry-extension /opt/sentry-extension/index.mjs
+
+# ... rest of your Dockerfile
+```
+
+3. Point your Sentry SDK at the extension using the `tunnel` option. The extension always listens on `http://localhost:9000/envelope` — this URL is fixed and must be used exactly as shown:
+
+```js
+import * as Sentry from '@sentry/aws-serverless';
+
+Sentry.init({
+  dsn: '__DSN__',
+  tunnel: 'http://localhost:9000/envelope',
+});
+```
+
+This works with any Sentry SDK:
+
+```js
+import * as Sentry from '@sentry/sveltekit';
+
+Sentry.init({
+  dsn: '__DSN__',
+  tunnel: 'http://localhost:9000/envelope',
+});
+```
+
 ## Integrate Sentry using the Sentry Lambda layer
 
 Another much simpler way to integrate Sentry to your AWS Lambda function is to add the official layer.

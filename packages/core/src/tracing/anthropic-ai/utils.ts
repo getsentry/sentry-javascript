@@ -7,14 +7,14 @@ import {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
 import type { AnthropicAiResponse } from './types';
 
 /**
  * Set the messages and messages original length attributes.
  * Extracts system instructions before truncation.
  */
-export function setMessagesAttribute(span: Span, messages: unknown): void {
+export function setMessagesAttribute(span: Span, messages: unknown, enableTruncation: boolean): void {
   if (Array.isArray(messages) && messages.length === 0) {
     return;
   }
@@ -29,7 +29,9 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
 
   const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 1;
   span.setAttributes({
-    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
+      ? getTruncatedJsonString(filteredMessages)
+      : getJsonString(filteredMessages),
     [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
   });
 }

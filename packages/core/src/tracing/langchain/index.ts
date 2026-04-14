@@ -10,7 +10,7 @@ import {
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../ai/utils';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -34,6 +34,7 @@ import {
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
@@ -89,6 +90,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         prompts,
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );
@@ -127,6 +129,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         messages as LangChainMessage[][],
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );

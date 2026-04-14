@@ -8,8 +8,18 @@ import type {
   EventHint,
   Integration,
   IntegrationFn,
+  ScopeData,
 } from '@sentry/core';
-import { debug, defineIntegration, getClient, getFilenameToDebugIdMap, getIsolationScope } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getClient,
+  getCurrentScope,
+  getFilenameToDebugIdMap,
+  getGlobalScope,
+  getIsolationScope,
+  mergeScopeData,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { registerThread, threadPoll } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadBlockedIntegrationOptions, WorkerStartData } from './common';
@@ -37,6 +47,13 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
+function getLocalScopeData(): ScopeData {
+  const globalScope = getGlobalScope().getScopeData();
+  const currentScope = getCurrentScope().getScopeData();
+  mergeScopeData(globalScope, currentScope);
+  return globalScope;
+}
+
 type IntegrationInternal = { start: () => void; stop: () => void };
 
 function poll(enabled: boolean, clientOptions: ClientOptions): void {
@@ -45,8 +62,9 @@ function poll(enabled: boolean, clientOptions: ClientOptions): void {
     // We need to copy the session object and remove the toJSON method so it can be sent to the worker
     // serialized without making it a SerializedSession
     const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
+    const scope = getLocalScopeData();
     // message the worker to tell it the main event loop is still running
-    threadPoll(enabled, { session, debugImages: getFilenameToDebugIdMap(clientOptions.stackParser) });
+    threadPoll(enabled, { session, scope, debugImages: getFilenameToDebugIdMap(clientOptions.stackParser) });
   } catch {
     // we ignore all errors
   }

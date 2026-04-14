@@ -145,15 +145,14 @@ export function getLocationHref(): string {
  *
  * @returns a string representation of the component for the provided DOM element, or `null` if not found
  */
-export function getComponentName(elem: unknown): string | null {
+export function getComponentName(elem: unknown, maxTraverseHeight: number = 5): string | null {
   // @ts-expect-error WINDOW has HTMLElement
   if (!WINDOW.HTMLElement) {
     return null;
   }
 
   let currentElem = elem as SimpleNode;
-  const MAX_TRAVERSE_HEIGHT = 5;
-  for (let i = 0; i < MAX_TRAVERSE_HEIGHT; i++) {
+  for (let i = 0; i < maxTraverseHeight; i++) {
     if (!currentElem) {
       return null;
     }

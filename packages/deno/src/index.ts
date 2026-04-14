@@ -94,8 +94,10 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  withStreamedSpan,
   logger,
   consoleLoggingIntegration,
+  spanStreamingIntegration,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

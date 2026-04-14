@@ -5,7 +5,10 @@ import { APP_NAME } from '../constants';
 test.describe('client - navigation performance', () => {
   test('should update navigation transaction for dynamic routes', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/with/:param';
+      return (
+        transactionEvent.transaction === '/performance/with/:param' &&
+        transactionEvent.contexts?.trace?.op === 'navigation'
+      );
     });
 
     await page.goto(`/performance`); // pageload

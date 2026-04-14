@@ -107,6 +107,8 @@ export {
   growthbookIntegration,
   logger,
   metrics,
+  withStreamedSpan,
+  spanStreamingIntegration,
   instrumentLangGraph,
 } from '@sentry/core';
 
