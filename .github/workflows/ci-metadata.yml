@@ -82,8 +82,8 @@ jobs:
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(toJSON(github.event.pull_request.labels.*.name),
-        'Gitflow') }}
+        ${{ github.event_name == 'pull_request' && contains(toJSON(github.event.pull_request.labels.*.name), 'Gitflow')
+        }}
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}
