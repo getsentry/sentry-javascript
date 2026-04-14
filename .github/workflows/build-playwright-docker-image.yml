@@ -5,10 +5,70 @@ on:
     paths:
       - '.github/docker/playwright.Dockerfile'
       - 'dev-packages/browser-integration-tests/package.json'
+  pull_request:
+    paths:
+      - '.github/docker/playwright.Dockerfile'
+      - 'dev-packages/browser-integration-tests/package.json'
+      - 'dev-packages/e2e-tests/test-applications/*/package.json'
+      - 'dev-packages/test-utils/package.json'
   workflow_dispatch:
 
 jobs:
+  verify-playwright-versions:
+    name: Verify Playwright version consistency
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check all @playwright/test versions match
+        run: |
+          # Get the canonical version from browser-integration-tests
+          CANONICAL=$(node -p "require('./dev-packages/browser-integration-tests/package.json').devDependencies['@playwright/test']")
+          echo "Canonical @playwright/test version: $CANONICAL"
+
+          MISMATCHES=0
+
+          # Check test-utils
+          for pkg in dev-packages/test-utils/package.json; do
+            VERSION=$(node -p "
+              const pkg = require('./$pkg');
+              (pkg.dependencies || {})['@playwright/test'] ||
+              (pkg.devDependencies || {})['@playwright/test'] ||
+              (pkg.peerDependencies || {})['@playwright/test'] ||
+              'not found'
+            ")
+            if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
+              echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
+              MISMATCHES=$((MISMATCHES + 1))
+            fi
+          done
+
+          # Check all e2e test applications
+          for pkg in dev-packages/e2e-tests/test-applications/*/package.json; do
+            VERSION=$(node -p "
+              const pkg = require('./$pkg');
+              (pkg.dependencies || {})['@playwright/test'] ||
+              (pkg.devDependencies || {})['@playwright/test'] ||
+              'not found'
+            ")
+            if [ "$VERSION" != "not found" ] && [ "$VERSION" != "$CANONICAL" ]; then
+              echo "::error file=$pkg::@playwright/test version mismatch: $VERSION (expected $CANONICAL)"
+              MISMATCHES=$((MISMATCHES + 1))
+            fi
+          done
+
+          if [ "$MISMATCHES" -gt 0 ]; then
+            echo ""
+            echo "Found $MISMATCHES package(s) with mismatched @playwright/test versions."
+            echo "All packages must use the same version as dev-packages/browser-integration-tests ($CANONICAL)."
+            exit 1
+          fi
+
+          echo "All @playwright/test versions are consistent ($CANONICAL)"
+
   build-image:
+    name: Build Playwright Docker Image
+    needs: [verify-playwright-versions]
     runs-on: ubuntu-24.04
     permissions:
       packages: write
@@ -30,7 +90,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: .github/docker/playwright.Dockerfile
-          push: true
+          push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           build-args: |
             PLAYWRIGHT_VERSION=${{ steps.playwright.outputs.version }}
           tags: |
