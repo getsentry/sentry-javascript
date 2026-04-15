@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-const useTunnelRoute = process.env.E2E_TEST_USE_TUNNEL_ROUTE === '1';
+const usesManagedTunnelRoute =
+  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
 
-test.skip(useTunnelRoute, 'Default e2e suites run only in the proxy variant');
+test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 
 test('Sends client-side error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {

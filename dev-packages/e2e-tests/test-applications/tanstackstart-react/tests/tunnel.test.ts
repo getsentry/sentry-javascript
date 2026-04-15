@@ -1,29 +1,46 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-const useTunnelRoute = process.env.E2E_TEST_USE_TUNNEL_ROUTE === '1';
+const tunnelRouteMode =
+  process.env.E2E_TEST_TUNNEL_ROUTE_MODE ??
+  (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
 
-test.skip(!useTunnelRoute, 'Tunnel assertions only run in the tunnel variant');
+test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
-test('Sends client-side errors through the monitor tunnel route', async ({ page }) => {
+test('Sends client-side errors through the configured tunnel route', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry Client Test Error';
   });
 
   await page.goto('/');
+  const pageOrigin = new URL(page.url()).origin;
 
   await expect(page.locator('button').filter({ hasText: 'Break the client' })).toBeVisible();
 
-  const monitorResponsePromise = page.waitForResponse(response => {
-    return response.url().endsWith('/monitor') && response.request().method() === 'POST';
+  const managedTunnelResponsePromise = page.waitForResponse(response => {
+    const responseUrl = new URL(response.url());
+
+    return responseUrl.origin === pageOrigin && response.request().method() === 'POST';
   });
 
   await page.locator('button').filter({ hasText: 'Break the client' }).click();
 
-  const monitorResponse = await monitorResponsePromise;
+  const managedTunnelResponse = await managedTunnelResponsePromise;
+  const managedTunnelUrl = new URL(managedTunnelResponse.url());
   const errorEvent = await errorEventPromise;
 
-  expect(monitorResponse.status()).toBe(200);
+  expect(managedTunnelResponse.status()).toBe(200);
+  expect(managedTunnelUrl.origin).toBe(pageOrigin);
+
+  if (tunnelRouteMode === 'static') {
+    expect(managedTunnelUrl.pathname).toBe('/monitor');
+  } else if (tunnelRouteMode === 'custom') {
+    expect(managedTunnelUrl.pathname).toBe('/custom-monitor');
+  } else {
+    expect(managedTunnelUrl.pathname).toMatch(/^\/[a-z0-9]{8}$/);
+    expect(managedTunnelUrl.pathname).not.toBe('/monitor');
+  }
+
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Sentry Client Test Error');
   expect(errorEvent.transaction).toBe('/');
 });

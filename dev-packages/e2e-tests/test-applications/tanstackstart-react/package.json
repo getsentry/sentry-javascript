@@ -9,11 +9,15 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build:tunnel": "pnpm install && E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm build",
+    "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic pnpm build",
+    "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static pnpm build",
+    "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
     "test:assert:proxy": "pnpm test",
-    "test:assert": "pnpm test:assert:proxy && E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm build && pnpm test:assert:tunnel",
-    "test:assert:tunnel": "E2E_TEST_USE_TUNNEL_ROUTE=1 pnpm test"
+    "test:assert": "pnpm test:assert:proxy && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic pnpm build && pnpm test:assert:tunnel-generated && E2E_TEST_TUNNEL_ROUTE_MODE=static pnpm build && pnpm test:assert:tunnel-static && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build && pnpm test:assert:tunnel-custom",
+    "test:assert:tunnel-generated": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic pnpm test",
+    "test:assert:tunnel-static": "E2E_TEST_TUNNEL_ROUTE_MODE=static pnpm test",
+    "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "latest || *",
@@ -42,9 +46,19 @@
   "sentryTest": {
     "variants": [
       {
-        "label": "tunnel",
-        "build-command": "pnpm test:build:tunnel",
-        "assert-command": "pnpm test:assert:tunnel"
+        "label": "tunnel-generated",
+        "build-command": "pnpm test:build:tunnel-generated",
+        "assert-command": "pnpm test:assert:tunnel-generated"
+      },
+      {
+        "label": "tunnel-static",
+        "build-command": "pnpm test:build:tunnel-static",
+        "assert-command": "pnpm test:assert:tunnel-static"
+      },
+      {
+        "label": "tunnel-custom",
+        "build-command": "pnpm test:build:tunnel-custom",
+        "assert-command": "pnpm test:assert:tunnel-custom"
       }
     ]
   }
