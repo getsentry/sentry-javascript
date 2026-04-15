@@ -1,28 +1,23 @@
-# Use the same Ubuntu version as GitHub Actions runners (ubuntu-24.04)
-# instead of the official Playwright image, to avoid missing system
-# packages and configuration differences.
-FROM ubuntu:24.04
+# Extend the GitHub Actions runner image (Ubuntu 24.04 based) to get an
+# environment close to what GHA hosted runners provide.
+FROM ghcr.io/actions/actions-runner:2.333.1
 
 ARG PLAYWRIGHT_VERSION
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      curl \
-      ca-certificates \
-      git \
-      gnupg && \
-    rm -rf /var/lib/apt/lists/*
+# Install a temporary Node.js to bootstrap Playwright browser installation.
+# At runtime, actions/setup-node handles Node/Yarn from the workflow steps.
+RUN sudo curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && \
+    sudo apt-get install -y --no-install-recommends nodejs && \
+    sudo rm -rf /var/lib/apt/lists/*
 
 # Install Playwright browsers and their OS-level dependencies.
-# `npx playwright install --with-deps` installs both browsers and
-# any missing system libraries (libglib, libatk, libnss, etc.).
-RUN npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
+# `--with-deps` installs required system libraries (libglib, libatk, libnss, etc.).
+RUN sudo npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
 
 # Mark GitHub Actions workspace as safe for git.
-# The container runs as root but the workspace is owned by a different user,
+# The container may run with a different workspace owner,
 # causing "dubious ownership" errors in git operations (e.g. rollup build).
 RUN git config --global --add safe.directory '*'

@@ -47,7 +47,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
       options: --ipc=host
       env:
-        HOME: /root
+        HOME: /home/runner
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
