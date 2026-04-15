@@ -10,9 +10,8 @@ const repositoryRoot = path.resolve(__dirname, '../../..');
  * Publishes all built Sentry package tarballs to the local Verdaccio test registry.
  */
 export function publishPackages(): void {
-  const version = (
-    JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'utf8')) as { version: string }
-  ).version;
+  const version = (JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'utf8')) as { version: string })
+    .version;
 
   // Get absolute paths of all the packages we want to publish to the fake registry
   // Only include the current versions, to avoid getting old tarballs published as well
