@@ -4,8 +4,8 @@ import type { SessionContext } from '../../src/types-hoist/session';
 import { timestampInSeconds } from '../../src/utils/time';
 
 describe('Session', () => {
-  // TEMPORARY: Guaranteed failure to verify test name extraction in CI
-  it('TEMPORARY - should fail to test annotation extraction', () => {
+  // TEMPORARY: Guaranteed failure to verify test name extraction in CI (Node 18 only)
+  it.skipIf(process.env.NODE_VERSION !== '18')('TEMPORARY - should fail to test annotation extraction', () => {
     expect(true).toBe(false);
   });
 

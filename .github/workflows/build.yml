@@ -1180,11 +1180,11 @@ jobs:
                   per_page: 100
                 });
 
-                const failureAnnotations = annotations.filter(a => a.annotation_level === 'failure');
-                if (failureAnnotations.length > 0) {
-                  const testNames = failureAnnotations.map(a => {
-                    const firstLine = a.message.split('\n')[0];
-                    return `- \`${a.path}\`: ${firstLine}`;
+                const testAnnotations = annotations.filter(a => a.annotation_level === 'failure' && a.path !== '.github');
+                if (testAnnotations.length > 0) {
+                  const testNames = testAnnotations.map(a => {
+                    // The title field contains the full test name (e.g. "file.test.ts > Suite > test name")
+                    return a.title ? `- ${a.title}` : `- \`${a.path}\``;
                   });
                   // Deduplicate and limit to 20 entries to keep issues readable
                   testName = [...new Set(testNames)].slice(0, 20).join('\n');
