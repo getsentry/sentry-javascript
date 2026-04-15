@@ -2,6 +2,7 @@ import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import {
   captureException,
   getClient,
+  getCurrentScope,
   isThenable,
   type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -97,12 +98,15 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const clientToDispose = scopeClient;
             const methodName = wrapperOptions.spanName || 'unknown';
+            // Capture both scopes for cleanup - scope is the isolation scope, currentScope is the current scope
+            const currentScopeForCleanup = getCurrentScope();
 
-            const teardown = async (): Promise<void> => {
+            // teardown will be called with the span (if available) to ensure proper cleanup
+            const teardown = async (span?: import('@sentry/core').Span): Promise<void> => {
               if (startNewTrace && storage) {
                 await storeSpanContext(storage, methodName);
               }
-              await flushAndDispose(clientToDispose);
+              await flushAndDispose(clientToDispose, scope, currentScopeForCleanup, span);
             };
 
             if (!wrapperOptions.spanName) {
@@ -182,7 +186,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                   if (isThenable(result)) {
                     return result.then(
                       (res: unknown) => {
-                        waitUntil?.(teardown());
+                        waitUntil?.(teardown(span));
                         return res;
                       },
                       (e: unknown) => {
@@ -192,12 +196,12 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                             handled: false,
                           },
                         });
-                        waitUntil?.(teardown());
+                        waitUntil?.(teardown(span));
                         throw e;
                       },
                     );
                   } else {
-                    waitUntil?.(teardown());
+                    waitUntil?.(teardown(span));
                     return result;
                   }
                 } catch (e) {
@@ -207,7 +211,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                       handled: false,
                     },
                   });
-                  waitUntil?.(teardown());
+                  waitUntil?.(teardown(span));
                   throw e;
                 }
               });

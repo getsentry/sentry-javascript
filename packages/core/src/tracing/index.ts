@@ -1,5 +1,5 @@
 export { registerSpanErrorInstrumentation } from './errors';
-export { setCapturedScopesOnSpan, getCapturedScopesOnSpan } from './utils';
+export { setCapturedScopesOnSpan, getCapturedScopesOnSpan, clearCapturedScopesOnSpan } from './utils';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';

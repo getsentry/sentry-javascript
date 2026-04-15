@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
-import type { Client } from '@sentry/core';
-import { flush } from '@sentry/core';
+import type { Client, Scope, Span } from '@sentry/core';
+import { _INTERNAL_clearCapturedScopesOnSpan, _INTERNAL_setSpanForScope, flush } from '@sentry/core';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -44,16 +44,41 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
  * This should be called at the end of each request to prevent memory leaks.
  *
  * @param client - The CloudflareClient instance to flush and dispose
+ * @param isolationScope - The isolation scope that holds a reference to the client
+ * @param currentScope - The current scope that also holds a reference to the client
+ * @param span - The active span that holds references to scopes (pass this to break circular refs)
  * @param timeout - Timeout in milliseconds for the flush operation
  * @returns A promise that resolves when flush and dispose are complete
  */
-export async function flushAndDispose(client: Client | undefined, timeout = 2000): Promise<void> {
+export async function flushAndDispose(
+  client: Client | undefined,
+  isolationScope?: Scope,
+  currentScope?: Scope,
+  span?: Span,
+  timeout = 2000,
+): Promise<void> {
   if (!client) {
     await flush(timeout);
-
     return;
   }
 
   await client.flush(timeout);
   client.dispose();
+
+  // Clear all references between scopes, spans, and clients to allow garbage collection.
+  // The reference chain is: span -> scope -> client, and scope -> span (bidirectional).
+  // We must break all these references for the entire object graph to be GC'd.
+
+  // Clear the span's captured scope references - this is critical because spans hold
+  // strong references to the scopes that were active when they were created.
+  _INTERNAL_clearCapturedScopesOnSpan(span);
+
+  if (isolationScope) {
+    _INTERNAL_setSpanForScope(isolationScope, undefined);
+    isolationScope.setClient(undefined);
+  }
+  if (currentScope) {
+    _INTERNAL_setSpanForScope(currentScope, undefined);
+    currentScope.setClient(undefined);
+  }
 }

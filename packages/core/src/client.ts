@@ -211,6 +211,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
+  /** Cleanup functions to call on dispose */
+  protected _disposeCallbacks: (() => void)[];
+
   /**
    * Initializes this client instance.
    *
@@ -223,6 +226,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
+    this._disposeCallbacks = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
 
     if (options.dsn) {
@@ -1143,6 +1147,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     DEBUG_BUILD && debug.error('Transport disabled');
     return {};
+  }
+
+  /**
+   * Register a cleanup function to be called when the client is disposed.
+   * This is useful for integrations that need to clean up global state.
+   */
+  public registerCleanup(callback: () => void): void {
+    this._disposeCallbacks.push(callback);
   }
 
   /**

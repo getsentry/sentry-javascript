@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   getClient,
+  getCurrentScope,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
@@ -51,6 +52,9 @@ export function wrapRequestHandler(
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
+    // Capture the current scope - init() sets the client on it via setCurrentClient
+    const currentScope = getCurrentScope();
+
     const urlObject = parseStringToURLObject(request.url);
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.cloudflare', request);
 
@@ -94,7 +98,7 @@ export function wrapRequestHandler(
         }
         throw e;
       } finally {
-        waitUntil?.(flushAndDispose(client));
+        waitUntil?.(flushAndDispose(client, isolationScope, currentScope, undefined));
       }
     }
 
@@ -121,7 +125,7 @@ export function wrapRequestHandler(
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flushAndDispose(client));
+            waitUntil?.(flushAndDispose(client, isolationScope, currentScope, span));
             throw e;
           }
 
@@ -148,7 +152,7 @@ export function wrapRequestHandler(
                 } finally {
                   reader.releaseLock();
                   span.end();
-                  waitUntil?.(flushAndDispose(client));
+                  waitUntil?.(flushAndDispose(client, isolationScope, currentScope, span));
                 }
               })();
 
@@ -164,7 +168,7 @@ export function wrapRequestHandler(
             } catch (_e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
               span.end();
-              waitUntil?.(flushAndDispose(client));
+              waitUntil?.(flushAndDispose(client, isolationScope, currentScope, span));
               return res;
             }
           }
@@ -178,7 +182,7 @@ export function wrapRequestHandler(
           if (res.status === 101) {
             waitUntil?.(client?.flush(2000));
           } else {
-            waitUntil?.(flushAndDispose(client));
+            waitUntil?.(flushAndDispose(client, isolationScope, currentScope, span));
           }
           return res;
         });

@@ -69,3 +69,15 @@ export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationS
     isolationScope: unwrapScopeFromWeakRef(spanWithScopes[ISOLATION_SCOPE_ON_START_SPAN_FIELD]),
   };
 }
+
+/**
+ * Clears the captured scopes from a span to allow garbage collection.
+ * Call this when disposing of a request context to break circular references.
+ */
+export function clearCapturedScopesOnSpan(span: Span | undefined): void {
+  if (span) {
+    const spanWithScopes = span as SpanWithScopes;
+    delete spanWithScopes[SCOPE_ON_START_SPAN_FIELD];
+    delete spanWithScopes[ISOLATION_SCOPE_ON_START_SPAN_FIELD];
+  }
+}

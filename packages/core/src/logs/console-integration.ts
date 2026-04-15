@@ -31,7 +31,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
         return;
       }
 
-      addConsoleInstrumentationHandler(({ args, level }) => {
+      const unsubscribe = addConsoleInstrumentationHandler(({ args, level }) => {
         if (getClient() !== client || !levels.includes(level)) {
           return;
         }
@@ -66,6 +66,9 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
           attributes,
         });
       });
+
+      // Register cleanup to remove the handler when client is disposed
+      client.registerCleanup(unsubscribe);
     },
   };
 }) satisfies IntegrationFn;

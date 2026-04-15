@@ -50,7 +50,10 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   }
 
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-    const scope = getScopes().scope;
+    // Clone BOTH scopes to ensure request isolation
+    // Without cloning the current scope, all requests would share the same scope
+    // which causes race conditions when setting/clearing the client
+    const scope = getScopes().scope.clone();
     const isolationScope = getScopes().isolationScope.clone();
     return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
