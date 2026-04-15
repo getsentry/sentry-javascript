@@ -41,9 +41,6 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    setup(client) {
-      client.on('processSpan', span => {});
-    },
     processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
