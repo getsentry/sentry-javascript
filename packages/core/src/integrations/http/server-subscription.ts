@@ -73,6 +73,7 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
 
       DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
       const isolationScope = getIsolationScope().clone();
+      isolationScope.setClient(client);
 
       const ipAddress = request.socket?.remoteAddress;
       const url = request.url || '/';
@@ -113,7 +114,6 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       return withIsolationScope(isolationScope, () => {
         const sentryTrace = normalizedRequest.headers?.['sentry-trace'];
         const baggage = normalizedRequest.headers?.['baggage'];
-
         return continueTrace(
           {
             sentryTrace: Array.isArray(sentryTrace) ? sentryTrace[0] : sentryTrace,
@@ -123,6 +123,12 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
             // Set propagationSpanId after continueTrace because it calls withScope +
             // setPropagationContext internally, which would overwrite any previously set value.
             getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+
+            response.once('close', () => {
+              isolationScope.setContext('response', {
+                status_code: response.statusCode,
+              });
+            });
 
             const wrap = options.wrapServerEmitRequest;
             if (wrap) {

@@ -1,5 +1,5 @@
 import { errorMonitor } from 'node:events';
-import type { ClientRequest, IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
@@ -333,36 +333,15 @@ function shouldIgnoreSpansForIncomingRequest(
 }
 
 function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const length = getContentLength(request.headers);
-  if (length == null) {
-    return {};
-  }
-
-  if (isCompressed(request.headers)) {
-    return {
-      ['http.request_content_length']: length,
-    };
-  } else {
-    return {
-      ['http.request_content_length_uncompressed']: length,
-    };
-  }
-}
-
-function getContentLength(headers: IncomingHttpHeaders): number | null {
+  const { headers } = request;
   const contentLengthHeader = headers['content-length'];
-  if (contentLengthHeader === undefined) return null;
-
-  const contentLength = parseInt(contentLengthHeader, 10);
-  if (isNaN(contentLength)) return null;
-
-  return contentLength;
-}
-
-function isCompressed(headers: IncomingHttpHeaders): boolean {
+  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
   const encoding = headers['content-encoding'];
-
-  return !!encoding && encoding !== 'identity';
+  return length >= 0
+    ? encoding && encoding !== 'identity'
+      ? { 'http.request_content_length': length }
+      : { 'http.request_content_length_uncompressed': length }
+    : {};
 }
 
 function getIncomingRequestAttributesOnResponse(

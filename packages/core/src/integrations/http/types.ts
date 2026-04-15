@@ -50,7 +50,8 @@ export interface HttpClientRequest {
 // TODO: fill this in with bits from node's ServerResponse
 export interface HttpServerResponse {
   statusCode: number;
-  statusMessage: string;
+  statusMessage?: string;
+  headers: Record<string, string | undefined | string[]>;
   once(ev: string, ...data: unknown[]): this;
   once(ev: 'close'): this;
   on(ev: string | symbol, handler: (...data: unknown[]) => void): this;
@@ -187,8 +188,50 @@ export interface HttpInstrumentationOptions {
 
   /**
    * Optional callback that can be used by integrations to emit the 'request'
-   * event within an OTEL context, possibly after creating a span, as in the
-   * HttpServerSpansIntegration.
+   * event within a given Sentry or OTEL context, possibly after creating a
+   * span, as in the HttpServerSpansIntegration.
    */
-  wrapServerEmitRequest?: (request: HttpIncomingMessage, rsponse: HttpServerResponse, normalizedRequest: RequestEventData, next: () => void) => void;
+  wrapServerEmitRequest?: (request: HttpIncomingMessage, response: HttpServerResponse, normalizedRequest: RequestEventData, next: () => void) => void;
+
+  /**
+   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
+   * Spans will be non recording if tracing is disabled.
+   *
+   * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
+   * For example: `'/users/details?id=123'`
+   *
+   * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
+   * You can use it to filter on additional properties like method, headers, etc.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * Do not capture spans for incoming HTTP requests with the given status codes.
+   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * @default `[[401, 404], [301, 303], [305, 399]]`
+   */
+  ignoreStatusCodes?: (number | [number, number])[];
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the
+   * response is finished, eg to update the transaction name based on
+   * the RPC metadata.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void
 }
