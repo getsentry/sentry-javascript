@@ -908,6 +908,8 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          # Required: cache is saved on host but restored inside Docker containers
+          enableCrossOsArchive: true
 
       - name: Determine which E2E test applications should be run
         id: matrix
@@ -990,6 +992,8 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          # Required: cache is saved on host but restored inside Docker containers
+          enableCrossOsArchive: true
 
       - name: Build tarballs if not cached
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
@@ -1103,6 +1107,8 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          # Required: cache is saved on host but restored inside Docker containers
+          enableCrossOsArchive: true
 
       - name: Build tarballs if not cached
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
