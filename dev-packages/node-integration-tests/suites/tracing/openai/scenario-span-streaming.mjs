@@ -60,18 +60,14 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    // Multiple messages with long content (would normally be truncated and popped to last message only)
+    // Single long message for chat completions
     const longContent = 'A'.repeat(50_000);
     await client.chat.completions.create({
       model: 'gpt-4',
-      messages: [
-        { role: 'user', content: longContent },
-        { role: 'assistant', content: 'Some reply' },
-        { role: 'user', content: 'Follow-up question' },
-      ],
+      messages: [{ role: 'user', content: longContent }],
     });
 
-    // Responses API with long string input (would normally be truncated)
+    // Responses API with long string input
     const longStringInput = 'B'.repeat(50_000);
     await client.responses.create({
       model: 'gpt-4',

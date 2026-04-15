@@ -4,6 +4,7 @@ import { MockLanguageModelV1 } from 'ai/test';
 
 async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    // Single long message so truncation must crop it
     const longContent = 'A'.repeat(50_000);
     await generateText({
       experimental_telemetry: { isEnabled: true },
@@ -15,11 +16,7 @@ async function run() {
           text: 'Response',
         }),
       }),
-      messages: [
-        { role: 'user', content: longContent },
-        { role: 'assistant', content: 'Some reply' },
-        { role: 'user', content: 'Follow-up question' },
-      ],
+      messages: [{ role: 'user', content: longContent }],
     });
   });
 
