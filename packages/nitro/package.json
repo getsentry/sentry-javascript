@@ -35,14 +35,16 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nitro": ">=3.0.260311-beta"
+    "nitro": ">=3.0.260415-beta"
   },
   "dependencies": {
     "@sentry/core": "10.48.0",
-    "@sentry/node": "10.48.0"
+    "@sentry/node": "10.48.0",
+    "otel-tracing-channel": "^0.2.0"
   },
   "devDependencies": {
-    "nitro": "^3.0.260311-beta"
+    "nitro": "^3.0.260415-beta",
+    "h3": "^2.0.1-rc.13"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
