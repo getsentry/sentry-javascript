@@ -57,7 +57,7 @@
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:dev": "run-p build:transpile build:types",
-    "build:bundle": "rollup -c rollup.bundle.config.mjs",
+    "build:bundle": "node ../../dev-packages/rollup-utils/rollupParallel.mjs rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
