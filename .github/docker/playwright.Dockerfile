@@ -9,7 +9,11 @@ ARG YARN_VERSION
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Node.js and Yarn at the versions pinned in the repo's package.json.
+# Install zstd (required by actions/cache for compression) and Node.js + Yarn
+# at the versions pinned in the repo's package.json.
+RUN sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends zstd && \
+    sudo rm -rf /var/lib/apt/lists/*
 RUN sudo curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION%%.*}.x | sudo bash - && \
     sudo apt-get install -y --no-install-recommends nodejs && \
     sudo rm -rf /var/lib/apt/lists/* && \
