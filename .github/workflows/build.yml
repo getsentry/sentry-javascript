@@ -504,7 +504,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host --user root
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -608,7 +608,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host --user root
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -828,7 +828,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host --user root
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -932,7 +932,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1057,7 +1057,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
