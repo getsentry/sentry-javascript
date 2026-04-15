@@ -436,17 +436,13 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       };
       // for streamed pageload spans, we add the web vital measurements as attributes.
       // We omit LCP, CLS and INP because they're tracked separately as spans
-      if (_measurements['ttfb']) {
-        setAttr('ttfb', _measurements['ttfb'].value);
-      }
+      ['ttfb', 'fp', 'fcp'].forEach(measurementName => {
+        if (_measurements[measurementName]) {
+          setAttr(measurementName, _measurements[measurementName].value);
+        }
+      });
       if (_measurements['ttfb.requestTime']) {
         setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
-      }
-      if (_measurements['fp']) {
-        setAttr('fp', _measurements['fp'].value);
-      }
-      if (_measurements['fcp']) {
-        setAttr('fcp', _measurements['fcp'].value);
       }
     } else {
       // TODO (V11): Remove this else branch once we remove v1 standalone spans and transactions
