@@ -3,9 +3,5 @@
   "printWidth": 100,
   "experimentalSortPackageJson": false,
   "trailingComma": "es5",
-  "ignorePatterns": [
-    "packages/e2e-tests/scenarios/*/ref/**/*",
-    "packages/bundler-plugin-core/test/fixtures",
-    ".nxcache"
-  ]
+  "ignorePatterns": ["packages/bundler-plugin-core/test/fixtures", ".nxcache"]
 }

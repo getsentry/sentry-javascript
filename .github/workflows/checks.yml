@@ -190,44 +190,6 @@ jobs:
           path: packages
       - run: yarn test:integration-next
 
-  test-e2e:
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
-    if:
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]' &&
-      false # Debug ID backend changes broke the E2E tests, we need to revisit them
-    needs: build
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    env:
-      SENTRY_AUTH_TOKEN: ${{ secrets.E2E_TESTS_SENTRY_AUTH_TOKEN }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: volta-cli/action@007b1509d3ea9999dbba62ca34f4eb968363bb78 # v3
-      - name: Use dependency cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: dependency-cache
-        with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
-      - name: Use build cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: .nxcache
-          key: build-cache-key-${{ runner.os }}-${{ matrix.target }}-${{ matrix.jobIndex }}-${{ github.run_id }}
-          restore-keys: |
-            build-cache-key-${{ runner.os }}-${{ matrix.target }}-${{ matrix.jobIndex }}-
-      - name: Install dependencies
-        run: yarn --frozen-lockfile --ignore-engines
-        if: steps.dependency-cache.outputs.cache-hit != 'true'
-      - name: Download build artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: dist-artifacts-${{ github.run_id }}
-          path: packages
-      - run: yarn test:e2e
-
   lint:
     needs: build
     name: Linter check
