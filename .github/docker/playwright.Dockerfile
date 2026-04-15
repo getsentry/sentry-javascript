@@ -3,15 +3,17 @@
 FROM ghcr.io/actions/actions-runner:2.333.1
 
 ARG PLAYWRIGHT_VERSION
+ARG NODE_VERSION
+ARG YARN_VERSION
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install a temporary Node.js to bootstrap Playwright browser installation.
-# At runtime, actions/setup-node handles Node/Yarn from the workflow steps.
-RUN sudo curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - && \
+# Install Node.js and Yarn at the versions pinned in the repo's package.json.
+RUN sudo curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION%%.*}.x | sudo bash - && \
     sudo apt-get install -y --no-install-recommends nodejs && \
-    sudo rm -rf /var/lib/apt/lists/*
+    sudo rm -rf /var/lib/apt/lists/* && \
+    sudo npm install -g yarn@${YARN_VERSION}
 
 # Install Playwright browsers and their OS-level dependencies.
 # `--with-deps` installs required system libraries (libglib, libatk, libnss, etc.).

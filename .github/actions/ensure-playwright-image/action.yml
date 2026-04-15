@@ -14,15 +14,20 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Get Playwright version
-      id: playwright
+    - name: Get versions
+      id: versions
       run: |
-        VERSION=$(node -p "
+        PLAYWRIGHT_VERSION=$(node -p "
           const pkg = require('./dev-packages/browser-integration-tests/package.json');
           const v = (pkg.dependencies || {})['@playwright/test'] || (pkg.devDependencies || {})['@playwright/test'];
           v.replace(/[~^]/, '')
         ")
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        ROOT_PKG=$(node -p "JSON.stringify(require('./package.json').volta)")
+        NODE_VERSION=$(echo "$ROOT_PKG" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).node")
+        YARN_VERSION=$(echo "$ROOT_PKG" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).yarn")
+        echo "playwright=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
+        echo "node=$NODE_VERSION" >> $GITHUB_OUTPUT
+        echo "yarn=$YARN_VERSION" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Verify @playwright/test version consistency
@@ -69,7 +74,7 @@ runs:
       shell: bash
       run: |
         DOCKERFILE_HASH=$(sha256sum .github/docker/playwright.Dockerfile | cut -c1-8)
-        TAG="v${{ steps.playwright.outputs.version }}-${DOCKERFILE_HASH}"
+        TAG="v${{ steps.versions.outputs.playwright }}-${DOCKERFILE_HASH}"
         echo "ref=ghcr.io/${{ github.repository }}/playwright:${TAG}" >> $GITHUB_OUTPUT
 
     - name: Check if image already exists
@@ -101,6 +106,8 @@ runs:
         file: .github/docker/playwright.Dockerfile
         push: true
         build-args: |
-          PLAYWRIGHT_VERSION=${{ steps.playwright.outputs.version }}
+          PLAYWRIGHT_VERSION=${{ steps.versions.outputs.playwright }}
+          NODE_VERSION=${{ steps.versions.outputs.node }}
+          YARN_VERSION=${{ steps.versions.outputs.yarn }}
         tags: |
           ${{ steps.image.outputs.ref }}
