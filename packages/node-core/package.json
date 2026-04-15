@@ -82,8 +82,7 @@
     "@opentelemetry/instrumentation": ">=0.57.1 <1",
     "@opentelemetry/resources": "^1.30.1 || ^2.1.0",
     "@opentelemetry/sdk-trace-base": "^1.30.1 || ^2.1.0",
-    "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@opentelemetry/exporter-trace-otlp-http": ">=0.57.0 <1"
+    "@opentelemetry/semantic-conventions": "^1.39.0"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
@@ -103,9 +102,6 @@
     },
     "@opentelemetry/semantic-conventions": {
       "optional": true
-    },
-    "@opentelemetry/exporter-trace-otlp-http": {
-      "optional": true
     }
   },
   "dependencies": {
@@ -116,7 +112,6 @@
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.6.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-trace-base": "^2.6.1",
