@@ -7,9 +7,18 @@ import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'VercelAI';
 
-const _vercelAIIntegration = (() => {
+interface VercelAiOptions {
+  /**
+   * Enable or disable truncation of recorded input messages.
+   * Defaults to `true`.
+   */
+  enableTruncation?: boolean;
+}
+
+const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    options,
     setup(client) {
       addVercelAiProcessors(client);
     },

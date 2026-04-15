@@ -249,7 +249,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
                 message: 'Starting task 5',
               },
             ],
-            user: { id: 5 },
+            user: { id: 5, email: 'something@gmail.com' },
             threads: {
               values: [
                 {

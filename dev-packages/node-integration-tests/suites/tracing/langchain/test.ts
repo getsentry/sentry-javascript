@@ -549,4 +549,83 @@ describe('LangChain integration', () => {
         .completed();
     });
   });
+
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', content: longContent },
+            { role: 'assistant', content: 'Some reply' },
+            { role: 'user', content: 'Follow-up question' },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  const streamingLongContent = 'A'.repeat(50_000);
+
+  createEsmAndCjsTests(__dirname, 'scenario-no-truncation.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-streaming-with-truncation.mjs',
+    (createRunner, test) => {
+      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+
+              // With explicit enableTruncation: true, truncation keeps only the last message
+              // and drops the long content. The result should NOT contain the full 50k 'A' string.
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Follow-up question'),
+              );
+              expect(chatSpan).toBeDefined();
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).not.toContain(streamingLongContent);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

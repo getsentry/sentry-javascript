@@ -81,6 +81,39 @@ describe('init()', () => {
       expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
     });
 
+    it('installs spanStreaming integration when traceLifecycle is "stream"', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream' });
+      const client = getClient();
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          integrations: expect.arrayContaining([expect.objectContaining({ name: 'SpanStreaming' })]),
+        }),
+      );
+    });
+
+    it("doesn't install spanStreaming integration when traceLifecycle is not 'stream'", () => {
+      init({ dsn: PUBLIC_DSN });
+      const client = getClient();
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          integrations: expect.not.arrayContaining([expect.objectContaining({ name: 'SpanStreaming' })]),
+        }),
+      );
+    });
+
+    it('installs spanStreaming integration even with custom defaultIntegrations', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'stream', defaultIntegrations: [] });
+      const client = getClient();
+
+      expect(client?.getOptions()).toEqual(
+        expect.objectContaining({
+          integrations: expect.arrayContaining([expect.objectContaining({ name: 'SpanStreaming' })]),
+        }),
+      );
+    });
+
     it('installs integrations returned from a callback function', () => {
       const mockDefaultIntegrations = [
         new MockIntegration('Some mock integration 3.1'),

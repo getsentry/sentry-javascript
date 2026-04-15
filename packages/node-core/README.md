@@ -13,7 +13,6 @@
 Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrumentation out of the box. It requires the following OpenTelemetry dependencies and supports both v1 and v2 of OpenTelemetry:
 
 - `@opentelemetry/api`
-- `@opentelemetry/context-async-hooks`
 - `@opentelemetry/core`
 - `@opentelemetry/instrumentation`
 - `@opentelemetry/resources`
@@ -23,10 +22,10 @@ Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrum
 ## Installation
 
 ```bash
-npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+npm install @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
 
 # Or yarn
-yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/context-async-hooks @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
+yarn add @sentry/node-core @sentry/opentelemetry @opentelemetry/api @opentelemetry/core @opentelemetry/instrumentation @opentelemetry/resources @opentelemetry/sdk-trace-base @opentelemetry/semantic-conventions
 ```
 
 ## Usage

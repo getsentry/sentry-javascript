@@ -1,3 +1,4 @@
+import type { EventDropReason } from '../types-hoist/clientreport';
 import type {
   SentrySpanArguments,
   Span,
@@ -10,6 +11,10 @@ import type { SpanStatus } from '../types-hoist/spanStatus';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
+interface SentryNonRecordingSpanArguments extends SentrySpanArguments {
+  dropReason?: EventDropReason;
+}
+
 /**
  * A Sentry Span that is non-recording, meaning it will not be sent to Sentry.
  */
@@ -17,9 +22,17 @@ export class SentryNonRecordingSpan implements Span {
   private _traceId: string;
   private _spanId: string;
 
-  public constructor(spanContext: SentrySpanArguments = {}) {
+  /**
+   * Reason why this span was dropped, if applicable ('ignored' or 'sample_rate').
+   * Used to propagate the correct client report outcome to descendant spans
+   * when span streaming is enabled.
+   */
+  public dropReason?: EventDropReason;
+
+  public constructor(spanContext: SentryNonRecordingSpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
+    this.dropReason = spanContext.dropReason;
   }
 
   /** @inheritdoc */

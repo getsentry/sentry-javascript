@@ -21,6 +21,7 @@ import type {
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose } from './flush';
+import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
@@ -164,6 +165,7 @@ export function instrumentWorkflowWithSentry<
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
       args[0] = context;
+      args[1] = instrumentEnv(env as Record<string, unknown>) as E;
 
       const options = optionsCallback(env);
       const instance = Reflect.construct(target, args, newTarget) as T;

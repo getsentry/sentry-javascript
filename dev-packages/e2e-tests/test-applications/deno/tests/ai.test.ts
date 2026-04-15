@@ -28,13 +28,27 @@ test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) =
   // Due to the AI SDK monkey-patching limitation (https://github.com/vercel/ai/pull/6716),
   // only explicitly opted-in calls produce telemetry spans.
   // The explicitly enabled call (experimental_telemetry: { isEnabled: true }) should produce spans.
-  const aiSpans = spans.filter(
-    (span: any) =>
+  const aiSpans = spans.filter((span: any) => {
+    if (
       span.op === 'gen_ai.invoke_agent' ||
       span.op === 'gen_ai.generate_content' ||
-      span.op === 'otel.span' ||
-      span.description?.includes('ai.generateText'),
-  );
+      span.op === 'gen_ai.execute_tool'
+    ) {
+      return true;
+    }
+    // Processed Vercel AI spans (incl. cases where OTel kind no longer maps to a generic `op`)
+    if (span.origin === 'auto.vercelai.otel') {
+      return true;
+    }
+    // Raw Vercel AI OTel span names / attributes before or without full Sentry mapping
+    if (typeof span.description === 'string' && span.description.startsWith('ai.')) {
+      return true;
+    }
+    if (span.data?.['ai.operationId'] != null || span.data?.['ai.pipeline.name'] != null) {
+      return true;
+    }
+    return false;
+  });
 
   // We expect at least one AI-related span from the explicitly enabled call
   expect(aiSpans.length).toBeGreaterThanOrEqual(1);

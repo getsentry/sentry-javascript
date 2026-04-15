@@ -195,6 +195,25 @@ describe('makeAddSentryVitePlugin()', () => {
     consoleSpy.mockRestore();
   });
 
+  it('passes rewriteSources to the vite plugin', () => {
+    const customRewrite = (source: string) => source.replace(/^src\//, '');
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+      sourcemaps: {
+        rewriteSources: customRewrite,
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          rewriteSources: customRewrite,
+        }),
+      }),
+    );
+  });
+
   it('sets the correct metaFramework in telemetry options', () => {
     makeAddSentryVitePlugin({
       org: 'my-org',

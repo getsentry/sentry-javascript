@@ -43,7 +43,7 @@ class SentryDenoTracer implements Tracer {
       attributes: {
         ...options?.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+        ...(op ? { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op } : {}),
         'sentry.deno_tracer': true,
       },
     });
@@ -77,7 +77,7 @@ class SentryDenoTracer implements Tracer {
       attributes: {
         ...opts.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+        ...(op ? { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op } : {}),
         'sentry.deno_tracer': true,
       },
     };
@@ -96,7 +96,7 @@ class SentryDenoTracer implements Tracer {
     return startSpanManual(spanOpts, callback) as ReturnType<F>;
   }
 
-  private _mapSpanKindToOp(kind?: SpanKind): string {
+  private _mapSpanKindToOp(kind?: SpanKind): string | undefined {
     switch (kind) {
       case SpanKind.CLIENT:
         return 'http.client';
@@ -107,7 +107,7 @@ class SentryDenoTracer implements Tracer {
       case SpanKind.CONSUMER:
         return 'message.consume';
       default:
-        return 'otel.span';
+        return undefined;
     }
   }
 }
