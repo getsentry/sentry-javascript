@@ -1,50 +1,130 @@
 /* eslint-disable no-console */
-import * as childProcess from 'child_process';
-import { TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
+import { spawn, spawnSync, type ChildProcess } from 'child_process';
+import * as fs from 'fs';
+import * as http from 'http';
+import * as path from 'path';
 import { publishPackages } from './lib/publishPackages';
 
-// https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
-function groupCIOutput(groupTitle: string, fn: () => void): void {
+const VERDACCIO_PORT = 4873;
+
+let verdaccioChild: ChildProcess | undefined;
+
+/** Stops any Verdaccio runner from a previous prepare/run so port 4873 is free. */
+function killStrayVerdaccioRunner(): void {
+  spawnSync('pkill', ['-f', 'verdaccio-runner.mjs'], { stdio: 'ignore' });
+}
+
+async function groupCIOutput(groupTitle: string, fn: () => void | Promise<void>): Promise<void> {
   if (process.env.CI) {
     console.log(`::group::${groupTitle}`);
-    fn();
-    console.log('::endgroup::');
+    try {
+      await Promise.resolve(fn());
+    } finally {
+      console.log('::endgroup::');
+    }
   } else {
-    fn();
+    await Promise.resolve(fn());
   }
 }
 
-export function registrySetup(): void {
-  groupCIOutput('Test Registry Setup', () => {
-    // Stop test registry container (Verdaccio) if it was already running
-    childProcess.spawnSync('docker', ['stop', TEST_REGISTRY_CONTAINER_NAME], { stdio: 'ignore' });
-    console.log('Stopped previously running test registry');
+function waitUntilVerdaccioResponds(maxRetries: number = 60): Promise<void> {
+  const pingUrl = `http://127.0.0.1:${VERDACCIO_PORT}/-/ping`;
 
-    // Start test registry (Verdaccio)
-    const startRegistryProcessResult = childProcess.spawnSync(
-      'docker',
-      [
-        'run',
-        '--detach',
-        '--rm',
-        '--name',
-        TEST_REGISTRY_CONTAINER_NAME,
-        '-p',
-        '4873:4873',
-        '-v',
-        `${__dirname}/verdaccio-config:/verdaccio/conf`,
-        `verdaccio/verdaccio:${VERDACCIO_VERSION}`,
-      ],
-      { encoding: 'utf8', stdio: 'inherit' },
-    );
+  function tryOnce(): Promise<boolean> {
+    return new Promise(resolve => {
+      const req = http.get(pingUrl, res => {
+        res.resume();
+        resolve((res.statusCode ?? 0) > 0 && (res.statusCode ?? 500) < 500);
+      });
+      req.on('error', () => resolve(false));
+      req.setTimeout(2000, () => {
+        req.destroy();
+        resolve(false);
+      });
+    });
+  }
 
-    if (startRegistryProcessResult.status !== 0) {
-      throw new Error('Start Registry Process failed.');
+  return (async () => {
+    for (let i = 0; i < maxRetries; i++) {
+      if (await tryOnce()) {
+        return;
+      }
+      await new Promise(r => setTimeout(r, 1000));
     }
+    throw new Error('Verdaccio did not start in time.');
+  })();
+}
 
-    publishPackages();
+function startVerdaccioChild(configPath: string, port: number): ChildProcess {
+  const runnerPath = path.join(__dirname, 'verdaccio-runner.mjs');
+  return spawn(process.execPath, [runnerPath, configPath, String(port)], {
+    stdio: 'inherit',
+  });
+}
+
+async function stopVerdaccioChild(): Promise<void> {
+  const child = verdaccioChild;
+  verdaccioChild = undefined;
+  if (!child || child.killed) {
+    return;
+  }
+  child.kill('SIGTERM');
+  await new Promise<void>(resolve => {
+    child.once('exit', () => resolve());
+    setTimeout(resolve, 5000);
+  });
+}
+
+export async function registrySetup(): Promise<void> {
+  await groupCIOutput('Test Registry Setup', async () => {
+    killStrayVerdaccioRunner();
+
+    const configPath = path.join(__dirname, 'verdaccio-config', 'config.yaml');
+    const storagePath = path.join(__dirname, 'verdaccio-config', 'storage');
+
+    // Clear previous registry storage to ensure a fresh state
+    fs.rmSync(storagePath, { recursive: true, force: true });
+
+    // Verdaccio runs in a child process so tarball uploads are not starved by the
+    // same Node event loop as ts-node (in-process runServer + npm publish could hang).
+    console.log('Starting Verdaccio...');
+
+    verdaccioChild = startVerdaccioChild(configPath, VERDACCIO_PORT);
+
+    try {
+      await waitUntilVerdaccioResponds(60);
+      console.log('Verdaccio is ready');
+
+      await publishPackages();
+    } catch (error) {
+      await stopVerdaccioChild();
+      throw error;
+    }
   });
 
   console.log('');
   console.log('');
+}
+
+/**
+ * Detach the Verdaccio child so `ts-node` can exit while the registry keeps running
+ * (e.g. CI: `yarn test:prepare` then `pnpm test:build` in later steps).
+ */
+export function registryRelease(): void {
+  const child = verdaccioChild;
+  verdaccioChild = undefined;
+  if (child && !child.killed) {
+    child.unref();
+  }
+}
+
+export async function registryCleanup(): Promise<void> {
+  await stopVerdaccioChild();
+  killStrayVerdaccioRunner();
+  const pidFile = path.join(__dirname, 'verdaccio-config', '.verdaccio.pid');
+  try {
+    fs.unlinkSync(pidFile);
+  } catch {
+    // File may not exist
+  }
 }

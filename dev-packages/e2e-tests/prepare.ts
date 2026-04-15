@@ -1,18 +1,17 @@
 /* eslint-disable no-console */
 import * as dotenv from 'dotenv';
-import { registrySetup } from './registrySetup';
+import { registryRelease, registrySetup } from './registrySetup';
 
 async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
-  try {
-    registrySetup();
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
+  await registrySetup();
+  // Leave Verdaccio running for later CI steps (e.g. pnpm install); this process may exit.
+  registryRelease();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run();
+run().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
