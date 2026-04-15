@@ -1,17 +1,12 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
-import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   defineIntegration,
   hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
-  stripDataUrlContent,
 } from '@sentry/core';
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
 import {
-  addOriginToSpan,
   generateInstrumentOnce,
-  getRequestUrl,
   httpServerIntegration,
   httpServerSpansIntegration,
   SentryHttpInstrumentation,
