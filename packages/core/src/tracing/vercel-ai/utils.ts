@@ -1,8 +1,7 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
 import {
-  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
-  GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE,
+  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
   GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
@@ -301,9 +300,8 @@ export function getSpanOpFromName(name: string): string | undefined {
     case 'ai.streamObject.doStream':
       return GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE;
     case 'ai.embed.doEmbed':
-      return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
     case 'ai.embedMany.doEmbed':
-      return GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE;
+      return GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE;
     case 'ai.rerank.doRerank':
       return GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE;
     case 'ai.toolCall':
