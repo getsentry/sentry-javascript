@@ -4,11 +4,6 @@ import type { SessionContext } from '../../src/types-hoist/session';
 import { timestampInSeconds } from '../../src/utils/time';
 
 describe('Session', () => {
-  // TEMPORARY: Guaranteed failure to verify issue creation in CI
-  it('TEMPORARY - should fail to test annotation extraction', () => {
-    expect(true).toBe(false);
-  });
-
   it('initializes with the proper defaults', () => {
     const newSession = makeSession();
     const session = newSession.toJSON();
