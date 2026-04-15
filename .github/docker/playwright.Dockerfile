@@ -20,7 +20,7 @@ RUN apt-get update && \
 # Install Playwright browsers and their OS-level dependencies.
 # `npx playwright install --with-deps` installs both browsers and
 # any missing system libraries (libglib, libatk, libnss, etc.).
-RUN npx playwright@${PLAYWRIGHT_VERSION} install --with-deps
+RUN npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
 
 # Mark GitHub Actions workspace as safe for git.
 # The container runs as root but the workspace is owned by a different user,
