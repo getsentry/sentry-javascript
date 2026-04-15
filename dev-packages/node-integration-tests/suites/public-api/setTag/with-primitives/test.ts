@@ -1,13 +1,8 @@
-import { afterAll, expect, test } from 'vitest';
+import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
-});
-
-// TEMPORARY: Guaranteed failure to verify test name extraction in CI (Node 18 only)
-test.skipIf(!process.version.startsWith('v18'))('TEMPORARY - should fail to test annotation extraction', () => {
-  expect(true).toBe(false);
 });
 
 test('should set primitive tags', async () => {

@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-// TEMPORARY: Guaranteed failure to verify test name extraction in CI
-test('TEMPORARY - should fail to test annotation extraction', () => {
-  expect(true).toBe(false);
-});
-
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
