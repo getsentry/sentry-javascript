@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
 import { injectManagedTunnelRoute, makeTunnelRoutePlugin, resolveTunnelRoute } from '../../src/vite/tunnelRoute';
 
 const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY = '__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__';
@@ -46,6 +47,12 @@ describe('tunnelRoute vite plugin', () => {
 
     expect(firstTunnelRoute).toBe(secondTunnelRoute);
     expect(firstTunnelRoute).toMatch(/^\/[a-z0-9]{8}$/);
+  });
+
+  it('always generates an 8-character tunnel route', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    expect(resolveTunnelRoute(true)).toBe('/iiiiiiii');
   });
 
   it('returns the provided static tunnel route without reusing a generated one', () => {

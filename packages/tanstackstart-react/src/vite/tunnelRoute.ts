@@ -27,7 +27,11 @@ const VIRTUAL_TUNNEL_ROUTE_ID =
 const RESOLVED_VIRTUAL_TUNNEL_ROUTE_ID = `\0${VIRTUAL_TUNNEL_ROUTE_ID}`;
 
 function generateRandomTunnelRoute(): string {
-  return `/${Math.random().toString(36).substring(2, 10)}`;
+  const randomPath = Array.from({ length: 8 }, () =>
+    Math.floor(Math.random() * 36).toString(36),
+  ).join("");
+
+  return `/${randomPath}`;
 }
 
 export function resolveTunnelRoute(tunnel: true | string): string {
