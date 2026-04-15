@@ -26,7 +26,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { RequestEventData } from '../../types-hoist/request';
 import type { Span } from '../../types-hoist/span';
 
@@ -47,7 +46,7 @@ export interface HttpClientRequest {
   removeListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
 }
 
-// TODO: fill this in with bits from node's ServerResponse
+/** Minimal interface for a Node.js http.ServerResponse */
 export interface HttpServerResponse {
   statusCode: number;
   statusMessage?: string;
@@ -56,6 +55,7 @@ export interface HttpServerResponse {
   once(ev: 'close'): this;
   on(ev: string | symbol, handler: (...data: unknown[]) => void): this;
 }
+
 export interface HttpServer {
   emit(ev: string, ...data: unknown[]): this;
   emit(ev: 'request', request: HttpIncomingMessage, response: HttpServerResponse): this;

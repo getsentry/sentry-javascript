@@ -143,10 +143,24 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     maxRequestBodySize: options.maxIncomingRequestBodySize,
   };
 
+  // In node-core, for now we disable incoming requests spans by default
+  // we may revisit this in a future release
+  const spans = options.spans ?? false;
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
+
   const serverSpansOptions: HttpServerSpansIntegrationOptions = {
-    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ignoreIncomingRequests: options.ignoreIncomingRequests as any,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+    // Pass server-level options so serverSpans can handle isolation/sessions
+    // when spans are enabled (it subscribes to the channel instead of server).
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ignoreRequestBody: options.ignoreIncomingRequestBody as any,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
   };
 
   const httpInstrumentationOptions: SentryHttpInstrumentationOptions = {
@@ -155,14 +169,12 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
   };
 
-  const server = httpServerIntegration(serverOptions);
+  // When spans are enabled, httpServerSpansIntegration subscribes to the
+  // diagnostics channel itself (via getHttpServerSpanSubscriptions) and handles
+  // isolation, sessions, and span creation in one shot.  When spans are disabled,
+  // httpServerIntegration handles isolation and sessions without span creation.
+  const server = enabledServerSpans ? null : httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
-
-  // In node-core, for now we disable incoming requests spans by default
-  // we may revisit this in a future release
-  const spans = options.spans ?? false;
-  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
-  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
@@ -172,7 +184,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       }
     },
     setupOnce() {
-      server.setupOnce();
+      server?.setupOnce();
 
       instrumentSentryHttp(httpInstrumentationOptions);
     },

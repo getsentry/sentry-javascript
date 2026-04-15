@@ -9,6 +9,7 @@ import type {
   HttpIncomingMessage,
   HttpInstrumentationOptions,
   HttpModuleExport,
+  HttpServerResponse,
   Span,
 } from '@sentry/core';
 import { getHttpClientSubscriptions, patchHttpModuleClient, patchHttpsModuleClient, SDK_VERSION } from '@sentry/core';
@@ -81,8 +82,8 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   outgoingResponseHook?: (span: Span, response: http.IncomingMessage | HttpIncomingMessage) => void;
   outgoingRequestApplyCustomAttributes?: (
     span: Span,
-    request: http.ClientRequest | HttpClientRequest,
-    response: http.IncomingMessage | HttpIncomingMessage,
+    request: HttpClientRequest,
+    response: HttpIncomingMessage,
   ) => void;
 
   // All options below do not do anything anymore in this instrumentation, and will be removed in the future.

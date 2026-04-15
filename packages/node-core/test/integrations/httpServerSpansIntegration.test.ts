@@ -1,5 +1,5 @@
+import { isStaticAssetRequest } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import { isStaticAssetRequest } from '../../src/integrations/http/httpServerSpansIntegration';
 
 describe('httpIntegration', () => {
   describe('isStaticAssetRequest', () => {

@@ -1,10 +1,13 @@
-import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
-import type { Span } from '@sentry/core';
-import {
-  defineIntegration,
-  hasSpansEnabled,
+import type { RequestOptions } from 'node:http';
+import type {
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpInstrumentationOptions,
+  HttpServerResponse,
+  Span,
 } from '@sentry/core';
-import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
+import { defineIntegration, hasSpansEnabled } from '@sentry/core';
+import type { NodeClient, SentryHttpInstrumentationOptions, HttpServerIntegrationOptions } from '@sentry/node-core';
 import {
   generateInstrumentOnce,
   httpServerIntegration,
@@ -78,13 +81,13 @@ interface HttpOptions {
    * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
    * You can use it to filter on additional properties like method, headers, etc.
    */
-  ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
 
   /**
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */
-  incomingRequestSpanHook?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
+  incomingRequestSpanHook?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 
   /**
    * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
@@ -138,13 +141,9 @@ interface HttpOptions {
    * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
    */
   instrumentation?: {
-    requestHook?: (span: Span, req: ClientRequest | HTTPModuleRequestIncomingMessage) => void;
-    responseHook?: (span: Span, response: HTTPModuleRequestIncomingMessage | ServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: ClientRequest | HTTPModuleRequestIncomingMessage,
-      response: HTTPModuleRequestIncomingMessage | ServerResponse,
-    ) => void;
+    requestHook?: (span: Span, req: HttpClientRequest) => void;
+    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
+    applyCustomAttributesOnSpan?: (span: Span, request: HttpClientRequest, response: HttpIncomingMessage) => void;
   };
 }
 
@@ -162,26 +161,37 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const spans = options.spans ?? true;
   const disableIncomingRequestSpans = options.disableIncomingRequestSpans;
+  const enableServerSpans = spans && !disableIncomingRequestSpans;
 
   const serverOptions = {
     sessions: options.trackIncomingRequestsAsSessions,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
     ignoreRequestBody: options.ignoreIncomingRequestBody,
     maxRequestBodySize: options.maxIncomingRequestBodySize,
-  } satisfies Parameters<typeof httpServerIntegration>[0];
+  } satisfies HttpServerIntegrationOptions;
 
-  const serverSpansOptions = {
+  const serverSpansOptions: HttpInstrumentationOptions = {
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-    instrumentation: options.instrumentation,
+    outgoingRequestHook: options.instrumentation?.requestHook,
+    outgoingResponseHook: options.instrumentation?.responseHook,
+    applyCustomAttributesOnSpan: options.instrumentation?.applyCustomAttributesOnSpan,
     onSpanCreated: options.incomingRequestSpanHook,
-  } satisfies Parameters<typeof httpServerSpansIntegration>[0];
+    // Pass server-level options so serverSpans handles isolation/sessions when
+    // spans are enabled (it subscribes to the channel instead of httpServerIntegration).
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    ignoreRequestBody: options.ignoreIncomingRequestBody,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
+  };
 
-  const server = httpServerIntegration(serverOptions);
+  // When spans are enabled, httpServerSpansIntegration subscribes to the
+  // diagnostics channel itself (via getHttpServerSpanSubscriptions) and handles
+  // isolation, sessions, and span creation in one shot.  When spans are disabled,
+  // httpServerIntegration handles isolation and sessions without span creation.
+  const server = enableServerSpans ? null : httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
-
-  const enableServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
@@ -193,7 +203,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       }
     },
     setupOnce() {
-      server.setupOnce();
+      server?.setupOnce();
 
       const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
@@ -201,7 +211,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         propagateTraceInOutgoingRequests: options.tracePropagation,
         createSpansForOutgoingRequests: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-        outgoingRequestHook: (span: Span, request: ClientRequest) => {
+        outgoingRequestHook: (span: Span, request: HttpClientRequest) => {
           options.instrumentation?.requestHook?.(span, request);
         },
         outgoingResponseHook: options.instrumentation?.responseHook,

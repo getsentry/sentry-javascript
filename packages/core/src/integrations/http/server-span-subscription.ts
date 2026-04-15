@@ -60,114 +60,120 @@ export function getHttpServerSpanSubscriptions(options: HttpInstrumentationOptio
   return getHttpServerSubscriptions({
     ...options,
     wrapServerEmitRequest(request, response, normalizedRequest, _next) {
-      const next = wrap ? () => wrap(request, response, normalizedRequest, _next) : _next;
       if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
-        return next();
+        return _next();
       }
 
-      const isolationScope = getIsolationScope();
-      const client = isolationScope.getClient();
-      if (!client) {
-        return next();
-      }
+      // If the user provided a wrapServerEmitRequest, call it as the outer
+      // wrapper so it can set up context (e.g. OTel propagation) before the
+      // span is created.
+      return wrap ? wrap(request, response, normalizedRequest, createSpan) : createSpan();
 
-      if (
-        shouldIgnoreSpansForIncomingRequest(request, {
-          ignoreStaticAssets,
-          ignoreIncomingRequests,
-        })
-      ) {
-        DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
-        return next();
-      }
+      function createSpan() {
+        const isolationScope = getIsolationScope();
+        const client = isolationScope.getClient();
+        if (!client) {
+          return _next();
+        }
 
-      const fullUrl = normalizedRequest.url || request.url || '/';
-      const urlObj = parseStringToURLObject(fullUrl);
-      const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObj, 'server', 'auto.http.server', request);
-      const headers = request.headers;
-      const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
-      const httpVersion = request.httpVersion;
-      const host = headers.host as undefined | string;
-      const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
-      const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
+        if (
+          shouldIgnoreSpansForIncomingRequest(request, {
+            ignoreStaticAssets,
+            ignoreIncomingRequests,
+          })
+        ) {
+          DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
+          return _next();
+        }
 
-      const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
-      const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
-      const bestEffortTransactionName = name || `${method} ${httpTargetWithoutQueryFragment}`;
-      const { socket } = request;
-      const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
+        const fullUrl = normalizedRequest.url || request.url || '/';
+        const urlObj = parseStringToURLObject(fullUrl);
+        const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObj, 'server', 'auto.http.server', request);
+        const headers = request.headers;
+        const userAgent = headers['user-agent'];
+        const ips = headers['x-forwarded-for'];
+        const httpVersion = request.httpVersion;
+        const host = headers.host as undefined | string;
+        const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
+        const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
+        const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
+        const { socket } = request;
+        const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
 
-      return startSpanManual(
-        {
-          name: bestEffortTransactionName,
-          attributes: {
-            ...attributes,
-            // Sentry specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
-            'net.host.ip': localAddress,
-            'net.host.port': localPort,
-            'net.peer.ip': remoteAddress,
-            'net.peer.port': remotePort,
-            'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-            // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
-            'http.url': fullUrl,
-            'http.method': normalizedRequest.method,
-            'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-            'http.host': host,
-            'net.host.name': hostname,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
-            'http.user_agent': userAgent,
-            'http.scheme': scheme,
-            'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
-            ...getRequestContentLengthAttribute(request),
-            ...httpHeadersToSpanAttributes(
-              normalizedRequest.headers || {},
-              client.getOptions().sendDefaultPii ?? false,
-            ),
+        return startSpanManual(
+          {
+            name,
+            attributes: {
+              ...attributes,
+              // Sentry specific attributes
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
+              'net.host.ip': localAddress,
+              'net.host.port': localPort,
+              'net.peer.ip': remoteAddress,
+              'net.peer.port': remotePort,
+              'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
+              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
+              'http.url': fullUrl,
+              'http.method': normalizedRequest.method,
+              'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              'http.host': host,
+              'net.host.name': hostname,
+              'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              'http.user_agent': userAgent,
+              'http.scheme': scheme,
+              'http.flavor': httpVersion,
+              'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              ...getRequestContentLengthAttribute(request),
+              ...httpHeadersToSpanAttributes(
+                normalizedRequest.headers || {},
+                client.getOptions().sendDefaultPii ?? false,
+              ),
+            },
           },
-        },
-        span => {
-          onSpanCreated?.(span, request, response);
-          // Ensure we only end the span once
-          // E.g. error can be emitted before close is emitted
-          let isEnded = false;
+          span => {
+            onSpanCreated?.(span, request, response);
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
 
-          function endSpan(status: SpanStatus): void {
-            if (isEnded) {
-              return;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
+              }
+
+              isEnded = true;
+              // set attributes that come from the response
+              span.setAttributes({
+                'http.status_text': response.statusMessage?.toUpperCase(),
+                'http.response.status_code': response.statusCode,
+                'http.status_code': response.statusCode,
+                ...httpHeadersToSpanAttributes(
+                  headersToDict(response.headers),
+                  client?.getOptions().sendDefaultPii ?? false,
+                  'response',
+                ),
+              });
+              span.setStatus(status);
+              onSpanEnd?.(span, request, response);
+              span.end();
             }
 
-            isEnded = true;
-            // set attributes that come from the response
-            span.setAttributes({
-              'http.status_text': response.statusMessage?.toUpperCase(),
-              'http.response.status_code': response.statusCode,
-              'http.status_code': response.statusCode,
-              ...httpHeadersToSpanAttributes(
-                headersToDict(response.headers),
-                client?.getOptions().sendDefaultPii ?? false,
-                'response',
-              ),
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
             });
-            span.setStatus(status);
-            onSpanEnd?.(span, request, response);
-            span.end();
-          }
 
-          response.on('close', () => {
-            endSpan(getSpanStatusFromHttpCode(response.statusCode));
-          });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
 
-          response.on(errorMonitor, () => {
-            const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-            // Ensure we def. have an error status here
-            endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-          });
-        },
-      );
+            // Continue handling the request inside the active span context
+            _next();
+          },
+        );
+      };
     },
   });
 }
