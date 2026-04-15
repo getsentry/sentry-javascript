@@ -8,7 +8,7 @@ function startMockAnthropicServer() {
 
   app.post('/v1/messages', (req, res) => {
     res.json({
-      id: 'msg_no_truncation_test',
+      id: 'msg_span_streaming_test',
       type: 'message',
       role: 'assistant',
       content: [{ type: 'text', text: 'Response' }],
