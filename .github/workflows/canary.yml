@@ -77,7 +77,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -145,6 +145,8 @@ jobs:
             label: 'nestjs-microservices (latest)'
 
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit
         uses: actions/checkout@v6
         with:

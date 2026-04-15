@@ -29,3 +29,9 @@ RUN sudo mkdir -p /opt/pw-browsers && \
 # Mark GitHub Actions workspace as safe for git (system-wide config so it
 # works regardless of HOME, which GHA overrides to /github/home).
 RUN sudo git config --system --add safe.directory '*'
+
+# Ensure /root exists and is owned by root. When running as --user root,
+# Firefox requires HOME to be owned by the current user. GHA sets
+# HOME=/github/home (owned by runner), but we can't override it.
+# The workflow sets HOME=/root via a step, and this ensures /root is ready.
+RUN mkdir -p /root

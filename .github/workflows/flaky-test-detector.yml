@@ -45,12 +45,14 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
     if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current branch
         uses: actions/checkout@v6
       - name: Set up Node

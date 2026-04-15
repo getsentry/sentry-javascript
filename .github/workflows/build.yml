@@ -500,7 +500,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -550,6 +550,8 @@ jobs:
             project: 'chromium'
 
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
@@ -604,7 +606,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -619,6 +621,8 @@ jobs:
           - loader_tracing_replay
 
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
@@ -824,13 +828,15 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         node: [18, 20, 22, 24]
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
@@ -928,7 +934,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -943,6 +949,8 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
@@ -1053,7 +1061,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root -e HOME=/root
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1069,6 +1077,8 @@ jobs:
       matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix-optional) }}
 
     steps:
+      - name: Fix HOME for root user
+        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
