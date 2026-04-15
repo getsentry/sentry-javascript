@@ -15,8 +15,6 @@ runs:
       with:
         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
         key: ${{ inputs.dependency_cache_key }}
-        # Required: cache is saved on host but restored inside Docker containers
-        enableCrossOsArchive: true
 
     - name: Restore build artifacts
       uses: actions/download-artifact@v7
