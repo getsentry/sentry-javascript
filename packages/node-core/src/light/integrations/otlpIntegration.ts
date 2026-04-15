@@ -1,6 +1,12 @@
 import { trace } from '@opentelemetry/api';
 import type { Client, IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, registerExternalPropagationContext } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  dsnFromString,
+  registerExternalPropagationContext,
+  SENTRY_API_VERSION,
+} from '@sentry/core';
 
 const INTEGRATION_NAME = 'OtlpIntegration';
 
@@ -32,3 +38,25 @@ const _otlpIntegration = (() => {
  * error/log events to the active OTel trace context.
  */
 export const otlpIntegration = defineIntegration(_otlpIntegration);
+
+/**
+ * Returns the OTLP traces endpoint URL and auth headers for a given Sentry DSN.
+ * Use this to configure your own `OTLPTraceExporter`.
+ */
+export function getOtlpTracesEndpoint(dsn: string): { url: string; headers: Record<string, string> } | undefined {
+  const parsed = dsnFromString(dsn);
+  if (!parsed) {
+    return undefined;
+  }
+
+  const { protocol, host, port, path, projectId, publicKey } = parsed;
+  const basePath = path ? `/${path}` : '';
+  const portStr = port ? `:${port}` : '';
+
+  return {
+    url: `${protocol}://${host}${portStr}${basePath}/api/${projectId}/integration/otlp/v1/traces/`,
+    headers: {
+      'X-Sentry-Auth': `Sentry sentry_version=${SENTRY_API_VERSION}, sentry_key=${publicKey}`,
+    },
+  };
+}
