@@ -24,7 +24,7 @@ RUN sudo curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION%%.*}.x | sud
 # (GHA sets HOME=/github/home inside containers, not /home/runner).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
 RUN sudo mkdir -p /opt/pw-browsers && \
-    sudo npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
+    sudo PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
 
 # Mark GitHub Actions workspace as safe for git (system-wide config so it
 # works regardless of HOME, which GHA overrides to /github/home).
