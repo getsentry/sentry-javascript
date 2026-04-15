@@ -25,12 +25,15 @@ export function test(url: string, callback: TestCallback) {
   // Clear the output directory before running the test
   rmSync(outDir, { recursive: true, force: true });
 
+  // Detect CJS config files by test name suffix
+  const configExt = testName.endsWith("-cjs") ? ".config.cjs" : ".config.js";
+
   vitestTest(`rollup v4 > ${testName}`, (ctx) =>
     callback({
       outDir,
       runBundler: (env) =>
         runBundler(
-          `rollup --config ${testName}.config.js`,
+          `rollup --config ${testName}${configExt}`,
           {
             cwd,
             env: {

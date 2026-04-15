@@ -26,61 +26,70 @@ export function readAllFiles(
   customReplacer?: (content: string) => string
 ): Record<string, string> {
   const files: Record<string, string> = {};
-  const entries = readdirSync(directory);
 
-  for (const entry of entries) {
-    const fullPath = join(directory, entry);
-    const stat = statSync(fullPath);
+  function readDirRecursive(currentDir: string, relativePath = ""): void {
+    const entries = readdirSync(currentDir);
 
-    if (stat.isFile()) {
-      let contents = readFileSync(fullPath, "utf-8");
-      // We replace the current SHA with a placeholder to make snapshots deterministic
-      contents = contents
-        .replaceAll(CURRENT_SHA, "CURRENT_SHA")
-        .replaceAll(/"nodeVersion":\d+/g, `"nodeVersion":"NODE_VERSION"`)
-        .replaceAll(/"nodeVersion": \d+/g, `"nodeVersion":"NODE_VERSION"`)
-        .replaceAll(/nodeVersion:\d+/g, `nodeVersion:"NODE_VERSION"`)
-        .replaceAll(/nodeVersion: \d+/g, `nodeVersion:"NODE_VERSION"`);
+    for (const entry of entries) {
+      const fullPath = join(currentDir, entry);
+      const stat = statSync(fullPath);
+      const relativeFilePath = relativePath ? join(relativePath, entry) : entry;
 
-      if (customReplacer) {
-        contents = customReplacer(contents);
-      }
-
-      // Normalize Windows stuff in .map paths
-      if (entry.endsWith(".map")) {
-        const map = JSON.parse(contents) as SourceMap;
-        map.sources = map.sources.map((c) => c.replace(/\\/g, "/"));
-        map.sourcesContent = map.sourcesContent.map((c) => c.replace(/\r\n/g, "\n"));
-        contents = JSON.stringify(map);
-      } else if (entry === "sentry-cli-mock.json") {
-        // Remove the temporary directory path too
-        contents = contents.replace(
-          /"[^"]+sentry-bundler-plugin-upload.+?",/g,
-          '"sentry-bundler-plugin-upload-path",'
-        );
-      } else if (entry === "sentry-telemetry.json") {
-        // Remove the temporary directory path too
+      if (stat.isDirectory()) {
+        // Recursively read subdirectories
+        readDirRecursive(fullPath, relativeFilePath);
+      } else if (stat.isFile()) {
+        let contents = readFileSync(fullPath, "utf-8");
+        // We replace the current SHA with a placeholder to make snapshots deterministic
         contents = contents
-          .replace(
-            /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/g,
-            "TIMESTAMP"
-          )
-          .replace(/[a-f0-9]{32}/g, "UUID")
-          .replace(/"duration":[\d.]+/g, '"duration":DURATION')
-          .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"');
-      } else {
-        // Normalize Windows line endings for cross-platform snapshots
-        contents = contents.replace(/\r\n/g, "\n");
-        // Normalize debug IDs to make snapshots deterministic across environments
-        contents = contents.replace(
-          /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-          "00000000-0000-0000-0000-000000000000"
-        );
+          .replaceAll(CURRENT_SHA, "CURRENT_SHA")
+          .replaceAll(/"nodeVersion":\d+/g, `"nodeVersion":"NODE_VERSION"`)
+          .replaceAll(/"nodeVersion": \d+/g, `"nodeVersion":"NODE_VERSION"`)
+          .replaceAll(/nodeVersion:\d+/g, `nodeVersion:"NODE_VERSION"`)
+          .replaceAll(/nodeVersion: \d+/g, `nodeVersion:"NODE_VERSION"`);
+
+        if (customReplacer) {
+          contents = customReplacer(contents);
+        }
+
+        // Normalize Windows stuff in .map paths
+        if (entry.endsWith(".map")) {
+          const map = JSON.parse(contents) as SourceMap;
+          map.sources = map.sources.map((c) => c.replace(/\\/g, "/"));
+          map.sourcesContent = map.sourcesContent.map((c) => c.replace(/\r\n/g, "\n"));
+          contents = JSON.stringify(map);
+        } else if (entry === "sentry-cli-mock.json") {
+          // Remove the temporary directory path too
+          contents = contents.replace(
+            /"[^"]+sentry-bundler-plugin-upload.+?",/g,
+            '"sentry-bundler-plugin-upload-path",'
+          );
+        } else if (entry === "sentry-telemetry.json") {
+          // Remove the temporary directory path too
+          contents = contents
+            .replace(
+              /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/g,
+              "TIMESTAMP"
+            )
+            .replace(/[a-f0-9]{32}/g, "UUID")
+            .replace(/"duration":[\d.]+/g, '"duration":DURATION')
+            .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"');
+        } else {
+          // Normalize Windows line endings for cross-platform snapshots
+          contents = contents.replace(/\r\n/g, "\n");
+          // Normalize debug IDs to make snapshots deterministic across environments
+          contents = contents.replace(
+            /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+            "00000000-0000-0000-0000-000000000000"
+          );
+        }
+        // Use forward slashes for consistent cross-platform keys
+        files[relativeFilePath.replace(/\\/g, "/")] = contents;
       }
-      files[entry] = contents;
     }
   }
 
+  readDirRecursive(directory);
   return files;
 }
 
@@ -97,3 +106,50 @@ process.on("exit", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+/**
+ * Runs a callback with a fake Sentry server running on an auto-allocated port.
+ * The server returns 503 errors for all requests.
+ * Automatically starts and stops the server.
+ * The allocated port is passed to the callback.
+ */
+export async function withFakeSentryServer(
+  callback: (port: string) => void | Promise<void>
+): Promise<void> {
+  const { createServer } = await import("node:http");
+
+  const server = createServer((req, res) => {
+    if (DEBUG) {
+      // eslint-disable-next-line no-console
+      console.log("[FAKE SENTRY] incoming request", req.url);
+    }
+    res.statusCode = 503;
+    res.end("Error: Sentry unreachable");
+  });
+
+  // Listen on port 0 to get an auto-allocated port
+  await new Promise<void>((resolve) => {
+    server.listen(0, () => {
+      resolve();
+    });
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Failed to get server port");
+  }
+  const port = address.port.toString();
+
+  if (DEBUG) {
+    // eslint-disable-next-line no-console
+    console.log(`[FAKE SENTRY] running on http://localhost:${port}/`);
+  }
+
+  try {
+    await callback(port);
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+}

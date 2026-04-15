@@ -26,6 +26,9 @@ export function test(url: string, callback: TestCallback) {
   // Clear the output directory before running the test
   rmSync(outDir, { recursive: true, force: true });
 
+  // Detect CJS config files by test name suffix
+  const configExt = testName.endsWith("-cjs") ? ".config.cjs" : ".config.ts";
+
   // Rolldown requires Node 20+
   if (NODE_MAJOR_VERSION < 20) {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -36,7 +39,7 @@ export function test(url: string, callback: TestCallback) {
         outDir,
         runBundler: (env) =>
           runBundler(
-            `rolldown --config ${testName}.config.ts`,
+            `rolldown --config ${testName}${configExt}`,
             {
               cwd,
               env: {

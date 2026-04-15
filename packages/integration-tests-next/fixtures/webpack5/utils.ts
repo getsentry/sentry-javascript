@@ -25,12 +25,15 @@ export function test(url: string, callback: TestCallback) {
   // Clear the output directory before running the test
   rmSync(outDir, { recursive: true, force: true });
 
+  // Detect CJS config files by test name suffix
+  const configExt = testName.endsWith("-cjs") ? ".config.cjs" : ".config.js";
+
   vitestTest(`webpack v5 > ${testName}`, (ctx) =>
     callback({
       outDir,
       runBundler: (env) =>
         runBundler(
-          `pnpm webpack --config ${testName}.config.js`,
+          `pnpm webpack --config ${testName}${configExt}`,
           {
             cwd,
             env: {
