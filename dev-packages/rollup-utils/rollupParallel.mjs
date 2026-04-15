@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 /**
  * Runs rollup builds in parallel for configs that export an array.
  * Usage: node rollupParallel.mjs <config-path>
@@ -21,7 +23,7 @@ let done = 0;
 async function worker() {
   while (queue.length > 0) {
     const config = queue.shift();
-    const bundle = await rollup({ ...config, onwarn: () => {} });
+    const bundle = await rollup({ ...config, onwarn: console.warn });
     await bundle.write(config.output);
     await bundle.close();
     done++;
