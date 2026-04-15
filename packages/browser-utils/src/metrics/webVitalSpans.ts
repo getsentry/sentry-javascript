@@ -9,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
   spanToStreamedSpanJSON,
   startInactiveSpan,
   timestampInSeconds,
@@ -22,6 +21,25 @@ import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstr
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 import type { PerformanceEventTiming } from './instrument';
+
+// Locally-defined interfaces to avoid leaking bare global type references into the
+// generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
+// available during this package's compilation but are NOT carried to consumers.
+// This mirrors the pattern used for PerformanceEventTiming in instrument.ts.
+export interface LayoutShift extends PerformanceEntry {
+  value: number;
+  sources: Array<{ node: Node | null }>;
+  hadRecentInput: boolean;
+}
+
+export interface LargestContentfulPaint extends PerformanceEntry {
+  readonly renderTime: DOMHighResTimeStamp;
+  readonly loadTime: DOMHighResTimeStamp;
+  readonly size: number;
+  readonly id: string;
+  readonly url: string;
+  readonly element: Element | null;
+}
 
 interface WebVitalSpanOptions {
   name: string;
@@ -268,7 +286,9 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): v
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
   const spanToUse = cachedContext?.span || rootSpan;
-  const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
+  const routeName = spanToUse
+    ? spanToStreamedSpanJSON(spanToUse).name
+    : getCurrentScope().getScopeData().transactionName;
   const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
 
   _emitWebVitalSpan({
