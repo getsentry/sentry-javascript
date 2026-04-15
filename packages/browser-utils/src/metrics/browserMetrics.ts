@@ -2,6 +2,7 @@
 import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  debug,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
@@ -27,7 +28,6 @@ import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan 
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-import { debug } from '@sentry/core';
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
 }
@@ -468,7 +468,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     }
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
-    span.setAttribute('performance.timeOrigin', timeOrigin);
+    span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
 
     // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
     // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
@@ -476,7 +476,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     // time where the user actively started the navigation, for example by clicking a link.
     // This is user action is called "activation" and the time between navigation and activation is stored in
     // the `activationStart` attribute of the "navigation" PerformanceEntry.
-    span.setAttribute('performance.activationStart', getActivationStart());
+    span.setAttribute(
+      spanStreamingEnabled ? 'browser.performance.navigation.activation_start' : 'performance.activationStart',
+      getActivationStart(),
+    );
   }
 
   _lcpEntry = undefined;
@@ -810,10 +813,11 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
-    span.setAttribute(
-      spanStreamingEnabled ? 'device.processor_count' : 'hardwareConcurrency',
-      String(navigator.hardwareConcurrency),
-    );
+    if (spanStreamingEnabled) {
+      span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
+    } else {
+      span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    }
   }
 }
 
