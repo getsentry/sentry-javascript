@@ -24,9 +24,9 @@ export function setupSentryNitroModule(
   _serverConfigFile?: string,
 ): NitroConfig {
   // @ts-expect-error Nitro tracing config is not out yet
-  if (!config.tracing) {
+  if (!config.tracingChannel) {
     // @ts-expect-error Nitro tracing config is not out yet
-    config.tracing = true;
+    config.tracingChannel = true;
   }
 
   config.modules = config.modules || [];
