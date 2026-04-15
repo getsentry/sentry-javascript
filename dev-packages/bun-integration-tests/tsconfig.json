@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["suites/**/*.ts", "*.ts"],
+
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "esModuleInterop": true,
+    "types": ["bun-types"]
+  }
+}

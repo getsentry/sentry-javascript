@@ -1,10 +1,16 @@
-import { EventType } from '@sentry-internal/rrweb';
+import { EventType, IncrementalSource, record } from '@sentry-internal/rrweb';
+import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';
 import type { RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
 import { addEventSync } from './addEvent';
 import { debug } from './logger';
+
+type MutationAttributeData = {
+  id: number;
+  attributes: Record<string, string | number | true | null>;
+};
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
 
@@ -28,6 +34,8 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
     // We also want to treat the first event as a checkout, so we handle this specifically here
     const isCheckout = _isCheckout || !hadFirstEvent;
     hadFirstEvent = true;
+
+    syncMirrorAttributesFromMutationEvent(event);
 
     if (replay.clickDetector) {
       updateClickDetectorForRecordingEvent(replay.clickDetector, event);
@@ -110,6 +118,40 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       return true;
     });
   };
+}
+
+export function syncMirrorAttributesFromMutationEvent(event: RecordingEvent): void {
+  const data = event.data;
+
+  if (
+    event.type !== EventType.IncrementalSnapshot ||
+    !data ||
+    typeof data !== 'object' ||
+    !('source' in data) ||
+    data.source !== IncrementalSource.Mutation ||
+    !('attributes' in data) ||
+    !Array.isArray(data.attributes)
+  ) {
+    return;
+  }
+
+  for (const mutation of data.attributes as MutationAttributeData[]) {
+    const node = record.mirror.getNode(mutation.id);
+    const meta = node && record.mirror.getMeta(node);
+
+    if (meta?.type !== NodeType.Element) {
+      continue;
+    }
+
+    for (const [attributeName, value] of Object.entries(mutation.attributes)) {
+      if (value === null) {
+        // oxlint-disable-next-line typescript/no-dynamic-delete
+        delete meta.attributes[attributeName];
+      } else {
+        meta.attributes[attributeName] = value;
+      }
+    }
+  }
 }
 
 /**

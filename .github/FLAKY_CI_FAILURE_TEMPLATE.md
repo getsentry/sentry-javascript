@@ -1,5 +1,5 @@
 ---
-title: '[Flaky CI]: {{ env.JOB_NAME }}'
+title: '[Flaky CI]: {{ env.JOB_NAME }} - {{ env.TEST_NAME }}'
 labels: Tests
 ---
 
@@ -13,7 +13,7 @@ Other / Unknown
 
 ### Name of Test
 
-_Not available - check the run link for details_
+{{ env.TEST_NAME }}
 
 ### Link to Test Run
 

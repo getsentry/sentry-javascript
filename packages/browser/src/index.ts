@@ -7,6 +7,7 @@ export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { graphqlClientIntegration } from './integrations/graphqlClient';
+export { viewHierarchyIntegration } from './integrations/view-hierarchy';
 
 export {
   captureConsoleIntegration,
@@ -36,6 +37,7 @@ export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
+  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';

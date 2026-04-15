@@ -62,7 +62,7 @@ export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 const BOT_USER_AGENT_RE =
   /Googlebot|Google-InspectionTool|Storebot-Google|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Facebot|facebookexternalhit|LinkedInBot|Twitterbot|Applebot/i;
 
-function _isBotUserAgent(): boolean {
+export function isBotUserAgent(): boolean {
   const nav = WINDOW.navigator as Navigator | undefined;
   if (!nav?.userAgent) {
     return false;
@@ -405,7 +405,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ...options,
   };
 
-  const _isBot = _isBotUserAgent();
+  const _isBot = isBotUserAgent();
 
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;

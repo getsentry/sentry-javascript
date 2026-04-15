@@ -65,6 +65,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
+      rewriteSources: sourcemaps?.rewriteSources,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     telemetry: telemetry ?? true,

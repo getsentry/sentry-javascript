@@ -70,10 +70,6 @@ jobs:
             any_code:
               - '!**/*.md'
 
-      - name: Get PR labels
-        id: pr-labels
-        uses: mydea/pr-labels-action@fn/bump-node20
-
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
@@ -86,7 +82,8 @@ jobs:
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
+        ${{ github.event_name == 'pull_request' && contains(toJSON(github.event.pull_request.labels.*.name), 'Gitflow')
+        }}
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
-        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
+        contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}

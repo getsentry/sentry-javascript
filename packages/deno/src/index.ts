@@ -97,6 +97,7 @@ export {
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,
+  spanStreamingIntegration,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

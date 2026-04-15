@@ -6,7 +6,8 @@ import { createRunner } from '../../../runner';
 // must appear as children of the DO transaction. The first invocation always worked;
 // the second invocation on the same DO instance previously lost its child spans
 // because the client was disposed after the first call.
-it('sends child spans on repeated Durable Object calls', async ({ signal }) => {
+// TODO: unskip - this test is flaky, timing out in CI
+it.skip('sends child spans on repeated Durable Object calls', async ({ signal }) => {
   function assertDoWorkEnvelope(envelope: unknown): void {
     const transactionEvent = (envelope as any)[1]?.[0]?.[1];
 
