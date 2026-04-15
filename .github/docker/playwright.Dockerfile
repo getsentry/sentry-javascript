@@ -20,10 +20,12 @@ RUN sudo curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION%%.*}.x | sud
     sudo npm install -g yarn@${YARN_VERSION}
 
 # Install Playwright browsers and their OS-level dependencies.
-# `--with-deps` installs required system libraries (libglib, libatk, libnss, etc.).
-RUN sudo npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
+# Use a fixed path so browsers are found regardless of HOME at runtime
+# (GHA sets HOME=/github/home inside containers, not /home/runner).
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+RUN sudo mkdir -p /opt/pw-browsers && \
+    sudo npx playwright@${PLAYWRIGHT_VERSION} install chromium webkit firefox --with-deps
 
-# Mark GitHub Actions workspace as safe for git.
-# The container may run with a different workspace owner,
-# causing "dubious ownership" errors in git operations (e.g. rollup build).
-RUN git config --global --add safe.directory '*'
+# Mark GitHub Actions workspace as safe for git (system-wide config so it
+# works regardless of HOME, which GHA overrides to /github/home).
+RUN sudo git config --system --add safe.directory '*'
