@@ -24,21 +24,13 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import {
-  DO_SPAN_NAME_PREFIX,
-  EMBEDDINGS_OPS,
-  GENERATE_CONTENT_OPS,
-  INVOKE_AGENT_OPS,
-  RERANK_OPS,
-  toolCallSpanContextMap,
-} from './constants';
+import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
   applyToolDescriptionsAndTokens,
   convertAvailableToolsToJsonString,
-  getSpanOpFromName,
   requestMessagesFromPrompt,
 } from './utils';
 import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
@@ -65,32 +57,6 @@ import {
   AI_VALUES_ATTRIBUTE,
   OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
-
-/**
- * Maps Vercel AI SDK operation names to OpenTelemetry semantic convention values
- * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
- */
-function mapVercelAiOperationName(operationName: string): string {
-  // Top-level pipeline operations map to invoke_agent
-  if (INVOKE_AGENT_OPS.has(operationName)) {
-    return 'invoke_agent';
-  }
-  // .do* operations are the actual LLM calls
-  if (GENERATE_CONTENT_OPS.has(operationName)) {
-    return 'generate_content';
-  }
-  if (EMBEDDINGS_OPS.has(operationName)) {
-    return 'embeddings';
-  }
-  if (RERANK_OPS.has(operationName)) {
-    return 'rerank';
-  }
-  if (operationName === 'ai.toolCall') {
-    return 'execute_tool';
-  }
-  // Return the original value for unknown operations
-  return operationName;
-}
 
 /**
  * Post-process spans emitted by the Vercel AI SDK.
@@ -328,7 +294,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     const rawOperationName = attributes[AI_OPERATION_ID_ATTRIBUTE]
       ? (attributes[AI_OPERATION_ID_ATTRIBUTE] as string)
       : (attributes[OPERATION_NAME_ATTRIBUTE] as string);
-    const operationName = mapVercelAiOperationName(rawOperationName);
+    const operationName = SPAN_TO_OPERATION_NAME.get(rawOperationName) ?? rawOperationName;
     attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete attributes[OPERATION_NAME_ATTRIBUTE];
@@ -429,15 +395,17 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
   span.setAttribute('ai.streaming', name.includes('stream'));
 
-  // Set the op based on the span name
-  const op = getSpanOpFromName(name);
-  if (op) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+  // Set the op based on the operation name registry
+  const operationName = SPAN_TO_OPERATION_NAME.get(name);
+  if (operationName) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `gen_ai.${operationName}`);
+  } else if (name.startsWith('ai.stream')) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
   }
 
   // For invoke_agent pipeline spans, use 'invoke_agent' as the description
   // to be consistent with other AI integrations (e.g. LangGraph)
-  if (INVOKE_AGENT_OPS.has(name)) {
+  if (operationName === 'invoke_agent') {
     if (functionId && typeof functionId === 'string') {
       span.updateName(`invoke_agent ${functionId}`);
     } else {
@@ -447,11 +415,8 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 
   const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  if (modelId) {
-    const doSpanPrefix = GENERATE_CONTENT_OPS.has(name) ? 'generate_content' : DO_SPAN_NAME_PREFIX[name];
-    if (doSpanPrefix) {
-      span.updateName(`${doSpanPrefix} ${modelId}`);
-    }
+  if (modelId && operationName) {
+    span.updateName(`${operationName} ${modelId}`);
   }
 }
 
