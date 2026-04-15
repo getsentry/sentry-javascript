@@ -1171,7 +1171,7 @@ jobs:
               const jobUrl = job.html_url;
 
               // Fetch annotations from the check run to extract failed test names
-              let testName = '_Not available - check the run link for details_';
+              let testNames = [];
               try {
                 const annotations = await github.paginate(github.rest.checks.listAnnotations, {
                   owner: context.repo.owner,
@@ -1181,48 +1181,48 @@ jobs:
                 });
 
                 const testAnnotations = annotations.filter(a => a.annotation_level === 'failure' && a.path !== '.github');
-                if (testAnnotations.length > 0) {
-                  const testNames = testAnnotations.map(a => {
-                    // The title field contains the full test name (e.g. "file.test.ts > Suite > test name")
-                    return a.title ? `- ${a.title}` : `- \`${a.path}\``;
-                  });
-                  // Deduplicate and limit to 20 entries to keep issues readable
-                  testName = [...new Set(testNames)].slice(0, 20).join('\n');
-                }
+                testNames = [...new Set(testAnnotations.map(a => a.title || a.path))];
               } catch (e) {
                 console.log(`Could not fetch annotations for ${jobName}: ${e.message}`);
               }
 
-              // Replace template variables
-              const vars = {
-                'JOB_NAME': jobName,
-                'RUN_LINK': jobUrl,
-                'TEST_NAME': testName
-              };
-
-              let title = frontmatter.match(/title:\s*'(.*)'/)[1];
-              let issueBody = bodyTemplate;
-              for (const [key, value] of Object.entries(vars)) {
-                const pattern = new RegExp(`\\{\\{\\s*env\\.${key}\\s*\\}\\}`, 'g');
-                title = title.replace(pattern, value);
-                issueBody = issueBody.replace(pattern, value);
+              // If no test names found, fall back to one issue per job
+              if (testNames.length === 0) {
+                testNames = ['Unknown test'];
               }
 
-              const existingIssue = existing.find(i => i.title === title);
+              // Create one issue per failing test for proper deduplication
+              for (const testName of testNames) {
+                const vars = {
+                  'JOB_NAME': jobName,
+                  'RUN_LINK': jobUrl,
+                  'TEST_NAME': testName
+                };
 
-              if (existingIssue) {
-                console.log(`Issue already exists for ${jobName}: #${existingIssue.number}`);
-                continue;
+                let title = frontmatter.match(/title:\s*'(.*)'/)[1];
+                let issueBody = bodyTemplate;
+                for (const [key, value] of Object.entries(vars)) {
+                  const pattern = new RegExp(`\\{\\{\\s*env\\.${key}\\s*\\}\\}`, 'g');
+                  title = title.replace(pattern, value);
+                  issueBody = issueBody.replace(pattern, value);
+                }
+
+                const existingIssue = existing.find(i => i.title === title);
+
+                if (existingIssue) {
+                  console.log(`Issue already exists for "${testName}" in ${jobName}: #${existingIssue.number}`);
+                  continue;
+                }
+
+                const newIssue = await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: title,
+                  body: issueBody.trim(),
+                  labels: ['Tests']
+                });
+                console.log(`Created issue #${newIssue.data.number} for "${testName}" in ${jobName}`);
               }
-
-              const newIssue = await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: title,
-                body: issueBody.trim(),
-                labels: ['Tests']
-              });
-              console.log(`Created issue #${newIssue.data.number} for ${jobName}`);
             }
 
       - name: Check for failures
