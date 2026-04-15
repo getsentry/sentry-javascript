@@ -13,12 +13,12 @@ env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_BUILD_PATHS: |
-    ${{ github.workspace }}/packages/*/*.tgz
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/build
-    ${{ github.workspace }}/packages/*/build
+    packages/*/*.tgz
+    node_modules
+    packages/*/node_modules
+    dev-packages/*/node_modules
+    dev-packages/*/build
+    packages/*/build
 
 permissions:
   contents: read

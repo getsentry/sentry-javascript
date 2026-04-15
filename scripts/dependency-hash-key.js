@@ -36,7 +36,7 @@ function outputDependencyCacheKey() {
   // We log the output in a way that the GitHub Actions can append it to the output
   // We prefix it with `dependencies-` so it is easier to identify in the logs
   // eslint-disable-next-line no-console
-  console.log(`hash=v2-dependencies-${hash}`);
+  console.log(`hash=v3-dependencies-${hash}`);
 }
 
 function getNormalizedDependencies(packageJson, workspacePackageNames) {
