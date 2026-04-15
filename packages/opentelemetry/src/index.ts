@@ -49,6 +49,8 @@ export { SentrySampler, wrapSamplingDecision } from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
+export { getSentryResource } from './resource';
+
 export { withStreamedSpan } from '@sentry/core';
 
 // Legacy
