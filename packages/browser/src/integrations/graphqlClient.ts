@@ -67,7 +67,14 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       return;
     }
 
-    const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
+    // Fall back to the `url` attribute too: the fetch instrumentation only
+    // sets `url.full` / `http.url` for absolute URLs, but populates `url`
+    // for relative GraphQL endpoints. Without this fallback the integration
+    // silently skips relative endpoints. (#20292)
+    const httpUrl =
+      spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] ||
+      spanAttributes['http.url'] ||
+      spanAttributes['url'];
     const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
 
     if (!isString(httpUrl) || !isString(httpMethod)) {
