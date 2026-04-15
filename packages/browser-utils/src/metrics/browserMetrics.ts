@@ -28,6 +28,7 @@ import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan 
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
+import { DEBUG_BUILD } from '../debug-build';
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
 }
@@ -431,7 +432,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
         const attrKey = customAttrName ?? `browser.web_vital.${shortWebVitalName}.value`;
         span.setAttribute(attrKey, value);
-        debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
+        DEBUG_BUILD && debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
       };
       // for streamed pageload spans, we add the web vital measurements as attributes.
       // We omit LCP, CLS and INP because they're tracked separately as spans
