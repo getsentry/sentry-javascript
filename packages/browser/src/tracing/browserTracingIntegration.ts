@@ -463,6 +463,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
+          spanStreamingEnabled,
         });
         setActiveIdleSpan(client, undefined);
 

@@ -22,13 +22,13 @@ import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstr
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 import type { PerformanceEventTiming } from './instrument';
+
 interface WebVitalSpanOptions {
   name: string;
   op: string;
   origin: string;
   metricName: 'lcp' | 'cls' | 'inp';
   value: number;
-  unit: string;
   attributes?: SpanAttributes;
   parentSpan?: Span;
   reportEvent?: WebVitalReportEvent;
@@ -147,7 +147,6 @@ export function _sendLcpSpan(
     origin: 'auto.http.browser.lcp',
     metricName: 'lcp',
     value: lcpValue,
-    unit: 'millisecond',
     attributes,
     parentSpan: pageloadSpan,
     reportEvent,
@@ -210,7 +209,6 @@ export function _sendClsSpan(
     origin: 'auto.http.browser.cls',
     metricName: 'cls',
     value: clsValue,
-    unit: '',
     attributes,
     parentSpan: pageloadSpan,
     reportEvent,
@@ -279,7 +277,6 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming): v
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
-    unit: 'millisecond',
     attributes: {
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
       'sentry.transaction': routeName,
