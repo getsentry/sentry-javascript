@@ -16,6 +16,15 @@ import type { WebVitalReportEvent } from './utils';
 import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
 
 /**
+ * 60 seconds is the maximum for a plausible LCP value.
+ */
+export const MAX_PLAUSIBLE_LCP_DURATION = 60_000;
+
+export function isValidLcpMetric(lcpValue: number | undefined): lcpValue is number {
+  return lcpValue != null && lcpValue >= 0 && lcpValue <= MAX_PLAUSIBLE_LCP_DURATION;
+}
+
+/**
  * Starts tracking the Largest Contentful Paint on the current page and collects the value once
  *
  * - the page visibility is hidden
@@ -34,7 +43,7 @@ export function trackLcpAsStandaloneSpan(client: Client): void {
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
-    if (!entry) {
+    if (!entry || !isValidLcpMetric(metric.value)) {
       return;
     }
     standaloneLcpValue = metric.value;
@@ -56,6 +65,10 @@ export function _sendStandaloneLcpSpan(
   pageloadSpanId: string,
   reportEvent: WebVitalReportEvent,
 ) {
+  if (!isValidLcpMetric(lcpValue)) {
+    return;
+  }
+
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
