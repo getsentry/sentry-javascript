@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import { TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
+import { publishPackages } from './lib/publishPackages';
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
 function groupCIOutput(groupTitle: string, fn: () => void): void {
@@ -41,16 +42,7 @@ export function registrySetup(): void {
       throw new Error('Start Registry Process failed.');
     }
 
-    // Publish packages to fake registry
-    const publishResult = childProcess.spawnSync('yarn', ['ts-node', 'publish-packages.ts', '--transpile-only'], {
-      cwd: __dirname,
-      encoding: 'utf8',
-      stdio: 'inherit',
-    });
-
-    if (publishResult.status !== 0) {
-      throw new Error(`Publishing packages to test registry failed with exit code ${publishResult.status}`);
-    }
+    publishPackages();
   });
 
   console.log('');
