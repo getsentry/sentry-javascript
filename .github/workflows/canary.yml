@@ -140,11 +140,6 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
 
-      - name: Get node version
-        id: versions
-        run: |
-          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
       - name: Validate Verdaccio
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
@@ -152,8 +147,6 @@ jobs:
       - name: Prepare Verdaccio
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
-        env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application

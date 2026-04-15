@@ -1,10 +1,6 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
-import * as path from 'path';
-import { PUBLISH_PACKAGES_DOCKER_IMAGE_NAME, TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
-
-const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
-const repositoryRoot = path.resolve(__dirname, '../..');
+import { TEST_REGISTRY_CONTAINER_NAME, VERDACCIO_VERSION } from './lib/constants';
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
 function groupCIOutput(groupTitle: string, fn: () => void): void {
@@ -45,55 +41,15 @@ export function registrySetup(): void {
       throw new Error('Start Registry Process failed.');
     }
 
-    // Build container image that is uploading our packages to fake registry with specific Node.js/npm version
-    const buildPublishImageProcessResult = childProcess.spawnSync(
-      'docker',
-      [
-        'build',
-        '--tag',
-        PUBLISH_PACKAGES_DOCKER_IMAGE_NAME,
-        '--file',
-        './Dockerfile.publish-packages',
-        ...(publishScriptNodeVersion ? ['--build-arg', `NODE_VERSION=${publishScriptNodeVersion}`] : []),
-        '.',
-      ],
-      {
-        encoding: 'utf8',
-        stdio: 'inherit',
-      },
-    );
+    // Publish packages to fake registry
+    const publishResult = childProcess.spawnSync('yarn', ['ts-node', 'publish-packages.ts', '--transpile-only'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: 'inherit',
+    });
 
-    if (buildPublishImageProcessResult.status !== 0) {
-      throw new Error('Build Publish Image failed.');
-    }
-
-    // Run container that uploads our packages to fake registry
-    const publishImageContainerRunProcess = childProcess.spawnSync(
-      'docker',
-      [
-        'run',
-        '--rm',
-        '-v',
-        `${repositoryRoot}:/sentry-javascript`,
-        '--network',
-        'host',
-        PUBLISH_PACKAGES_DOCKER_IMAGE_NAME,
-      ],
-      {
-        encoding: 'utf8',
-        stdio: 'inherit',
-      },
-    );
-
-    const statusCode = publishImageContainerRunProcess.status;
-
-    if (statusCode !== 0) {
-      if (statusCode === 137) {
-        throw new Error(
-          `Publish Image Container failed with exit code ${statusCode}, possibly due to memory issues. Consider increasing the memory limit for the container.`,
-        );
-      }
-      throw new Error(`Publish Image Container failed with exit code ${statusCode}`);
+    if (publishResult.status !== 0) {
+      throw new Error(`Publishing packages to test registry failed with exit code ${publishResult.status}`);
     }
   });
 
