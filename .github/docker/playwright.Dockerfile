@@ -17,16 +17,6 @@ RUN apt-get update && \
       gnupg && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Volta for Node.js/Yarn version management (matches repo setup).
-# Node and Yarn versions are pinned in the repo's package.json volta config.
-ENV VOLTA_HOME=/root/.volta
-ENV PATH=$VOLTA_HOME/bin:$PATH
-RUN curl https://get.volta.sh | bash
-
-# Install Node.js and Yarn via Volta at the versions pinned in the repo
-RUN volta install node@20.19.2 && \
-    volta install yarn@1.22.22
-
 # Install Playwright browsers and their OS-level dependencies.
 # `npx playwright install --with-deps` installs both browsers and
 # any missing system libraries (libglib, libatk, libnss, etc.).
