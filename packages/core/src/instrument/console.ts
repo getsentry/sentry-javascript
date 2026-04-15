@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import type { ConsoleLevel, HandlerDataConsole } from '../types-hoist/instrument';
+import type { WrappedFunction } from '../types-hoist/wrappedfunction';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils/debug-logger';
-import { fill } from '../utils/object';
+import { fill, markFunctionWrapped } from '../utils/object';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
@@ -28,16 +29,70 @@ function instrumentConsole(): void {
       return;
     }
 
-    fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
-      originalConsoleMethods[level] = originalConsoleMethod;
-
-      return function (...args: any[]): void {
-        const handlerData: HandlerDataConsole = { args, level };
-        triggerHandlers('console', handlerData);
-
-        const log = originalConsoleMethods[level];
-        log?.apply(GLOBAL_OBJ.console, args);
-      };
-    });
+    if (typeof process !== 'undefined' && !!process.env.LAMBDA_TASK_ROOT) {
+      // The AWS Lambda runtime replaces console methods AFTER our patch, which overwrites them.
+      patchWithDefineProperty(level);
+    } else {
+      patchWithFill(level);
+    }
   });
+}
+
+function patchWithFill(level: ConsoleLevel): void {
+  fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
+    originalConsoleMethods[level] = originalConsoleMethod;
+
+    return function (...args: any[]): void {
+      triggerHandlers('console', { args, level } as HandlerDataConsole);
+
+      const log = originalConsoleMethods[level];
+      log?.apply(GLOBAL_OBJ.console, args);
+    };
+  });
+}
+
+function patchWithDefineProperty(level: ConsoleLevel): void {
+  const originalMethod = GLOBAL_OBJ.console[level] as (...args: unknown[]) => void;
+  originalConsoleMethods[level] = originalMethod;
+
+  let underlying: Function = originalMethod;
+
+  const wrapper = function (...args: any[]): void {
+    triggerHandlers('console', { args, level });
+    underlying.apply(GLOBAL_OBJ.console, args);
+  };
+  markFunctionWrapped(wrapper as unknown as WrappedFunction, originalMethod as unknown as WrappedFunction);
+
+  try {
+    let current: any = wrapper;
+
+    Object.defineProperty(GLOBAL_OBJ.console, level, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return current;
+      },
+      // When `console[level]` is set to a new value, we want to check if it's something not done by us but by e.g. the Lambda runtime.
+      set(newValue) {
+        if (
+          typeof newValue === 'function' &&
+          // Ignore if it's set to the wrapper (e.g. by our own patch or consoleSandbox), which would cause an infinite loop.
+          newValue !== wrapper &&
+          // Function is not one of our wrappers (which have __sentry_original__) and not the original (stored in originalConsoleMethods)
+          newValue !== originalConsoleMethods[level] &&
+          !(newValue as WrappedFunction).__sentry_original__
+        ) {
+          underlying = newValue;
+          originalConsoleMethods[level] = newValue;
+          current = wrapper;
+        } else {
+          // Accept as-is: consoleSandbox restores, other Sentry wrappers, or non-functions
+          current = newValue;
+        }
+      },
+    });
+  } catch {
+    // In case defineProperty fails (e.g. in older browsers), fall back to fill-style patching
+    patchWithFill(level);
+  }
 }
