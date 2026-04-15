@@ -195,8 +195,7 @@ describe('setupSentryNitroModule', () => {
     const config: NitroConfig = {};
     setupSentryNitroModule(config);
 
-    // @ts-expect-error -- Nitro tracing config is not out yet
-    expect(config.tracing).toBe(true);
+    expect(config.tracingChannel).toBe(true);
   });
 
   it('adds the sentry module', () => {
