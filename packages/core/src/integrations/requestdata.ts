@@ -1,4 +1,5 @@
 import { defineIntegration } from '../integration';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { RequestEventData } from '../types-hoist/request';
@@ -40,6 +41,9 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
+    setup(client) {
+      client.on('processSpan', span => {});
+    },
     processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;

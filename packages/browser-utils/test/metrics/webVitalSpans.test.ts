@@ -434,8 +434,8 @@ describe('_sendInpSpan', () => {
 
   it('uses cached element name and span from registerInpInteractionListener', () => {
     const mockRootSpan = createMockPageloadSpan('span-42');
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ description: 'cached-route' } as any);
     vi.mocked(SentryCore.spanToStreamedSpanJSON).mockReturnValue({
+      name: 'cached-route',
       attributes: { 'sentry.op': 'navigation' },
     } as any);
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
