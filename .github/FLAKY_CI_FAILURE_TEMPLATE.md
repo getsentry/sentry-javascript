@@ -13,7 +13,7 @@ Other / Unknown
 
 ### Name of Test
 
-_Not available - check the run link for details_
+{{ env.TEST_NAME }}
 
 ### Link to Test Run
 

@@ -5,6 +5,11 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
+// TEMPORARY: Guaranteed failure to verify test name extraction in CI
+test('TEMPORARY - should fail to test annotation extraction', () => {
+  expect(true).toBe(false);
+});
+
 test('should set primitive tags', async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expect({
