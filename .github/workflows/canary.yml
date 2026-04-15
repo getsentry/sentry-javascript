@@ -145,8 +145,6 @@ jobs:
             label: 'nestjs-microservices (latest)'
 
     steps:
-      - name: Fix HOME for root user
-        run: echo "HOME=/root" >> $GITHUB_ENV
       - name: Check out current commit
         uses: actions/checkout@v6
         with:
