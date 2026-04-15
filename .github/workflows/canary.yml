@@ -59,6 +59,7 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
+          enableCrossOsArchive: true
       - name: Install dependencies
         run: yarn install
       - name: Build packages
@@ -163,6 +164,7 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
+          enableCrossOsArchive: true
 
       - name: Validate Verdaccio
         run: yarn test:validate
