@@ -4,52 +4,24 @@ export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
 };
 
-// We need to be careful not to inject anything before any `"use strict";`s or "use client"s or really any other directives.
+/**
+ * Finds the index in user code at which to inject statements.
+ *
+ * The injection must come AFTER all prologue directives ("use strict", "use client", etc.)
+ * and any surrounding whitespace/comments, but before any actual statements.
+ *
+ * Handles multiple directives, comments between directives, directives without semicolons,
+ * escape sequences in strings, and strings followed by operators (which are not directives).
+ */
 export function findInjectionIndexAfterDirectives(userCode: string): number {
   let index = 0;
-  let lastDirectiveEndIndex: number | undefined;
-
-  while (index < userCode.length) {
-    const statementStartIndex = skipWhitespaceAndComments(userCode, index);
-    if (statementStartIndex === undefined) {
-      return lastDirectiveEndIndex ?? 0;
-    }
-
-    index = statementStartIndex;
-    if (statementStartIndex === userCode.length) {
-      return lastDirectiveEndIndex ?? statementStartIndex;
-    }
-
-    const quote = userCode[statementStartIndex];
-    if (quote !== '"' && quote !== "'") {
-      return lastDirectiveEndIndex ?? statementStartIndex;
-    }
-
-    const stringEndIndex = findStringLiteralEnd(userCode, statementStartIndex);
-    if (stringEndIndex === undefined) {
-      return lastDirectiveEndIndex ?? statementStartIndex;
-    }
-
-    const statementEndIndex = findDirectiveTerminator(userCode, stringEndIndex);
-    if (statementEndIndex === undefined) {
-      return lastDirectiveEndIndex ?? statementStartIndex;
-    }
-
-    index = statementEndIndex;
-    lastDirectiveEndIndex = statementEndIndex;
-  }
-
-  return lastDirectiveEndIndex ?? index;
-}
-
-function skipWhitespaceAndComments(userCode: string, startIndex: number): number | undefined {
-  let index = startIndex;
+  let afterLastDirective: number | undefined;
 
   while (index < userCode.length) {
     const char = userCode[index];
 
     if (char && /\s/.test(char)) {
-      index += 1;
+      index++;
       continue;
     }
 
@@ -62,20 +34,41 @@ function skipWhitespaceAndComments(userCode: string, startIndex: number): number
     if (userCode.startsWith('/*', index)) {
       const commentEndIndex = userCode.indexOf('*/', index + 2);
       if (commentEndIndex === -1) {
-        return undefined;
+        return afterLastDirective ?? 0;
       }
 
       index = commentEndIndex + 2;
       continue;
     }
 
-    break;
+    if (char === '"' || char === "'") {
+      const stringEnd = findStringLiteralEnd(userCode, index);
+      if (stringEnd === null) {
+        return afterLastDirective ?? index;
+      }
+
+      const terminatorEnd = findDirectiveTerminator(userCode, stringEnd);
+      if (terminatorEnd === null) {
+        return afterLastDirective ?? index;
+      }
+
+      afterLastDirective = terminatorEnd;
+      index = terminatorEnd;
+      continue;
+    }
+
+    return afterLastDirective ?? index;
   }
 
-  return index;
+  return afterLastDirective ?? index;
 }
 
-function findStringLiteralEnd(userCode: string, startIndex: number): number | undefined {
+/**
+ * Scans a string literal starting at `start` (which must be a quote character),
+ * correctly handling escape sequences and rejecting unterminated/multiline strings.
+ * Returns the index after the closing quote, or null if the string is unterminated.
+ */
+function findStringLiteralEnd(userCode: string, startIndex: number): number | null {
   const quote = userCode[startIndex];
   let index = startIndex + 1;
 
@@ -83,28 +76,34 @@ function findStringLiteralEnd(userCode: string, startIndex: number): number | un
     const char = userCode[index];
 
     if (char === '\\') {
+      // skip escaped character
       index += 2;
       continue;
     }
 
     if (char === quote) {
-      return index + 1;
+      return index + 1; // found closing quote
     }
 
     if (char === '\n' || char === '\r') {
-      return undefined;
+      return null; // unterminated
     }
 
-    index += 1;
+    index++;
   }
 
-  return undefined;
+  return null; // unterminated
 }
 
-function findDirectiveTerminator(userCode: string, startIndex: number): number | undefined {
+/**
+ * Starting at `i`, skips horizontal whitespace and single-line block comments,
+ * then checks for a valid directive terminator: `;`, newline, `//`, or EOF.
+ * Returns the index after the terminator, or null if no valid terminator is found
+ * (meaning the preceding string literal is not a directive).
+ */
+function findDirectiveTerminator(userCode: string, startIndex: number): number | null {
   let index = startIndex;
 
-  // Only a bare string literal followed by a statement terminator counts as a directive.
   while (index < userCode.length) {
     const char = userCode[index];
 
@@ -117,7 +116,7 @@ function findDirectiveTerminator(userCode: string, startIndex: number): number |
     }
 
     if (char && /\s/.test(char)) {
-      index += 1;
+      index++;
       continue;
     }
 
@@ -128,7 +127,7 @@ function findDirectiveTerminator(userCode: string, startIndex: number): number |
     if (userCode.startsWith('/*', index)) {
       const commentEndIndex = userCode.indexOf('*/', index + 2);
       if (commentEndIndex === -1) {
-        return undefined;
+        return null;
       }
 
       const comment = userCode.slice(index + 2, commentEndIndex);
@@ -140,10 +139,10 @@ function findDirectiveTerminator(userCode: string, startIndex: number): number |
       continue;
     }
 
-    return undefined;
+    return null; // operator or any other token → not a directive
   }
 
-  return index;
+  return index; // EOF is a valid terminator
 }
 
 /**
