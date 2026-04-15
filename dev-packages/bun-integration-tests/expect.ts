@@ -59,6 +59,8 @@ export function expectedEvent(event: Event, { sdk }: { sdk: 'bun' | 'hono' }): E
     modules: expect.any(Object),
     sdk: getSdk(sdk),
     server_name: expect.any(String),
+    // release is auto-detected from GitHub CI env vars, so only expect it if we know it will be there
+    ...(process.env.GITHUB_SHA ? { release: expect.any(String) } : {}),
     ...event,
     contexts: defaultContexts(event.contexts),
   });
@@ -79,7 +81,8 @@ export function eventEnvelope(
         trace_id: UUID_MATCHER,
         sample_rate: expect.any(String),
         sampled: expect.any(String),
-        ...(event.release !== undefined && { release: expect.any(String) }),
+        // release is auto-detected from GitHub CI env vars, so only expect it if we know it will be there
+        ...(process.env.GITHUB_SHA ? { release: expect.any(String) } : {}),
         ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
       },
     },
