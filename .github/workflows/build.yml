@@ -922,8 +922,15 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_e2e_prepare]
+      && needs.job_playwright_image.result == 'success'
+    needs: [job_get_metadata, job_build, job_e2e_prepare, job_playwright_image]
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.job_playwright_image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -989,18 +996,18 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ../tmp-test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Run E2E test
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
         env:
@@ -1011,7 +1018,7 @@ jobs:
         if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
-          path: ${{ runner.temp }}/test-application/test-results
+          path: dev-packages/tmp-test-application/test-results
           overwrite: true
           retention-days: 7
 
@@ -1025,7 +1032,7 @@ jobs:
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: ${{ runner.temp }}/test-application/event-dumps
+          path: dev-packages/tmp-test-application/event-dumps
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
@@ -1039,9 +1046,16 @@ jobs:
     if:
       always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_e2e_prepare.result == 'success' &&
       needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build, job_e2e_prepare]
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' &&
+      needs.job_playwright_image.result == 'success'
+    needs: [job_get_metadata, job_build, job_e2e_prepare, job_playwright_image]
     runs-on: ubuntu-24.04
+    container:
+      image: ${{ needs.job_playwright_image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --ipc=host --user root
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1094,16 +1108,16 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ../tmp-test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
       - name: Run E2E test
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
 
@@ -1117,7 +1131,7 @@ jobs:
         if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: ${{ runner.temp }}/test-application/event-dumps
+          path: dev-packages/tmp-test-application/event-dumps
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore

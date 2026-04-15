@@ -173,16 +173,16 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ../tmp-test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 7
         run: yarn ${{ matrix.build-command }}
 
       - name: Run E2E test
-        working-directory: ${{ runner.temp }}/test-application
+        working-directory: dev-packages/tmp-test-application
         timeout-minutes: 15
         run: yarn test:assert
 
