@@ -81,8 +81,11 @@ async function stopVerdaccioChild(): Promise<void> {
   }
   child.kill('SIGTERM');
   await new Promise<void>(resolve => {
-    child.once('exit', () => resolve());
-    setTimeout(resolve, 5000);
+    const timeoutId = setTimeout(resolve, 5000);
+    child.once('exit', () => {
+      clearTimeout(timeoutId);
+      resolve();
+    });
   });
 }
 
