@@ -39,7 +39,7 @@ describe('captureErrorHook', () => {
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
       expect.objectContaining({
-        mechanism: { handled: false, type: 'auto.function.nitro' },
+        mechanism: { handled: false, type: 'auto.function.nitro.captureErrorHook' },
       }),
     );
   });
@@ -98,7 +98,7 @@ describe('captureErrorHook', () => {
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
       expect.objectContaining({
-        mechanism: { handled: false, type: 'auto.function.nitro' },
+        mechanism: { handled: false, type: 'auto.function.nitro.captureErrorHook' },
       }),
     );
   });

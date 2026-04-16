@@ -68,7 +68,7 @@ function onTraceEnd(data: { span?: Span; result?: unknown }): void {
 }
 
 function onTraceError(data: { span?: Span; error: unknown }): void {
-  captureException(data.error);
+  captureException(data.error, { mechanism: { type: 'auto.http.nitro.onTraceError', handled: false } });
   data.span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   data.span?.end();
 }

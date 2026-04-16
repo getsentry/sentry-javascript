@@ -19,7 +19,7 @@ test('Sends an error event to Sentry', async ({ request }) => {
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
     expect.objectContaining({
       handled: false,
-      type: 'auto.function.nitro',
+      type: 'auto.function.nitro.captureErrorHook',
     }),
   );
 

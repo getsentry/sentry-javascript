@@ -70,7 +70,7 @@ export async function captureErrorHook(error: Error, errorContext: CapturedError
 
   captureException(error, {
     captureContext: { contexts: { nitro: structuredContext } },
-    mechanism: { handled: false, type: 'auto.function.nitro' },
+    mechanism: { handled: false, type: 'auto.function.nitro.captureErrorHook' },
   });
 
   await flushIfServerless();
