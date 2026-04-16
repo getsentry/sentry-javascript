@@ -39,15 +39,15 @@ async function handleSourceMapUpload(nitro: Nitro, options?: SentryNitroOptions)
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
 
+  await sentryBuildPluginManager.injectDebugIds([outputDir]);
+
   if (options?.sourcemaps?.disable !== 'disable-upload') {
-    await sentryBuildPluginManager.injectDebugIds([outputDir]);
     await sentryBuildPluginManager.uploadSourcemaps([outputDir], {
       // We don't prepare the artifacts because we injected debug IDs manually before
       prepareArtifacts: false,
     });
+    await sentryBuildPluginManager.deleteArtifacts();
   }
-
-  await sentryBuildPluginManager.deleteArtifacts();
 }
 
 /**
