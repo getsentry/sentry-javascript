@@ -9,6 +9,15 @@ const VERDACCIO_PORT = 4873;
 
 let verdaccioChild: ChildProcess | undefined;
 
+export interface RegistrySetupOptions {
+  /**
+   * When true, Verdaccio is spawned detached with stdio disconnected from the parent.
+   * Use for `prepare.ts` so `yarn test:prepare` can exit while the registry keeps running.
+   * (Inherited stdio otherwise keeps the parent process tied to the child on many systems.)
+   */
+  daemonize?: boolean;
+}
+
 /** Stops any Verdaccio runner from a previous prepare/run so port 4873 is free. */
 function killStrayVerdaccioRunner(): void {
   spawnSync('pkill', ['-f', 'verdaccio-runner.mjs'], { stdio: 'ignore' });
@@ -55,10 +64,12 @@ function waitUntilVerdaccioResponds(maxRetries: number = 60): Promise<void> {
   })();
 }
 
-function startVerdaccioChild(configPath: string, port: number): ChildProcess {
+function startVerdaccioChild(configPath: string, port: number, daemonize: boolean): ChildProcess {
   const runnerPath = path.join(__dirname, 'verdaccio-runner.mjs');
+  const verbose = process.env.E2E_VERDACCIO_VERBOSE === '1';
   return spawn(process.execPath, [runnerPath, configPath, String(port)], {
-    stdio: 'inherit',
+    detached: daemonize,
+    stdio: daemonize && !verbose ? 'ignore' : 'inherit',
   });
 }
 
@@ -75,7 +86,8 @@ async function stopVerdaccioChild(): Promise<void> {
   });
 }
 
-export async function registrySetup(): Promise<void> {
+export async function registrySetup(options: RegistrySetupOptions = {}): Promise<void> {
+  const { daemonize = false } = options;
   await groupCIOutput('Test Registry Setup', async () => {
     killStrayVerdaccioRunner();
 
@@ -89,7 +101,7 @@ export async function registrySetup(): Promise<void> {
     // same Node event loop as ts-node (in-process runServer + npm publish could hang).
     console.log('Starting Verdaccio...');
 
-    verdaccioChild = startVerdaccioChild(configPath, VERDACCIO_PORT);
+    verdaccioChild = startVerdaccioChild(configPath, VERDACCIO_PORT, daemonize);
 
     try {
       await waitUntilVerdaccioResponds(60);
