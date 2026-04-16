@@ -4,7 +4,7 @@
  * Runs rollup builds in parallel for configs that export an array.
  * Usage: node rollupParallel.mjs <config-path>
  */
-import { cpus } from 'os';
+import { availableParallelism } from 'os';
 import { pathToFileURL } from 'url';
 import { resolve } from 'path';
 import { rollup } from 'rollup';
@@ -16,7 +16,7 @@ if (!configPath) {
 }
 
 const { default: configs } = await import(pathToFileURL(resolve(configPath)).href);
-const concurrency = cpus().length;
+const concurrency = availableParallelism();
 const queue = [...configs];
 let done = 0;
 
