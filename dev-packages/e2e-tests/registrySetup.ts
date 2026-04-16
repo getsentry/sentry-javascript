@@ -11,9 +11,9 @@ let verdaccioChild: ChildProcess | undefined;
 
 export interface RegistrySetupOptions {
   /**
-   * When true, Verdaccio is spawned detached with stdio disconnected from the parent.
-   * Use for `prepare.ts` so `yarn test:prepare` can exit while the registry keeps running.
-   * (Inherited stdio otherwise keeps the parent process tied to the child on many systems.)
+   * When true, Verdaccio is spawned detached with stdio disconnected from the parent, then
+   * the child is unref'd after a successful setup so the parent can exit while the registry
+   * keeps running (e.g. `yarn test:prepare` then installs against 127.0.0.1:4873).
    */
   daemonize?: boolean;
 }
@@ -86,6 +86,15 @@ async function stopVerdaccioChild(): Promise<void> {
   });
 }
 
+/** Drop the child handle so the parent process can exit; Verdaccio keeps running. */
+function detachVerdaccioRunner(): void {
+  const child = verdaccioChild;
+  verdaccioChild = undefined;
+  if (child && !child.killed) {
+    child.unref();
+  }
+}
+
 export async function registrySetup(options: RegistrySetupOptions = {}): Promise<void> {
   const { daemonize = false } = options;
   await groupCIOutput('Test Registry Setup', async () => {
@@ -114,20 +123,12 @@ export async function registrySetup(options: RegistrySetupOptions = {}): Promise
     }
   });
 
-  console.log('');
-  console.log('');
-}
-
-/**
- * Detach the Verdaccio child so `ts-node` can exit while the registry keeps running
- * (e.g. CI: `yarn test:prepare` then `pnpm test:build` in later steps).
- */
-export function registryRelease(): void {
-  const child = verdaccioChild;
-  verdaccioChild = undefined;
-  if (child && !child.killed) {
-    child.unref();
+  if (daemonize) {
+    detachVerdaccioRunner();
   }
+
+  console.log('');
+  console.log('');
 }
 
 export async function registryCleanup(): Promise<void> {
