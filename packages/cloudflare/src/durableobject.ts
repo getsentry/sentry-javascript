@@ -8,6 +8,7 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
+import { getPrototypeMethodFilter } from './utils/rpcOptions';
 import type { UncheckedMethod } from './wrapMethodWithSentry';
 import { wrapMethodWithSentry } from './wrapMethodWithSentry';
 
@@ -54,7 +55,7 @@ export function instrumentDurableObjectWithSentry<
       setAsyncLocalStorageAsyncContextStrategy();
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
-      const instrumentedEnv = instrumentEnv(env);
+      const instrumentedEnv = instrumentEnv(env, options);
 
       const obj = new target(context, instrumentedEnv);
 
@@ -152,8 +153,10 @@ export function instrumentDurableObjectWithSentry<
         configurable: false,
       });
 
-      if (options?.instrumentPrototypeMethods) {
-        instrumentPrototype(target, options.instrumentPrototypeMethods);
+      const methodFilter = getPrototypeMethodFilter(options);
+
+      if (methodFilter) {
+        instrumentPrototype(target, methodFilter);
       }
 
       return obj;

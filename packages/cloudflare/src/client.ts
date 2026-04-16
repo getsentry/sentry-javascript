@@ -161,6 +161,47 @@ interface BaseCloudflareOptions {
   skipOpenTelemetrySetup?: boolean;
 
   /**
+   * Enable trace propagation for RPC calls between Workers, Durable Objects, and Service Bindings.
+   *
+   * When enabled, trace context (sentry-trace + baggage) is propagated across:
+   * - `stub.fetch()` calls to Durable Objects (via HTTP headers)
+   * - Service binding `fetch()` calls (via HTTP headers)
+   * - RPC method calls to Durable Objects (via trailing argument)
+   *
+   * When enabled on the **receiver side** (DurableObject), the SDK will also:
+   * - Extract and continue traces from incoming RPC calls
+   * - Create spans for each RPC method invocation
+   * - Capture errors thrown by RPC methods
+   *
+   * **Important:** This option should be enabled on **both sides** for full trace propagation.
+   *
+   * @default false
+   * @example
+   * ```ts
+   * // Worker side (caller)
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     enableRpcTracePropagation: true,
+   *   }),
+   *   handler,
+   * );
+   *
+   * // Durable Object side (receiver)
+   * export const MyDO = Sentry.instrumentDurableObjectWithSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     enableRpcTracePropagation: true,
+   *   }),
+   *   MyDOBase,
+   * );
+   * ```
+   */
+  enableRpcTracePropagation?: boolean;
+
+  /**
+   * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
+   *
    * Enable instrumentation of prototype methods for DurableObjects.
    *
    * When `true`, the SDK will wrap all methods on the DurableObject prototype chain
@@ -168,18 +209,7 @@ interface BaseCloudflareOptions {
    *
    * When an array of strings is provided, only the specified method names will be instrumented.
    *
-   * This feature adds runtime overhead as it wraps methods at the prototype level.
-   * Only enable this if you need automatic instrumentation of prototype methods.
-   *
    * @default false
-   * @example
-   * ```ts
-   * // Instrument all prototype methods
-   * instrumentPrototypeMethods: true
-   *
-   * // Instrument only specific methods
-   * instrumentPrototypeMethods: ['myMethod', 'anotherMethod']
-   * ```
    */
   instrumentPrototypeMethods?: boolean | string[];
 }
