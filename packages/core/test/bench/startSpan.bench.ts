@@ -72,4 +72,34 @@ describe('startSpan pipeline - realistic scope', () => {
       }
     });
   });
+
+  bench('root span + 100 child spans', () => {
+    startSpan({ name: 'GET /api/users', op: 'http.server' }, () => {
+      for (let i = 0; i < 100; i++) {
+        startSpan({ name: `operation.${i}`, op: 'db' }, span => {
+          span.setAttribute('db.system', 'postgresql');
+        });
+      }
+    });
+  });
+
+  bench('root span + 1000 child spans', () => {
+    startSpan({ name: 'GET /api/users', op: 'http.server' }, () => {
+      for (let i = 0; i < 1000; i++) {
+        startSpan({ name: `operation.${i}`, op: 'db' }, span => {
+          span.setAttribute('db.system', 'postgresql');
+        });
+      }
+    });
+  });
+
+  bench('root span + 10000 child spans', () => {
+    startSpan({ name: 'GET /api/users', op: 'http.server' }, () => {
+      for (let i = 0; i < 10000; i++) {
+        startSpan({ name: `operation.${i}`, op: 'db' }, span => {
+          span.setAttribute('db.system', 'postgresql');
+        });
+      }
+    });
+  });
 });
