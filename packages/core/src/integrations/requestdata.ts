@@ -1,4 +1,5 @@
 import { defineIntegration } from '../integration';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { RequestEventData } from '../types-hoist/request';

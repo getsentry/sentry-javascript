@@ -164,10 +164,9 @@ export function instrumentWorkflowWithSentry<
     construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
-      args[0] = context;
-      args[1] = instrumentEnv(env as Record<string, unknown>) as E;
-
       const options = optionsCallback(env);
+      args[0] = context;
+      args[1] = instrumentEnv(env as Record<string, unknown>, options) as E;
       const instance = Reflect.construct(target, args, newTarget) as T;
       return new Proxy(instance, {
         get(obj, prop, receiver) {
