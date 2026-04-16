@@ -1,6 +1,5 @@
 import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugin-core';
 import { createSentryBuildPluginManager } from '@sentry/bundler-plugin-core';
-import { debug } from '@sentry/core';
 import type { Nitro, NitroConfig } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 
@@ -107,21 +106,26 @@ export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: 
   }
 
   if (config.sourcemap === false) {
-    debug.warn(
-      '[Sentry] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
     );
     return;
   }
 
   if (config.sourcemap === true) {
     if (moduleOptions?.debug) {
-      debug.log('[Sentry] Source maps are already enabled. Sentry will upload them for error unminification.');
+      // eslint-disable-next-line no-console
+      console.log('[@sentry/nitro] Source maps are already enabled. Sentry will upload them for error unminification.');
     }
   } else {
     // User did not explicitly set sourcemap — enable it for Sentry
     config.sourcemap = true;
     if (moduleOptions?.debug) {
-      debug.log('[Sentry] Enabled source map generation for Sentry. Source map files will be deleted after upload.');
+      // eslint-disable-next-line no-console
+      console.log(
+        '[@sentry/nitro] Enabled source map generation for Sentry. Source map files will be deleted after upload.',
+      );
     }
   }
 

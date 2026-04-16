@@ -1,4 +1,3 @@
-import { debug } from '@sentry/core';
 import type { NitroConfig } from 'nitro/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNitroOptions } from '../src/config';
@@ -143,17 +142,17 @@ describe('configureSourcemapSettings', () => {
   });
 
   it('respects user explicitly disabling sourcemaps and warns', () => {
-    const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const config: NitroConfig = { sourcemap: false };
     configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(false);
-    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('explicitly disabled source maps'));
-    debugSpy.mockRestore();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('explicitly disabled source maps'));
+    warnSpy.mockRestore();
   });
 
   it('does not modify experimental config when user disabled sourcemaps', () => {
-    vi.spyOn(debug, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     const config: NitroConfig = { sourcemap: false };
     configureSourcemapSettings(config);
 
