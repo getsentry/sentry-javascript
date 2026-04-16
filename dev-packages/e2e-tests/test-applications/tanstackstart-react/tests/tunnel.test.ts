@@ -4,6 +4,12 @@ import { waitForError } from '@sentry-internal/test-utils';
 const tunnelRouteMode =
   process.env.E2E_TEST_TUNNEL_ROUTE_MODE ??
   (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
+const expectedTunnelPathMatcher =
+  tunnelRouteMode === 'static'
+    ? '/monitor'
+    : tunnelRouteMode === 'custom'
+      ? '/custom-monitor'
+      : /^\/[a-z0-9]{8}$/;
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
@@ -20,7 +26,13 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
   const managedTunnelResponsePromise = page.waitForResponse(response => {
     const responseUrl = new URL(response.url());
 
-    return responseUrl.origin === pageOrigin && response.request().method() === 'POST';
+    return (
+      responseUrl.origin === pageOrigin &&
+      response.request().method() === 'POST' &&
+      (typeof expectedTunnelPathMatcher === 'string'
+        ? responseUrl.pathname === expectedTunnelPathMatcher
+        : expectedTunnelPathMatcher.test(responseUrl.pathname))
+    );
   });
 
   await page.locator('button').filter({ hasText: 'Break the client' }).click();
@@ -32,12 +44,10 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
   expect(managedTunnelResponse.status()).toBe(200);
   expect(managedTunnelUrl.origin).toBe(pageOrigin);
 
-  if (tunnelRouteMode === 'static') {
-    expect(managedTunnelUrl.pathname).toBe('/monitor');
-  } else if (tunnelRouteMode === 'custom') {
-    expect(managedTunnelUrl.pathname).toBe('/custom-monitor');
+  if (typeof expectedTunnelPathMatcher === 'string') {
+    expect(managedTunnelUrl.pathname).toBe(expectedTunnelPathMatcher);
   } else {
-    expect(managedTunnelUrl.pathname).toMatch(/^\/[a-z0-9]{8}$/);
+    expect(managedTunnelUrl.pathname).toMatch(expectedTunnelPathMatcher);
     expect(managedTunnelUrl.pathname).not.toBe('/monitor');
   }
 
