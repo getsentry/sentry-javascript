@@ -153,9 +153,9 @@ function setupH3TracingChannels(): void {
 }
 
 function setupSrvxTracingChannels(): void {
-  // Store the parent span for all middleware and fetch to share
-  // This ensures they all appear as siblings in the trace
-  let requestParentSpan: Span | null = null;
+  // Store the parent span per-request so middleware and fetch share the same parent.
+  // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
+  const requestParentSpans = new WeakMap<Request, Span>();
 
   const fetchChannel = tracingChannel<SrvxRequestEvent>('srvx.request', data => {
     const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
@@ -180,7 +180,7 @@ function setupSrvxTracingChannels(): void {
           'server.port': data.server.options.port,
         },
         // Use the same parent span as middleware to make them siblings
-        parentSpan: requestParentSpan || undefined,
+        parentSpan: requestParentSpans.get(data.request) || undefined,
       },
       span => span,
     );
@@ -194,21 +194,23 @@ function setupSrvxTracingChannels(): void {
     asyncEnd: data => {
       onTraceEnd(data);
 
-      // Reset parent span reference after the fetch handler completes
-      // This ensures each request gets a fresh parent span capture
-      requestParentSpan = null;
+      // Clean up parent span reference after the fetch handler completes.
+      requestParentSpans.delete(data.request);
     },
     error: data => {
       onTraceError(data);
-      // Reset parent span reference on error too
-      requestParentSpan = null;
+      // Clean up parent span reference on error too
+      requestParentSpans.delete(data.request);
     },
   });
 
   const middlewareChannel = tracingChannel<SrvxRequestEvent>('srvx.middleware', data => {
-    // For the first middleware, capture the current parent span
+    // For the first middleware, capture the current parent span per-request
     if (data.middleware?.index === 0) {
-      requestParentSpan = getActiveSpan() || null;
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
+        requestParentSpans.set(data.request, activeSpan);
+      }
     }
 
     const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
@@ -225,7 +227,7 @@ function setupSrvxTracingChannels(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
         },
-        parentSpan: requestParentSpan || undefined,
+        parentSpan: requestParentSpans.get(data.request) || undefined,
       },
       span => span,
     );
