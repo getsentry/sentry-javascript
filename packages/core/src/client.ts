@@ -12,6 +12,7 @@ import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
@@ -522,10 +523,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
 
+    // Extract gen_ai spans from transaction and convert to span v2 format.
+    // This mutates event.spans to remove the extracted spans.
+    const genAiSpanItem = extractGenAiSpansFromEvent(event, this);
+
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+    }
+
+    if (genAiSpanItem) {
+      env = addItemToEnvelope(env, genAiSpanItem);
     }
 
     // sendEnvelope should not throw
