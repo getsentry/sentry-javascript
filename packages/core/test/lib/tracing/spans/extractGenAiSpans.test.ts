@@ -14,7 +14,7 @@ function makeSpanJSON(overrides: Partial<SpanJSON> = {}): SpanJSON {
   };
 }
 
-function makeTransactionEvent(spans: SpanJSON[], hasGenAiSpans = false): Event {
+function makeTransactionEvent(spans: SpanJSON[]): Event {
   return {
     type: 'transaction',
     transaction: 'GET /api/chat',
@@ -27,7 +27,7 @@ function makeTransactionEvent(spans: SpanJSON[], hasGenAiSpans = false): Event {
       },
     },
     sdkProcessingMetadata: {
-      ...(hasGenAiSpans && { hasGenAiSpans: true }),
+      hasGenAiSpans: true,
     },
     spans,
   };
@@ -92,14 +92,18 @@ describe('extractGenAiSpansFromEvent', () => {
   });
 
   it('returns undefined when hasGenAiSpans flag is not set', () => {
-    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })], false);
+    const event: Event = {
+      type: 'transaction',
+      spans: [makeSpanJSON({ op: 'gen_ai.chat' })],
+      sdkProcessingMetadata: {},
+    };
 
     expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
     expect(event.spans).toHaveLength(1);
   });
 
   it('returns undefined when there are no gen_ai spans', () => {
-    const event = makeTransactionEvent([makeSpanJSON({ op: 'http.client' }), makeSpanJSON({ op: 'db.query' })], true);
+    const event = makeTransactionEvent([makeSpanJSON({ op: 'http.client' }), makeSpanJSON({ op: 'db.query' })]);
 
     expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
     expect(event.spans).toHaveLength(2);
@@ -116,7 +120,7 @@ describe('extractGenAiSpansFromEvent', () => {
   });
 
   it('returns undefined when span streaming is enabled', () => {
-    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })], true);
+    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })]);
     const client = makeClient({ traceLifecycle: 'stream' });
 
     expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
@@ -134,7 +138,7 @@ describe('extractGenAiSpansFromEvent', () => {
       op: 'http.client',
     });
 
-    const event = makeTransactionEvent([httpSpan, genAiSpan], true);
+    const event = makeTransactionEvent([httpSpan, genAiSpan]);
     const result = extractGenAiSpansFromEvent(event, makeClient());
 
     expect(result![1].items[0]!.parent_span_id).toBe('http001');

@@ -29,7 +29,7 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
 
   for (const span of event.spans) {
     if (span.op?.startsWith('gen_ai.')) {
-      genAiSpans.push(span);
+      genAiSpans.push(spanJsonToSerializedStreamedSpan(span));
     } else {
       remainingSpans.push(span);
     }
@@ -39,13 +39,10 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
     return undefined;
   }
 
-  const serializedSpans = genAiSpans.map(span => spanJsonToSerializedStreamedSpan(span));
-
-  // Remove gen_ai spans from the legacy transaction
   event.spans = remainingSpans;
 
   return [
-    { type: 'span', item_count: serializedSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
-    { items: serializedSpans },
+    { type: 'span', item_count: genAiSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
+    { items: genAiSpans },
   ];
 }
