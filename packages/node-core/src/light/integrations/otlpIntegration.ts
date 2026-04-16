@@ -1,36 +1,16 @@
 import { trace } from '@opentelemetry/api';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import type { SpanExporter } from '@opentelemetry/sdk-trace-base';
-import { BasicTracerProvider, BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { Client, IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, registerExternalPropagationContext, SENTRY_API_VERSION } from '@sentry/core';
-
-interface OtlpIntegrationOptions {
-  /**
-   * Whether to set up the OTLP traces exporter that sends spans to Sentry.
-   * Default: true
-   */
-  setupOtlpTracesExporter?: boolean;
-
-  /**
-   * URL of your own OpenTelemetry collector.
-   * When set, the exporter will send traces to this URL instead of the Sentry OTLP endpoint derived from the DSN.
-   * Default: undefined (uses DSN-derived endpoint)
-   */
-  collectorUrl?: string;
-}
+import {
+  debug,
+  defineIntegration,
+  dsnFromString,
+  registerExternalPropagationContext,
+  SENTRY_API_VERSION,
+} from '@sentry/core';
 
 const INTEGRATION_NAME = 'OtlpIntegration';
 
-const _otlpIntegration = ((userOptions: OtlpIntegrationOptions = {}) => {
-  const options = {
-    setupOtlpTracesExporter: userOptions.setupOtlpTracesExporter ?? true,
-    collectorUrl: userOptions.collectorUrl,
-  };
-
-  let _spanProcessor: BatchSpanProcessor | undefined;
-  let _tracerProvider: BasicTracerProvider | undefined;
-
+const _otlpIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
 
@@ -48,95 +28,35 @@ const _otlpIntegration = ((userOptions: OtlpIntegrationOptions = {}) => {
 
       debug.log(`[${INTEGRATION_NAME}] External propagation context registered.`);
     },
-
-    afterAllSetup(client: Client): void {
-      if (options.setupOtlpTracesExporter) {
-        setupTracesExporter(client);
-      }
-    },
   };
-
-  function setupTracesExporter(client: Client): void {
-    let endpoint: string;
-    let headers: Record<string, string> | undefined;
-
-    if (options.collectorUrl) {
-      endpoint = options.collectorUrl;
-      debug.log(`[${INTEGRATION_NAME}] Sending traces to collector at ${endpoint}`);
-    } else {
-      const dsn = client.getDsn();
-      if (!dsn) {
-        debug.warn(`[${INTEGRATION_NAME}] No DSN found. OTLP exporter not set up.`);
-        return;
-      }
-
-      const { protocol, host, port, path, projectId, publicKey } = dsn;
-
-      const basePath = path ? `/${path}` : '';
-      const portStr = port ? `:${port}` : '';
-      endpoint = `${protocol}://${host}${portStr}${basePath}/api/${projectId}/integration/otlp/v1/traces/`;
-
-      const sdkInfo = client.getSdkMetadata()?.sdk;
-      const sentryClient = sdkInfo ? `, sentry_client=${sdkInfo.name}/${sdkInfo.version}` : '';
-      headers = {
-        'X-Sentry-Auth': `Sentry sentry_version=${SENTRY_API_VERSION}, sentry_key=${publicKey}${sentryClient}`,
-      };
-    }
-
-    let exporter: SpanExporter;
-    try {
-      exporter = new OTLPTraceExporter({
-        url: endpoint,
-        headers,
-      });
-    } catch (e) {
-      debug.warn(`[${INTEGRATION_NAME}] Failed to create OTLPTraceExporter:`, e);
-      return;
-    }
-
-    _spanProcessor = new BatchSpanProcessor(exporter);
-
-    // Add span processor to existing global tracer provider.
-    // trace.getTracerProvider() returns a ProxyTracerProvider; unwrap it to get the real provider.
-    const globalProvider = trace.getTracerProvider();
-    const delegate =
-      'getDelegate' in globalProvider
-        ? (globalProvider as unknown as { getDelegate(): unknown }).getDelegate()
-        : globalProvider;
-
-    // In OTel v2, addSpanProcessor was removed. We push into the internal _spanProcessors
-    // array on the MultiSpanProcessor, which is how OTel's own forceFlush() accesses it.
-    const activeProcessor = (delegate as Record<string, unknown>)?._activeSpanProcessor as
-      | { _spanProcessors?: unknown[] }
-      | undefined;
-    if (activeProcessor?._spanProcessors) {
-      activeProcessor._spanProcessors.push(_spanProcessor);
-      debug.log(`[${INTEGRATION_NAME}] Added span processor to existing TracerProvider.`);
-    } else {
-      // No user-configured provider; create a minimal one and set it as global
-      _tracerProvider = new BasicTracerProvider({
-        spanProcessors: [_spanProcessor],
-      });
-      trace.setGlobalTracerProvider(_tracerProvider);
-      debug.log(`[${INTEGRATION_NAME}] Created new TracerProvider with OTLP span processor.`);
-    }
-
-    client.on('flush', () => {
-      void _spanProcessor?.forceFlush();
-    });
-
-    client.on('close', () => {
-      void _spanProcessor?.shutdown();
-      void _tracerProvider?.shutdown();
-    });
-  }
 }) satisfies IntegrationFn;
 
 /**
  * OTLP integration for the Sentry light SDK.
  *
- * Bridges an existing OpenTelemetry setup with Sentry by:
- * 1. Linking Sentry error/log events to the active OTel trace context
- * 2. Exporting OTel spans to Sentry via OTLP (or to a custom collector)
+ * Bridges an existing OpenTelemetry setup with Sentry by linking Sentry
+ * error/log events to the active OTel trace context.
  */
 export const otlpIntegration = defineIntegration(_otlpIntegration);
+
+/**
+ * Returns the OTLP traces endpoint URL and auth headers for a given Sentry DSN.
+ * Use this to configure your own `OTLPTraceExporter`.
+ */
+export function getOtlpTracesEndpoint(dsn: string): { url: string; headers: Record<string, string> } | undefined {
+  const parsed = dsnFromString(dsn);
+  if (!parsed) {
+    return undefined;
+  }
+
+  const { protocol, host, port, path, projectId, publicKey } = parsed;
+  const basePath = path ? `/${path}` : '';
+  const portStr = port ? `:${port}` : '';
+
+  return {
+    url: `${protocol}://${host}${portStr}${basePath}/api/${projectId}/integration/otlp/v1/traces/`,
+    headers: {
+      'X-Sentry-Auth': `Sentry sentry_version=${SENTRY_API_VERSION}, sentry_key=${publicKey}`,
+    },
+  };
+}

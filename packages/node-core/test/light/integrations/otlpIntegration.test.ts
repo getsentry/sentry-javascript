@@ -1,10 +1,13 @@
+import { hasExternalPropagationContext, registerExternalPropagationContext } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { otlpIntegration } from '../../../src/light/integrations/otlpIntegration';
+import { getOtlpTracesEndpoint, otlpIntegration } from '../../../src/light/integrations/otlpIntegration';
 import { cleanupLightSdk, mockLightSdkInit } from '../../helpers/mockLightSdkInit';
 
 describe('Light Mode | otlpIntegration', () => {
   afterEach(() => {
     cleanupLightSdk();
+    // Reset external propagation context
+    registerExternalPropagationContext(() => undefined);
   });
 
   it('has correct integration name', () => {
@@ -12,62 +15,40 @@ describe('Light Mode | otlpIntegration', () => {
     expect(integration.name).toBe('OtlpIntegration');
   });
 
-  it('accepts empty options', () => {
-    const integration = otlpIntegration();
-    expect(integration.name).toBe('OtlpIntegration');
-  });
-
-  it('accepts all options', () => {
-    const integration = otlpIntegration({
-      setupOtlpTracesExporter: false,
-      collectorUrl: 'https://my-collector.example.com/v1/traces',
-    });
-    expect(integration.name).toBe('OtlpIntegration');
-  });
-
-  describe('endpoint construction', () => {
-    it('constructs correct endpoint from DSN', () => {
-      const client = mockLightSdkInit({
-        integrations: [otlpIntegration()],
-      });
-
-      const dsn = client?.getDsn();
-      expect(dsn).toBeDefined();
-      expect(dsn?.host).toBe('domain');
-      expect(dsn?.projectId).toBe('123');
+  it('registers external propagation context on setup', () => {
+    mockLightSdkInit({
+      integrations: [otlpIntegration()],
     });
 
-    it('handles DSN with port and path', () => {
-      const client = mockLightSdkInit({
-        dsn: 'https://key@sentry.example.com:9000/mypath/456',
-        integrations: [otlpIntegration()],
-      });
+    expect(hasExternalPropagationContext()).toBe(true);
+  });
+});
 
-      const dsn = client?.getDsn();
-      expect(dsn?.host).toBe('sentry.example.com');
-      expect(dsn?.port).toBe('9000');
-      expect(dsn?.path).toBe('mypath');
-      expect(dsn?.projectId).toBe('456');
+describe('getOtlpTracesEndpoint', () => {
+  it('returns correct endpoint and headers from DSN', () => {
+    const result = getOtlpTracesEndpoint('https://abc123@o0.ingest.sentry.io/456');
+
+    expect(result).toEqual({
+      url: 'https://o0.ingest.sentry.io/api/456/integration/otlp/v1/traces/',
+      headers: {
+        'X-Sentry-Auth': 'Sentry sentry_version=7, sentry_key=abc123',
+      },
     });
   });
 
-  describe('auth header', () => {
-    it('constructs correct X-Sentry-Auth header format with sentry_client', () => {
-      const client = mockLightSdkInit({
-        integrations: [otlpIntegration()],
-      });
+  it('handles DSN with port and path', () => {
+    const result = getOtlpTracesEndpoint('https://key@sentry.example.com:9000/mypath/789');
 
-      const dsn = client?.getDsn();
-      expect(dsn?.publicKey).toBe('username');
-
-      const sdkInfo = client?.getSdkMetadata()?.sdk;
-      expect(sdkInfo?.name).toBe('sentry.javascript.node-light');
-      expect(sdkInfo?.version).toBeDefined();
-
-      const expectedAuth = `Sentry sentry_version=7, sentry_key=${dsn?.publicKey}, sentry_client=${sdkInfo?.name}/${sdkInfo?.version}`;
-      expect(expectedAuth).toMatch(
-        /^Sentry sentry_version=7, sentry_key=username, sentry_client=sentry\.javascript\.node-light\/.+$/,
-      );
+    expect(result).toEqual({
+      url: 'https://sentry.example.com:9000/mypath/api/789/integration/otlp/v1/traces/',
+      headers: {
+        'X-Sentry-Auth': 'Sentry sentry_version=7, sentry_key=key',
+      },
     });
+  });
+
+  it('returns undefined for invalid DSN', () => {
+    const result = getOtlpTracesEndpoint('not-a-dsn');
+    expect(result).toBeUndefined();
   });
 });
