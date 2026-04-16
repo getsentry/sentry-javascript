@@ -34,7 +34,7 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
     return undefined;
   }
 
-  const serializedSpans = genAiSpans.map(span => spanJsonToSerializedStreamedSpan(span, event, client));
+  const serializedSpans = genAiSpans.map(span => spanJsonToSerializedStreamedSpan(span));
 
   // Remove gen_ai spans from the legacy transaction
   event.spans = remainingSpans;
