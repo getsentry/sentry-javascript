@@ -138,6 +138,16 @@ export function setupIntegration(client: Client, integration: Integration, integ
     client.addEventProcessor(processor);
   }
 
+  if (typeof integration.processSpan === 'function') {
+    const callback = integration.processSpan.bind(integration) as typeof integration.processSpan;
+    client.on('processSpan', span => callback(span, client));
+  }
+
+  if (typeof integration.processSegmentSpan === 'function') {
+    const callback = integration.processSegmentSpan.bind(integration) as typeof integration.processSegmentSpan;
+    client.on('processSegmentSpan', span => callback(span, client));
+  }
+
   DEBUG_BUILD && debug.log(`Integration installed: ${integration.name}`);
 }
 
