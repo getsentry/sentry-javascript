@@ -203,8 +203,11 @@ export class SentrySpanExporter {
       // We'll recursively add all the child spans to this array
       const spans = transactionEvent.spans || [];
 
+      let hasGenAiSpans = false;
       for (const child of root.children) {
-        createAndFinishSpanForOtelSpan(child, spans, sentSpans);
+        if (createAndFinishSpanForOtelSpan(child, spans, sentSpans)) {
+          hasGenAiSpans = true;
+        }
       }
 
       // spans.sort() mutates the array, but we do not use this anymore after this point
@@ -213,6 +216,13 @@ export class SentrySpanExporter {
         spans.length > MAX_SPAN_COUNT
           ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
           : spans;
+
+      if (hasGenAiSpans) {
+        transactionEvent.sdkProcessingMetadata = {
+          ...transactionEvent.sdkProcessingMetadata,
+          hasGenAiSpans: true,
+        };
+      }
 
       const measurements = timedEventsToMeasurements(span.events);
       if (measurements) {
@@ -330,7 +340,10 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
   return transactionEvent;
 }
 
-function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentSpans: Set<ReadableSpan>): void {
+/**
+ * Returns `true` if this span or any descendant is a gen_ai span.
+ */
+function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentSpans: Set<ReadableSpan>): boolean {
   const span = node.span;
 
   if (span) {
@@ -341,10 +354,13 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
 
   // If this span should be dropped, we still want to create spans for the children of this
   if (shouldDrop) {
+    let hasGenAiSpans = false;
     node.children.forEach(child => {
-      createAndFinishSpanForOtelSpan(child, spans, sentSpans);
+      if (createAndFinishSpanForOtelSpan(child, spans, sentSpans)) {
+        hasGenAiSpans = true;
+      }
     });
-    return;
+    return hasGenAiSpans;
   }
 
   const span_id = span.spanContext().spanId;
@@ -381,9 +397,13 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
 
   spans.push(spanJSON);
 
+  let hasGenAiSpans = !!op?.startsWith('gen_ai.');
   node.children.forEach(child => {
-    createAndFinishSpanForOtelSpan(child, spans, sentSpans);
+    if (createAndFinishSpanForOtelSpan(child, spans, sentSpans)) {
+      hasGenAiSpans = true;
+    }
   });
+  return hasGenAiSpans;
 }
 
 function getSpanData(span: ReadableSpan): {

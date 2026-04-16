@@ -14,7 +14,7 @@ function makeSpanJSON(overrides: Partial<SpanJSON> = {}): SpanJSON {
   };
 }
 
-function makeTransactionEvent(spans: SpanJSON[]): Event {
+function makeTransactionEvent(spans: SpanJSON[], hasGenAiSpans = false): Event {
   return {
     type: 'transaction',
     transaction: 'GET /api/chat',
@@ -25,6 +25,9 @@ function makeTransactionEvent(spans: SpanJSON[]): Event {
         span_id: 'root0000deadbeef',
         trace_id: '00112233445566778899aabbccddeeff',
       },
+    },
+    sdkProcessingMetadata: {
+      ...(hasGenAiSpans && { hasGenAiSpans: true }),
     },
     spans,
   };
@@ -54,12 +57,9 @@ describe('extractGenAiSpansFromEvent', () => {
       timestamp: 1002,
     });
 
-    const event = makeTransactionEvent([genAiSpan, httpSpan]);
-    const client = makeClient();
+    const event = makeTransactionEvent([genAiSpan, httpSpan], true);
+    const result = extractGenAiSpansFromEvent(event, makeClient());
 
-    const result = extractGenAiSpansFromEvent(event, client);
-
-    // gen_ai spans should be in the container item
     expect(result).toBeDefined();
     const [headers, payload] = result!;
     expect(headers.type).toBe('span');
@@ -69,7 +69,6 @@ describe('extractGenAiSpansFromEvent', () => {
     expect(payload.items[0]!.span_id).toBe('genai001');
     expect(payload.items[0]!.name).toBe('chat gpt-4');
 
-    // gen_ai spans should be removed from the event
     expect(event.spans).toHaveLength(1);
     expect(event.spans![0]!.span_id).toBe('http001');
   });
@@ -80,54 +79,47 @@ describe('extractGenAiSpansFromEvent', () => {
     const agentSpan = makeSpanJSON({ span_id: 'agent001', op: 'gen_ai.invoke_agent', description: 'agent' });
     const dbSpan = makeSpanJSON({ span_id: 'db001', op: 'db.query', description: 'SELECT *' });
 
-    const event = makeTransactionEvent([chatSpan, embeddingsSpan, dbSpan, agentSpan]);
-    const client = makeClient();
-
-    const result = extractGenAiSpansFromEvent(event, client);
+    const event = makeTransactionEvent([chatSpan, embeddingsSpan, dbSpan, agentSpan], true);
+    const result = extractGenAiSpansFromEvent(event, makeClient());
 
     expect(result).toBeDefined();
     expect(result![0].item_count).toBe(3);
     expect(result![1].items).toHaveLength(3);
     expect(result![1].items.map(s => s.span_id)).toEqual(['chat001', 'embed001', 'agent001']);
 
-    // Only the db span should remain
     expect(event.spans).toHaveLength(1);
     expect(event.spans![0]!.span_id).toBe('db001');
   });
 
+  it('returns undefined when hasGenAiSpans flag is not set', () => {
+    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })], false);
+
+    expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
+    expect(event.spans).toHaveLength(1);
+  });
+
   it('returns undefined when there are no gen_ai spans', () => {
-    const httpSpan = makeSpanJSON({ op: 'http.client' });
-    const dbSpan = makeSpanJSON({ op: 'db.query' });
+    const event = makeTransactionEvent([makeSpanJSON({ op: 'http.client' }), makeSpanJSON({ op: 'db.query' })], true);
 
-    const event = makeTransactionEvent([httpSpan, dbSpan]);
-    const client = makeClient();
-
-    const result = extractGenAiSpansFromEvent(event, client);
-
-    expect(result).toBeUndefined();
+    expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
     expect(event.spans).toHaveLength(2);
   });
 
   it('returns undefined when event has no spans', () => {
     const event = makeTransactionEvent([]);
-    const client = makeClient();
-
-    expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
+    expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
   });
 
   it('returns undefined when event is not a transaction', () => {
     const event: Event = { type: undefined, spans: [makeSpanJSON({ op: 'gen_ai.chat' })] };
-    const client = makeClient();
-
-    expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
+    expect(extractGenAiSpansFromEvent(event, makeClient())).toBeUndefined();
   });
 
   it('returns undefined when span streaming is enabled', () => {
-    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })]);
+    const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })], true);
     const client = makeClient({ traceLifecycle: 'stream' });
 
     expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
-    // Spans should not be modified
     expect(event.spans).toHaveLength(1);
   });
 
@@ -142,14 +134,10 @@ describe('extractGenAiSpansFromEvent', () => {
       op: 'http.client',
     });
 
-    const event = makeTransactionEvent([httpSpan, genAiSpan]);
-    const client = makeClient();
+    const event = makeTransactionEvent([httpSpan, genAiSpan], true);
+    const result = extractGenAiSpansFromEvent(event, makeClient());
 
-    const result = extractGenAiSpansFromEvent(event, client);
-
-    // The v2 span should still reference the v1 parent
     expect(result![1].items[0]!.parent_span_id).toBe('http001');
-    // The v1 parent should remain in the transaction
     expect(event.spans).toHaveLength(1);
     expect(event.spans![0]!.span_id).toBe('http001');
   });

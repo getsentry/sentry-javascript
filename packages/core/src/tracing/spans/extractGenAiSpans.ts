@@ -15,7 +15,12 @@ import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
  * item does not include the extracted spans.
  */
 export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanContainerItem | undefined {
-  if (event.type !== 'transaction' || !event.spans?.length || hasSpanStreamingEnabled(client)) {
+  if (
+    event.type !== 'transaction' ||
+    !event.spans?.length ||
+    !event.sdkProcessingMetadata?.hasGenAiSpans ||
+    hasSpanStreamingEnabled(client)
+  ) {
     return undefined;
   }
 
