@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 import { injectManagedTunnelRoute, makeTunnelRoutePlugin, resolveTunnelRoute } from '../../src/vite/tunnelRoute';
 
-const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY = '__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__';
+const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY = '__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__';
 
 const ROUTE_TREE_SOURCE = `import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'

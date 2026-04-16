@@ -20,7 +20,7 @@ export interface TunnelRouteOptions {
 const MANAGED_TUNNEL_ROUTE_IMPORT = "SentryManagedTunnelRouteImport";
 const MANAGED_TUNNEL_ROUTE_NAME = "SentryManagedTunnelRoute";
 const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY =
-  "__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__";
+  "__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__";
 
 const VIRTUAL_TUNNEL_ROUTE_ID =
   "virtual:sentry-tanstackstart-react/tunnel-route";
