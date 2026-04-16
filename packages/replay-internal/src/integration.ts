@@ -297,7 +297,7 @@ export class Replay implements Integration {
       return Promise.resolve();
     }
 
-    return this._replay.stop({ forceFlush: this._replay.recordingMode === 'session' });
+    return this._replay.stop({ forceFlush: this._replay.recordingMode === 'session', reason: 'manual' });
   }
 
   /**
