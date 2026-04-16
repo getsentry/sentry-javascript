@@ -18,6 +18,7 @@ import { WINDOW } from '../types';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from './instrument';
 import { addClsInstrumentationHandler, addInpInstrumentationHandler, addLcpInstrumentationHandler } from './instrument';
+import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './utils';
 import { getBrowserPerformanceAPI, listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 import type { PerformanceEventTiming } from './instrument';
@@ -121,7 +122,7 @@ export function trackLcpAsSpan(client: Client): void {
 
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
-    if (!entry) {
+    if (!entry || !isValidLcpMetric(metric.value)) {
       return;
     }
     lcpValue = metric.value;
@@ -143,6 +144,10 @@ export function _sendLcpSpan(
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
 ): void {
+  if (!isValidLcpMetric(lcpValue)) {
+    return;
+  }
+
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
   const performanceTimeOrigin = browserPerformanceTimeOrigin() || 0;
