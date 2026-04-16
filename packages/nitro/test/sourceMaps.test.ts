@@ -142,14 +142,23 @@ describe('configureSourcemapSettings', () => {
     expect(config.sourcemap).toBe(true);
   });
 
-  it('forces sourcemap to true even when user set it to false', () => {
+  it('respects user explicitly disabling sourcemaps and warns', () => {
     const debugSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
     const config: NitroConfig = { sourcemap: false };
     configureSourcemapSettings(config);
 
-    expect(config.sourcemap).toBe(true);
-    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('overriding this to `true`'));
+    expect(config.sourcemap).toBe(false);
+    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('explicitly disabled source maps'));
     debugSpy.mockRestore();
+  });
+
+  it('does not modify experimental config when user disabled sourcemaps', () => {
+    vi.spyOn(debug, 'warn').mockImplementation(() => {});
+    const config: NitroConfig = { sourcemap: false };
+    configureSourcemapSettings(config);
+
+    expect(config.experimental).toBeUndefined();
+    vi.restoreAllMocks();
   });
 
   it('keeps sourcemap true when user already set it', () => {
