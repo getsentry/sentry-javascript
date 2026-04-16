@@ -46,7 +46,7 @@ import { getHttpClientSubscriptions } from './client-subscriptions';
 function patchHttpRequest(
   httpModule: HttpExport,
   options: HttpInstrumentationOptions,
-  protocol: 'http' | 'https',
+  protocol: 'http:' | 'https:',
   port: 80 | 443,
 ): WrappedFunction<HttpExport['request']> {
   // avoid double-wrap
@@ -87,7 +87,7 @@ function patchHttpGet(httpModule: HttpExport, patchedRequest: WrappedFunction<Ht
 function patchModule(
   httpModuleExport: HttpModuleExport,
   options: HttpInstrumentationOptions = {},
-  protocol: 'http' | 'https',
+  protocol: 'http:' | 'https:',
   port: 80 | 443,
 ): HttpModuleExport {
   const httpDefault = getDefaultExport(httpModuleExport);
@@ -122,7 +122,7 @@ function patchModule(
 export const patchHttpModuleClient = (
   httpModuleExport: HttpModuleExport,
   options: HttpInstrumentationOptions = {},
-): HttpModuleExport => patchModule(httpModuleExport, options, 'http', 80);
+): HttpModuleExport => patchModule(httpModuleExport, options, 'http:', 80);
 
 /**
  * Patch an `https`-module-shaped export.  Equivalent to `patchHttpModule` but
@@ -131,4 +131,4 @@ export const patchHttpModuleClient = (
 export const patchHttpsModuleClient = (
   httpModuleExport: HttpModuleExport,
   options: HttpInstrumentationOptions = {},
-): HttpModuleExport => patchModule(httpModuleExport, options, 'https', 443);
+): HttpModuleExport => patchModule(httpModuleExport, options, 'https:', 443);
