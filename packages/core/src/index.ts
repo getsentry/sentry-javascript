@@ -138,6 +138,7 @@ export type { ConnectIntegrationOptions, ConnectModule } from './integrations/co
 export { patchHttpModuleClient, patchHttpsModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { getHttpServerSubscriptions } from './integrations/http/server-subscription';
+export { recordRequestSession } from './integrations/http/record-request-session';
 export { getHttpServerSpanSubscriptions, isStaticAssetRequest } from './integrations/http/server-span-subscription';
 export {
   HTTP_ON_REQUEST_ERROR,

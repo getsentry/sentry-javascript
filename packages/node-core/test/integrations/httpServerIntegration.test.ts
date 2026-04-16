@@ -1,10 +1,13 @@
 import type { Client } from '@sentry/core';
-import { createTransport, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
+import { createTransport, recordRequestSession, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
+import type { HttpServerResponse } from '@sentry/core';
 import { EventEmitter } from 'stream';
 import { describe, expect, it, vi } from 'vitest';
-import { recordRequestSession } from '../../src/integrations/http/httpServerIntegration';
 
 vi.useFakeTimers();
+
+// TODO: should this be moved into core, since that's where the
+// recordRequestSesssion function actually lives?
 
 describe('recordRequestSession()', () => {
   it('should send an "exited" session for an ok ended request', () => {
@@ -126,7 +129,7 @@ function simulateRequest(client: Client, status: 'ok' | 'errored' | 'crashed') {
 
   recordRequestSession(client, {
     requestIsolationScope,
-    response,
+    response: response as unknown as HttpServerResponse,
   });
 
   requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession!.status = status;
