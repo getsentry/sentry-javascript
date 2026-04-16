@@ -165,6 +165,27 @@ jobs:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
 
+  job_verify_build_layer:
+    name: Verify Lambda layer build
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build Lambda layer
+        run: yarn build:layer
+
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
@@ -318,6 +339,9 @@ jobs:
 
       - name: Pack tarballs
         run: yarn build:tarball
+
+      - name: Build Lambda layer
+        run: yarn build:layer
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -1134,6 +1158,7 @@ jobs:
         job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
+        job_verify_build_layer,
         job_size_check,
       ]
     # Always run this, even if a dependent job failed
