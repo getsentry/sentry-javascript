@@ -26,10 +26,9 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
         apply(target, thisArg, args: Parameters<NonNullable<T['fetch']>>) {
           const [request, env, ctx] = args;
           const context = instrumentContext(ctx);
-          args[1] = instrumentEnv(env);
-          args[2] = context;
-
           const options = getFinalOptions(optionsCallback(env), env);
+          args[1] = instrumentEnv(env, options);
+          args[2] = context;
 
           return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
         },
