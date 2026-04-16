@@ -78,7 +78,6 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             spanArguments,
             forceTransaction,
             scope,
-            client,
           });
 
       if (shouldSkipSpan) {
@@ -137,7 +136,6 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
     return wrapper(() => {
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
-      const client = getClient();
 
       const shouldSkipSpan = options.onlyIfParent && !parentSpan;
       const activeSpan = shouldSkipSpan
@@ -147,11 +145,10 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             spanArguments,
             forceTransaction,
             scope,
-            client,
           });
 
       if (shouldSkipSpan) {
-        client?.recordDroppedEvent('no_parent_span', 'span');
+        getClient()?.recordDroppedEvent('no_parent_span', 'span');
       }
 
       // We don't set ignored child spans onto the scope because there likely is an active,
@@ -221,7 +218,6 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
       spanArguments,
       forceTransaction,
       scope,
-      client,
     });
   });
 }
@@ -342,13 +338,11 @@ function createChildOrRootSpan({
   spanArguments,
   forceTransaction,
   scope,
-  client: clientArg,
 }: {
   parentSpan: SentrySpan | undefined;
   spanArguments: SentrySpanArguments;
   forceTransaction?: boolean;
   scope: Scope;
-  client?: Client;
 }): Span {
   if (!hasSpansEnabled()) {
     const span = new SentryNonRecordingSpan();
@@ -368,7 +362,7 @@ function createChildOrRootSpan({
     return span;
   }
 
-  const client = clientArg || getClient();
+  const client = getClient();
   if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
     if (!_isTracingSuppressed(scope)) {
       // if tracing is actively suppressed (Sentry.suppressTracing(...)),
