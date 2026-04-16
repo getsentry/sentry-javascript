@@ -51,6 +51,10 @@ function _startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span)
     const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
     const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
+    if (shouldSkipSpan) {
+      getClient()?.recordDroppedEvent('no_parent_span', 'span');
+    }
+
     const spanOptions = getSpanOptions(options);
 
     // If spans are not enabled, ensure we suppress tracing for the span creation
@@ -153,6 +157,10 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
     const activeCtx = getContext(options.scope, options.forceTransaction);
     const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
     let ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+    if (shouldSkipSpan) {
+      getClient()?.recordDroppedEvent('no_parent_span', 'span');
+    }
 
     const spanOptions = getSpanOptions(options);
 
