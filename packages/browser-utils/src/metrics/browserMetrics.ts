@@ -22,7 +22,7 @@ import {
   addTtfbInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
 } from './instrument';
-import { trackLcpAsStandaloneSpan } from './lcp';
+import { isValidLcpMetric, trackLcpAsStandaloneSpan } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
@@ -283,7 +283,7 @@ function _trackCLS(): () => void {
 function _trackLCP(): () => void {
   return addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
-    if (!entry) {
+    if (!entry || !isValidLcpMetric(metric.value)) {
       return;
     }
 
