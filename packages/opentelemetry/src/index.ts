@@ -51,9 +51,6 @@ export { openTelemetrySetupCheck } from './utils/setupCheck';
 
 export { getSentryResource } from './resource';
 
-export { tracingChannel } from './tracingChannel';
-export type { OtelTracingChannel, OtelTracingChannelTransform } from './tracingChannel';
-
 export { withStreamedSpan } from '@sentry/core';
 
 // Legacy
