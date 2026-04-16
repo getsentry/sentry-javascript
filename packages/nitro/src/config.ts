@@ -1,25 +1,9 @@
-import type { Options as SentryBundlerPluginOptions } from '@sentry/bundler-plugin-core';
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { NitroConfig } from 'nitro/types';
 import { createNitroModule } from './module';
 import { configureSourcemapSettings } from './sourceMaps';
 
-export type SentryNitroOptions = Pick<
-  SentryBundlerPluginOptions,
-  | 'org'
-  | 'project'
-  | 'authToken'
-  | 'url'
-  | 'headers'
-  | 'debug'
-  | 'silent'
-  | 'errorHandler'
-  | 'telemetry'
-  | 'disable'
-  | 'sourcemaps'
-  | 'release'
-  | 'bundleSizeOptimizations'
-  | '_metaOptions'
->;
+export type SentryNitroOptions = BuildTimeOptionsBase;
 
 /**
  * Modifies the passed in Nitro configuration with automatic build-time instrumentation.

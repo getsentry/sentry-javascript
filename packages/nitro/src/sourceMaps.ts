@@ -1,4 +1,4 @@
-import type { Options } from '@sentry/bundler-plugin-core';
+import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugin-core';
 import { createSentryBuildPluginManager } from '@sentry/bundler-plugin-core';
 import { debug } from '@sentry/core';
 import type { Nitro, NitroConfig } from 'nitro/types';
@@ -15,7 +15,7 @@ export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions): voi
   }
 
   // Respect user's explicit disable
-  if (options?.sourcemaps?.disable === true || options?.disable === true) {
+  if (options?.sourcemaps?.disable === true) {
     return;
   }
 
@@ -62,12 +62,12 @@ function normalizePath(path: string): string {
  *
  * Only exported for testing purposes.
  */
-export function getPluginOptions(options?: SentryNitroOptions): Options {
+export function getPluginOptions(options?: SentryNitroOptions): BundlerPluginOptions {
   return {
     org: options?.org ?? process.env.SENTRY_ORG,
     project: options?.project ?? process.env.SENTRY_PROJECT,
     authToken: options?.authToken ?? process.env.SENTRY_AUTH_TOKEN,
-    url: options?.url ?? process.env.SENTRY_URL,
+    url: options?.sentryUrl ?? process.env.SENTRY_URL,
     headers: options?.headers,
     telemetry: options?.telemetry ?? true,
     debug: options?.debug ?? false,
@@ -86,7 +86,6 @@ export function getPluginOptions(options?: SentryNitroOptions): Options {
       telemetry: {
         metaFramework: 'nitro',
       },
-      ...options?._metaOptions,
     },
   };
 }
@@ -95,7 +94,7 @@ export function getPluginOptions(options?: SentryNitroOptions): Options {
  * Configures the Nitro config to enable source map generation.
  */
 export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: SentryNitroOptions): void {
-  const sourcemapUploadDisabled = moduleOptions?.sourcemaps?.disable === true || moduleOptions?.disable === true;
+  const sourcemapUploadDisabled = moduleOptions?.sourcemaps?.disable === true;
   if (sourcemapUploadDisabled) {
     return;
   }

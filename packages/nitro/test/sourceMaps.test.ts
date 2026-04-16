@@ -56,20 +56,23 @@ describe('getPluginOptions', () => {
     expect(options.org).toBe('env-org');
     expect(options.project).toBe('env-project');
     expect(options.authToken).toBe('env-token');
-    expect(options.url).toBe('https://custom.sentry.io');
+    expect(options.url).toBe('https://custom.sentry.io'); // sentryUrl maps to url
   });
 
   it('prefers direct options over environment variables', () => {
     process.env.SENTRY_ORG = 'env-org';
     process.env.SENTRY_AUTH_TOKEN = 'env-token';
+    process.env.SENTRY_URL = 'https://env.sentry.io';
 
     const options = getPluginOptions({
       org: 'direct-org',
       authToken: 'direct-token',
+      sentryUrl: 'https://direct.sentry.io',
     });
 
     expect(options.org).toBe('direct-org');
     expect(options.authToken).toBe('direct-token');
+    expect(options.url).toBe('https://direct.sentry.io');
   });
 
   it('passes through all user options', () => {
@@ -77,7 +80,7 @@ describe('getPluginOptions', () => {
       org: 'my-org',
       project: 'my-project',
       authToken: 'my-token',
-      url: 'https://my-sentry.io',
+      sentryUrl: 'https://my-sentry.io',
       headers: { 'X-Custom': 'header' },
       debug: true,
       silent: true,
@@ -119,10 +122,9 @@ describe('getPluginOptions', () => {
   });
 
   it('always sets metaFramework to nitro', () => {
-    const options = getPluginOptions({ _metaOptions: { loggerPrefixOverride: '[custom]' } });
+    const options = getPluginOptions();
 
     expect(options._metaOptions?.telemetry?.metaFramework).toBe('nitro');
-    expect(options._metaOptions?.loggerPrefixOverride).toBe('[custom]');
   });
 
   it('passes through sourcemaps.disable', () => {
@@ -182,11 +184,11 @@ describe('configureSourcemapSettings', () => {
     expect(config.sourcemap).toBe(false);
   });
 
-  it('skips sourcemap config when disable is true', () => {
-    const config: NitroConfig = { sourcemap: false };
-    configureSourcemapSettings(config, { disable: true });
+  it('still configures sourcemaps when sourcemaps.disable is disable-upload', () => {
+    const config: NitroConfig = {};
+    configureSourcemapSettings(config, { sourcemaps: { disable: 'disable-upload' } });
 
-    expect(config.sourcemap).toBe(false);
+    expect(config.sourcemap).toBe(true);
   });
 });
 
@@ -236,18 +238,6 @@ describe('setupSourceMaps', () => {
     } as any;
 
     setupSourceMaps(nitro, { sourcemaps: { disable: true } });
-
-    expect(hookFn).not.toHaveBeenCalled();
-  });
-
-  it('does not register hook when disable is true', () => {
-    const hookFn = vi.fn();
-    const nitro = {
-      options: { dev: false, output: { serverDir: '/output/server' } },
-      hooks: { hook: hookFn },
-    } as any;
-
-    setupSourceMaps(nitro, { disable: true });
 
     expect(hookFn).not.toHaveBeenCalled();
   });
