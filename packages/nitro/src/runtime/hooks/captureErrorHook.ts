@@ -1,4 +1,12 @@
-import { captureException, flushIfServerless, getClient, getCurrentScope } from '@sentry/core';
+import {
+  captureException,
+  flushIfServerless,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { HTTPError } from 'h3';
 import type { CapturedErrorContext } from 'nitro/types';
 
@@ -64,6 +72,10 @@ export async function captureErrorHook(error: Error, errorContext: CapturedError
 
   if (path) {
     getCurrentScope().setTransactionName(`${method} ${path}`);
+    const activeSpan = getActiveSpan();
+    const activeRootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+    activeRootSpan?.updateName(`${method} ${path}`);
+    activeRootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
 
   const structuredContext = extractErrorContext(errorContext);
