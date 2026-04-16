@@ -500,7 +500,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -606,7 +606,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -826,7 +826,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -930,7 +930,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1055,7 +1055,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
