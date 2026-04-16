@@ -1,6 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as inpModule from '../../src/metrics/inp';
+import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/metrics/lcp';
 import { _emitWebVitalSpan, _sendClsSpan, _sendInpSpan, _sendLcpSpan } from '../../src/metrics/webVitalSpans';
 
 vi.mock('@sentry/core', async () => {
@@ -262,7 +263,7 @@ describe('_sendLcpSpan', () => {
   });
 
   it('sends a streamed LCP span without entry data', () => {
-    _sendLcpSpan(0, undefined);
+    _sendLcpSpan(250, undefined);
 
     expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,6 +271,13 @@ describe('_sendLcpSpan', () => {
         startTime: 1, // timeOrigin: 1000 / 1000
       }),
     );
+  });
+
+  it('drops implausible LCP values', () => {
+    _sendLcpSpan(0, undefined);
+    _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
+
+    expect(SentryCore.startInactiveSpan).not.toHaveBeenCalled();
   });
 });
 
