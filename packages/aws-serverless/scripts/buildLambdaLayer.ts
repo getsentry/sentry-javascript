@@ -2,7 +2,6 @@
 import { nodeFileTrace } from '@vercel/nft';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { version } from '../package.json';
 
@@ -22,21 +21,14 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
  */
 async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
-  buildPackageJson();
-  console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-  // Use a temporary cache folder to avoid stale cache references to local file: packages.
-  // Yarn's global cache can contain outdated references to build artifacts from other
-  // @sentry/* packages (e.g., build/node_modules paths that no longer exist), causing
-  // ENOENT errors during file copying.
-  // The cache folder must be outside the monorepo to avoid recursive nesting when Yarn
-  // follows file: links and copies package directories.
-  const cacheFolder = path.join(os.tmpdir(), `sentry-lambda-build-cache-${Date.now()}`);
-  run(`yarn install --prod --cwd ./build/aws/dist-serverless/nodejs --cache-folder "${cacheFolder}"`);
+  const tarballDir = buildTarballsAndPackageJson();
+  console.log('Installing @sentry/aws-serverless from tarballs into build/aws/dist-serverless/nodejs.');
+  run('yarn install --prod --cwd ./build/aws/dist-serverless/nodejs');
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
   fs.rmSync('./build/aws/dist-serverless/nodejs/yarn.lock', { force: true });
-  fs.rmSync(cacheFolder, { recursive: true, force: true });
+  fs.rmSync(tarballDir, { recursive: true, force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -170,43 +162,90 @@ function getAllFiles(dir: string): string[] {
   return files;
 }
 
-function buildPackageJson(): void {
-  console.log('Building package.json');
+/**
+ * Pack @sentry/* packages into tarballs and generate a package.json that references them.
+ *
+ * Using tarballs instead of `file:` directory references avoids stale yarn cache issues
+ * (where yarn's global cache retains outdated build artifact paths from previous builds)
+ * and allows us to use yarn's global cache for faster installs.
+ *
+ * Only packs packages that are transitive dependencies of @sentry/aws-serverless to keep
+ * the packing step fast.
+ */
+function buildTarballsAndPackageJson(): string {
+  const tarballDir = path.resolve('./build/aws/tarballs');
+  fsForceMkdirSync(tarballDir);
+
   const packagesDir = path.resolve(__dirname, '../..');
-  const packageDirs = fs
-    .readdirSync(packagesDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name)
-    .filter(name => !name.startsWith('.')) // Skip hidden directories
-    .sort();
+  const sentryPackages = collectSentryDependencies(packagesDir);
+
+  console.log(`Packing ${sentryPackages.size} @sentry/* packages into tarballs.`);
 
   const resolutions: Record<string, string> = {};
 
-  for (const packageDir of packageDirs) {
-    const packageJsonPath = path.join(packagesDir, packageDir, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      try {
-        const packageContent = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { name?: string };
-        const packageName = packageContent.name;
-        if (typeof packageName === 'string' && packageName) {
-          resolutions[packageName] = `file:../../../../../../packages/${packageDir}`;
-        }
-      } catch {
-        console.warn(`Warning: Could not read package.json for ${packageDir}`);
-      }
-    }
+  for (const [packageName, packageDir] of sentryPackages) {
+    run(`npm pack --pack-destination "${tarballDir}"`, {
+      cwd: path.join(packagesDir, packageDir),
+      stdio: 'pipe',
+    });
+    const tarballName = `${packageName.replace('@', '').replace('/', '-')}-${version}.tgz`;
+    resolutions[packageName] = `file:${path.join(tarballDir, tarballName)}`;
+  }
+
+  const awsServerlessTarball = resolutions['@sentry/aws-serverless'];
+  if (!awsServerlessTarball) {
+    throw new Error('Failed to pack @sentry/aws-serverless');
   }
 
   const packageJson = {
     dependencies: {
-      '@sentry/aws-serverless': 'file:../../../../../../packages/aws-serverless',
+      '@sentry/aws-serverless': awsServerlessTarball,
     },
     resolutions,
   };
 
   fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
-  const packageJsonPath = './build/aws/dist-serverless/nodejs/package.json';
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  fs.writeFileSync('./build/aws/dist-serverless/nodejs/package.json', JSON.stringify(packageJson, null, 2));
+
+  return tarballDir;
+}
+
+/**
+ * Collect all @sentry/* and @sentry-internal/* packages that are transitive
+ * dependencies of @sentry/aws-serverless.
+ * Returns a Map of packageName -> directory name.
+ */
+function collectSentryDependencies(packagesDir: string): Map<string, string> {
+  const result = new Map<string, string>();
+
+  // Build a lookup of package name -> directory name
+  const nameToDir = new Map<string, string>();
+  for (const dirent of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+    if (!dirent.isDirectory() || dirent.name.startsWith('.')) continue;
+    const pkgPath = path.join(packagesDir, dirent.name, 'package.json');
+    if (!fs.existsSync(pkgPath)) continue;
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as { name?: string };
+    if (pkg.name) {
+      nameToDir.set(pkg.name, dirent.name);
+    }
+  }
+
+  function collect(packageName: string): void {
+    if (result.has(packageName)) return;
+    const dir = nameToDir.get(packageName);
+    if (!dir) return;
+    result.set(packageName, dir);
+    const pkgPath = path.join(packagesDir, dir, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as { dependencies?: Record<string, string> };
+    for (const dep of Object.keys(pkg.dependencies || {})) {
+      if (dep.startsWith('@sentry/') || dep.startsWith('@sentry-internal/')) {
+        collect(dep);
+      }
+    }
+  }
+
+  collect('@sentry/aws-serverless');
+  return result;
 }
 
 function replaceSDKSource(): void {
