@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import type { Event, EventHint } from './event';
-import { StreamedSpanJSON } from './span';
+import type { StreamedSpanJSON } from './span';
 
 /** Integration interface */
 export interface Integration {
