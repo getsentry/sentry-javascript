@@ -196,8 +196,7 @@ export function makeBundleConfigVariants(getBaseConfigOrConfig, options = {}) {
       // default merge strategy.
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     });
-    return {
-      ...merged,
-    };
+
+    return merged;
   });
 }
