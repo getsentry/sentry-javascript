@@ -1,16 +1,167 @@
-import type { Span } from '../../types-hoist/span';
+import { captureException } from '../../exports';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SPAN_STATUS_ERROR } from '../../tracing';
+import type { Span, SpanAttributes } from '../../types-hoist/span';
 import {
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import type { LangChainMessage } from '../langchain/types';
+import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
-import type { CompiledGraph, LangGraphTool } from './types';
+import { startSpan } from '../trace';
+import { LANGGRAPH_ORIGIN } from './constants';
+import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
+
+/**
+ * Extract LLM model object from createReactAgent params
+ */
+export function extractLLMFromParams(args: unknown[]): BaseChatModel | null {
+  const arg = args[0];
+  return typeof arg === 'object' &&
+    !!arg &&
+    'llm' in arg &&
+    !!arg.llm &&
+    typeof arg.llm === 'object' &&
+    typeof (arg.llm as BaseChatModel).modelName === 'string'
+    ? (arg.llm as BaseChatModel)
+    : null;
+}
+
+/**
+ * Extract agent name from createReactAgent params
+ */
+export function extractAgentNameFromParams(args: unknown[]): string | null {
+  const arg = args[0];
+  if (typeof arg === 'object' && !!arg && 'name' in arg && typeof arg.name === 'string') {
+    return arg.name;
+  }
+  return null;
+}
+
+/**
+ * Wraps an array of LangChain tools so each invocation creates a gen_ai.execute_tool span.
+ *
+ * Wraps each tool's invoke() method in place. A marker prevents double-wrapping.
+ */
+export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, agentName?: string): unknown[] {
+  const SENTRY_WRAPPED = '__sentry_tool_wrapped__';
+
+  for (const tool of tools) {
+    if (!tool || typeof tool !== 'object') {
+      continue;
+    }
+
+    const t = tool as Record<string, unknown>;
+    const originalInvoke = t.invoke;
+    if (typeof originalInvoke !== 'function' || Object.prototype.hasOwnProperty.call(t, SENTRY_WRAPPED)) {
+      continue;
+    }
+
+    const toolName = typeof t.name === 'string' ? t.name : 'unknown_tool';
+    const toolDescription = typeof t.description === 'string' ? t.description : undefined;
+
+    const wrappedInvoke = new Proxy(originalInvoke as (...args: unknown[]) => unknown, {
+      apply(target, thisArg, args: unknown[]): unknown {
+        const spanAttributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
+          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
+        };
+
+        // Read agent name from LangChain's propagated config metadata at call time,
+        // so shared tools get the correct agent name for each invocation
+        const callConfig = args[1] as Record<string, unknown> | undefined;
+        const callAgentName = (callConfig?.metadata as Record<string, unknown>)?.lc_agent_name ?? agentName;
+        if (typeof callAgentName === 'string') {
+          spanAttributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = callAgentName;
+          spanAttributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE] = callAgentName;
+        }
+
+        if (toolDescription) {
+          spanAttributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = toolDescription;
+        }
+
+        // LangGraph ToolNode passes { name, args, id, type: "tool_call" }
+        const input = args[0] as Record<string, unknown> | undefined;
+        if (typeof input === 'object' && !!input) {
+          if ('id' in input && typeof input.id === 'string') {
+            spanAttributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE] = input.id;
+          }
+
+          if (options.recordInputs) {
+            const toolArgs = 'args' in input && typeof input.args === 'object' ? input.args : input;
+            try {
+              spanAttributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = JSON.stringify(toolArgs);
+            } catch {
+              // skip if not serializable
+            }
+          }
+        }
+
+        return startSpan(
+          {
+            op: GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
+            name: `execute_tool ${toolName}`,
+            attributes: spanAttributes,
+          },
+          async span => {
+            try {
+              const result = await Reflect.apply(target, thisArg, args);
+
+              if (options.recordOutputs) {
+                try {
+                  // ToolMessage objects wrap the result in .content
+                  const resultObj = result as Record<string, unknown> | undefined;
+                  const content =
+                    resultObj && typeof resultObj === 'object' && 'content' in resultObj ? resultObj.content : result;
+                  span.setAttribute(
+                    GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+                    typeof content === 'string' ? content : JSON.stringify(content),
+                  );
+                } catch {
+                  // skip if not serializable
+                }
+              }
+
+              return result;
+            } catch (error) {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.langgraph.error',
+                },
+              });
+              throw error;
+            }
+          },
+        );
+      },
+    });
+
+    t.invoke = wrappedInvoke;
+    Object.defineProperty(t, SENTRY_WRAPPED, { value: true, enumerable: false });
+  }
+
+  return tools;
+}
 
 /**
  * Extract tool calls from messages

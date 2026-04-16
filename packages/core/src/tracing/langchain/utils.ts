@@ -1,7 +1,10 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
@@ -350,22 +353,28 @@ export function extractChatModelRequestAttributes(
 }
 
 /**
- * Scans generations for Anthropic-style `tool_use` items and records them.
- *
- * LangChain represents some provider messages (e.g., Anthropic) with a `message.content`
- * array that may include objects `{ type: 'tool_use', ... }`. We collect and attach
- * them as a JSON array on `gen_ai.response.tool_calls` for downstream consumers.
+ * Extracts tool calls from generations and records them on the span attributes.
+ * Prefers message.tool_calls (LangChain's normalized format). Falls back to
+ * scanning message.content for Anthropic-style tool_use items in older versions
+ * where tool_calls may not be populated.
  */
 function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record<string, SpanAttributeValue>): void {
   const toolCalls: unknown[] = [];
   const flatGenerations = generations.flat();
 
   for (const gen of flatGenerations) {
-    const content = gen.message?.content;
-    if (Array.isArray(content)) {
-      for (const item of content) {
-        const t = item as { type: string };
-        if (t.type === 'tool_use') toolCalls.push(t);
+    const msg = gen.message as Record<string, unknown> | undefined;
+    const msgToolCalls = msg?.tool_calls as unknown[] | undefined;
+    if (Array.isArray(msgToolCalls) && msgToolCalls.length > 0) {
+      toolCalls.push(...msgToolCalls);
+    } else {
+      // Fallback for older LangChain versions: scan message.content for Anthropic-style tool_use
+      const content = gen.message?.content;
+      if (Array.isArray(content)) {
+        for (const item of content) {
+          const t = item as Record<string, unknown>;
+          if (t.type === 'tool_use') toolCalls.push(t);
+        }
       }
     }
   }
@@ -503,4 +512,31 @@ export function extractLlmResponseAttributes(
   }
 
   return attrs;
+}
+
+export function getAgentAttributesFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+  const attrs: Record<string, SpanAttributeValue> = {};
+  // lc_agent_name is injected by instrumentCompiledGraphInvoke (langgraph integration)
+  const agentName = metadata?.lc_agent_name;
+  if (typeof agentName === 'string') {
+    attrs[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentName;
+    attrs[GEN_AI_PIPELINE_NAME_ATTRIBUTE] = agentName;
+  }
+  return attrs;
+}
+
+export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {
+  const tools =
+    (extraParams?.invocation_params as Record<string, unknown>)?.tools ??
+    (extraParams?.options as Record<string, unknown>)?.tools;
+  if (!Array.isArray(tools) || tools.length === 0) return undefined;
+  const toolDefs = tools.map((tool: Record<string, unknown>) => {
+    const fn = tool.function as Record<string, unknown> | undefined;
+    return {
+      type: 'function',
+      name: tool.name ?? fn?.name ?? '',
+      description: tool.description ?? fn?.description,
+    };
+  });
+  return JSON.stringify(toolDefs);
 }
