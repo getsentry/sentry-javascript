@@ -13,10 +13,12 @@ if (!configPath || !Number.isFinite(port)) {
 }
 
 try {
-  const server = await runServer(configPath, { listenArg: String(port) });
+  // runServer resolves to the Express app; binding errors are emitted on the
+  // http.Server returned by app.listen(), not on the app itself.
+  const app = await runServer(configPath, { listenArg: String(port) });
   await new Promise((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(port, '127.0.0.1', () => resolve());
+    const httpServer = app.listen(port, '127.0.0.1', () => resolve());
+    httpServer.once('error', reject);
   });
 } catch (err) {
   console.error(err);
