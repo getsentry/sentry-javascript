@@ -150,12 +150,12 @@ describe('patchLayer', () => {
   describe('no-ops', () => {
     it('if layer is missing', () => {
       // mostly for coverage, verifying it doesn't throw or anything
-      patchLayer({});
+      patchLayer(() => ({}));
     });
 
     it('if layer.handle is missing', () => {
       // mostly for coverage, verifying it doesn't throw or anything
-      patchLayer({}, { handle: null } as unknown as ExpressLayer);
+      patchLayer(() => ({}), { handle: null } as unknown as ExpressLayer);
     });
 
     it('if layer already patched', () => {
@@ -166,7 +166,7 @@ describe('patchLayer', () => {
       const layer = {
         handle: wrapped,
       } as unknown as ExpressLayer;
-      patchLayer({}, layer);
+      patchLayer(() => ({}), layer);
       expect(layer.handle).toBe(wrapped);
     });
 
@@ -177,7 +177,7 @@ describe('patchLayer', () => {
       const layer = {
         handle: original,
       } as unknown as ExpressLayer;
-      patchLayer({}, layer);
+      patchLayer(() => ({}), layer);
       expect(layer.handle).toBe(original);
     });
 
@@ -188,7 +188,7 @@ describe('patchLayer', () => {
       const layer = {
         handle: original,
       } as unknown as ExpressLayer;
-      patchLayer({}, layer);
+      patchLayer(() => ({}), layer);
       expect(getOriginalFunction(layer.handle)).toBe(original);
     });
   });
@@ -212,7 +212,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/:boo');
     storeLayer(req, '/:car');
 
-    patchLayer(options, layer);
+    patchLayer(() => options, layer);
     layer.handle(req, res);
     expect(layerHandleOriginal).toHaveBeenCalledOnce();
 
@@ -244,7 +244,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/:boo');
     storeLayer(req, '/:car');
 
-    patchLayer(options, layer, '/layerPath');
+    patchLayer(() => options, layer, '/layerPath');
     layer.handle(req, res);
     expect(onRouteResolved).toHaveBeenCalledExactlyOnceWith('/a/:boo/:car/layerPath');
     expect(layerHandleOriginal).toHaveBeenCalledOnce();
@@ -290,7 +290,7 @@ describe('patchLayer', () => {
       // 'router' → router, 'bound dispatch' → request_handler, other → middleware
       const layerName = type === 'router' ? 'router' : 'bound dispatch';
       const layer = { name: layerName, handle: layerHandleOriginal } as unknown as ExpressLayer;
-      patchLayer(options, layer, '/c');
+      patchLayer(() => options, layer, '/c');
 
       // storeLayer('/c') happens inside the patched handle, before being popped
       // after handle returns, storedLayers should be back to ['/a', '/b']
@@ -327,7 +327,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/:boo');
     storeLayer(req, '/:car');
 
-    patchLayer(options, layer, '/layerPath');
+    patchLayer(() => options, layer, '/layerPath');
     expect(getOriginalFunction(layer.handle)).toBe(layerHandleOriginal);
     expect(layer.handle.x).toBe(true);
     layer.handle.x = false;
@@ -382,7 +382,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/:boo');
     storeLayer(req, '/:car');
 
-    patchLayer(options, layer);
+    patchLayer(() => options, layer);
     expect(getOriginalFunction(layer.handle)).toBe(layerHandleOriginal);
     warnings.length = 0;
     layer.handle(req, res);
@@ -441,7 +441,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/a');
     storeLayer(req, '/b');
 
-    patchLayer(options, layer, '/c');
+    patchLayer(() => options, layer, '/c');
     layer.handle(req, res);
     expect(onRouteResolved).toHaveBeenCalledExactlyOnceWith('/a/b/c');
     const span = mockSpans[0];
@@ -482,7 +482,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/a');
     storeLayer(req, '/b');
 
-    patchLayer(options, layer, '/c');
+    patchLayer(() => options, layer, '/c');
     layer.handle(req, res);
     expect(onRouteResolved).toHaveBeenCalledExactlyOnceWith(undefined);
     const span = mockSpans[0];
@@ -526,7 +526,7 @@ describe('patchLayer', () => {
 
     storeLayer(req, '/a');
     storeLayer(req, '/b');
-    patchLayer(options, layer, '/c');
+    patchLayer(() => options, layer, '/c');
 
     expect(getStoredLayers(req)).toStrictEqual(['/a', '/b']);
     const callback = vi.fn(() => {
@@ -576,7 +576,7 @@ describe('patchLayer', () => {
 
     storeLayer(req, '/a');
     storeLayer(req, '/b');
-    patchLayer(options, layer, '/c');
+    patchLayer(() => options, layer, '/c');
 
     expect(getStoredLayers(req)).toStrictEqual(['/a', '/b']);
     const callback = vi.fn(() => {
@@ -622,7 +622,7 @@ describe('patchLayer', () => {
     storeLayer(req, '/a');
     storeLayer(req, '/b');
 
-    patchLayer(options, layer, '/c');
+    patchLayer(() => options, layer, '/c');
     expect(() => {
       layer.handle(req, res);
     }).toThrowError('yur head asplode');

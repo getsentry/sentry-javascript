@@ -4,6 +4,12 @@ import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
 
+vi.mock('../src/instrumentations/worker/instrumentEnv', () => ({
+  instrumentEnv: vi.fn((env: unknown) => env),
+}));
+
+import { instrumentEnv } from '../src/instrumentations/worker/instrumentEnv';
+
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
 const MOCK_STEP_CTX = { attempt: 1 };
@@ -144,6 +150,28 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
         ],
       ],
     ]);
+  });
+
+  test('Wraps env with instrumentEnv', async () => {
+    class EnvTestWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('first step', async () => {
+          return { ok: true };
+        });
+      }
+    }
+
+    const mockEnv = { SENTRY_DSN: 'https://key@sentry.io/123', MY_SERVICE: {} };
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, EnvTestWorkflow as any);
+    new TestWorkflowInstrumented(mockContext, mockEnv as any);
+
+    expect(instrumentEnv).toHaveBeenCalledTimes(1);
+    expect(instrumentEnv).toHaveBeenCalledWith(
+      mockEnv,
+      expect.objectContaining({ dsn: 'https://8@ingest.sentry.io/4' }),
+    );
   });
 
   test('Calls expected functions with non-uuid instance id', async () => {

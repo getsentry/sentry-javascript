@@ -345,6 +345,47 @@ describe('OpenAI integration', () => {
     });
   });
 
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Multiple messages should all be preserved (no popping to last message only)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', content: longContent },
+            { role: 'assistant', content: 'Some reply' },
+            { role: 'user', content: 'Follow-up question' },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+        }),
+      }),
+      // Responses API long string input should not be truncated or wrapped in quotes
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'B'.repeat(50_000),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
+
   const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS = {
     transaction: 'main',
     spans: expect.arrayContaining([
@@ -982,4 +1023,67 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  const streamingLongContent = 'A'.repeat(50_000);
+  const streamingLongString = 'B'.repeat(50_000);
+
+  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+
+            const responsesSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongString),
+            );
+            expect(responsesSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-span-streaming.mjs',
+    'instrument-streaming-with-truncation.mjs',
+    (createRunner, test) => {
+      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+
+              // With explicit enableTruncation: true, content should be truncated despite streaming.
+              // Truncation keeps only the last message (50k 'A's) and crops it to the byte limit.
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              );
+              expect(chatSpan).toBeDefined();
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongContent.length,
+              );
+
+              // The responses API string input (50k 'B's) should also be truncated.
+              const responsesSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('BBB'),
+              );
+              expect(responsesSpan).toBeDefined();
+              expect(responsesSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongString.length,
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

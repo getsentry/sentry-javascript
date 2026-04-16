@@ -203,17 +203,18 @@ export function supportsWebVital(entryType: 'layout-shift' | 'largest-contentful
  * @param collectorCallback the callback to be called when the first of these events is triggered. Parameters:
  * - event: the event that triggered the reporting of the web vital value.
  * - pageloadSpanId: the span id of the pageload span. This is used to link the web vital span to the pageload span.
+ * - pageloadSpan: the pageload span instance. This is used for full access to the pageload span for span streaming.
  */
 export function listenForWebVitalReportEvents(
   client: Client,
-  collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string) => void,
+  collectorCallback: (event: WebVitalReportEvent, pageloadSpanId: string, pageloadSpan?: Span) => void,
 ) {
-  let pageloadSpanId: string | undefined;
+  let pageloadSpan: Span | undefined;
 
   let collected = false;
   function _runCollectorCallbackOnce(event: WebVitalReportEvent) {
-    if (!collected && pageloadSpanId) {
-      collectorCallback(event, pageloadSpanId);
+    if (!collected && pageloadSpan) {
+      collectorCallback(event, pageloadSpan.spanContext().spanId, pageloadSpan);
     }
     collected = true;
   }
@@ -233,7 +234,7 @@ export function listenForWebVitalReportEvents(
   });
 
   const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
-    pageloadSpanId = span.spanContext().spanId;
+    pageloadSpan = span;
     unsubscribeAfterStartPageLoadSpan();
   });
 }

@@ -16,6 +16,12 @@
       "rules": {
         "sdk/no-unsafe-random-apis": "off"
       }
+    },
+    {
+      "files": ["src/tracing/langchain/utils.ts"],
+      "rules": {
+        "max-lines": "off"
+      }
     }
   ],
   "ignorePatterns": ["rollup.npm.config.mjs"]

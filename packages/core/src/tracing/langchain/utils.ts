@@ -26,8 +26,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { isContentMedia, stripInlineMediaFromSingleMessage } from '../ai/mediaStripping';
-import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { extractSystemInstructions } from '../ai/utils';
+import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -284,6 +283,7 @@ export function extractLLMRequestAttributes(
   llm: LangChainSerialized,
   prompts: string[],
   recordInputs: boolean,
+  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
@@ -295,7 +295,11 @@ export function extractLLMRequestAttributes(
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
     setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
     const messages = prompts.map(p => ({ role: 'user', content: p }));
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(messages));
+    setIfDefined(
+      attrs,
+      GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+      enableTruncation ? getTruncatedJsonString(messages) : getJsonString(messages),
+    );
   }
 
   return attrs;
@@ -314,6 +318,7 @@ export function extractChatModelRequestAttributes(
   llm: LangChainSerialized,
   langChainMessages: LangChainMessage[][],
   recordInputs: boolean,
+  enableTruncation: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
@@ -334,8 +339,11 @@ export function extractChatModelRequestAttributes(
     const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredLength);
 
-    const truncated = truncateGenAiMessages(filteredMessages as unknown[]);
-    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(truncated));
+    setIfDefined(
+      attrs,
+      GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+      enableTruncation ? getTruncatedJsonString(filteredMessages) : getJsonString(filteredMessages),
+    );
   }
 
   return attrs;

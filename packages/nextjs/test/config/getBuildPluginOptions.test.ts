@@ -692,6 +692,26 @@ describe('getBuildPluginOptions', () => {
         expect(rewriteSources('./components/Layout.tsx', {})).toBe('./components/Layout.tsx');
       }
     });
+
+    it('allows user to override rewriteSources', () => {
+      const customRewrite = (source: string) => source.replace(/^custom\//, '');
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          rewriteSources: customRewrite,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.rewriteSources).toBe(customRewrite);
+    });
   });
 
   describe('release configuration', () => {

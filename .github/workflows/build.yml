@@ -152,15 +152,15 @@ jobs:
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
-      changed_node_overhead_action:
-        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
-        '@sentry-internal/node-overhead-gh-action') }}
       changed_deno:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/deno') }}
       changed_bun:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/bun') }}
+      changed_bun_integration:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bun-integration-tests') }}
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
@@ -203,37 +203,6 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Only run comparison against develop if this is a PR
-          comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
-
-  job_node_overhead_check:
-    name: Node Overhead Check
-    needs: [job_get_metadata, job_build]
-    timeout-minutes: 15
-    runs-on: ubuntu-24.04
-    if:
-      (needs.job_build.outputs.changed_node == 'true' && github.event_name == 'pull_request') ||
-      (needs.job_build.outputs.changed_node_overhead_action == 'true' && github.event_name == 'pull_request') ||
-      needs.job_get_metadata.outputs.is_base_branch == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check node overhead
-        uses: ./dev-packages/node-overhead-gh-action
-        env:
-          DEBUG: '1'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Only run comparison against develop if this is a PR
@@ -605,6 +574,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          enable-coverage: false
           name:
             browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
             matrix.shard) || '' }}
@@ -669,6 +639,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
+          enable-coverage: false
           name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
@@ -737,15 +708,6 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/node-integration-tests
-          name: node-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || '' }}
-
   job_node_core_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Node-Core
@@ -787,16 +749,6 @@ jobs:
         working-directory: dev-packages/node-core-integration-tests
         run: yarn test
 
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/node-core-integration-tests
-          name:
-            node-core-integration-${{ matrix.node }}${{ matrix.typescript && format('-ts{0}', matrix.typescript) || ''}}
-
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
     needs: [job_get_metadata, job_build]
@@ -818,6 +770,32 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
+        run: yarn test
+
+  job_bun_integration_tests:
+    name: Bun Integration Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Run integration tests
+        working-directory: dev-packages/bun-integration-tests
         run: yarn test
 
   job_remix_integration_tests:
@@ -855,15 +833,6 @@ jobs:
         run: |
           cd packages/remix
           yarn test:integration:ci
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          directory: packages/remix
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: ${{ matrix.node }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -970,7 +939,7 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if: matrix.test-application == 'deno'
+        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
         uses: denoland/setup-deno@v2.0.3
         with:
           deno-version: v2.1.5
@@ -990,11 +959,6 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Get node version
-        id: versions
-        run: |
-          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
       - name: Validate Verdaccio
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
@@ -1002,8 +966,6 @@ jobs:
       - name: Prepare Verdaccio
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
-        env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
@@ -1052,15 +1014,6 @@ jobs:
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          directory: dev-packages/e2e-tests
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: e2e-${{ matrix.test-application }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
@@ -1116,11 +1069,6 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Get node version
-        id: versions
-        run: |
-          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
       - name: Validate Verdaccio
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
@@ -1128,8 +1076,6 @@ jobs:
       - name: Prepare Verdaccio
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
-        env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
@@ -1178,6 +1124,7 @@ jobs:
         job_node_integration_tests,
         job_node_core_integration_tests,
         job_cloudflare_integration_tests,
+        job_bun_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
@@ -1192,7 +1139,28 @@ jobs:
     # Always run this, even if a dependent job failed
     if: always()
     runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      checks: read
     steps:
+      - name: Check out current commit
+        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+
+      - name: Create issues for failed jobs
+        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { default: run } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/report-ci-failures.mjs`
+            );
+            await run({ github, context, core });
+
       - name: Check for failures
         if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |

@@ -1,0 +1,20 @@
+{
+  "name": "cloudflare-instrument-fetcher",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["EchoHeadersDurableObject"],
+      "tag": "v1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "EchoHeadersDurableObject",
+        "name": "ECHO_HEADERS_DO",
+      },
+    ],
+  },
+}

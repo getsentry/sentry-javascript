@@ -118,6 +118,16 @@ describe('getPluginOptions', () => {
     expect(rewrite!('./local')).toBe('./local');
   });
 
+  it('allows user to override rewriteSources', () => {
+    const customRewrite = (source: string) => source.replace(/^src\//, 'custom/');
+    const options = getPluginOptions({
+      sourcemaps: {
+        rewriteSources: customRewrite,
+      },
+    } as SentryNuxtModuleOptions);
+    expect(options.sourcemaps?.rewriteSources).toBe(customRewrite);
+  });
+
   it('prioritizes new BuildTimeOptionsBase options over deprecated ones', () => {
     const options: SentryNuxtModuleOptions = {
       // New options

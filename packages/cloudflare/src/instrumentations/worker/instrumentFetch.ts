@@ -5,6 +5,7 @@ import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { wrapRequestHandler } from '../../request';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { instrumentEnv } from './instrumentEnv';
 
 /**
  * Instruments a fetch handler for ExportedHandler (env/ctx come from args).
@@ -25,9 +26,9 @@ export function instrumentExportedHandlerFetch<T extends ExportedHandler<any, an
         apply(target, thisArg, args: Parameters<NonNullable<T['fetch']>>) {
           const [request, env, ctx] = args;
           const context = instrumentContext(ctx);
-          args[2] = context;
-
           const options = getFinalOptions(optionsCallback(env), env);
+          args[1] = instrumentEnv(env, options);
+          args[2] = context;
 
           return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
         },

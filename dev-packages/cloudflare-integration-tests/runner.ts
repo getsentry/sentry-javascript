@@ -68,10 +68,15 @@ export function createRunner(...paths: string[]) {
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let serverUrl: string | undefined;
+  const extraWranglerArgs: string[] = [];
 
   return {
     withServerUrl: function (url: string) {
       serverUrl = url;
+      return this;
+    },
+    withWranglerArgs: function (...args: string[]) {
+      extraWranglerArgs.push(...args);
       return this;
     },
     expect: function (expected: Expected) {
@@ -237,6 +242,7 @@ export function createRunner(...paths: string[]) {
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
               '--var',
               `SERVER_URL:${serverUrl}`,
+              ...extraWranglerArgs,
             ],
             { stdio, signal },
           );

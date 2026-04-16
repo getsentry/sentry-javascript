@@ -19,6 +19,7 @@ Object.defineProperty(global, 'addEventListener', { value: () => undefined, writ
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
+const originalNavigator = WINDOW.navigator;
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const originalGlobalAddEventListener = WINDOW.addEventListener;
 
@@ -26,6 +27,7 @@ afterAll(() => {
   // Clean up JSDom
   Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
   Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
+  Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
 });
 
@@ -43,6 +45,7 @@ describe('Client init()', () => {
     getIsolationScope().clear();
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
+    Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   });
 
   it('inits the React SDK', () => {
@@ -159,6 +162,25 @@ describe('Client init()', () => {
 
         // @ts-expect-error Test setup for build-time flag
         delete globalThis.__SENTRY_TRACING__;
+      });
+
+      it("doesn't run Next.js router instrumentation for bot user agents", () => {
+        Object.defineProperty(WINDOW, 'navigator', {
+          value: {
+            userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          },
+          writable: true,
+          configurable: true,
+        });
+
+        const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+
+        init({
+          dsn: TEST_DSN,
+          tracesSampleRate: 1.0,
+        });
+
+        expect(setIntervalSpy).not.toHaveBeenCalled();
       });
     });
   });
