@@ -114,7 +114,11 @@ function setupH3TracingChannels(): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: data?.type === 'middleware' ? 'middleware.nitro' : 'http.server',
         },
       },
-      s => s,
+      span => {
+        setParameterizedRouteAttributes(span, data.event);
+
+        return span;
+      },
     );
   });
 
@@ -241,4 +245,36 @@ function setupSrvxTracingChannels(): void {
     asyncEnd: onTraceEnd,
     error: onTraceError,
   });
+}
+
+/**
+ * Sets the parameterized route attributes on the span.
+ */
+function setParameterizedRouteAttributes(span: Span, event: H3TracingRequestEvent['event']): void {
+  const rootSpan = getRootSpan(span);
+  if (!rootSpan) {
+    return;
+  }
+
+  const matchedRoutePath = getParameterizedRoute(event);
+  if (!matchedRoutePath) {
+    return;
+  }
+
+  rootSpan.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    'http.route': matchedRoutePath,
+  });
+
+  const params = event.context?.params;
+
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([key, value]) => {
+      // Based on this convention: https://getsentry.github.io/sentry-conventions/generated/attributes/url.html#urlpathparameterkey
+      rootSpan.setAttributes({
+        [`url.path.parameter.${key}`]: String(value),
+        [`params.${key}`]: String(value),
+      });
+    });
+  }
 }
