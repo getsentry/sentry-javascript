@@ -13,7 +13,14 @@ services:
       POSTGRES_DB: test_db
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U test -d test_db']
-      interval: 2s
+      interval: 500ms
       timeout: 3s
-      retries: 30
-      start_period: 5s
+      retries: 60
+      start_period: 2s
+
+  ready-gate:
+    image: busybox
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ['echo', 'postgresjs-ready']

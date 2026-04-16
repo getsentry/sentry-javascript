@@ -218,7 +218,10 @@ describe('postgresjs auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .expect({ event: EXPECTED_ERROR_EVENT })
       .start()
@@ -438,7 +441,10 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario.mjs')
       .withFlags('--import', `${__dirname}/instrument.mjs`)
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .expect({ event: EXPECTED_ERROR_EVENT })
       .start()
@@ -532,7 +538,10 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario-requestHook.js')
       .withFlags('--require', `${__dirname}/instrument-requestHook.cjs`)
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -625,7 +634,10 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario-requestHook.mjs')
       .withFlags('--import', `${__dirname}/instrument-requestHook.mjs`)
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -706,7 +718,10 @@ describe('postgresjs auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario-url.cjs')
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -787,7 +802,10 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario-url.mjs')
       .withFlags('--import', `${__dirname}/instrument.mjs`)
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -866,7 +884,10 @@ describe('postgresjs auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario-unsafe.cjs')
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
@@ -946,7 +967,10 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario-unsafe.mjs')
       .withFlags('--import', `${__dirname}/instrument.mjs`)
-      .withDockerCompose({ workingDirectory: [__dirname] })
+      .withDockerCompose({
+        workingDirectory: [__dirname],
+        readyMatches: ['postgresjs-ready'],
+      })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
