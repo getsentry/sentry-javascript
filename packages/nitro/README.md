@@ -4,6 +4,8 @@
   </a>
 </p>
 
+> NOTICE: This package is in beta state and may be subject to breaking changes.
+
 # Official Sentry SDK for Nitro
 
 [![npm version](https://img.shields.io/npm/v/@sentry/nitro.svg)](https://www.npmjs.com/package/@sentry/nitro)
@@ -44,7 +46,7 @@ This package is a wrapper around `@sentry/node` with added instrumentation for N
    pnpm add @sentry/nitro
    ```
 
-### 2. Nitro Config Setup
+### 2. Build-Time Nitro Config Setup
 
 1. Import `withSentryConfig` from `@sentry/nitro` and call it with your Nitro config.
 
@@ -67,7 +69,7 @@ export default withSentryConfig(config, {
 
 #### In `vite.config.ts`
 
-If you are using nitro as a Vite plugin, you can import `withSentryConfig` from `@sentry/nitro` and call it with your Nitro config.
+If you are using Nitro as a Vite plugin, you can import `withSentryConfig` from `@sentry/nitro` and call it with your Nitro config.
 
 ```ts
 import { defineConfig } from 'vite';
@@ -100,7 +102,7 @@ Sentry.init({
 });
 ```
 
-Then use `NODE_OPTIONS` to load the instrumentation before your app code:
+Then use `--import` in `NODE_OPTIONS` to load the instrumentation before your app code:
 
 ```bash
 NODE_OPTIONS='--import ./instrument.mjs' npx nitro dev
