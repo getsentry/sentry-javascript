@@ -12,7 +12,7 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
     ...options,
   };
 
-  applySdkMetadata(opts, 'nitro');
+  applySdkMetadata(opts, 'nitro', ['nitro', 'node']);
 
   const client = nodeInit(opts);
 
