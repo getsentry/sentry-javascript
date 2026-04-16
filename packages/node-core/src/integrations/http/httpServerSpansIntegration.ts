@@ -19,6 +19,7 @@ import {
   getHttpServerSpanSubscriptions,
   HTTP_ON_SERVER_REQUEST,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
 } from '@sentry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -173,8 +174,14 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const rpcMetadata = getRPCMetadata(context.active());
           if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
             span.setAttribute(ATTR_HTTP_ROUTE, rpcMetadata.route);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-            getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${rpcMetadata.route}`);
+            // Only update the transaction name from the parametrized route if
+            // the user hasn't overridden sentry.source. If a user called
+            // Sentry.updateSpanName() or setAttribute(SENTRY_SOURCE, ...) to
+            // set a custom source, preserve their choice.
+            const currentSource = spanToJSON(span).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+            if (currentSource === 'route') {
+              getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${rpcMetadata.route}`);
+            }
           }
         },
       };
