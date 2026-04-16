@@ -23,6 +23,7 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -45,6 +46,9 @@ import {
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
   startTrackingWebVitals,
+  trackClsAsSpan,
+  trackInpAsSpan,
+  trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
@@ -453,11 +457,13 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
         _collectWebVitals?.();
+        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !enableStandaloneLcpSpans,
+          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
+          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
+          spanStreamingEnabled,
         });
         setActiveIdleSpan(client, undefined);
 
@@ -514,13 +520,21 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       registerSpanErrorInstrumentation();
 
+      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
+
       _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+        recordClsStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneClsSpans || false,
+        recordLcpStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneLcpSpans || false,
         client,
       });
 
-      if (enableInp) {
+      if (spanStreamingEnabled) {
+        trackLcpAsSpan(client);
+        trackClsAsSpan(client);
+        if (enableInp) {
+          trackInpAsSpan();
+        }
+      } else if (enableInp) {
         startTrackingINP();
       }
 

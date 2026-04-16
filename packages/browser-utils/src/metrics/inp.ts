@@ -37,7 +37,7 @@ const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
  * 60 seconds is the maximum for a plausible INP value
  * (source: Me)
  */
-const MAX_PLAUSIBLE_INP_DURATION = 60;
+export const MAX_PLAUSIBLE_INP_DURATION = 60;
 /**
  * Start tracking INP webvital events.
  */
@@ -54,7 +54,7 @@ export function startTrackingINP(): () => void {
   return () => undefined;
 }
 
-const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
+export const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
   click: 'click',
   pointerdown: 'click',
   pointerup: 'click',
@@ -154,6 +154,14 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
     span.end(startTime + duration);
   }
 };
+
+/**
+ * Look up a cached interaction context (element name + root span) by interactionId.
+ * Returns undefined if no context was cached for this interaction.
+ */
+export function getCachedInteractionContext(interactionId: number | undefined): InteractionContext | undefined {
+  return interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+}
 
 /**
  * Register a listener to cache route information for INP interactions.
