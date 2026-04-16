@@ -120,6 +120,15 @@ describe('getPluginOptions', () => {
     expect(rewriteSources?.('src/index.ts', undefined)).toBe('src/index.ts');
   });
 
+  it('uses user-provided rewriteSources when given', () => {
+    const customRewrite = (source: string) => `/custom/${source}`;
+    const options = getPluginOptions({ sourcemaps: { rewriteSources: customRewrite } });
+
+    expect(options.sourcemaps?.rewriteSources?.('../../../src/index.ts', undefined)).toBe(
+      '/custom/../../../src/index.ts',
+    );
+  });
+
   it('always sets metaFramework to nitro', () => {
     const options = getPluginOptions();
 

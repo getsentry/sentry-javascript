@@ -77,7 +77,7 @@ export function getPluginOptions(options?: SentryNitroOptions): BundlerPluginOpt
       assets: options?.sourcemaps?.assets,
       ignore: options?.sourcemaps?.ignore,
       filesToDeleteAfterUpload: options?.sourcemaps?.filesToDeleteAfterUpload ?? ['**/*.map'],
-      rewriteSources: (source: string) => normalizePath(source),
+      rewriteSources: options?.sourcemaps?.rewriteSources ?? ((source: string) => normalizePath(source)),
     },
     release: options?.release,
     bundleSizeOptimizations: options?.bundleSizeOptimizations,
