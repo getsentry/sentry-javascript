@@ -16,7 +16,7 @@ import {
   startSpanManual,
   updateSpanName,
 } from '@sentry/core';
-import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry';
+import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry/tracingChannel';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
