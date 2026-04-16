@@ -136,54 +136,68 @@ export function makeBaseBundleConfig(options) {
 }
 
 /**
+ * @param {import('rollup').RollupOptions} baseConfig
+ * @param {string} variant
+ */
+function getVariantSpecificBundleConfig(baseConfig, variant) {
+  const baseEntryNames = baseConfig.output.entryFileNames;
+
+  switch (variant) {
+    case '.js':
+      return {
+        output: {
+          entryFileNames: chunkInfo => `${baseEntryNames(chunkInfo)}.js`,
+        },
+        plugins: [makeIsDebugBuildPlugin(true), makeSetSDKSourcePlugin('cdn')],
+      };
+    case '.min.js':
+      return {
+        output: {
+          entryFileNames: chunkInfo => `${baseEntryNames(chunkInfo)}.min.js`,
+        },
+        plugins: [makeIsDebugBuildPlugin(false), makeSetSDKSourcePlugin('cdn'), makeTerserPlugin()],
+      };
+    case '.debug.min.js':
+      return {
+        output: {
+          entryFileNames: chunkInfo => `${baseEntryNames(chunkInfo)}.debug.min.js`,
+        },
+        plugins: [makeIsDebugBuildPlugin(true), makeSetSDKSourcePlugin('cdn'), makeTerserPlugin()],
+      };
+    default:
+      throw new Error(`Unknown bundle variant requested: ${variant}`);
+  }
+}
+
+/**
  * Takes the CDN rollup config for a given package and produces three versions of it:
  *   - non-minified, including debug logging,
  *   - minified, including debug logging,
  *   - minified, with debug logging stripped
  *
- * @param baseConfig The rollup config shared by the entire package
- * @returns An array of versions of that config
+ * Pass `() => makeBaseBundleConfig({ ... })` so each variant gets a fresh base config (new plugin instances). That
+ * avoids sharing stateful Rollup plugins when `rollupParallel` runs multiple `rollup()` calls concurrently. Passing a
+ * plain config object is supported for backwards compatibility but only shallow-clones plugin shells.
+ *
+ * @param {(() => import('rollup').RollupOptions) | import('rollup').RollupOptions} getBaseConfigOrConfig
+ * @param {{ variants?: string[] }} [options]
  */
-export function makeBundleConfigVariants(baseConfig, options = {}) {
+export function makeBundleConfigVariants(getBaseConfigOrConfig, options = {}) {
   const { variants = BUNDLE_VARIANTS } = options;
-
-  const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
-  const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
-  const terserPlugin = makeTerserPlugin();
-  const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
-
-  // The additional options to use for each variant we're going to create.
-  const variantSpecificConfigMap = {
-    '.js': {
-      output: {
-        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
-      },
-      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
-    },
-
-    '.min.js': {
-      output: {
-        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
-      },
-      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
-    },
-
-    '.debug.min.js': {
-      output: {
-        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
-      },
-      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
-    },
-  };
+  const resolveBase = typeof getBaseConfigOrConfig === 'function' ? getBaseConfigOrConfig : () => getBaseConfigOrConfig;
 
   return variants.map(variant => {
     if (!BUNDLE_VARIANTS.includes(variant)) {
       throw new Error(`Unknown bundle variant requested: ${variant}`);
     }
-    return deepMerge(baseConfig, variantSpecificConfigMap[variant], {
+    const baseConfig = resolveBase();
+    const merged = deepMerge(baseConfig, getVariantSpecificBundleConfig(baseConfig, variant), {
       // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
       // default merge strategy.
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     });
+    return {
+      ...merged,
+    };
   });
 }

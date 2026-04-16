@@ -22,31 +22,35 @@ const reexportedPluggableIntegrationFiles = [
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
-  const integrationsBundleConfig = makeBaseBundleConfig({
-    bundleType: 'addon',
-    entrypoints: [`src/integrations/${integrationName}.ts`],
-    licenseTitle: `@sentry/browser - ${integrationName}`,
-    outputFileBase: () => `bundles/${integrationName}`,
-  });
-
-  builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
+  builds.push(
+    ...makeBundleConfigVariants(() =>
+      makeBaseBundleConfig({
+        bundleType: 'addon',
+        entrypoints: [`src/integrations/${integrationName}.ts`],
+        licenseTitle: `@sentry/browser - ${integrationName}`,
+        outputFileBase: () => `bundles/${integrationName}`,
+      }),
+    ),
+  );
 });
 
 reexportedPluggableIntegrationFiles.forEach(integrationName => {
-  const integrationsBundleConfig = makeBaseBundleConfig({
-    bundleType: 'addon',
-    entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],
-    licenseTitle: `@sentry/browser - ${integrationName}`,
-    outputFileBase: () => `bundles/${integrationName}`,
-  });
-
-  builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
+  builds.push(
+    ...makeBundleConfigVariants(() =>
+      makeBaseBundleConfig({
+        bundleType: 'addon',
+        entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],
+        licenseTitle: `@sentry/browser - ${integrationName}`,
+        outputFileBase: () => `bundles/${integrationName}`,
+      }),
+    ),
+  );
 });
 
 // Bundle config for additional exports we don't want to include in the main SDK bundle
 // if we need more of these, we can generalize the config as for pluggable integrations
 builds.push(
-  ...makeBundleConfigVariants(
+  ...makeBundleConfigVariants(() =>
     makeBaseBundleConfig({
       bundleType: 'addon',
       entrypoints: ['src/pluggable-exports-bundle/index.multiplexedtransport.ts'],
@@ -56,104 +60,104 @@ builds.push(
   ),
 );
 
-const baseBundleConfig = makeBaseBundleConfig({
+const baseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.ts'],
   licenseTitle: '@sentry/browser',
   outputFileBase: () => 'bundles/bundle',
-});
+};
 
-const feedbackBaseBundleConfig = makeBaseBundleConfig({
+const feedbackBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.feedback.ts'],
   licenseTitle: '@sentry/browser & @sentry/feedback',
   outputFileBase: () => 'bundles/bundle.feedback',
-});
+};
 
-const logsMetricsBaseBundleConfig = makeBaseBundleConfig({
+const logsMetricsBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.logs.metrics.ts'],
   licenseTitle: '@sentry/browser (Logs and Metrics)',
   outputFileBase: () => 'bundles/bundle.logs.metrics',
-});
+};
 
-const replayBaseBundleConfig = makeBaseBundleConfig({
+const replayBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.ts'],
   licenseTitle: '@sentry/browser (Replay)',
   outputFileBase: () => 'bundles/bundle.replay',
-});
+};
 
-const replayFeedbackBaseBundleConfig = makeBaseBundleConfig({
+const replayFeedbackBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.feedback.ts'],
   licenseTitle: '@sentry/browser (Replay, and Feedback)',
   outputFileBase: () => 'bundles/bundle.replay.feedback',
-});
+};
 
-const replayLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
+const replayLogsMetricsBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.logs.metrics.ts'],
   licenseTitle: '@sentry/browser (Replay, Logs, and Metrics)',
   outputFileBase: () => 'bundles/bundle.replay.logs.metrics',
-});
+};
 
 // Tracing
-const tracingBaseBundleConfig = makeBaseBundleConfig({
+const tracingBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring)',
   outputFileBase: () => 'bundles/bundle.tracing',
-});
+};
 
-const tracingLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
+const tracingLogsMetricsBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.logs.metrics.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring, Logs, and Metrics)',
   outputFileBase: () => 'bundles/bundle.tracing.logs.metrics',
-});
+};
 
-const tracingReplayBaseBundleConfig = makeBaseBundleConfig({
+const tracingReplayBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.replay.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring and Replay)',
   outputFileBase: () => 'bundles/bundle.tracing.replay',
-});
+};
 
-const tracingReplayLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
+const tracingReplayLogsMetricsBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.replay.logs.metrics.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring, Replay, Logs, and Metrics)',
   outputFileBase: () => 'bundles/bundle.tracing.replay.logs.metrics',
-});
+};
 
-const tracingReplayFeedbackBaseBundleConfig = makeBaseBundleConfig({
+const tracingReplayFeedbackBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.replay.feedback.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring, Replay, and Feedback)',
   outputFileBase: () => 'bundles/bundle.tracing.replay.feedback',
-});
+};
 
-const tracingReplayFeedbackLogsMetricsBaseBundleConfig = makeBaseBundleConfig({
+const tracingReplayFeedbackLogsMetricsBaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.tracing.replay.feedback.logs.metrics.ts'],
   licenseTitle: '@sentry/browser (Performance Monitoring, Replay, Feedback, Logs, and Metrics)',
   outputFileBase: () => 'bundles/bundle.tracing.replay.feedback.logs.metrics',
-});
+};
 
 builds.push(
-  ...makeBundleConfigVariants(baseBundleConfig),
-  ...makeBundleConfigVariants(feedbackBaseBundleConfig),
-  ...makeBundleConfigVariants(logsMetricsBaseBundleConfig),
-  ...makeBundleConfigVariants(replayBaseBundleConfig),
-  ...makeBundleConfigVariants(replayFeedbackBaseBundleConfig),
-  ...makeBundleConfigVariants(replayLogsMetricsBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingLogsMetricsBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingReplayBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingReplayLogsMetricsBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingReplayFeedbackBaseBundleConfig),
-  ...makeBundleConfigVariants(tracingReplayFeedbackLogsMetricsBaseBundleConfig),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(baseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(feedbackBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(logsMetricsBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(replayBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(replayFeedbackBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(replayLogsMetricsBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingLogsMetricsBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingReplayBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingReplayLogsMetricsBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingReplayFeedbackBaseBundleOptions)),
+  ...makeBundleConfigVariants(() => makeBaseBundleConfig(tracingReplayFeedbackLogsMetricsBaseBundleOptions)),
 );
 
 export default builds;

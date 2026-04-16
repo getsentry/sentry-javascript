@@ -3,7 +3,7 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal
 export default [
   // The core `feedback` bundle is built in the browser package
   // Sub-bundles are built here
-  ...makeBundleConfigVariants(
+  ...makeBundleConfigVariants(() =>
     makeBaseBundleConfig({
       bundleType: 'addon',
       entrypoints: ['src/screenshot/integration.ts'],
@@ -19,7 +19,7 @@ export default [
       },
     }),
   ),
-  ...makeBundleConfigVariants(
+  ...makeBundleConfigVariants(() =>
     makeBaseBundleConfig({
       bundleType: 'addon',
       entrypoints: ['src/modal/integration.tsx'],

@@ -29,5 +29,8 @@
   "[typescript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },
-  "oxc.suppressProgramErrors": true
+  "oxc.suppressProgramErrors": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  }
 }

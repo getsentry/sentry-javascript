@@ -130,18 +130,18 @@ describe('index.bundle.{FEATURE_COMBO}', () => {
 Add bundle config before `builds.push(...)`:
 
 ```javascript
-const {featureCombo}BaseBundleConfig = makeBaseBundleConfig({
+const {featureCombo}BaseBundleOptions = {
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.{FEATURE_COMBO}.ts'],
   licenseTitle: '@sentry/browser ({Human Readable Feature List})',
   outputFileBase: () => 'bundles/bundle.{FEATURE_COMBO}',
-});
+};
 ```
 
 Add to `builds.push(...)`:
 
 ```javascript
-...makeBundleConfigVariants({featureCombo}BaseBundleConfig),
+...makeBundleConfigVariants(() => makeBaseBundleConfig({featureCombo}BaseBundleOptions)),
 ```
 
 ### 4. `.size-limit.js`
