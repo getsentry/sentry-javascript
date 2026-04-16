@@ -133,10 +133,4 @@ export function registryRelease(): void {
 export async function registryCleanup(): Promise<void> {
   await stopVerdaccioChild();
   killStrayVerdaccioRunner();
-  const pidFile = path.join(__dirname, 'verdaccio-config', '.verdaccio.pid');
-  try {
-    fs.unlinkSync(pidFile);
-  } catch {
-    // File may not exist
-  }
 }

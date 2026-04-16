@@ -41,7 +41,6 @@ local.log
 
 # verdaccio local registry (e2e tests)
 dev-packages/e2e-tests/verdaccio-config/storage/
-dev-packages/e2e-tests/verdaccio-config/.verdaccio.pid
 
 lint-results.json
 trace.zip
