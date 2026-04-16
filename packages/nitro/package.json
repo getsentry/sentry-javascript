@@ -40,7 +40,7 @@
   "dependencies": {
     "@sentry/core": "10.49.0",
     "@sentry/node": "10.49.0",
-    "otel-tracing-channel": "^0.2.0"
+    "@sentry/opentelemetry": "10.49.0"
   },
   "devDependencies": {
     "h3": "^2.0.1-rc.13",

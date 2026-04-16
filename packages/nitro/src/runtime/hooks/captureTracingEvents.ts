@@ -16,8 +16,8 @@ import {
   startSpanManual,
   updateSpanName,
 } from '@sentry/core';
+import { tracingChannel, type TracingChannelContextWithSpan } from '@sentry/opentelemetry';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
-import { tracingChannel } from 'otel-tracing-channel';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
 
@@ -58,19 +58,19 @@ function getResponseStatusCode(result: unknown): number | undefined {
   return undefined;
 }
 
-function onTraceEnd(data: { span?: Span; result?: unknown }): void {
+function onTraceEnd(data: TracingChannelContextWithSpan<{ result?: unknown }>): void {
   const statusCode = getResponseStatusCode(data.result);
-  if (data.span && statusCode !== undefined) {
-    setHttpStatus(data.span, statusCode);
+  if (data._sentrySpan && statusCode !== undefined) {
+    setHttpStatus(data._sentrySpan, statusCode);
   }
 
-  data.span?.end();
+  data._sentrySpan?.end();
 }
 
-function onTraceError(data: { span?: Span; error: unknown }): void {
+function onTraceError(data: TracingChannelContextWithSpan<{ error: unknown }>): void {
   captureException(data.error, { mechanism: { type: 'auto.http.nitro.onTraceError', handled: false } });
-  data.span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  data.span?.end();
+  data._sentrySpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  data._sentrySpan?.end();
 }
 
 /**
@@ -128,10 +128,10 @@ function setupH3TracingChannels(): void {
     },
     asyncStart: NOOP,
     end: NOOP,
-    asyncEnd: (data: H3TracingRequestEvent & { span?: Span; result?: unknown }) => {
+    asyncEnd: (data: TracingChannelContextWithSpan<H3TracingRequestEvent>) => {
       onTraceEnd(data);
 
-      if (!data.span) {
+      if (!data._sentrySpan) {
         return;
       }
 
@@ -139,8 +139,8 @@ function setupH3TracingChannels(): void {
       // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
       // Note: data.type is always 'middleware' in asyncEnd regardless of handler type,
       // so we rely on getParameterizedRoute() to filter out catch-all routes instead.
-      const rootSpan = getRootSpan(data.span);
-      if (rootSpan && rootSpan !== data.span) {
+      const rootSpan = getRootSpan(data._sentrySpan);
+      if (rootSpan && rootSpan !== data._sentrySpan) {
         const routePattern = getParameterizedRoute(data.event);
         if (routePattern) {
           const method = data.event.req.method || 'GET';
