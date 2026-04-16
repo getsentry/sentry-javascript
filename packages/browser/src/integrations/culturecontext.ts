@@ -25,7 +25,6 @@ const _cultureContextIntegration = (() => {
           'culture.locale': culture.locale,
           'culture.timezone': culture.timezone,
           'culture.calendar': culture.calendar,
-          xxxDeleteMe: undefined,
           ...span.attributes,
         };
       }
