@@ -13,7 +13,14 @@ import type {
   IntegrationFn,
   Span,
 } from '@sentry/core';
-import { debug, getIsolationScope, getHttpServerSpanSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core';
+import {
+  debug,
+  getIsolationScope,
+  getHttpServerSpanSubscriptions,
+  HTTP_ON_SERVER_REQUEST,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 
@@ -160,11 +167,13 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
         },
 
         // When the span ends, read the route that a framework integration
-        // may have set on the RPC metadata and update the isolationScope
-        // transaction name.
-        onSpanEnd(_span: Span, request: HttpIncomingMessage, _response: HttpServerResponse) {
+        // may have set on the RPC metadata and update the span's http.route
+        // attribute + the isolationScope transaction name.
+        onSpanEnd(span: Span, request: HttpIncomingMessage, _response: HttpServerResponse) {
           const rpcMetadata = getRPCMetadata(context.active());
           if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
+            span.setAttribute(ATTR_HTTP_ROUTE, rpcMetadata.route);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
             getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${rpcMetadata.route}`);
           }
         },

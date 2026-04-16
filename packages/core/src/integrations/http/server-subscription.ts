@@ -29,7 +29,10 @@ const INTEGRATION_NAME = 'Http.Server';
 
 export type HttpServerSubscriptions = Record<ServerSubscriptionName, ChannelListener>;
 
-const instrumentedServers = new WeakSet<HttpServer>()
+// Tracks the last Sentry-created emit wrapper for each server so we can detect
+// when user code has replaced server.emit (e.g. with a proxy of the original)
+// and re-wrap it to restore Sentry's instrumentation.
+const lastSentryEmitMap = new WeakMap<HttpServer, HttpServer['emit']>();
 
 const kRequestMark = Symbol.for('sentry_http_server_instrumented');
 type MarkedRequest = HttpIncomingMessage & {
@@ -37,7 +40,7 @@ type MarkedRequest = HttpIncomingMessage & {
 };
 
 /** return true if it is NOT already marked */
-function markRequest (request: MarkedRequest): boolean {
+function markRequest(request: MarkedRequest): boolean {
   return !request[kRequestMark] && (request[kRequestMark] = true);
 }
 
@@ -51,13 +54,17 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
   // this was done with a flag on the OTEL context, but in this non-OTEL
   // version, we mark the Request itself with a non-enumerable prop instead.
 
-  const originalEmit = server.emit;
-  if (instrumentedServers.has(server)) {
+  const currentEmit = server.emit;
+  const instrumentedEmit = lastSentryEmitMap.get(server);
+
+  // Skip re-wrapping only if already instrumented AND server.emit still points
+  // to our wrapper. If user code replaced server.emit (e.g. with a proxy of the
+  // original pre-Sentry emit), re-wrap so Sentry's instrumentation is restored.
+  if (currentEmit === instrumentedEmit) {
     return;
   }
-  instrumentedServers.add(server);
 
-  const newEmit = new Proxy(originalEmit, {
+  const newEmit = new Proxy(currentEmit, {
     apply(target, thisArg, args: unknown[]) {
       const [event, ...data] = args;
       if (event !== 'request') {
@@ -133,18 +140,19 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
             const wrap = options.wrapServerEmitRequest;
             if (wrap) {
               wrap(request, response, normalizedRequest, () => {
-                target.apply(this, args);
+                target.apply(thisArg, args);
               });
             } else {
-              target.apply(this, args);
+              target.apply(thisArg, args);
             }
-            return this;
+            return thisArg;
           },
         );
       });
     },
   });
 
+  lastSentryEmitMap.set(server, newEmit);
   server.emit = newEmit;
 }
 

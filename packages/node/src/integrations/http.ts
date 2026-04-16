@@ -172,11 +172,8 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
   const serverSpansOptions: HttpInstrumentationOptions = {
     ignoreIncomingRequests: options.ignoreIncomingRequests,
-    ignoreStaticAssets: options.ignoreStaticAssets,
+    ignoreStaticAssets: options.ignoreStaticAssets ?? true,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-    outgoingRequestHook: options.instrumentation?.requestHook,
-    outgoingResponseHook: options.instrumentation?.responseHook,
-    applyCustomAttributesOnSpan: options.instrumentation?.applyCustomAttributesOnSpan,
     onSpanCreated: options.incomingRequestSpanHook,
     // Pass server-level options so serverSpans handles isolation/sessions when
     // spans are enabled (it subscribes to the channel instead of httpServerIntegration).
@@ -184,7 +181,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
     ignoreRequestBody: options.ignoreIncomingRequestBody,
     maxRequestBodySize: options.maxIncomingRequestBodySize,
-  };
+    // eslint-disable-next-line deprecation/deprecation
+    ...(options.instrumentation && { instrumentation: options.instrumentation }),
+  } as HttpInstrumentationOptions;
 
   // When spans are enabled, httpServerSpansIntegration subscribes to the
   // diagnostics channel itself (via getHttpServerSpanSubscriptions) and handles

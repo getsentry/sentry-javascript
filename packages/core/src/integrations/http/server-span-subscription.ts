@@ -1,11 +1,15 @@
 import { getIsolationScope } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
-import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
+import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { getHttpServerSubscriptions, type HttpServerSubscriptions } from './server-subscription';
 import type { HttpIncomingMessage, HttpInstrumentationOptions } from './types';
 import { debug } from '../../utils/debug-logger';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../../semanticAttributes';
 import { SpanAttributes } from '../../types-hoist/span';
 import { headersToDict, httpHeadersToSpanAttributes } from '../../utils/request';
 import { SpanStatus } from '../../types-hoist/spanStatus';
@@ -88,7 +92,9 @@ export function getHttpServerSpanSubscriptions(options: HttpInstrumentationOptio
 
         const fullUrl = normalizedRequest.url || request.url || '/';
         const urlObj = parseStringToURLObject(fullUrl);
-        const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObj, 'server', 'auto.http.server', request);
+        const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
+        const method = (request.method || 'GET').toUpperCase();
+        const name = `${method} ${httpTargetWithoutQueryFragment}`;
         const headers = request.headers;
         const userAgent = headers['user-agent'];
         const ips = headers['x-forwarded-for'];
@@ -96,7 +102,6 @@ export function getHttpServerSpanSubscriptions(options: HttpInstrumentationOptio
         const host = headers.host as undefined | string;
         const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
         const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
-        const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
         const { socket } = request;
         const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
 
@@ -104,18 +109,24 @@ export function getHttpServerSpanSubscriptions(options: HttpInstrumentationOptio
           {
             name,
             attributes: {
-              ...attributes,
-              // Sentry specific attributes
+              // Sentry-specific attributes
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              // Set http.route to the URL path as a best-effort route name.
+              // Framework integrations (Express, etc.) update this via onSpanEnd.
+              'http.route': httpTargetWithoutQueryFragment,
+              // OTel kind (explicit attribute so it appears in span data)
+              'otel.kind': 'SERVER',
+              // Network attributes
               'net.host.ip': localAddress,
               'net.host.port': localPort,
               'net.peer.ip': remoteAddress,
               'net.peer.port': remotePort,
               'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
+              // Old Semantic Conventions attributes for compatibility
               'http.url': fullUrl,
-              'http.method': normalizedRequest.method,
+              'http.method': method,
               'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
               'http.host': host,
               'net.host.name': hostname,
