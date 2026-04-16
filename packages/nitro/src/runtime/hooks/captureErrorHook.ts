@@ -5,6 +5,7 @@ import {
   getClient,
   getCurrentScope,
   getRootSpan,
+  parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { HTTPError } from 'h3';
@@ -23,13 +24,7 @@ function extractErrorContext(errorContext: CapturedErrorContext | undefined): Re
 
   if (errorContext.event) {
     ctx.method = errorContext.event.req.method;
-
-    try {
-      const url = new URL(errorContext.event.req.url);
-      ctx.path = url.pathname;
-    } catch {
-      // If URL parsing fails, leave path undefined
-    }
+    ctx.path = parseUrl(errorContext.event.req.url).path;
   }
 
   if (Array.isArray(errorContext.tags)) {
