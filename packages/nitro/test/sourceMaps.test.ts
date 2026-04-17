@@ -20,7 +20,7 @@ describe('getPluginOptions', () => {
   });
 
   it('returns default options when no options are provided', () => {
-    const options = getPluginOptions();
+    const options = getPluginOptions(undefined, true);
 
     expect(options).toEqual(
       expect.objectContaining({
@@ -42,6 +42,18 @@ describe('getPluginOptions', () => {
     expect(options.project).toBeUndefined();
     expect(options.authToken).toBeUndefined();
     expect(options.url).toBeUndefined();
+  });
+
+  it('does not default filesToDeleteAfterUpload when user enabled sourcemaps themselves', () => {
+    const options = getPluginOptions(undefined, false);
+
+    expect(options.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+  });
+
+  it('respects user-provided filesToDeleteAfterUpload even when Sentry enabled sourcemaps', () => {
+    const options = getPluginOptions({ sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } }, true);
+
+    expect(options.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
   });
 
   it('uses environment variables as fallback', () => {
@@ -145,17 +157,19 @@ describe('getPluginOptions', () => {
 describe('configureSourcemapSettings', () => {
   it('enables sourcemap generation on the config', () => {
     const config: NitroConfig = {};
-    configureSourcemapSettings(config);
+    const result = configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(true);
+    expect(result.sentryEnabledSourcemaps).toBe(true);
   });
 
   it('respects user explicitly disabling sourcemaps and warns', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const config: NitroConfig = { sourcemap: false };
-    configureSourcemapSettings(config);
+    const result = configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(false);
+    expect(result.sentryEnabledSourcemaps).toBe(false);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('explicitly disabled source maps'));
     warnSpy.mockRestore();
   });
@@ -171,9 +185,10 @@ describe('configureSourcemapSettings', () => {
 
   it('keeps sourcemap true when user already set it', () => {
     const config: NitroConfig = { sourcemap: true };
-    configureSourcemapSettings(config);
+    const result = configureSourcemapSettings(config);
 
     expect(config.sourcemap).toBe(true);
+    expect(result.sentryEnabledSourcemaps).toBe(false);
   });
 
   it('disables experimental sourcemapMinify', () => {

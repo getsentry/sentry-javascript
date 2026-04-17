@@ -24,10 +24,10 @@ export function setupSentryNitroModule(
     config.tracingChannel = true;
   }
 
-  configureSourcemapSettings(config, moduleOptions);
+  const { sentryEnabledSourcemaps } = configureSourcemapSettings(config, moduleOptions);
 
   config.modules = config.modules || [];
-  config.modules.push(createNitroModule(moduleOptions));
+  config.modules.push(createNitroModule(moduleOptions, sentryEnabledSourcemaps));
 
   return config;
 }

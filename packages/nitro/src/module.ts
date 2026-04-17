@@ -6,12 +6,12 @@ import { setupSourceMaps } from './sourceMaps';
 /**
  * Creates a Nitro module to setup the Sentry SDK.
  */
-export function createNitroModule(sentryOptions?: SentryNitroOptions): NitroModule {
+export function createNitroModule(sentryOptions?: SentryNitroOptions, sentryEnabledSourcemaps?: boolean): NitroModule {
   return {
     name: 'sentry',
     setup: nitro => {
       instrumentServer(nitro);
-      setupSourceMaps(nitro, sentryOptions);
+      setupSourceMaps(nitro, sentryOptions, sentryEnabledSourcemaps);
     },
   };
 }

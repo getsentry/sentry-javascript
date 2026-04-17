@@ -6,7 +6,7 @@ import type { SentryNitroOptions } from './config';
 /**
  * Registers a `compiled` hook to upload source maps after the build completes.
  */
-export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions): void {
+export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sentryEnabledSourcemaps?: boolean): void {
   // The `compiled` hook fires on EVERY rebuild during `nitro dev` watch mode.
   // nitro.options.dev is reliably set by the time module setup runs.
   if (nitro.options.dev) {
@@ -19,16 +19,20 @@ export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions): voi
   }
 
   nitro.hooks.hook('compiled', async (_nitro: Nitro) => {
-    await handleSourceMapUpload(_nitro, options);
+    await handleSourceMapUpload(_nitro, options, sentryEnabledSourcemaps);
   });
 }
 
 /**
  * Handles the actual source map upload after the build completes.
  */
-async function handleSourceMapUpload(nitro: Nitro, options?: SentryNitroOptions): Promise<void> {
+async function handleSourceMapUpload(
+  nitro: Nitro,
+  options?: SentryNitroOptions,
+  sentryEnabledSourcemaps?: boolean,
+): Promise<void> {
   const outputDir = nitro.options.output.serverDir;
-  const pluginOptions = getPluginOptions(options);
+  const pluginOptions = getPluginOptions(options, sentryEnabledSourcemaps);
 
   const sentryBuildPluginManager = createSentryBuildPluginManager(pluginOptions, {
     buildTool: 'nitro',
@@ -61,7 +65,10 @@ function normalizePath(path: string): string {
  *
  * Only exported for testing purposes.
  */
-export function getPluginOptions(options?: SentryNitroOptions): BundlerPluginOptions {
+export function getPluginOptions(
+  options?: SentryNitroOptions,
+  sentryEnabledSourcemaps?: boolean,
+): BundlerPluginOptions {
   return {
     org: options?.org ?? process.env.SENTRY_ORG,
     project: options?.project ?? process.env.SENTRY_PROJECT,
@@ -76,7 +83,8 @@ export function getPluginOptions(options?: SentryNitroOptions): BundlerPluginOpt
       disable: options?.sourcemaps?.disable,
       assets: options?.sourcemaps?.assets,
       ignore: options?.sourcemaps?.ignore,
-      filesToDeleteAfterUpload: options?.sourcemaps?.filesToDeleteAfterUpload ?? ['**/*.map'],
+      filesToDeleteAfterUpload:
+        options?.sourcemaps?.filesToDeleteAfterUpload ?? (sentryEnabledSourcemaps ? ['**/*.map'] : undefined),
       rewriteSources: options?.sourcemaps?.rewriteSources ?? ((source: string) => normalizePath(source)),
     },
     release: options?.release,
@@ -99,10 +107,13 @@ export function getPluginOptions(options?: SentryNitroOptions): BundlerPluginOpt
       - We enable source maps for Sentry
       - Configure `filesToDeleteAfterUpload` to clean up .map files after upload
 */
-export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: SentryNitroOptions): void {
+export function configureSourcemapSettings(
+  config: NitroConfig,
+  moduleOptions?: SentryNitroOptions,
+): { sentryEnabledSourcemaps: boolean } {
   const sourcemapUploadDisabled = moduleOptions?.sourcemaps?.disable === true;
   if (sourcemapUploadDisabled) {
-    return;
+    return { sentryEnabledSourcemaps: false };
   }
 
   if (config.sourcemap === false) {
@@ -110,9 +121,10 @@ export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: 
     console.warn(
       '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
     );
-    return;
+    return { sentryEnabledSourcemaps: false };
   }
 
+  let sentryEnabledSourcemaps = false;
   if (config.sourcemap === true) {
     if (moduleOptions?.debug) {
       // eslint-disable-next-line no-console
@@ -121,6 +133,7 @@ export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: 
   } else {
     // User did not explicitly set sourcemap — enable it for Sentry
     config.sourcemap = true;
+    sentryEnabledSourcemaps = true;
     if (moduleOptions?.debug) {
       // eslint-disable-next-line no-console
       console.log(
@@ -134,4 +147,6 @@ export function configureSourcemapSettings(config: NitroConfig, moduleOptions?: 
   // This makes sourcemaps unusable for Sentry.
   config.experimental = config.experimental || {};
   config.experimental.sourcemapMinify = false;
+
+  return { sentryEnabledSourcemaps };
 }
