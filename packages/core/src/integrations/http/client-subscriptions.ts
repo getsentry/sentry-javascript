@@ -22,9 +22,9 @@ import { LRUMap } from '../../utils/lru';
 import { getOutgoingRequestSpanData, setIncomingResponseSpanData } from './get-outgoing-span-data';
 import { getRequestUrl } from './get-request-url';
 import { injectTracePropagationHeaders } from './inject-trace-propagation-headers';
-import type { HttpInstrumentationOptions, HttpClientRequest, HttpIncomingMessage } from './types';
+import type { HttpInstrumentationOptions, HttpClientRequest } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
-import { LOG_PREFIX, HTTP_ON_REQUEST_CREATED, HTTP_ON_REQUEST_ERROR, HTTP_ON_RESPONSE_FINISH } from './constants';
+import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
 import { getClient } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
@@ -35,11 +35,6 @@ export type HttpClientSubscriptions = Record<ClientSubscriptionName, ChannelList
 
 export function getHttpClientSubscriptions(options: HttpInstrumentationOptions): HttpClientSubscriptions {
   const propagationDecisionMap = new LRUMap<string, boolean>(100);
-  // if the request is ignored, set this value to `false`.
-  // otherwise, set to the Span that we create for it.
-  // If it's in the map, then we have not yet ended the span.
-  const requestMap = new WeakMap<HttpClientRequest, false | Span>();
-
   const client = getClient();
   const clientOptions = client?.getOptions();
 
@@ -50,70 +45,11 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     breadcrumbs = true,
   } = options;
 
-  // pass in the span if we have it to save a WeakMap lookup
-  let spanEnded = false;
-  function endSpan(
-    request: HttpClientRequest,
-    status: SpanStatus,
-    span: Span | false | undefined = requestMap.get(request),
-  ): void {
-    if (span && !spanEnded) {
-      spanEnded = true;
-      span.setStatus(status);
-      span.end();
-      requestMap.delete(request);
-    }
-  }
-
-  function endHandler(
-    request: HttpClientRequest,
-    res?: HttpIncomingMessage,
-    forceError: boolean = !res,
-    span: Span | undefined | false = requestMap.get(request),
-  ): void {
-    // ignored
-    if (!span) {
-      return;
-    }
-
-    if (breadcrumbs) {
-      addOutgoingRequestBreadcrumb(request, res);
-    }
-
-    const status: SpanStatus =
-      !res || forceError || typeof res.statusCode !== 'number' || (res.aborted && !res.complete)
-        ? { code: SPAN_STATUS_ERROR }
-        : getSpanStatusFromHttpCode(res.statusCode);
-
-    if (res) {
-      options.applyCustomAttributesOnSpan?.(span, request, res);
-    }
-    endSpan(request, status, span);
-  }
-
-  function ignoreRequest(request: HttpClientRequest): boolean {
-    const mapResult = requestMap.get(request);
-    // has been set, and set to false
-    if (mapResult === false) {
-      return true;
-    }
-
-    if (!options.ignoreOutgoingRequests) {
-      return false;
-    }
-
-    const ignore = options.ignoreOutgoingRequests(getRequestUrl(request), request);
-
-    if (ignore) {
-      requestMap.set(request, false);
-    }
-    return ignore;
-  }
-
   const onHttpClientRequestCreated: ChannelListener = (data: unknown): void => {
     const { request } = data as { request: HttpClientRequest };
 
-    if (ignoreRequest(request)) {
+    // check if request is ignored anyway
+    if (options.ignoreOutgoingRequests?.(getRequestUrl(request), request)) {
       return;
     }
 
@@ -122,57 +58,72 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     }
 
     if (!createSpans) {
+      // Even without spans, set up a response listener for breadcrumbs.
+      if (breadcrumbs) {
+        request.prependListener('response', response => {
+          if (request.listenerCount('response') <= 1) {
+            response.resume();
+          }
+          response.on('end', () => addOutgoingRequestBreadcrumb(request, response));
+          // TODO: should we include the response here, even though it errored?
+          response.on(errorMonitor, () => addOutgoingRequestBreadcrumb(request, undefined));
+        });
+      }
       return;
     }
 
     const span = startInactiveSpan(getOutgoingRequestSpanData(request));
     options.outgoingRequestHook?.(span, request);
 
-    // just in case the response hooks don't fire, eg if the response closes
-    // prematurely or something, attach handlers here to be certain we don't
-    // dangle spans.
-    const requestOnClose = () => endSpan(request, { code: SPAN_STATUS_UNSET }, span);
+    let spanEnded = false;
+    function endSpan(status: SpanStatus): void {
+      if (!spanEnded) {
+        spanEnded = true;
+        span.setStatus(status);
+        span.end();
+      }
+    }
+
+    // Fallback: end span if the connection closes before any response.
+    const requestOnClose = () => endSpan({ code: SPAN_STATUS_UNSET });
     request.on('close', requestOnClose);
 
-    // TODO: if we have to attach an errorMonitor here anyway, is it even
-    // worthwhile to have the ON_REQUEST_ERROR subscriber?
     request.on(errorMonitor, error => {
-      DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on requst error()', error);
-      endSpan(request, { code: SPAN_STATUS_ERROR }, span);
+      DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on request error()', error);
+      endSpan({ code: SPAN_STATUS_ERROR });
     });
 
-    request.prependListener('response', res => {
+    request.prependListener('response', response => {
       // no longer need this, listen on response now
       request.removeListener('close', requestOnClose);
-      const response = res as HttpIncomingMessage;
       if (request.listenerCount('response') <= 1) {
         response.resume();
       }
       setIncomingResponseSpanData(response, span);
       options.outgoingResponseHook?.(span, response);
-      response.on('end', () => endHandler(request, response, false, span));
-      response.on(errorMonitor, error => {
-        DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on response error()', error);
-        endHandler(request, response, true, span);
-      });
+
+      function finishWithResponse(error?: unknown): void {
+        if (error) {
+          DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on response error()', error);
+        }
+        if (breadcrumbs) {
+          addOutgoingRequestBreadcrumb(request, response);
+        }
+        const aborted = response.aborted && !response.complete;
+        const status: SpanStatus =
+          error || typeof response.statusCode !== 'number' || aborted
+            ? { code: SPAN_STATUS_ERROR }
+            : getSpanStatusFromHttpCode(response.statusCode);
+        options.applyCustomAttributesOnSpan?.(span, request, response);
+        endSpan(status);
+      }
+
+      response.on('end', finishWithResponse);
+      response.on(errorMonitor, finishWithResponse);
     });
   };
 
-  // XXX: is this relevant? or just extra noise
-  const onHttpClientRequestFinish: ChannelListener = (data: unknown): void => {
-    const { request, response } = data as { request: HttpClientRequest; response: HttpIncomingMessage };
-    endHandler(request, response);
-  };
-
-  // XXX: is this relevant, or just extra noise?
-  const onHttpClientRequestError: ChannelListener = (data: unknown): void => {
-    const { request } = data as { request: HttpClientRequest };
-    endHandler(request);
-  };
-
   return {
-    [HTTP_ON_REQUEST_ERROR]: onHttpClientRequestError,
-    [HTTP_ON_RESPONSE_FINISH]: onHttpClientRequestFinish,
-    [HTTP_ON_REQUEST_CREATED]: onHttpClientRequestCreated,
+    [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated,
   };
 }

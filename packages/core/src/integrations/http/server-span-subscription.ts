@@ -108,6 +108,10 @@ export function getHttpServerSpanSubscriptions(options: HttpInstrumentationOptio
         return startSpanManual(
           {
             name,
+            // SpanKind.SERVER = 1; pass this so the OTel sampler infers
+            // op='http.server' rather than 'http', which it does for
+            // SpanKind.INTERNAL = 0, the default
+            kind: 1,
             attributes: {
               // Sentry-specific attributes
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',

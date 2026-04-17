@@ -22,8 +22,9 @@ import { httpRequestToRequestData } from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
 import { stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
-import { generateSpanId } from '../../utils/propagationContext';
+import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace } from '../../tracing/trace';
+import { safeMathRandom } from '../../utils/randomSafeContext';
 
 const INTEGRATION_NAME = 'Http.Server';
 
@@ -121,15 +122,26 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       return withIsolationScope(isolationScope, () => {
         const sentryTrace = normalizedRequest.headers?.['sentry-trace'];
         const baggage = normalizedRequest.headers?.['baggage'];
+        const sentryTraceValue = Array.isArray(sentryTrace) ? sentryTrace[0] : sentryTrace;
         return continueTrace(
           {
-            sentryTrace: Array.isArray(sentryTrace) ? sentryTrace[0] : sentryTrace,
+            sentryTrace: sentryTraceValue,
             baggage: Array.isArray(baggage) ? baggage[0] : baggage,
           },
           () => {
-            // Set propagationSpanId after continueTrace because it calls withScope +
-            // setPropagationContext internally, which would overwrite any previously set value.
-            getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
+            const propagationContext = getCurrentScope().getPropagationContext();
+            // Set propagationSpanId after continueTrace because it calls
+            // withScope + setPropagationContext internally, which would
+            // overwrite any previously set value.
+            propagationContext.propagationSpanId = generateSpanId();
+            // In OTel mode, continueTrace does not generate a new traceId
+            // when there is no incoming sentry-trace header. We generate one
+            // explicitly here so each request gets a unique trace ID even when
+            // tracing is disabled.
+            if (!sentryTraceValue) {
+              propagationContext.traceId = generateTraceId();
+              propagationContext.sampleRand = safeMathRandom();
+            }
 
             response.once('close', () => {
               isolationScope.setContext('response', {

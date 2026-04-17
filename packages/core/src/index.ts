@@ -141,10 +141,8 @@ export { getHttpServerSubscriptions } from './integrations/http/server-subscript
 export { recordRequestSession } from './integrations/http/record-request-session';
 export { getHttpServerSpanSubscriptions, isStaticAssetRequest } from './integrations/http/server-span-subscription';
 export {
-  HTTP_ON_REQUEST_ERROR,
+  HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
-  HTTP_ON_RESPONSE_FINISH,
-  HTTP_ON_REQUEST_CREATED,
 } from './integrations/http/constants';
 export type {
   HttpInstrumentationOptions,

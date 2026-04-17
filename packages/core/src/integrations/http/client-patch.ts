@@ -32,7 +32,7 @@
  */
 
 import { getDefaultExport } from '../../utils/get-default-export';
-import { HTTP_ON_REQUEST_CREATED } from './constants';
+import { HTTP_ON_CLIENT_REQUEST } from './constants';
 import type {
   HttpExport,
   HttpModuleExport,
@@ -52,7 +52,7 @@ function patchHttpRequest(
   // avoid double-wrap
   if (!getOriginalFunction(httpModule.request)) {
     const {
-      [HTTP_ON_REQUEST_CREATED]: onHttpClientRequestCreated,
+      [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated,
     } = getHttpClientSubscriptions(options);
 
     const originalRequest = httpModule.request;
@@ -65,7 +65,7 @@ function patchHttpRequest(
         }
       }
       const request = originalRequest.apply(this, args) as HttpClientRequest;
-      onHttpClientRequestCreated({ request }, HTTP_ON_REQUEST_CREATED);
+      onHttpClientRequestCreated({ request }, HTTP_ON_CLIENT_REQUEST);
       return request;
     });
   }

@@ -9,16 +9,11 @@ import type {
   HttpIncomingMessage,
   HttpInstrumentationOptions,
   HttpModuleExport,
-  HttpServerResponse,
   Span,
 } from '@sentry/core';
 import { getHttpClientSubscriptions, patchHttpModuleClient, patchHttpsModuleClient, SDK_VERSION } from '@sentry/core';
 import { INSTRUMENTATION_NAME } from './constants';
-import {
-  HTTP_ON_REQUEST_CREATED,
-  HTTP_ON_REQUEST_ERROR,
-  HTTP_ON_RESPONSE_FINISH,
-} from '@sentry/core';
+import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 
 const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
@@ -208,9 +203,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     };
 
     const {
-      [HTTP_ON_REQUEST_CREATED]: onHttpClientRequestCreated,
-      [HTTP_ON_REQUEST_ERROR]: onHttpClientRequestError,
-      [HTTP_ON_RESPONSE_FINISH]: onHttpClientResponseFinish,
+      [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated,
     } = getHttpClientSubscriptions(patchOptions);
 
     // guard because we cover both http and https with the same subscribers
@@ -218,9 +211,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     const sub = <T extends HttpModuleExport>(moduleExports: T): T => {
       if (!hasRegisteredHandlers) {
         hasRegisteredHandlers = true;
-        subscribe(HTTP_ON_RESPONSE_FINISH, onHttpClientResponseFinish);
-        subscribe(HTTP_ON_REQUEST_ERROR, onHttpClientRequestError);
-        subscribe(HTTP_ON_REQUEST_CREATED, onHttpClientRequestCreated);
+        subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
       }
       return moduleExports;
     };

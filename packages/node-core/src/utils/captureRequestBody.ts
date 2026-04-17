@@ -37,7 +37,7 @@ export function patchRequestToCaptureBody(
 
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.on = new Proxy(req.on, {
+    req.on = req.addListener = new Proxy(req.on, {
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
@@ -79,7 +79,7 @@ export function patchRequestToCaptureBody(
 
     // Ensure we also remove callbacks correctly
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.off = new Proxy(req.off, {
+    req.off = req.removeListener = new Proxy(req.off, {
       apply: (target, thisArg, args: Parameters<typeof req.off>) => {
         const [, listener] = args;
 

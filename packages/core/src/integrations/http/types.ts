@@ -39,6 +39,7 @@ export interface HttpClientRequest {
   getHeader(name: string): string | string[] | number | undefined;
   setHeader(name: string, value: string | string[] | number): void;
   removeHeader(name: string): void;
+  prependListener(event: 'response', listener: (res: HttpIncomingMessage) => void): this;
   prependListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
   on(event: string | symbol, listener: (...args: unknown[]) => void): this;
   once(event: string | symbol, listener: (...args: unknown[]) => void): this;
@@ -80,7 +81,12 @@ export interface HttpIncomingMessage {
   aborted?: boolean;
   complete?: boolean;
   resume(): void;
+  on(event: 'end', listener: () => void): this;
   on(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  addListener(event: 'end', listener: () => void): this;
+  addListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  off(event: string | symbol, listener: (...args: unknown[]) => void): this;
+  removeListener(event: string | symbol, listener: (...args: unknown[]) => void): this;
 }
 
 /** Minimal interface for a Node.js http / https module export */

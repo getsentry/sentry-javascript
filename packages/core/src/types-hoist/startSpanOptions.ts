@@ -29,6 +29,20 @@ export interface StartSpanOptions {
   op?: string;
 
   /**
+   * The kind of the span, following OpenTelemetry's SpanKind enum.
+   * - 0 = INTERNAL (default)
+   * - 1 = SERVER
+   * - 2 = CLIENT
+   * - 3 = PRODUCER
+   * - 4 = CONSUMER
+   *
+   * This is used by OpenTelemetry-based SDK implementations to set the correct
+   * span kind on the underlying OTel span, which affects how the span is
+   * displayed and sampled.
+   */
+  kind?: 0 | 1 | 2 | 3 | 4;
+
+  /**
    * If provided, make the new span a child of this span.
    * If this is not provided, the new span will be a child of the currently active span.
    * If this is set to `null`, the new span will have no parent span.

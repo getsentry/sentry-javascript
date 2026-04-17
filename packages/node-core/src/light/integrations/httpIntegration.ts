@@ -4,9 +4,7 @@ import type { Integration, IntegrationFn } from '@sentry/core';
 import {
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
-  HTTP_ON_REQUEST_CREATED,
-  HTTP_ON_REQUEST_ERROR,
-  HTTP_ON_RESPONSE_FINISH,
+  HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
 } from '@sentry/core';
 
@@ -84,15 +82,11 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
       } = getHttpServerSubscriptions(_options);
 
       const {
-        [HTTP_ON_REQUEST_CREATED]: onHttpClientRequestCreated,
-        [HTTP_ON_REQUEST_ERROR]: onHttpClientRequestError,
-        [HTTP_ON_RESPONSE_FINISH]: onHttpClientResponseFinish,
+        [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated,
       } = getHttpClientSubscriptions(_options);
 
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
-      subscribe(HTTP_ON_REQUEST_CREATED, onHttpClientRequestCreated);
-      subscribe(HTTP_ON_RESPONSE_FINISH, onHttpClientResponseFinish);
-      subscribe(HTTP_ON_REQUEST_ERROR, onHttpClientRequestError);
+      subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
     },
   };
 }) satisfies IntegrationFn;
