@@ -55,20 +55,21 @@ function patchWithDefineProperty(level: ConsoleLevel): void {
   const nativeMethod = GLOBAL_OBJ.console[level] as (...args: unknown[]) => void;
   originalConsoleMethods[level] = nativeMethod;
 
+  let consoleDelegate: Function = nativeMethod;
   let isExecuting = false;
 
   const wrapper = function (...args: any[]): void {
     if (isExecuting) {
       // Re-entrant call: a third party captured `wrapper` via the getter and calls it
       // from inside their replacement (e.g. `const prev = console.log; console.log = (...a) => { prev(...a); }`).
-      // Calling originalConsoleMethods here would recurse, so fall back to the native method.
+      // Calling `consoleDelegate` here would recurse, so fall back to the native method.
       nativeMethod.apply(GLOBAL_OBJ.console, args);
       return;
     }
     isExecuting = true;
     try {
       triggerHandlers('console', { args, level });
-      originalConsoleMethods[level]?.apply(GLOBAL_OBJ.console, args);
+      consoleDelegate.apply(GLOBAL_OBJ.console, args);
     } finally {
       isExecuting = false;
     }
@@ -94,8 +95,8 @@ function patchWithDefineProperty(level: ConsoleLevel): void {
           newValue !== originalConsoleMethods[level] &&
           !(newValue as WrappedFunction).__sentry_original__
         ) {
-          // Absorb newly "set" function as our delegate but keep our wrapper as the active method.
-          originalConsoleMethods[level] = newValue;
+          // Absorb newly "set" function as the consoleDelegate but keep our wrapper as the active method.
+          consoleDelegate = newValue;
           current = wrapper;
         } else {
           // Accept as-is: consoleSandbox restoring, other Sentry wrappers, or non-functions

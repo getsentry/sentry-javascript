@@ -61,13 +61,13 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       expect(second).toHaveBeenCalledWith('latest');
     });
 
-    it('updates originalConsoleMethods to point to the replacement', () => {
+    it('does not mutate originalConsoleMethods (kept safe for consoleSandbox)', () => {
       addConsoleInstrumentationHandler(vi.fn());
 
-      const lambdaLogger = vi.fn();
-      GLOBAL_OBJ.console.log = lambdaLogger;
+      const nativeLog = originalConsoleMethods.log;
+      GLOBAL_OBJ.console.log = vi.fn();
 
-      expect(originalConsoleMethods.log).toBe(lambdaLogger);
+      expect(originalConsoleMethods.log).toBe(nativeLog);
     });
   });
 
@@ -140,20 +140,35 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['after sandbox'], level: 'log' }));
       expect(handler).not.toHaveBeenCalledWith(expect.objectContaining({ args: ['inside sandbox'], level: 'log' }));
     });
+
+    it('does not fire the handler inside consoleSandbox after a Lambda-style replacement', () => {
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+
+      GLOBAL_OBJ.console.log = vi.fn();
+      handler.mockClear();
+
+      consoleSandbox(() => {
+        GLOBAL_OBJ.console.log('sandbox after lambda');
+      });
+
+      expect(handler).not.toHaveBeenCalled();
+    });
   });
 
   describe('third-party capture-and-call wrapping', () => {
     it('does not cause infinite recursion when a third party wraps console with the capture pattern', () => {
-      addConsoleInstrumentationHandler(vi.fn());
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+      handler.mockClear();
 
       // This is the extremely common pattern used by logging libraries, test frameworks, etc:
       //   const prevLog = console.log;
       //   console.log = (...args) => { prevLog(...args); doSomethingElse(); }
-
-      const prevLog = GLOBAL_OBJ.console.log; // captures `wrapper` via the getter
+      const prevLog = GLOBAL_OBJ.console.log;
       const thirdPartyExtra = vi.fn();
       GLOBAL_OBJ.console.log = (...args: any[]) => {
-        prevLog(...args); // calls wrapper → underlying (this very function) → prevLog (wrapper) → …
+        prevLog(...args);
         thirdPartyExtra(...args);
       };
 
@@ -161,6 +176,25 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       expect(() => GLOBAL_OBJ.console.log('should not overflow')).not.toThrow();
 
       expect(thirdPartyExtra).toHaveBeenCalledWith('should not overflow');
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['should not overflow'], level: 'log' }));
+    });
+
+    it('consoleSandbox still bypasses the handler after third-party wrapping', () => {
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+
+      const prevLog = GLOBAL_OBJ.console.log;
+      GLOBAL_OBJ.console.log = (...args: any[]) => {
+        prevLog(...args);
+      };
+      handler.mockClear();
+
+      consoleSandbox(() => {
+        GLOBAL_OBJ.console.log('should bypass');
+      });
+
+      expect(handler).not.toHaveBeenCalled();
     });
   });
 });
