@@ -56,10 +56,23 @@ function patchWithDefineProperty(level: ConsoleLevel): void {
   originalConsoleMethods[level] = originalMethod;
 
   let underlying: Function = originalMethod;
+  let isExecuting = false;
 
   const wrapper = function (...args: any[]): void {
-    triggerHandlers('console', { args, level });
-    underlying.apply(GLOBAL_OBJ.console, args);
+    if (isExecuting) {
+      // Re-entrant call: a third party captured `wrapper` via the getter and calls it
+      // from inside their replacement (e.g. `const prev = console.log; console.log = (...a) => { prev(...a); }`).
+      // Calling `underlying` here would recurse, so go straight to the native method.
+      originalMethod.apply(GLOBAL_OBJ.console, args);
+      return;
+    }
+    isExecuting = true;
+    try {
+      triggerHandlers('console', { args, level });
+      underlying.apply(GLOBAL_OBJ.console, args);
+    } finally {
+      isExecuting = false;
+    }
   };
   markFunctionWrapped(wrapper as unknown as WrappedFunction, originalMethod as unknown as WrappedFunction);
 
