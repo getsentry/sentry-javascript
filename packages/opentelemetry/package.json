@@ -27,7 +27,7 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./tracingChannel": {
+    "./tracing-channel": {
       "import": {
         "types": "./build/types/tracingChannel.d.ts",
         "default": "./build/esm/tracingChannel.js"
