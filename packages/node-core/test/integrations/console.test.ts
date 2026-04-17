@@ -1,20 +1,21 @@
-// Set LAMBDA_TASK_ROOT before any imports so instrumentConsole uses patchWithDefineProperty
+// Set LAMBDA_TASK_ROOT before any imports so consoleIntegration uses patchWithDefineProperty
 process.env.LAMBDA_TASK_ROOT = '/var/task';
 
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { addConsoleInstrumentationHandler } from '../../../src/instrument/console';
-import type { WrappedFunction } from '../../../src/types-hoist/wrappedfunction';
-import { consoleSandbox, originalConsoleMethods } from '../../../src/utils/debug-logger';
-import { markFunctionWrapped } from '../../../src/utils/object';
-import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
+import type { WrappedFunction } from '@sentry/core';
+import { addConsoleInstrumentationHandler, consoleSandbox, markFunctionWrapped, originalConsoleMethods, GLOBAL_OBJ } from '@sentry/core';
+import { consoleIntegration } from '../../src/integrations/console';
 
 afterAll(() => {
   delete process.env.LAMBDA_TASK_ROOT;
 });
 
-describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)', () => {
+describe('consoleIntegration in Lambda (patchWithDefineProperty)', () => {
   it('calls registered handler when console.log is called', () => {
     const handler = vi.fn();
+    // Setup the integration so it calls maybeInstrument with the Lambda strategy
+    consoleIntegration().setup?.({ on: vi.fn() } as any);
+
     addConsoleInstrumentationHandler(handler);
 
     GLOBAL_OBJ.console.log('test');
@@ -162,9 +163,6 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       addConsoleInstrumentationHandler(handler);
       handler.mockClear();
 
-      // This is the extremely common pattern used by logging libraries, test frameworks, etc:
-      //   const prevLog = console.log;
-      //   console.log = (...args) => { prevLog(...args); doSomethingElse(); }
       const prevLog = GLOBAL_OBJ.console.log;
       const thirdPartyExtra = vi.fn();
       GLOBAL_OBJ.console.log = (...args: any[]) => {
@@ -172,7 +170,6 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
         thirdPartyExtra(...args);
       };
 
-      // With the bug, this causes "Maximum call stack size exceeded"
       expect(() => GLOBAL_OBJ.console.log('should not overflow')).not.toThrow();
 
       expect(thirdPartyExtra).toHaveBeenCalledWith('should not overflow');
