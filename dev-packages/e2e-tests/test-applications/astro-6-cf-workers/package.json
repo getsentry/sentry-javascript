@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "start": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030",
+    "start": "wrangler dev --ip 0.0.0.0 --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test",
     "generate-types": "wrangler types"

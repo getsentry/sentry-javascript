@@ -1,7 +1,7 @@
 {
   "name": "cloudflare-hono",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --ip 0.0.0.0",
     "build": "wrangler deploy --dry-run --var E2E_TEST_DSN=$E2E_TEST_DSN",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
