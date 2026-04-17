@@ -12,9 +12,7 @@ type SentryNitroOptions = {
  * @returns The modified config to be exported
  */
 export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitroOptions): NitroConfig {
-  setupSentryNitroModule(config, moduleOptions);
-
-  return config;
+  return setupSentryNitroModule(config, moduleOptions);
 }
 
 /**
@@ -25,6 +23,10 @@ export function setupSentryNitroModule(
   _moduleOptions?: SentryNitroOptions,
   _serverConfigFile?: string,
 ): NitroConfig {
+  if (!config.tracingChannel) {
+    config.tracingChannel = true;
+  }
+
   config.modules = config.modules || [];
   config.modules.push(createNitroModule());
 
