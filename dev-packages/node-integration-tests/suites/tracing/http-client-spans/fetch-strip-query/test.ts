@@ -29,7 +29,7 @@ test('strips and handles query params in spans of outgoing fetch requests', asyn
             'http.request.method': 'GET',
             'http.request.method_original': 'GET',
             'http.response.status_code': 200,
-            'network.peer.address': '::1',
+            'network.peer.address': expect.stringMatching(/^(127\.0\.0\.1|::1)$/),
             'network.peer.port': expect.any(Number),
             'otel.kind': 'CLIENT',
             'server.port': expect.any(Number),

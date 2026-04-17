@@ -104,7 +104,8 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
             'http.request.method': 'GET',
             'http.request.method_original': 'GET',
             'http.response.status_code': 200,
-            'network.peer.address': '::1',
+            // localhost resolves to IPv4 or IPv6 depending on OS / container
+            'network.peer.address': expect.stringMatching(/^(127\.0\.0\.1|::1)$/),
             'network.peer.port': 3030,
             'otel.kind': 'CLIENT',
             'sentry.op': 'http.client',

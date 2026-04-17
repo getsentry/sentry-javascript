@@ -31,7 +31,7 @@ test('strips and handles query params in spans of outgoing http requests', async
             'http.response_content_length_uncompressed': 0,
             'http.status_code': 200,
             'http.status_text': 'OK',
-            'net.peer.ip': '::1',
+            'net.peer.ip': expect.stringMatching(/^(127\.0\.0\.1|::1)$/),
             'net.peer.name': 'localhost',
             'net.peer.port': expect.any(Number),
             'net.transport': 'ip_tcp',
