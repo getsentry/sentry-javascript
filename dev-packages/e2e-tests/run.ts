@@ -6,7 +6,7 @@ import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
-import { registrySetup } from './registrySetup';
+import { registryCleanup, registrySetup } from './registrySetup';
 
 interface SentryTestVariant {
   'build-command': string;
@@ -184,13 +184,15 @@ async function run(): Promise<void> {
     ...envVarsToInject,
   };
 
+  const skipRegistry = !!process.env.SKIP_REGISTRY;
+
   try {
+    if (!skipRegistry) {
+      await registrySetup();
+    }
+
     console.log('Cleaning test-applications...');
     console.log('');
-
-    if (!process.env.SKIP_REGISTRY) {
-      registrySetup();
-    }
 
     await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
     await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
@@ -247,11 +249,14 @@ async function run(): Promise<void> {
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
     }
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
+  } finally {
+    if (!skipRegistry) {
+      await registryCleanup();
+    }
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run();
+run().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
