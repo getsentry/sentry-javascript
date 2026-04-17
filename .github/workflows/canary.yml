@@ -77,7 +77,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0 -v /var/run/docker.sock:/var/run/docker.sock --add-host=host.docker.internal:host-gateway
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow

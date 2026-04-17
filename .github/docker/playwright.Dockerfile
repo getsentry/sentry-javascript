@@ -36,3 +36,15 @@ RUN sudo git config --system --add safe.directory '*'
 # HOME=/github/home (owned by runner), but we can't override it.
 # The workflow sets HOME=/root via a step, and this ensures /root is ready.
 RUN mkdir -p /root
+
+# Docker CLI + Compose v2 for E2E apps that run `docker compose` against the
+# host daemon (workflows mount /var/run/docker.sock). Image is built amd64 on GHA.
+ARG DOCKER_VERSION=27.4.1
+ARG DOCKER_COMPOSE_VERSION=2.32.1
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz" | sudo tar -xz -C /tmp && \
+    sudo mv /tmp/docker/docker /usr/local/bin/docker && \
+    sudo rm -rf /tmp/docker && \
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins && \
+    sudo curl -fsSL "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+        -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose

@@ -1,4 +1,4 @@
-name = "hydrogen-react-router-7"
+name = "remix-hydrogen-e2e"
 main = "server.ts"
 compatibility_flags = ["transformstream_enable_standard_constructor"]
 

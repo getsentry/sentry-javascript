@@ -32,6 +32,10 @@
   "observability": {
     "enabled": true,
   },
+  // Listen on IPv4 in CI (Playwright job container); avoids ::1-only bind vs fetch to 127.0.0.1.
+  "dev": {
+    "ip": "0.0.0.0",
+  },
   /**
    * Smart Placement
    * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

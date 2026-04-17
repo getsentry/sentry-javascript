@@ -930,7 +930,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0 -v /var/run/docker.sock:/var/run/docker.sock --add-host=host.docker.internal:host-gateway
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1006,6 +1006,10 @@ jobs:
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
+      - name: Point BullMQ at host Redis (Docker-out-of-Docker)
+        if: matrix.test-application == 'nestjs-bullmq'
+        run: echo "REDIS_HOST=host.docker.internal" >> "$GITHUB_ENV"
+
       - name: Run E2E test
         working-directory: dev-packages/tmp-test-application
         timeout-minutes: 10
@@ -1055,7 +1059,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --ipc=host --user root --sysctl net.ipv6.conf.all.disable_ipv6=0 -v /var/run/docker.sock:/var/run/docker.sock --add-host=host.docker.internal:host-gateway
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}

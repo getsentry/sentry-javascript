@@ -7,7 +7,8 @@ if (!testEnv) {
 
 const getStartCommand = () => {
   if (testEnv === 'production') {
-    return 'pnpm cf:preview --port 3030';
+    // --ip: CI Playwright container; fetch uses 127.0.0.1 while default bind can be ::1-only.
+    return 'pnpm cf:preview --ip 0.0.0.0 --port 3030';
   }
 
   throw new Error(`Unknown test env: ${testEnv}`);

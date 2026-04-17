@@ -9,7 +9,8 @@ import { TestProcessor } from './jobs/test.processor';
   imports: [
     SentryModule.forRoot(),
     BullModule.forRoot({
-      connection: { host: 'localhost', port: 6379 },
+      // CI: Redis runs on the GHA host via docker compose; REDIS_HOST is set in the workflow.
+      connection: { host: process.env.REDIS_HOST || 'localhost', port: 6379 },
     }),
     BullModule.registerQueue({ name: 'test-queue' }),
   ],
