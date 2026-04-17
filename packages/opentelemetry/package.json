@@ -26,6 +26,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./tracing-channel": {
+      "import": {
+        "types": "./build/types/tracingChannel.d.ts",
+        "default": "./build/esm/tracingChannel.js"
+      },
+      "require": {
+        "types": "./build/types/tracingChannel.d.ts",
+        "default": "./build/cjs/tracingChannel.js"
+      }
     }
   },
   "typesVersions": {
