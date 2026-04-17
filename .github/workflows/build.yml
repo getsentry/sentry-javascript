@@ -1089,6 +1089,12 @@ jobs:
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
 
+      - name: Add pnpm overrides
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
+        working-directory: dev-packages/e2e-tests
+
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
