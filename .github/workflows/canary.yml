@@ -153,7 +153,9 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Add pnpm overrides
-        run: yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace }}/dev-packages/e2e-tests/packed
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app

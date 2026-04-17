@@ -3,7 +3,6 @@
 import { addPnpmOverrides } from './lib/pnpmOverrides';
 import * as path from 'path';
 
-
 async function run(): Promise<void> {
   const tmpDirPath = process.argv[2];
   const packedDirPath = process.argv[3];
