@@ -138,6 +138,7 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       GLOBAL_OBJ.console.log('after sandbox');
 
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['after sandbox'], level: 'log' }));
+      expect(handler).not.toHaveBeenCalledWith(expect.objectContaining({ args: ['inside sandbox'], level: 'log' }));
     });
   });
 
