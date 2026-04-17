@@ -145,6 +145,23 @@
           "{projectRoot}/build/aws"
         ],
         "cache": true
+      },
+      "build:tarball": {
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "dependsOn": [
+          "build:transpile",
+          "^build:transpile",
+          "build:types",
+          "^build:types",
+          "build:extension"
+        ],
+        "outputs": [
+          "{projectRoot}/*.tgz"
+        ],
+        "cache": true
       }
     }
   }
