@@ -48,9 +48,8 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
 
-  # Avoid '*' here: upload-artifact flattens paths after the first wildcard (drops the packages/ prefix).
-  CACHED_BUILD_LAYER_PATHS: |
-    ${{ github.workspace }}/packages/aws-serverless/build/aws
+  # Upload/download this directory only (no globs): must match pnpm link .../build/aws/dist-serverless/ in aws-serverless E2E.
+  CACHED_BUILD_LAYER_ARTIFACT_PATH: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
 
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
@@ -198,7 +197,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build-layer-output
-          path: ${{ env.CACHED_BUILD_LAYER_PATHS }}
+          path: ${{ env.CACHED_BUILD_LAYER_ARTIFACT_PATH }}
           retention-days: 4
           compression-level: 6
           overwrite: true
@@ -358,6 +357,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: build-layer-output
+          path: ${{ env.CACHED_BUILD_LAYER_ARTIFACT_PATH }}
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -996,6 +996,7 @@ jobs:
         if: matrix.test-application == 'aws-serverless'
         with:
           name: build-layer-output
+          path: ${{ env.CACHED_BUILD_LAYER_ARTIFACT_PATH }}
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v5
