@@ -14,7 +14,8 @@ const Boom = require('@hapi/boom');
 
 const server = Hapi.server({
   port: 3030,
-  host: 'localhost',
+  // Avoid IPv6-only ::1 bind for `localhost` on Linux CI (fetch uses 127.0.0.1).
+  host: '0.0.0.0',
 });
 
 const init = async () => {
