@@ -3,7 +3,13 @@ process.env.LAMBDA_TASK_ROOT = '/var/task';
 
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import type { WrappedFunction } from '@sentry/core';
-import { addConsoleInstrumentationHandler, consoleSandbox, markFunctionWrapped, originalConsoleMethods, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addConsoleInstrumentationHandler,
+  consoleSandbox,
+  markFunctionWrapped,
+  originalConsoleMethods,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import { consoleIntegration } from '../../src/integrations/console';
 
 afterAll(() => {
