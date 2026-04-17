@@ -13,6 +13,12 @@ export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sent
     return;
   }
 
+  // Nitro spawns a nested Nitro instance for prerendering with the user's `modules` re-installed.
+  // Uploading here would double-upload source maps and create a duplicate release.
+  if (nitro.options.preset === 'nitro-prerender') {
+    return;
+  }
+
   // Respect user's explicit disable
   if (options?.sourcemaps?.disable === true) {
     return;

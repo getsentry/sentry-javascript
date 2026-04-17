@@ -274,6 +274,18 @@ describe('setupSourceMaps', () => {
     expect(hookFn).not.toHaveBeenCalled();
   });
 
+  it('does not register hook in nitro-prerender preset', () => {
+    const hookFn = vi.fn();
+    const nitro = {
+      options: { dev: false, preset: 'nitro-prerender', output: { serverDir: '/output/server' } },
+      hooks: { hook: hookFn },
+    } as any;
+
+    setupSourceMaps(nitro);
+
+    expect(hookFn).not.toHaveBeenCalled();
+  });
+
   it('registers compiled hook in production mode', () => {
     const hookFn = vi.fn();
     const nitro = {
