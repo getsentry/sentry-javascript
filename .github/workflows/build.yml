@@ -41,8 +41,6 @@ env:
   BUILD_PATHS: |
     ${{ github.workspace }}/dev-packages/*/build
     ${{ github.workspace }}/packages/*/build
-    ${{ github.workspace }}/packages/*/lib
-    ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
 
   BUILD_LAYER_PATH: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
