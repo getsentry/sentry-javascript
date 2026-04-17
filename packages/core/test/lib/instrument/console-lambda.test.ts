@@ -140,4 +140,26 @@ describe('addConsoleInstrumentationHandler in Lambda (patchWithDefineProperty)',
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['after sandbox'], level: 'log' }));
     });
   });
+
+  describe('third-party capture-and-call wrapping', () => {
+    it('does not cause infinite recursion when a third party wraps console with the capture pattern', () => {
+      addConsoleInstrumentationHandler(vi.fn());
+
+      // This is the extremely common pattern used by logging libraries, test frameworks, etc:
+      //   const prevLog = console.log;
+      //   console.log = (...args) => { prevLog(...args); doSomethingElse(); }
+
+      const prevLog = GLOBAL_OBJ.console.log; // captures `wrapper` via the getter
+      const thirdPartyExtra = vi.fn();
+      GLOBAL_OBJ.console.log = (...args: any[]) => {
+        prevLog(...args); // calls wrapper → underlying (this very function) → prevLog (wrapper) → …
+        thirdPartyExtra(...args);
+      };
+
+      // With the bug, this causes "Maximum call stack size exceeded"
+      expect(() => GLOBAL_OBJ.console.log('should not overflow')).not.toThrow();
+
+      expect(thirdPartyExtra).toHaveBeenCalledWith('should not overflow');
+    });
+  });
 });
