@@ -17,6 +17,7 @@ export {
   createConsolaReporter,
 } from '@sentry/core';
 
+// this has changed now, trigger CI!
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
 export type {
   ReplayEventType,
