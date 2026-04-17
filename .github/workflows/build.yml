@@ -48,6 +48,9 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
 
+  CACHED_BUILD_LAYER_PATHS: |
+    ${{ github.workspace }}/packages/*/build/aws
+
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -165,8 +168,8 @@ jobs:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
 
-  job_verify_build_layer:
-    name: Verify Lambda layer build
+  job_build_layer:
+    name: Build Lambda layer
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-24.04
@@ -185,6 +188,15 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build Lambda layer
         run: yarn build:layer
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-layer-output
+          path: ${{ env.CACHED_BUILD_LAYER_PATHS }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
 
   job_check_branches:
     name: Check PR branches
@@ -319,7 +331,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_layer]
     runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -337,11 +349,13 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Restore build layer artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-layer-output
+
       - name: Pack tarballs
         run: yarn build:tarball
-
-      - name: Build Lambda layer
-        run: yarn build:layer
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -926,7 +940,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
-    needs: [job_get_metadata, job_build, job_e2e_prepare]
+    needs: [job_get_metadata, job_build, job_build_layer, job_e2e_prepare]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -971,6 +985,12 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore build layer artifacts
+        uses: actions/download-artifact@v7
+        if: matrix.test-application == 'aws-serverless'
+        with:
+          name: build-layer-output
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v5
