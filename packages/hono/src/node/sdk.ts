@@ -1,8 +1,8 @@
-import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata, getIntegrationsToSetup } from '@sentry/core';
+import type { Client } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { HonoNodeOptions } from './middleware';
-import { filterHonoIntegration } from '../shared/filterHonoIntegration';
+import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 
 /**
  * Initializes Sentry for Hono running in a Node runtime environment.
@@ -14,20 +14,10 @@ import { filterHonoIntegration } from '../shared/filterHonoIntegration';
 export function init(options: HonoNodeOptions): Client | undefined {
   applySdkMetadata(options, 'hono', ['hono', 'node']);
 
-  const { integrations: userIntegrations } = options;
-
   // Remove Hono from the SDK defaults to prevent double instrumentation: @sentry/node
   const filteredOptions: HonoNodeOptions = {
     ...options,
-    integrations: Array.isArray(userIntegrations)
-      ? (defaults: Integration[]) =>
-          getIntegrationsToSetup({
-            defaultIntegrations: defaults.filter(filterHonoIntegration),
-            integrations: userIntegrations, // user's explicit Hono integration is preserved
-          })
-      : typeof userIntegrations === 'function'
-        ? (defaults: Integration[]) => userIntegrations(defaults.filter(filterHonoIntegration))
-        : (defaults: Integration[]) => defaults.filter(filterHonoIntegration),
+    integrations: buildFilteredIntegrations(options.integrations, false),
   };
 
   return initNode(filteredOptions);
