@@ -52,29 +52,28 @@ function patchWithFill(level: ConsoleLevel): void {
 }
 
 function patchWithDefineProperty(level: ConsoleLevel): void {
-  const originalMethod = GLOBAL_OBJ.console[level] as (...args: unknown[]) => void;
-  originalConsoleMethods[level] = originalMethod;
+  const nativeMethod = GLOBAL_OBJ.console[level] as (...args: unknown[]) => void;
+  originalConsoleMethods[level] = nativeMethod;
 
-  let underlying: Function = originalMethod;
   let isExecuting = false;
 
   const wrapper = function (...args: any[]): void {
     if (isExecuting) {
       // Re-entrant call: a third party captured `wrapper` via the getter and calls it
       // from inside their replacement (e.g. `const prev = console.log; console.log = (...a) => { prev(...a); }`).
-      // Calling `underlying` here would recurse, so go straight to the native method.
-      originalMethod.apply(GLOBAL_OBJ.console, args);
+      // Calling originalConsoleMethods here would recurse, so fall back to the native method.
+      nativeMethod.apply(GLOBAL_OBJ.console, args);
       return;
     }
     isExecuting = true;
     try {
       triggerHandlers('console', { args, level });
-      underlying.apply(GLOBAL_OBJ.console, args);
+      originalConsoleMethods[level]?.apply(GLOBAL_OBJ.console, args);
     } finally {
       isExecuting = false;
     }
   };
-  markFunctionWrapped(wrapper as unknown as WrappedFunction, originalMethod as unknown as WrappedFunction);
+  markFunctionWrapped(wrapper as unknown as WrappedFunction, nativeMethod as unknown as WrappedFunction);
 
   try {
     let current: any = wrapper;
@@ -95,11 +94,11 @@ function patchWithDefineProperty(level: ConsoleLevel): void {
           newValue !== originalConsoleMethods[level] &&
           !(newValue as WrappedFunction).__sentry_original__
         ) {
-          underlying = newValue;
+          // Absorb newly "set" function as our delegate but keep our wrapper as the active method.
           originalConsoleMethods[level] = newValue;
           current = wrapper;
         } else {
-          // Accept as-is: consoleSandbox restores, other Sentry wrappers, or non-functions
+          // Accept as-is: consoleSandbox restoring, other Sentry wrappers, or non-functions
           current = newValue;
         }
       },
