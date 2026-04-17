@@ -167,10 +167,14 @@ jobs:
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
+      changed_aws_serverless:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/aws-serverless') }}
 
   job_build_layer:
     name: Build Lambda layer
     needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_aws_serverless == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
