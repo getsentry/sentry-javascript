@@ -207,7 +207,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
         spans: options.spans,
-        propagateTraceInOutgoingRequests: options.tracePropagation,
+        propagateTraceInOutgoingRequests: options.tracePropagation ?? true,
         createSpansForOutgoingRequests: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
         outgoingRequestHook: (span: Span, request: HttpClientRequest) => {
