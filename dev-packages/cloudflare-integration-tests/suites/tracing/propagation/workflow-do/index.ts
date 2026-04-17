@@ -37,6 +37,7 @@ export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
   }),
   MyWorkflowBase,
 );
@@ -45,6 +46,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
   }),
   {
     async fetch(request, env) {
