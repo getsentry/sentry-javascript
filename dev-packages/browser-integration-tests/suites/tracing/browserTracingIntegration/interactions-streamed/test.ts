@@ -40,6 +40,18 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
+      'culture.calendar': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.locale': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
       [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',
