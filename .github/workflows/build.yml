@@ -48,8 +48,9 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
 
+  # Avoid '*' here: upload-artifact flattens paths after the first wildcard (drops the packages/ prefix).
   CACHED_BUILD_LAYER_PATHS: |
-    ${{ github.workspace }}/packages/*/build/aws
+    ${{ github.workspace }}/packages/aws-serverless/build/aws
 
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
