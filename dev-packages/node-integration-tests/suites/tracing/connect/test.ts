@@ -62,6 +62,5 @@ describe('connect auto-instrumentation', () => {
         await runner.completed();
       });
     },
-    { failsOnEsm: true },
   );
 });
