@@ -961,12 +961,12 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Validate packed tarball setup
-        run: yarn test:validate
-        working-directory: dev-packages/e2e-tests
-
       - name: Prepare e2e tests
         run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+
+      - name: Validate e2e tests setup
+        run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
