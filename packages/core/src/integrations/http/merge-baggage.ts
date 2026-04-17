@@ -12,11 +12,16 @@ export function mergeBaggage(existing: string | string[] | number | undefined, i
   const existingEntries = parseBaggageHeader(existing) ?? {};
   const incomingEntries = parseBaggageHeader(incoming) ?? {};
 
-  const merged = { ...existingEntries };
-  for (const [key, value] of Object.entries(incomingEntries)) {
-    if (key.startsWith('sentry-') || !merged[key]) {
+  // Start with non-sentry entries from existing (sentry-* entries will be replaced by incoming)
+  const merged: Record<string, string> = {};
+  for (const [key, value] of Object.entries(existingEntries)) {
+    if (!key.startsWith('sentry-')) {
       merged[key] = value;
     }
+  }
+  // Add all incoming entries (the new Sentry DSC)
+  for (const [key, value] of Object.entries(incomingEntries)) {
+    merged[key] = value;
   }
 
   return objectToBaggageHeader(merged);

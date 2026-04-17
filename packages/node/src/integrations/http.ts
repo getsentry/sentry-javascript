@@ -17,6 +17,8 @@ import {
 
 const INTEGRATION_NAME = 'Http';
 
+// TODO(v11): Consolidate all the various HTTP integration options into one,
+// and deprecate the duplicated and aliased options.
 interface HttpOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
@@ -183,14 +185,21 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     maxRequestBodySize: options.maxIncomingRequestBodySize,
     // eslint-disable-next-line deprecation/deprecation
     ...(options.instrumentation && { instrumentation: options.instrumentation }),
-  } as HttpInstrumentationOptions;
+  };
 
-  // When spans are enabled, httpServerSpansIntegration subscribes to the
-  // diagnostics channel itself (via getHttpServerSpanSubscriptions) and handles
-  // isolation, sessions, and span creation in one shot.  When spans are disabled,
-  // httpServerIntegration handles isolation and sessions without span creation.
-  const server = enableServerSpans ? null : httpServerIntegration(serverOptions);
+  // Always create server integration for the spans-disabled path.
+  // httpServerIntegration handles isolation + sessions (no spans).
+  // httpServerSpansIntegration handles isolation + sessions + spans.
+  // Exactly one of them subscribes to HTTP_ON_SERVER_REQUEST:
+  // - !enableServerSpans: server.setupOnce() is called from setupOnce()
+  // - enableServerSpans && hasSpansEnabled at runtime: serverSpans.setup()
+  // - enableServerSpans && !hasSpansEnabled at runtime: server.setupOnce()
+  const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
+
+  // Guard against server.setupOnce() being called twice
+  // (from both setupOnce and setup).
+  let serverSetupDone = false;
 
   return {
     name: INTEGRATION_NAME,
@@ -199,10 +208,19 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       if (enableServerSpans && hasSpansEnabled(clientOptions)) {
         serverSpans.setup(client);
+      } else if (enableServerSpans && !serverSetupDone) {
+        // spans are requested but not enabled at runtime (e.g. no
+        // tracesSampleRate). we still need isolation and sessions
+        // via the plain server integration.
+        serverSetupDone = true;
+        server.setupOnce();
       }
     },
     setupOnce() {
-      server?.setupOnce();
+      if (!enableServerSpans) {
+        serverSetupDone = true;
+        server.setupOnce();
+      }
 
       const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
@@ -217,14 +235,16 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         outgoingRequestApplyCustomAttributes: options.instrumentation?.applyCustomAttributesOnSpan,
       };
 
-      // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
-      // It uses the diagnostic channels on node versions that support it,
-      // falling back to monkey-patching when needed.
+      // This is Sentry-specific instrumentation for outgoing request
+      // breadcrumbs & trace propagation. It uses the diagnostic channels on
+      // node versions that support it, falling back to monkey-patching when
+      // needed.
       instrumentSentryHttp(sentryHttpInstrumentationOptions);
     },
     processEvent(event) {
-      // Note: We always run this, even if spans are disabled
-      // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option
+      // Always run this, even if spans are disabled
+      // The reason being that e.g. the remix integration disables span
+      // creation here but still wants to use the ignore status codes option
       return serverSpans.processEvent(event);
     },
   };
