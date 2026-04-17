@@ -10,7 +10,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/deno": "latest || *",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@opentelemetry/api": "^1.9.0",
     "ai": "^3.0.0",
     "zod": "^3.22.4"

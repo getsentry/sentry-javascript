@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@effect/platform-node": "^4.0.0-beta.50",
-    "@sentry/effect": "latest || *",
+    "@sentry/effect": "file:../../packed/sentry-effect-packed.tgz",
     "@types/node": "^18.19.1",
     "effect": "^4.0.0-beta.50",
     "typescript": "~5.0.0"

@@ -16,7 +16,7 @@
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@orpc/server": "latest",
     "@orpc/client": "latest",
     "next": "14.2.35",

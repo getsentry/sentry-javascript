@@ -24,7 +24,7 @@
     "vite": "^5.4.11"
   },
   "dependencies": {
-    "@sentry/svelte": "latest || *"
+    "@sentry/svelte": "file:../../packed/sentry-svelte-packed.tgz"
   },
   "volta": {
     "extends": "../../package.json"

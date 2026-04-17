@@ -13,8 +13,8 @@
     "@astrojs/cloudflare": "^12.6.12",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/astro": "latest || *",
-    "@sentry/cloudflare": "latest || *",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "astro": "^5.17.1"
   },
   "devDependencies": {
