@@ -1,5 +1,5 @@
 {
-  "name": "effect-node-app",
+  "name": "effect-4-node-app",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -12,11 +12,10 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@effect/platform": "^0.94.5",
-    "@effect/platform-node": "^0.104.1",
+    "@effect/platform-node": "^4.0.0-beta.50",
     "@sentry/effect": "latest || *",
     "@types/node": "^18.19.1",
-    "effect": "^3.19.19",
+    "effect": "^4.0.0-beta.50",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
@@ -24,6 +23,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
+    "node": "22.15.0",
     "extends": "../../package.json"
   }
 }

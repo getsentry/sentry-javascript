@@ -1,5 +1,5 @@
 {
-  "name": "effect-browser-test-app",
+  "name": "effect-4-browser-test-app",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,7 @@
   "dependencies": {
     "@sentry/effect": "latest || *",
     "@types/node": "^18.19.1",
-    "effect": "^3.19.19",
+    "effect": "^4.0.0-beta.50",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
@@ -37,6 +37,7 @@
     ]
   },
   "volta": {
+    "node": "22.15.0",
     "extends": "../../package.json"
   }
 }

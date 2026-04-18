@@ -1,9 +1,8 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import * as Context from 'effect/Context';
-import { Duration, Effect, Metric } from 'effect';
+import { SentryEffectMetricsLayer } from '@sentry/effect/client';
+import { Duration, Effect, Layer, Metric, MetricBoundaries, MetricLabel, TestClock, TestContext } from 'effect';
 import { afterEach, beforeEach, vi } from 'vitest';
-import { createMetricsFlusher } from '../src/metrics';
 
 describe('SentryEffectMetricsLayer', () => {
   const mockCount = vi.fn();
@@ -25,12 +24,12 @@ describe('SentryEffectMetricsLayer', () => {
     Effect.gen(function* () {
       const counter = Metric.counter('test_counter');
 
-      yield* Metric.update(counter, 1);
-      yield* Metric.update(counter, 1);
-      yield* Metric.update(counter, 5);
+      yield* Metric.increment(counter);
+      yield* Metric.increment(counter);
+      yield* Metric.incrementBy(counter, 5);
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const counterMetric = snapshot.find(p => p.id === 'test_counter');
+      const snapshot = Metric.unsafeSnapshot();
+      const counterMetric = snapshot.find(p => p.metricKey.name === 'test_counter');
 
       expect(counterMetric).toBeDefined();
     }),
@@ -40,10 +39,10 @@ describe('SentryEffectMetricsLayer', () => {
     Effect.gen(function* () {
       const gauge = Metric.gauge('test_gauge');
 
-      yield* Metric.update(gauge, 42);
+      yield* Metric.set(gauge, 42);
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const gaugeMetric = snapshot.find(p => p.id === 'test_gauge');
+      const snapshot = Metric.unsafeSnapshot();
+      const gaugeMetric = snapshot.find(p => p.metricKey.name === 'test_gauge');
 
       expect(gaugeMetric).toBeDefined();
     }),
@@ -51,16 +50,14 @@ describe('SentryEffectMetricsLayer', () => {
 
   it.effect('creates histogram metrics', () =>
     Effect.gen(function* () {
-      const histogram = Metric.histogram('test_histogram', {
-        boundaries: Metric.linearBoundaries({ start: 0, width: 10, count: 10 }),
-      });
+      const histogram = Metric.histogram('test_histogram', MetricBoundaries.linear({ start: 0, width: 10, count: 10 }));
 
       yield* Metric.update(histogram, 5);
       yield* Metric.update(histogram, 15);
       yield* Metric.update(histogram, 25);
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const histogramMetric = snapshot.find(p => p.id === 'test_histogram');
+      const snapshot = Metric.unsafeSnapshot();
+      const histogramMetric = snapshot.find(p => p.metricKey.name === 'test_histogram');
 
       expect(histogramMetric).toBeDefined();
     }),
@@ -68,7 +65,8 @@ describe('SentryEffectMetricsLayer', () => {
 
   it.effect('creates summary metrics', () =>
     Effect.gen(function* () {
-      const summary = Metric.summary('test_summary', {
+      const summary = Metric.summary({
+        name: 'test_summary',
         maxAge: '1 minute',
         maxSize: 100,
         error: 0.01,
@@ -79,8 +77,8 @@ describe('SentryEffectMetricsLayer', () => {
       yield* Metric.update(summary, 20);
       yield* Metric.update(summary, 30);
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const summaryMetric = snapshot.find(p => p.id === 'test_summary');
+      const snapshot = Metric.unsafeSnapshot();
+      const summaryMetric = snapshot.find(p => p.metricKey.name === 'test_summary');
 
       expect(summaryMetric).toBeDefined();
     }),
@@ -94,41 +92,39 @@ describe('SentryEffectMetricsLayer', () => {
       yield* Metric.update(frequency, 'bar');
       yield* Metric.update(frequency, 'foo');
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const frequencyMetric = snapshot.find(p => p.id === 'test_frequency');
+      const snapshot = Metric.unsafeSnapshot();
+      const frequencyMetric = snapshot.find(p => p.metricKey.name === 'test_frequency');
 
       expect(frequencyMetric).toBeDefined();
     }),
   );
 
-  it.effect('supports metrics with attributes', () =>
+  it.effect('supports metrics with labels', () =>
     Effect.gen(function* () {
       const counter = Metric.counter('labeled_counter').pipe(
-        Metric.withAttributes({ env: 'test', service: 'my-service' }),
+        Metric.taggedWithLabels([MetricLabel.make('env', 'test'), MetricLabel.make('service', 'my-service')]),
       );
 
-      yield* Metric.update(counter, 1);
+      yield* Metric.increment(counter);
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const labeledMetric = snapshot.find(p => p.id === 'labeled_counter');
+      const snapshot = Metric.unsafeSnapshot();
+      const labeledMetric = snapshot.find(p => p.metricKey.name === 'labeled_counter');
 
       expect(labeledMetric).toBeDefined();
-      const attrs = labeledMetric?.attributes ?? {};
-      expect(attrs['env']).toBe('test');
-      expect(attrs['service']).toBe('my-service');
+      const tags = labeledMetric?.metricKey.tags ?? [];
+      expect(tags.some(t => t.key === 'env' && t.value === 'test')).toBe(true);
+      expect(tags.some(t => t.key === 'service' && t.value === 'my-service')).toBe(true);
     }),
   );
 
-  it.effect('tracks Effect durations with histogram metric', () =>
+  it.effect('tracks Effect durations with timer metric', () =>
     Effect.gen(function* () {
-      const histogram = Metric.histogram('operation_duration', {
-        boundaries: Metric.linearBoundaries({ start: 10, width: 100, count: 10 }),
-      });
+      const timer = Metric.timerWithBoundaries('operation_duration', [10, 50, 100, 500, 1000]);
 
-      yield* Metric.update(histogram, Duration.millis(50));
+      yield* Effect.succeed('done').pipe(Metric.trackDuration(timer));
 
-      const snapshot = Metric.snapshotUnsafe(Context.empty());
-      const timerMetric = snapshot.find(p => p.id === 'operation_duration');
+      const snapshot = Metric.unsafeSnapshot();
+      const timerMetric = snapshot.find(p => p.metricKey.name === 'operation_duration');
 
       expect(timerMetric).toBeDefined();
     }),
@@ -144,10 +140,12 @@ describe('SentryEffectMetricsLayer', () => {
   );
 });
 
-describe('createMetricsFlusher', () => {
+describe('SentryEffectMetricsLayer with TestClock', () => {
   const mockCount = vi.fn();
   const mockGauge = vi.fn();
   const mockDistribution = vi.fn();
+
+  const TestLayer = Layer.provide(SentryEffectMetricsLayer, TestContext.TestContext);
 
   beforeEach(() => {
     vi.spyOn(sentryCore.metrics, 'count').mockImplementation(mockCount);
@@ -160,56 +158,57 @@ describe('createMetricsFlusher', () => {
     vi.restoreAllMocks();
   });
 
-  it.effect('sends counter metrics to Sentry', () =>
+  it.effect('sends counter metrics to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const counter = Metric.counter('flush_test_counter');
 
-      yield* Metric.update(counter, 1);
-      yield* Metric.update(counter, 4);
+      yield* Metric.increment(counter);
+      yield* Metric.incrementBy(counter, 4);
 
-      flusher.flush();
+      mockCount.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_counter', 5, { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
-  it.effect('sends gauge metrics to Sentry', () =>
+  it.effect('sends gauge metrics to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const gauge = Metric.gauge('flush_test_gauge');
 
-      yield* Metric.update(gauge, 42);
+      yield* Metric.set(gauge, 42);
 
-      flusher.flush();
+      mockGauge.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_gauge', 42, { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
-  it.effect('sends histogram metrics to Sentry', () =>
+  it.effect('sends histogram metrics to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
-      const histogram = Metric.histogram('flush_test_histogram', {
-        boundaries: Metric.linearBoundaries({ start: 0, width: 10, count: 5 }),
-      });
+      const histogram = Metric.histogram(
+        'flush_test_histogram',
+        MetricBoundaries.linear({ start: 0, width: 10, count: 5 }),
+      );
 
       yield* Metric.update(histogram, 5);
       yield* Metric.update(histogram, 15);
 
-      flusher.flush();
+      mockGauge.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.sum', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.count', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.min', expect.any(Number), { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_histogram.max', expect.any(Number), { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
-  it.effect('sends summary metrics to Sentry', () =>
+  it.effect('sends summary metrics to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
-      const summary = Metric.summary('flush_test_summary', {
+      const summary = Metric.summary({
+        name: 'flush_test_summary',
         maxAge: '1 minute',
         maxSize: 100,
         error: 0.01,
@@ -220,104 +219,77 @@ describe('createMetricsFlusher', () => {
       yield* Metric.update(summary, 20);
       yield* Metric.update(summary, 30);
 
-      flusher.flush();
+      mockGauge.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.sum', 60, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.count', 3, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.min', 10, { attributes: {} });
       expect(mockGauge).toHaveBeenCalledWith('flush_test_summary.max', 30, { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
-  it.effect('sends frequency metrics to Sentry', () =>
+  it.effect('sends frequency metrics to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const frequency = Metric.frequency('flush_test_frequency');
 
       yield* Metric.update(frequency, 'apple');
       yield* Metric.update(frequency, 'banana');
       yield* Metric.update(frequency, 'apple');
 
-      flusher.flush();
+      mockCount.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_frequency', 2, { attributes: { word: 'apple' } });
       expect(mockCount).toHaveBeenCalledWith('flush_test_frequency', 1, { attributes: { word: 'banana' } });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
-  it.effect('sends metrics with attributes to Sentry', () =>
+  it.effect('sends metrics with labels as attributes to Sentry after 10 seconds', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const gauge = Metric.gauge('flush_test_labeled_gauge').pipe(
-        Metric.withAttributes({ env: 'production', region: 'us-east' }),
+        Metric.taggedWithLabels([MetricLabel.make('env', 'production'), MetricLabel.make('region', 'us-east')]),
       );
 
-      yield* Metric.update(gauge, 100);
+      yield* Metric.set(gauge, 100);
 
-      flusher.flush();
+      mockGauge.mockClear();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockGauge).toHaveBeenCalledWith('flush_test_labeled_gauge', 100, {
         attributes: { env: 'production', region: 'us-east' },
       });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
   it.effect('sends counter delta values on subsequent flushes', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const counter = Metric.counter('flush_test_delta_counter');
 
-      yield* Metric.update(counter, 10);
-      flusher.flush();
+      yield* Metric.incrementBy(counter, 10);
+      yield* TestClock.adjust('10 seconds');
 
       mockCount.mockClear();
 
-      yield* Metric.update(counter, 5);
-      flusher.flush();
+      yield* Metric.incrementBy(counter, 5);
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockCount).toHaveBeenCalledWith('flush_test_delta_counter', 5, { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
 
   it.effect('does not send counter when delta is zero', () =>
     Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
       const counter = Metric.counter('flush_test_zero_delta');
 
-      yield* Metric.update(counter, 10);
-      flusher.flush();
+      yield* Metric.incrementBy(counter, 10);
+      yield* TestClock.adjust('10 seconds');
 
       mockCount.mockClear();
 
-      flusher.flush();
+      yield* TestClock.adjust('10 seconds');
 
       expect(mockCount).not.toHaveBeenCalledWith('flush_test_zero_delta', 0, { attributes: {} });
-    }),
+    }).pipe(Effect.provide(TestLayer)),
   );
-
-  it.effect('clear() resets delta tracking state', () =>
-    Effect.gen(function* () {
-      const flusher = createMetricsFlusher();
-      const counter = Metric.counter('flush_test_clear_counter');
-
-      yield* Metric.update(counter, 10);
-      flusher.flush();
-
-      mockCount.mockClear();
-      flusher.clear();
-
-      flusher.flush();
-
-      expect(mockCount).toHaveBeenCalledWith('flush_test_clear_counter', 10, { attributes: {} });
-    }),
-  );
-
-  it('each flusher has isolated state', () => {
-    const flusher1 = createMetricsFlusher();
-    const flusher2 = createMetricsFlusher();
-
-    expect(flusher1).not.toBe(flusher2);
-    expect(flusher1.flush).not.toBe(flusher2.flush);
-    expect(flusher1.clear).not.toBe(flusher2.clear);
-  });
 });

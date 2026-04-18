@@ -1,0 +1,28 @@
+{
+  "name": "@sentry-internal/effect-3-compatibility-tests",
+  "version": "10.49.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "type-check": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@sentry/core": "10.49.0",
+    "@sentry/effect": "10.49.0"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.29.0",
+    "effect": "^3.21.0",
+    "vitest": "^3.2.4"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

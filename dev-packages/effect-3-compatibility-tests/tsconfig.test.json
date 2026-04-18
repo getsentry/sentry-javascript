@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*.ts", "vitest.config.ts"],
+
+  "compilerOptions": {
+    "lib": ["DOM", "es2020"],
+    "types": ["node"]
+  }
+}

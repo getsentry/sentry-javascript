@@ -1,5 +1,19 @@
 import { logger as sentryLogger } from '@sentry/core';
 import * as Logger from 'effect/Logger';
+import type * as LogLevel from 'effect/LogLevel';
+
+function getLogLevelTag(logLevel: LogLevel.LogLevel): string {
+  // Effect v4: logLevel is a string literal directly
+  if (typeof logLevel === 'string') {
+    return logLevel;
+  }
+  // Effect v3: logLevel has _tag property
+  if (logLevel && typeof logLevel === 'object' && '_tag' in logLevel) {
+    return (logLevel as { _tag: string })._tag;
+  }
+
+  return 'Info';
+}
 
 /**
  * Effect Logger that sends logs to Sentry.
@@ -15,14 +29,17 @@ export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
     msg = JSON.stringify(message);
   }
 
-  switch (logLevel._tag) {
+  const tag = getLogLevelTag(logLevel);
+
+  switch (tag) {
     case 'Fatal':
       sentryLogger.fatal(msg);
       break;
     case 'Error':
       sentryLogger.error(msg);
       break;
-    case 'Warning':
+    case 'Warning': // Effect v3
+    case 'Warn': // Effect v4
       sentryLogger.warn(msg);
       break;
     case 'Info':
@@ -37,7 +54,5 @@ export const SentryEffectLogger = Logger.make(({ logLevel, message }) => {
     case 'All':
     case 'None':
       break;
-    default:
-      logLevel satisfies never;
   }
 });

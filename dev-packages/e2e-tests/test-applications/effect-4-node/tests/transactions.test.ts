@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an HTTP transaction', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
     return transactionEvent?.transaction === 'http.server GET';
   });
 
@@ -14,7 +14,7 @@ test('Sends an HTTP transaction', async ({ baseURL }) => {
 });
 
 test('Sends transaction with manual Effect span', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
     return (
       transactionEvent?.transaction === 'http.server GET' &&
       transactionEvent?.spans?.some(span => span.description === 'test-span')
@@ -36,7 +36,7 @@ test('Sends transaction with manual Effect span', async ({ baseURL }) => {
 });
 
 test('Sends Effect spans with correct parent-child structure', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
     return (
       transactionEvent?.transaction === 'http.server GET' &&
       transactionEvent?.spans?.some(span => span.description === 'custom-effect-span')
@@ -87,7 +87,7 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
 });
 
 test('Sends transaction for error route', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('effect-node', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
     return transactionEvent?.transaction === 'http.server GET';
   });
 
