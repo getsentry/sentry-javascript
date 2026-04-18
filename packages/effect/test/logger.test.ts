@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
-import { Effect, Layer, Logger, LogLevel } from 'effect';
+import { Effect, Logger } from 'effect';
+import * as References from 'effect/References';
 import { afterEach, vi } from 'vitest';
 import { SentryEffectLogger } from '../src/logger';
 
@@ -25,10 +26,10 @@ describe('SentryEffectLogger', () => {
     vi.clearAllMocks();
   });
 
-  const loggerLayer = Layer.mergeAll(
-    Logger.replace(Logger.defaultLogger, SentryEffectLogger),
-    Logger.minimumLogLevel(LogLevel.All),
-  );
+  const loggerLayer = Logger.layer([SentryEffectLogger]);
+
+  const withAllLogLevels = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    Effect.provideService(effect, References.MinimumLogLevel, 'All');
 
   it.effect('forwards fatal logs to Sentry', () =>
     Effect.gen(function* () {
@@ -62,14 +63,14 @@ describe('SentryEffectLogger', () => {
     Effect.gen(function* () {
       yield* Effect.logDebug('This is a debug message');
       expect(sentryCore.logger.debug).toHaveBeenCalledWith('This is a debug message');
-    }).pipe(Effect.provide(loggerLayer)),
+    }).pipe(withAllLogLevels, Effect.provide(loggerLayer)),
   );
 
   it.effect('forwards trace logs to Sentry', () =>
     Effect.gen(function* () {
       yield* Effect.logTrace('This is a trace message');
       expect(sentryCore.logger.trace).toHaveBeenCalledWith('This is a trace message');
-    }).pipe(Effect.provide(loggerLayer)),
+    }).pipe(withAllLogLevels, Effect.provide(loggerLayer)),
   );
 
   it.effect('handles object messages by stringifying', () =>

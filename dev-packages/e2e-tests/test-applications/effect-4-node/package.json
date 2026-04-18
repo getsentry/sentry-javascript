@@ -1,0 +1,29 @@
+{
+  "name": "effect-4-node-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@effect/platform-node": "^4.0.0-beta.50",
+    "@sentry/effect": "latest || *",
+    "@types/node": "^18.19.1",
+    "effect": "^4.0.0-beta.50",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "node": "22.15.0",
+    "extends": "../../package.json"
+  }
+}
