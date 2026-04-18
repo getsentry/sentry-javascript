@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('captures a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('effect-browser', async transactionEvent => {
+  const transactionPromise = waitForTransaction('effect-3-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -49,11 +49,11 @@ test('captures a pageload transaction', async ({ page }) => {
 });
 
 test('captures a navigation transaction', async ({ page }) => {
-  const pageLoadTransactionPromise = waitForTransaction('effect-browser', async transactionEvent => {
+  const pageLoadTransactionPromise = waitForTransaction('effect-3-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTransactionPromise = waitForTransaction('effect-browser', async transactionEvent => {
+  const navigationTransactionPromise = waitForTransaction('effect-3-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -80,11 +80,11 @@ test('captures a navigation transaction', async ({ page }) => {
 });
 
 test('captures Effect spans with correct parent-child structure', async ({ page }) => {
-  const pageloadPromise = waitForTransaction('effect-browser', transactionEvent => {
+  const pageloadPromise = waitForTransaction('effect-3-browser', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload';
   });
 
-  const transactionPromise = waitForTransaction('effect-browser', transactionEvent => {
+  const transactionPromise = waitForTransaction('effect-3-browser', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'ui.action.click' &&
       transactionEvent.spans?.some(span => span.description === 'custom-effect-span')

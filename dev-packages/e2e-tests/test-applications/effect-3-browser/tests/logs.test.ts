@@ -3,7 +3,7 @@ import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
 test('should send Effect debug logs', async ({ page }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-browser', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -26,7 +26,7 @@ test('should send Effect debug logs', async ({ page }) => {
 });
 
 test('should send Effect info logs', async ({ page }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-browser', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -49,7 +49,7 @@ test('should send Effect info logs', async ({ page }) => {
 });
 
 test('should send Effect warning logs', async ({ page }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-browser', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -72,7 +72,7 @@ test('should send Effect warning logs', async ({ page }) => {
 });
 
 test('should send Effect error logs', async ({ page }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-browser', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -95,7 +95,7 @@ test('should send Effect error logs', async ({ page }) => {
 });
 
 test('should send Effect logs with context attributes', async ({ page }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-browser', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(item => item.body === 'Log with context')
