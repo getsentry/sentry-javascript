@@ -3,7 +3,7 @@ import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
 test('should send Effect debug logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-node', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -22,7 +22,7 @@ test('should send Effect debug logs', async ({ baseURL }) => {
 });
 
 test('should send Effect info logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-node', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -41,7 +41,7 @@ test('should send Effect info logs', async ({ baseURL }) => {
 });
 
 test('should send Effect warning logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-node', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -60,7 +60,7 @@ test('should send Effect warning logs', async ({ baseURL }) => {
 });
 
 test('should send Effect error logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-node', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -79,7 +79,7 @@ test('should send Effect error logs', async ({ baseURL }) => {
 });
 
 test('should send Effect logs with context attributes', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-3-node', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(item => item.body === 'Log with context')

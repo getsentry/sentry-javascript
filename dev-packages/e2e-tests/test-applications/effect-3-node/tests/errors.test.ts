@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Captures manually reported error', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('effect-node', event => {
+  const errorEventPromise = waitForError('effect-3-node', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an error';
   });
 
@@ -17,7 +17,7 @@ test('Captures manually reported error', async ({ baseURL }) => {
 });
 
 test('Captures thrown exception', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('effect-node', event => {
+  const errorEventPromise = waitForError('effect-3-node', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -30,7 +30,7 @@ test('Captures thrown exception', async ({ baseURL }) => {
 });
 
 test('Captures Effect.fail as error', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('effect-node', event => {
+  const errorEventPromise = waitForError('effect-3-node', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Effect failure';
   });
 
@@ -43,7 +43,7 @@ test('Captures Effect.fail as error', async ({ baseURL }) => {
 });
 
 test('Captures Effect.die as error', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('effect-node', event => {
+  const errorEventPromise = waitForError('effect-3-node', event => {
     return !event.type && event.exception?.values?.[0]?.value?.includes('Effect defect');
   });
 
