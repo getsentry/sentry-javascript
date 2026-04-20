@@ -8,7 +8,7 @@ const repositoryRoot = path.resolve(__dirname, '../../..');
 
 function npmPublish(tarballPath: string, npmrc: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['--userconfig', npmrc, 'publish', tarballPath], {
+    const child = spawn('npm', ['--userconfig', npmrc, 'publish', tarballPath, '--tag', 'e2e'], {
       cwd: repositoryRoot,
       stdio: 'inherit',
     });
