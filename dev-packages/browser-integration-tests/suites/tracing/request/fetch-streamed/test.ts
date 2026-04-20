@@ -19,7 +19,11 @@ sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page })
 
   const allSpans = await spansPromise;
   const pageloadSpan = allSpans.find(s => getSpanOp(s) === 'pageload');
-  const requestSpans = allSpans.filter(s => getSpanOp(s) === 'http.client');
+  const requestSpans = allSpans
+    .filter(s => getSpanOp(s) === 'http.client')
+    .sort((a, b) =>
+      (a.attributes!['http.url']!.value as string).localeCompare(b.attributes!['http.url']!.value as string),
+    );
 
   expect(requestSpans).toHaveLength(3);
 

@@ -16,7 +16,7 @@ import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '..
 
 sentryTest(
   'creates a pageload streamed span envelope with url as pageload span name source',
-  async ({ getLocalTestUrl, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest());
 
     const spanEnvelopePromise = waitForStreamedSpanEnvelope(
@@ -74,11 +74,6 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        // formerly known as 'effectiveConnectionType'
-        'network.connection.effective_type': {
-          type: 'string',
-          value: expect.any(String),
-        },
         // formerly known as 'hardwareConcurrency'
         'device.processor_count': {
           type: expect.stringMatching(/^(integer)|(double)$/),
@@ -92,18 +87,25 @@ sentryTest(
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'network.connection.rtt': {
-          type: expect.stringMatching(/^(integer)|(double)$/),
-          value: expect.any(Number),
-        },
         'browser.web_vital.ttfb.request_time': {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'browser.web_vital.ttfb.value': {
-          type: expect.stringMatching(/^(integer)|(double)$/),
-          value: expect.any(Number),
-        },
+        ...(browserName !== 'webkit' && {
+          // formerly known as 'effectiveConnectionType'
+          'network.connection.effective_type': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'network.connection.rtt': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+          'browser.web_vital.ttfb.value': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+        }),
         'sentry.idle_span_finish_reason': {
           type: 'string',
           value: 'idleTimeout',

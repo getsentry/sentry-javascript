@@ -99,7 +99,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   });
 
   const loAFSpans = interactionSpanTree.filter(span => getSpanOp(span)?.startsWith('ui.long-animation-frame'));
-  expect(loAFSpans).toHaveLength(1);
+  expect(loAFSpans).toHaveLength(browserName === 'chromium' ? 1 : 0);
 
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({

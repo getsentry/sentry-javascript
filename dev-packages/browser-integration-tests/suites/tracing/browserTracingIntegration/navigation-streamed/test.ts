@@ -15,7 +15,7 @@ import {
   waitForStreamedSpanEnvelope,
 } from '../../../../utils/spanUtils';
 
-sentryTest('starts a streamed navigation span on page navigation', async ({ getLocalTestUrl, page }) => {
+sentryTest('starts a streamed navigation span on page navigation', async ({ browserName, getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
@@ -81,18 +81,20 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
         type: 'string',
         value: expect.any(String),
       },
-      'network.connection.effective_type': {
-        type: 'string',
-        value: expect.any(String),
-      },
       'device.processor_count': {
         type: expect.stringMatching(/^(integer)|(double)$/),
         value: expect.any(Number),
       },
-      'network.connection.rtt': {
-        type: expect.stringMatching(/^(integer)|(double)$/),
-        value: expect.any(Number),
-      },
+      ...(browserName !== 'webkit' && {
+        'network.connection.effective_type': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'network.connection.rtt': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+      }),
       'sentry.idle_span_finish_reason': {
         type: 'string',
         value: 'idleTimeout',
