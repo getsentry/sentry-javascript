@@ -600,6 +600,16 @@ describe('startSpan', () => {
       expect(span).toBeInstanceOf(SentrySpan);
       expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
     });
+
+    it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpan({ name: 'root span without onlyIfParent' }, span => {
+        return span;
+      });
+
+      expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+    });
   });
 
   describe('parentSpanIsAlwaysRootSpan', () => {
@@ -1220,6 +1230,17 @@ describe('startSpanManual', () => {
       expect(span).toBeInstanceOf(SentrySpan);
       expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
     });
+
+    it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpanManual({ name: 'root span without onlyIfParent' }, span => {
+        span.end();
+        return span;
+      });
+
+      expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+    });
   });
 
   describe('parentSpanIsAlwaysRootSpan', () => {
@@ -1624,6 +1645,15 @@ describe('startInactiveSpan', () => {
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
+      expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+    });
+
+    it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      const span = startInactiveSpan({ name: 'root span without onlyIfParent' });
+      span.end();
+
       expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
     });
   });

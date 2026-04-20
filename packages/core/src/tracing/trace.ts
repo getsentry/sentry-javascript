@@ -70,8 +70,8 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
       const parentSpan = getParentSpan(scope, customParentSpan);
       const client = getClient();
 
-      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan
+      const missingRequiredParent = options.onlyIfParent && !parentSpan;
+      const activeSpan = missingRequiredParent
         ? new SentryNonRecordingSpan()
         : createChildOrRootSpan({
             parentSpan,
@@ -80,7 +80,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             scope,
           });
 
-      if (shouldSkipSpan) {
+      if (missingRequiredParent) {
         client?.recordDroppedEvent('no_parent_span', 'span');
       }
 
@@ -137,8 +137,8 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
 
-      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan
+      const missingRequiredParent = options.onlyIfParent && !parentSpan;
+      const activeSpan = missingRequiredParent
         ? new SentryNonRecordingSpan()
         : createChildOrRootSpan({
             parentSpan,
@@ -147,7 +147,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             scope,
           });
 
-      if (shouldSkipSpan) {
+      if (missingRequiredParent) {
         getClient()?.recordDroppedEvent('no_parent_span', 'span');
       }
 
@@ -206,9 +206,9 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
     const parentSpan = getParentSpan(scope, customParentSpan);
     const client = getClient();
 
-    const shouldSkipSpan = options.onlyIfParent && !parentSpan;
+    const missingRequiredParent = options.onlyIfParent && !parentSpan;
 
-    if (shouldSkipSpan) {
+    if (missingRequiredParent) {
       client?.recordDroppedEvent('no_parent_span', 'span');
       return new SentryNonRecordingSpan();
     }
