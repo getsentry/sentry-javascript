@@ -160,7 +160,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockTunnelRoutePlugin, mockMiddlewarePlugin]);
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockTunnelRoutePlugin,
+        mockMiddlewarePlugin,
+      ]);
     });
 
     it('passes tunnelRoute options through to the tunnel route plugin', () => {

@@ -11,9 +11,7 @@ let hasWarnedAboutManagedTunnelRouteOverride = false;
  */
 export function applyTunnelRouteOption(options: ReactBrowserOptions): void {
   const managedTunnelRoute =
-    typeof __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__ !== 'undefined'
-      ? __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__
-      : undefined;
+    typeof __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__ !== 'undefined' ? __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__ : undefined;
 
   if (!managedTunnelRoute) {
     return;

@@ -113,8 +113,7 @@ describe('tunnelRoute vite plugin', () => {
       '\0virtual:sentry-tanstackstart-react/tunnel-route',
     );
 
-    const virtualRouteModule =
-      plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
+    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
 
     expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
     expect(virtualRouteModule).toContain('allowedDsns: ["http://public@localhost:3031/1337"]');
@@ -123,8 +122,7 @@ describe('tunnelRoute vite plugin', () => {
   it('omits allowedDsns from the virtual managed tunnel route module when not provided', async () => {
     const plugin = makeTunnelRoutePlugin('/monitor');
 
-    const virtualRouteModule =
-      plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
+    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
 
     expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
     expect(virtualRouteModule).toContain('createSentryTunnelRoute({})');

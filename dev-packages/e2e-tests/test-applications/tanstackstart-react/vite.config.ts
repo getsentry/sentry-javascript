@@ -1,30 +1,26 @@
-import { defineConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import viteReact from "@vitejs/plugin-react-swc";
-import { nitro } from "nitro/vite";
-import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
+import { defineConfig } from 'vite';
+import tsConfigPaths from 'vite-tsconfig-paths';
+import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+import viteReact from '@vitejs/plugin-react-swc';
+import { nitro } from 'nitro/vite';
+import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite';
 
-const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? "off";
-const useManagedTunnelRoute = tunnelRouteMode !== "off";
-const useCustomTunnelRoute = process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === "1";
+const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off';
+const useManagedTunnelRoute = tunnelRouteMode !== 'off';
+const useCustomTunnelRoute = process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
 
-const appDsn = useManagedTunnelRoute || useCustomTunnelRoute
-  ? "http://public@localhost:3031/1337"
-  : "https://public@dsn.ingest.sentry.io/1337";
+const appDsn =
+  useManagedTunnelRoute || useCustomTunnelRoute
+    ? 'http://public@localhost:3031/1337'
+    : 'https://public@dsn.ingest.sentry.io/1337';
 
 const appTunnel = useManagedTunnelRoute
   ? undefined
   : useCustomTunnelRoute
-    ? "/custom-monitor"
-    : "http://localhost:3031/";
+    ? '/custom-monitor'
+    : 'http://localhost:3031/';
 
-const tunnelRoute =
-  tunnelRouteMode === "dynamic"
-    ? true
-    : tunnelRouteMode === "static"
-      ? "/monitor"
-      : undefined;
+const tunnelRoute = tunnelRouteMode === 'dynamic' ? true : tunnelRouteMode === 'static' ? '/monitor' : undefined;
 
 export default defineConfig({
   server: {
@@ -32,8 +28,7 @@ export default defineConfig({
   },
   define: {
     __APP_DSN__: JSON.stringify(appDsn),
-    __APP_TUNNEL__:
-      appTunnel === undefined ? "undefined" : JSON.stringify(appTunnel),
+    __APP_TUNNEL__: appTunnel === undefined ? 'undefined' : JSON.stringify(appTunnel),
   },
   plugins: [
     tsConfigPaths(),

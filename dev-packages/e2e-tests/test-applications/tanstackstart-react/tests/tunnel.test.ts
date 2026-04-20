@@ -2,14 +2,9 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 const tunnelRouteMode =
-  process.env.E2E_TEST_TUNNEL_ROUTE_MODE ??
-  (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
+  process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
 const expectedTunnelPathMatcher =
-  tunnelRouteMode === 'static'
-    ? '/monitor'
-    : tunnelRouteMode === 'custom'
-      ? '/custom-monitor'
-      : /^\/[a-z0-9]{8}$/;
+  tunnelRouteMode === 'static' ? '/monitor' : tunnelRouteMode === 'custom' ? '/custom-monitor' : /^\/[a-z0-9]{8}$/;
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
