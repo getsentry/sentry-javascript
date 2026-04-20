@@ -9,24 +9,25 @@ import type { SentryNitroOptions } from './config';
 export function setupSourceMaps(nitro: Nitro, options?: SentryNitroOptions, sentryEnabledSourcemaps?: boolean): void {
   // The `compiled` hook fires on EVERY rebuild during `nitro dev` watch mode.
   // nitro.options.dev is reliably set by the time module setup runs.
-  if (nitro.options.dev) {
-    return;
-  }
-
-  // Nitro spawns a nested Nitro instance for prerendering with the user's `modules` re-installed.
-  // Uploading here would double-upload source maps and create a duplicate release.
-  if (nitro.options.preset === 'nitro-prerender') {
-    return;
-  }
-
-  // Respect user's explicit disable
-  if (options?.sourcemaps?.disable === true) {
+  if (shouldSkipSourcemapUpload(nitro, options)) {
     return;
   }
 
   nitro.hooks.hook('compiled', async (_nitro: Nitro) => {
     await handleSourceMapUpload(_nitro, options, sentryEnabledSourcemaps);
   });
+}
+
+/**
+ * Determines if sourcemap uploads should be skipped.
+ */
+function shouldSkipSourcemapUpload(nitro: Nitro, options?: SentryNitroOptions): boolean {
+  return !!(
+    nitro.options.dev ||
+    nitro.options.preset === 'nitro-prerender' ||
+    nitro.options.sourcemap === false ||
+    options?.sourcemaps?.disable === true
+  );
 }
 
 /**
