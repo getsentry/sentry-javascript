@@ -3,7 +3,6 @@
  */
 import { captureException } from '../../exports';
 import { getClient } from '../../currentScopes';
-import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import type { Span } from '../../types-hoist/span';
 import { isThenable } from '../../utils/is';
 import {
@@ -60,11 +59,12 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
 /**
  * Resolves whether truncation should be enabled.
  * If the user explicitly set `enableTruncation`, that value is used.
- * Otherwise, truncation is disabled when span streaming is active.
+ * Otherwise, truncation defaults to off: gen_ai spans always travel as v2
+ * spans (either via span streaming or extraction from the legacy transaction),
+ * so the legacy transaction size cap that motivated truncation no longer applies.
  */
 export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
-  const client = getClient();
-  return enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
+  return enableTruncation ?? false;
 }
 
 /**

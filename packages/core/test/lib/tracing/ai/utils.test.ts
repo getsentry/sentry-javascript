@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient } from '../../../../src';
-import { resolveAIRecordingOptions, wrapPromiseWithMethods } from '../../../../src/tracing/ai/utils';
+import {
+  resolveAIRecordingOptions,
+  shouldEnableTruncation,
+  wrapPromiseWithMethods,
+} from '../../../../src/tracing/ai/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('resolveAIRecordingOptions', () => {
@@ -36,6 +40,20 @@ describe('resolveAIRecordingOptions', () => {
   it('explicit options override sendDefaultPii', () => {
     setup(true);
     expect(resolveAIRecordingOptions({ recordInputs: false })).toEqual({ recordInputs: false, recordOutputs: true });
+  });
+});
+
+describe('shouldEnableTruncation', () => {
+  it('defaults to false when the user did not set enableTruncation', () => {
+    expect(shouldEnableTruncation(undefined)).toBe(false);
+  });
+
+  it('returns false when the user explicitly set enableTruncation: false', () => {
+    expect(shouldEnableTruncation(false)).toBe(false);
+  });
+
+  it('returns true when the user explicitly set enableTruncation: true', () => {
+    expect(shouldEnableTruncation(true)).toBe(true);
   });
 });
 

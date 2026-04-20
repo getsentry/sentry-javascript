@@ -46,7 +46,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const client = instrumentAnthropicAiClient(mockClient);
+    const client = instrumentAnthropicAiClient(mockClient, { enableTruncation: true });
 
     // Send the image showing the number 3
     // Put the image in the last message so it doesn't get dropped

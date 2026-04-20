@@ -29,10 +29,15 @@ async function run() {
       .addEdge('agent', END)
       .compile({ name: 'test-agent' });
 
+    // Multiple long messages verify default-off truncation: with `enableTruncation` unset,
+    // neither byte-truncation nor message popping should occur. The full array is preserved as-is.
+    const longContent = 'A'.repeat(50_000);
     await graph.invoke({
       messages: [
         { role: 'system', content: 'You are a helpful assistant' },
-        { role: 'user', content: 'Hello' },
+        { role: 'user', content: longContent },
+        { role: 'assistant', content: 'Some reply' },
+        { role: 'user', content: 'Follow-up question' },
       ],
     });
   });

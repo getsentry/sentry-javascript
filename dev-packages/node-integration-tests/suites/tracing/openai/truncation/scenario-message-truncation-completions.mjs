@@ -45,7 +45,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const client = instrumentOpenAiClient(mockClient);
+    const client = instrumentOpenAiClient(mockClient, { enableTruncation: true });
 
     // Test 1: Given an array of messages only the last message should be kept
     // The last message should be truncated to fit within the 20KB limit

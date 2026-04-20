@@ -37,12 +37,19 @@ async function run() {
     const mockClient = new MockGoogleGenAI({ apiKey: 'mock-api-key' });
     const client = instrumentGoogleGenAIClient(mockClient);
 
+    // Multiple long messages verify default-off truncation: with `enableTruncation` unset,
+    // neither byte-truncation nor message popping should occur. The full array is preserved as-is.
+    const longContent = 'A'.repeat(50_000);
     await client.models.generateContent({
       model: 'gemini-1.5-flash',
       config: {
         systemInstruction: 'You are a helpful assistant',
       },
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+      contents: [
+        { role: 'user', parts: [{ text: longContent }] },
+        { role: 'model', parts: [{ text: 'Some reply' }] },
+        { role: 'user', parts: [{ text: 'Follow-up question' }] },
+      ],
     });
   });
 }

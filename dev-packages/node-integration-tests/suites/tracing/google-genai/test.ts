@@ -344,7 +344,12 @@ describe('Google GenAI integration', () => {
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('extracts system instructions from messages', async () => {
+      test('extracts system instructions and preserves full multi-message input by default (enableTruncation unset)', async () => {
+        const expectedMessages = JSON.stringify([
+          { role: 'user', parts: [{ text: 'A'.repeat(50_000) }] },
+          { role: 'model', parts: [{ text: 'Some reply' }] },
+          { role: 'user', parts: [{ text: 'Follow-up question' }] },
+        ]);
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
@@ -358,6 +363,9 @@ describe('Google GenAI integration', () => {
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               );
+              // Default-off: no byte-truncation of the 50KB message and no message popping to keep-last-only.
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(expectedMessages);
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()

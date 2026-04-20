@@ -339,31 +339,24 @@ describe('LangGraph integration', () => {
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test, mode) => {
-      test('extracts system instructions from messages', async () => {
+      test('extracts system instructions and preserves full multi-message input by default (enableTruncation unset)', async () => {
+        const longContent = 'A'.repeat(50_000);
+        const expectedInstructions = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]);
         await createRunner()
           .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              if (mode === 'cjs') {
-                expect(container.items).toHaveLength(4);
-                const [, , thirdSpan] = container.items;
+              const invokeAgent =
+                mode === 'cjs' ? (container.items[2] ?? undefined) : (container.items[1] ?? undefined);
 
-                // [2] invoke_agent with system instructions (top-level)
-                expect(thirdSpan!.name).toBe('invoke_agent test-agent');
-                expect(thirdSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
-                  JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
-                );
-              } else {
-                expect(container.items).toHaveLength(2);
-                const [, secondSpan] = container.items;
-
-                // [1] invoke_agent with system instructions
-                expect(secondSpan!.name).toBe('invoke_agent test-agent');
-                expect(secondSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
-                  JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
-                );
-              }
+              expect(invokeAgent!.name).toBe('invoke_agent test-agent');
+              expect(invokeAgent!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(expectedInstructions);
+              // Default-off: no byte-truncation of the 50KB message and no message popping — the follow-up message survives.
+              const inputMessages = invokeAgent!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value;
+              expect(inputMessages).toContain(longContent);
+              expect(inputMessages).toContain('Some reply');
+              expect(inputMessages).toContain('Follow-up question');
             },
           })
           .start()

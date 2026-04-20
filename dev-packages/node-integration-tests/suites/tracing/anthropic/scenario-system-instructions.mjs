@@ -43,11 +43,18 @@ async function run() {
       baseURL: `http://localhost:${server.address().port}/anthropic`,
     });
 
+    // Multiple long messages verify default-off truncation: with `enableTruncation` unset,
+    // neither byte-truncation nor message popping should occur. The full array is preserved as-is.
+    const longContent = 'A'.repeat(50_000);
     await client.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       system: 'You are a helpful assistant',
-      messages: [{ role: 'user', content: 'Hello' }],
+      messages: [
+        { role: 'user', content: longContent },
+        { role: 'assistant', content: 'Some reply' },
+        { role: 'user', content: 'Follow-up question' },
+      ],
     });
   });
 
