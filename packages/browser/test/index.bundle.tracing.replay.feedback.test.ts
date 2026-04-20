@@ -1,6 +1,11 @@
 import { consoleLoggingIntegrationShim, loggerShim } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
-import { browserTracingIntegration, feedbackAsyncIntegration, replayIntegration, spanStreamingIntegration } from '../src';
+import {
+  browserTracingIntegration,
+  feedbackAsyncIntegration,
+  replayIntegration,
+  spanStreamingIntegration,
+} from '../src';
 import * as TracingReplayFeedbackBundle from '../src/index.bundle.tracing.replay.feedback';
 
 describe('index.bundle.tracing.replay.feedback', () => {
