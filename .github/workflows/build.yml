@@ -109,9 +109,6 @@ jobs:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
 
-      - name: Cleanup NX cache
-        run: yarn nx reset
-
       - name: Build packages
         run: yarn build
 
