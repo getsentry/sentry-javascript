@@ -102,7 +102,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     const actualMatcher: Matcher =
       matcher ||
       (args => {
-        const event = args.getEvent();
+        const event = args.getEvent(['event', 'replay_event']);
         if (
           event?.extra?.[MULTIPLEXED_TRANSPORT_EXTRA_KEY] &&
           Array.isArray(event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY])

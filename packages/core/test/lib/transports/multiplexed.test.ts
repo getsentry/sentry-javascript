@@ -30,6 +30,7 @@ const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
   { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
   [[{ type: 'transaction' }, TRANSACTION_EVENT] as EventItem],
 );
+const REPLAY_EVENT = { type: 'replay_event', event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' };
 
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
@@ -312,6 +313,36 @@ describe('makeMultiplexedTransport() with default matcher', () => {
           event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
           extra: {
             [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [],
+          },
+        },
+      ] as EventItem,
+    ]);
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(envelope);
+  });
+
+  it('sends replay events to targets provided in event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(
+        url => {
+          expect(url).toBe(DSN1_URL);
+        },
+        url => {
+          expect(url).toBe(DSN2_URL);
+        },
+      ),
+    );
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [
+        { type: 'replay_event' },
+        {
+          ...REPLAY_EVENT,
+          extra: {
+            [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [DSN1, DSN2],
           },
         },
       ] as EventItem,
