@@ -120,7 +120,7 @@ jobs:
         # Only cache this per-PR to speed up CI.
         if: github.event_name == 'pull_request'
         with:
-          path: .nxcache
+          path: .nx
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Upload build artifacts
@@ -675,7 +675,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
-          if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
+          if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
             echo "Found illegal TypeScript import statement."
             exit 1
           fi
@@ -879,7 +879,7 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nxcache
+          path: .nx
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build tarballs
