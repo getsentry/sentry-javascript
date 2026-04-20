@@ -51,9 +51,33 @@ describe('getPluginOptions', () => {
   });
 
   it('respects user-provided filesToDeleteAfterUpload even when Sentry enabled sourcemaps', () => {
-    const options = getPluginOptions({ sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } }, true);
+    const options = getPluginOptions(
+      { sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } },
+      true,
+      '/project/.output/server',
+    );
 
     expect(options.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
+  });
+
+  it('logs the default filesToDeleteAfterUpload glob in debug mode', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    getPluginOptions({ debug: true }, true, '/project/.output/server');
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('/project/.output/server/**/*.map'));
+    logSpy.mockRestore();
+  });
+
+  it('does not log the default glob when user provides filesToDeleteAfterUpload', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    getPluginOptions(
+      { debug: true, sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } },
+      true,
+      '/project/.output/server',
+    );
+
+    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('filesToDeleteAfterUpload'));
+    logSpy.mockRestore();
   });
 
   it('uses environment variables as fallback', () => {

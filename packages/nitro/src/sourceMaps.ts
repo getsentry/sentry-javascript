@@ -68,17 +68,32 @@ function normalizePath(path: string): string {
 }
 
 /**
+ * Removes a trailing slash from a path so glob patterns can be appended cleanly.
+ */
+function removeTrailingSlash(path: string): string {
+  return path.replace(/\/$/, '');
+}
+
+/**
  * Builds the plugin options for `createSentryBuildPluginManager` from the Sentry Nitro options.
  *
  * Only exported for testing purposes.
  */
+// oxlint-disable-next-line complexity
 export function getPluginOptions(
   options?: SentryNitroOptions,
   sentryEnabledSourcemaps?: boolean,
   outputDir?: string,
 ): BundlerPluginOptions {
   const defaultFilesToDelete =
-    sentryEnabledSourcemaps && outputDir ? [`${outputDir.replace(/\\/g, '/')}/**/*.map`] : undefined;
+    sentryEnabledSourcemaps && outputDir ? [`${removeTrailingSlash(outputDir)}/**/*.map`] : undefined;
+
+  if (options?.debug && defaultFilesToDelete && options?.sourcemaps?.filesToDeleteAfterUpload === undefined) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[@sentry/nitro] Setting \`sourcemaps.filesToDeleteAfterUpload: ["${defaultFilesToDelete[0]}"]\` to delete generated source maps after they were uploaded to Sentry.`,
+    );
+  }
 
   return {
     org: options?.org ?? process.env.SENTRY_ORG,
