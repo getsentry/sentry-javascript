@@ -23,7 +23,6 @@ interface V3MetricPair {
     keyType: { _tag: string };
   };
   metricState: {
-    _tag?: string;
     count?: number | bigint;
     value?: number;
     sum?: number;
@@ -32,6 +31,16 @@ interface V3MetricPair {
     occurrences?: Map<string, number>;
   };
 }
+
+// Effect v3 `MetricState` implementations brand themselves with a `Symbol.for(...)` TypeId
+// rather than a string `_tag`. We use these globally-registered symbols to classify state
+// instances returned by `Metric.unsafeSnapshot()` without importing `effect/MetricState`
+// (the module does not exist in Effect v4).
+const V3_COUNTER_STATE_TYPE_ID = Symbol.for('effect/MetricState/Counter');
+const V3_GAUGE_STATE_TYPE_ID = Symbol.for('effect/MetricState/Gauge');
+const V3_HISTOGRAM_STATE_TYPE_ID = Symbol.for('effect/MetricState/Histogram');
+const V3_SUMMARY_STATE_TYPE_ID = Symbol.for('effect/MetricState/Summary');
+const V3_FREQUENCY_STATE_TYPE_ID = Symbol.for('effect/MetricState/Frequency');
 
 function labelsToAttributes(labels: ReadonlyArray<V3MetricLabel>): MetricAttributes {
   return labels.reduce((acc, label) => ({ ...acc, [label.key]: label.value }), {});
@@ -57,9 +66,9 @@ function sendV3MetricToSentry(pair: V3MetricPair, previousCounterValues: Map<str
   const attributes = labelsToAttributes(metricKey.tags);
   const metricId = getMetricIdV3(pair);
 
-  const stateTag = metricState._tag;
+  const state = metricState as unknown as Record<symbol, unknown>;
 
-  if (stateTag === 'CounterState') {
+  if (state[V3_COUNTER_STATE_TYPE_ID] !== undefined) {
     const currentValue = Number(metricState.count);
     const previousValue = previousCounterValues.get(metricId) ?? 0;
     const delta = currentValue - previousValue;
@@ -69,15 +78,15 @@ function sendV3MetricToSentry(pair: V3MetricPair, previousCounterValues: Map<str
     }
 
     previousCounterValues.set(metricId, currentValue);
-  } else if (stateTag === 'GaugeState') {
+  } else if (state[V3_GAUGE_STATE_TYPE_ID] !== undefined) {
     const value = Number(metricState.value);
     sentryMetrics.gauge(name, value, { attributes });
-  } else if (stateTag === 'HistogramState' || stateTag === 'SummaryState') {
+  } else if (state[V3_HISTOGRAM_STATE_TYPE_ID] !== undefined || state[V3_SUMMARY_STATE_TYPE_ID] !== undefined) {
     sentryMetrics.gauge(`${name}.sum`, metricState.sum ?? 0, { attributes });
     sentryMetrics.gauge(`${name}.count`, Number(metricState.count ?? 0), { attributes });
     sentryMetrics.gauge(`${name}.min`, metricState.min ?? 0, { attributes });
     sentryMetrics.gauge(`${name}.max`, metricState.max ?? 0, { attributes });
-  } else if (stateTag === 'FrequencyState' && metricState.occurrences) {
+  } else if (state[V3_FREQUENCY_STATE_TYPE_ID] !== undefined && metricState.occurrences) {
     for (const [word, count] of metricState.occurrences) {
       sentryMetrics.count(name, count, {
         attributes: { ...attributes, word },
