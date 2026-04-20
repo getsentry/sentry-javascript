@@ -61,15 +61,15 @@ describe('tunnelRoute vite plugin', () => {
     expect(resolveTunnelRoute('/monitor')).toBe('/monitor');
   });
 
-  it('rejects empty allowedDsns', () => {
-    expect(() => makeTunnelRoutePlugin({ allowedDsns: [] })).toThrow(
-      '`sentryTanstackStart({ tunnelRoute })` requires at least one allowed DSN',
-    );
-  });
-
   it('rejects invalid static tunnel routes', () => {
-    expect(() => makeTunnelRoutePlugin({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'], tunnel: 'monitor' })).toThrow(
-      '`tunnelRoute.tunnel` must be `true` or an absolute route path',
+    expect(() => makeTunnelRoutePlugin('monitor')).toThrow(
+      'static paths must start with `/` and must not contain query or hash segments',
+    );
+    expect(() => makeTunnelRoutePlugin('/monitor?x=1')).toThrow(
+      'static paths must start with `/` and must not contain query or hash segments',
+    );
+    expect(() => makeTunnelRoutePlugin({ path: 'monitor' })).toThrow(
+      'static paths must start with `/` and must not contain query or hash segments',
     );
   });
 
@@ -102,7 +102,7 @@ describe('tunnelRoute vite plugin', () => {
   it('loads a virtual managed tunnel route module for a static tunnel path', async () => {
     const plugin = makeTunnelRoutePlugin({
       allowedDsns: ['http://public@localhost:3031/1337'],
-      tunnel: '/monitor',
+      path: '/monitor',
     });
 
     expect(plugin.config && plugin.config()).toEqual({
@@ -120,5 +120,15 @@ describe('tunnelRoute vite plugin', () => {
 
     expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
     expect(virtualRouteModule).toContain('allowedDsns: ["http://public@localhost:3031/1337"]');
+  });
+
+  it('omits allowedDsns from the virtual managed tunnel route module when not provided', async () => {
+    const plugin = makeTunnelRoutePlugin('/monitor');
+
+    const virtualRouteModule =
+      plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
+
+    expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
+    expect(virtualRouteModule).toContain('createSentryTunnelRoute({})');
   });
 });

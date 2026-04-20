@@ -1,21 +1,23 @@
 import type { Plugin } from "vite";
 
-export interface TunnelRouteOptions {
-  /**
-   * A list of DSNs that are allowed to use the managed tunnel route.
-   */
-  allowedDsns: string[];
+export type TunnelRouteOptions =
+  | true
+  | string
+  | {
+      /**
+       * A list of DSNs that are allowed to use the managed tunnel route.
+       *
+       * If omitted or empty, the tunnel route will derive the allowed DSN from the active server Sentry SDK at runtime.
+       */
+      allowedDsns?: string[];
 
-  /**
-   * Controls the public route path used by the managed tunnel route.
-   *
-   * - `true` generates an opaque path once per dev session or production build.
-   * - `'/custom-path'` uses a fixed absolute route path.
-   *
-   * @default true
-   */
-  tunnel?: true | string;
-}
+      /**
+       * Controls the public route path used by the managed tunnel route.
+       *
+       * If omitted, an opaque path is generated once per dev session or production build.
+       */
+      path?: string;
+    };
 
 const MANAGED_TUNNEL_ROUTE_IMPORT = "SentryManagedTunnelRouteImport";
 const MANAGED_TUNNEL_ROUTE_NAME = "SentryManagedTunnelRoute";
@@ -48,27 +50,45 @@ export function resolveTunnelRoute(tunnel: true | string): string {
   return resolvedTunnelRoute;
 }
 
-function validateTunnelRouteOptions(options: TunnelRouteOptions): string {
-  if (options.allowedDsns.length === 0) {
+type NormalizedTunnelRouteOptions = {
+  resolvedPath: string;
+  allowedDsns: string[] | undefined;
+};
+
+function validateStaticPath(path: string): void {
+  if (!path.startsWith("/") || path.includes("?") || path.includes("#")) {
     throw new Error(
-      "[@sentry/tanstackstart-react] `sentryTanstackStart({ tunnelRoute })` requires at least one allowed DSN.",
+      "[@sentry/tanstackstart-react] `tunnelRoute` static paths must start with `/` and must not contain query or hash segments.",
     );
   }
+}
 
-  const tunnelRoute = options.tunnel ?? true;
-
-  if (
-    typeof tunnelRoute === "string" &&
-    (!tunnelRoute.startsWith("/") ||
-      tunnelRoute.includes("?") ||
-      tunnelRoute.includes("#"))
-  ) {
-    throw new Error(
-      "[@sentry/tanstackstart-react] `tunnelRoute.tunnel` must be `true` or an absolute route path starting with `/` and without query or hash segments.",
-    );
+function normalizeTunnelRouteOptions(
+  options: TunnelRouteOptions,
+): NormalizedTunnelRouteOptions {
+  if (options === true) {
+    return { resolvedPath: resolveTunnelRoute(true), allowedDsns: undefined };
   }
 
-  return resolveTunnelRoute(tunnelRoute);
+  if (typeof options === "string") {
+    validateStaticPath(options);
+    return {
+      resolvedPath: resolveTunnelRoute(options),
+      allowedDsns: undefined,
+    };
+  }
+
+  const allowedDsns =
+    options.allowedDsns && options.allowedDsns.length > 0
+      ? options.allowedDsns
+      : undefined;
+  const path = options.path;
+
+  if (path) {
+    validateStaticPath(path);
+  }
+
+  return { resolvedPath: resolveTunnelRoute(path ?? true), allowedDsns };
 }
 
 function hasRouteConflict(
@@ -146,9 +166,12 @@ export function makeTunnelRoutePlugin(
   options: TunnelRouteOptions,
   debug?: boolean,
 ): Plugin {
-  const resolvedTunnelRoute = validateTunnelRouteOptions(options);
+  const normalized = normalizeTunnelRouteOptions(options);
+  const resolvedTunnelRoute = normalized.resolvedPath;
   const serializedTunnelRoute = JSON.stringify(resolvedTunnelRoute);
-  const serializedAllowedDsns = JSON.stringify(options.allowedDsns);
+  const serializedAllowedDsns = normalized.allowedDsns
+    ? JSON.stringify(normalized.allowedDsns)
+    : undefined;
 
   if (debug) {
     // eslint-disable-next-line no-console
@@ -184,9 +207,7 @@ export const Route = createFileRoute(${serializedTunnelRoute})({
     handlers: {
       async POST({ request }) {
         const Sentry = await import('@sentry/tanstackstart-react');
-        return Sentry.createSentryTunnelRoute({
-          allowedDsns: ${serializedAllowedDsns},
-        }).handlers.POST({ request });
+        return Sentry.createSentryTunnelRoute(${serializedAllowedDsns ? `{ allowedDsns: ${serializedAllowedDsns} }` : `{}`}).handlers.POST({ request });
       },
     },
   },

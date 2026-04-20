@@ -65,7 +65,9 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
-      rewriteSources: sourcemaps?.rewriteSources,
+      // BuildTimeOptionsBase types can lag behind bundler plugin options in some local setups.
+      // Keep runtime support while staying resilient to type version skew.
+      rewriteSources: (sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources as never,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     telemetry: telemetry ?? true,

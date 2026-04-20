@@ -21,9 +21,9 @@ const appTunnel = useManagedTunnelRoute
 
 const tunnelRoute =
   tunnelRouteMode === "dynamic"
-    ? { allowedDsns: [appDsn], tunnel: true as const }
+    ? true
     : tunnelRouteMode === "static"
-      ? { allowedDsns: [appDsn], tunnel: "/monitor" }
+      ? "/monitor"
       : undefined;
 
 export default defineConfig({

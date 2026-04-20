@@ -26,8 +26,13 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * Configures a framework-managed same-origin tunnel route for Sentry envelopes.
    *
    * This creates a TanStack Start server route backed by `createSentryTunnelRoute()` and applies the resulting path
-   * as the default `tunnel` option on the client. Use `tunnel: true` to generate an opaque route path per dev session
-   * or production build, or provide a static absolute path string to control the route name yourself.
+   * as the default `tunnel` option on the client.
+   *
+   * You can pass:
+   * - `true` to generate an opaque route path per dev session or production build.
+   * - `'/custom-path'` to use a fixed static route path.
+   * - `{ allowedDsns, path }` for full control. If `allowedDsns` is omitted or empty, the tunnel route derives the DSN
+   *   from the active server Sentry client at runtime.
    *
    * If you also pass `tunnel` to `Sentry.init()`, that explicit runtime option wins and a warning is emitted because
    * the managed tunnel route is being bypassed.

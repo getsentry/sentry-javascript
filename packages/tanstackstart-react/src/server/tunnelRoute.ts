@@ -1,7 +1,7 @@
-import { handleTunnelRequest } from '@sentry/core';
+import { dsnToString, getClient, handleTunnelRequest } from '@sentry/core';
 
 export interface CreateSentryTunnelRouteOptions {
-  allowedDsns: string[];
+  allowedDsns?: string[];
 }
 
 type SentryTunnelRouteHandlerContext = {
@@ -33,9 +33,27 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
   return {
     handlers: {
       POST: async ({ request }) => {
+        const allowedDsnsFromOptions =
+          options.allowedDsns && options.allowedDsns.length > 0 ? options.allowedDsns : undefined;
+
+        const allowedDsns =
+          allowedDsnsFromOptions ??
+          (() => {
+            const client = getClient();
+            const dsn = client?.getDsn();
+            return dsn ? [dsnToString(dsn)] : undefined;
+          })();
+
+        if (!allowedDsns) {
+          return new Response(
+            'Tunnel route requires Sentry server SDK initialized with a DSN, or pass allowedDsns explicitly.',
+            { status: 500 },
+          );
+        }
+
         return handleTunnelRequest({
           request,
-          allowedDsns: options.allowedDsns,
+          allowedDsns,
         });
       },
     },
