@@ -5,6 +5,18 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+/** Repository root (this file lives in dev-packages/e2e-tests/lib/). */
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+
+/** Nx semver from root `package.json` (no `yarn install` required for matrix generation). */
+function getPinnedNxVersion() {
+  const rootPkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  const raw = rootPkg.devDependencies?.nx ?? rootPkg.dependencies?.nx;
+  if (typeof raw !== 'string') {
+    throw new Error('Root package.json must declare nx in devDependencies or dependencies');
+  }
+  return raw.replace(/^[\^~>=<]/, '');
+}
 
 /**
  * Generates a matrix for the GitHub Actions workflow to run the E2E tests.
@@ -122,8 +134,12 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
-      .toString()
+    // CI may run this before `yarn install`; use npx with the same major.minor.patch as root package.json.
+    const nxVersion = getPinnedNxVersion();
+    affectedProjects = execSync(`npx --yes nx@${nxVersion} show projects --affected ${additionalArgs.join(' ')}`, {
+      cwd: REPO_ROOT,
+      encoding: 'utf-8',
+    })
       .split('\n')
       .map(line => line.trim())
       .filter(Boolean);
@@ -178,9 +194,9 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
 function getChangedTestApps(base, head) {
   const changedFiles = execSync(`git diff --name-only ${base}${head ? `..${head}` : ''} -- .`, {
+    cwd: REPO_ROOT,
     encoding: 'utf-8',
   })
-    .toString()
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);
