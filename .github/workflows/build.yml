@@ -138,6 +138,20 @@ jobs:
           compression-level: 6
           overwrite: true
 
+      - name: Determine which test applications should be run
+        id: matrix
+        run:
+          yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        run:
+          yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration:
@@ -164,6 +178,8 @@ jobs:
       changed_browser_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/browser-integration-tests') }}
+      e2e-matrix: ${{ steps.matrix.outputs.matrix }}
+      e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
 
   job_check_branches:
     name: Check PR branches
@@ -889,7 +905,7 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_get_metadata.outputs.e2e-matrix
+      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix
       !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on: ubuntu-24.04
@@ -905,7 +921,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix) }}
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix) }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -1014,7 +1030,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build_tarballs.result == 'success' &&
-      needs.job_get_metadata.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
+      needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on: ubuntu-24.04
@@ -1030,7 +1046,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-optional) }}
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
