@@ -1,4 +1,11 @@
-import type { Breadcrumb, ErrorEvent, ReplayRecordingData, ReplayRecordingMode, Span } from '@sentry/core';
+import type {
+  Breadcrumb,
+  ErrorEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStopReason,
+  Span,
+} from '@sentry/core';
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
@@ -507,7 +514,7 @@ export interface ReplayContainer {
   getContext(): InternalEventContext;
   initializeSampling(): void;
   start(): void;
-  stop(options?: { reason?: string; forceflush?: boolean }): Promise<void>;
+  stop(options?: { reason?: ReplayStopReason; forceFlush?: boolean }): Promise<void>;
   pause(): void;
   resume(): void;
   startRecording(): void;
