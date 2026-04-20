@@ -2,11 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as globSync } from 'glob';
-import {
-  packedSymlinkFilename,
-  relativeTarballPathFromPackedDir,
-  versionedTarballFilename,
-} from './packedTarballUtils';
+import { packedSymlinkFilename, versionedTarballFilename } from './packedTarballUtils';
 
 const e2eTestsRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(e2eTestsRoot, '../..');
@@ -46,7 +42,6 @@ export function syncPackedTarballSymlinks(): void {
     }
 
     const packageDir = path.dirname(packageJsonPath);
-    const packageDirName = path.basename(packageDir);
     const expectedTarball = path.join(packageDir, versionedTarballFilename(name, version));
 
     if (!fs.existsSync(expectedTarball)) {
@@ -55,9 +50,8 @@ export function syncPackedTarballSymlinks(): void {
 
     const linkName = packedSymlinkFilename(name);
     const linkPath = path.join(packedDir, linkName);
-    const target = relativeTarballPathFromPackedDir(packageDirName, name, version);
 
-    fs.symlinkSync(target, linkPath);
+    fs.symlinkSync(expectedTarball, linkPath);
     linked++;
   }
 

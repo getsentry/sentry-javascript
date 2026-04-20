@@ -45,15 +45,6 @@ export function versionedTarballFilename(packageName: string, version: string): 
 }
 
 /**
- * Relative POSIX path from `dev-packages/e2e-tests/packed/<symlink>` to
- * `packages/<pkgDir>/<versionedTarball>`.
- */
-export function relativeTarballPathFromPackedDir(packageDirName: string, packageName: string, version: string): string {
-  const file = versionedTarballFilename(packageName, version);
-  return path.posix.join('..', '..', '..', 'packages', packageDirName, file);
-}
-
-/**
  * npm pack tarball basename (without version and .tgz), e.g. `@sentry/core` -> `sentry-core`.
  */
 function npmPackBasename(packageName: string): string {

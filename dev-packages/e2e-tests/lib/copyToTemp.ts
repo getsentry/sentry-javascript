@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { readFileSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
-import { join } from 'path';
+import { isAbsolute, join } from 'path';
 
 export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
   // copy files to tmp dir
@@ -47,15 +47,22 @@ function fixPackageJson(cwd: string): void {
 
 function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
   for (const [key, value] of Object.entries(dependencyObj)) {
-    if (value.startsWith('link:')) {
-      const dirPath = value.replace('link:', '');
-
-      // We add a virtual dir to ensure that the relative depth is consistent
-      // dirPath is relative to ./../test-applications/xxx
-      const newPath = join(__dirname, 'virtual-dir/', dirPath);
-
-      dependencyObj[key] = `link:${newPath}`;
-      console.log(`Fixed ${key} dependency to ${newPath}`);
+    const prefix = value.startsWith('link:') ? 'link:' : value.startsWith('file:') ? 'file:' : null;
+    if (!prefix) {
+      continue;
     }
+
+    const dirPath = value.slice(prefix.length);
+    if (isAbsolute(dirPath)) {
+      continue;
+    }
+
+    // We add a virtual dir to ensure that the relative depth is consistent
+    // dirPath is relative to ./../test-applications/xxx
+    const newPath = join(__dirname, 'virtual-dir/', dirPath);
+    console.log({ key, value, newPath });
+
+    dependencyObj[key] = `${prefix}${newPath}`;
+    console.log(`Fixed ${key} dependency to ${newPath}`);
   }
 }
