@@ -12,6 +12,11 @@ import {
 } from '@sentry/core';
 import { consoleIntegration } from '../../src/integrations/console';
 
+// Capture the real native method before any patches are installed.
+// This simulates external code doing `const log = console.log` before Sentry init.
+// oxlint-disable-next-line no-console
+const nativeConsoleLog = console.log;
+
 afterAll(() => {
   delete process.env.LAMBDA_TASK_ROOT;
 });
@@ -183,6 +188,38 @@ describe('consoleIntegration in Lambda (patchWithDefineProperty)', () => {
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({ args: ['should not overflow'], level: 'log' }));
     });
 
+    it('fires the handler exactly once on re-entrant calls', () => {
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+      handler.mockClear();
+
+      const callOrder: string[] = [];
+
+      const prevLog = GLOBAL_OBJ.console.log;
+      GLOBAL_OBJ.console.log = (...args: any[]) => {
+        callOrder.push('delegate-before-prev');
+        prevLog(...args);
+        callOrder.push('delegate-after-prev');
+      };
+
+      handler.mockImplementation(() => {
+        callOrder.push('handler');
+      });
+
+      GLOBAL_OBJ.console.log('re-entrant test');
+
+      // The handler fires exactly once — on the first (outer) entry.
+      // The re-entrant call through prev() must NOT trigger it a second time.
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      // Verify the full call order:
+      // 1. wrapper enters → triggerHandlers → handler fires
+      // 2. wrapper calls consoleDelegate (third-party fn)
+      // 3. third-party fn calls prev() → re-enters wrapper → nativeMethod (no handler)
+      // 4. third-party fn continues after prev()
+      expect(callOrder).toEqual(['handler', 'delegate-before-prev', 'delegate-after-prev']);
+    });
+
     it('consoleSandbox still bypasses the handler after third-party wrapping', () => {
       const handler = vi.fn();
       addConsoleInstrumentationHandler(handler);
@@ -198,6 +235,25 @@ describe('consoleIntegration in Lambda (patchWithDefineProperty)', () => {
       });
 
       expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('keeps firing the handler when console.log is set back to the original native method', () => {
+      const handler = vi.fn();
+      addConsoleInstrumentationHandler(handler);
+
+      // Simulate Lambda-style replacement
+      GLOBAL_OBJ.console.log = vi.fn();
+      handler.mockClear();
+
+      // Simulate external code restoring a native method reference it captured
+      // before Sentry init — this should NOT clobber the wrapper.
+      GLOBAL_OBJ.console.log = nativeConsoleLog;
+
+      GLOBAL_OBJ.console.log('after restore to original');
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ args: ['after restore to original'], level: 'log' }),
+      );
     });
   });
 });
