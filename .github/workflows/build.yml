@@ -54,8 +54,8 @@ env:
   TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
   TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  # Ensure we only cache nx per-commit, so we do not cross-contaminate it
-  NX_CACHE_KEY: nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
+  # We cache NX per-PR for faster CI, other than this we do not want to rely on it
+  NX_CACHE_KEY: nx-Linux-${{ github.ref }}
 
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
