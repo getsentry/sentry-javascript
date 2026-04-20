@@ -336,6 +336,15 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
       renameAttributeKey(attributes, key, `vercel.${key}`);
     }
   }
+
+  // JSON-stringify any array-valued attributes so they survive v2 span serialization.
+  // The v2 serializer currently drops array values. Can be removed once span streaming
+  // supports arrays natively.
+  for (const [key, value] of Object.entries(attributes)) {
+    if (Array.isArray(value)) {
+      attributes[key] = JSON.stringify(value);
+    }
+  }
 }
 
 /**
