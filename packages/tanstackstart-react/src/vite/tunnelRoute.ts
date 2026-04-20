@@ -106,7 +106,7 @@ function injectAfterLastImport(source: string, statement: string): string {
   const importMatches = [...source.matchAll(/^import .+$/gm)];
   const lastImport = importMatches.at(-1);
 
-  if (!lastImport || lastImport.index === undefined) {
+  if (lastImport?.index === undefined) {
     throw new Error(
       "[@sentry/tanstackstart-react] Failed to inject the managed tunnel route because `routeTree.gen.ts` imports could not be located.",
     );
@@ -141,7 +141,7 @@ export function injectManagedTunnelRoute(
     /const rootRouteChildren(?:\s*:\s*RootRouteChildren)?\s*=\s*\{/,
   );
 
-  if (!rootRouteChildrenMatch || rootRouteChildrenMatch.index === undefined) {
+  if (rootRouteChildrenMatch?.index === undefined) {
     throw new Error(
       "[@sentry/tanstackstart-react] Failed to inject the managed tunnel route because the generated TanStack route tree did not contain `rootRouteChildren`.",
     );

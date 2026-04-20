@@ -2,8 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 import { injectManagedTunnelRoute, makeTunnelRoutePlugin, resolveTunnelRoute } from '../../src/vite/tunnelRoute';
 
-const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY = '__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__';
-
 const ROUTE_TREE_SOURCE = `import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -34,11 +32,11 @@ const UNTYPED_ROUTE_TREE_SOURCE = ROUTE_TREE_SOURCE.replace(
 
 describe('tunnelRoute vite plugin', () => {
   beforeEach(() => {
-    delete process.env[MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY];
+    delete process.env.__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__;
   });
 
   afterEach(() => {
-    delete process.env[MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY];
+    delete process.env.__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__;
   });
 
   it('reuses the same generated tunnel route within one process', () => {
