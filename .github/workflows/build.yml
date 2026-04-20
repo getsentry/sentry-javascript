@@ -771,6 +771,9 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install dependencies
+        working-directory: dev-packages/effect-3-compatibility-tests
+        run: yarn install
       - name: Run tests
         working-directory: dev-packages/effect-3-compatibility-tests
         run: yarn test
