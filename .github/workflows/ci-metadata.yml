@@ -31,6 +31,12 @@ on:
       force_skip_cache:
         description: 'Whether to skip caching (schedule or ci-skip-cache label)'
         value: ${{ jobs.get_metadata.outputs.force_skip_cache }}
+      e2e-matrix:
+        description: 'The matrix of E2E test applications to run'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix }}
+      e2e-matrix-optional:
+        description: 'The matrix of optional E2E test applications to run'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-optional }}
 
 jobs:
   get_metadata:
@@ -70,6 +76,20 @@ jobs:
             any_code:
               - '!**/*.md'
 
+      - name: Determine which test applications should be run
+        id: matrix
+        run:
+          yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        run:
+          yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
+          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       # Note: These next three have to be checked as strings ('true'/'false')!
@@ -87,3 +107,5 @@ jobs:
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}
+      e2e-matrix: ${{ steps.matrix.outputs.matrix }}
+      e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
