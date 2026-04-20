@@ -28,8 +28,6 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  # WARNING: this disables cross os caching as ~ and
-  # github.workspace evaluate to differents paths
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
@@ -38,15 +36,10 @@ env:
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
-  # WARNING: this disables cross os caching as ~ and
-  # github.workspace evaluate to differents paths
-  # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
-  CACHED_BUILD_PATHS: |
+  BUILD_PATHS: |
     ${{ github.workspace }}/dev-packages/*/build
     ${{ github.workspace }}/packages/*/build
-    ${{ github.workspace }}/packages/*/lib
-    ${{ github.workspace }}/packages/ember/*.d.ts
-    ${{ github.workspace }}/packages/gatsby/*.d.ts
+    ${{ github.workspace }}/packages/*.d.ts
 
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
@@ -65,6 +58,7 @@ env:
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
+    name: Get CI Metadata
     with:
       head_commit: ${{ github.event.inputs.commit || github.sha }}
     permissions:
@@ -124,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build-output
-          path: ${{ env.CACHED_BUILD_PATHS }}
+          path: ${{ env.BUILD_PATHS }}
           retention-days: 4
           compression-level: 6
           overwrite: true
