@@ -62,6 +62,18 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
+        'culture.calendar': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.locale': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.timezone': {
+          type: 'string',
+          value: expect.any(String),
+        },
         // formerly known as 'effectiveConnectionType'
         'network.connection.effective_type': {
           type: 'string',
