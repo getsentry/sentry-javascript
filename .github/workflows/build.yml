@@ -48,7 +48,11 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
 
-  BUILD_TARBALL_PATH: ${{ github.workspace }}/packages/*/*.tgz
+  # upload-artifact globs drop the path through the first `*` (see upload-artifact
+  # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
+  # tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
+  TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
+  TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -336,6 +340,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
@@ -895,7 +900,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: tarball-output
-          path: ${{ env.BUILD_TARBALL_PATH }}
+          path: ${{ env.TARBALL_ARTIFACT_GLOB }}
+          if-no-files-found: error
           retention-days: 4
           compression-level: 6
           overwrite: true
@@ -958,6 +964,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Prepare e2e tests
         run: yarn test:prepare
@@ -1068,6 +1075,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Prepare E2E tests
         run: yarn test:prepare
