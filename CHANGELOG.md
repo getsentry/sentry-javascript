@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 10.50.0-alpha.0
+
+This is an internal alpha release to test sending `gen_ai.*` spans as span v2 envelope items alongside legacy transactions: [#20342](https://github.com/getsentry/sentry-javascript/pull/20342)
+
 ## 10.49.0
 
 ### Important Changes
