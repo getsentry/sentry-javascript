@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
+import { instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
@@ -72,7 +72,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
   return [
     instrumentSentryHttp,
-    instrumentOtelHttp,
     instrumentExpress,
     instrumentConnect,
     instrumentFastify,

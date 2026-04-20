@@ -166,3 +166,75 @@ export function objectToBaggageHeader(object: Record<string, string>): string | 
     }
   }, '');
 }
+
+/**
+ * Merge two baggage headers into one.
+ * - Sentry-specific entries (keys starting with "sentry-") from the new
+ *   baggage take precedence
+ * - Non-Sentry entries from existing baggage take precedence
+ *
+ * The order of the existing baggage will be preserved, and new entries will
+ * be added to the end.
+ *
+ * This matches the behavior of OTEL's propagation.inject() which uses
+ * `baggage.setEntry()`  to overwrite existing entries with the same key.
+ */
+export function mergeBaggageHeaders<Existing extends string | string[] | number | undefined>(
+  existing: Existing,
+  incoming: string,
+): string | undefined | Existing {
+  if (!existing) {
+    return incoming;
+  }
+
+  const existingEntries = parseBaggageHeader(existing);
+  const incomingEntries = parseBaggageHeader(incoming);
+
+  if (!incomingEntries) {
+    return existing;
+  }
+
+  // 1. All non-sentry entries from existing are kept
+  // 2. All sentry- entries from the new baggage are retained
+  // 3. If sentry- entries present in new, ignore from old, else keep from old.
+  // 4. Non-sentry entries from new are only kept if not in existing.
+
+  const merged: Record<string, string> = {};
+
+  // partition incoming entries into sentry and non-sentry prefixed
+  let hasNewSentryEntries = false;
+  const newSentryEntries: Record<string, string> = {};
+  const newNonSentryEntries: Record<string, string> = {};
+  for (const [key, value] of Object.entries(incomingEntries)) {
+    if (key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+      newSentryEntries[key] = value;
+      hasNewSentryEntries = true;
+    } else {
+      newNonSentryEntries[key] = value;
+    }
+  }
+
+  // If new baggage contains at least one sentry- value, we remove all old
+  // sentry- values otherwise, we keep old sentry- values. If we don't remove
+  // old sentry- values, we end up with an inconsistent dynamic sampling
+  // context propagation.
+  if (existingEntries) {
+    for (const [key, value] of Object.entries(existingEntries)) {
+      if (!hasNewSentryEntries || !key.startsWith(SENTRY_BAGGAGE_KEY_PREFIX)) {
+        merged[key] = value;
+      }
+    }
+  }
+
+  // Assign new sentry fields.
+  if (hasNewSentryEntries) {
+    Object.assign(merged, newSentryEntries);
+  }
+
+  // assign new non-sentry fields not found on existing object.
+  for (const [key, value] of Object.entries(newNonSentryEntries)) {
+    merged[key] ??= value;
+  }
+
+  return objectToBaggageHeader(merged);
+}

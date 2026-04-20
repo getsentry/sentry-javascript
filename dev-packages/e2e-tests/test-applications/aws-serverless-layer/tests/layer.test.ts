@@ -59,7 +59,7 @@ test.describe('Lambda layer', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',
@@ -127,7 +127,7 @@ test.describe('Lambda layer', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',

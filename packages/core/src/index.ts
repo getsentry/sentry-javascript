@@ -146,9 +146,27 @@ export { instrumentPostgresJsSql } from './integrations/postgresjs';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
-export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export type { FeatureFlagsIntegration } from './integrations/featureFlags';
+export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
+export { patchHttpModuleClient, patchHttpsModuleClient } from './integrations/http/client-patch';
+export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
+export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
+export {
+  getRequestUrl,
+  getRequestUrlObject,
+  getRequestUrlFromClientRequest,
+  getRequestOptions,
+} from './integrations/http/get-request-url';
+export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST } from './integrations/http/constants';
+export type {
+  HttpInstrumentationOptions,
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpServerResponse,
+  HttpModuleExport,
+} from './integrations/http/types';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -343,6 +361,7 @@ export {
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
   objectToBaggageHeader,
+  mergeBaggageHeaders,
 } from './utils/baggage';
 export {
   getSanitizedUrlString,
@@ -575,9 +594,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export type { RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner } from './utils/randomSafeContext';
 export {
   withRandomSafeContext as _INTERNAL_withRandomSafeContext,
-  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
   safeMathRandom as _INTERNAL_safeMathRandom,
   safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';

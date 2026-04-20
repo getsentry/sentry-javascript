@@ -4,7 +4,7 @@ import type { EventEmitter } from 'node:events';
 import type { IncomingMessage, RequestOptions, Server, ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
-import type { AggregationCounts, Client, Integration, IntegrationFn, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, HttpIncomingMessage, Integration, IntegrationFn, Scope } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
@@ -30,7 +30,7 @@ interface WeakRefImpl<T> {
 }
 
 type StartSpanCallback = (next: () => boolean) => boolean;
-type RequestWithOptionalStartSpanCallback = IncomingMessage & {
+type RequestWithOptionalStartSpanCallback = HttpIncomingMessage & {
   _startSpanCallback?: WeakRefImpl<StartSpanCallback>;
 };
 
