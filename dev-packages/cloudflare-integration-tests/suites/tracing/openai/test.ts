@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -23,32 +22,41 @@ it('traces a basic chat completion request', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
-
+      // Transaction item (first item in envelope)
+      const transactionEvent = envelope[1]?.[0]?.[1] as any;
       expect(transactionEvent.transaction).toBe('GET /');
-      expect(transactionEvent.spans).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-              [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-              [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
-              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
-              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
-              [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
-            }),
-            description: 'chat gpt-3.5-turbo',
-            op: 'gen_ai.chat',
-            origin: 'auto.ai.openai',
-          }),
-        ]),
-      );
+
+      // Span container item (second item in same envelope)
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+
+      expect(container.items).toHaveLength(1);
+      const [firstSpan] = container.items;
+
+      // [0] chat gpt-3.5-turbo
+      expect(firstSpan!.name).toBe('chat gpt-3.5-turbo');
+      expect(firstSpan!.status).toBe('ok');
+      expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+      expect(firstSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      expect(firstSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.openai' });
+      expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
+      expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-3.5-turbo' });
+      expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({ type: 'double', value: 0.7 });
+      expect(firstSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'gpt-3.5-turbo',
+      });
+      expect(firstSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'chatcmpl-mock123',
+      });
+      expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
+      expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
+      expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
+      expect(firstSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: '["stop"]',
+      });
     })
     .start(signal);
   await runner.makeRequest('get', '/');
