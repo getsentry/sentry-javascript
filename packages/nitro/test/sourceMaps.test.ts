@@ -20,7 +20,7 @@ describe('getPluginOptions', () => {
   });
 
   it('returns default options when no options are provided', () => {
-    const options = getPluginOptions(undefined, true);
+    const options = getPluginOptions(undefined, true, '/project/.output/server');
 
     expect(options).toEqual(
       expect.objectContaining({
@@ -28,7 +28,7 @@ describe('getPluginOptions', () => {
         debug: false,
         silent: false,
         sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: ['**/*.map'],
+          filesToDeleteAfterUpload: ['/project/.output/server/**/*.map'],
           rewriteSources: expect.any(Function),
         }),
         _metaOptions: expect.objectContaining({

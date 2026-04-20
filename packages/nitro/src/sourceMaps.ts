@@ -39,7 +39,7 @@ async function handleSourceMapUpload(
   sentryEnabledSourcemaps?: boolean,
 ): Promise<void> {
   const outputDir = nitro.options.output.serverDir;
-  const pluginOptions = getPluginOptions(options, sentryEnabledSourcemaps);
+  const pluginOptions = getPluginOptions(options, sentryEnabledSourcemaps, outputDir);
 
   const sentryBuildPluginManager = createSentryBuildPluginManager(pluginOptions, {
     buildTool: 'nitro',
@@ -75,7 +75,11 @@ function normalizePath(path: string): string {
 export function getPluginOptions(
   options?: SentryNitroOptions,
   sentryEnabledSourcemaps?: boolean,
+  outputDir?: string,
 ): BundlerPluginOptions {
+  const defaultFilesToDelete =
+    sentryEnabledSourcemaps && outputDir ? [`${outputDir.replace(/\\/g, '/')}/**/*.map`] : undefined;
+
   return {
     org: options?.org ?? process.env.SENTRY_ORG,
     project: options?.project ?? process.env.SENTRY_PROJECT,
@@ -90,8 +94,7 @@ export function getPluginOptions(
       disable: options?.sourcemaps?.disable,
       assets: options?.sourcemaps?.assets,
       ignore: options?.sourcemaps?.ignore,
-      filesToDeleteAfterUpload:
-        options?.sourcemaps?.filesToDeleteAfterUpload ?? (sentryEnabledSourcemaps ? ['**/*.map'] : undefined),
+      filesToDeleteAfterUpload: options?.sourcemaps?.filesToDeleteAfterUpload ?? defaultFilesToDelete,
       rewriteSources: options?.sourcemaps?.rewriteSources ?? ((source: string) => normalizePath(source)),
     },
     release: options?.release,
