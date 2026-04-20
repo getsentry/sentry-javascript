@@ -41,13 +41,15 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      addConsoleInstrumentationHandler(({ args, level }) => {
+      const unsubscribe = addConsoleInstrumentationHandler(({ args, level }) => {
         if (getClient() !== client || !levels.has(level)) {
           return;
         }
 
         addConsoleBreadcrumb(level, args);
       });
+
+      client.registerCleanup(unsubscribe);
     },
   };
 });

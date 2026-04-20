@@ -168,6 +168,16 @@ export class ServerRuntimeClient<
   public override dispose(): void {
     DEBUG_BUILD && debug.log('Disposing client...');
 
+    // Run all registered cleanup callbacks
+    for (const callback of this._disposeCallbacks) {
+      try {
+        callback();
+      } catch {
+        // Ignore errors in cleanup callbacks
+      }
+    }
+    this._disposeCallbacks.length = 0;
+
     for (const hookName of Object.keys(this._hooks)) {
       this._hooks[hookName]?.clear();
     }

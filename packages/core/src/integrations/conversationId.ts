@@ -12,7 +12,7 @@ const _conversationIdIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setup(client: Client) {
-      client.on('spanStart', (span: Span) => {
+      const unsubscribe = client.on('spanStart', (span: Span) => {
         const scopeData = getCurrentScope().getScopeData();
         const isolationScopeData = getIsolationScope().getScopeData();
 
@@ -32,6 +32,8 @@ const _conversationIdIntegration = (() => {
           span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, conversationId);
         }
       });
+
+      client.registerCleanup(unsubscribe);
     },
   };
 }) satisfies IntegrationFn;
