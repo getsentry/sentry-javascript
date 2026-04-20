@@ -136,6 +136,10 @@ export function makeTerserPlugin() {
           '_resolveFilename',
           // Set on e.g. the shim feedbackIntegration to be able to detect it
           '_isShim',
+          // Set by `withStreamedSpan()` and checked by `isStreamedBeforeSendSpanCallback()` -
+          // since the setter passes the name as a string to `addNonEnumerableProperty`, terser
+          // cannot mangle it there, so we must keep the reader side unmangled too.
+          '_streamed',
           // This is used in metadata integration
           '_sentryModuleMetadata',
         ],
