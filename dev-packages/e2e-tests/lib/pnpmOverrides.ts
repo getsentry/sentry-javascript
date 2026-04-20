@@ -14,20 +14,34 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
   const packageJsonPath = path.join(tmpDirPath, 'package.json');
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as {
     pnpm?: { overrides?: Record<string, string> };
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
   };
 
   const overrides: Record<string, string> = {};
 
   const packageNames = getPublishedSentryTarballPackageNames();
 
+  const dependencies = packageJson.dependencies ?? {};
+  const devDependencies = packageJson.devDependencies ?? {};
+
+  // Override anything that is not a dependency of the application itself,
+  // to ensure we do not accidentally overwrite weird/custom things
+  const deps = {
+    ...dependencies,
+    ...devDependencies,
+  };
+
   for (const packageName of packageNames) {
-    overrides[packageName] = `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`;
+    if (!deps[packageName]) {
+      overrides[packageName] = `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`;
+    }
   }
 
   packageJson.pnpm = {
     overrides: {
-      ...packageJson.pnpm?.overrides,
       ...overrides,
+      ...packageJson.pnpm?.overrides,
     },
   };
 
