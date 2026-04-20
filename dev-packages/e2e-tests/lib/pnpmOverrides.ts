@@ -39,6 +39,7 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
   }
 
   packageJson.pnpm = {
+    ...packageJson.pnpm,
     overrides: {
       ...overrides,
       ...packageJson.pnpm?.overrides,

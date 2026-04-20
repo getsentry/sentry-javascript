@@ -15,5 +15,7 @@ async function run(): Promise<void> {
   await copyToTemp(originalPath, tmpDirPath);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run();
+run().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
