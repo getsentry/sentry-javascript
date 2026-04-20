@@ -1,8 +1,6 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import { sync as globSync } from 'glob';
 import * as path from 'path';
-import { dirname } from 'path';
 import { parseArgs } from 'util';
 
 interface MatrixInclude {
@@ -52,9 +50,7 @@ function run(): void {
   // eslint-disable-next-line no-console
   console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
 
-  const testApplications = globSync('*/package.json', {
-    cwd: `${__dirname}/../test-applications`,
-  }).map(filePath => dirname(filePath));
+  const testApplications = discoverTestApplicationDirs();
 
   // For GitHub Action debugging (using stderr the 'matrix=...' output is not polluted)
   // eslint-disable-next-line no-console
@@ -76,6 +72,17 @@ function run(): void {
   // We print this to the output, so the GHA can use it for the matrix
   // eslint-disable-next-line no-console
   console.log(`matrix=${JSON.stringify({ include: includes })}`);
+}
+
+/** Direct children of `test-applications/` that contain a `package.json` (replaces glob one-segment + package.json). */
+function discoverTestApplicationDirs(): string[] {
+  const appsRoot = path.join(__dirname, '..', 'test-applications');
+  return fs
+    .readdirSync(appsRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .filter(name => fs.existsSync(path.join(appsRoot, name, 'package.json')))
+    .sort();
 }
 
 function addIncludesForTestApp(
