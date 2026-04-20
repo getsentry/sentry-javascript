@@ -7,6 +7,8 @@ import { instrumentFetcher } from './worker/instrumentFetcher';
  * Wraps:
  * - `namespace.get(id)` / `namespace.getByName(name)` with a span + instruments returned stub
  * - `namespace.idFromName(name)` / `namespace.idFromString(id)` / `namespace.newUniqueId()` with breadcrumbs
+ *
+ * @param namespace - The DurableObjectNamespace to instrument
  */
 export function instrumentDurableObjectNamespace(namespace: DurableObjectNamespace): DurableObjectNamespace {
   return new Proxy(namespace, {
@@ -31,7 +33,9 @@ export function instrumentDurableObjectNamespace(namespace: DurableObjectNamespa
 }
 
 /**
- * Instruments a DurableObjectStub to create spans for outgoing fetch calls.
+ * Instruments a DurableObjectStub to propagate trace context across fetch calls.
+ *
+ * @param stub - The DurableObjectStub to instrument
  */
 function instrumentDurableObjectStub(stub: DurableObjectStub): DurableObjectStub {
   return new Proxy(stub, {

@@ -69,13 +69,29 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 
   expect(navigationSpan).toEqual({
     attributes: {
-      effectiveConnectionType: {
+      'culture.calendar': {
         type: 'string',
         value: expect.any(String),
       },
-      hardwareConcurrency: {
+      'culture.locale': {
         type: 'string',
         value: expect.any(String),
+      },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'network.connection.effective_type': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'device.processor_count': {
+        type: expect.stringMatching(/^(integer)|(double)$/),
+        value: expect.any(Number),
+      },
+      'network.connection.rtt': {
+        type: expect.stringMatching(/^(integer)|(double)$/),
+        value: expect.any(Number),
       },
       'sentry.idle_span_finish_reason': {
         type: 'string',

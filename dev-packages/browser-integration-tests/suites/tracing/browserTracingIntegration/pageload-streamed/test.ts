@@ -62,20 +62,46 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
-        effectiveConnectionType: {
+        'culture.calendar': {
           type: 'string',
           value: expect.any(String),
         },
-        hardwareConcurrency: {
+        'culture.locale': {
           type: 'string',
           value: expect.any(String),
         },
-        'performance.activationStart': {
-          type: 'integer',
+        'culture.timezone': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        // formerly known as 'effectiveConnectionType'
+        'network.connection.effective_type': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        // formerly known as 'hardwareConcurrency'
+        'device.processor_count': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'performance.timeOrigin': {
-          type: 'double',
+        'browser.performance.navigation.activation_start': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.performance.time_origin': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'network.connection.rtt': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.web_vital.ttfb.request_time': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.web_vital.ttfb.value': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
         'sentry.idle_span_finish_reason': {

@@ -6,13 +6,10 @@ async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
-  try {
-    registrySetup();
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
+  await registrySetup({ daemonize: true });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run();
+run().catch(error => {
+  console.error(error);
+  process.exit(1);
+});

@@ -54,10 +54,12 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
     // Allow hook subscribers to mutate the segment span JSON
+    // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
   }
 
-  // Allow hook subscribers to mutate the span JSON
+  // This allows hook subscribers to mutate the span JSON
+  // This also invokes the `processSpan` hook of all integrations
   client.emit('processSpan', spanJSON);
 
   const { beforeSendSpan } = client.getOptions();

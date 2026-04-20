@@ -1,15 +1,34 @@
 /* eslint-disable no-console */
-import * as childProcess from 'child_process';
+import { spawn } from 'child_process';
 import { readFileSync } from 'fs';
 import { globSync } from 'glob';
 import * as path from 'path';
 
 const repositoryRoot = path.resolve(__dirname, '../../..');
 
+function npmPublish(tarballPath: string, npmrc: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('npm', ['--userconfig', npmrc, 'publish', tarballPath], {
+      cwd: repositoryRoot,
+      stdio: 'inherit',
+    });
+
+    child.on('error', reject);
+    child.on('close', code => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Error publishing tarball ${tarballPath}`));
+      }
+    });
+  });
+}
+
 /**
  * Publishes all built Sentry package tarballs to the local Verdaccio test registry.
+ * Uses async `npm publish` so an in-process Verdaccio can still handle HTTP on the event loop.
  */
-export function publishPackages(): void {
+export async function publishPackages(): Promise<void> {
   const version = (JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'utf8')) as { version: string })
     .version;
 
@@ -28,14 +47,6 @@ export function publishPackages(): void {
 
   for (const tarballPath of packageTarballPaths) {
     console.log(`Publishing tarball ${tarballPath} ...`);
-    const result = childProcess.spawnSync('npm', ['--userconfig', npmrc, 'publish', tarballPath], {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-      stdio: 'inherit',
-    });
-
-    if (result.status !== 0) {
-      throw new Error(`Error publishing tarball ${tarballPath}`);
-    }
+    await npmPublish(tarballPath, npmrc);
   }
 }
