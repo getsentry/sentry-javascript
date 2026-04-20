@@ -69,6 +69,18 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 
   expect(navigationSpan).toEqual({
     attributes: {
+      'culture.calendar': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.locale': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
       'network.connection.effective_type': {
         type: 'string',
         value: expect.any(String),

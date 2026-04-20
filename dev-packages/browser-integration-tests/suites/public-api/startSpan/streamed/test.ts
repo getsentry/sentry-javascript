@@ -167,6 +167,18 @@ sentryTest(
       },
       {
         attributes: {
+          'culture.calendar': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'culture.locale': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'culture.timezone': {
+            type: 'string',
+            value: expect.any(String),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test',

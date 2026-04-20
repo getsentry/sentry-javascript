@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import type { ReplayRecordingMode, Span } from '@sentry/core';
+import type { ReplayRecordingMode, ReplayStopReason, Span } from '@sentry/core';
 import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import { EventType, record } from '@sentry-internal/rrweb';
 import {
@@ -495,7 +495,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public async stop({ forceFlush = false, reason }: { forceFlush?: boolean; reason?: string } = {}): Promise<void> {
+  public async stop({
+    forceFlush = false,
+    reason,
+  }: { forceFlush?: boolean; reason?: ReplayStopReason } = {}): Promise<void> {
     if (!this._isEnabled) {
       return;
     }
@@ -508,8 +511,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     // breadcrumbs to trigger a flush (e.g. in `addUpdate()`)
     this.recordingMode = 'buffer';
 
+    const stopReason: ReplayStopReason = reason ?? 'manual';
+    getClient()?.emit('replayEnd', { sessionId: this.session?.id, reason: stopReason });
+
     try {
-      DEBUG_BUILD && debug.log(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+      DEBUG_BUILD && debug.log(`Stopping Replay triggered by ${stopReason}`);
 
       resetReplayIdOnDynamicSamplingContext();
 
@@ -862,6 +868,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isEnabled = true;
     this._isPaused = false;
 
+    if (this.session) {
+      getClient()?.emit('replayStart', {
+        sessionId: this.session.id,
+        recordingMode: this.recordingMode,
+      });
+    }
+
     this.startRecording();
   }
 
@@ -926,7 +939,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (!this._isEnabled) {
       return;
     }
-    await this.stop({ reason: 'refresh session' });
+    await this.stop({ reason: 'sessionExpired' });
     this.initializeSampling(session.id);
   }
 
@@ -1212,7 +1225,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
       // This should never reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.stop({ reason: 'sendReplay' });
+      this.stop({ reason: 'sendError' });
 
       const client = getClient();
 

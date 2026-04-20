@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
-test.describe.skip('Cloudflare Runtime', () => {
+test.describe('Cloudflare Runtime', () => {
   test('Should report cloudflare as the runtime in API route error events', async ({ request }) => {
     const errorEventPromise = waitForError('nextjs-16-cf-workers', errorEvent => {
       return !!errorEvent?.exception?.values?.some(value =>

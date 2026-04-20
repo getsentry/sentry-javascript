@@ -441,7 +441,14 @@ export type {
   Profile,
   ProfileChunk,
 } from './types-hoist/profiling';
-export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './types-hoist/replay';
+export type {
+  ReplayEndEvent,
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStartEvent,
+  ReplayStopReason,
+} from './types-hoist/replay';
 export type {
   FeedbackEvent,
   FeedbackFormData,
