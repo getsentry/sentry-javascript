@@ -60,7 +60,6 @@ function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
     // We add a virtual dir to ensure that the relative depth is consistent
     // dirPath is relative to ./../test-applications/xxx
     const newPath = join(__dirname, 'virtual-dir/', dirPath);
-    console.log({ key, value, newPath });
 
     dependencyObj[key] = `${prefix}${newPath}`;
     console.log(`Fixed ${key} dependency to ${newPath}`);
