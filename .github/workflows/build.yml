@@ -905,8 +905,7 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix
-      !='{"include":[]}'
+      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
