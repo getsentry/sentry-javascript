@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
   getSpanOp,
   getSpansFromEnvelope,
@@ -16,7 +16,7 @@ import {
 } from '../../../../utils/spanUtils';
 
 sentryTest('starts a streamed navigation span on page navigation', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+  sentryTest.skip(shouldSkipTracingTest());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
   const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
@@ -162,7 +162,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 });
 
 sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

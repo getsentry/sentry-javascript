@@ -35,6 +35,8 @@ export { elementTimingIntegrationShim as elementTimingIntegration };
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
+export { spanStreamingIntegration } from './integrations/spanstreaming';
+
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

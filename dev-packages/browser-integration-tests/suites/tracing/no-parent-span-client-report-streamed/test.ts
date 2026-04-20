@@ -5,14 +5,13 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
-  testingCdnBundle,
   waitForClientReportRequest,
 } from '../../../utils/helpers';
 
 sentryTest(
   'records no_parent_span client report for fetch requests without an active span',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     await page.route('http://sentry-test-site.example/api/test', route => {
       route.fulfill({
