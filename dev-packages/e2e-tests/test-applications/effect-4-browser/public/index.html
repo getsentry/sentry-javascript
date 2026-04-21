@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Effect Browser App</title>
+  </head>
+  <body>
+    <h1>Effect Browser E2E Test</h1>
+
+    <div id="app">
+      <section>
+        <h2>Error Tests</h2>
+        <input type="button" value="Capture Exception" id="exception-button" />
+      </section>
+
+      <section>
+        <h2>Effect Span Tests</h2>
+        <input type="button" value="Create Effect Span" id="effect-span-button" />
+        <span id="effect-span-result"></span>
+      </section>
+
+      <section>
+        <h2>Effect Failure Tests</h2>
+        <input type="button" value="Effect.fail()" id="effect-fail-button" />
+        <span id="effect-fail-result"></span>
+        <br />
+        <input type="button" value="Effect.die()" id="effect-die-button" />
+        <span id="effect-die-result"></span>
+      </section>
+
+      <section>
+        <h2>Log Tests</h2>
+        <input type="button" value="Send Logs" id="log-button" />
+        <span id="log-result"></span>
+        <br />
+        <input type="button" value="Send Log with Context" id="log-context-button" />
+        <span id="log-context-result"></span>
+      </section>
+
+      <section id="navigation">
+        <h2>Navigation Test</h2>
+        <a id="navigation-link" href="#navigation-target">Navigation Link</a>
+        <div id="navigation-target" style="margin-top: 50px">Navigated Element</div>
+      </section>
+    </div>
+  </body>
+</html>

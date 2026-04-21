@@ -62,7 +62,7 @@
     "@sentry/node-core": "10.49.0"
   },
   "peerDependencies": {
-    "effect": "^3.0.0"
+    "effect": "^3.0.0 || ^4.0.0-beta.50"
   },
   "peerDependenciesMeta": {
     "effect": {
@@ -70,8 +70,8 @@
     }
   },
   "devDependencies": {
-    "@effect/vitest": "^0.23.9",
-    "effect": "^3.21.0"
+    "@effect/vitest": "^4.0.0-beta.50",
+    "effect": "^4.0.0-beta.50"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
