@@ -25,6 +25,12 @@
   "volta": {
     "extends": "../../package.json"
   },
+  "//": "We need to override this here again to ensure this is not overwritten by the test runner",
+  "pnpm": {
+    "overrides": {
+      "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/"
+    }
+  },
   "sentryTest": {
     "variants": [
       {
