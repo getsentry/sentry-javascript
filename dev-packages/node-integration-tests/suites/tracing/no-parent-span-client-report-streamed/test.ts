@@ -1,24 +1,24 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('no_parent_span client report (streaming)', () => {
+describe('no_parent_span with streaming enabled', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('records no_parent_span outcome for http.client span without a local parent', async () => {
+    test('sends http.client span without a local parent when span streaming is enabled', async () => {
       const runner = createRunner()
-        .unignore('client_report')
         .expect({
-          client_report: report => {
-            expect(report.discarded_events).toEqual([
-              {
-                category: 'span',
-                quantity: 1,
-                reason: 'no_parent_span',
-              },
-            ]);
+          span: span => {
+            const httpClientSpan = span.items.find(item =>
+              item.attributes?.['sentry.op']
+                ? item.attributes['sentry.op'].type === 'string' && item.attributes['sentry.op'].value === 'http.client'
+                : false,
+            );
+
+            expect(httpClientSpan).toBeDefined();
+            expect(httpClientSpan?.name).toMatch(/^GET /);
           },
         })
         .start();

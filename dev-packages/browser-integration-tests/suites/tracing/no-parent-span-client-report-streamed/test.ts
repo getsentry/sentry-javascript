@@ -1,16 +1,10 @@
 import { expect } from '@playwright/test';
-import type { ClientReport } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  hidePage,
-  shouldSkipTracingTest,
-  testingCdnBundle,
-  waitForClientReportRequest,
-} from '../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
 
 sentryTest(
-  'records no_parent_span client report for fetch requests without an active span',
+  'sends http.client span for fetch requests without an active span when span streaming is enabled',
   async ({ getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
 
@@ -24,22 +18,14 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const clientReportPromise = waitForClientReportRequest(page, report => {
-      return report.discarded_events.some(e => e.reason === 'no_parent_span');
-    });
+    const spanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
 
     await page.goto(url);
 
-    await hidePage(page);
+    const span = await spanPromise;
 
-    const clientReport = envelopeRequestParser<ClientReport>(await clientReportPromise);
-
-    expect(clientReport.discarded_events).toEqual([
-      {
-        category: 'span',
-        quantity: 1,
-        reason: 'no_parent_span',
-      },
-    ]);
+    expect(span.name).toMatch(/^GET /);
+    expect(span.attributes?.['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser' });
+    expect(span.attributes?.['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
   },
 );
