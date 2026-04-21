@@ -176,7 +176,10 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: { type: 'array', value: expect.arrayContaining(['SpanStreaming']) },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+            type: 'array',
+            value: expect.arrayContaining(['SpanStreaming']),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.cloudflare' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
