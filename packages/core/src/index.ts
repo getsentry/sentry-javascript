@@ -192,8 +192,10 @@ export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
+  GoogleGenAIInstrumentedMethod,
 } from './tracing/google-genai/types';
+// eslint-disable-next-line deprecation/deprecation
+export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
