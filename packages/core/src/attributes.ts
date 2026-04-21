@@ -63,10 +63,9 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
 /**
  * Converts an attribute value to a typed attribute value.
  *
- * For now, we support primitive values, homogeneous arrays of primitives, and attribute objects
- * with primitive or primitive-array values. If @param useFallback is true, we stringify other
- * non-primitive values to a string attribute value. Otherwise we return `undefined` for unsupported
- * values.
+ * For now, we support primitive values and homogeneous arrays of primitives, either raw or
+ * inside attribute objects. If @param useFallback is true, we stringify other non-primitive values
+ * to a string attribute value. Otherwise we return `undefined` for unsupported values.
  *
  * @param value - The value of the passed attribute.
  * @param useFallback - If true, unsupported values will be stringified to a string attribute value.

@@ -77,15 +77,13 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     describe('homogeneous primitive arrays', () => {
-      it.each([
-        [['foo', 'bar']],
-        [[1, 2, 3]],
-        [[true, false, true]],
-        [[] as unknown[]],
-      ])('emits a typed array attribute for raw value %j', value => {
-        const result = attributeValueToTypedAttributeValue(value);
-        expect(result).toStrictEqual({ value, type: 'array' });
-      });
+      it.each([[['foo', 'bar']], [[1, 2, 3]], [[true, false, true]], [[] as unknown[]]])(
+        'emits a typed array attribute for raw value %j',
+        value => {
+          const result = attributeValueToTypedAttributeValue(value);
+          expect(result).toStrictEqual({ value, type: 'array' });
+        },
+      );
 
       it('emits a typed array attribute for attribute object values', () => {
         const result = attributeValueToTypedAttributeValue({ value: ['foo', 'bar'] });
@@ -94,25 +92,21 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     describe('invalid values (non-primitives)', () => {
-      it.each([
-        [[1, 'foo', true]],
-        [{ foo: 'bar' }],
-        [() => 'test'],
-        [Symbol('test')],
-      ])('returns undefined for non-primitive raw values (%s)', value => {
-        const result = attributeValueToTypedAttributeValue(value);
-        expect(result).toBeUndefined();
-      });
+      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+        'returns undefined for non-primitive raw values (%s)',
+        value => {
+          const result = attributeValueToTypedAttributeValue(value);
+          expect(result).toBeUndefined();
+        },
+      );
 
-      it.each([
-        [[1, 'foo', true]],
-        [{ foo: 'bar' }],
-        [() => 'test'],
-        [Symbol('test')],
-      ])('returns undefined for non-primitive attribute object values (%s)', value => {
-        const result = attributeValueToTypedAttributeValue({ value });
-        expect(result).toBeUndefined();
-      });
+      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+        'returns undefined for non-primitive attribute object values (%s)',
+        value => {
+          const result = attributeValueToTypedAttributeValue({ value });
+          expect(result).toBeUndefined();
+        },
+      );
     });
   });
 
