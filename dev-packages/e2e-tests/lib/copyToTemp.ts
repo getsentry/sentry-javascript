@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { readFileSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
-import { isAbsolute, join } from 'path';
+import { isAbsolute, join, resolve } from 'path';
 
 export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
   // copy files to tmp dir
@@ -35,7 +35,7 @@ function fixPackageJson(cwd: string): void {
     const extendsPath = packageJson.volta.extends;
     // We add a virtual dir to ensure that the relative depth is consistent
     // dirPath is relative to ./../test-applications/xxx
-    const newPath = join(__dirname, 'virtual-dir/', extendsPath);
+    const newPath = resolve(__dirname, 'virtual-dir/', extendsPath);
     packageJson.volta.extends = newPath;
     console.log(`Fixed volta.extends to ${newPath}`);
   } else {
@@ -45,7 +45,8 @@ function fixPackageJson(cwd: string): void {
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }
 
-function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
+// Exported for pnpmOverrides as well
+export function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
   for (const [key, value] of Object.entries(dependencyObj)) {
     const prefix = value.startsWith('link:') ? 'link:' : value.startsWith('file:') ? 'file:' : null;
     if (!prefix) {
@@ -59,9 +60,9 @@ function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
 
     // We add a virtual dir to ensure that the relative depth is consistent
     // dirPath is relative to ./../test-applications/xxx
-    const newPath = join(__dirname, 'virtual-dir/', dirPath);
+    const absPath = resolve(__dirname, 'virtual-dir', dirPath);
 
-    dependencyObj[key] = `${prefix}${newPath}`;
-    console.log(`Fixed ${key} dependency to ${newPath}`);
+    dependencyObj[key] = `${prefix}${absPath}`;
+    console.log(`Fixed ${key} dependency to ${absPath}`);
   }
 }

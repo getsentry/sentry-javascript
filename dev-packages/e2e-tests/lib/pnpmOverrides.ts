@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import * as path from 'path';
 import { getPublishedSentryTarballPackageNames, packedSymlinkFilename } from './packedTarballUtils';
+import { fixFileLinkDependencies } from './copyToTemp';
 
 /**
  * For a given temp test application directory, add pnpm.overrides to pin the internal Sentry packages to the packed tarballs.
@@ -24,11 +25,14 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
     overrides[packageName] = `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`;
   }
 
+  const fixedOverrides = packageJson.pnpm?.overrides ?? {};
+  fixFileLinkDependencies(fixedOverrides);
+
   packageJson.pnpm = {
     ...packageJson.pnpm,
     overrides: {
       ...overrides,
-      ...packageJson.pnpm?.overrides,
+      ...fixedOverrides,
     },
   };
 
