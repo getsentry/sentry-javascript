@@ -34,7 +34,6 @@ describe('amqplib auto-instrumentation', () => {
       await createTestRunner()
         .withDockerCompose({
           workingDirectory: [__dirname],
-          readyMatches: ['Time to start RabbitMQ'],
         })
         .expect({
           transaction: (transaction: TransactionEvent) => {

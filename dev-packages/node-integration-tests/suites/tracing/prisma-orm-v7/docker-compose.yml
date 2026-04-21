@@ -11,3 +11,9 @@ services:
       POSTGRES_USER: prisma
       POSTGRES_PASSWORD: prisma
       POSTGRES_DB: tests
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prisma -d tests']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
