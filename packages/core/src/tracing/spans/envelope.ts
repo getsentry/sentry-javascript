@@ -12,9 +12,10 @@ export function createStreamedSpanEnvelope(
   dsc: Partial<DynamicSamplingContext>,
   client: Client,
 ): StreamedSpanEnvelope {
+  const options = client.getOptions();
   const dsn = client.getDsn();
-  const tunnel = client.getOptions().tunnel;
-  const sdk = getSdkMetadataForEnvelopeHeader(client.getOptions()._metadata);
+  const tunnel = options.tunnel;
+  const sdk = getSdkMetadataForEnvelopeHeader(options._metadata);
 
   const headers: StreamedSpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
@@ -23,9 +24,18 @@ export function createStreamedSpanEnvelope(
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
+  const isBrowserSdk = options._metadata?.sdk?.name === 'sentry.javascript.browser';
+  const inferSetting = options.sendDefaultPii ? 'auto' : 'never';
+
   const spanContainer: SpanContainerItem = [
     { type: 'span', item_count: serializedSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
-    { items: serializedSpans },
+    {
+      version: 2,
+      ...(isBrowserSdk && {
+        ingest_settings: { infer_ip: inferSetting, infer_useragent: inferSetting },
+      }),
+      items: serializedSpans,
+    },
   ];
 
   return createEnvelope<StreamedSpanEnvelope>(headers, [spanContainer]);

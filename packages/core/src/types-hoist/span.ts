@@ -69,6 +69,11 @@ export type SerializedStreamedSpan = Omit<StreamedSpanJSON, 'attributes' | 'link
  * Envelope span item container.
  */
 export type SerializedStreamedSpanContainer = {
+  version?: number;
+  ingest_settings?: {
+    infer_ip?: 'auto' | 'never';
+    infer_useragent?: 'auto' | 'never';
+  };
   items: Array<SerializedStreamedSpan>;
 };
 

@@ -181,6 +181,7 @@ describe('createStreamedSpanEnvelope', () => {
             type: 'span',
           },
           {
+            version: 2,
             items: [mockSpan],
           },
         ],
@@ -199,7 +200,7 @@ describe('createStreamedSpanEnvelope', () => {
       expect(envelopeItems).toEqual([
         [
           { type: 'span', item_count: 3, content_type: 'application/vnd.sentry.items.span.v2+json' },
-          { items: [mockSpan1, mockSpan2, mockSpan3] },
+          { version: 2, items: [mockSpan1, mockSpan2, mockSpan3] },
         ],
       ]);
     });
@@ -222,9 +223,87 @@ describe('createStreamedSpanEnvelope', () => {
               type: 'span',
             },
             {
+              version: 2,
               items: [],
             },
           ],
+        ],
+      ]);
+    });
+
+    it("includes ingest_settings with 'auto' values when SDK is browser and sendDefaultPii is true", () => {
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(
+        getDefaultTestClientOptions({
+          sendDefaultPii: true,
+          _metadata: {
+            sdk: { name: 'sentry.javascript.browser', version: '8.0.0' },
+          },
+        }),
+      );
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            ingest_settings: { infer_ip: 'auto', infer_useragent: 'auto' },
+            items: [mockSpan],
+          },
+        ],
+      ]);
+    });
+
+    it("includes ingest_settings with 'never' values when SDK is browser and sendDefaultPii is false", () => {
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(
+        getDefaultTestClientOptions({
+          sendDefaultPii: false,
+          _metadata: {
+            sdk: { name: 'sentry.javascript.browser', version: '8.0.0' },
+          },
+        }),
+      );
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            ingest_settings: { infer_ip: 'never', infer_useragent: 'never' },
+            items: [mockSpan],
+          },
+        ],
+      ]);
+    });
+
+    it('omits ingest_settings when SDK is not browser', () => {
+      const mockSpan = createMockSerializedSpan();
+      const mockClient = new TestClient(
+        getDefaultTestClientOptions({
+          sendDefaultPii: true,
+          _metadata: {
+            sdk: { name: 'sentry.javascript.node', version: '10.38.0' },
+          },
+        }),
+      );
+      const dsc: Partial<DynamicSamplingContext> = {};
+
+      const envelopeItems = createStreamedSpanEnvelope([mockSpan], dsc, mockClient)[1];
+
+      expect(envelopeItems).toEqual([
+        [
+          { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+          {
+            version: 2,
+            items: [mockSpan],
+          },
         ],
       ]);
     });
