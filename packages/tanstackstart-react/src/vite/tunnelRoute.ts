@@ -79,7 +79,7 @@ function normalizeTunnelRouteOptions(options: TunnelRouteOptions): NormalizedTun
     validateStaticPath(path);
   }
 
-  return { resolvedPath: resolveTunnelRoute(path ?? true), allowedDsns };
+  return { resolvedPath: resolveTunnelRoute(path || true), allowedDsns };
 }
 
 function hasRouteConflict(source: string, resolvedTunnelRoute: string): boolean {

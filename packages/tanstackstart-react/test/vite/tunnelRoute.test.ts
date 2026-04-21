@@ -127,4 +127,13 @@ describe('tunnelRoute vite plugin', () => {
     expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
     expect(virtualRouteModule).toContain('createSentryTunnelRoute({})');
   });
+
+  it('treats an empty string `path` like omitted and uses a generated tunnel route', () => {
+    const plugin = makeTunnelRoutePlugin({ path: '' });
+
+    const defined = plugin.config && plugin.config();
+    const serialized = defined?.define?.__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__;
+    expect(typeof serialized).toBe('string');
+    expect(serialized).toMatch(/^"\/[a-z0-9]{8}"$/);
+  });
 });
