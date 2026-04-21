@@ -3,26 +3,34 @@ import { captureException } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
-import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
+import { ensureInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
-import { getPrototypeMethodFilter } from './utils/rpcOptions';
-import type { UncheckedMethod } from './wrapMethodWithSentry';
-import { wrapMethodWithSentry } from './wrapMethodWithSentry';
+import { getEffectiveRpcPropagation } from './utils/rpcOptions';
+import { type UncheckedMethod, wrapMethodWithSentry } from './wrapMethodWithSentry';
+
+const BUILT_IN_DO_METHODS = new Set([
+  'constructor',
+  'fetch',
+  'alarm',
+  'webSocketError',
+  'webSocketClose',
+  'webSocketMessage',
+]);
 
 /**
  * Instruments a Durable Object class to capture errors and performance data.
  *
- * Instruments the following methods:
+ * Instruments the following methods by default:
  * - fetch
  * - alarm
  * - webSocketMessage
  * - webSocketClose
  * - webSocketError
  *
- * as well as any other public RPC methods on the Durable Object instance.
+ * To instrument RPC methods (prototype methods), enable the `enableRpcTracePropagation` option.
  *
  * @param optionsCallback Function that returns the options for the SDK initialization.
  * @param DurableObjectClass The Durable Object class to instrument.
@@ -116,140 +124,52 @@ export function instrumentDurableObjectWithSentry<
         );
       }
 
-      for (const method of Object.getOwnPropertyNames(obj)) {
-        if (
-          method === 'fetch' ||
-          method === 'alarm' ||
-          method === 'webSocketError' ||
-          method === 'webSocketClose' ||
-          method === 'webSocketMessage'
-        ) {
-          continue;
-        }
+      // Get effective RPC propagation setting (handles deprecation of instrumentPrototypeMethods)
+      const rpcPropagation = getEffectiveRpcPropagation(options);
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-        const value = (obj as any)[method] as unknown;
-        if (typeof value === 'function') {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-          (obj as any)[method] = wrapMethodWithSentry(
-            { options, context, spanName: method, spanOp: 'rpc' },
+      // Skip RPC instrumentation if not enabled
+      if (!rpcPropagation) {
+        return obj;
+      }
+
+      // Return a Proxy that lazily wraps prototype methods on access.
+      // This avoids iterating the prototype chain at construction time —
+      // we only check if a property is an RPC method when it's accessed.
+      const rpcMethodCache = new Map<string, UncheckedMethod>();
+
+      return new Proxy(obj, {
+        get(proxyTarget, prop, receiver) {
+          if (typeof prop !== 'string' || BUILT_IN_DO_METHODS.has(prop)) {
+            return Reflect.get(proxyTarget, prop, receiver);
+          }
+
+          const cached = rpcMethodCache.get(prop);
+
+          if (cached) {
+            return cached;
+          }
+
+          const value = Reflect.get(proxyTarget, prop, receiver);
+          if (typeof value !== 'function') {
+            return value;
+          }
+
+          if (Object.prototype.hasOwnProperty.call(proxyTarget, prop)) {
+            return value;
+          }
+
+          const wrapped = wrapMethodWithSentry(
+            { options, context, spanName: prop, spanOp: 'rpc' },
             value as UncheckedMethod,
+            undefined,
+            true,
           );
-        }
-      }
 
-      // Store context and options on the instance for prototype methods to access
-      Object.defineProperty(obj, '__SENTRY_CONTEXT__', {
-        value: context,
-        enumerable: false,
-        writable: false,
-        configurable: false,
-      });
+          rpcMethodCache.set(prop, wrapped);
 
-      Object.defineProperty(obj, '__SENTRY_OPTIONS__', {
-        value: options,
-        enumerable: false,
-        writable: false,
-        configurable: false,
-      });
-
-      const methodFilter = getPrototypeMethodFilter(options);
-
-      if (methodFilter) {
-        instrumentPrototype(target, methodFilter);
-      }
-
-      return obj;
-    },
-  });
-}
-
-function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInstrument: boolean | string[]): void {
-  const proto = target.prototype;
-
-  // Get all methods from the prototype chain
-  const methodNames = new Set<string>();
-  let current = proto;
-
-  while (current && current !== Object.prototype) {
-    Object.getOwnPropertyNames(current).forEach(name => {
-      if (name !== 'constructor' && typeof (current as Record<string, unknown>)[name] === 'function') {
-        methodNames.add(name);
-      }
-    });
-    current = Object.getPrototypeOf(current);
-  }
-
-  // Create a set for efficient lookups when methodsToInstrument is an array
-  const methodsToInstrumentSet = Array.isArray(methodsToInstrument) ? new Set(methodsToInstrument) : null;
-
-  // Instrument each method on the prototype
-  methodNames.forEach(methodName => {
-    const originalMethod = (proto as Record<string, unknown>)[methodName];
-
-    if (!originalMethod) {
-      return;
-    }
-
-    const existingInstrumented = getInstrumented(originalMethod);
-    if (existingInstrumented) {
-      Object.defineProperty(proto, methodName, {
-        value: existingInstrumented,
-        enumerable: false,
-        writable: true,
-        configurable: true,
-      });
-      return;
-    }
-
-    // If methodsToInstrument is an array, only instrument methods in that set
-    if (methodsToInstrumentSet && !methodsToInstrumentSet.has(methodName)) {
-      return;
-    }
-
-    // Create a wrapper that gets context/options from the instance at runtime
-    const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
-      const thisWithSentry = this as {
-        __SENTRY_CONTEXT__: DurableObjectState;
-        __SENTRY_OPTIONS__: CloudflareOptions;
-      };
-      const instanceContext = thisWithSentry.__SENTRY_CONTEXT__;
-      const instanceOptions = thisWithSentry.__SENTRY_OPTIONS__;
-
-      if (!instanceOptions) {
-        // Fallback to original method if no Sentry data found
-        return (originalMethod as UncheckedMethod).apply(this, args);
-      }
-
-      // Use the existing wrapper but with instance-specific context/options
-      const wrapper = wrapMethodWithSentry(
-        {
-          options: instanceOptions,
-          context: instanceContext,
-          spanName: methodName,
-          spanOp: 'rpc',
+          return wrapped;
         },
-        originalMethod as UncheckedMethod,
-        undefined,
-        true, // noMark = true since we'll mark the prototype method
-      );
-
-      return wrapper.apply(this, args);
-    };
-
-    // Only mark wrappedMethod as instrumented (not originalMethod → wrappedMethod).
-    // originalMethod must stay unmapped because wrappedMethod calls
-    // wrapMethodWithSentry(options, originalMethod) on each invocation to create
-    // a per-instance proxy. If originalMethod mapped to wrappedMethod, that call
-    // would return wrappedMethod itself, causing infinite recursion.
-    markAsInstrumented(wrappedMethod);
-
-    // Replace the prototype method
-    Object.defineProperty(proto, methodName, {
-      value: wrappedMethod,
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    });
+      });
+    },
   });
 }

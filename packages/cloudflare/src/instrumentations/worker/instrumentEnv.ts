@@ -1,8 +1,12 @@
 import type { CloudflareOptions } from '../../client';
 import { isDurableObjectNamespace, isJSRPC } from '../../utils/isBinding';
+import { appendRpcMeta } from '../../utils/rpcMeta';
 import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
 import { instrumentDurableObjectNamespace } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
+
+// Built-in DurableObjectStub methods that are not RPC calls.
+export const STUB_NON_RPC_METHODS = new Set(['fetch', 'connect', 'dup']);
 
 function isProxyable(item: unknown): item is object {
   return item !== null && (typeof item === 'object' || typeof item === 'function');
@@ -58,11 +62,15 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isJSRPC(item)) {
         const instrumented = new Proxy(item, {
-          get(target, p, rcv) {
-            const value = Reflect.get(target, p, rcv);
+          get(target, p) {
+            const value = Reflect.get(target, p);
 
             if (p === 'fetch' && typeof value === 'function') {
-              return instrumentFetcher(value.bind(target));
+              return instrumentFetcher((...args) => Reflect.apply(value, target, args));
+            }
+
+            if (typeof value === 'function' && typeof p === 'string' && !STUB_NON_RPC_METHODS.has(p)) {
+              return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
             }
 
             return value;

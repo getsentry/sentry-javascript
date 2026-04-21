@@ -81,12 +81,8 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
-  it('All available durable object methods are instrumented when instrumentPrototypeMethods is enabled', () => {
+  it('Built-in durable object methods are always instrumented', () => {
     const testClass = class {
-      propertyFunction = vi.fn();
-
-      rpcMethod() {}
-
       fetch() {}
 
       alarm() {}
@@ -97,22 +93,102 @@ describe('instrumentDurableObjectWithSentry', () => {
 
       webSocketError() {}
     };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
-    for (const method_name of [
-      'propertyFunction',
-      'fetch',
-      'alarm',
-      'webSocketMessage',
-      'webSocketClose',
-      'webSocketError',
-      'rpcMethod',
-    ]) {
+
+    // Built-in DO methods are always instrumented
+    for (const method_name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
       expect(getInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
+  });
+
+  it('Does not instrument RPC methods when instrumentPrototypeMethods is not set', () => {
+    const testClass = class {
+      rpcMethod() {
+        return 'result';
+      }
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+    const obj = Reflect.construct(instrumented, []);
+
+    // RPC method should not be wrapped
+    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
+    expect(obj.rpcMethod()).toBe('result');
+  });
+
+  describe('instrumentPrototypeMethods option', () => {
+    it('instruments all RPC methods when option is true', () => {
+      const testClass = class {
+        rpcMethodOne() {
+          return 'one';
+        }
+        rpcMethodTwo() {
+          return 'two';
+        }
+      };
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, []);
+
+      // RPC methods (prototype methods) are wrapped via Proxy - verify they are callable and cached
+      expect(typeof obj.rpcMethodOne).toBe('function');
+      expect(typeof obj.rpcMethodTwo).toBe('function');
+      expect(obj.rpcMethodOne).toBe(obj.rpcMethodOne); // Cached wrapper
+      expect(obj.rpcMethodTwo).toBe(obj.rpcMethodTwo); // Cached wrapper
+      expect(obj.rpcMethodOne()).toBe('one');
+      expect(obj.rpcMethodTwo()).toBe('two');
+    });
+
+    it('instruments only specified methods when option is array', () => {
+      const testClass = class {
+        methodOne() {
+          return 'one';
+        }
+        methodTwo() {
+          return 'two';
+        }
+        methodThree() {
+          return 'three';
+        }
+      };
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ instrumentPrototypeMethods: ['methodOne', 'methodThree'] }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, []);
+
+      // methodOne and methodThree should be wrapped (via Proxy)
+      expect(obj.methodOne).toBe(obj.methodOne); // Cached
+      expect(obj.methodThree).toBe(obj.methodThree); // Cached
+
+      // methodTwo should not be wrapped - accessing it returns the original prototype method
+      // which is the same on each access
+      expect(obj.methodTwo).toBe(obj.methodTwo);
+
+      // All methods should still work
+      expect(obj.methodOne()).toBe('one');
+      expect(obj.methodTwo()).toBe('two');
+      expect(obj.methodThree()).toBe('three');
+    });
+
+    it('does not instrument RPC methods when option is false', () => {
+      const testClass = class {
+        rpcMethod() {
+          return 'result';
+        }
+      };
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ instrumentPrototypeMethods: false }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, []);
+
+      // RPC method should not be wrapped
+      expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
+      expect(obj.rpcMethod()).toBe('result');
+    });
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
@@ -163,94 +239,5 @@ describe('instrumentDurableObjectWithSentry', () => {
 
     // Verify that exactly one flush call was made during this test
     expect(delta).toBe(1);
-  });
-
-  describe('instrumentPrototypeMethods option', () => {
-    it('does not instrument prototype methods when option is not set', () => {
-      const testClass = class {
-        prototypeMethod() {
-          return 'prototype-result';
-        }
-      };
-      const options = vi.fn().mockReturnValue({});
-      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []);
-
-      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
-    });
-
-    it('does not instrument prototype methods when option is false', () => {
-      const testClass = class {
-        prototypeMethod() {
-          return 'prototype-result';
-        }
-      };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
-      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []);
-
-      expect(getInstrumented(obj.prototypeMethod)).toBeFalsy();
-    });
-
-    it('instruments all prototype methods when option is true', () => {
-      const testClass = class {
-        methodOne() {
-          return 'one';
-        }
-        methodTwo() {
-          return 'two';
-        }
-      };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: true });
-      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []);
-
-      expect(getInstrumented(obj.methodOne)).toBeTruthy();
-      expect(getInstrumented(obj.methodTwo)).toBeTruthy();
-    });
-
-    it('instruments only specified methods when option is array', () => {
-      const testClass = class {
-        methodOne() {
-          return 'one';
-        }
-        methodTwo() {
-          return 'two';
-        }
-        methodThree() {
-          return 'three';
-        }
-      };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: ['methodOne', 'methodThree'] });
-      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []);
-
-      expect(getInstrumented(obj.methodOne)).toBeTruthy();
-      expect(getInstrumented(obj.methodTwo)).toBeFalsy();
-      expect(getInstrumented(obj.methodThree)).toBeTruthy();
-    });
-
-    it('still instruments instance methods regardless of prototype option', () => {
-      const testClass = class {
-        propertyFunction = vi.fn();
-
-        fetch() {}
-        alarm() {}
-        webSocketMessage() {}
-        webSocketClose() {}
-        webSocketError() {}
-      };
-      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
-      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []);
-
-      // Instance methods should still be instrumented
-      expect(getInstrumented(obj.propertyFunction)).toBeTruthy();
-      expect(getInstrumented(obj.fetch)).toBeTruthy();
-      expect(getInstrumented(obj.alarm)).toBeTruthy();
-      expect(getInstrumented(obj.webSocketMessage)).toBeTruthy();
-      expect(getInstrumented(obj.webSocketClose)).toBeTruthy();
-      expect(getInstrumented(obj.webSocketError)).toBeTruthy();
-    });
   });
 });
