@@ -120,7 +120,7 @@ describe('SentrySampler', () => {
     spyOnDroppedEvent.mockReset();
   });
 
-  it('ignores local http client root spans', () => {
+  it('ignores local http client root spans and records no_parent_span client report', () => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 0 }));
     const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
     const sampler = new SentrySampler(client);
@@ -139,7 +139,8 @@ describe('SentrySampler', () => {
       decision: SamplingDecision.NOT_RECORD,
       traceState: new TraceState(),
     });
-    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
 
     spyOnDroppedEvent.mockReset();
   });

@@ -25,7 +25,7 @@ it('captures an error thrown in Bun.serve fetch handler', async ({ signal }) => 
             url: expect.stringContaining('/error'),
           }),
         },
-        { includeSampleRand: true },
+        { includeSampleRand: true, includeTransaction: false },
       ),
     )
     .ignore('transaction')

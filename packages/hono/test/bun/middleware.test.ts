@@ -2,14 +2,14 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { sentry } from '../../src/node/middleware';
+import { sentry } from '../../src/bun/middleware';
 
-vi.mock('@sentry/node', () => ({
+vi.mock('@sentry/bun', () => ({
   init: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-const { init: initNodeMock } = await vi.importMock<typeof import('@sentry/node')>('@sentry/node');
+const { init: initBunMock } = await vi.importMock<typeof import('@sentry/bun')>('@sentry/bun');
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -23,13 +23,13 @@ vi.mock('@sentry/core', async () => {
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
 
-describe('Hono Node Middleware', () => {
+describe('Hono Bun Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('sentry middleware', () => {
-    it('calls applySdkMetadata with "hono"', () => {
+    it('calls applySdkMetadata with "hono" and "bun"', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -38,10 +38,10 @@ describe('Hono Node Middleware', () => {
       sentry(app, options);
 
       expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'node']);
+      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'bun']);
     });
 
-    it('calls init from @sentry/node', () => {
+    it('calls init from @sentry/bun', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -49,15 +49,15 @@ describe('Hono Node Middleware', () => {
 
       sentry(app, options);
 
-      expect(initNodeMock).toHaveBeenCalledTimes(1);
-      expect(initNodeMock).toHaveBeenCalledWith(
+      expect(initBunMock).toHaveBeenCalledTimes(1);
+      expect(initBunMock).toHaveBeenCalledWith(
         expect.objectContaining({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
         }),
       );
     });
 
-    it('sets SDK metadata before calling Node init', () => {
+    it('sets SDK metadata before calling Bun init', () => {
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -66,9 +66,9 @@ describe('Hono Node Middleware', () => {
       sentry(app, options);
 
       const applySdkMetadataCallOrder = applySdkMetadataMock.mock.invocationCallOrder[0];
-      const initNodeCallOrder = (initNodeMock as Mock).mock.invocationCallOrder[0];
+      const initBunCallOrder = (initBunMock as Mock).mock.invocationCallOrder[0];
 
-      expect(applySdkMetadataCallOrder).toBeLessThan(initNodeCallOrder as number);
+      expect(applySdkMetadataCallOrder).toBeLessThan(initBunCallOrder as number);
     });
 
     it('preserves all user options', () => {
@@ -83,7 +83,7 @@ describe('Hono Node Middleware', () => {
 
       sentry(app, options);
 
-      expect(initNodeMock).toHaveBeenCalledWith(
+      expect(initBunMock).toHaveBeenCalledWith(
         expect.objectContaining({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           environment: 'production',
@@ -114,11 +114,11 @@ describe('Hono Node Middleware', () => {
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
 
-    it('passes an integrations function to initNode (never a raw array)', () => {
+    it('passes an integrations function to initBun (never a raw array)', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
+      const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
       expect(typeof callArgs.integrations).toBe('function');
     });
 
@@ -130,7 +130,7 @@ describe('Hono Node Middleware', () => {
 
       sentry(app, options);
 
-      expect(initNodeMock).toHaveBeenCalledWith(
+      expect(initBunMock).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: expect.objectContaining({
             sdk: expect.objectContaining({
@@ -138,7 +138,7 @@ describe('Hono Node Middleware', () => {
               version: SDK_VERSION,
               packages: [
                 { name: 'npm:@sentry/hono', version: SDK_VERSION },
-                { name: 'npm:@sentry/node', version: SDK_VERSION },
+                { name: 'npm:@sentry/bun', version: SDK_VERSION },
               ],
             }),
           }),
