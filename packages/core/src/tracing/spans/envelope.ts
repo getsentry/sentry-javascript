@@ -3,6 +3,7 @@ import type { DynamicSamplingContext, SpanContainerItem, StreamedSpanEnvelope } 
 import type { SerializedStreamedSpan } from '../../types-hoist/span';
 import { dsnToString } from '../../utils/dsn';
 import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '../../utils/envelope';
+import { isBrowser } from '../../utils/isBrowser';
 
 /**
  * Creates a span v2 span streaming envelope
@@ -24,14 +25,13 @@ export function createStreamedSpanEnvelope(
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const isBrowserSdk = options._metadata?.sdk?.name === 'sentry.javascript.browser';
   const inferSetting = options.sendDefaultPii ? 'auto' : 'never';
 
   const spanContainer: SpanContainerItem = [
     { type: 'span', item_count: serializedSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
     {
       version: 2,
-      ...(isBrowserSdk && {
+      ...(isBrowser() && {
         ingest_settings: { infer_ip: inferSetting, infer_useragent: inferSetting },
       }),
       items: serializedSpans,
