@@ -7,6 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
@@ -228,6 +229,86 @@ describe('captureSpan', () => {
       },
       _segmentSpan: span,
     });
+  });
+
+  it('adds sentry.sdk.integrations to segment spans as an array attribute', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'staging',
+        integrations: [
+          { name: 'InboundFilters', setupOnce: () => {} },
+          { name: 'BrowserTracing', setupOnce: () => {} },
+        ],
+        _metadata: {
+          sdk: {
+            name: 'sentry.javascript.browser',
+            version: '9.0.0',
+          },
+        },
+      }),
+    );
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      span.end();
+      return span;
+    });
+
+    expect(captureSpan(span, client)).toStrictEqual({
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      parent_span_id: undefined,
+      links: undefined,
+      start_timestamp: expect.any(Number),
+      name: 'my-span',
+      end_timestamp: expect.any(Number),
+      status: 'ok',
+      is_segment: true,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
+        'sentry.span.source': { value: 'custom', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { value: 'custom', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          type: 'array',
+          value: ['InboundFilters', 'BrowserTracing'],
+        },
+      },
+      _segmentSpan: span,
+    });
+  });
+
+  it('does not add sentry.sdk.integrations to non-segment child spans', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        integrations: [{ name: 'InboundFilters', setupOnce: () => {} }],
+      }),
+    );
+
+    const serializedChild = withScope(scope => {
+      scope.setClient(client);
+      return startSpan({ name: 'segment' }, () => {
+        const childSpan = startInactiveSpan({ name: 'child' });
+        childSpan.end();
+        return captureSpan(childSpan, client);
+      });
+    });
+
+    expect(serializedChild.is_segment).toBe(false);
+    expect(serializedChild.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {
