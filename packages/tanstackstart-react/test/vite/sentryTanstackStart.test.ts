@@ -1,7 +1,10 @@
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
-import { sentryTanstackStart } from '../../src/vite/sentryTanstackStart';
+import {
+  sentryTanstackStart,
+  type SentryTanstackStartOptions,
+} from '../../src/vite/sentryTanstackStart';
 import { makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
@@ -155,7 +158,7 @@ describe('sentryTanstackStart()', () => {
       const plugins = sentryTanstackStart({
         tunnelRoute: {
           allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
-          tunnel: '/monitor',
+          path: '/monitor',
         },
         sourcemaps: { disable: true },
       });
@@ -169,14 +172,17 @@ describe('sentryTanstackStart()', () => {
     });
 
     it('passes tunnelRoute options through to the tunnel route plugin', () => {
-      const tunnelRoute = {
-        allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
-        tunnel: '/monitor' as const,
+      const options: SentryTanstackStartOptions = {
+        tunnelRoute: {
+          allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
+          path: '/monitor' as const,
+        },
+        sourcemaps: { disable: true },
       };
 
-      sentryTanstackStart({ tunnelRoute, sourcemaps: { disable: true } });
+      sentryTanstackStart(options);
 
-      expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(tunnelRoute, undefined);
+      expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
     });
   });
 });
