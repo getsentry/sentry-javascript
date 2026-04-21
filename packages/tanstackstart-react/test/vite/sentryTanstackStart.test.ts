@@ -1,10 +1,7 @@
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
-import {
-  sentryTanstackStart,
-  type SentryTanstackStartOptions,
-} from '../../src/vite/sentryTanstackStart';
+import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
 import { makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
