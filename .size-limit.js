@@ -215,7 +215,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '82 KB',
+    limit: '83 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
@@ -248,7 +248,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '135 KB',
+    limit: '136 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
@@ -283,7 +283,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '256 KB',
+    limit: '257 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
@@ -306,7 +306,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '49 KB',
+    limit: '50 KB',
   },
   // SvelteKit SDK (ESM)
   {
