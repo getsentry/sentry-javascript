@@ -15,10 +15,7 @@ type AttributeTypeMap = {
   integer: number;
   double: number;
   boolean: boolean;
-  'string[]': Array<string>;
-  'integer[]': Array<number>;
-  'double[]': Array<number>;
-  'boolean[]': Array<boolean>;
+  array: Array<string> | Array<number> | Array<boolean>;
 };
 
 /* Generates a type from the AttributeTypeMap like:
@@ -66,9 +63,9 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
 /**
  * Converts an attribute value to a typed attribute value.
  *
- * For now, we intentionally only support primitive values and attribute objects with primitive values.
- * If @param useFallback is true, we stringify non-primitive values to a string attribute value. Otherwise
- * we return `undefined` for unsupported values.
+ * For now, we support primitive values and homogeneous arrays of primitives, either raw or
+ * inside attribute objects. If @param useFallback is true, we stringify other non-primitive values
+ * to a string attribute value. Otherwise we return `undefined` for unsupported values.
  *
  * @param value - The value of the passed attribute.
  * @param useFallback - If true, unsupported values will be stringified to a string attribute value.
@@ -170,17 +167,18 @@ function estimatePrimitiveSizeInBytes(value: Primitive): number {
 }
 
 /**
- * NOTE: We intentionally do not return anything for non-primitive values:
- *  - array support will come in the future but if we stringify arrays now,
- *    sending arrays (unstringified) later will be a subtle breaking change.
+ * NOTE: We return typed attributes for primitives and homogeneous arrays of primitives:
+ *  - Homogeneous primitive arrays ship with `type: 'array'` (Relay's wire tag for arrays).
+ *  - Mixed-type and nested arrays are not supported and return undefined.
  *  - Objects are not supported yet and product support is still TBD.
  *  - We still keep the type signature for TypedAttributeValue wider to avoid a
- *    breaking change once we add support for non-primitive values.
- *  - Once we go back to supporting arrays and stringifying all other values,
- *    we already implemented the serialization logic here:
- *    https://github.com/getsentry/sentry-javascript/pull/18165
+ *    breaking change once we add support for other non-primitive values.
  */
 function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
+  if (Array.isArray(value) && isHomogeneousPrimitiveArray(value)) {
+    return { value, type: 'array' };
+  }
+
   const primitiveType =
     typeof value === 'string'
       ? 'string'
@@ -200,4 +198,11 @@ function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
     // Therefore, we ignore it.
     return { value, type: primitiveType };
   }
+}
+
+function isHomogeneousPrimitiveArray(arr: unknown[]): boolean {
+  if (arr.length === 0) return true;
+  const t = typeof arr[0];
+  if (t !== 'string' && t !== 'number' && t !== 'boolean') return false;
+  return arr.every(v => typeof v === t);
 }

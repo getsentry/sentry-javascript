@@ -76,32 +76,37 @@ describe('attributeValueToTypedAttributeValue', () => {
       );
     });
 
-    describe('invalid values (non-primitives)', () => {
-      it.each([
-        ['foo', 'bar'],
-        [1, 2, 3],
-        [true, false, true],
-        [1, 'foo', true],
-        { foo: 'bar' },
-        () => 'test',
-        Symbol('test'),
-      ])('returns undefined for non-primitive raw values (%s)', value => {
-        const result = attributeValueToTypedAttributeValue(value);
-        expect(result).toBeUndefined();
-      });
+    describe('homogeneous primitive arrays', () => {
+      it.each([[['foo', 'bar']], [[1, 2, 3]], [[true, false, true]], [[] as unknown[]]])(
+        'emits a typed array attribute for raw value %j',
+        value => {
+          const result = attributeValueToTypedAttributeValue(value);
+          expect(result).toStrictEqual({ value, type: 'array' });
+        },
+      );
 
-      it.each([
-        ['foo', 'bar'],
-        [1, 2, 3],
-        [true, false, true],
-        [1, 'foo', true],
-        { foo: 'bar' },
-        () => 'test',
-        Symbol('test'),
-      ])('returns undefined for non-primitive attribute object values (%s)', value => {
-        const result = attributeValueToTypedAttributeValue({ value });
-        expect(result).toBeUndefined();
+      it('emits a typed array attribute for attribute object values', () => {
+        const result = attributeValueToTypedAttributeValue({ value: ['foo', 'bar'] });
+        expect(result).toStrictEqual({ value: ['foo', 'bar'], type: 'array' });
       });
+    });
+
+    describe('invalid values (non-primitives)', () => {
+      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+        'returns undefined for non-primitive raw values (%s)',
+        value => {
+          const result = attributeValueToTypedAttributeValue(value);
+          expect(result).toBeUndefined();
+        },
+      );
+
+      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+        'returns undefined for non-primitive attribute object values (%s)',
+        value => {
+          const result = attributeValueToTypedAttributeValue({ value });
+          expect(result).toBeUndefined();
+        },
+      );
     });
   });
 
@@ -189,26 +194,10 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     describe('invalid values (non-primitives) - stringified fallback', () => {
-      it('stringifies string arrays', () => {
-        const result = attributeValueToTypedAttributeValue(['foo', 'bar'], true);
+      it('stringifies mixed-type arrays (not homogeneous)', () => {
+        const result = attributeValueToTypedAttributeValue(['foo', 1, true], true);
         expect(result).toStrictEqual({
-          value: '["foo","bar"]',
-          type: 'string',
-        });
-      });
-
-      it('stringifies number arrays', () => {
-        const result = attributeValueToTypedAttributeValue([1, 2, 3], true);
-        expect(result).toStrictEqual({
-          value: '[1,2,3]',
-          type: 'string',
-        });
-      });
-
-      it('stringifies boolean arrays', () => {
-        const result = attributeValueToTypedAttributeValue([true, false, true], true);
-        expect(result).toStrictEqual({
-          value: '[true,false,true]',
+          value: '["foo",1,true]',
           type: 'string',
         });
       });
@@ -425,15 +414,17 @@ describe('serializeAttributes', () => {
   describe('invalid (non-primitive) values', () => {
     it("doesn't fall back to stringification by default", () => {
       const result = serializeAttributes({ foo: { some: 'object' }, bar: [1, 2, 3], baz: () => {} });
-      expect(result).toStrictEqual({});
+      expect(result).toStrictEqual({
+        bar: { type: 'array', value: [1, 2, 3] },
+      });
     });
 
     it('falls back to stringification of unsupported non-primitive values if fallback is true', () => {
       const result = serializeAttributes({ foo: { some: 'object' }, bar: [1, 2, 3], baz: () => {} }, true);
       expect(result).toStrictEqual({
         bar: {
-          type: 'string',
-          value: '[1,2,3]',
+          type: 'array',
+          value: [1, 2, 3],
         },
         baz: {
           type: 'string',
@@ -443,6 +434,13 @@ describe('serializeAttributes', () => {
           type: 'string',
           value: '{"some":"object"}',
         },
+      });
+    });
+
+    it('drops mixed-type arrays by default and stringifies them with fallback', () => {
+      expect(serializeAttributes({ mixed: ['a', 1] })).toStrictEqual({});
+      expect(serializeAttributes({ mixed: ['a', 1] }, true)).toStrictEqual({
+        mixed: { type: 'string', value: '["a",1]' },
       });
     });
   });
