@@ -82,12 +82,13 @@ function normalizeTunnelRouteOptions(options: TunnelRouteOptions): NormalizedTun
   return { resolvedPath: resolveTunnelRoute(path || true), allowedDsns };
 }
 
+// `routeTree.gen.ts` quote style follows `tsr.config.json#quoteStyle` (`single` | `double`),
+// so we check both forms for each route-identifying key.
+const ROUTE_CONFLICT_KEYS = ['fullPath', 'path', 'id'] as const;
+
 function hasRouteConflict(source: string, resolvedTunnelRoute: string): boolean {
-  return (
-    source.includes(`fullPath: '${resolvedTunnelRoute}'`) ||
-    source.includes(`path: '${resolvedTunnelRoute}'`) ||
-    source.includes(`id: '${resolvedTunnelRoute}'`)
-  );
+  const literals = [`'${resolvedTunnelRoute}'`, `"${resolvedTunnelRoute}"`];
+  return ROUTE_CONFLICT_KEYS.some(key => literals.some(literal => source.includes(`${key}: ${literal}`)));
 }
 
 function injectAfterLastImport(source: string, statement: string): string {

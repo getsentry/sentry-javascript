@@ -97,6 +97,17 @@ describe('tunnelRoute vite plugin', () => {
     );
   });
 
+  it('fails on route conflict when routeTree.gen.ts uses double quotes (tsr quoteStyle: double)', () => {
+    const doubleQuotedMonitorTree = ROUTE_TREE_SOURCE.replace("path: '/'", 'path: "/monitor"').replace(
+      "id: '/'",
+      'id: "/monitor"',
+    );
+
+    expect(() => injectManagedTunnelRoute(doubleQuotedMonitorTree, '/monitor')).toThrow(
+      'Cannot register managed tunnel route "/monitor" because an existing TanStack Start route already uses that path.',
+    );
+  });
+
   it('loads a virtual managed tunnel route module for a static tunnel path', async () => {
     const plugin = makeTunnelRoutePlugin({
       allowedDsns: ['http://public@localhost:3031/1337'],
