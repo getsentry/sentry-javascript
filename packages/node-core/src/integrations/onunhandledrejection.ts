@@ -85,7 +85,7 @@ export function makeUnhandledPromiseHandler(
   client: Client,
   options: OnUnhandledRejectionOptions,
 ): (reason: unknown, promise: unknown) => void {
-  return function sendUnhandledPromise(reason: unknown, promise: unknown): void {
+  return function sendUnhandledPromise(reason: unknown, _promise: unknown): void {
     // Only handle for the active client
     if (getClient() !== client) {
       return;
@@ -109,7 +109,7 @@ export function makeUnhandledPromiseHandler(
 
     activeSpanWrapper(() => {
       captureException(reason, {
-        originalException: promise,
+        originalException: reason,
         captureContext: {
           extra: { unhandledPromiseRejection: true },
           level,

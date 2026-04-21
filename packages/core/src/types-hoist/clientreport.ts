@@ -11,7 +11,8 @@ export type EventDropReason =
   | 'internal_sdk_error'
   | 'buffer_overflow'
   | 'ignored'
-  | 'invalid';
+  | 'invalid'
+  | 'no_parent_span';
 
 export type Outcome = {
   reason: EventDropReason;

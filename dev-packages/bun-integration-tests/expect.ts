@@ -68,7 +68,11 @@ export function expectedEvent(event: Event, { sdk }: { sdk: 'bun' | 'hono' }): E
 
 export function eventEnvelope(
   event: Event,
-  { includeSampleRand = false, sdk = 'bun' }: { includeSampleRand?: boolean; sdk?: 'bun' | 'hono' } = {},
+  {
+    includeSampleRand = false,
+    includeTransaction = true,
+    sdk = 'bun',
+  }: { includeSampleRand?: boolean; includeTransaction?: boolean; sdk?: 'bun' | 'hono' } = {},
 ): Envelope {
   return [
     {
@@ -79,11 +83,13 @@ export function eventEnvelope(
         environment: event.environment || 'production',
         public_key: 'public',
         trace_id: UUID_MATCHER,
+
         sample_rate: expect.any(String),
         sampled: expect.any(String),
         // release is auto-detected from GitHub CI env vars, so only expect it if we know it will be there
         ...(process.env.GITHUB_SHA ? { release: expect.any(String) } : {}),
         ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
+        ...(includeTransaction && { transaction: expect.any(String) }),
       },
     },
     [[{ type: 'event' }, expectedEvent(event, { sdk })]],
