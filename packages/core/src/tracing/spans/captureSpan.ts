@@ -97,7 +97,7 @@ function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client
   if (!integrationNames.length) return;
 
   safeSetSpanJSONAttributes(segmentSpanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: JSON.stringify(integrationNames),
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames,
   });
 }
 

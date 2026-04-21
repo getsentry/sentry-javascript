@@ -292,7 +292,7 @@ describe('captureSpan', () => {
     });
   });
 
-  it('adds sentry.sdk.integrations to segment spans as a JSON-stringified string', () => {
+  it('adds sentry.sdk.integrations to segment spans as an array attribute', () => {
     const client = new TestClient(
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
@@ -342,8 +342,8 @@ describe('captureSpan', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
-          type: 'string',
-          value: '["InboundFilters","BrowserTracing"]',
+          type: 'array',
+          value: ['InboundFilters', 'BrowserTracing'],
         },
       },
       _segmentSpan: span,
