@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('captures an error', async ({ page }) => {
-  const errorEventPromise = waitForError('effect-browser', event => {
+  const errorEventPromise = waitForError('effect-4-browser', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -29,11 +29,11 @@ test('captures an error', async ({ page }) => {
 });
 
 test('sets correct transactionName', async ({ page }) => {
-  const transactionPromise = waitForTransaction('effect-browser', async transactionEvent => {
+  const transactionPromise = waitForTransaction('effect-4-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('effect-browser', event => {
+  const errorEventPromise = waitForError('effect-4-browser', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 

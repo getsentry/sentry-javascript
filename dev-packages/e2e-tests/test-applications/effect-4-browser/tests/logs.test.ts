@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
-test('should send Effect debug logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+test('should send Effect debug logs', async ({ page }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-4-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -12,7 +12,11 @@ test('should send Effect debug logs', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/test-log`);
+  await page.goto('/');
+  const logButton = page.locator('id=log-button');
+  await logButton.click();
+
+  await expect(page.locator('id=log-result')).toHaveText('Logs sent!');
 
   const logEnvelope = await logEnvelopePromise;
   const logs = (logEnvelope[1] as SerializedLogContainer).items;
@@ -21,8 +25,8 @@ test('should send Effect debug logs', async ({ baseURL }) => {
   expect(debugLog?.level).toBe('debug');
 });
 
-test('should send Effect info logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+test('should send Effect info logs', async ({ page }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-4-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -31,7 +35,11 @@ test('should send Effect info logs', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/test-log`);
+  await page.goto('/');
+  const logButton = page.locator('id=log-button');
+  await logButton.click();
+
+  await expect(page.locator('id=log-result')).toHaveText('Logs sent!');
 
   const logEnvelope = await logEnvelopePromise;
   const logs = (logEnvelope[1] as SerializedLogContainer).items;
@@ -40,8 +48,8 @@ test('should send Effect info logs', async ({ baseURL }) => {
   expect(infoLog?.level).toBe('info');
 });
 
-test('should send Effect warning logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+test('should send Effect warning logs', async ({ page }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-4-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -50,7 +58,11 @@ test('should send Effect warning logs', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/test-log`);
+  await page.goto('/');
+  const logButton = page.locator('id=log-button');
+  await logButton.click();
+
+  await expect(page.locator('id=log-result')).toHaveText('Logs sent!');
 
   const logEnvelope = await logEnvelopePromise;
   const logs = (logEnvelope[1] as SerializedLogContainer).items;
@@ -59,8 +71,8 @@ test('should send Effect warning logs', async ({ baseURL }) => {
   expect(warnLog?.level).toBe('warn');
 });
 
-test('should send Effect error logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+test('should send Effect error logs', async ({ page }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-4-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(
@@ -69,7 +81,11 @@ test('should send Effect error logs', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/test-log`);
+  await page.goto('/');
+  const logButton = page.locator('id=log-button');
+  await logButton.click();
+
+  await expect(page.locator('id=log-result')).toHaveText('Logs sent!');
 
   const logEnvelope = await logEnvelopePromise;
   const logs = (logEnvelope[1] as SerializedLogContainer).items;
@@ -78,15 +94,19 @@ test('should send Effect error logs', async ({ baseURL }) => {
   expect(errorLog?.level).toBe('error');
 });
 
-test('should send Effect logs with context attributes', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('effect-node', envelope => {
+test('should send Effect logs with context attributes', async ({ page }) => {
+  const logEnvelopePromise = waitForEnvelopeItem('effect-4-browser', envelope => {
     return (
       envelope[0].type === 'log' &&
       (envelope[1] as SerializedLogContainer).items.some(item => item.body === 'Log with context')
     );
   });
 
-  await fetch(`${baseURL}/test-log-with-context`);
+  await page.goto('/');
+  const logContextButton = page.locator('id=log-context-button');
+  await logContextButton.click();
+
+  await expect(page.locator('id=log-context-result')).toHaveText('Log with context sent!');
 
   const logEnvelope = await logEnvelopePromise;
   const logs = (logEnvelope[1] as SerializedLogContainer).items;
