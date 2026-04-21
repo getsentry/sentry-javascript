@@ -79,17 +79,26 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/bun": "10.49.0",
-    "@sentry/cloudflare": "10.49.0",
-    "@sentry/core": "10.49.0",
-    "@sentry/node": "10.49.0"
+    "@sentry/core": "10.49.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x",
+    "@sentry/bun": "10.49.0",
+    "@sentry/cloudflare": "10.49.0",
+    "@sentry/node": "10.49.0",
     "hono": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/cloudflare": {
+      "optional": true
+    },
+    "@sentry/node": {
       "optional": true
     }
   },
