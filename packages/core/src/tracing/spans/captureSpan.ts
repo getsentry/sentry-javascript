@@ -4,7 +4,9 @@ import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
@@ -53,6 +55,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
+    applySdkMetadataToSegmentSpan(spanJSON, client);
     // Allow hook subscribers to mutate the segment span JSON
     // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
@@ -88,6 +91,18 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
   // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
   // This will follow in a separate PR
+}
+
+function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client: Client): void {
+  const integrationNames = client.getOptions().integrations.map(i => i.name);
+  const packages = client.getSdkMetadata()?.sdk?.packages?.map(p => `${p.name}@${p.version}`);
+
+  safeSetSpanJSONAttributes(segmentSpanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames.length
+      ? JSON.stringify(integrationNames)
+      : undefined,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES]: packages?.length ? JSON.stringify(packages) : undefined,
+  });
 }
 
 function applyCommonSpanAttributes(
