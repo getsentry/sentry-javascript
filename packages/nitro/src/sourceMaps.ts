@@ -156,13 +156,15 @@ export function configureSourcemapSettings(
       console.log('[@sentry/nitro] Source maps are already enabled. Sentry will upload them for error unminification.');
     }
   } else {
-    // User did not explicitly set sourcemap — enable it for Sentry
-    config.sourcemap = true;
+    // User did not explicitly set sourcemap, enable hidden source maps for Sentry.
+    // Nitro types `sourcemap` as `boolean`, but it forwards the value to Vite which supports `'hidden'`.
+    // `'hidden'` emits .map files without adding a `//# sourceMappingURL=` comment to the output, avoiding public exposure.
+    (config as { sourcemap?: unknown }).sourcemap = 'hidden';
     sentryEnabledSourcemaps = true;
     if (moduleOptions?.debug) {
       // eslint-disable-next-line no-console
       console.log(
-        '[@sentry/nitro] Enabled source map generation for Sentry. Source map files will be deleted after upload.',
+        '[@sentry/nitro] Enabled hidden source map generation for Sentry. Source map files will be deleted after upload.',
       );
     }
   }

@@ -179,11 +179,11 @@ describe('getPluginOptions', () => {
 });
 
 describe('configureSourcemapSettings', () => {
-  it('enables sourcemap generation on the config', () => {
+  it('enables hidden sourcemap generation on the config', () => {
     const config: NitroConfig = {};
     const result = configureSourcemapSettings(config);
 
-    expect(config.sourcemap).toBe(true);
+    expect(config.sourcemap).toBe('hidden');
     expect(result.sentryEnabledSourcemaps).toBe(true);
   });
 
@@ -244,7 +244,7 @@ describe('configureSourcemapSettings', () => {
     const config: NitroConfig = {};
     configureSourcemapSettings(config, { sourcemaps: { disable: 'disable-upload' } });
 
-    expect(config.sourcemap).toBe(true);
+    expect(config.sourcemap).toBe('hidden');
   });
 });
 
