@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
+const APP_NAME = 'hono-4';
+
 test('captures error thrown in route handler', async ({ baseURL }) => {
-  const errorWaiter = waitForError('hono-4-cf', event => {
+  const errorWaiter = waitForError(APP_NAME, event => {
     return event.exception?.values?.[0]?.value === 'This is a test error for Sentry!';
   });
 
@@ -14,7 +16,7 @@ test('captures error thrown in route handler', async ({ baseURL }) => {
 });
 
 test('captures HTTPException with 502 status', async ({ baseURL }) => {
-  const errorWaiter = waitForError('hono-4-cf', event => {
+  const errorWaiter = waitForError(APP_NAME, event => {
     return event.exception?.values?.[0]?.value === 'HTTPException 502';
   });
 
@@ -28,7 +30,7 @@ test('captures HTTPException with 502 status', async ({ baseURL }) => {
 // TODO: 401 and 404 HTTPExceptions should not be captured by Sentry by default,
 // but currently they are. Fix the filtering and update these tests accordingly.
 test('captures HTTPException with 401 status', async ({ baseURL }) => {
-  const errorWaiter = waitForError('hono-4-cf', event => {
+  const errorWaiter = waitForError(APP_NAME, event => {
     return event.exception?.values?.[0]?.value === 'HTTPException 401';
   });
 
@@ -40,7 +42,7 @@ test('captures HTTPException with 401 status', async ({ baseURL }) => {
 });
 
 test('captures HTTPException with 404 status', async ({ baseURL }) => {
-  const errorWaiter = waitForError('hono-4-cf', event => {
+  const errorWaiter = waitForError(APP_NAME, event => {
     return event.exception?.values?.[0]?.value === 'HTTPException 404';
   });
 

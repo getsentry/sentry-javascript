@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+const APP_NAME = 'hono-4';
+
 test('sends a transaction for the index route', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('hono-4-cf', event => {
+  const transactionWaiter = waitForTransaction(APP_NAME, event => {
     return event.transaction === 'GET /';
   });
 
@@ -14,7 +16,7 @@ test('sends a transaction for the index route', async ({ baseURL }) => {
 });
 
 test('sends a transaction for a parameterized route', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('hono-4-cf', event => {
+  const transactionWaiter = waitForTransaction(APP_NAME, event => {
     return event.transaction === 'GET /test-param/:paramId';
   });
 
@@ -27,7 +29,7 @@ test('sends a transaction for a parameterized route', async ({ baseURL }) => {
 });
 
 test('sends a transaction for a route that throws', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('hono-4-cf', event => {
+  const transactionWaiter = waitForTransaction(APP_NAME, event => {
     return event.transaction === 'GET /error/:cause';
   });
 

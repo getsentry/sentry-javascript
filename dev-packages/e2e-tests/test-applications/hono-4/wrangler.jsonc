@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hono-4-cf",
-  "main": "src/index.ts",
+  "name": "hono-4",
+  "main": "src/entry.cloudflare.ts",
   "compatibility_date": "2026-04-20",
   "compatibility_flags": ["nodejs_compat"],
 }
