@@ -177,7 +177,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             'sentry.message.template': { value: 'Mixed: {} {} {} {}', type: 'string' },
             'sentry.message.parameter.0': { value: 'prefix', type: 'string' },
             'sentry.message.parameter.1': { value: '{"obj":true}', type: 'string' },
-            'sentry.message.parameter.2': { value: '[4,5,6]', type: 'string' },
+            'sentry.message.parameter.2': { value: [4, 5, 6], type: 'array' },
             'sentry.message.parameter.3': { value: 'suffix', type: 'string' },
           },
         },
