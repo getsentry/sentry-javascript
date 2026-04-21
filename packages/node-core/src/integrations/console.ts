@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { ConsoleLevel, HandlerDataConsole, WrappedFunction } from '@sentry/core';
 import {
   CONSOLE_LEVELS,
@@ -42,61 +41,72 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 });
 
 function instrumentConsoleLambda(): void {
-  if (!('console' in GLOBAL_OBJ)) {
+  const consoleObj = GLOBAL_OBJ?.console;
+  if (!consoleObj) {
     return;
   }
 
-  CONSOLE_LEVELS.forEach(function (level: ConsoleLevel): void {
-    if (!(level in GLOBAL_OBJ.console)) {
-      return;
+  CONSOLE_LEVELS.forEach((level: ConsoleLevel) => {
+    if (level in consoleObj) {
+      patchWithDefineProperty(consoleObj, level);
     }
-
-    patchWithDefineProperty(level);
   });
 }
 
-function patchWithDefineProperty(level: ConsoleLevel): void {
-  const nativeMethod = GLOBAL_OBJ.console[level] as (...args: unknown[]) => void;
+function patchWithDefineProperty(consoleObj: Console, level: ConsoleLevel): void {
+  const nativeMethod = consoleObj[level] as (...args: unknown[]) => void;
   originalConsoleMethods[level] = nativeMethod;
 
-  let consoleDelegate: Function = nativeMethod;
+  let delegate: Function = nativeMethod;
+  let savedDelegate: Function | undefined;
   let isExecuting = false;
 
   const wrapper = function (...args: any[]): void {
     if (isExecuting) {
-      // Re-entrant call: a third party captured `wrapper` via the getter and calls it
-      // from inside their replacement (e.g. `const prev = console.log; console.log = (...a) => { prev(...a); }`).
-      // Calling `consoleDelegate` here would recurse, so fall back to the native method.
-      nativeMethod.apply(GLOBAL_OBJ.console, args);
+      // Re-entrant call: a third party captured `wrapper` via the getter and calls it from inside their replacement. We must
+      // use `nativeMethod` (not `delegate`) to break the cycle, and we intentionally skip `triggerHandlers` to avoid duplicate
+      // breadcrumbs. The outer invocation already triggered the handlers for this console call.
+      nativeMethod.apply(consoleObj, args);
       return;
     }
     isExecuting = true;
     try {
       triggerHandlers('console', { args, level } as HandlerDataConsole);
-      consoleDelegate.apply(GLOBAL_OBJ.console, args);
+      delegate.apply(consoleObj, args);
     } finally {
       isExecuting = false;
     }
   };
   markFunctionWrapped(wrapper as unknown as WrappedFunction, nativeMethod as unknown as WrappedFunction);
 
+  // consoleSandbox reads originalConsoleMethods[level] to temporarily bypass instrumentation. We replace it with a distinct reference (.bind creates a
+  // new function identity) so the setter can tell apart "consoleSandbox bypass" from "external code restoring a native method captured before Sentry init."
+  const sandboxBypass = nativeMethod.bind(consoleObj);
+  originalConsoleMethods[level] = sandboxBypass;
+
   try {
     let current: any = wrapper;
 
-    Object.defineProperty(GLOBAL_OBJ.console, level, {
+    Object.defineProperty(consoleObj, level, {
       configurable: true,
       enumerable: true,
       get() {
         return current;
       },
       set(newValue) {
-        if (
-          typeof newValue === 'function' &&
-          newValue !== wrapper &&
-          newValue !== originalConsoleMethods[level] &&
-          !(newValue as WrappedFunction).__sentry_original__
-        ) {
-          consoleDelegate = newValue;
+        if (newValue === wrapper) {
+          // consoleSandbox restoring the wrapper: recover the saved delegate.
+          if (savedDelegate !== undefined) {
+            delegate = savedDelegate;
+            savedDelegate = undefined;
+          }
+          current = wrapper;
+        } else if (newValue === sandboxBypass) {
+          // consoleSandbox entering bypass: save delegate, let getter return sandboxBypass directly so calls skip the wrapper entirely.
+          savedDelegate = delegate;
+          current = sandboxBypass;
+        } else if (typeof newValue === 'function' && !(newValue as WrappedFunction).__sentry_original__) {
+          delegate = newValue;
           current = wrapper;
         } else {
           current = newValue;
@@ -105,14 +115,12 @@ function patchWithDefineProperty(level: ConsoleLevel): void {
     });
   } catch {
     // Fall back to fill-based patching if defineProperty fails
-    fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
+    fill(consoleObj, level, function (originalConsoleMethod: () => any): Function {
       originalConsoleMethods[level] = originalConsoleMethod;
 
-      return function (...args: any[]): void {
+      return function (this: Console, ...args: any[]): void {
         triggerHandlers('console', { args, level } as HandlerDataConsole);
-
-        const log = originalConsoleMethods[level];
-        log?.apply(GLOBAL_OBJ.console, args);
+        originalConsoleMethods[level]?.apply(this, args);
       };
     });
   }
