@@ -54,8 +54,6 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 /** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
-/** The list of SDK packages loaded by the application (e.g., ["npm:@sentry/browser@9.0.0"]) */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES = 'sentry.sdk.packages';
 
 /** The user ID (gated by sendDefaultPii) */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';

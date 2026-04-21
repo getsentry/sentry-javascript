@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
@@ -95,13 +94,10 @@ function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData:
 
 function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client: Client): void {
   const integrationNames = client.getOptions().integrations.map(i => i.name);
-  const packages = client.getSdkMetadata()?.sdk?.packages?.map(p => `${p.name}@${p.version}`);
+  if (!integrationNames.length) return;
 
   safeSetSpanJSONAttributes(segmentSpanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames.length
-      ? JSON.stringify(integrationNames)
-      : undefined,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES]: packages?.length ? JSON.stringify(packages) : undefined,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: JSON.stringify(integrationNames),
   });
 }
 

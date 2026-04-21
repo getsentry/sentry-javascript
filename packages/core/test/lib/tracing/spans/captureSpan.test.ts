@@ -9,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
@@ -293,7 +292,7 @@ describe('captureSpan', () => {
     });
   });
 
-  it('adds sentry.sdk.integrations and sentry.sdk.packages to segment spans as JSON-stringified strings', () => {
+  it('adds sentry.sdk.integrations to segment spans as a JSON-stringified string', () => {
     const client = new TestClient(
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
@@ -308,10 +307,6 @@ describe('captureSpan', () => {
           sdk: {
             name: 'sentry.javascript.browser',
             version: '9.0.0',
-            packages: [
-              { name: 'npm:@sentry/browser', version: '9.0.0' },
-              { name: 'npm:@sentry/core', version: '9.0.0' },
-            ],
           },
         },
       }),
@@ -350,28 +345,17 @@ describe('captureSpan', () => {
           type: 'string',
           value: '["InboundFilters","BrowserTracing"]',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES]: {
-          type: 'string',
-          value: '["npm:@sentry/browser@9.0.0","npm:@sentry/core@9.0.0"]',
-        },
       },
       _segmentSpan: span,
     });
   });
 
-  it('does not add sentry.sdk.integrations or sentry.sdk.packages to non-segment child spans', () => {
+  it('does not add sentry.sdk.integrations to non-segment child spans', () => {
     const client = new TestClient(
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         tracesSampleRate: 1,
         integrations: [{ name: 'InboundFilters', setupOnce: () => {} }],
-        _metadata: {
-          sdk: {
-            name: 'sentry.javascript.browser',
-            version: '9.0.0',
-            packages: [{ name: 'npm:@sentry/browser', version: '9.0.0' }],
-          },
-        },
       }),
     );
 
@@ -386,7 +370,6 @@ describe('captureSpan', () => {
 
     expect(serializedChild.is_segment).toBe(false);
     expect(serializedChild.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
-    expect(serializedChild.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SDK_PACKAGES]).toBeUndefined();
   });
 
   describe('client hooks', () => {
