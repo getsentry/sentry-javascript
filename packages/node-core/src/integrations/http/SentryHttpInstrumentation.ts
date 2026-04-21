@@ -459,7 +459,10 @@ function _getOutgoingRequestSpanData(request: http.ClientRequest): [string, Span
 function _getOutgoingRequestEndedSpanData(response: http.IncomingMessage): SpanAttributes {
   const { statusCode, statusMessage, httpVersion, socket } = response;
 
-  const transport = httpVersion.toUpperCase() !== 'QUIC' ? 'ip_tcp' : 'ip_udp';
+  // httpVersion can be undefined in some cases and we seem to hav encountered this before:
+  // https://github.com/getsentry/sentry-javascript/blob/ec8c8c64cde6001123db0199a8ca017b8863eac8/packages/node-core/src/integrations/http/httpServerSpansIntegration.ts#L158
+  // see: #20415
+  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'ip_tcp' : 'ip_udp';
 
   const additionalAttributes: SpanAttributes = {
     [ATTR_HTTP_RESPONSE_STATUS_CODE]: statusCode,
