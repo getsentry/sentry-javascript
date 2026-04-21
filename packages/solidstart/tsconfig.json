@@ -3,5 +3,8 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {}
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  }
 }

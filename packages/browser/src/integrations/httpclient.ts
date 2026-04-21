@@ -1,4 +1,4 @@
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
+import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core/browser';
 import {
   addExceptionMechanism,
   addFetchInstrumentationHandler,
@@ -9,7 +9,7 @@ import {
   GLOBAL_OBJ,
   isSentryRequestUrl,
   supportsNativeFetch,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 

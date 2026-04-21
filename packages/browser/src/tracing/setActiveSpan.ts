@@ -1,5 +1,5 @@
-import type { Span } from '@sentry/core';
-import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sentry/core';
+import type { Span } from '@sentry/core/browser';
+import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sentry/core/browser';
 
 /**
  * Sets an inactive span active on the current scope.

@@ -2,13 +2,13 @@
  * @vitest-environment jsdom
  */
 
-import * as SentryCore from '@sentry/core';
+import * as SentryCore from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as helpers from '../../src/helpers';
 import { INTEGRATION_NAME, registerWebWorker, webWorkerIntegration } from '../../src/integrations/webWorker';
 
 // Mock @sentry/core
-vi.mock('@sentry/core', async importActual => {
+vi.mock('@sentry/core/browser', async importActual => {
   return {
     ...((await importActual()) as any),
     debug: {

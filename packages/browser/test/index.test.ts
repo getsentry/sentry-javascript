@@ -9,8 +9,8 @@ import {
   getReportDialogEndpoint,
   lastEventId,
   SDK_VERSION,
-} from '@sentry/core';
-import * as utils from '@sentry/core';
+} from '@sentry/core/browser';
+import * as utils from '@sentry/core/browser';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -37,7 +37,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 // eslint-disable-next-line no-var
 declare var global: any;
 
-vi.mock('@sentry/core', async requireActual => {
+vi.mock('@sentry/core/browser', async requireActual => {
   return {
     ...((await requireActual()) as any),
     getReportDialogEndpoint: vi.fn(),

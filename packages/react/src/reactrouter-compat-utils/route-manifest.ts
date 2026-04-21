@@ -1,4 +1,4 @@
-import { debug } from '@sentry/core';
+import { debug } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**

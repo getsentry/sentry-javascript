@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import type { StartSpanOptions } from '@sentry/core';
-import { SentrySpan } from '@sentry/core';
+import type { StartSpanOptions } from '@sentry/core/browser';
+import { SentrySpan } from '@sentry/core/browser';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';

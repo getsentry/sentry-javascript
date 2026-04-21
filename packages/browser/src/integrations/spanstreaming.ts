@@ -1,4 +1,4 @@
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core/browser';
 import {
   captureSpan,
   debug,
@@ -7,7 +7,7 @@ import {
   isStreamedBeforeSendSpanCallback,
   SpanBuffer,
   spanIsSampled,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 
 export const spanStreamingIntegration = defineIntegration(() => {
