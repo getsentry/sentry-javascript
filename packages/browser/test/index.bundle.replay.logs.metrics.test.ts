@@ -1,5 +1,9 @@
 import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core';
-import { browserTracingIntegrationShim, feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import {
+  browserTracingIntegrationShim,
+  feedbackIntegrationShim,
+  spanStreamingIntegrationShim,
+} from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
 import { replayIntegration } from '../src';
 import * as ReplayLogsMetricsBundle from '../src/index.bundle.replay.logs.metrics';
@@ -10,6 +14,7 @@ describe('index.bundle.replay.logs.metrics', () => {
     expect(ReplayLogsMetricsBundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
     expect(ReplayLogsMetricsBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
     expect(ReplayLogsMetricsBundle.replayIntegration).toBe(replayIntegration);
+    expect(ReplayLogsMetricsBundle.spanStreamingIntegration).toBe(spanStreamingIntegrationShim);
 
     expect(ReplayLogsMetricsBundle.logger).toBe(coreLogger);
     expect(ReplayLogsMetricsBundle.metrics).toBe(coreMetrics);

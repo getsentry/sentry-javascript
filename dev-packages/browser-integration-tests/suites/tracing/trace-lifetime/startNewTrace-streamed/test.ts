@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
   'creates a new trace if `startNewTrace` is called and leaves old trace valid outside the callback',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 

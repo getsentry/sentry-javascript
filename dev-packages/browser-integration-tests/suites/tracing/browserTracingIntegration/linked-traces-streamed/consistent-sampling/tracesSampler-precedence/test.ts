@@ -7,7 +7,6 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
-  testingCdnBundle,
   waitForClientReportRequest,
 } from '../../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
@@ -19,7 +18,7 @@ import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/
  */
 sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
   sentryTest('explicit sampling decisions in `tracesSampler` have precedence', async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
