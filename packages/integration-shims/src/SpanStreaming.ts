@@ -8,7 +8,7 @@ import { consoleSandbox, defineIntegration } from '@sentry/core';
 export const spanStreamingIntegrationShim = defineIntegration(() => {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
-    console.warn('You are using spanStreamingIntegration() even though this bundle does not include span streaming.');
+    console.warn('You are using spanStreamingIntegration() even though this bundle does not include tracing.');
   });
 
   return {
