@@ -1,13 +1,11 @@
 #!/bin/bash
 
-# Script to pull the correct Lambda docker image based on the NODE_VERSION environment variable.
+# Pull the Lambda Node docker image for SAM local. NODE_VERSION should be the major only (e.g. 20).
+# Defaults to 20 to match the repo's Volta Node major (see root package.json "volta.node").
 
 set -e
 
-if [[ -z "$NODE_VERSION" ]]; then
-    echo "Error: NODE_VERSION not set"
-    exit 1
-fi
+NODE_VERSION="${NODE_VERSION:-20}"
 
 echo "Pulling Lambda Node $NODE_VERSION docker image..."
 docker pull "public.ecr.aws/lambda/nodejs:${NODE_VERSION}"
