@@ -81,11 +81,11 @@ test('multiple middleware are sibling spans under the same parent', async ({ bas
 
   // middlewareA has a 50ms delay, middlewareB has a 60ms delay
   // @ts-expect-error timestamp is defined
-  const timestampDurationMs = (middlewareSpans[0]?.timestamp - middlewareSpans[0]?.start_timestamp) * 1000;
+  const middlewareADuration = (middlewareSpans[0]?.timestamp - middlewareSpans[0]?.start_timestamp) * 1000;
   // @ts-expect-error timestamp is defined
-  const authDurationMs = (middlewareSpans[1]?.timestamp - middlewareSpans[1]?.start_timestamp) * 1000;
-  expect(timestampDurationMs).toBeGreaterThanOrEqual(50);
-  expect(authDurationMs).toBeGreaterThanOrEqual(60);
+  const middlewareBDuration = (middlewareSpans[1]?.timestamp - middlewareSpans[1]?.start_timestamp) * 1000;
+  expect(middlewareADuration).toBeGreaterThanOrEqual(50);
+  expect(middlewareBDuration).toBeGreaterThanOrEqual(60);
 });
 
 test('captures error thrown in middleware', async ({ baseURL }) => {
