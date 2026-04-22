@@ -456,7 +456,10 @@ function _getOutgoingRequestSpanData(request: http.ClientRequest): [string, Span
   ];
 }
 
-function _getOutgoingRequestEndedSpanData(response: http.IncomingMessage): SpanAttributes {
+/**
+ * Exported for testing purposes.
+ */
+export function _getOutgoingRequestEndedSpanData(response: http.IncomingMessage): SpanAttributes {
   const { statusCode, statusMessage, httpVersion, socket } = response;
 
   // httpVersion can be undefined in some cases and we seem to have encountered this before:
