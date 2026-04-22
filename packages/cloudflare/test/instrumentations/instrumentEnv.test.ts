@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
 
@@ -6,6 +7,7 @@ vi.mock('../../src/instrumentations/instrumentDurableObjectNamespace', () => ({
     __instrumented: true,
     __original: namespace,
   })),
+  STUB_NON_RPC_METHODS: new Set(['fetch', 'connect', 'dup']),
 }));
 
 import { instrumentDurableObjectNamespace } from '../../src/instrumentations/instrumentDurableObjectNamespace';
@@ -172,5 +174,116 @@ describe('instrumentEnv', () => {
 
     expect(instrumented.NULL_VAL).toBeNull();
     expect(instrumented.UNDEF_VAL).toBeUndefined();
+  });
+
+  describe('JSRPC RPC method instrumentation', () => {
+    it('does not inject Sentry RPC meta by default (enableRpcTracePropagation not set)', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env);
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+
+      // Without enableRpcTracePropagation, no metadata should be injected
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
+    });
+
+    it('injects Sentry RPC meta when enableRpcTracePropagation is true', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
+        __sentry: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+    });
+
+    it('does not inject meta into JSRPC fetch calls', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abc-def-1',
+        baggage: 'sentry-baggage=value',
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
+      const jsrpcProxy = new Proxy(
+        { fetch: mockFetch },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).fetch('https://example.com');
+
+      // fetch should use HTTP header injection, not trailing arg
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs).not.toContainEqual(expect.objectContaining({ __sentry: expect.anything() }));
+    });
+
+    it('does not inject meta into JSRPC RPC calls when no active trace', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({});
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1');
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
   });
 });

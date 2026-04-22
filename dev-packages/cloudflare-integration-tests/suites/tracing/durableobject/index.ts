@@ -6,14 +6,42 @@ interface Env {
   TEST_DURABLE_OBJECT: DurableObjectNamespace;
 }
 
+// Regression test for https://github.com/getsentry/sentry-javascript/issues/17127
+// This class mimics a real-world DO with private fields/methods and multiple public methods
 class TestDurableObjectBase extends DurableObject<Env> {
+  // Real private field for internal state (not accessed by RPC methods due to proxy limitations)
+  #requestCount = 0;
+
   public constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
+  // Real private method for internal use
+  #incrementCount(): void {
+    this.#requestCount++;
+  }
+
+  // Internal method that uses private fields (called from non-RPC context like alarm/fetch)
+  getRequestCount(): number {
+    return this.#requestCount;
+  }
+
+  // The method being called in tests via RPC
   async sayHello(name: string): Promise<string> {
     return `Hello, ${name}`;
+  }
+
+  // Other public methods that are not called - should not interfere with RPC
+  async getStatus(): Promise<string> {
+    return 'OK';
+  }
+
+  async processData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return { ...data, processed: true };
+  }
+
+  async multiply(a: number, b: number): Promise<number> {
+    return a * b;
   }
 }
 
@@ -21,7 +49,7 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    instrumentPrototypeMethods: true,
+    enableRpcTracePropagation: true,
   }),
   TestDurableObjectBase,
 );

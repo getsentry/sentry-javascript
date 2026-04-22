@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectNamespace } from '../../src/instrumentations/instrumentDurableObjectNamespace';
 
@@ -174,6 +175,84 @@ describe('instrumentDurableObjectNamespace', () => {
 
       expect((stub as any).id).toBe(mockStub.id);
       expect((stub as any).name).toBe(mockStub.name);
+    });
+  });
+
+  describe('RPC method instrumentation', () => {
+    it('injects Sentry RPC meta into RPC method calls', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const rpcMethod = vi.fn().mockReturnValue('rpc-result');
+      const { namespace: originalNamespace } = createMockNamespace();
+      const namespace = {
+        ...originalNamespace,
+        get: vi.fn().mockReturnValue({
+          id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+          fetch: vi.fn(),
+          myRpcMethod: rpcMethod,
+        }),
+      };
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).myRpcMethod('arg1', 42);
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
+        __sentry: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+    });
+
+    it('does not inject meta when no active trace', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({});
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const { namespace: originalNamespace } = createMockNamespace();
+      const namespace = {
+        ...originalNamespace,
+        get: vi.fn().mockReturnValue({
+          id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+          fetch: vi.fn(),
+          myRpcMethod: rpcMethod,
+        }),
+      };
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).myRpcMethod('arg1');
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
+
+    it('does not wrap built-in stub methods (connect, dup)', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abc-def-1',
+      });
+
+      const connectFn = vi.fn();
+      const dupFn = vi.fn();
+      const { namespace: originalNamespace } = createMockNamespace();
+      const namespace = {
+        ...originalNamespace,
+        get: vi.fn().mockReturnValue({
+          id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+          fetch: vi.fn(),
+          connect: connectFn,
+          dup: dupFn,
+        }),
+      };
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+
+      // connect and dup should be the original functions, not wrapped
+      expect((stub as any).connect).toBe(connectFn);
+      expect((stub as any).dup).toBe(dupFn);
     });
   });
 
