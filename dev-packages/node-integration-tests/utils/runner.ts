@@ -79,7 +79,7 @@ interface DockerOptions {
  * healthcheck reports healthy. Each suite defines its healthcheck in its
  * own docker-compose.yml.
  *
- * Returns a function that can be called to docker compose down.
+ * Returns a function that can be called to docker compose down
  */
 async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const cwd = join(...options.workingDirectory);
