@@ -26,6 +26,7 @@ function shouldSkipSourcemapUpload(nitro: Nitro, options?: SentryNitroOptions): 
     nitro.options.dev ||
     nitro.options.preset === 'nitro-prerender' ||
     nitro.options.sourcemap === false ||
+    (nitro.options.sourcemap as unknown) === 'inline' ||
     options?.sourcemaps?.disable === true
   );
 }
@@ -141,7 +142,10 @@ export function configureSourcemapSettings(
     return { sentryEnabledSourcemaps: false };
   }
 
-  if (config.sourcemap === false) {
+  // Nitro types `sourcemap` as `boolean`, but it forwards the value to Vite which also accepts `'hidden'` and `'inline'`.
+  const userSourcemap = (config as { sourcemap?: boolean | 'hidden' | 'inline' }).sourcemap;
+
+  if (userSourcemap === false) {
     // eslint-disable-next-line no-console
     console.warn(
       '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
@@ -149,15 +153,24 @@ export function configureSourcemapSettings(
     return { sentryEnabledSourcemaps: false };
   }
 
+  if (userSourcemap === 'inline') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nitro] You have set `sourcemap: "inline"`. Inline source maps are embedded in the output bundle, so there are no `.map` files to upload. Sentry will not upload source maps. Set `sourcemap: "hidden"` (or leave it unset) to let Sentry upload source maps and un-minify errors.',
+    );
+    return { sentryEnabledSourcemaps: false };
+  }
+
   let sentryEnabledSourcemaps = false;
-  if (config.sourcemap === true) {
+  if (userSourcemap === true || userSourcemap === 'hidden') {
     if (moduleOptions?.debug) {
       // eslint-disable-next-line no-console
-      console.log('[@sentry/nitro] Source maps are already enabled. Sentry will upload them for error unminification.');
+      console.log(
+        `[@sentry/nitro] Source maps are already enabled (\`sourcemap: ${JSON.stringify(userSourcemap)}\`). Sentry will upload them for error unminification.`,
+      );
     }
   } else {
     // User did not explicitly set sourcemap, enable hidden source maps for Sentry.
-    // Nitro types `sourcemap` as `boolean`, but it forwards the value to Vite which supports `'hidden'`.
     // `'hidden'` emits .map files without adding a `//# sourceMappingURL=` comment to the output, avoiding public exposure.
     (config as { sourcemap?: unknown }).sourcemap = 'hidden';
     sentryEnabledSourcemaps = true;

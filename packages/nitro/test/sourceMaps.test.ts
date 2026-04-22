@@ -215,6 +215,25 @@ describe('configureSourcemapSettings', () => {
     expect(result.sentryEnabledSourcemaps).toBe(false);
   });
 
+  it('keeps sourcemap "hidden" when user already set it and does not enable deletion', () => {
+    const config = { sourcemap: 'hidden' } as unknown as NitroConfig;
+    const result = configureSourcemapSettings(config);
+
+    expect((config as { sourcemap?: unknown }).sourcemap).toBe('hidden');
+    expect(result.sentryEnabledSourcemaps).toBe(false);
+  });
+
+  it('keeps sourcemap "inline", warns, and does not enable uploads', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const config = { sourcemap: 'inline' } as unknown as NitroConfig;
+    const result = configureSourcemapSettings(config);
+
+    expect((config as { sourcemap?: unknown }).sourcemap).toBe('inline');
+    expect(result.sentryEnabledSourcemaps).toBe(false);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`sourcemap: "inline"`'));
+    warnSpy.mockRestore();
+  });
+
   it('disables experimental sourcemapMinify', () => {
     const config: NitroConfig = {};
     configureSourcemapSettings(config);
