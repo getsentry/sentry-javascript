@@ -52,13 +52,7 @@ env:
   BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
   BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  # Task cache only (matches nx.json cacheDirectory). Omit .nx/workspace-data and .nx/daemon
-  # — not portable across runners and not needed for restore hits.
   NX_CACHE_KEY: nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
-
-  # Restored .nx cache is unpacked on a different runner than it was saved on; allow Nx to use it.
-  # https://nx.dev/troubleshooting/unknown-local-cache
-  NX_REJECT_UNKNOWN_LOCAL_CACHE: '0'
 
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
@@ -130,7 +124,9 @@ jobs:
         # Only cache this per-PR to speed up CI.
         if: github.event_name == 'pull_request'
         with:
-          path: .nx/cache
+          path: |
+            .nx/cache
+            .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Upload build artifacts
@@ -213,7 +209,9 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx/cache
+          path: |
+            .nx/cache
+            .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build Lambda layer
@@ -251,7 +249,9 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx/cache
+          path: |
+            .nx/cache
+            .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build bundles
@@ -1002,7 +1002,9 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx/cache
+          path: |
+            .nx/cache
+            .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build tarballs

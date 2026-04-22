@@ -10,11 +10,8 @@ on:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  # Bump when changing cache path shape (was whole .nx, now .nx/cache only).
-  NX_CACHE_KEY: nx-Linux-${{ github.ref }}-cache-v2
-
-  # Restored .nx cache may come from another runner; see nx.dev/troubleshooting/unknown-local-cache
-  NX_REJECT_UNKNOWN_LOCAL_CACHE: '0'
+  # Bump when changing what we persist under .nx (see main CI workflow).
+  NX_CACHE_KEY: nx-Linux-${{ github.ref }}-cache-v3
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -43,7 +40,9 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx/cache
+          path: |
+            .nx/cache
+            .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build packages
