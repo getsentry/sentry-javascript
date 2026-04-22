@@ -14,10 +14,7 @@ import { isBrowser } from '../utils/isBrowser';
  *                        Only emitted as `ingest_settings` in browser environments.
  * @returns The created log container envelope item.
  */
-export function createLogContainerEnvelopeItem(
-  items: Array<SerializedLog>,
-  inferUserData?: boolean,
-): LogContainerItem {
+export function createLogContainerEnvelopeItem(items: Array<SerializedLog>, inferUserData?: boolean): LogContainerItem {
   const inferSetting = inferUserData ? 'auto' : 'never';
   return [
     {

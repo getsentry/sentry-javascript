@@ -22,6 +22,8 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
       content_type: 'application/vnd.sentry.items.log+json',
     },
     {
+      version: 2,
+      ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
       items: [
         {
           timestamp: expect.any(Number),
