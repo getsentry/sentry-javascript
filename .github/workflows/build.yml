@@ -52,7 +52,8 @@ env:
   BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
   BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  # We cache NX per CI run
+  # Task cache only (matches nx.json cacheDirectory). Omit .nx/workspace-data and .nx/daemon
+  # — not portable across runners and not needed for restore hits.
   NX_CACHE_KEY: nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
 
   # Restored .nx cache is unpacked on a different runner than it was saved on; allow Nx to use it.
@@ -129,7 +130,7 @@ jobs:
         # Only cache this per-PR to speed up CI.
         if: github.event_name == 'pull_request'
         with:
-          path: .nx
+          path: .nx/cache
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Upload build artifacts
@@ -212,7 +213,7 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx
+          path: .nx/cache
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build Lambda layer
@@ -250,7 +251,7 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx
+          path: .nx/cache
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build bundles
@@ -301,6 +302,11 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -996,7 +1002,7 @@ jobs:
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
-          path: .nx
+          path: .nx/cache
           key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build tarballs
