@@ -1,0 +1,10 @@
+# SAM CLI expects this file in the project root; without it, `sam local start-lambda` logs
+# OSError / missing file errors when run from the e2e temp directory.
+# These values are placeholders — this app only uses `sam local`, not deploy.
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "sentry-e2e-aws-serverless-layer-local"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"

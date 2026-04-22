@@ -5,10 +5,11 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
 import { arch, platform } from 'node:process';
-import { execFileSync } from 'node:child_process';
+import { globSync } from 'glob';
 
-const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
+const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
+const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 export const SAM_PORT = 3001;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
@@ -16,21 +17,32 @@ function samLambdaArchitecture(): 'arm64' | 'x86_64' {
   return arch === 'arm64' ? 'arm64' : 'x86_64';
 }
 
-function resolvePackagesDir(): string {
-  const workspaceRoot = process.env.SENTRY_E2E_WORKSPACE_ROOT;
-  if (workspaceRoot) {
-    return path.join(workspaceRoot, 'packages');
-  }
-  return path.resolve(__dirname, '../../../../../packages');
-}
-
 export class LocalLambdaStack extends Stack {
+  sentryLayer: CfnResource;
+
   constructor(scope: Construct, id: string, props: StackProps, hostIp: string) {
     console.log('[LocalLambdaStack] Creating local SAM Lambda Stack');
     super(scope, id, props);
 
     this.templateOptions.templateFormatVersion = '2010-09-09';
     this.templateOptions.transforms = ['AWS::Serverless-2016-10-31'];
+
+    console.log('[LocalLambdaStack] Add Sentry Lambda layer containing the Sentry SDK to the SAM stack');
+
+    const [layerZipFile] = globSync('sentry-node-serverless-*.zip', { cwd: LAYER_DIR });
+
+    if (!layerZipFile) {
+      throw new Error(`[LocalLambdaStack] Could not find sentry-node-serverless zip file in ${LAYER_DIR}`);
+    }
+
+    this.sentryLayer = new CfnResource(this, 'SentryNodeServerlessSDK', {
+      type: 'AWS::Serverless::LayerVersion',
+      properties: {
+        ContentUri: path.join(LAYER_DIR, layerZipFile),
+        CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x', 'nodejs22.x'],
+        CompatibleArchitectures: [samLambdaArchitecture()],
+      },
+    });
 
     const dsn = `http://public@${hostIp}:3031/1337`;
     console.log(`[LocalLambdaStack] Using Sentry DSN: ${dsn}`);
@@ -46,43 +58,7 @@ export class LocalLambdaStack extends Stack {
       .filter(dir => fs.statSync(path.join(LAMBDA_FUNCTIONS_DIR, dir)).isDirectory());
 
     for (const lambdaDir of lambdaDirs) {
-      const functionName = `Npm${lambdaDir}`;
-
-      const lambdaPath = path.resolve(LAMBDA_FUNCTIONS_DIR, lambdaDir);
-      const packageLockPath = path.join(lambdaPath, 'package-lock.json');
-      const nodeModulesPath = path.join(lambdaPath, 'node_modules');
-
-      const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
-      const dependencies: Record<string, string> = {};
-
-      const packagesDir = resolvePackagesDir();
-      for (const pkgName of packagesToLink) {
-        const pkgDir = path.join(packagesDir, pkgName);
-        if (!fs.existsSync(pkgDir)) {
-          throw new Error(
-            `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
-          );
-        }
-        const relativePath = path.relative(lambdaPath, pkgDir);
-        dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
-      }
-
-      console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
-
-      if (fs.existsSync(packageLockPath)) {
-        fs.rmSync(packageLockPath);
-      }
-
-      if (fs.existsSync(nodeModulesPath)) {
-        fs.rmSync(nodeModulesPath, { recursive: true, force: true });
-      }
-
-      const packageJson = {
-        dependencies,
-      };
-
-      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-      execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
+      const functionName = `Layer${lambdaDir}`;
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
@@ -96,6 +72,7 @@ export class LocalLambdaStack extends Stack {
           Handler: 'index.handler',
           Runtime: `nodejs${process.env.NODE_VERSION}.x`,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
+          Layers: [{ Ref: this.sentryLayer.logicalId }],
           Environment: {
             Variables: {
               SENTRY_DSN: dsn,
