@@ -1,18 +1,15 @@
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { NitroConfig } from 'nitro/types';
 import { createNitroModule } from './module';
+import { configureSourcemapSettings } from './sourceMaps';
 
-type SentryNitroOptions = {
-  // TODO: Add options
-};
+export type SentryNitroOptions = BuildTimeOptionsBase;
 
 /**
  * Modifies the passed in Nitro configuration with automatic build-time instrumentation.
- *
- * @param config A Nitro configuration object, as usually exported in `nitro.config.ts` or `nitro.config.mjs`.
- * @returns The modified config to be exported
  */
-export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitroOptions): NitroConfig {
-  return setupSentryNitroModule(config, moduleOptions);
+export function withSentryConfig(config: NitroConfig, sentryOptions?: SentryNitroOptions): NitroConfig {
+  return setupSentryNitroModule(config, sentryOptions);
 }
 
 /**
@@ -20,15 +17,17 @@ export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitr
  */
 export function setupSentryNitroModule(
   config: NitroConfig,
-  _moduleOptions?: SentryNitroOptions,
+  moduleOptions?: SentryNitroOptions,
   _serverConfigFile?: string,
 ): NitroConfig {
   if (!config.tracingChannel) {
     config.tracingChannel = true;
   }
 
+  const { sentryEnabledSourcemaps } = configureSourcemapSettings(config, moduleOptions);
+
   config.modules = config.modules || [];
-  config.modules.push(createNitroModule());
+  config.modules.push(createNitroModule(moduleOptions, sentryEnabledSourcemaps));
 
   return config;
 }

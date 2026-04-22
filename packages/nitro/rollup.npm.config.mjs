@@ -5,7 +5,7 @@ export default [
     makeBaseNPMConfig({
       entrypoints: ['src/index.ts', 'src/runtime/plugins/server.ts'],
       packageSpecificConfig: {
-        external: [/^nitro/, /^h3/, /^srvx/, /^@sentry\/opentelemetry/],
+        external: [/^nitro/, /^h3/, /^srvx/, /^@sentry\/opentelemetry/, '@sentry/bundler-plugin-core'],
       },
     }),
   ),
