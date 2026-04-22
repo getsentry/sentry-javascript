@@ -212,7 +212,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
-  /** Cleanup functions to call on dispose */
+  /**
+   * Cleanup functions to call on dispose.
+   *
+   * NOTE: These callbacks are only invoked by subclasses whose `dispose()` implementation runs them
+   * (currently only `ServerRuntimeClient`). The base `Client.dispose()` is a no-op and will not run them.
+   */
   protected _disposeCallbacks: (() => void)[];
 
   /**
@@ -1176,6 +1181,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a cleanup function to be called when the client is disposed.
    * This is useful for integrations that need to clean up global state.
+   *
+   * NOTE: Registered callbacks are only executed by subclasses whose `dispose()` implementation
+   * runs them. At the moment that is only `ServerRuntimeClient` (and clients extending it). On the
+   * base `Client` (e.g. the browser client), `dispose()` is a no-op, so callbacks registered here
+   * will never be invoked.
    */
   public registerCleanup(callback: () => void): void {
     this._disposeCallbacks.push(callback);
@@ -1184,7 +1194,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Disposes of the client and releases all resources.
    *
-   * Subclasses should override this method to clean up their own resources.
+   * Subclasses should override this method to clean up their own resources, including invoking
+   * any callbacks registered via {@link Client.registerCleanup}. The base implementation is a
+   * no-op and does NOT execute registered cleanup callbacks.
+   *
    * After calling dispose(), the client should not be used anymore.
    */
   public dispose(): void {
