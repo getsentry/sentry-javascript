@@ -12,6 +12,9 @@ env:
 
   NX_CACHE_KEY: nx-Linux-${{ github.ref }}
 
+  # Restored .nx cache may come from another runner; see nx.dev/troubleshooting/unknown-local-cache
+  NX_REJECT_UNKNOWN_LOCAL_CACHE: '0'
+
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:

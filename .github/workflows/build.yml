@@ -55,6 +55,10 @@ env:
   # We cache NX per CI run
   NX_CACHE_KEY: nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
 
+  # Restored .nx cache is unpacked on a different runner than it was saved on; allow Nx to use it.
+  # https://nx.dev/troubleshooting/unknown-local-cache
+  NX_REJECT_UNKNOWN_LOCAL_CACHE: '0'
+
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
   # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
