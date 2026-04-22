@@ -73,6 +73,9 @@ async function buildLambdaLayer(): Promise<void> {
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
   run(`zip -r -y ${zipFilename} ${dirsToZip.join(' ')}`, { cwd: 'build/aws/dist-serverless' });
+
+  // Cleanup temporary installation files
+  fs.rmSync('build/aws/dist-serverless/nodejs/', { recursive: true, force: true });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

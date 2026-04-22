@@ -15,7 +15,7 @@
     "test:assert": "pnpm run test:e2e"
   },
   "dependencies": {
-    "@sentry/sveltekit": "latest || *"
+    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

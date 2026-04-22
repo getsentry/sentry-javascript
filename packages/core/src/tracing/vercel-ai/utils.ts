@@ -1,14 +1,8 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
 import {
-  GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE,
-  GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE,
-  GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
-  GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-  GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
@@ -16,7 +10,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getJsonString, getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanContextMap } from './constants';
 import type { TokenSummary, ToolCallSpanContext } from './types';
 import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
@@ -227,7 +221,7 @@ export function convertUserInputToMessagesFormat(userInput: string): { role: str
  * Generate a request.messages JSON array from the prompt field in the
  * invoke_agent op
  */
-export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes, enableTruncation: boolean): void {
   if (
     typeof attributes[AI_PROMPT_ATTRIBUTE] === 'string' &&
     !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
@@ -247,11 +241,13 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       }
 
       const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-      const truncatedMessages = getTruncatedJsonString(filteredMessages);
+      const messagesJson = enableTruncation
+        ? getTruncatedJsonString(filteredMessages)
+        : getJsonString(filteredMessages);
 
       span.setAttributes({
-        [AI_PROMPT_ATTRIBUTE]: truncatedMessages,
-        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+        [AI_PROMPT_ATTRIBUTE]: messagesJson,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
         [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
       });
     }
@@ -268,46 +264,17 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
         }
 
         const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
-        const truncatedMessages = getTruncatedJsonString(filteredMessages);
+        const messagesJson = enableTruncation
+          ? getTruncatedJsonString(filteredMessages)
+          : getJsonString(filteredMessages);
 
         span.setAttributes({
-          [AI_PROMPT_MESSAGES_ATTRIBUTE]: truncatedMessages,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: truncatedMessages,
+          [AI_PROMPT_MESSAGES_ATTRIBUTE]: messagesJson,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: messagesJson,
           [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
         });
       }
       // eslint-disable-next-line no-empty
     } catch {}
-  }
-}
-
-/**
- * Maps a Vercel AI span name to the corresponding Sentry op.
- */
-export function getSpanOpFromName(name: string): string | undefined {
-  switch (name) {
-    case 'ai.generateText':
-    case 'ai.streamText':
-    case 'ai.generateObject':
-    case 'ai.streamObject':
-      return GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE;
-    case 'ai.generateText.doGenerate':
-    case 'ai.streamText.doStream':
-    case 'ai.generateObject.doGenerate':
-    case 'ai.streamObject.doStream':
-      return GEN_AI_GENERATE_CONTENT_OPERATION_ATTRIBUTE;
-    case 'ai.embed.doEmbed':
-      return GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE;
-    case 'ai.embedMany.doEmbed':
-      return GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE;
-    case 'ai.rerank.doRerank':
-      return GEN_AI_RERANK_DO_RERANK_OPERATION_ATTRIBUTE;
-    case 'ai.toolCall':
-      return GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE;
-    default:
-      if (name.startsWith('ai.stream')) {
-        return 'ai.run';
-      }
-      return undefined;
   }
 }

@@ -27,9 +27,15 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { truncateGenAiMessages } from '../ai/messageTruncation';
 import type { InstrumentedMethodEntry } from '../ai/utils';
-import { buildMethodPath, extractSystemInstructions, resolveAIRecordingOptions } from '../ai/utils';
+import {
+  buildMethodPath,
+  extractSystemInstructions,
+  getJsonString,
+  getTruncatedJsonString,
+  resolveAIRecordingOptions,
+  shouldEnableTruncation,
+} from '../ai/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
@@ -134,7 +140,12 @@ function extractRequestAttributes(
  * This is only recorded if recordInputs is true.
  * Handles different parameter formats for different Google GenAI methods.
  */
-function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>, isEmbeddings: boolean): void {
+function addPrivateRequestAttributes(
+  span: Span,
+  params: Record<string, unknown>,
+  isEmbeddings: boolean,
+  enableTruncation: boolean,
+): void {
   if (isEmbeddings) {
     const contents = params.contents;
     if (contents != null) {
@@ -184,7 +195,9 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
     const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
     span.setAttributes({
       [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
-      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify(truncateGenAiMessages(filteredMessages as unknown[])),
+      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation
+        ? getTruncatedJsonString(filteredMessages)
+        : getJsonString(filteredMessages),
     });
   }
 }
@@ -285,7 +298,12 @@ function instrumentMethod<T extends unknown[], R>(
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params, isEmbeddings);
+                addPrivateRequestAttributes(
+                  span,
+                  params,
+                  isEmbeddings,
+                  shouldEnableTruncation(options.enableTruncation),
+                );
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -313,7 +331,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, isEmbeddings);
+            addPrivateRequestAttributes(span, params, isEmbeddings, shouldEnableTruncation(options.enableTruncation));
           }
 
           return handleCallbackErrors(

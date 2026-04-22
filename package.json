@@ -31,11 +31,11 @@
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
     "postpublish": "nx run-many -t postpublish --parallel=1",
-    "test": "nx run-many -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test": "nx run-many -t test --exclude \"@sentry-internal/{browser-integration-tests,bun-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:scripts": "vitest run scripts/bump-version.test.ts",
-    "test:unit": "nx run-many -t test:unit --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test:unit": "nx run-many -t test:unit --exclude \"@sentry-internal/{browser-integration-tests,bun-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:update-snapshots": "nx run-many -t test:update-snapshots",
-    "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
+    "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,bun-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:pr:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:pr:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
@@ -98,6 +98,7 @@
     "dev-packages/bundle-analyzer-scenarios",
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
+    "dev-packages/bun-integration-tests",
     "dev-packages/cloudflare-integration-tests",
     "dev-packages/node-core-integration-tests",
     "dev-packages/test-utils",
@@ -105,7 +106,6 @@
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils",
-    "dev-packages/node-overhead-gh-action",
     "dev-packages/bundler-tests"
   ],
   "devDependencies": {
@@ -158,7 +158,9 @@
     "wide-align/string-width": "4.2.3",
     "cliui/wrap-ansi": "7.0.0",
     "sucrase": "getsentry/sucrase#es2020-polyfills",
-    "**/express/path-to-regexp": "0.1.12"
+    "**/express/path-to-regexp": "0.1.12",
+    "**/@verdaccio/local-storage-legacy/lodash": "4.17.23",
+    "**/@verdaccio/core/minimatch": "~7.4.9"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

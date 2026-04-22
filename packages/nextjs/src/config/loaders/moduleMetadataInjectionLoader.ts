@@ -1,5 +1,5 @@
 import type { LoaderThis } from './types';
-import { SKIP_COMMENT_AND_DIRECTIVE_REGEX } from './valueInjectionLoader';
+import { findInjectionIndexAfterDirectives } from './valueInjectionLoader';
 
 export type ModuleMetadataInjectionLoaderOptions = {
   applicationKey: string;
@@ -39,7 +39,6 @@ export default function moduleMetadataInjectionLoader(
     `e._sentryModuleMetadata[(new e.Error).stack]=Object.assign({},e._sentryModuleMetadata[(new e.Error).stack],${metadata});` +
     '}catch(e){}}();';
 
-  return userCode.replace(SKIP_COMMENT_AND_DIRECTIVE_REGEX, match => {
-    return match + injectedCode;
-  });
+  const injectionIndex = findInjectionIndexAfterDirectives(userCode);
+  return `${userCode.slice(0, injectionIndex)}${injectedCode}${userCode.slice(injectionIndex)}`;
 }

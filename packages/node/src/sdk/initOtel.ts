@@ -1,13 +1,7 @@
 import { context, propagation, trace } from '@opentelemetry/api';
-import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
-import { debug as coreDebug, SDK_VERSION } from '@sentry/core';
+import { debug as coreDebug } from '@sentry/core';
 import {
   initializeEsmLoader,
   type NodeClient,
@@ -16,6 +10,7 @@ import {
 } from '@sentry/node-core';
 import {
   type AsyncLocalStorageLookup,
+  getSentryResource,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
@@ -95,14 +90,7 @@ export function setupOtel(
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: defaultResource().merge(
-      resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: 'node',
-        // eslint-disable-next-line deprecation/deprecation
-        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-        [ATTR_SERVICE_VERSION]: SDK_VERSION,
-      }),
-    ),
+    resource: getSentryResource('node'),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({

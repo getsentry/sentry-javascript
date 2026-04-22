@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
-test.skip('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
+test('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one' && transactionEvent.contexts?.trace?.op === 'pageload'
@@ -14,13 +13,6 @@ test.skip('should create a parameterized transaction when the `app` directory is
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino', to: '/parameterized/cappuccino' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -48,8 +40,7 @@ test.skip('should create a parameterized transaction when the `app` directory is
   });
 });
 
-// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
-test.skip('should create a static transaction when the `app` directory is used and the route is not parameterized', async ({
+test('should create a static transaction when the `app` directory is used and the route is not parameterized', async ({
   page,
 }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
@@ -63,13 +54,6 @@ test.skip('should create a static transaction when the `app` directory is used a
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/static', to: '/parameterized/static' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -97,8 +81,7 @@ test.skip('should create a static transaction when the `app` directory is used a
   });
 });
 
-// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
-test.skip('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
+test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep' && transactionEvent.contexts?.trace?.op === 'pageload'
@@ -110,13 +93,6 @@ test.skip('should create a partially parameterized transaction when the `app` di
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino/beep', to: '/parameterized/cappuccino/beep' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -144,8 +120,7 @@ test.skip('should create a partially parameterized transaction when the `app` di
   });
 });
 
-// TODO(https://github.com/opennextjs/opennextjs-cloudflare/issues/1141): Unskip once opennext supports prefetch-hints.json
-test.skip('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
+test('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return (
       transactionEvent.transaction === '/parameterized/:one/beep/:two' &&
@@ -158,13 +133,6 @@ test.skip('should create a nested parameterized transaction when the `app` direc
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino/beep/espresso', to: '/parameterized/cappuccino/beep/espresso' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {

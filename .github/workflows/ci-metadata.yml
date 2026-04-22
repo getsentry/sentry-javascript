@@ -51,14 +51,17 @@ jobs:
         id: get_metadata
         # We need to try a number of different options for finding the head commit, because each kind of trigger event
         # stores it in a different location
+        env:
+          COMMIT_SHA_EXPR:
+            ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }}
         run: |
-          COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }})
+          COMMIT_SHA=$(git rev-parse --short "$COMMIT_SHA_EXPR")
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
       # Most changed packages are determined in job_build via Nx
       - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.1
+        uses: dorny/paths-filter@v4.0.1
         id: changed
         with:
           filters: |
@@ -66,10 +69,6 @@ jobs:
               - '.github/**'
             any_code:
               - '!**/*.md'
-
-      - name: Get PR labels
-        id: pr-labels
-        uses: mydea/pr-labels-action@fn/bump-node20
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
@@ -83,7 +82,8 @@ jobs:
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
+        ${{ github.event_name == 'pull_request' && contains(toJSON(github.event.pull_request.labels.*.name), 'Gitflow')
+        }}
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
-        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
+        contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}

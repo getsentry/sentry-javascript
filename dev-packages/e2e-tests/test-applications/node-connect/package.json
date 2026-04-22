@@ -11,7 +11,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/node": "^18.19.1",
     "@types/connect": "3.4.38",
     "connect": "3.7.0",

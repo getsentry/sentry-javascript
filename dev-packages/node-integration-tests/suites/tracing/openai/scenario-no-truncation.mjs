@@ -60,11 +60,15 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    // Chat completion with long content (would normally be truncated)
+    // Multiple messages with long content (would normally be truncated and popped to last message only)
     const longContent = 'A'.repeat(50_000);
     await client.chat.completions.create({
       model: 'gpt-4',
-      messages: [{ role: 'user', content: longContent }],
+      messages: [
+        { role: 'user', content: longContent },
+        { role: 'assistant', content: 'Some reply' },
+        { role: 'user', content: 'Follow-up question' },
+      ],
     });
 
     // Responses API with long string input (would normally be truncated)
@@ -75,6 +79,8 @@ async function run() {
     });
   });
 
+  // Flush is required when span streaming is enabled to ensure streamed spans are sent before the process exits
+  await Sentry.flush();
   server.close();
 }
 

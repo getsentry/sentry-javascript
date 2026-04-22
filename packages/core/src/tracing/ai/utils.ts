@@ -3,6 +3,7 @@
  */
 import { captureException } from '../../exports';
 import { getClient } from '../../currentScopes';
+import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import type { Span } from '../../types-hoist/span';
 import { isThenable } from '../../utils/is';
 import {
@@ -54,6 +55,16 @@ export function resolveAIRecordingOptions<T extends AIRecordingOptions>(options?
     recordInputs: options?.recordInputs ?? sendDefaultPii,
     recordOutputs: options?.recordOutputs ?? sendDefaultPii,
   } as T & Required<AIRecordingOptions>;
+}
+
+/**
+ * Resolves whether truncation should be enabled.
+ * If the user explicitly set `enableTruncation`, that value is used.
+ * Otherwise, truncation is disabled when span streaming is active.
+ */
+export function shouldEnableTruncation(enableTruncation: boolean | undefined): boolean {
+  const client = getClient();
+  return enableTruncation ?? !(client && hasSpanStreamingEnabled(client));
 }
 
 /**

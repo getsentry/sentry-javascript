@@ -28,6 +28,7 @@ import type { Metric } from './types-hoist/metric';
 import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
+import type { ReplayEndEvent, ReplayStartEvent } from './types-hoist/replay';
 import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
@@ -731,6 +732,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
 
   /**
+   * A hook that is called when a replay session starts recording (either session or buffer mode).
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayStart', callback: (event: ReplayStartEvent) => void): () => void;
+
+  /**
+   * A hook that is called when a replay session stops recording, either manually or due to an
+   * internal condition such as `maxReplayDuration` expiry, send failure, or mutation limit.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayEnd', callback: (event: ReplayEndEvent) => void): () => void;
+
+  /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -1004,6 +1018,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event for when the feedback widget is opened in a user's browser
    */
   public emit(hook: 'openFeedbackWidget'): void;
+
+  /**
+   * Fire a hook event when a replay session starts recording.
+   */
+  public emit(hook: 'replayStart', event: ReplayStartEvent): void;
+
+  /**
+   * Fire a hook event when a replay session stops recording.
+   */
+  public emit(hook: 'replayEnd', event: ReplayEndEvent): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.

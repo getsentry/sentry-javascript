@@ -9,6 +9,11 @@ export interface GoogleGenAIOptions {
    * Enable or disable output recording.
    */
   recordOutputs?: boolean;
+  /**
+   * Enable or disable truncation of recorded input messages.
+   * Defaults to `true`.
+   */
+  enableTruncation?: boolean;
 }
 
 /**
@@ -181,10 +186,14 @@ export interface GoogleGenAIChat {
   sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
 }
 
+export type GoogleGenAIInstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
+
 /**
- * @deprecated This type is no longer used and will be removed in the next major version.
+ * @deprecated Use {@link GoogleGenAIInstrumentedMethod} instead. This alias
+ * preserves backwards compatibility with the misspelled name and will be
+ * removed in the next major version.
  */
-export type GoogleGenAIIstrumentedMethod = keyof typeof GOOGLE_GENAI_METHOD_REGISTRY;
+export type GoogleGenAIIstrumentedMethod = GoogleGenAIInstrumentedMethod;
 
 // Export the response type for use in instrumentation
 export type GoogleGenAIResponse = GenerateContentResponse;

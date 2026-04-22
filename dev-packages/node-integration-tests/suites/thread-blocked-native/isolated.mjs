@@ -24,6 +24,8 @@ const fns = [
   neverResolve,
 ];
 
+Sentry.getGlobalScope().setUser({ email: 'something@gmail.com' });
+
 setTimeout(() => {
   for (let id = 0; id < 10; id++) {
     Sentry.withIsolationScope(async () => {

@@ -4,9 +4,11 @@ import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { ensureInstrumented, getInstrumented, markAsInstrumented } from './instrument';
+import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { instrumentContext } from './utils/instrumentContext';
+import { getPrototypeMethodFilter } from './utils/rpcOptions';
 import type { UncheckedMethod } from './wrapMethodWithSentry';
 import { wrapMethodWithSentry } from './wrapMethodWithSentry';
 
@@ -52,10 +54,10 @@ export function instrumentDurableObjectWithSentry<
     construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
       const context = instrumentContext(ctx);
-
       const options = getFinalOptions(optionsCallback(env), env);
+      const instrumentedEnv = instrumentEnv(env, options);
 
-      const obj = new target(context, env);
+      const obj = new target(context, instrumentedEnv);
 
       // These are the methods that are available on a Durable Object
       // ref: https://developers.cloudflare.com/durable-objects/api/base/
@@ -82,7 +84,11 @@ export function instrumentDurableObjectWithSentry<
       }
 
       if (obj.alarm && typeof obj.alarm === 'function') {
-        obj.alarm = wrapMethodWithSentry({ options, context, spanName: 'alarm' }, obj.alarm);
+        // Alarms are independent invocations, so we start a new trace and link to the previous alarm
+        obj.alarm = wrapMethodWithSentry(
+          { options, context, spanName: 'alarm', spanOp: 'function', startNewTrace: true },
+          obj.alarm,
+        );
       }
 
       if (obj.webSocketMessage && typeof obj.webSocketMessage === 'function') {
@@ -147,8 +153,10 @@ export function instrumentDurableObjectWithSentry<
         configurable: false,
       });
 
-      if (options?.instrumentPrototypeMethods) {
-        instrumentPrototype(target, options.instrumentPrototypeMethods);
+      const methodFilter = getPrototypeMethodFilter(options);
+
+      if (methodFilter) {
+        instrumentPrototype(target, methodFilter);
       }
 
       return obj;

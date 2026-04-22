@@ -950,4 +950,84 @@ describe('Vercel AI integration', () => {
         .completed();
     });
   });
+
+  const longContent = 'A'.repeat(50_000);
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                // Multiple messages should all be preserved (no popping to last message only)
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                      { role: 'user', content: longContent },
+                      { role: 'assistant', content: 'Some reply' },
+                      { role: 'user', content: 'Follow-up question' },
+                    ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  const streamingLongContent = 'A'.repeat(50_000);
+
+  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-span-streaming.mjs',
+    'instrument-streaming-with-truncation.mjs',
+    (createRunner, test) => {
+      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+
+              // With explicit enableTruncation: true, content should be truncated despite streaming.
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              );
+              expect(chatSpan).toBeDefined();
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongContent.length,
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

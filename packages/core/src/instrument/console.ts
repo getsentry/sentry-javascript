@@ -32,8 +32,7 @@ function instrumentConsole(): void {
       originalConsoleMethods[level] = originalConsoleMethod;
 
       return function (...args: any[]): void {
-        const handlerData: HandlerDataConsole = { args, level };
-        triggerHandlers('console', handlerData);
+        triggerHandlers('console', { args, level } as HandlerDataConsole);
 
         const log = originalConsoleMethods[level];
         log?.apply(GLOBAL_OBJ.console, args);

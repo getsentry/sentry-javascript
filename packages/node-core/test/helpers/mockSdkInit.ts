@@ -1,11 +1,5 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
-import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
 import {
   createTransport,
   debug,
@@ -14,9 +8,8 @@ import {
   getGlobalScope,
   getIsolationScope,
   resolvedSyncPromise,
-  SDK_VERSION,
 } from '@sentry/core';
-import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
+import { getSentryResource, SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { NodeClient } from '../../src';
 import { SentryContextManager, validateOpenTelemetrySetup } from '../../src';
 import { init } from '../../src/sdk';
@@ -64,14 +57,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider | undefined {
   // Create and configure TracerProvider with same config as Node SDK
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: defaultResource().merge(
-      resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: 'node',
-        // eslint-disable-next-line deprecation/deprecation
-        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-        [ATTR_SERVICE_VERSION]: SDK_VERSION,
-      }),
-    ),
+    resource: getSentryResource('node'),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({

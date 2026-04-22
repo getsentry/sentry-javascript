@@ -17,6 +17,18 @@ const _cultureContextIntegration = (() => {
         };
       }
     },
+    processSegmentSpan(span) {
+      const culture = getCultureContext();
+
+      if (culture) {
+        span.attributes = {
+          'culture.locale': culture.locale,
+          'culture.timezone': culture.timezone,
+          'culture.calendar': culture.calendar,
+          ...span.attributes,
+        };
+      }
+    },
   };
 }) satisfies IntegrationFn;
 

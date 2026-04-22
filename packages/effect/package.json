@@ -1,6 +1,6 @@
 {
   "name": "@sentry/effect",
-  "version": "10.48.0",
+  "version": "10.49.0",
   "description": "Official Sentry SDK for Effect",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/effect",
@@ -57,12 +57,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.48.0",
-    "@sentry/core": "10.48.0",
-    "@sentry/node-core": "10.48.0"
+    "@sentry/browser": "10.49.0",
+    "@sentry/core": "10.49.0",
+    "@sentry/node-core": "10.49.0"
   },
   "peerDependencies": {
-    "effect": "^3.0.0"
+    "effect": "^3.0.0 || ^4.0.0-beta.50"
   },
   "peerDependenciesMeta": {
     "effect": {
@@ -70,8 +70,8 @@
     }
   },
   "devDependencies": {
-    "@effect/vitest": "^0.23.9",
-    "effect": "^3.21.0"
+    "@effect/vitest": "^4.0.0-beta.50",
+    "effect": "^4.0.0-beta.50"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

@@ -1,11 +1,5 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -22,11 +16,12 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  SDK_VERSION,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
+  getSentryResource,
   openTelemetrySetupCheck,
   SentryPropagator,
   SentrySampler,
@@ -98,10 +93,15 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
+  const resolvedIntegrations = getIntegrationsToSetup(options);
+  if (options.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
+    resolvedIntegrations.push(spanStreamingIntegration());
+  }
+
   const client = new VercelEdgeClient({
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: resolvedIntegrations,
     transport: options.transport || makeEdgeTransport,
   });
   // The client is on the current scope, from where it generally is inherited
@@ -160,14 +160,7 @@ export function setupOtel(client: VercelEdgeClient): void {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: defaultResource().merge(
-      resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: 'edge',
-        // eslint-disable-next-line deprecation/deprecation
-        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-        [ATTR_SERVICE_VERSION]: SDK_VERSION,
-      }),
-    ),
+    resource: getSentryResource('edge'),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({

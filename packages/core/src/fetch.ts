@@ -108,12 +108,17 @@ export function instrumentFetchRequest(
   const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } =
     typeof spanOriginOrOptions === 'object' ? spanOriginOrOptions : { spanOrigin: spanOriginOrOptions };
 
+  const client = getClient();
   const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
       : new SentryNonRecordingSpan();
+
+  if (shouldCreateSpanResult && !hasParent) {
+    client?.recordDroppedEvent('no_parent_span', 'span');
+  }
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
@@ -140,8 +145,6 @@ export function instrumentFetchRequest(
       options.headers = headers;
     }
   }
-
-  const client = getClient();
 
   if (client) {
     const fetchHint = {
@@ -287,11 +290,10 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
       'sentry-trace': string;
       baggage: string | undefined;
       traceparent?: string;
-    } = {
-      ...originalHeaders,
+    } = Object.assign({}, originalHeaders, {
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
-    };
+    });
 
     if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
       newHeaders.traceparent = traceparent;
