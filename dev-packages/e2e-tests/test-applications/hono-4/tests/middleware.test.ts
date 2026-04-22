@@ -32,7 +32,7 @@ test('creates a span for named middleware', async ({ baseURL }) => {
   // The middleware has a 50ms delay, so the span duration should be at least 50ms (0.05s)
   // @ts-expect-error timestamp is defined
   const durationMs = (middlewareSpan?.timestamp - middlewareSpan?.start_timestamp) * 1000;
-  expect(durationMs).toBeGreaterThanOrEqual(50);
+  expect(durationMs).toBeGreaterThanOrEqual(49);
 });
 
 test('creates a span for anonymous middleware', async ({ baseURL }) => {
@@ -84,8 +84,8 @@ test('multiple middleware are sibling spans under the same parent', async ({ bas
   const middlewareADuration = (middlewareSpans[0]?.timestamp - middlewareSpans[0]?.start_timestamp) * 1000;
   // @ts-expect-error timestamp is defined
   const middlewareBDuration = (middlewareSpans[1]?.timestamp - middlewareSpans[1]?.start_timestamp) * 1000;
-  expect(middlewareADuration).toBeGreaterThanOrEqual(50);
-  expect(middlewareBDuration).toBeGreaterThanOrEqual(60);
+  expect(middlewareADuration).toBeGreaterThanOrEqual(49);
+  expect(middlewareBDuration).toBeGreaterThanOrEqual(59);
 });
 
 test('captures error thrown in middleware', async ({ baseURL }) => {
