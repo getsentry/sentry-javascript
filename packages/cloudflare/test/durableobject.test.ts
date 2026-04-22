@@ -159,18 +159,41 @@ describe('instrumentDurableObjectWithSentry', () => {
       );
       const obj = Reflect.construct(instrumented, []);
 
-      // methodOne and methodThree should be wrapped (via Proxy)
-      expect(obj.methodOne).toBe(obj.methodOne); // Cached
-      expect(obj.methodThree).toBe(obj.methodThree); // Cached
+      // methodOne and methodThree should be wrapped — i.e. they should NOT be
+      // identical to the underlying prototype method.
+      expect(obj.methodOne).not.toBe(testClass.prototype.methodOne);
+      expect(obj.methodThree).not.toBe(testClass.prototype.methodThree);
 
-      // methodTwo should not be wrapped - accessing it returns the original prototype method
-      // which is the same on each access
-      expect(obj.methodTwo).toBe(obj.methodTwo);
+      // methodTwo is not in the allow-list and must remain the original
+      // prototype method (i.e. not wrapped).
+      expect(obj.methodTwo).toBe(testClass.prototype.methodTwo);
 
-      // All methods should still work
+      // All methods should still be callable and behave correctly.
       expect(obj.methodOne()).toBe('one');
       expect(obj.methodTwo()).toBe('two');
       expect(obj.methodThree()).toBe('three');
+    });
+
+    it('does not instrument any RPC methods when option is empty array', () => {
+      const testClass = class {
+        methodOne() {
+          return 'one';
+        }
+        methodTwo() {
+          return 'two';
+        }
+      };
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ instrumentPrototypeMethods: [] }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, []);
+
+      // Empty array means no methods are allowed → none should be wrapped.
+      expect(obj.methodOne).toBe(testClass.prototype.methodOne);
+      expect(obj.methodTwo).toBe(testClass.prototype.methodTwo);
+      expect(obj.methodOne()).toBe('one');
+      expect(obj.methodTwo()).toBe('two');
     });
 
     it('does not instrument RPC methods when option is false', () => {

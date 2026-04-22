@@ -132,6 +132,11 @@ export function instrumentDurableObjectWithSentry<
         return obj;
       }
 
+      // If `instrumentPrototypeMethods` was passed as an array (deprecated),
+      // only the listed method names should be instrumented.
+      const instrumentPrototypeMethods = Array.isArray(options.instrumentPrototypeMethods) ? options.instrumentPrototypeMethods : undefined;
+      const allowSet = instrumentPrototypeMethods ? new Set(instrumentPrototypeMethods) : null;
+
       // Return a Proxy that lazily wraps prototype methods on access.
       // This avoids iterating the prototype chain at construction time —
       // we only check if a property is an RPC method when it's accessed.
@@ -155,6 +160,10 @@ export function instrumentDurableObjectWithSentry<
           }
 
           if (Object.prototype.hasOwnProperty.call(proxyTarget, prop)) {
+            return value;
+          }
+
+          if (allowSet && !allowSet.has(prop)) {
             return value;
           }
 
