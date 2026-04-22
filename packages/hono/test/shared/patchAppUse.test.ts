@@ -155,4 +155,23 @@ describe('patchAppUse (middleware spans)', () => {
 
     expect(fakeApp._capturedThis).toBe(fakeApp);
   });
+
+  // todo: support sub-app (Hono route groups) patching in the future
+  it('does not wrap middleware on sub-apps (instance-level patching limitation)', async () => {
+    const app = new Hono();
+    patchAppUse(app);
+
+    // Route Grouping: https://hono.dev/docs/api/routing#grouping
+    const subApp = new Hono();
+    subApp.use(async function subMiddleware(_c: unknown, next: () => Promise<void>) {
+      await next();
+    });
+    subApp.get('/', () => new Response('sub'));
+
+    app.route('/sub', subApp);
+
+    await app.fetch(new Request('http://localhost/sub'));
+
+    expect(startInactiveSpanMock).not.toHaveBeenCalledWith(expect.objectContaining({ name: 'subMiddleware' }));
+  });
 });
