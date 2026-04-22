@@ -3,6 +3,7 @@ import type { Client } from '../../client';
 import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
@@ -79,6 +80,17 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     });
   }
 
+  // Backfill sentry.op from span attributes when not explicitly set.
+  // OTel-originated spans don't have sentry.op set — we infer it from semantic conventions.
+  if (!processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]) {
+    const inferredOp = inferOpFromAttributes(processedSpan.attributes);
+    if (inferredOp) {
+      safeSetSpanJSONAttributes(processedSpan, {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: inferredOp,
+      });
+    }
+  }
+
   return {
     ...streamedSpanJsonToSerializedSpan(processedSpan),
     _segmentSpan: segmentSpan,
@@ -149,4 +161,30 @@ export function safeSetSpanJSONAttributes(
       originalAttributes[key] = value;
     }
   });
+}
+
+/**
+ * Infer `sentry.op` from span attributes based on OTel semantic conventions.
+ * This is needed because OTel-originated spans don't set `sentry.op` — the non-streamed
+ * path infers it in the `SentrySpanExporter`, but streamed spans skip the exporter entirely.
+ */
+function inferOpFromAttributes(attributes?: RawAttributes<Record<string, unknown>>): string | undefined {
+  if (!attributes) {
+    return undefined;
+  }
+
+  const httpMethod = attributes['http.request.method'] || attributes['http.method'];
+  if (httpMethod) {
+    // Determine client vs server from the span's parent:
+    // - Spans with a server address are outgoing (client) requests
+    // - The `sentry.origin` attribute can also indicate the direction
+    return attributes['server.address'] || attributes['net.peer.name'] ? 'http.client' : 'http.server';
+  }
+
+  const dbSystem = attributes['db.system.name'] || attributes['db.system'];
+  if (dbSystem) {
+    return 'db';
+  }
+
+  return undefined;
 }
