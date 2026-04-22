@@ -25,15 +25,13 @@ it.skip('sends child spans on repeated Durable Object calls', async ({ signal })
 
     // All 5 child spans should be present
     expect(transactionEvent.spans).toHaveLength(5);
-    expect(transactionEvent.spans).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ description: 'task-1', op: 'task' }),
-        expect.objectContaining({ description: 'task-2', op: 'task' }),
-        expect.objectContaining({ description: 'task-3', op: 'task' }),
-        expect.objectContaining({ description: 'task-4', op: 'task' }),
-        expect.objectContaining({ description: 'task-5', op: 'task' }),
-      ]),
-    );
+    expect(transactionEvent.spans).toEqual([
+      expect.objectContaining({ description: 'task-1', op: 'task' }),
+      expect.objectContaining({ description: 'task-2', op: 'task' }),
+      expect.objectContaining({ description: 'task-3', op: 'task' }),
+      expect.objectContaining({ description: 'task-4', op: 'task' }),
+      expect.objectContaining({ description: 'task-5', op: 'task' }),
+    ]);
 
     // All child spans share the root trace_id
     const rootTraceId = transactionEvent.contexts?.trace?.trace_id;
@@ -43,23 +41,12 @@ it.skip('sends child spans on repeated Durable Object calls', async ({ signal })
     }
   }
 
-  // Expect 5 transaction envelopes — one per call.
-  const runner = createRunner(__dirname).expectN(5, assertDoWorkEnvelope).start(signal);
+  const runner = createRunner(__dirname).start(signal);
 
-  // Small delay between requests to allow waitUntil to process in wrangler dev.
-  // This is needed because wrangler dev may not guarantee waitUntil completion
-  // the same way production Cloudflare does. Without this delay, the last
-  // envelope's HTTP request may not complete before the test moves on.
-  const delay = () => new Promise(resolve => setTimeout(resolve, 50));
-
-  await runner.makeRequest('get', '/');
-  await delay();
-  await runner.makeRequest('get', '/');
-  await delay();
-  await runner.makeRequest('get', '/');
-  await delay();
-  await runner.makeRequest('get', '/');
-  await delay();
-  await runner.makeRequest('get', '/');
-  await runner.completed();
+  // Each request waits for its envelope to be received and validated before proceeding.
+  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
 });
