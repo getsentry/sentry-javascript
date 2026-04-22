@@ -32,7 +32,7 @@ export function createStreamedSpanEnvelope(
     {
       version: 2,
       ...(isBrowser() && {
-        ingest_settings: { infer_ip: inferSetting, infer_useragent: inferSetting },
+        ingest_settings: { infer_ip: inferSetting, infer_user_agent: inferSetting },
       }),
       items: serializedSpans,
     },

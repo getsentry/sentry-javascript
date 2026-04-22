@@ -254,7 +254,7 @@ describe('createStreamedSpanEnvelope', () => {
           { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
           {
             version: 2,
-            ingest_settings: { infer_ip: 'auto', infer_useragent: 'auto' },
+            ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
             items: [mockSpan],
           },
         ],
@@ -275,7 +275,7 @@ describe('createStreamedSpanEnvelope', () => {
           { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
           {
             version: 2,
-            ingest_settings: { infer_ip: 'never', infer_useragent: 'never' },
+            ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
             items: [mockSpan],
           },
         ],
