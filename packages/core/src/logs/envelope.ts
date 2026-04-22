@@ -9,11 +9,22 @@ import { isBrowser } from '../utils/isBrowser';
 /**
  * Creates a log container envelope item for a list of logs.
  *
+ * When `spanStreamingEnabled` is false, the payload is emitted in the legacy (v1) shape for
+ * backwards compatibility: Relay's historical behavior for log envelopes was to always infer
+ * end-user IP and User-Agent. Sending `version: 2` opts the payload into the explicit
+ * `ingest_settings` protocol, which would silently turn that inference off for SDKs that
+ * haven't adopted the new behavior.
+ *
  * @param items - The logs to include in the envelope.
+ * @param spanStreamingEnabled - If true, emit the v2 payload shape with explicit `ingest_settings`.
  * @param inferUserData - If true, tells Relay to infer the end-user IP and User-Agent from the incoming request.
  * @returns The created log container envelope item.
  */
-export function createLogContainerEnvelopeItem(items: Array<SerializedLog>, inferUserData?: boolean): LogContainerItem {
+export function createLogContainerEnvelopeItem(
+  items: Array<SerializedLog>,
+  spanStreamingEnabled?: boolean,
+  inferUserData?: boolean,
+): LogContainerItem {
   const inferSetting = inferUserData ? 'auto' : 'never';
   return [
     {
@@ -22,9 +33,11 @@ export function createLogContainerEnvelopeItem(items: Array<SerializedLog>, infe
       content_type: 'application/vnd.sentry.items.log+json',
     },
     {
-      version: 2,
-      ...(isBrowser() && {
-        ingest_settings: { infer_ip: inferSetting, infer_useragent: inferSetting },
+      ...(spanStreamingEnabled && {
+        version: 2,
+        ...(isBrowser() && {
+          ingest_settings: { infer_ip: inferSetting, infer_useragent: inferSetting },
+        }),
       }),
       items,
     },
@@ -40,6 +53,7 @@ export function createLogContainerEnvelopeItem(items: Array<SerializedLog>, infe
  * @param metadata - The metadata to include in the envelope.
  * @param tunnel - The tunnel to include in the envelope.
  * @param dsn - The DSN to include in the envelope.
+ * @param spanStreamingEnabled - If true, emit the v2 payload shape with explicit `ingest_settings`.
  * @param inferUserData - If true, tells Relay to infer the end-user IP and User-Agent from the incoming request.
  * @returns The created envelope.
  */
@@ -48,6 +62,7 @@ export function createLogEnvelope(
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
+  spanStreamingEnabled?: boolean,
   inferUserData?: boolean,
 ): LogEnvelope {
   const headers: LogEnvelope[0] = {};
@@ -63,5 +78,7 @@ export function createLogEnvelope(
     headers.dsn = dsnToString(dsn);
   }
 
-  return createEnvelope<LogEnvelope>(headers, [createLogContainerEnvelopeItem(logs, inferUserData)]);
+  return createEnvelope<LogEnvelope>(headers, [
+    createLogContainerEnvelopeItem(logs, spanStreamingEnabled, inferUserData),
+  ]);
 }
