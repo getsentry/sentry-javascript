@@ -64,5 +64,10 @@ export interface SerializedLog {
 }
 
 export type SerializedLogContainer = {
+  version?: number;
+  ingest_settings?: {
+    infer_ip?: 'auto' | 'never';
+    infer_useragent?: 'auto' | 'never';
+  };
   items: Array<SerializedLog>;
 };
