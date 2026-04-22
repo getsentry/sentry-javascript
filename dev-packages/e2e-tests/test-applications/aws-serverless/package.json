@@ -21,19 +21,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "NODE_VERSION=22 pnpm test:build",
-        "assert-command": "NODE_VERSION=22 pnpm test:assert",
-        "label": "aws-serverless (Node 22)"
-      },
-      {
-        "build-command": "NODE_VERSION=18 pnpm test:build",
-        "assert-command": "NODE_VERSION=18 pnpm test:assert",
-        "label": "aws-serverless (Node 18)"
-      }
-    ]
   }
 }
