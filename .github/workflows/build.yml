@@ -36,21 +36,24 @@ env:
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
-  BUILD_PATHS: |
-    ${{ github.workspace }}/dev-packages/*/build
-    ${{ github.workspace }}/packages/*/build
-    ${{ github.workspace }}/packages/*.d.ts
+  # build-output artifact paths are computed in job_build (step output from
+  # yarn ci:print-build-artifact-paths — Nx merged outputs for build:transpile, build:types, build:extension).
 
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
   # tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
   TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
   TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
-  
+
   BUILD_LAYER_PATH: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
 
-  # We cache NX per-PR for faster CI, other than this we do not want to rely on it
-  NX_CACHE_KEY: nx-Linux-${{ github.ref }}
+  # Same glob / download split as TARBALL_ARTIFACT_*: upload-artifact strips the path through
+  # the first `*`, so bundle trees are stored as <pkg>/build/bundles/...; download into packages/.
+  BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
+  BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
+
+  # We cache NX per CI run
+  NX_CACHE_KEY: nx-Linux-${{ github.run_id }}
 
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
@@ -67,7 +70,7 @@ jobs:
       pull-requests: read
 
   job_build:
-    name: Build
+    name: Install & Build
     needs: job_get_metadata
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -106,7 +109,16 @@ jobs:
           head: ${{ env.HEAD_COMMIT }}
 
       - name: Build packages
-        run: yarn build
+        run: yarn build:ci
+
+      - name: Compute build artifact paths from Nx
+        id: nx_build_paths
+        run: |
+          {
+            echo 'paths<<EOF'
+            yarn --silent ci:print-build-artifact-paths
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Store NX cache
         uses: actions/cache/save@v5
@@ -120,7 +132,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build-output
-          path: ${{ env.BUILD_PATHS }}
+          path: ${{ steps.nx_build_paths.outputs.paths }}
           retention-days: 4
           compression-level: 6
           overwrite: true
@@ -174,7 +186,9 @@ jobs:
   job_build_layer:
     name: Build Lambda layer
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_aws_serverless == 'true' || github.event_name != 'pull_request'
+    if:
+      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix,
+      'aws-serverless') || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -190,6 +204,13 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore NX cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .nx
+          key: ${{ env.NX_CACHE_KEY }}
+
       - name: Build Lambda layer
         run: yarn build:layer
 
@@ -198,6 +219,44 @@ jobs:
         with:
           name: build-layer-output
           path: ${{ env.BUILD_LAYER_PATH }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+  job_build_bundles:
+    name: Build bundles
+    needs: [job_get_metadata, job_build]
+    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore NX cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .nx
+          key: ${{ env.NX_CACHE_KEY }}
+
+      - name: Build bundles
+        run: yarn build:bundle
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_GLOB }}
           retention-days: 4
           compression-level: 6
           overwrite: true
@@ -219,7 +278,7 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     if:
@@ -335,7 +394,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
     runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -358,6 +417,12 @@ jobs:
         with:
           name: tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Restore build layer artifacts
         uses: actions/download-artifact@v7
@@ -527,7 +592,7 @@ jobs:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
@@ -592,6 +657,12 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
@@ -630,7 +701,7 @@ jobs:
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -659,6 +730,12 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore build bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -987,17 +1064,16 @@ jobs:
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v7
-
-      - name: Restore build layer artifacts
-        uses: actions/download-artifact@v7
-        if: matrix.test-application == 'aws-serverless'
-        with:
-          name: build-layer-output
-          path: ${{ env.BUILD_LAYER_PATH }}
-
         with:
           name: tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Restore build layer artifacts
+        uses: actions/download-artifact@v7
+        if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
+        with:
+          name: build-layer-output
+          path: ${{ env.BUILD_LAYER_PATH }}
 
       - name: Prepare e2e tests
         run: yarn test:prepare
@@ -1164,6 +1240,9 @@ jobs:
     needs:
       [
         job_build,
+        job_build_bundles,
+        job_build_layer,
+        job_build_tarballs,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
