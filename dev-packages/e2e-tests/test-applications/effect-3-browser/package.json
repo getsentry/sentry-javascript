@@ -11,7 +11,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/effect": "latest || *",
+    "@sentry/effect": "file:../../packed/sentry-effect-packed.tgz",
     "@types/node": "^18.19.1",
     "effect": "^3.19.19",
     "typescript": "~5.0.0"

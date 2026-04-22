@@ -6,7 +6,8 @@ import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
-import { registryCleanup, registrySetup } from './registrySetup';
+import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
+import { addPnpmOverrides } from './lib/pnpmOverrides';
 
 interface SentryTestVariant {
   'build-command': string;
@@ -184,75 +185,66 @@ async function run(): Promise<void> {
     ...envVarsToInject,
   };
 
-  const skipRegistry = !!process.env.SKIP_REGISTRY;
+  console.log('Syncing packed tarball symlinks...');
+  console.log('');
 
-  try {
-    if (!skipRegistry) {
-      await registrySetup();
+  syncPackedTarballSymlinks();
+
+  console.log('Cleaning test-applications...');
+  console.log('');
+
+  await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
+  await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
+
+  const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
+
+  console.log(`Runnings tests for: ${testAppPaths.join(', ')}`);
+  console.log('');
+
+  const packedDirPath = resolve(__dirname, 'packed');
+
+  for (const testAppPath of testAppPaths) {
+    const originalPath = resolve('test-applications', testAppPath);
+    const tmpDirPath = await mkdtemp(join(tmpdir(), `sentry-e2e-tests-${appName}-`));
+
+    await copyToTemp(originalPath, tmpDirPath);
+    await addPnpmOverrides(tmpDirPath, packedDirPath);
+
+    const cwd = tmpDirPath;
+    // Resolve variant if needed
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
+      ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
+      : {
+          buildCommand: 'pnpm test:build',
+          assertCommand: 'pnpm test:assert',
+          testLabel: testAppPath,
+        };
+
+    // Print which variant we're using if found
+    if (matchedVariantLabel) {
+      console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
     }
 
-    console.log('Cleaning test-applications...');
-    console.log('');
+    console.log(`Building ${testLabel} in ${tmpDirPath}...`);
+    await asyncExec(`volta run ${buildCommand}`, { env, cwd });
 
-    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
-    await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
-
-    const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
-
-    console.log(`Runnings tests for: ${testAppPaths.join(', ')}`);
-    console.log('');
-
-    for (const testAppPath of testAppPaths) {
-      const originalPath = resolve('test-applications', testAppPath);
-      const tmpDirPath = await mkdtemp(join(tmpdir(), `sentry-e2e-tests-${appName}-`));
-
-      await copyToTemp(originalPath, tmpDirPath);
-      const cwd = tmpDirPath;
-      // Resolve variant if needed
-      const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
-        ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
-        : {
-            buildCommand: 'pnpm test:build',
-            assertCommand: 'pnpm test:assert',
-            testLabel: testAppPath,
-          };
-
-      // Print which variant we're using if found
-      if (matchedVariantLabel) {
-        console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
+    console.log(`Testing ${testLabel}...`);
+    // Pass command as a string to support shell features (env vars, operators like &&)
+    // This matches how buildCommand is handled for consistency
+    // Properly quote test flags to preserve spaces and special characters
+    const quotedTestFlags = testFlags.map(flag => {
+      // If flag contains spaces or special shell characters, quote it
+      if (flag.includes(' ') || flag.includes('"') || flag.includes("'") || flag.includes('$') || flag.includes('`')) {
+        // Escape single quotes and wrap in single quotes (safest for shell)
+        return `'${flag.replace(/'/g, "'\\''")}'`;
       }
+      return flag;
+    });
+    const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
+    await asyncExec(testCommand, { env, cwd });
 
-      console.log(`Building ${testLabel} in ${tmpDirPath}...`);
-      await asyncExec(`volta run ${buildCommand}`, { env, cwd });
-
-      console.log(`Testing ${testLabel}...`);
-      // Pass command as a string to support shell features (env vars, operators like &&)
-      // This matches how buildCommand is handled for consistency
-      // Properly quote test flags to preserve spaces and special characters
-      const quotedTestFlags = testFlags.map(flag => {
-        // If flag contains spaces or special shell characters, quote it
-        if (
-          flag.includes(' ') ||
-          flag.includes('"') ||
-          flag.includes("'") ||
-          flag.includes('$') ||
-          flag.includes('`')
-        ) {
-          // Escape single quotes and wrap in single quotes (safest for shell)
-          return `'${flag.replace(/'/g, "'\\''")}'`;
-        }
-        return flag;
-      });
-      const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
-      await asyncExec(testCommand, { env, cwd });
-
-      // clean up (although this is tmp, still nice to do)
-      await rm(tmpDirPath, { recursive: true });
-    }
-  } finally {
-    if (!skipRegistry) {
-      await registryCleanup();
-    }
+    // clean up (although this is tmp, still nice to do)
+    await rm(tmpDirPath, { recursive: true });
   }
 }
 

@@ -14,8 +14,8 @@
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
-    "@sentry/cloudflare": "latest || *",
-    "@sentry/react-router": "latest || *",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
     "@sentry/vite-plugin": "^5.2.0",
     "@shopify/hydrogen": "2025.5.0",
     "@shopify/remix-oxygen": "^3.0.0",

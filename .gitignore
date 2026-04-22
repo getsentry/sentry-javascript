@@ -39,9 +39,6 @@ local.log
 
 .rpt2_cache
 
-# verdaccio local registry (e2e tests)
-dev-packages/e2e-tests/verdaccio-config/storage/
-
 lint-results.json
 trace.zip
 

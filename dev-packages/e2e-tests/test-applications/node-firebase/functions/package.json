@@ -11,7 +11,7 @@
   "dependencies": {
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.0.1",
-    "@sentry/node": "latest || *"
+    "@sentry/node": "file:../../../packed/sentry-node-packed.tgz"
   },
   "devDependencies": {
     "typescript": "5.9.3"
