@@ -82,8 +82,11 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   // Backfill sentry.op from span attributes when not explicitly set.
   // OTel-originated spans don't have sentry.op set — we infer it from semantic conventions.
+  // The non-streamed path infers this in the SentrySpanExporter, but streamed spans skip the exporter.
   if (!processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]) {
-    const inferredOp = inferOpFromAttributes(processedSpan.attributes);
+    // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type
+    const spanKind = (span as { kind?: number }).kind;
+    const inferredOp = inferOpFromAttributes(processedSpan.attributes, spanKind);
     if (inferredOp) {
       safeSetSpanJSONAttributes(processedSpan, {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: inferredOp,
@@ -163,22 +166,32 @@ export function safeSetSpanJSONAttributes(
   });
 }
 
+// OTel SpanKind values (we use the numeric values to avoid importing from @opentelemetry/api)
+const SPAN_KIND_CLIENT = 2;
+const SPAN_KIND_SERVER = 1;
+
 /**
- * Infer `sentry.op` from span attributes based on OTel semantic conventions.
+ * Infer `sentry.op` from span attributes and kind based on OTel semantic conventions.
  * This is needed because OTel-originated spans don't set `sentry.op` — the non-streamed
  * path infers it in the `SentrySpanExporter`, but streamed spans skip the exporter entirely.
  */
-function inferOpFromAttributes(attributes?: RawAttributes<Record<string, unknown>>): string | undefined {
+function inferOpFromAttributes(
+  attributes?: RawAttributes<Record<string, unknown>>,
+  spanKind?: number,
+): string | undefined {
   if (!attributes) {
     return undefined;
   }
 
   const httpMethod = attributes['http.request.method'] || attributes['http.method'];
   if (httpMethod) {
-    // Determine client vs server from the span's parent:
-    // - Spans with a server address are outgoing (client) requests
-    // - The `sentry.origin` attribute can also indicate the direction
-    return attributes['server.address'] || attributes['net.peer.name'] ? 'http.client' : 'http.server';
+    if (spanKind === SPAN_KIND_CLIENT) {
+      return 'http.client';
+    }
+    if (spanKind === SPAN_KIND_SERVER) {
+      return 'http.server';
+    }
+    return 'http';
   }
 
   const dbSystem = attributes['db.system.name'] || attributes['db.system'];
