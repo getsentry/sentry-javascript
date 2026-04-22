@@ -122,8 +122,13 @@ Sentry.captureEvent({
 The Remix SDK provides a script that automatically creates a release and uploads sourcemaps. To generate sourcemaps with
 Remix, you need to call `remix build` with the `--sourcemap` option.
 
-On release, call `sentry-upload-sourcemaps` to upload source maps and create a release. To see more details on how to
-use the command, call `sentry-upload-sourcemaps --help`.
+On release, call `sentry-upload-sourcemaps` to upload source maps and create a release:
+
+```bash
+npx --package=@sentry/remix sentry-upload-sourcemaps
+```
+
+To see more details on how to use the command, call `npx --package=@sentry/remix sentry-upload-sourcemaps --help`.
 
 For more advanced configuration,
 [directly use `sentry-cli` to upload source maps.](https://github.com/getsentry/sentry-cli).
