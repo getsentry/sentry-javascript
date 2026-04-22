@@ -3,7 +3,6 @@ import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import type { Integration } from '../types-hoist/integration';
 import type { Log, SerializedLog } from '../types-hoist/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
@@ -198,7 +197,6 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
     clientOptions._metadata,
     clientOptions.tunnel,
     client.getDsn(),
-    hasSpanStreamingEnabled(client),
     clientOptions.sendDefaultPii,
   );
 

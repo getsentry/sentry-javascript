@@ -23,36 +23,23 @@ afterEach(() => {
 });
 
 describe('createLogContainerEnvelopeItem', () => {
-  it('creates an envelope item with legacy shape when span streaming is disabled', () => {
-    const mockLog: SerializedLog = {
-      timestamp: 1713859200,
-      level: 'error',
-      body: 'Test error message',
-    };
-
-    const result = createLogContainerEnvelopeItem([mockLog, mockLog]);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({ type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' });
-    expect(result[1]).toEqual({ items: [mockLog, mockLog] });
-  });
-
-  it('emits version: 2 without ingest_settings when span streaming is enabled but not in browser', () => {
+  it('emits version: 2 without ingest_settings when not in browser', () => {
     const mockLog: SerializedLog = {
       timestamp: 1713859200,
       level: 'info',
       body: 'Test log message',
     };
 
-    const result = createLogContainerEnvelopeItem([mockLog], true, true);
+    const result = createLogContainerEnvelopeItem([mockLog], true);
 
+    expect(result[0]).toEqual({ type: 'log', item_count: 1, content_type: 'application/vnd.sentry.items.log+json' });
     expect(result[1]).toEqual({
       version: 2,
       items: [mockLog],
     });
   });
 
-  it("includes ingest_settings with 'auto' values when span streaming is enabled, in browser, and inferUserData is true", () => {
+  it("includes ingest_settings with 'auto' values when in browser and inferUserData is true", () => {
     vi.mocked(isBrowser).mockReturnValue(true);
 
     const mockLog: SerializedLog = {
@@ -61,7 +48,7 @@ describe('createLogContainerEnvelopeItem', () => {
       body: 'Test log message',
     };
 
-    const result = createLogContainerEnvelopeItem([mockLog], true, true);
+    const result = createLogContainerEnvelopeItem([mockLog], true);
 
     expect(result[1]).toEqual({
       version: 2,
@@ -70,7 +57,7 @@ describe('createLogContainerEnvelopeItem', () => {
     });
   });
 
-  it("includes ingest_settings with 'never' values when span streaming is enabled, in browser, and inferUserData is false", () => {
+  it("includes ingest_settings with 'never' values when in browser and inferUserData is false", () => {
     vi.mocked(isBrowser).mockReturnValue(true);
 
     const mockLog: SerializedLog = {
@@ -79,27 +66,11 @@ describe('createLogContainerEnvelopeItem', () => {
       body: 'Test log message',
     };
 
-    const result = createLogContainerEnvelopeItem([mockLog], true, false);
+    const result = createLogContainerEnvelopeItem([mockLog], false);
 
     expect(result[1]).toEqual({
       version: 2,
       ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
-      items: [mockLog],
-    });
-  });
-
-  it('omits version and ingest_settings when span streaming is disabled even if in browser', () => {
-    vi.mocked(isBrowser).mockReturnValue(true);
-
-    const mockLog: SerializedLog = {
-      timestamp: 1713859200,
-      level: 'info',
-      body: 'Test log message',
-    };
-
-    const result = createLogContainerEnvelopeItem([mockLog], false, true);
-
-    expect(result[1]).toEqual({
       items: [mockLog],
     });
   });
@@ -208,7 +179,7 @@ describe('createLogEnvelope', () => {
       expect.arrayContaining([
         expect.arrayContaining([
           { type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' },
-          { items: mockLogs },
+          { version: 2, items: mockLogs },
         ]),
       ]),
     );
