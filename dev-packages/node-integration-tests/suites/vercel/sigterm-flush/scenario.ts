@@ -33,4 +33,7 @@ Sentry.captureMessage('SIGTERM flush message');
 console.log('READY');
 
 // Keep the process alive so the integration test can send SIGTERM.
-setInterval(() => undefined, 1_000);
+const interval = setInterval(() => undefined, 10_000);
+
+// allow graceful exit once the SIGTERM arrives.
+process.once('SIGTERM', () => clearInterval(interval));

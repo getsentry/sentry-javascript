@@ -12,7 +12,7 @@
   "dependencies": {
     "@koa/bodyparser": "^5.1.1",
     "@koa/router": "^12.0.1",
-    "@sentry/node": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/node": "^18.19.1",
     "koa": "^2.15.2",
     "typescript": "~5.0.0"

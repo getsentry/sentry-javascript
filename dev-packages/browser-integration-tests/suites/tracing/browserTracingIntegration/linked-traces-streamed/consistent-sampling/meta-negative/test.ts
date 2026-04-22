@@ -7,7 +7,6 @@ import {
   envelopeRequestParser,
   hidePage,
   shouldSkipTracingTest,
-  testingCdnBundle,
   waitForClientReportRequest,
   waitForTracingHeadersOnUrl,
 } from '../../../../../../utils/helpers';
@@ -21,7 +20,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'Continues negative sampling decision from meta tag across all traces and downstream propagations',
     async ({ getLocalTestUrl, page }) => {
-      sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 

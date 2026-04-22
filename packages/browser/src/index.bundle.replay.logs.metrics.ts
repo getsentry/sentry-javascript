@@ -1,4 +1,8 @@
-import { browserTracingIntegrationShim, feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import {
+  browserTracingIntegrationShim,
+  feedbackIntegrationShim,
+  spanStreamingIntegrationShim,
+} from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
 
@@ -13,4 +17,5 @@ export {
   browserTracingIntegrationShim as browserTracingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
+  spanStreamingIntegrationShim as spanStreamingIntegration,
 };

@@ -17,7 +17,7 @@
     "@remix-run/express": "^2.17.4",
     "@remix-run/node": "^2.17.4",
     "@remix-run/react": "^2.17.4",
-    "@sentry/remix": "latest || *",
+    "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
     "compression": "^1.7.4",
     "cross-env": "^7.0.3",
     "express": "^4.21.2",

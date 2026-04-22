@@ -10,7 +10,7 @@
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/browser": "latest || *",
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "babel-loader": "^8.0.0",
     "@babel/core": "^7.0.0",
     "@babel/preset-env": "^7.0.0",

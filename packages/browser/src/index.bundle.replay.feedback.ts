@@ -3,6 +3,7 @@ import {
   consoleLoggingIntegrationShim,
   elementTimingIntegrationShim,
   loggerShim,
+  spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
@@ -18,6 +19,7 @@ export {
   elementTimingIntegrationShim as elementTimingIntegration,
   feedbackAsyncIntegration as feedbackAsyncIntegration,
   feedbackAsyncIntegration as feedbackIntegration,
+  spanStreamingIntegrationShim as spanStreamingIntegration,
 };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

@@ -11,7 +11,7 @@
     "test:assert": "pnpm typecheck && vitest run ."
   },
   "dependencies": {
-    "@sentry/cloudflare": "latest || *",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "hono": "4.12.12"
   },
   "devDependencies": {
