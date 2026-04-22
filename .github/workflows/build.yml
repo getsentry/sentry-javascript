@@ -41,7 +41,7 @@ env:
 
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
-  # tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
+  # build-tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
   TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
   TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
@@ -415,7 +415,7 @@ jobs:
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v7
         with:
-          name: tarball-output
+          name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Restore build bundle artifacts
@@ -1001,7 +1001,7 @@ jobs:
       - name: Upload tarball artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: tarball-output
+          name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_GLOB }}
           if-no-files-found: error
           retention-days: 4
@@ -1065,7 +1065,7 @@ jobs:
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v7
         with:
-          name: tarball-output
+          name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Restore build layer artifacts
@@ -1183,7 +1183,7 @@ jobs:
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v7
         with:
-          name: tarball-output
+          name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Prepare E2E tests
