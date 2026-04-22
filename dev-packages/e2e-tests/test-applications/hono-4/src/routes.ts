@@ -1,7 +1,7 @@
 import type { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
-export function addRoutes(app: Hono<{ Bindings: { E2E_TEST_DSN: string } }>): void {
+export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): void {
   app.get('/', c => {
     return c.text('Hello Hono!');
   });
