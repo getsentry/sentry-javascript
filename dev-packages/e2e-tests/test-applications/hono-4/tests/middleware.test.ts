@@ -69,7 +69,6 @@ test('multiple middleware are sibling spans under the same parent', async ({ bas
 
   // Sort spans because they are in a different order in Node/Bun (OTel-based)
   const middlewareSpans = spans
-    .filter((span: SpanJSON) => span.op === 'middleware.hono' && span.origin === 'auto.middleware.hono')
     .sort((a, b) => (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0));
 
   expect(middlewareSpans).toHaveLength(2);
