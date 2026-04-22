@@ -5,7 +5,7 @@ interface Env {
 }
 
 const myWorker = {
-  async fetch(request: Request) {
+  async fetch(_request: Request) {
     return new Response('Hello from another worker!');
   },
 };

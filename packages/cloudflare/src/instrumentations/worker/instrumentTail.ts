@@ -53,10 +53,9 @@ export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any
         apply(target, thisArg, args: Parameters<NonNullable<T['tail']>>) {
           const [, env, ctx] = args;
           const context = instrumentContext(ctx);
-          args[1] = instrumentEnv(env);
-          args[2] = context;
-
           const options = getFinalOptions(optionsCallback(env), env);
+          args[1] = instrumentEnv(env, options);
+          args[2] = context;
 
           return wrapTailHandler(options, context, () => target.apply(thisArg, args));
         },

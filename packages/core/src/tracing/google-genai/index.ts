@@ -34,6 +34,7 @@ import {
   getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
 } from '../ai/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -297,7 +298,12 @@ function instrumentMethod<T extends unknown[], R>(
           async (span: Span) => {
             try {
               if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params, isEmbeddings, options.enableTruncation ?? true);
+                addPrivateRequestAttributes(
+                  span,
+                  params,
+                  isEmbeddings,
+                  shouldEnableTruncation(options.enableTruncation),
+                );
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
@@ -325,7 +331,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         (span: Span) => {
           if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, isEmbeddings, options.enableTruncation ?? true);
+            addPrivateRequestAttributes(span, params, isEmbeddings, shouldEnableTruncation(options.enableTruncation));
           }
 
           return handleCallbackErrors(

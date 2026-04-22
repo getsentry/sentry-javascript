@@ -5,22 +5,18 @@ import type { ToolCallSpanContext } from './types';
 // without keeping full Span objects (and their potentially large attributes) alive.
 export const toolCallSpanContextMap = new Map<string, ToolCallSpanContext>();
 
-// Operation sets for efficient mapping to OpenTelemetry semantic convention values
-export const INVOKE_AGENT_OPS = new Set(['ai.generateText', 'ai.streamText', 'ai.generateObject', 'ai.streamObject']);
-
-export const GENERATE_CONTENT_OPS = new Set([
-  'ai.generateText.doGenerate',
-  'ai.streamText.doStream',
-  'ai.generateObject.doGenerate',
-  'ai.streamObject.doStream',
+/** Maps Vercel AI span names to standardized OpenTelemetry operation names. */
+export const SPAN_TO_OPERATION_NAME = new Map<string, string>([
+  ['ai.generateText', 'invoke_agent'],
+  ['ai.streamText', 'invoke_agent'],
+  ['ai.generateObject', 'invoke_agent'],
+  ['ai.streamObject', 'invoke_agent'],
+  ['ai.generateText.doGenerate', 'generate_content'],
+  ['ai.streamText.doStream', 'generate_content'],
+  ['ai.generateObject.doGenerate', 'generate_content'],
+  ['ai.streamObject.doStream', 'generate_content'],
+  ['ai.embed.doEmbed', 'embeddings'],
+  ['ai.embedMany.doEmbed', 'embeddings'],
+  ['ai.rerank.doRerank', 'rerank'],
+  ['ai.toolCall', 'execute_tool'],
 ]);
-
-export const EMBEDDINGS_OPS = new Set(['ai.embed.doEmbed', 'ai.embedMany.doEmbed']);
-
-export const RERANK_OPS = new Set(['ai.rerank.doRerank']);
-
-export const DO_SPAN_NAME_PREFIX: Record<string, string> = {
-  'ai.embed.doEmbed': 'embeddings',
-  'ai.embedMany.doEmbed': 'embeddings',
-  'ai.rerank.doRerank': 'rerank',
-};

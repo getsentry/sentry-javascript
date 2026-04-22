@@ -56,6 +56,66 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3501);
 });
 
+sentryTest(
+  'uses updated attributes for click breadcrumbs after mutation',
+  async ({ forceFlushReplay, getLocalTestUrl, page }) => {
+    if (shouldSkipReplayTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const replayRequestPromise = waitForReplayRequest(page, 0);
+    const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (_event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
+
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    });
+
+    await page.goto(url);
+    await replayRequestPromise;
+
+    await forceFlushReplay();
+
+    await page.evaluate(() => {
+      const target = document.getElementById('next-question-button');
+      if (!target) {
+        throw new Error('Could not find target button');
+      }
+
+      target.id = 'save-note-button';
+      target.setAttribute('data-testid', 'save-note-button');
+    });
+
+    await page.getByRole('button', { name: 'Next question' }).click();
+    await forceFlushReplay();
+
+    const segmentReqWithClickBreadcrumb = await segmentReqWithClickBreadcrumbPromise;
+
+    const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithClickBreadcrumb);
+    const updatedClickBreadcrumb = breadcrumbs.find(breadcrumb => breadcrumb.category === 'ui.click');
+
+    expect(updatedClickBreadcrumb).toEqual({
+      category: 'ui.click',
+      data: {
+        node: {
+          attributes: {
+            id: 'save-note-button',
+            testId: 'save-note-button',
+          },
+          id: expect.any(Number),
+          tagName: 'button',
+          textContent: '**** ********',
+        },
+        nodeId: expect.any(Number),
+      },
+      message: 'body > button#save-note-button',
+      timestamp: expect.any(Number),
+      type: 'default',
+    });
+  },
+);
+
 sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();

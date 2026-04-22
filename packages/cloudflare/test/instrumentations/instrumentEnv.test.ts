@@ -32,7 +32,7 @@ describe('instrumentEnv', () => {
     expect(instrumented.UNKNOWN).toBe(unknownBinding);
   });
 
-  it('detects and instruments DurableObjectNamespace bindings', () => {
+  it('returns env as-is when enableRpcTracePropagation is disabled', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -41,6 +41,22 @@ describe('instrumentEnv', () => {
     };
     const env = { COUNTER: doNamespace };
     const instrumented = instrumentEnv(env);
+
+    // When trace propagation is disabled, env is returned as-is
+    expect(instrumented).toBe(env);
+    expect(instrumented.COUNTER).toBe(doNamespace);
+    expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
+  });
+
+  it('detects and instruments DurableObjectNamespace bindings when enableRpcTracePropagation is enabled', () => {
+    const doNamespace = {
+      idFromName: vi.fn(),
+      idFromString: vi.fn(),
+      get: vi.fn(),
+      newUniqueId: vi.fn(),
+    };
+    const env = { COUNTER: doNamespace };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
     const result = instrumented.COUNTER;
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
@@ -55,7 +71,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace };
-    const instrumented = instrumentEnv(env);
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
     const first = instrumented.COUNTER;
     const second = instrumented.COUNTER;
@@ -78,7 +94,7 @@ describe('instrumentEnv', () => {
       newUniqueId: vi.fn(),
     };
     const env = { COUNTER: doNamespace1, SESSIONS: doNamespace2 };
-    const instrumented = instrumentEnv(env);
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
     instrumented.COUNTER;
     instrumented.SESSIONS;
@@ -88,7 +104,7 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace2);
   });
 
-  it('wraps JSRPC proxy with a Proxy that instruments fetch', () => {
+  it('does not wrap JSRPC proxy when enableRpcTracePropagation is disabled', () => {
     const mockFetch = vi.fn();
     const jsrpcProxy = new Proxy(
       { fetch: mockFetch },
@@ -104,6 +120,29 @@ describe('instrumentEnv', () => {
     );
     const env = { SERVICE: jsrpcProxy };
     const instrumented = instrumentEnv(env);
+
+    const result = instrumented.SERVICE;
+    // Should be the same reference — not wrapped when propagation is disabled
+    expect(result).toBe(jsrpcProxy);
+    expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
+  });
+
+  it('wraps JSRPC proxy with a Proxy that instruments fetch when enableRpcTracePropagation is enabled', () => {
+    const mockFetch = vi.fn();
+    const jsrpcProxy = new Proxy(
+      { fetch: mockFetch },
+      {
+        get(target, prop) {
+          if (prop in target) {
+            return Reflect.get(target, prop);
+          }
+          // JSRPC behavior: return truthy for any property
+          return () => {};
+        },
+      },
+    );
+    const env = { SERVICE: jsrpcProxy };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
 
     const result = instrumented.SERVICE;
     // Should NOT be the same reference — it's wrapped in a Proxy

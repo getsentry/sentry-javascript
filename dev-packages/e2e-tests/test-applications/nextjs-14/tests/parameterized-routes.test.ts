@@ -13,13 +13,6 @@ test('should create a parameterized transaction when the `app` directory is used
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino', to: '/parameterized/cappuccino' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -61,13 +54,6 @@ test('should create a static transaction when the `app` directory is used and th
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/static', to: '/parameterized/static' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -107,13 +93,6 @@ test('should create a partially parameterized transaction when the `app` directo
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino/beep', to: '/parameterized/cappuccino/beep' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {
@@ -154,13 +133,6 @@ test('should create a nested parameterized transaction when the `app` directory 
   const transaction = await transactionPromise;
 
   expect(transaction).toMatchObject({
-    breadcrumbs: expect.arrayContaining([
-      {
-        category: 'navigation',
-        data: { from: '/parameterized/cappuccino/beep/espresso', to: '/parameterized/cappuccino/beep/espresso' },
-        timestamp: expect.any(Number),
-      },
-    ]),
     contexts: {
       react: { version: expect.any(String) },
       trace: {

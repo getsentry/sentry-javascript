@@ -530,15 +530,23 @@ describe('trace', () => {
     // TODO: propagation scope is not picked up by spans...
 
     describe('onlyIfParent', () => {
-      it('does not create a span if there is no parent', () => {
+      it('does not create a span and records no_parent_span client report if there is no parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
           return span;
         });
 
         expect(isSpan(span)).toBe(false);
+        expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
+        expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
 
       it('creates a span if there is a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startSpan({ name: 'parent span' }, () => {
           const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
             return span;
@@ -548,6 +556,33 @@ describe('trace', () => {
         });
 
         expect(isSpan(span)).toBe(true);
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          startSpan({ name: 'root span without onlyIfParent' }, span => {
+            return span;
+          });
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is false even without a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          startSpan({ name: 'root span', onlyIfParent: false }, span => {
+            return span;
+          });
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
       });
     });
   });
@@ -824,13 +859,21 @@ describe('trace', () => {
     });
 
     describe('onlyIfParent', () => {
-      it('does not create a span if there is no parent', () => {
+      it('does not create a span and records no_parent_span client report if there is no parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
         expect(isSpan(span)).toBe(false);
+        expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
+        expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
 
       it('creates a span if there is a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startSpan({ name: 'parent span' }, () => {
           const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
@@ -838,6 +881,31 @@ describe('trace', () => {
         });
 
         expect(isSpan(span)).toBe(true);
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          const span = startInactiveSpan({ name: 'root span without onlyIfParent' });
+          span.end();
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is false even without a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          const span = startInactiveSpan({ name: 'root span', onlyIfParent: false });
+          span.end();
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
       });
     });
 
@@ -1192,15 +1260,23 @@ describe('trace', () => {
     });
 
     describe('onlyIfParent', () => {
-      it('does not create a span if there is no parent', () => {
+      it('does not create a span and records no_parent_span client report if there is no parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
           return span;
         });
 
         expect(isSpan(span)).toBe(false);
+        expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
+        expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       });
 
       it('creates a span if there is a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
         const span = startSpan({ name: 'parent span' }, () => {
           const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
             return span;
@@ -1210,6 +1286,35 @@ describe('trace', () => {
         });
 
         expect(isSpan(span)).toBe(true);
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is not set', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          startSpanManual({ name: 'root span without onlyIfParent' }, span => {
+            span.end();
+            return span;
+          });
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
+      });
+
+      it('does not record no_parent_span client report when onlyIfParent is false even without a parent', () => {
+        const client = getClient()!;
+        const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+        context.with(ROOT_CONTEXT, () => {
+          startSpanManual({ name: 'root span', onlyIfParent: false }, span => {
+            span.end();
+            return span;
+          });
+        });
+
+        expect(spyOnDroppedEvent).not.toHaveBeenCalledWith('no_parent_span', 'span');
       });
     });
   });

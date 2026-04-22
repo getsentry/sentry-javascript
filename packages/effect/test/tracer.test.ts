@@ -1,11 +1,11 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { Effect, Layer } from 'effect';
+import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
 import { SentryEffectTracer } from '../src/tracer';
 
-const TracerLayer = Layer.setTracer(SentryEffectTracer);
+const withSentryTracer = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, SentryEffectTracer);
 
 describe('SentryEffectTracer', () => {
   afterEach(() => {
@@ -24,7 +24,7 @@ describe('SentryEffectTracer', () => {
       );
 
       expect(capturedSpanName).toBe('effect-span-executed');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('creates spans with correct attributes', () =>
@@ -32,7 +32,7 @@ describe('SentryEffectTracer', () => {
       const result = yield* Effect.withSpan('my-operation')(Effect.succeed('success'));
 
       expect(result).toBe('success');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('handles nested spans', () =>
@@ -45,7 +45,7 @@ describe('SentryEffectTracer', () => {
       );
 
       expect(result).toBe('outer-inner-result');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('propagates span context through Effect fibers', () =>
@@ -62,27 +62,30 @@ describe('SentryEffectTracer', () => {
       );
 
       expect(results).toEqual(['parent-start', 'child-1', 'child-2', 'parent-end']);
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('handles span failures correctly', () =>
     Effect.gen(function* () {
       const result = yield* Effect.withSpan('failing-span')(Effect.fail('expected-error')).pipe(
-        Effect.catchAll(e => Effect.succeed(`caught: ${e}`)),
+        Effect.catchCause(cause => {
+          const error = cause.reasons[0]?._tag === 'Fail' ? cause.reasons[0].error : 'unknown';
+          return Effect.succeed(`caught: ${error}`);
+        }),
       );
 
       expect(result).toBe('caught: expected-error');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('handles span with defects (die)', () =>
     Effect.gen(function* () {
       const result = yield* Effect.withSpan('defect-span')(Effect.die('defect-value')).pipe(
-        Effect.catchAllDefect(d => Effect.succeed(`caught-defect: ${d}`)),
+        Effect.catchDefect(d => Effect.succeed(`caught-defect: ${d}`)),
       );
 
       expect(result).toBe('caught-defect: defect-value');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('works with Effect.all for parallel operations', () =>
@@ -96,7 +99,7 @@ describe('SentryEffectTracer', () => {
       );
 
       expect(results).toEqual([1, 2, 3]);
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('supports span annotations', () =>
@@ -107,7 +110,7 @@ describe('SentryEffectTracer', () => {
       );
 
       expect(result).toBe('annotated');
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets span status to ok on success', () =>
@@ -130,7 +133,7 @@ describe('SentryEffectTracer', () => {
       expect(setStatusCalls).toContainEqual({ code: 1 });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets span status to error on failure', () =>
@@ -148,12 +151,12 @@ describe('SentryEffectTracer', () => {
         } as unknown as sentryCore.Span;
       });
 
-      yield* Effect.withSpan('error-span')(Effect.fail('test-error')).pipe(Effect.catchAll(() => Effect.void));
+      yield* Effect.withSpan('error-span')(Effect.fail('test-error')).pipe(Effect.catchCause(() => Effect.void));
 
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'test-error' });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets span status to error on defect', () =>
@@ -171,12 +174,12 @@ describe('SentryEffectTracer', () => {
         } as unknown as sentryCore.Span;
       });
 
-      yield* Effect.withSpan('defect-span')(Effect.die('fatal-defect')).pipe(Effect.catchAllDefect(() => Effect.void));
+      yield* Effect.withSpan('defect-span')(Effect.die('fatal-defect')).pipe(Effect.catchDefect(() => Effect.void));
 
       expect(setStatusCalls).toContainEqual({ code: 2, message: 'fatal-defect' });
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('propagates Sentry span context via withActiveSpan', () =>
@@ -197,7 +200,7 @@ describe('SentryEffectTracer', () => {
       expect(withActiveSpanCalls.length).toBeGreaterThan(0);
 
       mockWithActiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets origin to auto.function.effect for regular spans', () =>
@@ -222,7 +225,7 @@ describe('SentryEffectTracer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets origin to auto.http.effect for http.server spans', () =>
@@ -247,7 +250,7 @@ describe('SentryEffectTracer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('sets origin to auto.http.effect for http.client spans', () =>
@@ -272,7 +275,7 @@ describe('SentryEffectTracer', () => {
       expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
 
       mockStartInactiveSpan.mockRestore();
-    }).pipe(Effect.provide(TracerLayer)),
+    }).pipe(withSentryTracer),
   );
 
   it.effect('can be used with Effect.withTracer', () =>

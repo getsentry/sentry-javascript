@@ -2,6 +2,7 @@
 import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  debug,
   getActiveSpan,
   getComponentName,
   htmlTreeAsString,
@@ -21,13 +22,13 @@ import {
   addTtfbInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
 } from './instrument';
-import { trackLcpAsStandaloneSpan } from './lcp';
+import { isValidLcpMetric, trackLcpAsStandaloneSpan } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-
+import { DEBUG_BUILD } from '../debug-build';
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
 }
@@ -75,8 +76,18 @@ let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
 interface StartTrackingWebVitalsOptions {
-  recordClsStandaloneSpans: boolean;
-  recordLcpStandaloneSpans: boolean;
+  /**
+   * When `true`, CLS is tracked as a standalone span. When `false`, CLS is
+   * recorded as a measurement on the pageload span. When `undefined`, CLS
+   * tracking is skipped entirely (e.g. because span streaming handles it).
+   */
+  recordClsStandaloneSpans: boolean | undefined;
+  /**
+   * When `true`, LCP is tracked as a standalone span. When `false`, LCP is
+   * recorded as a measurement on the pageload span. When `undefined`, LCP
+   * tracking is skipped entirely (e.g. because span streaming handles it).
+   */
+  recordLcpStandaloneSpans: boolean | undefined;
   client: Client;
 }
 
@@ -84,6 +95,7 @@ interface StartTrackingWebVitalsOptions {
  * Start tracking web vitals.
  * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
  *
+ * @deprecated this function will be removed and streamlined once we stop supporting standalone v1
  * @returns A function that forces web vitals collection
  */
 export function startTrackingWebVitals({
@@ -97,13 +109,24 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
+
+    const lcpCleanupCallback = recordLcpStandaloneSpans
+      ? trackLcpAsStandaloneSpan(client)
+      : recordLcpStandaloneSpans === false
+        ? _trackLCP()
+        : undefined;
+
+    const clsCleanupCallback = recordClsStandaloneSpans
+      ? trackClsAsStandaloneSpan(client)
+      : recordClsStandaloneSpans === false
+        ? _trackCLS()
+        : undefined;
+
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
-      lcpCleanupCallback?.();
       ttfbCleanupCallback();
+      lcpCleanupCallback?.();
       clsCleanupCallback?.();
     };
   }
@@ -260,7 +283,7 @@ function _trackCLS(): () => void {
 function _trackLCP(): () => void {
   return addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
-    if (!entry) {
+    if (!entry || !isValidLcpMetric(metric.value)) {
       return;
     }
 
@@ -314,6 +337,11 @@ interface AddPerformanceEntriesOptions {
    * Default: []
    */
   ignorePerformanceApiSpans: Array<string | RegExp>;
+
+  /**
+   * Whether span streaming is enabled.
+   */
+  spanStreamingEnabled?: boolean;
 }
 
 /** Add performance related spans to a transaction */
@@ -324,6 +352,14 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     // Gatekeeper if performance API not available
     return;
   }
+
+  const {
+    spanStreamingEnabled,
+    ignorePerformanceApiSpans,
+    ignoreResourceSpans,
+    recordClsOnPageloadSpan,
+    recordLcpOnPageloadSpan,
+  } = options;
 
   const timeOrigin = msToSec(origin);
 
@@ -353,7 +389,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, options.ignorePerformanceApiSpans);
+        _addMeasureSpans(span, entry, startTime, duration, timeOrigin, ignorePerformanceApiSpans);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -376,7 +412,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           startTime,
           duration,
           timeOrigin,
-          options.ignoreResourceSpans,
+          ignoreResourceSpans,
         );
         break;
       }
@@ -386,28 +422,50 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   _performanceCursor = Math.max(performanceEntries.length - 1, 0);
 
-  _trackNavigator(span);
+  _trackNavigator(span, spanStreamingEnabled);
 
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
-    // If CLS standalone spans are enabled, don't record CLS as a measurement
-    if (!options.recordClsOnPageloadSpan) {
-      delete _measurements.cls;
-    }
+    if (spanStreamingEnabled) {
+      const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
+        const attrKey = customAttrName ?? `browser.web_vital.${shortWebVitalName}.value`;
+        span.setAttribute(attrKey, value);
+        DEBUG_BUILD && debug.log('Setting web vital attribute', { [attrKey]: value }, 'on pageload span');
+      };
+      // for streamed pageload spans, we add the web vital measurements as attributes.
+      // We omit LCP, CLS and INP because they're tracked separately as spans
+      ['ttfb', 'fp', 'fcp'].forEach(measurementName => {
+        if (_measurements[measurementName]) {
+          setAttr(measurementName, _measurements[measurementName].value);
+        }
+      });
+      if (_measurements['ttfb.requestTime']) {
+        setAttr('ttfb.requestTime', _measurements['ttfb.requestTime'].value, 'browser.web_vital.ttfb.request_time');
+      }
+    } else {
+      // TODO (V11): Remove this else branch once we remove v1 standalone spans and transactions
 
-    // If LCP standalone spans are enabled, don't record LCP as a measurement
-    if (!options.recordLcpOnPageloadSpan) {
-      delete _measurements.lcp;
-    }
+      // If CLS standalone spans are enabled, don't record CLS as a measurement
+      if (!recordClsOnPageloadSpan) {
+        delete _measurements.cls;
+      }
 
-    Object.entries(_measurements).forEach(([measurementName, measurement]) => {
-      setMeasurement(measurementName, measurement.value, measurement.unit);
-    });
+      // If LCP standalone spans are enabled, don't record LCP as a measurement
+      if (!recordLcpOnPageloadSpan) {
+        delete _measurements.lcp;
+      }
+
+      Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+        setMeasurement(measurementName, measurement.value, measurement.unit);
+      });
+
+      _setWebVitalAttributes(span, options);
+    }
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
-    span.setAttribute('performance.timeOrigin', timeOrigin);
+    span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
 
     // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
     // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
@@ -415,9 +473,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     // time where the user actively started the navigation, for example by clicking a link.
     // This is user action is called "activation" and the time between navigation and activation is stored in
     // the `activationStart` attribute of the "navigation" PerformanceEntry.
-    span.setAttribute('performance.activationStart', getActivationStart());
-
-    _setWebVitalAttributes(span, options);
+    span.setAttribute(
+      spanStreamingEnabled ? 'browser.performance.navigation.activation_start' : 'performance.activationStart',
+      getActivationStart(),
+    );
   }
 
   _lcpEntry = undefined;
@@ -712,8 +771,9 @@ export function _addResourceSpans(
 
 /**
  * Capture the information of the user agent.
+ * TODO v11: Remove non-span-streaming attributes and measurements once we removed transactions
  */
-function _trackNavigator(span: Span): void {
+function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined): void {
   const navigator = WINDOW.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
   if (!navigator) {
     return;
@@ -723,24 +783,38 @@ function _trackNavigator(span: Span): void {
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
-      span.setAttribute('effectiveConnectionType', connection.effectiveType);
+      span.setAttribute(
+        spanStreamingEnabled ? 'network.connection.effective_type' : 'effectiveConnectionType',
+        connection.effectiveType,
+      );
     }
 
     if (connection.type) {
-      span.setAttribute('connectionType', connection.type);
+      span.setAttribute(spanStreamingEnabled ? 'network.connection.type' : 'connectionType', connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
       _measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
+      if (spanStreamingEnabled) {
+        span.setAttribute('network.connection.rtt', connection.rtt);
+      }
     }
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
-    span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
+    if (spanStreamingEnabled) {
+      span.setAttribute('device.memory.estimated_capacity', navigator.deviceMemory);
+    } else {
+      span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
+    }
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
-    span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    if (spanStreamingEnabled) {
+      span.setAttribute('device.processor_count', navigator.hardwareConcurrency);
+    } else {
+      span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    }
   }
 }
 

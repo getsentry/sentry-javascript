@@ -17,6 +17,7 @@ import {
   getJsonString,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
+  shouldEnableTruncation,
 } from '../ai/utils';
 import type { LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
@@ -150,7 +151,7 @@ function instrumentCompiledGraphInvoke(
                 span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
               }
 
-              const enableTruncation = options.enableTruncation ?? true;
+              const enableTruncation = shouldEnableTruncation(options.enableTruncation);
               const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : 0;
               span.setAttributes({
                 [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: enableTruncation

@@ -105,6 +105,8 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { makeWeakRef, derefWeakRef } from './utils/weakRef';
+export type { MaybeWeakRef } from './utils/weakRef';
 export { shouldIgnoreSpan } from './utils/should-ignore-span';
 export {
   winterCGHeadersToDict,
@@ -190,8 +192,10 @@ export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
+  GoogleGenAIInstrumentedMethod,
 } from './tracing/google-genai/types';
+// eslint-disable-next-line deprecation/deprecation
+export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
@@ -439,7 +443,14 @@ export type {
   Profile,
   ProfileChunk,
 } from './types-hoist/profiling';
-export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './types-hoist/replay';
+export type {
+  ReplayEndEvent,
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStartEvent,
+  ReplayStopReason,
+} from './types-hoist/replay';
 export type {
   FeedbackEvent,
   FeedbackFormData,
@@ -485,6 +496,7 @@ export type {
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
+export type { SpanLink } from './types-hoist/link';
 export type {
   Metric,
   MetricType,

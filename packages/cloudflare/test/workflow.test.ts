@@ -168,7 +168,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     new TestWorkflowInstrumented(mockContext, mockEnv as any);
 
     expect(instrumentEnv).toHaveBeenCalledTimes(1);
-    expect(instrumentEnv).toHaveBeenCalledWith(mockEnv);
+    expect(instrumentEnv).toHaveBeenCalledWith(
+      mockEnv,
+      expect.objectContaining({ dsn: 'https://8@ingest.sentry.io/4' }),
+    );
   });
 
   test('Calls expected functions with non-uuid instance id', async () => {

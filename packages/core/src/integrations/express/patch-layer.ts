@@ -61,7 +61,11 @@ export type ExpressPatchLayerOptions = Pick<
   'onRouteResolved' | 'ignoreLayers' | 'ignoreLayersType'
 >;
 
-export function patchLayer(options: ExpressPatchLayerOptions, maybeLayer?: ExpressLayer, layerPath?: string): void {
+export function patchLayer(
+  getOptions: () => ExpressPatchLayerOptions,
+  maybeLayer?: ExpressLayer,
+  layerPath?: string,
+): void {
   if (!maybeLayer?.handle) {
     return;
   }
@@ -86,6 +90,8 @@ export function patchLayer(options: ExpressPatchLayerOptions, maybeLayer?: Expre
     //oxlint-disable-next-line no-explicit-any
     ...otherArgs: any[]
   ) {
+    const options = getOptions();
+
     // Set normalizedRequest here because expressRequestHandler middleware
     // (registered via setupExpressErrorHandler) is added after routes and
     // therefore never runs for successful requests — route handlers typically
