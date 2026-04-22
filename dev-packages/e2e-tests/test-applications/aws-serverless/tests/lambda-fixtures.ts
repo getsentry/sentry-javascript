@@ -1,13 +1,18 @@
 import { test as base, expect } from '@playwright/test';
 import { App } from 'aws-cdk-lib';
-import * as tmp from 'tmp';
 import { LocalLambdaStack, SAM_PORT, getHostIp } from '../src/stack';
 import { writeFileSync } from 'node:fs';
-import { spawn, execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 
 const DOCKER_NETWORK_NAME = 'lambda-test-network';
 const SAM_TEMPLATE_FILE = 'sam.template.yml';
+
+/** Major Node for SAM `--invoke-image`; default matches root `package.json` `volta.node` and `pull-sam-image.sh`. */
+const DEFAULT_NODE_VERSION_MAJOR = '20';
+
+const SAM_INSTALL_ERROR =
+  'You need to install sam, e.g. run `brew install aws-sam-cli`. Ensure `sam` is on your PATH when running tests.';
 
 export { expect };
 
@@ -15,6 +20,11 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
   testEnvironment: [
     async ({}, use) => {
       console.log('[testEnvironment fixture] Setting up AWS Lambda test infrastructure');
+
+      const nodeVersionMajor = process.env.NODE_VERSION?.trim() || DEFAULT_NODE_VERSION_MAJOR;
+      process.env.NODE_VERSION = nodeVersionMajor;
+
+      assertSamOnPath();
 
       execSync('docker network prune -f');
       createDockerNetwork();
@@ -25,11 +35,6 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       const stack = new LocalLambdaStack(app, 'LocalLambdaStack', {}, hostIp);
       const template = app.synth().getStackByName('LocalLambdaStack').template;
       writeFileSync(SAM_TEMPLATE_FILE, JSON.stringify(template, null, 2));
-
-      const debugLog = tmp.fileSync({ prefix: 'sentry_aws_lambda_tests_sam_debug', postfix: '.log' });
-      if (!process.env.CI) {
-        console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
-      }
 
       const args = [
         'local',
@@ -42,16 +47,15 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         '--docker-network',
         DOCKER_NETWORK_NAME,
         '--skip-pull-image',
+        '--invoke-image',
+        `public.ecr.aws/lambda/nodejs:${nodeVersionMajor}`,
       ];
-
-      if (process.env.NODE_VERSION) {
-        args.push('--invoke-image', `public.ecr.aws/lambda/nodejs:${process.env.NODE_VERSION}`);
-      }
 
       console.log(`[testEnvironment fixture] Running SAM with args: ${args.join(' ')}`);
 
       const samProcess = spawn('sam', args, {
-        stdio: process.env.CI ? 'inherit' : ['ignore', debugLog.fd, debugLog.fd],
+        stdio: process.env.DEBUG ? 'inherit' : 'ignore',
+        env: envForSamChild(),
       });
 
       try {
@@ -90,6 +94,23 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
     await use(lambdaClient);
   },
 });
+
+/** Avoid forcing linux/amd64 on Apple Silicon when `DOCKER_DEFAULT_PLATFORM` is set globally. */
+function envForSamChild(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  if (process.arch === 'arm64') {
+    delete env.DOCKER_DEFAULT_PLATFORM;
+  }
+  return env;
+}
+
+function assertSamOnPath(): void {
+  try {
+    execSync('sam --version', { encoding: 'utf-8', stdio: 'pipe' });
+  } catch {
+    throw new Error(SAM_INSTALL_ERROR);
+  }
+}
 
 function createDockerNetwork() {
   try {
