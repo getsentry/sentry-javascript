@@ -14,6 +14,8 @@ const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 };
 
+const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
+
 function addDelayedWaitUntil(context: ExecutionContext) {
   context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
 }
@@ -589,53 +591,60 @@ describe('flushAndDispose', () => {
       disposeSpy.mockRestore();
     });
 
-    test('waitUntil is called once and dispose runs when client cancels mid-stream', async () => {
-      const waits: Promise<unknown>[] = [];
-      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
-      const context = { waitUntil } as unknown as ExecutionContext;
+    // Node 18's TransformStream does not invoke the transformer's `cancel` hook
+    // when the downstream consumer cancels (WHATWG spec addition landed in Node 20).
+    // Cloudflare Workers run modern V8 where this works, so we only skip the
+    // test under Node 18.
+    test.skipIf(NODE_MAJOR_VERSION < 20)(
+      'waitUntil is called once and dispose runs when client cancels mid-stream',
+      async () => {
+        const waits: Promise<unknown>[] = [];
+        const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+        const context = { waitUntil } as unknown as ExecutionContext;
 
-      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
-      const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
+        const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+        const disposeSpy = vi.spyOn(CloudflareClient.prototype, 'dispose');
 
-      // Stream emits one chunk and then never closes — models an upstream
-      // that keeps emitting indefinitely. We then cancel the response from
-      // the consumer side to model a client disconnect.
-      let sourceCancelled = false;
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('chunk1'));
-          // intentionally don't close
-        },
-        cancel() {
-          sourceCancelled = true;
-        },
-      });
+        // Stream emits one chunk and then never closes — models an upstream
+        // that keeps emitting indefinitely. We then cancel the response from
+        // the consumer side to model a client disconnect.
+        let sourceCancelled = false;
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('chunk1'));
+            // intentionally don't close
+          },
+          cancel() {
+            sourceCancelled = true;
+          },
+        });
 
-      const result = await wrapRequestHandler(
-        { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
-        () => new Response(stream, { headers: { 'content-type': 'text/event-stream' } }),
-      );
+        const result = await wrapRequestHandler(
+          { options: MOCK_OPTIONS, request: new Request('https://example.com'), context },
+          () => new Response(stream, { headers: { 'content-type': 'text/event-stream' } }),
+        );
 
-      // Handler returned, source still open — no waitUntil yet.
-      expect(waitUntil).not.toHaveBeenCalled();
+        // Handler returned, source still open — no waitUntil yet.
+        expect(waitUntil).not.toHaveBeenCalled();
 
-      const reader = result.body!.getReader();
-      await reader.read(); // chunk1
-      await reader.cancel('client disconnected'); // simulates client disconnect
-      reader.releaseLock();
+        const reader = result.body!.getReader();
+        await reader.read(); // chunk1
+        await reader.cancel('client disconnected'); // simulates client disconnect
+        reader.releaseLock();
 
-      // TransformStream `cancel` fired → span ended → flushAndDispose queued.
-      await Promise.all(waits);
-      expect(waitUntil).toHaveBeenCalledTimes(1);
-      expect(waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
-      expect(flushSpy).toHaveBeenCalled();
-      expect(disposeSpy).toHaveBeenCalled();
-      // pipeThrough should also propagate the cancel upstream to the source.
-      expect(sourceCancelled).toBe(true);
+        // TransformStream `cancel` fired → span ended → flushAndDispose queued.
+        await Promise.all(waits);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+        expect(waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
+        expect(flushSpy).toHaveBeenCalled();
+        expect(disposeSpy).toHaveBeenCalled();
+        // pipeThrough should also propagate the cancel upstream to the source.
+        expect(sourceCancelled).toBe(true);
 
-      flushSpy.mockRestore();
-      disposeSpy.mockRestore();
-    });
+        flushSpy.mockRestore();
+        disposeSpy.mockRestore();
+      },
+    );
 
     test('waitUntil is called exactly once even if the response is consumed multiple times', async () => {
       // Sanity: no matter how the response is drained, the TransformStream's
