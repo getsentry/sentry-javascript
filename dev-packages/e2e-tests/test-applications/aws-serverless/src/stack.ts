@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
-import { platform } from 'node:process';
+import { arch, platform } from 'node:process';
 import { globSync } from 'glob';
 import { execFileSync } from 'node:child_process';
 
@@ -12,8 +12,12 @@ const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
-const DEFAULT_NODE_VERSION = '22';
 export const SAM_PORT = 3001;
+
+/** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
+function samLambdaArchitecture(): 'arm64' | 'x86_64' {
+  return arch === 'arm64' ? 'arm64' : 'x86_64';
+}
 
 function resolvePackagesDir(): string {
   // When running via the e2e test runner, tests are copied to a temp directory
@@ -49,6 +53,7 @@ export class LocalLambdaStack extends Stack {
       properties: {
         ContentUri: path.join(LAYER_DIR, layerZipFile),
         CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x', 'nodejs22.x'],
+        CompatibleArchitectures: [samLambdaArchitecture()],
       },
     });
 
@@ -122,12 +127,17 @@ export class LocalLambdaStack extends Stack {
         execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
       }
 
+      if (!process.env.NODE_VERSION) {
+        throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
+      }
+
       new CfnResource(this, functionName, {
         type: 'AWS::Serverless::Function',
         properties: {
+          Architectures: [samLambdaArchitecture()],
           CodeUri: path.join(functionsDir, lambdaDir),
           Handler: 'index.handler',
-          Runtime: `nodejs${process.env.NODE_VERSION ?? DEFAULT_NODE_VERSION}.x`,
+          Runtime: `nodejs${process.env.NODE_VERSION}.x`,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
           Layers: addLayer ? [{ Ref: this.sentryLayer.logicalId }] : undefined,
           Environment: {
