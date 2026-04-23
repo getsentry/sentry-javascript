@@ -440,9 +440,6 @@ jobs:
           name: build-layer-output
           path: ${{ env.BUILD_LAYER_PATH }}
 
-      - name: Pack tarballs
-        run: yarn build:tarball
-
       - name: Archive artifacts
         uses: actions/upload-artifact@v7
         with:
