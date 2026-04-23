@@ -20,7 +20,20 @@ const appTunnel = useManagedTunnelRoute
     ? '/custom-monitor'
     : 'http://localhost:3031/';
 
-const tunnelRoute = tunnelRouteMode === 'dynamic' ? true : tunnelRouteMode === 'static' ? '/monitor' : undefined;
+function resolveTunnelRouteOption() {
+  switch (tunnelRouteMode) {
+    case 'dynamic':
+      return true;
+    case 'static':
+      return '/monitor';
+    case 'object':
+      return { path: '/object-monitor', allowedDsns: [appDsn] };
+    default:
+      return undefined;
+  }
+}
+
+const tunnelRoute = resolveTunnelRouteOption();
 
 export default defineConfig({
   server: {
