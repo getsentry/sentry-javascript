@@ -139,6 +139,9 @@ targets:
   - name: npm
     id: '@sentry/react-router'
     includeNames: /^sentry-react-router-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/nitro'
+    includeNames: /^sentry-nitro-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1
@@ -256,3 +259,9 @@ targets:
         packageUrl: 'https://www.npmjs.com/package/@sentry/elysia'
         mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/elysia/'
         onlyIfPresent: /^sentry-elysia-\d.*\.tgz$/
+      'npm:@sentry/nitro':
+        name: 'Sentry Nitro SDK'
+        sdkName: 'sentry.javascript.nitro'
+        packageUrl: 'https://www.npmjs.com/package/@sentry/nitro'
+        mainDocsUrl: 'https://docs.sentry.io/platforms/javascript/guides/nitro/'
+        onlyIfPresent: /^sentry-nitro-\d.*\.tgz$/
