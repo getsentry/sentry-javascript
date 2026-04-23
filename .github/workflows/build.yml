@@ -69,7 +69,7 @@ jobs:
       pull-requests: read
 
   job_build:
-    name: Install & Build
+    name: Build
     needs: job_get_metadata
     runs-on: ubuntu-24.04
     timeout-minutes: 15
