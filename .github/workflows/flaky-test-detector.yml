@@ -34,9 +34,6 @@ jobs:
         with:
           node-version-file: 'package.json'
           cache: 'yarn'
-      - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile
-
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
@@ -44,6 +41,9 @@ jobs:
             .nx/cache
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
+
+      - name: Install dependencies
+        run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Build packages
         run: yarn build

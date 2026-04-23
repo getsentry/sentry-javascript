@@ -201,11 +201,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
@@ -213,6 +208,11 @@ jobs:
             .nx/cache
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
+
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build Lambda layer
         run: yarn build:layer
@@ -241,11 +241,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
@@ -253,6 +248,11 @@ jobs:
             .nx/cache
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
+
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build bundles
         run: yarn build:bundle
@@ -994,11 +994,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
       - name: Restore NX cache
         uses: actions/cache/restore@v5
         with:
@@ -1006,6 +1001,11 @@ jobs:
             .nx/cache
             .nx/workspace-data
           key: ${{ env.NX_CACHE_KEY }}
+
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build tarballs
         run: yarn build:tarball
