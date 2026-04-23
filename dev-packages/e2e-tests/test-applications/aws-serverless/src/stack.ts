@@ -17,10 +17,13 @@ function samLambdaArchitecture(): 'arm64' | 'x86_64' {
 }
 
 function resolvePackagesDir(): string {
+  // When running via the e2e test runner, tests are copied to a temp directory
+  // so we need the workspace root passed via env var
   const workspaceRoot = process.env.SENTRY_E2E_WORKSPACE_ROOT;
   if (workspaceRoot) {
     return path.join(workspaceRoot, 'packages');
   }
+  // Fallback for local development when running from the original location
   return path.resolve(__dirname, '../../../../../packages');
 }
 
