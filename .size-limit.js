@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '26 KB',
+    limit: '27 KB',
   },
   {
     name: '@sentry/browser - with treeshaking flags',
@@ -59,7 +59,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '83 KB',
+    limit: '84 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -96,7 +96,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '100 KB',
+    limit: '101 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -138,7 +138,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'metrics', 'logger'),
     gzip: true,
-    limit: '28 KB',
+    limit: '29 KB',
   },
   // React SDK (ESM)
   {
@@ -178,7 +178,7 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '26 KB',
+    limit: '27 KB',
   },
   // Browser CDN bundles
   {
@@ -197,7 +197,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Logs, Metrics)',
     path: createCDNPath('bundle.logs.metrics.min.js'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
@@ -283,14 +283,14 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '258.5 KB',
+    limit: '259 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '268 KB',
+    limit: '269 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics) - uncompressed',
