@@ -26,5 +26,20 @@ export const httpContextIntegration = defineIntegration(() => {
         headers,
       };
     },
+    processSegmentSpan(span) {
+      // if none of the information we want exists, don't bother
+      if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
+        return;
+      }
+
+      const reqData = getHttpRequestData();
+
+      span.attributes = {
+        'url.full': reqData.url,
+        'http.request.header.user_agent': reqData.headers['User-Agent'],
+        'http.request.header.referer': reqData.headers['Referer'],
+        ...span.attributes,
+      };
+    },
   };
 });
