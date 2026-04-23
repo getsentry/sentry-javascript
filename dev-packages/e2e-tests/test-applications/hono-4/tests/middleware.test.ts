@@ -5,15 +5,6 @@ import { APP_NAME, isNode } from './constants';
 
 // In Node, @sentry/node/preload eagerly activates the OTel HonoInstrumentation,
 // which wraps all Hono instance methods at construction time via WrappedHono.
-//
-// For the *root app*, patchAppUse's Proxy wraps handlers before OTel does
-// (Proxy → OTel → Hono internals), so the inner Sentry span preserves the
-// original function name and has origin 'auto.middleware.hono'.
-//
-// For *sub-apps*, OTel wraps handlers at registration time (inside WrappedHono
-// constructor) before patchRoute runs at mount time. So patchRoute sees anonymous
-// OTel wrappers. The OTel spans carry the correct function names with origin
-// 'auto.http.otel.hono'.
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 const OTEL_ORIGIN = 'auto.http.otel.hono';
 
