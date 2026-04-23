@@ -57,6 +57,7 @@ jobs:
           steps.get_version.outputs.version != ''
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          CRAFT_ALLOW_REMOTE_CONFIG: 1
         with:
           version: ${{ steps.get_version.outputs.version }}
           force: false
