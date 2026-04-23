@@ -163,9 +163,11 @@ describe('instrumentFetch', () => {
     const wrappedHandler = withSentry(vi.fn(), handler);
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
-    await wrappedHandler.fetch?.(new Request('https://example.com'), MOCK_ENV_WITHOUT_DSN, {
-      waitUntil,
-    } as unknown as ExecutionContext);
+    await wrappedHandler
+      .fetch?.(new Request('https://example.com'), MOCK_ENV_WITHOUT_DSN, {
+        waitUntil,
+      } as unknown as ExecutionContext)
+      .then(response => response.text());
     expect(flush).not.toBeCalled();
     expect(waitUntil).toBeCalled();
     vi.advanceTimersToNextTimer().runAllTimers();
