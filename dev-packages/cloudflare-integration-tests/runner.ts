@@ -50,6 +50,12 @@ type StartResult = {
     path: string,
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
+  makeRequestAndWaitForEnvelope<T>(
+    method: 'get' | 'post',
+    path: string,
+    expected: Expected | Expected[],
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
+  ): Promise<T | undefined>;
 };
 
 /** Creates a test runner */
@@ -108,6 +114,7 @@ export function createRunner(...paths: string[]) {
       const expectedEnvelopeCount = expectedEnvelopes.length;
 
       let envelopeCount = 0;
+      const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
       const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
       let child: ReturnType<typeof spawn> | undefined;
       let childSubWorker: ReturnType<typeof spawn> | undefined;
@@ -118,6 +125,12 @@ export function createRunner(...paths: string[]) {
         if (envelopeCount === expectedEnvelopeCount) {
           resolve();
         }
+      }
+
+      function waitForEnvelope(expected: Expected): Promise<void> {
+        return new Promise((resolveWaiter, rejectWaiter) => {
+          envelopeWaiters.push({ expected, resolve: resolveWaiter, reject: rejectWaiter });
+        });
       }
 
       function assertEnvelopeMatches(expected: Expected, envelope: Envelope): void {
@@ -134,6 +147,18 @@ export function createRunner(...paths: string[]) {
         const envelopeItemType = envelope[1][0][0].type;
 
         if (ignored.has(envelopeItemType)) {
+          return;
+        }
+
+        // Check per-request waiters first (FIFO order)
+        if (envelopeWaiters.length > 0) {
+          const waiter = envelopeWaiters.shift()!;
+          try {
+            assertEnvelopeMatches(waiter.expected, envelope);
+            waiter.resolve();
+          } catch (e) {
+            waiter.reject(e);
+          }
           return;
         }
 
@@ -242,6 +267,10 @@ export function createRunner(...paths: string[]) {
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
               '--var',
               `SERVER_URL:${serverUrl}`,
+              '--port',
+              '0',
+              '--inspector-port',
+              '0',
               ...extraWranglerArgs,
             ],
             { stdio, signal },
@@ -303,6 +332,18 @@ export function createRunner(...paths: string[]) {
             reject(e);
             return;
           }
+        },
+        makeRequestAndWaitForEnvelope: async function <T>(
+          method: 'get' | 'post',
+          path: string,
+          expected: Expected | Expected[],
+          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
+        ): Promise<T | undefined> {
+          const expectations = Array.isArray(expected) ? expected : [expected];
+          const envelopePromises = expectations.map(e => waitForEnvelope(e));
+          const result = await this.makeRequest<T>(method, path, options);
+          await Promise.all(envelopePromises);
+          return result;
         },
       };
     },
