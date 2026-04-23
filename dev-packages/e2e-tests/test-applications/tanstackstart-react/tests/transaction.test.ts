@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+const usesManagedTunnelRoute =
+  (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
+
+test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
+
 test('Sends a server function transaction with auto-instrumentation', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
