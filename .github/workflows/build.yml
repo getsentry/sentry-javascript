@@ -1269,7 +1269,6 @@ jobs:
         job_check_lockfile,
         job_check_format,
         job_circular_dep_check,
-        job_build_layer,
         job_size_check,
       ]
     # Always run this, even if a dependent job failed
