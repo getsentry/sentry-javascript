@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **feat(nitro): Add `@sentry/nitro` SDK**
+
+  A new `@sentry/nitro` package provides first-class Sentry support for [Nitro](https://nitro.build/) applications, with HTTP handler and error instrumentation, middleware tracing, request isolation, and build-time source map uploading via `withSentryConfig`.
+  Read more in the [Nitro SDK docs](https://docs.sentry.io/platforms/javascript/guides/nitro/) and the [Nitro SDK readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/nitro/README.md).
+
 ## 10.50.0
 
 ### Important Changes

@@ -15,6 +15,7 @@
 ## Links
 
 - [Official Nitro SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nitro/)
+- [Example Nitro app](https://github.com/getsentry/sentry-javascript/tree/develop/dev-packages/e2e-tests/test-applications/nitro-3)
 
 ## Compatibility
 

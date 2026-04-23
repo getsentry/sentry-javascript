@@ -6,6 +6,13 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro",
   "author": "Sentry",
   "license": "MIT",
+  "keywords": [
+    "nitro",
+    "sentry",
+    "apm",
+    "tracing",
+    "error-tracking"
+  ],
   "engines": {
     "node": ">=18.19.1"
   },
@@ -50,6 +57,7 @@
     "build:tarball": "npm pack",
     "clean": "rimraf build coverage sentry-nitro-*.tgz",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -58,5 +66,19 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types",
+          "build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build/esm"
+        ]
+      }
+    }
+  }
 }
