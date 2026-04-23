@@ -2,6 +2,7 @@ import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { patchAppUse } from '../../src/shared/patchAppUse';
+import { patchRoute } from '../../src/shared/patchRoute';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -164,9 +165,14 @@ describe('patchAppUse (middleware spans)', () => {
   });
 
   describe('route() patching (sub-app / route group support)', () => {
+    beforeEach(() => {
+      honoBaseProto.route = originalRoute;
+    });
+
     it('wraps middleware on sub-apps mounted via route()', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.use(async function subMiddleware(_c: unknown, next: () => Promise<void>) {
@@ -184,6 +190,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('does not wrap route handlers (only method ALL from use())', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.get('/', () => new Response('sub'));
@@ -198,6 +205,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('does not double-wrap handlers already wrapped by patchAppUse on the main app', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       app.use(async function mainMiddleware(_c: unknown, next: () => Promise<void>) {
         await next();
@@ -214,21 +222,21 @@ describe('patchAppUse (middleware spans)', () => {
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'mainMiddleware' }));
     });
 
-    it('does not patch route() twice when patchAppUse is called multiple times', () => {
+    it('does not patch route() twice when patchRoute is called multiple times', () => {
       const app1 = new Hono();
-      patchAppUse(app1);
+      patchRoute(app1);
 
       const patchedRoute = honoBaseProto.route;
 
       const app2 = new Hono();
-      patchAppUse(app2);
+      patchRoute(app2);
 
       expect(honoBaseProto.route).toBe(patchedRoute);
     });
 
     it('stores the original route via __sentry_original__ for other libraries to unwrap', () => {
       const app = new Hono();
-      patchAppUse(app);
+      patchRoute(app);
 
       // oxlint-disable-next-line typescript/no-explicit-any
       const sentryOriginal = (honoBaseProto.route as any).__sentry_original__;
@@ -238,6 +246,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('wraps path-targeted .use("/path", handler) on sub-apps', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.use('/admin/*', async function adminAuth(_c: unknown, next: () => Promise<void>) {
@@ -254,6 +263,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('also wraps .all() handlers on sub-apps (same method: ALL in route record)', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.all('/catch-all', async function allHandler() {
@@ -269,6 +279,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('wraps mixed .use() and .all() handlers on the same sub-app', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.use(async function mw(_c: unknown, next: () => Promise<void>) {
@@ -290,6 +301,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('does not wrap .get()/.post()/.put()/.delete() handlers on sub-apps', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.get('/resource', async function getHandler() {
@@ -308,6 +320,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('wraps middleware in nested sub-apps (sub-app mounting another sub-app)', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const innerSub = new Hono();
       innerSub.use(async function innerMiddleware(_c: unknown, next: () => Promise<void>) {
@@ -332,6 +345,7 @@ describe('patchAppUse (middleware spans)', () => {
     it('handles sub-app with multiple path-targeted middleware for different paths', async () => {
       const app = new Hono();
       patchAppUse(app);
+      patchRoute(app);
 
       const subApp = new Hono();
       subApp.use('/a/*', async function mwForA(_c: unknown, next: () => Promise<void>) {
