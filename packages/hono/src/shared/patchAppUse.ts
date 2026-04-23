@@ -2,19 +2,27 @@ import {
   captureException,
   getActiveSpan,
   getRootSpan,
+  getOriginalFunction,
+  markFunctionWrapped,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startInactiveSpan,
 } from '@sentry/core';
+import type { WrappedFunction } from '@sentry/core';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
+import { patchRoute } from './patchRoute';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
 /**
- * Patches `app.use` so that every middleware registered through it is automatically
- * wrapped in a Sentry span. Supports both forms: `app.use(...handlers)` and `app.use(path, ...handlers)`.
+ * Patches the Hono app so that middleware is automatically traced as Sentry spans.
+ *
+ * Two things are patched:
+ * 1. `app.use` (instance own property) — wraps middleware at registration time on this instance.
+ * 2. `HonoBase.prototype.route` — wraps sub-app middleware at mount time so that
+ *    route groups (`app.route('/prefix', subApp)`) are also instrumented.
  */
 export function patchAppUse<E extends Env>(app: Hono<E>): void {
   app.use = new Proxy(app.use, {
@@ -30,6 +38,8 @@ export function patchAppUse<E extends Env>(app: Hono<E>): void {
       return Reflect.apply(target, thisArg, allHandlers);
     },
   });
+
+  patchRoute(app);
 }
 
 /**
@@ -38,11 +48,14 @@ export function patchAppUse<E extends Env>(app: Hono<E>): void {
  * spans are siblings — even when OTel instrumentation introduces nested active contexts
  * (onion order: A → B → handler → B → A would otherwise nest B under A).
  */
-function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
-  return async function sentryTracedMiddleware(context, next) {
+export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
+  if (getOriginalFunction(handler as unknown as WrappedFunction)) {
+    return handler;
+  }
+
+  const wrapped: MiddlewareHandler = async function sentryTracedMiddleware(context, next) {
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
     const span = startInactiveSpan({
       name: handler.name || '<anonymous>',
       op: 'middleware.hono',
@@ -68,4 +81,7 @@ function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
       span.end();
     }
   };
+
+  markFunctionWrapped(wrapped as unknown as WrappedFunction, handler as unknown as WrappedFunction);
+  return wrapped;
 }
