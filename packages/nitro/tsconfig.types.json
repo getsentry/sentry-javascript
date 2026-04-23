@@ -4,6 +4,6 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "build/types",
-  },
+    "outDir": "build/types"
+  }
 }
