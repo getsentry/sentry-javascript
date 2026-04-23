@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:bundle build:extension",
-    "build:ci": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:extension",
+    "build": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types build:bundle",
+    "build:ci": "node ./scripts/verify-packages-versions.js && nx run-many -t build:transpile build:types",
     "build:bundle": "nx run-many -t build:bundle",
     "build:layer": "nx run-many -t build:layer",
     "build:dev": "nx run-many -t build:types build:transpile",

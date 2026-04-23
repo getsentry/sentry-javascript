@@ -130,7 +130,7 @@
         ],
         "dependsOn": [
           "build:transpile",
-          "build:extension"
+          "build:types"
         ],
         "outputs": [
           "{projectRoot}/build/aws"

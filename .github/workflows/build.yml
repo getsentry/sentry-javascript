@@ -37,7 +37,7 @@ env:
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
   # build-output artifact paths are computed in job_build (step output from
-  # yarn ci:print-build-artifact-paths — Nx merged outputs for build:transpile, build:types, build:extension).
+  # yarn ci:print-build-artifact-paths — Nx merged outputs for build:transpile, and build:types).
 
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download

@@ -2,7 +2,7 @@
 /**
  * Prints multiline paths for actions/upload-artifact `path` (often wired via a prior step's
  * `GITHUB_OUTPUT` `paths<<EOF` ... `EOF` block), derived from the Nx project
- * graph: merged `outputs` of `build:transpile`, `build:types`, and `build:extension` for
+ * graph: merged `outputs` of `build:transpile`, and `build:types` for
  * every project under `packages/` and `dev-packages/`.
  *
  * Each line is an absolute path pattern suitable for @actions/glob (same style as the
@@ -24,7 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
 const graphPath = path.join(workspaceRoot, '.nx', 'ci-print-build-artifact-paths-graph.json');
 
-const TARGETS = ['build:transpile', 'build:types', 'build:extension'];
+const TARGETS = ['build:transpile', 'build:types'];
 
 fs.mkdirSync(path.dirname(graphPath), { recursive: true });
 execSync(`yarn nx graph --file="${graphPath}"`, {
