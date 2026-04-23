@@ -3,6 +3,11 @@ import type { WrappedFunction } from '@sentry/core';
 import type { Env, Hono } from 'hono';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
+interface HonoBaseProto {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  route: (path: string, app: Hono<any>) => Hono<any>;
+}
+
 /**
  * Patches `HonoBase.prototype.route` so that when a sub-app is mounted via `app.route('/prefix', subApp)`, its middleware handlers
  * are retroactively wrapped in Sentry spans before the parent copies them.
@@ -10,8 +15,8 @@ import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
  * `route` lives on the prototype (unlike `use` which is a class field)
  */
 export function patchRoute<E extends Env>(app: Hono<E>): void {
-  const honoBaseProto = Object.getPrototypeOf(Object.getPrototypeOf(app));
-  if (!honoBaseProto || typeof honoBaseProto.route !== 'function') {
+  const honoBaseProto = Object.getPrototypeOf(Object.getPrototypeOf(app)) as HonoBaseProto;
+  if (!honoBaseProto || typeof honoBaseProto?.route !== 'function') {
     return;
   }
 
