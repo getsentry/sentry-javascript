@@ -1,0 +1,35 @@
+name: 'Nx Affected List'
+description: 'Outputs a space-separated list of Nx projects affected by changes between base and head commits.'
+
+inputs:
+  base:
+    description: 'Base commit SHA'
+    required: false
+  head:
+    description: 'Head commit SHA'
+    required: false
+
+outputs:
+  affected:
+    description: 'Space-separated list of affected project names'
+    value: ${{ steps.affected.outputs.affected }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get affected Nx projects
+      id: affected
+      shell: bash
+      run: |
+        ARGS=""
+        if [ -n "${{ inputs.base }}" ]; then ARGS="$ARGS --base=${{ inputs.base }}"; fi
+        if [ -n "${{ inputs.head }}" ]; then ARGS="$ARGS --head=${{ inputs.head }}"; fi
+
+        AFFECTED=$(./node_modules/.bin/nx show projects --affected $ARGS 2>/dev/null | tr '\n' ' ' | xargs) || true
+        echo "affected=$AFFECTED" >> "$GITHUB_OUTPUT"
+
+        if [ -n "$AFFECTED" ]; then
+          echo "Affected projects: $AFFECTED"
+        else
+          echo "No affected projects found"
+        fi
