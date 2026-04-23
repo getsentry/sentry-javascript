@@ -33,8 +33,7 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
   return {
     handlers: {
       POST: async ({ request }) => {
-        const allowedDsnsFromOptions =
-          options.allowedDsns && options.allowedDsns.length > 0 ? options.allowedDsns : undefined;
+        const allowedDsnsFromOptions = options.allowedDsns?.length ? options.allowedDsns : undefined;
 
         const allowedDsns =
           allowedDsnsFromOptions ??
