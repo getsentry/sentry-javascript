@@ -935,7 +935,7 @@ jobs:
           matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
-        if: matrix.test-application == 'aws-serverless'
+        if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
         uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
