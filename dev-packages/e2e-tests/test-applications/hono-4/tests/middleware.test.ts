@@ -170,7 +170,9 @@ for (const { name, prefix, origin } of SCENARIOS) {
 }
 
 test.describe('.all() handler on sub-app (method ALL edge case)', () => {
-  test('.all() handler is instrumented and produces a span', async ({ baseURL }) => {
+  test('Node: OTel wraps .all() and produces a hono span', async ({ baseURL }) => {
+    test.skip(!isNode, 'Node-specific: OTel wraps .all() at construction time');
+
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
         event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
@@ -186,29 +188,46 @@ test.describe('.all() handler on sub-app (method ALL edge case)', () => {
     const transaction = await transactionPromise;
     const spans = transaction.spans || [];
 
-    if (isNode) {
-      // On Node, OTel wraps .all() at construction time. Since the handler
-      // returns a Response, OTel classifies it as 'request_handler' (not
-      // middleware). patchRoute also wraps it but sees the anonymous OTel wrapper.
-      // Either way, the handler IS instrumented — verify any hono span exists.
-      const honoSpan = spans.find((span: SpanJSON) => span.op?.endsWith('.hono'));
-      expect(honoSpan).toBeDefined();
-    } else {
-      // On Bun/Cloudflare, patchRoute is the sole wrapper and sees the original
-      // function name. It wraps .all() handlers identically to .use() middleware
-      // because both produce method:'ALL' in Hono's route record.
-      const allHandlerSpan = spans.find(
-        (span: SpanJSON) => span.op === 'middleware.hono' && span.description === 'allCatchAll',
-      );
+    // On Node, OTel wraps .all() at construction time. Since the handler
+    // returns a Response, OTel classifies it as 'request_handler' (not
+    // middleware). patchRoute also wraps it but sees the anonymous OTel wrapper.
+    // Either way, the handler IS instrumented — verify any hono span exists.
+    const honoSpan = spans.find((span: SpanJSON) => span.op?.endsWith('.hono'));
+    expect(honoSpan).toBeDefined();
+  });
 
-      expect(allHandlerSpan).toEqual(
-        expect.objectContaining({
-          description: 'allCatchAll',
-          op: 'middleware.hono',
-          origin: MIDDLEWARE_ORIGIN,
-          status: 'ok',
-        }),
+  test('Bun/Cloudflare: patchRoute wraps .all() as middleware span', async ({ baseURL }) => {
+    test.skip(isNode, 'Bun/Cloudflare-specific: patchRoute is the sole wrapper');
+
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return (
+        event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
       );
-    }
+    });
+
+    const response = await fetch(`${baseURL}/test-subapp-middleware/all-handler`);
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body).toEqual({ handler: 'all' });
+
+    const transaction = await transactionPromise;
+    const spans = transaction.spans || [];
+
+    // On Bun/Cloudflare, patchRoute is the sole wrapper and sees the original
+    // function name. It wraps .all() handlers identically to .use() middleware
+    // because both produce method:'ALL' in Hono's route record.
+    const allHandlerSpan = spans.find(
+      (span: SpanJSON) => span.op === 'middleware.hono' && span.description === 'allCatchAll',
+    );
+
+    expect(allHandlerSpan).toEqual(
+      expect.objectContaining({
+        description: 'allCatchAll',
+        op: 'middleware.hono',
+        origin: MIDDLEWARE_ORIGIN,
+        status: 'ok',
+      }),
+    );
   });
 });
