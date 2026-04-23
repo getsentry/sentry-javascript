@@ -12,13 +12,13 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/browser": "latest || *",
-    "@sentry/nitro": "latest || *"
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
+    "@sentry/nitro": "file:../../packed/sentry-nitro-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/core": "latest || *",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "nitro": "^3.0.260415-beta",
     "rolldown": "latest",
     "vite": "latest"
