@@ -3,7 +3,7 @@ import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
-import { patchAppUse } from '../shared/patchAppUse';
+import { applyPatches } from '../shared/applyPatches';
 
 export interface HonoCloudflareOptions extends Options<BaseTransportOptions> {}
 
@@ -33,7 +33,7 @@ export function sentry<E extends Env>(
     app as unknown as ExportedHandler<unknown>,
   );
 
-  patchAppUse(app);
+  applyPatches(app);
 
   return async (context, next) => {
     requestHandler(context);

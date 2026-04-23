@@ -8,6 +8,7 @@ middlewareRoutes.get('/anonymous', c => c.json({ middleware: 'anonymous' }));
 middlewareRoutes.get('/multi', c => c.json({ middleware: 'multi' }));
 middlewareRoutes.get('/error', c => c.text('should not reach'));
 
+// Self-contained sub-app registering its own middleware
 const subAppWithMiddleware = new Hono();
 
 subAppWithMiddleware.use('/named/*', middlewareA);
