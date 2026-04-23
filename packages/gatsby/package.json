@@ -87,14 +87,19 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "inputs": ["production", "^production"],
+        "inputs": [
+          "production",
+          "^production"
+        ],
         "outputs": [
           "{projectRoot}/build/esm",
           "{projectRoot}/build/cjs",
           "{projectRoot}/*.d.ts"
         ],
-      "dependsOn": ["^build:transpile"],
-      "cache": true
+        "dependsOn": [
+          "^build:transpile"
+        ],
+        "cache": true
       }
     }
   },
