@@ -8,9 +8,12 @@ import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit 
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts: NodeOptions = {
-    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
+
+  if (opts.defaultIntegrations === undefined) {
+    opts.defaultIntegrations = getDefaultIntegrations(opts);
+  }
 
   applySdkMetadata(opts, 'nitro', ['nitro', 'node']);
 
