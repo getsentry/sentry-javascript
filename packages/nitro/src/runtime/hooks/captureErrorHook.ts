@@ -55,15 +55,7 @@ export async function captureErrorHook(error: Error, errorContext: CapturedError
   }
 
   const method = errorContext.event?.req.method ?? '';
-  let path: string | null = null;
-
-  try {
-    if (errorContext.event?.req.url) {
-      path = new URL(errorContext.event.req.url).pathname;
-    }
-  } catch {
-    // If URL parsing fails, leave path as null
-  }
+  const path = errorContext.event?.req.url ? parseUrl(errorContext.event.req.url).path : null;
 
   if (path) {
     getCurrentScope().setTransactionName(`${method} ${path}`);
