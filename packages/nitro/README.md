@@ -18,7 +18,7 @@
 
 ## Compatibility
 
-The minimum supported version of Nitro is `3.0.0-alpha.1`.
+The minimum supported version of Nitro is `3.0.260415-beta`.
 
 ## General
 
