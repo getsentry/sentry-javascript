@@ -23,8 +23,8 @@
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
-    "@sentry/core": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "import-in-the-middle": "^1",
     "next": "16.1.7",
     "react": "19.1.0",

@@ -12,6 +12,8 @@
     "test:assert": "TEST_ENV=production playwright test"
   },
   "dependencies": {
+    "@sentry/bun": "latest || *",
+    "@sentry/cloudflare": "latest || *",
     "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",
     "@hono/node-server": "^1.19.10",

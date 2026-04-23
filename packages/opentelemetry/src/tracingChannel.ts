@@ -18,7 +18,7 @@ import { DEBUG_BUILD } from './debug-build';
  */
 export type OtelTracingChannelTransform<TData = object> = (data: TData) => Span;
 
-type WithSpan<TData = object> = TData & { _sentrySpan?: Span };
+export type TracingChannelContextWithSpan<TContext extends object = object> = TContext & { _sentrySpan?: Span };
 
 /**
  * A TracingChannel whose `subscribe` / `unsubscribe` accept partial subscriber
@@ -26,7 +26,7 @@ type WithSpan<TData = object> = TData & { _sentrySpan?: Span };
  */
 export interface OtelTracingChannel<
   TData extends object = object,
-  TDataWithSpan extends object = WithSpan<TData>,
+  TDataWithSpan extends object = TracingChannelContextWithSpan<TData>,
 > extends Omit<TracingChannel<TData, TDataWithSpan>, 'subscribe' | 'unsubscribe'> {
   subscribe(subscribers: Partial<TracingChannelSubscribers<TDataWithSpan>>): void;
   unsubscribe(subscribers: Partial<TracingChannelSubscribers<TDataWithSpan>>): void;
@@ -52,10 +52,10 @@ interface ContextApi {
 export function tracingChannel<TData extends object = object>(
   channelNameOrInstance: string,
   transformStart: OtelTracingChannelTransform<TData>,
-): OtelTracingChannel<TData, WithSpan<TData>> {
-  const channel = nativeTracingChannel<WithSpan<TData>, WithSpan<TData>>(
+): OtelTracingChannel<TData, TracingChannelContextWithSpan<TData>> {
+  const channel = nativeTracingChannel<TracingChannelContextWithSpan<TData>, TracingChannelContextWithSpan<TData>>(
     channelNameOrInstance,
-  ) as unknown as OtelTracingChannel<TData, WithSpan<TData>>;
+  ) as unknown as OtelTracingChannel<TData, TracingChannelContextWithSpan<TData>>;
 
   let lookup: AsyncLocalStorageLookup | undefined;
   try {
@@ -78,7 +78,7 @@ export function tracingChannel<TData extends object = object>(
   // Bind the start channel so that each trace invocation runs the transform
   // and stores the resulting context (with span) in AsyncLocalStorage.
   // @ts-expect-error bindStore types don't account for AsyncLocalStorage of a different generic type
-  channel.start.bindStore(otelStorage, (data: WithSpan<TData>) => {
+  channel.start.bindStore(otelStorage, (data: TracingChannelContextWithSpan<TData>) => {
     const span = transformStart(data);
 
     // Store the span on data so downstream event handlers (asyncEnd, error, etc.) can access it.

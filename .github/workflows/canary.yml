@@ -120,6 +120,9 @@ jobs:
           - test-application: 'nestjs-microservices'
             build-command: 'test:build-latest'
             label: 'nestjs-microservices (latest)'
+          - test-application: 'nitro-3'
+            build-command: 'test:build-canary'
+            label: 'nitro-3 (canary)'
 
     steps:
       - name: Check out current commit
@@ -140,16 +143,22 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
 
-      - name: Validate Verdaccio
-        run: yarn test:validate
+      - name: Prepare e2e tests
+        run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
 
-      - name: Prepare Verdaccio
-        run: yarn test:prepare
+      - name: Validate test setup
+        run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
+      - name: Add pnpm overrides
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app

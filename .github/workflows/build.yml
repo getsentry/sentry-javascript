@@ -935,7 +935,7 @@ jobs:
           matrix.test-application)
         uses: oven-sh/setup-bun@v2
       - name: Set up AWS SAM
-        if: matrix.test-application == 'aws-serverless'
+        if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
         uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
@@ -961,16 +961,22 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Validate Verdaccio
-        run: yarn test:validate
+      - name: Prepare e2e tests
+        run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
 
-      - name: Prepare Verdaccio
-        run: yarn test:prepare
+      - name: Validate e2e tests setup
+        run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
+      - name: Add pnpm overrides
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app
@@ -1071,16 +1077,22 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Validate Verdaccio
-        run: yarn test:validate
+      - name: Prepare E2E tests
+        run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
 
-      - name: Prepare Verdaccio
-        run: yarn test:prepare
+      - name: Validate test setup
+        run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
+      - name: Add pnpm overrides
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app

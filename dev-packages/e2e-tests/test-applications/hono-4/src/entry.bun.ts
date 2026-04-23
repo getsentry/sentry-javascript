@@ -2,10 +2,9 @@ import { Hono } from 'hono';
 import { sentry } from '@sentry/hono/bun';
 import { addRoutes } from './routes';
 
-const app = new Hono<{ Bindings: { E2E_TEST_DSN: string } }>();
+const app = new Hono();
 
 app.use(
-  // @ts-expect-error - Env is not yet in type
   sentry(app, {
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',

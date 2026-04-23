@@ -49,7 +49,6 @@ describe('postgres auto instrumentation', () => {
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['port 5432'],
         setupCommand: 'yarn',
       })
       .expect({ transaction: EXPECTED_TRANSACTION })
@@ -61,7 +60,6 @@ describe('postgres auto instrumentation', () => {
     await createRunner(__dirname, 'scenario-ignoreConnect.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['port 5432'],
         setupCommand: 'yarn',
       })
       .expect({
@@ -152,7 +150,6 @@ describe('postgres auto instrumentation', () => {
     await createRunner(__dirname, 'scenario-native.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        readyMatches: ['port 5432'],
         setupCommand: 'yarn',
       })
       .expect({ transaction: EXPECTED_TRANSACTION })

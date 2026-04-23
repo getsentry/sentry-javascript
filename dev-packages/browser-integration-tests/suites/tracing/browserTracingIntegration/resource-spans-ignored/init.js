@@ -7,7 +7,6 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       ignoreResourceSpans: ['resource.script'],
-      idleTimeout: 9000,
     }),
   ],
   tracesSampleRate: 1,

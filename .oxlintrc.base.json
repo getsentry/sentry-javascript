@@ -118,6 +118,19 @@
       }
     },
     {
+      "files": ["**/integrations/node-fetch/vendored/**/*.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/prefer-for-of": "off",
+        "max-lines": "off",
+        "complexity": "off",
+        "no-param-reassign": "off"
+      }
+    },
+    {
       "files": [
         "**/scenarios/**",
         "**/rollup-utils/**",

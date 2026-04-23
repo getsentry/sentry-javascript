@@ -13,7 +13,7 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@sentry/solid": "latest || *",
+    "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/solid-router": "^1.141.8",
     "@tanstack/solid-router-devtools": "^1.132.25",

@@ -9,7 +9,7 @@ export interface HonoNodeOptions extends Options<BaseTransportOptions> {}
 /**
  * Sentry middleware for Hono running in a Node runtime environment.
  */
-export const sentry = (app: Hono, options: HonoNodeOptions | undefined = {}): MiddlewareHandler => {
+export const sentry = (app: Hono, options: HonoNodeOptions): MiddlewareHandler => {
   const isDebug = options.debug;
 
   isDebug && debug.log('Initialized Sentry Hono middleware (Node)');
