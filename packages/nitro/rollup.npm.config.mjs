@@ -8,5 +8,6 @@ export default [
         external: [/^nitro/, /^h3/, /^srvx/, /^@sentry\/opentelemetry/, '@sentry/bundler-plugin-core'],
       },
     }),
+    { emitCjs: false },
   ),
 ];
