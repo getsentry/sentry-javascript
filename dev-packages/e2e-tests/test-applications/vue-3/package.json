@@ -19,7 +19,7 @@
     "test:print-version": "node -p \"'Vue version: ' + require('vue/package.json').version\""
   },
   "dependencies": {
-    "@sentry/vue": "latest || *",
+    "@sentry/vue": "file:../../packed/sentry-vue-packed.tgz",
     "pinia": "^3.0.0",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5"

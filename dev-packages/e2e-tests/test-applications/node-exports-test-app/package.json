@@ -12,14 +12,14 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node": "latest || *",
-    "@sentry/sveltekit": "latest || *",
-    "@sentry/remix": "latest || *",
-    "@sentry/astro": "latest || *",
-    "@sentry/nextjs": "latest || *",
-    "@sentry/aws-serverless": "latest || *",
-    "@sentry/google-cloud-serverless": "latest || *",
-    "@sentry/bun": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz",
+    "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/aws-serverless": "file:../../packed/sentry-aws-serverless-packed.tgz",
+    "@sentry/google-cloud-serverless": "file:../../packed/sentry-google-cloud-serverless-packed.tgz",
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
   },

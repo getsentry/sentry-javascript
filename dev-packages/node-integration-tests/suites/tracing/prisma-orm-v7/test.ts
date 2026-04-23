@@ -17,7 +17,6 @@ conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
         await createRunner()
           .withDockerCompose({
             workingDirectory: [cwd],
-            readyMatches: ['port 5432'],
             setupCommand: `yarn prisma generate --schema ${cwd}/prisma/schema.prisma && tsc -p ${cwd}/prisma/tsconfig.json && yarn prisma migrate dev -n sentry-test --schema ${cwd}/prisma/schema.prisma`,
           })
           .expect({

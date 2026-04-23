@@ -7,3 +7,9 @@ services:
       - '3306:3306'
     environment:
       MYSQL_ROOT_PASSWORD: password
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -ppassword']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s

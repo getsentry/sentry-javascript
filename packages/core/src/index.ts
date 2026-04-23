@@ -192,8 +192,10 @@ export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
+  GoogleGenAIInstrumentedMethod,
 } from './tracing/google-genai/types';
+// eslint-disable-next-line deprecation/deprecation
+export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
 
 export { SpanBuffer } from './tracing/spans/spanBuffer';
 export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
@@ -441,7 +443,14 @@ export type {
   Profile,
   ProfileChunk,
 } from './types-hoist/profiling';
-export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './types-hoist/replay';
+export type {
+  ReplayEndEvent,
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStartEvent,
+  ReplayStopReason,
+} from './types-hoist/replay';
 export type {
   FeedbackEvent,
   FeedbackFormData,

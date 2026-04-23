@@ -14,7 +14,7 @@
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "^5.50.0",
     "@trpc/client": "~11.8.0",

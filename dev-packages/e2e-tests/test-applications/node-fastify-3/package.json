@@ -13,7 +13,7 @@
     "test:assert": "pnpm test && pnpm test:override"
   },
   "dependencies": {
-    "@sentry/node": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/node": "^18.19.1",
     "fastify": "3.29.5",
     "typescript": "~5.0.0",

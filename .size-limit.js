@@ -155,7 +155,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '46 KB',
+    limit: '47 KB',
   },
   // Vue SDK (ESM)
   {
@@ -191,7 +191,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '45 KB',
+    limit: '46.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics)',
@@ -203,7 +203,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: true,
-    limit: '46 KB',
+    limit: '47.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics)',
@@ -215,25 +215,25 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '82 KB',
+    limit: '83.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: true,
-    limit: '83 KB',
+    limit: '84.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '88 KB',
+    limit: '89 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: true,
-    limit: '89 KB',
+    limit: '90 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -241,14 +241,14 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    limit: '83.5 KB',
+    limit: '84 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing) - uncompressed',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '134 KB',
+    limit: '138 KB',
   },
   {
     name: 'CDN Bundle (incl. Logs, Metrics) - uncompressed',
@@ -262,42 +262,42 @@ module.exports = [
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '138 KB',
+    limit: '141.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Replay, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '211 KB',
+    limit: '212 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '251 KB',
+    limit: '255.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '255 KB',
+    limit: '258.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '264 KB',
+    limit: '268 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '268 KB',
+    limit: '271.5 KB',
   },
   // Next.js SDK (ESM)
   {
@@ -324,7 +324,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '59 KB',
+    limit: '60 KB',
   },
   // Node SDK (ESM)
   {

@@ -18,7 +18,7 @@
     "vite": "^7.0.4"
   },
   "dependencies": {
-    "@sentry/browser": "latest || *",
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/vite-plugin": "^5.2.0"
   },
   "volta": {

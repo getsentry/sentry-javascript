@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   "links back to previous trace's local root span if continued from meta tags",
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
