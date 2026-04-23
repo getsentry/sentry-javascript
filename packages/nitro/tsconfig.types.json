@@ -1,13 +1,9 @@
 {
   "extends": "./tsconfig.json",
-
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "build/types"
+    "outDir": "build/types",
   },
-
-  "//": "This is built separately in tsconfig.setup-types.json",
-  "exclude": ["src/setup.ts"]
 }
