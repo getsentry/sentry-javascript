@@ -1,25 +1,33 @@
-import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/core';
+import type {
+  Event,
+  EventHint,
+  FeedbackErrorMessages,
+  SendFeedback,
+  SendFeedbackParams,
+  TransportMakeRequestResponse,
+} from '@sentry/core';
 import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
-import type { FeedbackErrorCode } from '../util/createFeedbackError';
-import { createFeedbackError } from '../util/createFeedbackError';
+import { createFeedbackError, resolveFeedbackErrorMessage } from '../util/createFeedbackError';
 
 /**
  * Public API to send a Feedback item to Sentry
  */
 export const sendFeedback: SendFeedback = (
   params: SendFeedbackParams,
-  hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
+  hint: EventHint & { includeReplay?: boolean; errorMessages?: FeedbackErrorMessages } = { includeReplay: true },
 ): Promise<string> => {
+  const errorMessages = hint.errorMessages;
+
   if (!params.message) {
-    throw createFeedbackError('ERROR_EMPTY_MESSAGE');
+    throw createFeedbackError('ERROR_EMPTY_MESSAGE', errorMessages);
   }
 
   // We want to wait for the feedback to be sent (or not)
   const client = getClient();
 
   if (!client) {
-    throw createFeedbackError('ERROR_NO_CLIENT');
+    throw createFeedbackError('ERROR_NO_CLIENT', errorMessages);
   }
 
   if (params.tags && Object.keys(params.tags).length) {
@@ -39,7 +47,7 @@ export const sendFeedback: SendFeedback = (
     // After 30s, we want to clear anyhow
     const timeout = setTimeout(() => {
       cleanup();
-      reject('ERROR_TIMEOUT' satisfies FeedbackErrorCode);
+      reject(resolveFeedbackErrorMessage('ERROR_TIMEOUT', errorMessages));
     }, 30_000);
 
     const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
@@ -56,10 +64,10 @@ export const sendFeedback: SendFeedback = (
       }
 
       if (response?.statusCode === 403) {
-        return reject('ERROR_FORBIDDEN' satisfies FeedbackErrorCode);
+        return reject(resolveFeedbackErrorMessage('ERROR_FORBIDDEN', errorMessages));
       }
 
-      return reject('ERROR_GENERIC' satisfies FeedbackErrorCode);
+      return reject(resolveFeedbackErrorMessage('ERROR_GENERIC', errorMessages));
     });
   });
 };
