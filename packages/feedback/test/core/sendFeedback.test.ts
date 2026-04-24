@@ -290,7 +290,7 @@ describe('sendFeedback', () => {
 
     await expect(
       sendFeedback({ message: 'mi' }, { errorMessages: { ERROR_FORBIDDEN: 'custom forbidden text' } }),
-    ).rejects.toMatch('custom forbidden text');
+    ).rejects.toThrow('custom forbidden text');
   });
 
   it('falls back to default messages for codes not in errorMessages', async () => {
@@ -319,7 +319,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
+    ).rejects.toThrow(
       'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
@@ -336,7 +336,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
+    ).rejects.toThrow(
       'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
@@ -353,7 +353,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
+    ).rejects.toThrow(
       'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
     );
   });
@@ -389,7 +389,7 @@ describe('sendFeedback', () => {
 
     vi.advanceTimersByTime(30_000);
 
-    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
+    await expect(promise).rejects.toThrow('Unable to determine if Feedback was correctly sent.');
 
     vi.useRealTimers();
   });
