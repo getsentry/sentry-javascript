@@ -153,26 +153,23 @@ const SENSITIVE_HEADER_SNIPPETS = [
  * Extra substrings matched only against individual Cookie / Set-Cookie **names** (not header names),
  * so we can cover common session secrets that do not match {@link SENSITIVE_HEADER_SNIPPETS}
  * (e.g. `connect.sid` does not contain `session`) without false positives on arbitrary HTTP headers.
+ *
+ * Cookie names are checked with the same `includes()` list as headers plus these entries; omit redundant
+ * cookie-only snippets that are already implied by a header match (e.g. `oauth` → `auth`, `id_token` → `token`,
+ * `next-auth` → `auth`).
  */
 const SENSITIVE_COOKIE_NAME_SNIPPETS = [
   // Express / Connect default session cookie
   '.sid',
-  // PHP session cookie
-  'phpsess',
-  // Common opaque session id suffix / cookie names (e.g. ASPSESSIONID*, BIGipServer*)
+  // Opaque session ids (PHPSESSID, ASPSESSIONID*, BIGipServer*, *sessid*, …)
   'sessid',
   // Laravel etc. "remember me" tokens
   'remember',
-  // OAuth / OIDC auxiliary cookies
-  'oauth',
+  // OIDC / OAuth auxiliary (`oauth*` covered by header snippet `auth`)
   'oidc',
   'pkce',
   'nonce',
-  // Explicit token-style cookie names
-  'id_token',
-  'access_token',
-  'refresh_token',
-  // RFC 6265bis cookie name prefixes for high-security cookies
+  // RFC 6265bis high-security cookie name prefixes
   '__secure-',
   '__host-',
   // Load balancer / CDN sticky-session cookies (opaque routing tokens)
@@ -185,8 +182,6 @@ const SENSITIVE_COOKIE_NAME_SNIPPETS = [
   'firebase',
   'supabase',
   'sb-',
-  // Auth.js / NextAuth.js
-  'next-auth',
   // Step-up / MFA cookies
   'mfa',
   '2fa',
