@@ -146,7 +146,7 @@ export function Form({
         } catch (error) {
           DEBUG_BUILD && debug.error(error);
           const err = error instanceof Error ? error : new Error(String(error));
-          setError(errorTextByCode[err.message as FeedbackErrorCode] || errorGenericText);
+          setError(errorTextByCode[err.message as FeedbackErrorCode] ?? errorGenericText);
           onSubmitError(err);
         }
       } finally {

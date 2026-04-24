@@ -37,7 +37,10 @@ export const sendFeedback: SendFeedback = (
   // We want to wait for the feedback to be sent (or not)
   return new Promise<string>((resolve, reject) => {
     // After 30s, we want to clear anyhow
-    const timeout = setTimeout(() => reject('ERROR_TIMEOUT' satisfies FeedbackErrorCode), 30_000);
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject('ERROR_TIMEOUT' satisfies FeedbackErrorCode);
+    }, 30_000);
 
     const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
