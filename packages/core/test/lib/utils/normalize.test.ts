@@ -655,6 +655,27 @@ describe('normalize()', () => {
     });
   });
 
+  describe('regression: JSON cannot spoof skip-normalization via string keys', () => {
+    test('__sentry_skip_normalization__ as an own string property is still normalized', () => {
+      function someFun(): void {
+        /* no-empty */
+      }
+      const jsonLikePayload = {
+        __sentry_skip_normalization__: true,
+        nan: NaN,
+        fun: someFun,
+      };
+
+      const result = normalize(jsonLikePayload);
+
+      expect(result).toEqual({
+        __sentry_skip_normalization__: true,
+        nan: '[NaN]',
+        fun: '[Function: someFun]',
+      });
+    });
+  });
+
   describe('skips normalizing objects marked with setSkipNormalizationHint (internal symbol)', () => {
     test('by leaving non-serializable values intact', () => {
       const someFun = () => undefined;
