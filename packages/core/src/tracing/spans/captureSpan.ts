@@ -186,7 +186,10 @@ function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: 
   }
 
   const dbSystem = attributes['db.system.name'] || attributes['db.system'];
-  if (dbSystem) {
+  const opIsCache =
+    typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
+    `${attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]}`.startsWith('cache.');
+  if (dbSystem && !opIsCache) {
     inferDbSpanData(spanJSON, attributes);
     return;
   }
