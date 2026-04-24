@@ -269,7 +269,7 @@ describe('sendFeedback', () => {
 
   it('throws when message is empty', () => {
     mockSdk();
-    expect(() => sendFeedback({ message: '' })).toThrow('Unable to submit feedback with an empty message');
+    expect(() => sendFeedback({ message: '' })).toThrow('Unable to submit feedback with empty message');
   });
 
   it('throws when no client is set up', async () => {

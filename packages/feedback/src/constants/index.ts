@@ -26,7 +26,7 @@ export const HIGHLIGHT_TOOL_TEXT = 'Highlight';
 export const HIDE_TOOL_TEXT = 'Hide';
 export const REMOVE_HIGHLIGHT_TEXT = 'Remove';
 
-export const ERROR_EMPTY_MESSAGE_TEXT = 'Unable to submit feedback with an empty message';
+export const ERROR_EMPTY_MESSAGE_TEXT = 'Unable to submit feedback with empty message';
 export const ERROR_NO_CLIENT_TEXT = 'No client setup, cannot send feedback.';
 export const ERROR_TIMEOUT_TEXT = 'Unable to determine if Feedback was correctly sent.';
 export const ERROR_FORBIDDEN_TEXT =
