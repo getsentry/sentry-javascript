@@ -62,7 +62,7 @@ export function addNonEnumerableProperty(obj: object, name: string | symbol, val
       configurable: true,
     });
   } catch {
-    DEBUG_BUILD && debug.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+    DEBUG_BUILD && debug.log(`Failed to add non-enumerable property "${String(name)}" to object`, obj);
   }
 }
 
