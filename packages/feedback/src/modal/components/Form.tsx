@@ -9,7 +9,6 @@ import type { JSX, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
-import type { FeedbackErrorCode } from '../../util/createFeedbackError';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 
@@ -60,20 +59,7 @@ export function Form({
     namePlaceholder,
     submitButtonLabel,
     isRequiredLabel,
-    errorEmptyMessageText,
-    errorNoClientText,
-    errorTimeoutText,
-    errorForbiddenText,
-    errorGenericText,
   } = options;
-
-  const errorTextByCode: Record<FeedbackErrorCode, string> = {
-    ERROR_EMPTY_MESSAGE: errorEmptyMessageText,
-    ERROR_NO_CLIENT: errorNoClientText,
-    ERROR_TIMEOUT: errorTimeoutText,
-    ERROR_FORBIDDEN: errorForbiddenText,
-    ERROR_GENERIC: errorGenericText,
-  };
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
@@ -146,7 +132,7 @@ export function Form({
         } catch (error) {
           DEBUG_BUILD && debug.error(error);
           const err = error instanceof Error ? error : new Error(String(error));
-          setError(errorTextByCode[err.message as FeedbackErrorCode] ?? errorGenericText);
+          setError(err.message);
           onSubmitError(err);
         }
       } finally {

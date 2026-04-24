@@ -453,6 +453,8 @@ export type {
   ReplayStopReason,
 } from './types-hoist/replay';
 export type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,

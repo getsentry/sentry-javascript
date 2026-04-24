@@ -269,7 +269,7 @@ describe('sendFeedback', () => {
 
   it('throws when message is empty', () => {
     mockSdk();
-    expect(() => sendFeedback({ message: '' })).toThrow('ERROR_EMPTY_MESSAGE');
+    expect(() => sendFeedback({ message: '' })).toThrow('Unable to submit feedback with an empty message');
   });
 
   it('throws when no client is set up', async () => {
@@ -279,7 +279,18 @@ describe('sendFeedback', () => {
     getGlobalScope().setClient(undefined);
     getCurrentScope().setClient(undefined);
     getIsolationScope().setClient(undefined);
-    expect(() => sendFeedback({ message: 'mi' })).toThrow('ERROR_NO_CLIENT');
+    expect(() => sendFeedback({ message: 'mi' })).toThrow('No client setup, cannot send feedback.');
+  });
+
+  it('uses provided errorMessages overrides', async () => {
+    mockSdk();
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 403 });
+    });
+
+    await expect(
+      sendFeedback({ message: 'mi' }, { errorMessages: { ERROR_FORBIDDEN: 'custom forbidden text' } }),
+    ).rejects.toMatch('custom forbidden text');
   });
 
   it('handles 400 transport error', async () => {
@@ -294,7 +305,9 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch('ERROR_GENERIC');
+    ).rejects.toMatch(
+      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
+    );
   });
 
   it('handles 0 transport error', async () => {
@@ -309,7 +322,9 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch('ERROR_GENERIC');
+    ).rejects.toMatch(
+      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
+    );
   });
 
   it('handles 403 transport error', async () => {
@@ -324,7 +339,9 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch('ERROR_FORBIDDEN');
+    ).rejects.toMatch(
+      'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
+    );
   });
 
   it('handles 200 transport response', async () => {
@@ -358,7 +375,7 @@ describe('sendFeedback', () => {
 
     vi.advanceTimersByTime(30_000);
 
-    await expect(promise).rejects.toMatch('ERROR_TIMEOUT');
+    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
 
     vi.useRealTimers();
   });

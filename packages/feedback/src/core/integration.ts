@@ -2,11 +2,13 @@
 /* eslint-disable complexity */
 
 import type {
+  FeedbackErrorMessages,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
+  SendFeedback,
 } from '@sentry/core';
 import { addIntegration, debug, isBrowser } from '@sentry/core';
 import {
@@ -246,6 +248,16 @@ export const buildFeedbackIntegration = ({
           debug.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
+      const errorMessages: FeedbackErrorMessages = {
+        ERROR_EMPTY_MESSAGE: options.errorEmptyMessageText,
+        ERROR_NO_CLIENT: options.errorNoClientText,
+        ERROR_TIMEOUT: options.errorTimeoutText,
+        ERROR_FORBIDDEN: options.errorForbiddenText,
+        ERROR_GENERIC: options.errorGenericText,
+      };
+      const wrappedSendFeedback: SendFeedback = (params, hint) =>
+        sendFeedback(params, { includeReplay: true, ...hint, errorMessages });
+
       const dialog = modalIntegration.createDialog({
         options: {
           ...options,
@@ -259,7 +271,7 @@ export const buildFeedbackIntegration = ({
           },
         },
         screenshotIntegration,
-        sendFeedback,
+        sendFeedback: wrappedSendFeedback,
         shadow: _createShadow(options),
       });
 
