@@ -228,11 +228,15 @@ function inferHttpSpanData(
   }
   safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.') });
 
-  // If the user already set a custom name or source, don't overwrite
-  if (
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] ||
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
-  ) {
+  // If the user set a custom span name via updateSpanName(), apply it — OTel instrumentation
+  // may have overwritten span.name after the user set it, so we restore from the attribute.
+  const customName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+  if (typeof customName === 'string') {
+    spanJSON.name = customName;
+    return;
+  }
+
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
     return;
   }
 
@@ -249,10 +253,14 @@ function inferHttpSpanData(
 function inferDbSpanData(spanJSON: StreamedSpanJSON, attributes: RawAttributes<Record<string, unknown>>): void {
   safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' });
 
-  if (
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] ||
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
-  ) {
+  // If the user set a custom span name via updateSpanName(), apply it.
+  const customName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+  if (typeof customName === 'string') {
+    spanJSON.name = customName;
+    return;
+  }
+
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
     return;
   }
 
