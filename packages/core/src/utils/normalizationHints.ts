@@ -18,24 +18,12 @@ export function setNormalizationDepthOverrideHint(obj: object, depth: number): v
 }
 
 /** @internal */
-export function hasSkipNormalizationHint(value: unknown): value is object {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  if (!Object.prototype.hasOwnProperty.call(value, SENTRY_SKIP_NORMALIZATION)) {
-    return false;
-  }
+export function hasSkipNormalizationHint(value: object) {
   return Boolean((value as Record<symbol, unknown>)[SENTRY_SKIP_NORMALIZATION]);
 }
 
 /** @internal */
-export function getNormalizationDepthOverrideHint(value: unknown): number | undefined {
-  if (typeof value !== 'object' || value === null) {
-    return undefined;
-  }
-  if (!Object.prototype.hasOwnProperty.call(value, SENTRY_OVERRIDE_NORMALIZATION_DEPTH)) {
-    return undefined;
-  }
+export function getNormalizationDepthOverrideHint(value: object): number | undefined {
   const v = (value as Record<symbol, unknown>)[SENTRY_OVERRIDE_NORMALIZATION_DEPTH];
   return typeof v === 'number' ? v : undefined;
 }
