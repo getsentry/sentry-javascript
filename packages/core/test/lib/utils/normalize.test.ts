@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test, vi } from 'vitest';
-import { addNonEnumerableProperty, normalize } from '../../../src';
+import { normalize, setNormalizationDepthOverrideHint, setSkipNormalizationHint } from '../../../src';
 import * as isModule from '../../../src/utils/is';
 import * as stacktraceModule from '../../../src/utils/stacktrace';
 
@@ -655,7 +655,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('skips normalizing objects marked with a non-enumerable property __sentry_skip_normalization__', () => {
+  describe('skips normalizing objects marked with setSkipNormalizationHint (internal symbol)', () => {
     test('by leaving non-serializable values intact', () => {
       const someFun = () => undefined;
       const alreadyNormalizedObj = {
@@ -663,7 +663,7 @@ describe('normalize()', () => {
         fun: someFun,
       };
 
-      addNonEnumerableProperty(alreadyNormalizedObj, '__sentry_skip_normalization__', true);
+      setSkipNormalizationHint(alreadyNormalizedObj);
 
       const result = normalize(alreadyNormalizedObj);
       expect(result).toEqual({
@@ -681,7 +681,7 @@ describe('normalize()', () => {
         },
       };
 
-      addNonEnumerableProperty(alreadyNormalizedObj, '__sentry_skip_normalization__', true);
+      setSkipNormalizationHint(alreadyNormalizedObj);
 
       const obj = {
         foo: {
@@ -703,7 +703,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('overrides normalization depth with a non-enumerable property __sentry_override_normalization_depth__', () => {
+  describe('overrides normalization depth with setNormalizationDepthOverrideHint', () => {
     test('by increasing depth if it is higher', () => {
       const normalizationTarget = {
         foo: 'bar',
@@ -717,7 +717,7 @@ describe('normalize()', () => {
         },
       };
 
-      addNonEnumerableProperty(normalizationTarget, '__sentry_override_normalization_depth__', 3);
+      setNormalizationDepthOverrideHint(normalizationTarget, 3);
 
       const result = normalize(normalizationTarget, 1);
 
@@ -745,7 +745,7 @@ describe('normalize()', () => {
         },
       };
 
-      addNonEnumerableProperty(normalizationTarget, '__sentry_override_normalization_depth__', 1);
+      setNormalizationDepthOverrideHint(normalizationTarget, 1);
 
       const result = normalize(normalizationTarget, 3);
 
