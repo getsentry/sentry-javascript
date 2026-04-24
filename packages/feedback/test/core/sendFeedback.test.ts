@@ -267,6 +267,21 @@ describe('sendFeedback', () => {
     ]);
   });
 
+  it('throws when message is empty', () => {
+    mockSdk();
+    expect(() => sendFeedback({ message: '' })).toThrow('ERROR_EMPTY_MESSAGE');
+  });
+
+  it('throws when no client is set up', async () => {
+    // Isolate in its own scope so the client set up by other tests doesn't bleed in.
+    // `getClient` reads from the current scope; resetting it here leaves no client.
+    const { getGlobalScope } = await import('@sentry/core');
+    getGlobalScope().setClient(undefined);
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().setClient(undefined);
+    expect(() => sendFeedback({ message: 'mi' })).toThrow('ERROR_NO_CLIENT');
+  });
+
   it('handles 400 transport error', async () => {
     mockSdk();
     vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
