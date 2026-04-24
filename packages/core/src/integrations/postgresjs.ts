@@ -342,6 +342,8 @@ export function _reconstructQuery(strings: string[] | undefined): string | undef
   return strings.reduce((acc, str, i) => (i === 0 ? str : `${acc}$${i}${str}`), '');
 }
 
+let integerLiteralRE: RegExp | undefined;
+
 /**
  * Sanitize SQL query as per the OTEL semantic conventions
  * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
@@ -355,6 +357,11 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
   if (!sqlQuery) {
     return 'Unknown SQL Query';
   }
+
+  // Lazy init: constructing this at module scope would evaluate the lookbehind
+  // on import and crash Safari <16.4 browser bundles that reach this file via
+  // the core barrel. Building it on first call keeps the cost off the import path.
+  integerLiteralRE ??= new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
 
   return (
     sqlQuery
@@ -378,10 +385,7 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
       .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
       .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
       .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      // Constructed via `new RegExp` so the negative lookbehind is evaluated at
-      // runtime. As a literal, it is a parse-time SyntaxError on Safari <16.4 —
-      // which breaks any browser bundle that reaches this module via the core barrel.
-      .replace(new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g'), '?') // Integers (NOT $n placeholders)
+      .replace(integerLiteralRE, '?') // Integers (NOT $n placeholders)
       // Collapse IN clauses for cardinality (both ? and $n variants)
       .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
       .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
