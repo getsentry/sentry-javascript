@@ -411,7 +411,7 @@ module.exports = [
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
   {
-    name: '@sentry/cloudflare (withSentry)',
+    name: '@sentry/cloudflare (withSentry) - minified',
     path: 'packages/cloudflare/build/esm/index.js',
     import: createImport('withSentry', 'instrumentDurableObjectWithSentry', 'instrumentWorkflowWithSentry'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
