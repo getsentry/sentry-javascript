@@ -279,9 +279,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
-      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
-    );
+    ).rejects.toMatch('ERROR_GENERIC');
   });
 
   it('handles 0 transport error', async () => {
@@ -296,9 +294,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
-      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
-    );
+    ).rejects.toMatch('ERROR_GENERIC');
   });
 
   it('handles 403 transport error', async () => {
@@ -313,9 +309,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
-      'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
-    );
+    ).rejects.toMatch('ERROR_FORBIDDEN');
   });
 
   it('handles 200 transport response', async () => {
@@ -349,7 +343,7 @@ describe('sendFeedback', () => {
 
     vi.advanceTimersByTime(30_000);
 
-    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
+    await expect(promise).rejects.toMatch('ERROR_TIMEOUT');
 
     vi.useRealTimers();
   });
