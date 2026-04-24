@@ -73,6 +73,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
 export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
