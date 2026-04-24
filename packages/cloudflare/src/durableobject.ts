@@ -157,15 +157,15 @@ export function instrumentDurableObjectWithSentry<
           }
 
           const value = Reflect.get(proxyTarget, prop, receiver);
-          if (typeof value !== 'function') {
-            return value;
-          }
 
-          if (Object.prototype.hasOwnProperty.call(proxyTarget, prop)) {
-            return value;
-          }
-
-          if (allowSet && !allowSet.has(prop)) {
+          if (
+            typeof value !== 'function' ||
+            Object.prototype.hasOwnProperty.call(proxyTarget, prop) ||
+            (allowSet && !allowSet.has(prop)) ||
+            // Exclude inherited Object.prototype methods (toString, valueOf, etc.)
+            // These are not RPC methods and should not create spans
+            prop in Object.prototype
+          ) {
             return value;
           }
 

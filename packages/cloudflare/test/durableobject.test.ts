@@ -212,6 +212,36 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
       expect(obj.rpcMethod()).toBe('result');
     });
+
+    it('does not wrap Object.prototype methods as RPC methods', () => {
+      const testClass = class {
+        rpcMethod() {
+          return 'rpc-result';
+        }
+      };
+      const instrumented = instrumentDurableObjectWithSentry(
+        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, []);
+
+      // Object.prototype methods should NOT be wrapped - they should be the original methods
+      expect(obj.toString).toBe(Object.prototype.toString);
+      expect(obj.valueOf).toBe(Object.prototype.valueOf);
+      expect(obj.hasOwnProperty).toBe(Object.prototype.hasOwnProperty);
+      expect(obj.propertyIsEnumerable).toBe(Object.prototype.propertyIsEnumerable);
+      expect(obj.isPrototypeOf).toBe(Object.prototype.isPrototypeOf);
+      expect(obj.toLocaleString).toBe(Object.prototype.toLocaleString);
+
+      // They should still work correctly
+      expect(obj.toString()).toBe('[object Object]');
+      expect(obj.hasOwnProperty('rpcMethod')).toBe(false); // It's on prototype, not own
+      expect(obj.valueOf()).toBe(obj);
+
+      // Meanwhile, actual RPC methods SHOULD be wrapped (not equal to prototype method)
+      expect(obj.rpcMethod).not.toBe(testClass.prototype.rpcMethod);
+      expect(obj.rpcMethod()).toBe('rpc-result');
+    });
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
