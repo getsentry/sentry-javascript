@@ -51,7 +51,7 @@
     "tracked-built-ins": "^3.3.0",
     "webpack": "^5.91.0",
     "@playwright/test": "~1.56.0",
-    "@sentry/ember": "latest || *",
+    "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/ember": "^3.0.6",
     "@types/node": "^18.19.1",

@@ -401,7 +401,7 @@ describe('LangGraph integration', () => {
 
   const streamingLongContent = 'A'.repeat(50_000);
 
-  createEsmAndCjsTests(__dirname, 'scenario-no-truncation.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
     test('automatically disables truncation when span streaming is enabled', async () => {
       await createRunner()
         .expect({
@@ -421,7 +421,7 @@ describe('LangGraph integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-no-truncation.mjs',
+    'scenario-span-streaming.mjs',
     'instrument-streaming-with-truncation.mjs',
     (createRunner, test) => {
       test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
@@ -430,13 +430,14 @@ describe('LangGraph integration', () => {
             span: container => {
               const spans = container.items;
 
-              // With explicit enableTruncation: true, truncation keeps only the last message
-              // and drops the long content. The result should NOT contain the full 50k 'A' string.
+              // With explicit enableTruncation: true, content should be truncated despite streaming.
               const chatSpan = spans.find(s =>
-                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Follow-up question'),
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
               );
               expect(chatSpan).toBeDefined();
-              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).not.toContain(streamingLongContent);
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongContent.length,
+              );
             },
           })
           .start()

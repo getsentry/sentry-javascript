@@ -1,0 +1,28 @@
+{
+  "name": "@sentry-internal/bun-integration-tests",
+  "version": "10.50.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "test": "vitest run",
+    "test:watch": "yarn test --watch"
+  },
+  "dependencies": {
+    "@sentry/bun": "10.50.0",
+    "@sentry/hono": "10.50.0",
+    "hono": "^4.12.12"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "10.50.0",
+    "bun-types": "^1.2.9",
+    "vitest": "^3.2.4"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

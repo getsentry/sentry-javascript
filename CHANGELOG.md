@@ -2,6 +2,171 @@
 
 ## Unreleased
 
+- **feat(nitro): Add `@sentry/nitro` SDK**
+
+  A new `@sentry/nitro` package provides first-class Sentry support for [Nitro](https://nitro.build/) applications, with HTTP handler and error instrumentation, middleware tracing, request isolation, and build-time source map uploading via `withSentryConfig`.
+  Read more in the [Nitro SDK docs](https://docs.sentry.io/platforms/javascript/guides/nitro/) and the [Nitro SDK readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/nitro/README.md).
+
+## 10.50.0
+
+### Important Changes
+
+- **feat(effect): Support v4 beta ([#20394](https://github.com/getsentry/sentry-javascript/pull/20394))**
+
+  The `@sentry/effect` integration now supports Effect v4 beta, enabling Sentry instrumentation for the latest Effect framework version.
+  Read more in the [Effect SDK readme](https://github.com/getsentry/sentry-javascript/blob/39740da9e46de76f4b03bb7ae11849ea761dac14/packages/effect/README.md).
+
+- **feat(hono): Add `@sentry/hono/bun` for Bun runtime ([#20355](https://github.com/getsentry/sentry-javascript/pull/20355))**
+
+  A new `@sentry/hono/bun` entry point adds first-class support for running Hono applications instrumented with Sentry on the Bun runtime.
+  Read more in the [Hono SDK readme](https://github.com/getsentry/sentry-javascript/blob/39740da9e46de76f4b03bb7ae11849ea761dac14/packages/hono/README.md).
+
+- **feat(replay): Add replayStart/replayEnd client lifecycle hooks ([#20369](https://github.com/getsentry/sentry-javascript/pull/20369))**
+
+  New `replayStart` and `replayEnd` client lifecycle hooks let you react to replay session start and end events in your application.
+
+### Other Changes
+
+- feat(core): Emit `no_parent_span` client outcomes for discarded spans requiring a parent ([#20350](https://github.com/getsentry/sentry-javascript/pull/20350))
+- feat(deps): Bump protobufjs from 7.5.4 to 7.5.5 ([#20372](https://github.com/getsentry/sentry-javascript/pull/20372))
+- feat(hono): Add runtime packages as optional peer dependencies ([#20423](https://github.com/getsentry/sentry-javascript/pull/20423))
+- feat(opentelemetry): Add tracingChannel utility for context propagation ([#20358](https://github.com/getsentry/sentry-javascript/pull/20358))
+- fix(browser): Enrich graphqlClient spans for relative URLs ([#20370](https://github.com/getsentry/sentry-javascript/pull/20370))
+- fix(browser): Filter implausible LCP values ([#20338](https://github.com/getsentry/sentry-javascript/pull/20338))
+- fix(cloudflare): Use TransformStream to keep track of streams ([#20452](https://github.com/getsentry/sentry-javascript/pull/20452))
+- fix(console): Re-patch console in AWS Lambda runtimes ([#20337](https://github.com/getsentry/sentry-javascript/pull/20337))
+- fix(core): Correct `GoogleGenAIIstrumentedMethod` typo in type name
+- fix(core): Handle stateless MCP wrapper transport correlation ([#20293](https://github.com/getsentry/sentry-javascript/pull/20293))
+- fix(hono): Remove undefined from options type ([#20419](https://github.com/getsentry/sentry-javascript/pull/20419))
+- fix(node): Guard against null `httpVersion` in outgoing request span attributes ([#20430](https://github.com/getsentry/sentry-javascript/pull/20430))
+- fix(node-core): Pass rejection reason instead of Promise as originalException ([#20366](https://github.com/getsentry/sentry-javascript/pull/20366))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Ignore claude worktrees ([#20440](https://github.com/getsentry/sentry-javascript/pull/20440))
+- chore: Prevent test from creating zombie process ([#20392](https://github.com/getsentry/sentry-javascript/pull/20392))
+- chore: Update size-limit ([#20412](https://github.com/getsentry/sentry-javascript/pull/20412))
+- chore(dev-deps): Bump nx from 22.5.0 to 22.6.5 ([#20458](https://github.com/getsentry/sentry-javascript/pull/20458))
+- chore(e2e-tests): Use tarball symlinks for E2E tests instead of verdaccio ([#20386](https://github.com/getsentry/sentry-javascript/pull/20386))
+- chore(lint): Remove lint warnings ([#20413](https://github.com/getsentry/sentry-javascript/pull/20413))
+- chore(test): Remove empty variant tests ([#20443](https://github.com/getsentry/sentry-javascript/pull/20443))
+- chore(tests): Use verdaccio as node process instead of docker image ([#20336](https://github.com/getsentry/sentry-javascript/pull/20336))
+- docs(readme): Update usage instructions for binary scripts ([#20426](https://github.com/getsentry/sentry-javascript/pull/20426))
+- ref(node): Vendor undici instrumentation ([#20190](https://github.com/getsentry/sentry-javascript/pull/20190))
+- test(aws-serverless): Ensure aws-serverless E2E tests run locally ([#20441](https://github.com/getsentry/sentry-javascript/pull/20441))
+- test(aws-serverless): Split npm & layer tests ([#20442](https://github.com/getsentry/sentry-javascript/pull/20442))
+- test(browser): Fix flaky sessions route-lifecycle test + upgrade axios ([#20197](https://github.com/getsentry/sentry-javascript/pull/20197))
+- test(cloudflare): Use `.makeRequestAndWaitForEnvelope` to wait for envelopes ([#20208](https://github.com/getsentry/sentry-javascript/pull/20208))
+- test(effect): Rename effect e2e tests to a versioned folder ([#20390](https://github.com/getsentry/sentry-javascript/pull/20390))
+- test(hono): Add E2E test for Hono on Cloudflare, Node and Bun ([#20406](https://github.com/getsentry/sentry-javascript/pull/20406))
+- test(hono): Add E2E tests for middleware spans ([#20451](https://github.com/getsentry/sentry-javascript/pull/20451))
+- test(nextjs): Unskip blocked cf tests ([#20356](https://github.com/getsentry/sentry-javascript/pull/20356))
+- test(node): Refactor integration tests for `honoIntegration` ([#20397](https://github.com/getsentry/sentry-javascript/pull/20397))
+- test(node): Use docker-compose healthchecks for service readiness ([#20429](https://github.com/getsentry/sentry-javascript/pull/20429))
+- test(node-core): Fix minute-boundary race in session-aggregate tests ([#20437](https://github.com/getsentry/sentry-javascript/pull/20437))
+- test(nuxt): Fix flaky database error test ([#20447](https://github.com/getsentry/sentry-javascript/pull/20447))
+
+</details>
+
+## 10.49.0
+
+### Important Changes
+
+- **feat(browser): Add View Hierarchy integration ([#14981](https://github.com/getsentry/sentry-javascript/pull/14981))**
+
+  A new `viewHierarchyIntegration` captures the DOM structure when an error occurs, providing a snapshot of the page state for debugging. Enable it in your Sentry configuration:
+
+  ```javascript
+  import * as Sentry from '@sentry/browser';
+
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [Sentry.viewHierarchyIntegration()],
+  });
+  ```
+
+- **feat(cloudflare): Split alarms into multiple traces and link them ([#19373](https://github.com/getsentry/sentry-javascript/pull/19373))**
+
+  Durable Object alarms now create separate traces for each alarm invocation, with proper linking between related alarms for better observability.
+
+- **feat(cloudflare): Enable RPC trace propagation with `enableRpcTracePropagation` ([#19991](https://github.com/getsentry/sentry-javascript/pull/19991), [#20345](https://github.com/getsentry/sentry-javascript/pull/20345))**
+
+  A new `enableRpcTracePropagation` option enables automatic trace propagation for Cloudflare RPC calls via `.fetch()`, ensuring distributed traces flow correctly across service bindings.
+
+- **feat(core): Add `enableTruncation` option to AI integrations ([#20167](https://github.com/getsentry/sentry-javascript/pull/20167), [#20181](https://github.com/getsentry/sentry-javascript/pull/20181), [#20182](https://github.com/getsentry/sentry-javascript/pull/20182), [#20183](https://github.com/getsentry/sentry-javascript/pull/20183), [#20184](https://github.com/getsentry/sentry-javascript/pull/20184))**
+
+  All AI integrations (OpenAI, Anthropic, Google GenAI, LangChain, LangGraph) now support an `enableTruncation` option to control whether large AI inputs/outputs are truncated.
+
+- **feat(opentelemetry): Vendor `AsyncLocalStorageContextManager` ([#20243](https://github.com/getsentry/sentry-javascript/pull/20243))**
+
+  The OpenTelemetry context manager is now vendored internally, reducing external dependencies and ensuring consistent behavior across environments.
+
+### Other Changes
+
+- feat(core): Export a reusable function to add tracing headers ([#20076](https://github.com/getsentry/sentry-javascript/pull/20076))
+- feat(core): Expose `rewriteSources` top level option ([#20142](https://github.com/getsentry/sentry-javascript/pull/20142))
+- feat(deps): bump defu from 6.1.4 to 6.1.6 ([#20104](https://github.com/getsentry/sentry-javascript/pull/20104))
+- feat(node-native): Add support for V8 v14 (Node v25+) ([#20125](https://github.com/getsentry/sentry-javascript/pull/20125))
+- feat(node): Include global scope for `eventLoopBlockIntegration` ([#20108](https://github.com/getsentry/sentry-javascript/pull/20108))
+- fix(core, node): Support loading Express options lazily ([#20211](https://github.com/getsentry/sentry-javascript/pull/20211))
+- fix(core): Set `conversation_id` only on `gen_ai` spans ([#20274](https://github.com/getsentry/sentry-javascript/pull/20274))
+- fix(core): Use `ai.operationId` for Vercel AI V6 operation name mapping ([#20285](https://github.com/getsentry/sentry-javascript/pull/20285))
+- fix(deno): Avoid inferring invalid span op from Deno tracer ([#20128](https://github.com/getsentry/sentry-javascript/pull/20128))
+- fix(deno): Handle `reader.closed` rejection from `releaseLock()` in streaming ([#20187](https://github.com/getsentry/sentry-javascript/pull/20187))
+- fix(nextjs): Preserve directive prologues in turbopack loaders ([#20103](https://github.com/getsentry/sentry-javascript/pull/20103))
+- fix(nextjs): Skip custom browser tracing setup for bot user agents ([#20263](https://github.com/getsentry/sentry-javascript/pull/20263))
+- fix(opentelemetry): Use WeakRef for context stored on scope to prevent memory leak ([#20328](https://github.com/getsentry/sentry-javascript/pull/20328))
+- fix(replay): Use live click attributes in breadcrumbs ([#20262](https://github.com/getsentry/sentry-javascript/pull/20262))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add PR review reminder workflow ([#20175](https://github.com/getsentry/sentry-javascript/pull/20175))
+- chore: Fix lint warnings ([#20250](https://github.com/getsentry/sentry-javascript/pull/20250))
+- chore(bugbot): Add rules to flag test-flake-provoking patterns ([#20192](https://github.com/getsentry/sentry-javascript/pull/20192))
+- chore(ci): Bump actions/cache to v5 and actions/download-artifact to v7 ([#20249](https://github.com/getsentry/sentry-javascript/pull/20249))
+- chore(ci): Bump dorny/paths-filter from v3.0.1 to v4.0.1 ([#20251](https://github.com/getsentry/sentry-javascript/pull/20251))
+- chore(ci): Remove codecov steps from jobs that produce no coverage/JUnit data ([#20244](https://github.com/getsentry/sentry-javascript/pull/20244))
+- chore(ci): Remove craft changelog preview ([#20271](https://github.com/getsentry/sentry-javascript/pull/20271))
+- chore(ci): Remove node-overhead GitHub Action ([#20246](https://github.com/getsentry/sentry-javascript/pull/20246))
+- chore(ci): Replace pr-labels-action with native GitHub expressions ([#20252](https://github.com/getsentry/sentry-javascript/pull/20252))
+- chore(ci): Skip flaky issue creation for optional tests ([#20288](https://github.com/getsentry/sentry-javascript/pull/20288))
+- chore(deps-dev): Bump @sveltejs/kit from 2.53.3 to 2.57.1 ([#20216](https://github.com/getsentry/sentry-javascript/pull/20216))
+- chore(deps-dev): Bump vite from 7.2.0 to 7.3.2 in /dev-packages/e2e-tests/test-applications/tanstackstart-react ([#20107](https://github.com/getsentry/sentry-javascript/pull/20107))
+- chore(deps): Bump axios from 1.13.5 to 1.15.0 ([#20180](https://github.com/getsentry/sentry-javascript/pull/20180))
+- chore(deps): Bump axios from 1.13.5 to 1.15.0 in /dev-packages/e2e-tests/test-applications/nestjs-basic ([#20179](https://github.com/getsentry/sentry-javascript/pull/20179))
+- chore(deps): Bump hono from 4.12.7 to 4.12.12 ([#20118](https://github.com/getsentry/sentry-javascript/pull/20118))
+- chore(deps): Bump hono from 4.12.7 to 4.12.12 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#20119](https://github.com/getsentry/sentry-javascript/pull/20119))
+- chore(deps): Bump next from 16.1.7 to 16.2.3 in nextjs-16-cf-workers ([#20289](https://github.com/getsentry/sentry-javascript/pull/20289))
+- chore(size-limit): Bump failing size limit scenario ([#20186](https://github.com/getsentry/sentry-javascript/pull/20186))
+- ci: Add automatic flaky test detector ([#18684](https://github.com/getsentry/sentry-javascript/pull/18684))
+- ci: Extract test names for flaky test issues ([#20298](https://github.com/getsentry/sentry-javascript/pull/20298))
+- ci: Remove Docker container for Verdaccio package publishing ([#20329](https://github.com/getsentry/sentry-javascript/pull/20329))
+- fix(ci): Prevent command injection in ci-metadata workflow ([#19899](https://github.com/getsentry/sentry-javascript/pull/19899))
+- fix(e2e-tests): Remove flaky navigation breadcrumb assertions from parameterized-routes tests ([#20202](https://github.com/getsentry/sentry-javascript/pull/20202))
+- fix(e2e): Add op check to waitForTransaction in React Router e2e tests ([#20193](https://github.com/getsentry/sentry-javascript/pull/20193))
+- fix(node-integration-tests): Fix flaky kafkajs test race condition ([#20189](https://github.com/getsentry/sentry-javascript/pull/20189))
+- ref(core): Add registry in Vercel ai integration ([#20098](https://github.com/getsentry/sentry-javascript/pull/20098))
+- ref(core): Automatically disable truncation when span streaming is enabled in Anthropic AI integration ([#20228](https://github.com/getsentry/sentry-javascript/pull/20228))
+- ref(core): Automatically disable truncation when span streaming is enabled in Google GenAI integration ([#20229](https://github.com/getsentry/sentry-javascript/pull/20229))
+- ref(core): Automatically disable truncation when span streaming is enabled in LangChain integration ([#20230](https://github.com/getsentry/sentry-javascript/pull/20230))
+- ref(core): Automatically disable truncation when span streaming is enabled in LangGraph integration ([#20231](https://github.com/getsentry/sentry-javascript/pull/20231))
+- ref(core): Automatically disable truncation when span streaming is enabled in OpenAI integration ([#20227](https://github.com/getsentry/sentry-javascript/pull/20227))
+- ref(core): Automatically disable truncation when span streaming is enabled in Vercel AI integration ([#20232](https://github.com/getsentry/sentry-javascript/pull/20232))
+- ref(core): Merge embeddings operations constants ([#20095](https://github.com/getsentry/sentry-javascript/pull/20095))
+- ref(core): Remove unused constants from vercel-ai-attributes.ts ([#20096](https://github.com/getsentry/sentry-javascript/pull/20096))
+- ref(nextjs): Refactor `findInjectionIndexAfterDirectives` for better readability ([#20310](https://github.com/getsentry/sentry-javascript/pull/20310))
+- ref(opentelemetry): Replace `@opentelemetry/resources` with inline `getSentryResource()` ([#20327](https://github.com/getsentry/sentry-javascript/pull/20327))
+- test: Fix flaky ANR test by increasing blocking duration ([#20239](https://github.com/getsentry/sentry-javascript/pull/20239))
+- test(bun): Add bun integration test folder ([#20286](https://github.com/getsentry/sentry-javascript/pull/20286))
+- test(cloudflare): Skip flaky durableobject-spans test ([#20282](https://github.com/getsentry/sentry-javascript/pull/20282))
+- test(openai): Use multi-message scenario in no-truncation test ([#20194](https://github.com/getsentry/sentry-javascript/pull/20194))
+- test(react): Remove duplicated test mock ([#20200](https://github.com/getsentry/sentry-javascript/pull/20200))
+- tests(ai): Fix streaming+truncation integration tests across AI integrations ([#20326](https://github.com/getsentry/sentry-javascript/pull/20326))
+
+</details>
+
 ## 10.48.0
 
 ### Important Changes

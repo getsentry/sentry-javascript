@@ -27,6 +27,7 @@ export { systemErrorIntegration } from './integrations/systemError';
 export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 export { pinoIntegration } from './integrations/pino';
+export { consoleIntegration } from './integrations/console';
 
 // SDK utilities
 export { getSentryRelease, defaultStackParser } from './sdk/api';
@@ -117,7 +118,6 @@ export {
   profiler,
   consoleLoggingIntegration,
   createConsolaReporter,
-  consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,

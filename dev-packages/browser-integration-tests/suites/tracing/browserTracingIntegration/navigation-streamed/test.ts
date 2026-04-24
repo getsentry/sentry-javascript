@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
   getSpanOp,
   getSpansFromEnvelope,
@@ -15,8 +15,8 @@ import {
   waitForStreamedSpanEnvelope,
 } from '../../../../utils/spanUtils';
 
-sentryTest('starts a streamed navigation span on page navigation', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+sentryTest('starts a streamed navigation span on page navigation', async ({ browserName, getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
   const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
@@ -69,14 +69,40 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 
   expect(navigationSpan).toEqual({
     attributes: {
-      effectiveConnectionType: {
+      'culture.calendar': {
         type: 'string',
         value: expect.any(String),
       },
-      hardwareConcurrency: {
+      'culture.locale': {
         type: 'string',
         value: expect.any(String),
       },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'url.full': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'device.processor_count': {
+        type: expect.stringMatching(/^(integer)|(double)$/),
+        value: expect.any(Number),
+      },
+      ...(browserName !== 'webkit' && {
+        'network.connection.effective_type': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'network.connection.rtt': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+      }),
       'sentry.idle_span_finish_reason': {
         type: 'string',
         value: 'idleTimeout',
@@ -146,7 +172,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ getL
 });
 
 sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -77,6 +77,7 @@ export class SentrySampler implements Sampler {
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
     if (spanKind === SpanKind.CLIENT && maybeSpanHttpMethod && (!parentSpan || parentContext?.isRemote)) {
+      this._client.recordDroppedEvent('no_parent_span', 'span');
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 

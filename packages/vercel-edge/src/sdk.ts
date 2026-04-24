@@ -1,11 +1,5 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-  SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions';
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
@@ -22,12 +16,12 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  SDK_VERSION,
   spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
+  getSentryResource,
   openTelemetrySetupCheck,
   SentryPropagator,
   SentrySampler,
@@ -166,14 +160,7 @@ export function setupOtel(client: VercelEdgeClient): void {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: defaultResource().merge(
-      resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: 'edge',
-        // eslint-disable-next-line deprecation/deprecation
-        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-        [ATTR_SERVICE_VERSION]: SDK_VERSION,
-      }),
-    ),
+    resource: getSentryResource('edge'),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({

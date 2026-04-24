@@ -9,6 +9,7 @@ describe('TanStack Start React Client SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      vi.unstubAllGlobals();
     });
 
     it('Adds TanStack Start React client metadata to the SDK options', () => {
@@ -40,6 +41,16 @@ describe('TanStack Start React Client SDK', () => {
 
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
+    });
+
+    it('applies the managed tunnel route when no runtime tunnel is provided', () => {
+      vi.stubGlobal('__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__', '/managed-tunnel');
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ tunnel: '/managed-tunnel' }));
     });
   });
 });

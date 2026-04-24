@@ -847,7 +847,7 @@ describe('Anthropic integration', () => {
 
   const streamingLongContent = 'A'.repeat(50_000);
 
-  createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
     test('automatically disables truncation when span streaming is enabled', async () => {
       await createRunner()
         .expect({
@@ -867,7 +867,7 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-streaming.mjs',
+    'scenario-span-streaming.mjs',
     'instrument-streaming-with-truncation.mjs',
     (createRunner, test) => {
       test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {

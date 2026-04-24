@@ -27,7 +27,7 @@ interface PerformanceEntry {
   readonly startTime: number;
   toJSON(): Record<string, unknown>;
 }
-interface PerformanceEventTiming extends PerformanceEntry {
+export interface PerformanceEventTiming extends PerformanceEntry {
   processingStart: number;
   processingEnd: number;
   duration: number;

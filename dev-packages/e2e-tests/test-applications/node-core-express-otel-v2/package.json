@@ -11,8 +11,8 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node-core": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
+    "@sentry/node-core": "file:../../packed/sentry-node-core-packed.tgz",
+    "@sentry/opentelemetry": "file:../../packed/sentry-opentelemetry-packed.tgz",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/core": "^2.6.0",
     "@opentelemetry/instrumentation": "^0.214.0",

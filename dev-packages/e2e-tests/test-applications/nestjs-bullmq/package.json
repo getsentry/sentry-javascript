@@ -18,7 +18,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/bullmq": "^11.0.0",
     "bullmq": "^5.0.0",
-    "@sentry/nestjs": "latest || *",
+    "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },

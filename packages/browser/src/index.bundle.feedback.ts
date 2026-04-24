@@ -4,6 +4,7 @@ import {
   elementTimingIntegrationShim,
   loggerShim,
   replayIntegrationShim,
+  spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
@@ -20,4 +21,5 @@ export {
   feedbackAsyncIntegration as feedbackAsyncIntegration,
   feedbackAsyncIntegration as feedbackIntegration,
   replayIntegrationShim as replayIntegration,
+  spanStreamingIntegrationShim as spanStreamingIntegration,
 };

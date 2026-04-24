@@ -23,8 +23,8 @@
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
-    "@sentry/core": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@vercel/queue": "^0.1.3",
     "ai": "^3.0.0",
     "import-in-the-middle": "^2",

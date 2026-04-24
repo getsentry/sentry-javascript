@@ -17,6 +17,7 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
   }),
   MyDurableObjectBase,
 );
@@ -25,6 +26,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
+    enableRpcTracePropagation: true,
   }),
   {
     async fetch(request, env) {

@@ -5,3 +5,9 @@ services:
     container_name: integration-tests-kafka
     ports:
       - '9092:9092'
+    healthcheck:
+      test: ['CMD-SHELL', '/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 15s

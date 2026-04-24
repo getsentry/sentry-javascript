@@ -404,6 +404,7 @@ function xhrCallback(
 
   const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
+  const client = getClient();
   const hasParent = !!getActiveSpan();
 
   const span =
@@ -424,6 +425,10 @@ function xhrCallback(
         })
       : new SentryNonRecordingSpan();
 
+  if (shouldCreateSpanResult && !hasParent) {
+    client?.recordDroppedEvent('no_parent_span', 'span');
+  }
+
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
@@ -438,7 +443,6 @@ function xhrCallback(
     );
   }
 
-  const client = getClient();
   if (client) {
     client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }

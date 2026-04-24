@@ -1,5 +1,5 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
 import { registerServerBuildGlobal } from '../serverBuild';
@@ -59,6 +59,24 @@ export const reactRouterServerIntegration = defineIntegration(() => {
       }
 
       return event;
+    },
+    processSegmentSpan(span) {
+      // Express generates bogus `*` routes for data loaders, which we want to remove here
+      // we cannot do this earlier because some OTEL instrumentation adds this at some unexpected point
+      const attributes = span.attributes;
+      if (attributes?.[ATTR_HTTP_ROUTE] !== '*') {
+        return;
+      }
+
+      const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+      const isInstrumentationApiOrigin = typeof origin === 'string' && origin.includes('instrumentation_api');
+
+      // For instrumentation_api, always clean up bogus `*` route since we set better names
+      // For legacy, only clean up if the name has been adjusted (not METHOD *)
+      if (isInstrumentationApiOrigin || !span.name?.endsWith(' *')) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete attributes[ATTR_HTTP_ROUTE];
+      }
     },
   };
 });

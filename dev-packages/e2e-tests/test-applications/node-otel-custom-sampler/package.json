@@ -13,8 +13,8 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-trace-node": "^2.6.0",
-    "@sentry/node": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/opentelemetry": "file:../../packed/sentry-opentelemetry-packed.tgz",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",
     "express": "^4.21.2",
