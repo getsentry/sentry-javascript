@@ -60,6 +60,14 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     client.emit('processSegmentSpan', spanJSON);
   }
 
+  // Backfill span data from OTel semantic conventions when not explicitly set.
+  // OTel-originated spans don't have sentry.op, description, etc. — the non-streamed path
+  // infers these in the SentrySpanExporter, but streamed spans skip the exporter entirely.
+  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
+  // This must run before hooks and beforeSendSpan so that user callbacks can see and override inferred values.
+  const spanKind = (span as { kind?: number }).kind;
+  inferSpanDataFromOtelAttributes(spanJSON, spanKind);
+
   // This allows hook subscribers to mutate the span JSON
   // This also invokes the `processSpan` hook of all integrations
   client.emit('processSpan', spanJSON);
@@ -69,14 +77,6 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     beforeSendSpan && isStreamedBeforeSendSpanCallback(beforeSendSpan)
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
-
-  // Backfill span data from OTel semantic conventions when not explicitly set.
-  // OTel-originated spans don't have sentry.op, description, etc. — the non-streamed path
-  // infers these in the SentrySpanExporter, but streamed spans skip the exporter entirely.
-  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
-  // This must run before the sentry.span.source backfill below, so that inferred sentry.source is picked up.
-  const spanKind = (span as { kind?: number }).kind;
-  inferSpanDataFromOtelAttributes(processedSpan, spanKind);
 
   // Backfill sentry.span.source from sentry.source. Only `sentry.span.source` is respected by Sentry.
   // TODO(v11): Remove this backfill once we renamed SEMANTIC_ATTRIBUTE_SENTRY_SOURCE to sentry.span.source
