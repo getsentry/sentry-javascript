@@ -378,7 +378,10 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
       .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
       .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
       .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      .replace(/(?<!\$)-?\b\d+\b/g, '?') // Integers (NOT $n placeholders)
+      // Constructed via `new RegExp` so the negative lookbehind is evaluated at
+      // runtime. As a literal, it is a parse-time SyntaxError on Safari <16.4 —
+      // which breaks any browser bundle that reaches this module via the core barrel.
+      .replace(new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g'), '?') // Integers (NOT $n placeholders)
       // Collapse IN clauses for cardinality (both ? and $n variants)
       .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
       .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
