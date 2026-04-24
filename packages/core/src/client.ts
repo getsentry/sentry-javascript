@@ -213,14 +213,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _promiseBuffer: PromiseBuffer<unknown>;
 
   /**
-   * Cleanup functions to call on dispose.
-   *
-   * NOTE: These callbacks are only invoked by subclasses whose `dispose()` implementation runs them
-   * (currently only `ServerRuntimeClient`). The base `Client.dispose()` is a no-op and will not run them.
-   */
-  protected _disposeCallbacks: (() => void)[];
-
-  /**
    * Initializes this client instance.
    *
    * @param options Options for the client.
@@ -232,7 +224,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
-    this._disposeCallbacks = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
 
     if (options.dsn) {
@@ -1182,13 +1173,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a cleanup function to be called when the client is disposed.
    * This is useful for integrations that need to clean up global state.
    *
-   * NOTE: Registered callbacks are only executed by subclasses whose `dispose()` implementation
-   * runs them. At the moment that is only `ServerRuntimeClient` (and clients extending it). On the
-   * base `Client` (e.g. the browser client), `dispose()` is a no-op, so callbacks registered here
-   * will never be invoked.
+   * NOTE: This is a no-op in the base `Client` class. Subclasses like `ServerRuntimeClient`
+   * override this method to actually register and execute cleanup callbacks.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public registerCleanup(callback: () => void): void {
-    this._disposeCallbacks.push(callback);
+    // No-op in base class - subclasses override to implement cleanup registration
   }
 
   /**

@@ -31,6 +31,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
+  private _disposeCallbacks: (() => void)[] = [];
+
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -152,6 +154,13 @@ export class ServerRuntimeClient<
     this.sendEnvelope(envelope);
 
     return id;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public override registerCleanup(callback: () => void): void {
+    this._disposeCallbacks.push(callback);
   }
 
   /**
