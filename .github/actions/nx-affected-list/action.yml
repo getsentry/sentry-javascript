@@ -21,11 +21,13 @@ runs:
       id: affected
       shell: bash
       run: |
+        set -euo pipefail
         ARGS=""
         if [ -n "${{ inputs.base }}" ]; then ARGS="$ARGS --base=${{ inputs.base }}"; fi
         if [ -n "${{ inputs.head }}" ]; then ARGS="$ARGS --head=${{ inputs.head }}"; fi
 
-        AFFECTED=$(./node_modules/.bin/nx show projects --affected $ARGS 2>/dev/null | tr '\n' ' ' | xargs) || true
+        # Fail the step on nx/git errors so empty output cannot skip integration jobs silently.
+        AFFECTED=$(./node_modules/.bin/nx show projects --affected $ARGS | tr '\n' ' ' | xargs)
         echo "affected=$AFFECTED" >> "$GITHUB_OUTPUT"
 
         if [ -n "$AFFECTED" ]; then
