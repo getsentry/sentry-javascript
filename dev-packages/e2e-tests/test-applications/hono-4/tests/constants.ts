@@ -1,6 +1,5 @@
 export type Runtime = 'cloudflare' | 'node' | 'bun';
 
-export const RUNTIME = (process.env.RUNTIME || 'cloudflare') as Runtime;
-export const isNode = RUNTIME === 'node';
+export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
 
 export const APP_NAME = 'hono-4';

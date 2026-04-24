@@ -3,17 +3,9 @@ import { sentry } from '@sentry/hono/node';
 import { serve } from '@hono/node-server';
 import { addRoutes } from './routes';
 
-const app = new Hono<{ Bindings: { E2E_TEST_DSN: string } }>();
+const app = new Hono();
 
-app.use(
-  // @ts-expect-error - Env is not yet in type
-  sentry(app, {
-    dsn: process.env.E2E_TEST_DSN,
-    environment: 'qa',
-    tracesSampleRate: 1.0,
-    tunnel: 'http://localhost:3031/',
-  }),
-);
+app.use(sentry(app));
 
 addRoutes(app);
 

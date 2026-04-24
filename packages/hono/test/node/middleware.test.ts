@@ -3,6 +3,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/node/middleware';
+import { init } from '../../src/node/sdk';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn(),
@@ -28,7 +29,7 @@ describe('Hono Node Middleware', () => {
     vi.clearAllMocks();
   });
 
-  describe('sentry middleware', () => {
+  describe('sentry middleware with options (inline init)', () => {
     it('calls applySdkMetadata with "hono"', () => {
       const app = new Hono();
       const options = {
@@ -94,26 +95,6 @@ describe('Hono Node Middleware', () => {
       );
     });
 
-    it('returns a middleware handler function', () => {
-      const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
-
-      const middleware = sentry(app, options);
-
-      expect(middleware).toBeDefined();
-      expect(typeof middleware).toBe('function');
-      expect(middleware).toHaveLength(2); // Hono middleware takes (context, next)
-    });
-
-    it('returns an async middleware handler', () => {
-      const app = new Hono();
-      const middleware = sentry(app, {});
-
-      expect(middleware.constructor.name).toBe('AsyncFunction');
-    });
-
     it('passes an integrations function to initNode (never a raw array)', () => {
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -144,6 +125,77 @@ describe('Hono Node Middleware', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('sentry middleware without options (external init)', () => {
+    it('does not call init when no options are provided', () => {
+      const app = new Hono();
+      sentry(app);
+
+      expect(initNodeMock).not.toHaveBeenCalled();
+      expect(applySdkMetadataMock).not.toHaveBeenCalled();
+    });
+
+    it('returns a middleware handler function', () => {
+      const app = new Hono();
+      const middleware = sentry(app);
+
+      expect(middleware).toBeDefined();
+      expect(typeof middleware).toBe('function');
+      expect(middleware).toHaveLength(2);
+    });
+
+    it('returns an async middleware handler', () => {
+      const app = new Hono();
+      const middleware = sentry(app);
+
+      expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+  });
+
+  describe('common behavior', () => {
+    it('returns a middleware handler function when options are provided', () => {
+      const app = new Hono();
+      const middleware = sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(middleware).toBeDefined();
+      expect(typeof middleware).toBe('function');
+      expect(middleware).toHaveLength(2);
+    });
+
+    it('returns an async middleware handler when options are provided', () => {
+      const app = new Hono();
+      const middleware = sentry(app, {});
+
+      expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+  });
+
+  describe('double-init guard', () => {
+    it('skips re-initialization when a client already exists', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      const getClientSpy = vi
+        .spyOn(SentryCore, 'getClient')
+        .mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(result).toBe(fakeClient);
+      expect(initNodeMock).not.toHaveBeenCalled();
+      expect(applySdkMetadataMock).not.toHaveBeenCalled();
+
+      getClientSpy.mockRestore();
+    });
+
+    it('initializes normally when no client exists yet', () => {
+      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(initNodeMock).toHaveBeenCalledTimes(1);
+
+      getClientSpy.mockRestore();
     });
   });
 });
