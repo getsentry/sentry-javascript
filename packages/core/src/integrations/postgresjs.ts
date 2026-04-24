@@ -361,7 +361,9 @@ export function _sanitizeSqlQuery(sqlQuery: string | undefined): string {
   // Lazy init: constructing this at module scope would evaluate the lookbehind
   // on import and crash Safari <16.4 browser bundles that reach this file via
   // the core barrel. Building it on first call keeps the cost off the import path.
-  integerLiteralRE ??= new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
+  if (!integerLiteralRE) {
+    integerLiteralRE = new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
+  }
 
   return (
     sqlQuery
