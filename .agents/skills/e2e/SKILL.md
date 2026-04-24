@@ -116,7 +116,7 @@ All tests completed successfully. Your SDK changes work correctly with this test
 
 - **No tarballs found**: Run `yarn build && yarn build:tarball` at repository root
 - **Test app not found**: List available apps and ask user to clarify
-- **Verdaccio not running**: Tests should start Verdaccio automatically, but if issues occur, check Docker
+- **Packed tarballs missing**: Run `yarn build:tarball` at the repo root, then `yarn test:prepare` in `dev-packages/e2e-tests`
 - **Build failures**: Fix build errors before running tests
 
 ## Common Test Applications

@@ -2,6 +2,7 @@ import type { Client } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions as ReactBrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as initReactSDK } from '@sentry/react';
+import { applyTunnelRouteOption } from './tunnelRoute';
 
 /**
  * Initializes the TanStack Start React SDK
@@ -14,6 +15,7 @@ export function init(options: ReactBrowserOptions): Client | undefined {
     ...options,
   };
 
+  applyTunnelRouteOption(sentryOptions);
   applySdkMetadata(sentryOptions, 'tanstackstart-react', ['tanstackstart-react', 'react']);
 
   return initReactSDK(sentryOptions);

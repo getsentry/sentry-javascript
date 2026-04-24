@@ -39,9 +39,6 @@ local.log
 
 .rpt2_cache
 
-# verdaccio local registry (e2e tests)
-dev-packages/e2e-tests/verdaccio-config/storage/
-
 lint-results.json
 trace.zip
 
@@ -70,6 +67,7 @@ packages/**/*.junit.xml
 
 # Local Claude Code settings that should not be committed
 .claude/settings.local.json
+.claude/worktrees
 
 # Triage report
 **/triage_report.md

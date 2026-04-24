@@ -239,13 +239,19 @@ the binaries will be copied. This is wasteful as you will likely only need one o
 runtime.
 
 To prune the other libraries, profiling-node ships with a small utility script that helps you prune unused binaries. The
-script can be invoked via `sentry-prune-profiler-binaries`, use `--help` to see a list of available options or
-`--dry-run` if you want it to log the binaries that would have been deleted.
+script can be invoked via `sentry-prune-profiler-binaries`:
+
+```bash
+npx --package=@sentry/profiling-node sentry-prune-profiler-binaries
+```
+
+Use `--help` to see a list of available options or `--dry-run` if you want it to log the binaries that would have been
+deleted.
 
 Example of only preserving a binary to run node16 on linux x64 musl.
 
 ```bash
-sentry-prune-profiler-binaries --target_dir_path=./dist --target_platform=linux --target_node=16 --target_stdlib=musl --target_arch=x64
+npx --package=@sentry/profiling-node sentry-prune-profiler-binaries --target_dir_path=./dist --target_platform=linux --target_node=16 --target_stdlib=musl --target_arch=x64
 ```
 
 Which will output something like

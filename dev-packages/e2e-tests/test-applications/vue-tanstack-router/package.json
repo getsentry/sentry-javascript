@@ -13,7 +13,7 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@sentry/vue": "latest || *",
+    "@sentry/vue": "file:../../packed/sentry-vue-packed.tgz",
     "@tanstack/vue-router": "^1.141.8",
     "vue": "^3.4.15"
   },

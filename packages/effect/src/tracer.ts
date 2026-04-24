@@ -32,6 +32,46 @@ function isSentrySpan(span: EffectTracer.AnySpan): span is SentrySpanLike {
   return SENTRY_SPAN_SYMBOL in span;
 }
 
+function getErrorMessage(exit: Exit.Exit<unknown, unknown>): string | undefined {
+  if (!Exit.isFailure(exit)) {
+    return undefined;
+  }
+
+  const cause = exit.cause as unknown;
+
+  // Effect v4: cause.reasons is an array of Reason objects
+  if (
+    cause &&
+    typeof cause === 'object' &&
+    'reasons' in cause &&
+    Array.isArray((cause as { reasons: unknown }).reasons)
+  ) {
+    const reasons = (cause as { reasons: Array<{ _tag?: string; error?: unknown; defect?: unknown }> }).reasons;
+    for (const reason of reasons) {
+      if (reason._tag === 'Fail' && reason.error !== undefined) {
+        return String(reason.error);
+      }
+      if (reason._tag === 'Die' && reason.defect !== undefined) {
+        return String(reason.defect);
+      }
+    }
+    return 'internal_error';
+  }
+
+  // Effect v3: cause has _tag directly
+  if (cause && typeof cause === 'object' && '_tag' in cause) {
+    const v3Cause = cause as { _tag: string; error?: unknown; defect?: unknown };
+    if (v3Cause._tag === 'Fail') {
+      return String(v3Cause.error);
+    }
+    if (v3Cause._tag === 'Die') {
+      return String(v3Cause.defect);
+    }
+  }
+
+  return 'internal_error';
+}
+
 class SentrySpanWrapper implements SentrySpanLike {
   public readonly [SENTRY_SPAN_SYMBOL]: true;
   public readonly _tag: 'Span';
@@ -43,6 +83,7 @@ class SentrySpanWrapper implements SentrySpanLike {
   public readonly links: Array<EffectTracer.SpanLink>;
   public status: EffectTracer.SpanStatus;
   public readonly sentrySpan: Span;
+  public readonly annotations: Context.Context<never>;
 
   public constructor(
     public readonly name: string,
@@ -59,6 +100,7 @@ class SentrySpanWrapper implements SentrySpanLike {
     this.parent = parent;
     this.links = [...links];
     this.sentrySpan = existingSpan;
+    this.annotations = context;
 
     const spanContext = this.sentrySpan.spanContext();
     this.spanId = spanContext.spanId;
@@ -96,9 +138,7 @@ class SentrySpanWrapper implements SentrySpanLike {
     }
 
     if (Exit.isFailure(exit)) {
-      const cause = exit.cause;
-      const message =
-        cause._tag === 'Fail' ? String(cause.error) : cause._tag === 'Die' ? String(cause.defect) : 'internal_error';
+      const message = getErrorMessage(exit) ?? 'internal_error';
       this.sentrySpan.setStatus({ code: 2, message });
     } else {
       this.sentrySpan.setStatus({ code: 1 });
@@ -139,21 +179,71 @@ function createSentrySpan(
   return new SentrySpanWrapper(name, parent, context, links, startTime, kind, newSpan);
 }
 
-const makeSentryTracer = (): EffectTracer.Tracer =>
-  EffectTracer.make({
-    span(name, parent, context, links, startTime, kind) {
+// Check if we're running Effect v4 by checking the Exit/Cause structure
+// In v4, causes have a 'reasons' array
+// In v3, causes have '_tag' directly on the cause object
+const isEffectV4 = (() => {
+  try {
+    const testExit = Exit.fail('test') as unknown as { cause?: unknown };
+    const cause = testExit.cause;
+    // v4 causes have 'reasons' array, v3 causes have '_tag' directly
+    if (cause && typeof cause === 'object' && 'reasons' in cause) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+})();
+
+const makeSentryTracerV3 = (): EffectTracer.Tracer => {
+  // Effect v3 API: span(name, parent, context, links, startTime, kind)
+  return EffectTracer.make({
+    span(
+      name: string,
+      parent: Option.Option<EffectTracer.AnySpan>,
+      context: Context.Context<never>,
+      links: ReadonlyArray<EffectTracer.SpanLink>,
+      startTime: bigint,
+      kind: EffectTracer.SpanKind,
+    ) {
       return createSentrySpan(name, parent, context, links, startTime, kind);
     },
-    context(execution, fiber) {
+    context(execution: () => unknown, fiber: { currentSpan?: EffectTracer.AnySpan }) {
       const currentSpan = fiber.currentSpan;
       if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
         return execution();
       }
       return withActiveSpan(currentSpan.sentrySpan, execution);
     },
+  } as unknown as EffectTracer.Tracer);
+};
+
+const makeSentryTracerV4 = (): EffectTracer.Tracer => {
+  const EFFECT_EVALUATE = '~effect/Effect/evaluate' as const;
+
+  return EffectTracer.make({
+    span(options) {
+      return createSentrySpan(
+        options.name,
+        options.parent,
+        options.annotations,
+        options.links,
+        options.startTime,
+        options.kind,
+      );
+    },
+    context(primitive, fiber) {
+      const currentSpan = fiber.currentSpan;
+      if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
+        return primitive[EFFECT_EVALUATE](fiber);
+      }
+      return withActiveSpan(currentSpan.sentrySpan, () => primitive[EFFECT_EVALUATE](fiber));
+    },
   });
+};
 
 /**
  * Effect Layer that sets up the Sentry tracer for Effect spans.
  */
-export const SentryEffectTracer = makeSentryTracer();
+export const SentryEffectTracer = isEffectV4 ? makeSentryTracerV4() : makeSentryTracerV3();

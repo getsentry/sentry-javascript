@@ -224,8 +224,12 @@ export const prismaIntegration = defineIntegration((options?: PrismaOptions) => 
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.prisma');
         }
 
-        // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1
-        if (spanJSON.description === 'prisma:engine:db_query' && spanJSON.data['db.query.text']) {
+        // Make sure we use the query text as the span name, for ex. SELECT * FROM "User" WHERE "id" = $1.
+        // v5/v6 emit `prisma:engine:db_query`; v7 inlined the engine and emits `prisma:client:db_query`.
+        if (
+          (spanJSON.description === 'prisma:engine:db_query' || spanJSON.description === 'prisma:client:db_query') &&
+          spanJSON.data['db.query.text']
+        ) {
           span.updateName(spanJSON.data['db.query.text'] as string);
         }
 

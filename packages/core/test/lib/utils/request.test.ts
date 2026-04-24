@@ -650,6 +650,35 @@ describe('request utils', () => {
         });
       });
 
+      it('filters common framework and provider session-style cookie names', () => {
+        const headers = {
+          Cookie:
+            'connect.sid=s3cr3t; express.sid=opaque; PHPSESSID=abcd; theme=light; sb-access-token=x; __stripe_mid=y',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.connect.sid': '[Filtered]',
+          'http.request.header.cookie.express.sid': '[Filtered]',
+          'http.request.header.cookie.phpsessid': '[Filtered]',
+          'http.request.header.cookie.theme': 'light',
+          'http.request.header.cookie.sb_access_token': '[Filtered]',
+          'http.request.header.cookie.__stripe_mid': '[Filtered]',
+        });
+      });
+
+      it('still filters session-style cookie names when sendDefaultPii is true', () => {
+        const headers = { Cookie: 'connect.sid=s3cr3t; analytics=1' };
+
+        const result = httpHeadersToSpanAttributes(headers, true);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.connect.sid': '[Filtered]',
+          'http.request.header.cookie.analytics': '1',
+        });
+      });
+
       it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
         const headers1 = { Cookie: ['key', 'val'] };
         const result1 = httpHeadersToSpanAttributes(headers1);

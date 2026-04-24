@@ -4,6 +4,12 @@ services:
   db:
     image: redis:latest
     restart: always
-    container_name: integration-tests-redis
+    container_name: integration-tests-redis-cache
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

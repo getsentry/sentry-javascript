@@ -52,6 +52,7 @@ body:
         - '@sentry/google-cloud-serverless'
         - '@sentry/nestjs'
         - '@sentry/nextjs'
+        - '@sentry/nitro'
         - '@sentry/nuxt'
         - '@sentry/react'
         - '@sentry/react-router'

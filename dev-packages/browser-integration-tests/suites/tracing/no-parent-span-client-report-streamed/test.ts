@@ -1,12 +1,17 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
+import {
+  envelopeRequestParser,
+  hidePage,
+  shouldSkipTracingTest,
+  waitForClientReportRequest,
+} from '../../../utils/helpers';
 
 sentryTest(
   'sends http.client span for fetch requests without an active span when span streaming is enabled',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     await page.route('http://sentry-test-site.example/api/test', route => {
       route.fulfill({

@@ -1,11 +1,11 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { hidePage, shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
-  if (shouldSkipTracingTest() || testingCdnBundle() || browserName !== 'chromium') {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 

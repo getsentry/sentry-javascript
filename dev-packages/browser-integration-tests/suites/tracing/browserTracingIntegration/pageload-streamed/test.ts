@@ -11,13 +11,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest(
   'creates a pageload streamed span envelope with url as pageload span name source',
-  async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+  async ({ browserName, getLocalTestUrl, page }) => {
+    sentryTest.skip(shouldSkipTracingTest());
 
     const spanEnvelopePromise = waitForStreamedSpanEnvelope(
       page,
@@ -74,8 +74,11 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        // formerly known as 'effectiveConnectionType'
-        'network.connection.effective_type': {
+        'http.request.header.user_agent': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'url.full': {
           type: 'string',
           value: expect.any(String),
         },
@@ -92,18 +95,25 @@ sentryTest(
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'network.connection.rtt': {
-          type: expect.stringMatching(/^(integer)|(double)$/),
-          value: expect.any(Number),
-        },
         'browser.web_vital.ttfb.request_time': {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'browser.web_vital.ttfb.value': {
-          type: expect.stringMatching(/^(integer)|(double)$/),
-          value: expect.any(Number),
-        },
+        ...(browserName !== 'webkit' && {
+          // formerly known as 'effectiveConnectionType'
+          'network.connection.effective_type': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'network.connection.rtt': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+          'browser.web_vital.ttfb.value': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+        }),
         'sentry.idle_span_finish_reason': {
           type: 'string',
           value: 'idleTimeout',

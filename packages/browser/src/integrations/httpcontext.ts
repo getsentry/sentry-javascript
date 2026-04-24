@@ -1,4 +1,4 @@
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 
 /**
@@ -25,6 +25,22 @@ export const httpContextIntegration = defineIntegration(() => {
         ...event.request,
         headers,
       };
+    },
+    processSegmentSpan(span) {
+      // if none of the information we want exists, don't bother
+      if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
+        return;
+      }
+
+      const reqData = getHttpRequestData();
+
+      safeSetSpanJSONAttributes(span, {
+        // Coerce empty string to undefined so the helper's nullish check drops it,
+        // rather than writing an empty `url.full` attribute onto the span.
+        'url.full': reqData.url || undefined,
+        'http.request.header.user_agent': reqData.headers['User-Agent'],
+        'http.request.header.referer': reqData.headers['Referer'],
+      });
     },
   };
 });

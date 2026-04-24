@@ -37,6 +37,8 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 
+export { spanStreamingIntegration } from './integrations/spanstreaming';
+
 export {
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,

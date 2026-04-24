@@ -16,7 +16,6 @@ describe('kafkajs', () => {
       await createRunner()
         .withDockerCompose({
           workingDirectory: [__dirname],
-          readyMatches: ['9092'],
         })
         .expect({
           transaction: (transaction: TransactionEvent) => {
