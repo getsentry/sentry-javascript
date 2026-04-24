@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'hono-4';
+import { APP_NAME } from './constants';
 
 test('sends a transaction for the index route', async ({ baseURL }) => {
   const transactionWaiter = waitForTransaction(APP_NAME, event => {
