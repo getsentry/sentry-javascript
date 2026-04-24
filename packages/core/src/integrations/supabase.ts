@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
@@ -361,12 +362,15 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           }
         }
 
+        const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
         // Adding operation to the beginning of the description if it's not a `select` operation
         // For example, it can be an `insert` or `update` operation but the query can be `select(...)`
         // For `select` operations, we don't need repeat it in the description
-        const description = `${operation === 'select' ? '' : `${operation}${body ? '(...) ' : ''}`}${queryItems.join(
-          ' ',
-        )} from(${table})`;
+        const mutationPart = operation === 'select' ? '' : `${operation}${Object.keys(body).length ? '(...) ' : ''}`;
+        const queryPart = sendDefaultPii ? queryItems.join(' ') : queryItems.length > 0 ? '[redacted]' : '';
+        const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
+        const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
         const attributes: Record<string, any> = {
           'db.table': table,
@@ -379,11 +383,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
-        if (queryItems.length) {
+        if (queryItems.length && sendDefaultPii) {
           attributes['db.query'] = queryItems;
         }
 
-        if (Object.keys(body).length) {
+        if (Object.keys(body).length && sendDefaultPii) {
           attributes['db.body'] = body;
         }
 
@@ -413,10 +417,10 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     }
 
                     const supabaseContext: Record<string, any> = {};
-                    if (queryItems.length) {
+                    if (queryItems.length && sendDefaultPii) {
                       supabaseContext.query = queryItems;
                     }
-                    if (Object.keys(body).length) {
+                    if (Object.keys(body).length && sendDefaultPii) {
                       supabaseContext.body = body;
                     }
 
@@ -444,11 +448,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
                   const data: Record<string, unknown> = {};
 
-                  if (queryItems.length) {
+                  if (queryItems.length && sendDefaultPii) {
                     data.query = queryItems;
                   }
 
-                  if (Object.keys(body).length) {
+                  if (Object.keys(body).length && sendDefaultPii) {
                     data.body = body;
                   }
 
