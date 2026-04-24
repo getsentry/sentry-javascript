@@ -293,6 +293,20 @@ describe('sendFeedback', () => {
     ).rejects.toMatch('custom forbidden text');
   });
 
+  it('falls back to default messages for codes not in errorMessages', async () => {
+    mockSdk();
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 400 });
+    });
+
+    // Only override ERROR_FORBIDDEN — a 400 should still use the default generic message.
+    await expect(
+      sendFeedback({ message: 'mi' }, { errorMessages: { ERROR_FORBIDDEN: 'custom forbidden text' } }),
+    ).rejects.toMatch(
+      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
+    );
+  });
+
   it('handles 400 transport error', async () => {
     mockSdk();
     vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
