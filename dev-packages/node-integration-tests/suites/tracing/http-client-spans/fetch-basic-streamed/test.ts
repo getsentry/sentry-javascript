@@ -2,12 +2,11 @@ import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('captures streamed spans with sentry.op for outgoing fetch requests', async () => {
-  expect.assertions(2);
+test('infers sentry.op, name, and source for streamed outgoing fetch spans', async () => {
+  expect.assertions(4);
 
   const [SERVER_URL, closeTestServer] = await createTestServer()
     .get('/api/v0', () => {
-      // Just ensure we're called
       expect(true).toBe(true);
     })
     .start();
@@ -22,6 +21,8 @@ test('captures streamed spans with sentry.op for outgoing fetch requests', async
         );
 
         expect(httpClientSpan).toBeDefined();
+        expect(httpClientSpan?.name).toMatch(/^GET /);
+        expect(httpClientSpan?.attributes?.['sentry.source']).toEqual({ type: 'string', value: 'url' });
       },
     })
     .start()

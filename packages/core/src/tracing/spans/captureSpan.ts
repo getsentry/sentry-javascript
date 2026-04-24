@@ -2,8 +2,10 @@ import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
 import type { ScopeData } from '../../scope';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
@@ -15,6 +17,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
@@ -168,6 +171,7 @@ const SPAN_KIND_CLIENT = 2;
  * This mirrors what the `SentrySpanExporter` does for non-streamed spans via `getSpanData`/`inferSpanData`.
  * Streamed spans skip the exporter, so we do the inference here during capture.
  *
+ * Backfills: `sentry.op`, `sentry.source`, and `name` (description).
  * Uses `safeSetSpanJSONAttributes` so explicitly set attributes are never overwritten.
  */
 function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: number): void {
@@ -178,49 +182,107 @@ function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: 
 
   const httpMethod = attributes['http.request.method'] || attributes['http.method'];
   if (httpMethod) {
-    const opParts = ['http'];
-    if (spanKind === SPAN_KIND_CLIENT) {
-      opParts.push('client');
-    } else if (spanKind === SPAN_KIND_SERVER) {
-      opParts.push('server');
-    }
-
-    if (attributes['sentry.http.prefetch']) {
-      opParts.push('prefetch');
-    }
-
-    safeSetSpanJSONAttributes(spanJSON, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.'),
-    });
+    inferHttpSpanData(spanJSON, attributes, spanKind, httpMethod);
     return;
   }
 
   const dbSystem = attributes['db.system.name'] || attributes['db.system'];
   if (dbSystem) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-    });
+    inferDbSpanData(spanJSON, attributes);
     return;
   }
 
   if (attributes['rpc.service']) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
-    });
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc' });
     return;
   }
 
   if (attributes['messaging.system']) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'message',
-    });
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'message' });
     return;
   }
 
   const faasTrigger = attributes['faas.trigger'];
   if (faasTrigger) {
-    safeSetSpanJSONAttributes(spanJSON, {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${faasTrigger}`,
-    });
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${faasTrigger}` });
+  }
+}
+
+function inferHttpSpanData(
+  spanJSON: StreamedSpanJSON,
+  attributes: RawAttributes<Record<string, unknown>>,
+  spanKind: number | undefined,
+  httpMethod: unknown,
+): void {
+  // Infer op: http.client, http.server, or just http
+  const opParts = ['http'];
+  if (spanKind === SPAN_KIND_CLIENT) {
+    opParts.push('client');
+  } else if (spanKind === SPAN_KIND_SERVER) {
+    opParts.push('server');
+  }
+  if (attributes['sentry.http.prefetch']) {
+    opParts.push('prefetch');
+  }
+  safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.') });
+
+  // If the user already set a custom name or source, don't overwrite
+  if (
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] ||
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
+  ) {
+    return;
+  }
+
+  // Infer name and source from URL attributes
+  const httpRoute = attributes['http.route'];
+  const httpTarget = attributes['http.target'];
+  const httpUrl = attributes['url.full'] || attributes['http.url'];
+  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+
+  let urlPath: string | undefined;
+  let source: string | undefined;
+
+  if (typeof httpRoute === 'string') {
+    urlPath = httpRoute;
+    source = 'route';
+  } else if (spanKind === SPAN_KIND_SERVER && typeof httpTarget === 'string') {
+    urlPath = stripUrlQueryAndFragment(httpTarget);
+    source = 'url';
+  } else if (sanitizedUrl) {
+    urlPath = sanitizedUrl;
+    source = 'url';
+  } else if (typeof httpTarget === 'string') {
+    urlPath = stripUrlQueryAndFragment(httpTarget);
+    source = 'url';
+  }
+
+  if (urlPath) {
+    const isClientOrServer = spanKind === SPAN_KIND_CLIENT || spanKind === SPAN_KIND_SERVER;
+    const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] || 'manual';
+    const isAutoSpan = `${origin}`.startsWith('auto');
+
+    if (isClientOrServer || isAutoSpan) {
+      spanJSON.name = `${httpMethod} ${urlPath}`;
+      safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source });
+    }
+  }
+}
+
+function inferDbSpanData(spanJSON: StreamedSpanJSON, attributes: RawAttributes<Record<string, unknown>>): void {
+  safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' });
+
+  if (
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME] ||
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom'
+  ) {
+    return;
+  }
+
+  const statement = attributes['db.statement'];
+  if (statement) {
+    spanJSON.name = `${statement}`;
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' });
   }
 }

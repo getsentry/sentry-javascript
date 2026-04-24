@@ -7,7 +7,7 @@ describe('httpIntegration-streamed', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('infers sentry.op http.server on streamed server spans', async () => {
+    test('infers sentry.op, name, and source for streamed server spans', async () => {
       const runner = createRunner()
         .expect({
           span: container => {
@@ -19,6 +19,8 @@ describe('httpIntegration-streamed', () => {
 
             expect(serverSpan).toBeDefined();
             expect(serverSpan?.is_segment).toBe(true);
+            expect(serverSpan?.name).toBe('GET /test');
+            expect(serverSpan?.attributes?.['sentry.source']).toEqual({ type: 'string', value: 'route' });
           },
         })
         .start();
