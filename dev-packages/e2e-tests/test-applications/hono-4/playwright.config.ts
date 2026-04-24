@@ -1,8 +1,5 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
-
-type Runtime = 'cloudflare' | 'node' | 'bun';
-
-const RUNTIME = (process.env.RUNTIME || 'cloudflare') as Runtime;
+import { RUNTIME, type Runtime } from './tests/constants';
 
 const testEnv = process.env.TEST_ENV;
 
