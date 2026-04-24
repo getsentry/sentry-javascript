@@ -80,19 +80,12 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     });
   }
 
-  // Backfill sentry.op from span attributes when not explicitly set.
-  // OTel-originated spans don't have sentry.op set — we infer it from semantic conventions.
-  // The non-streamed path infers this in the SentrySpanExporter, but streamed spans skip the exporter.
-  if (!processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]) {
-    // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type
-    const spanKind = (span as { kind?: number }).kind;
-    const inferredOp = inferOpFromAttributes(processedSpan.attributes, spanKind);
-    if (inferredOp) {
-      safeSetSpanJSONAttributes(processedSpan, {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: inferredOp,
-      });
-    }
-  }
+  // Backfill span data from OTel semantic conventions when not explicitly set.
+  // OTel-originated spans don't have sentry.op, description, etc. — the non-streamed path
+  // infers these in the SentrySpanExporter, but streamed spans skip the exporter entirely.
+  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
+  const spanKind = (span as { kind?: number }).kind;
+  inferSpanDataFromOtelAttributes(processedSpan, spanKind);
 
   return {
     ...streamedSpanJsonToSerializedSpan(processedSpan),
@@ -166,38 +159,68 @@ export function safeSetSpanJSONAttributes(
   });
 }
 
-// OTel SpanKind values (we use the numeric values to avoid importing from @opentelemetry/api)
-const SPAN_KIND_CLIENT = 2;
+// OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)
 const SPAN_KIND_SERVER = 1;
+const SPAN_KIND_CLIENT = 2;
 
 /**
- * Infer `sentry.op` from span attributes and kind based on OTel semantic conventions.
- * This is needed because OTel-originated spans don't set `sentry.op` — the non-streamed
- * path infers it in the `SentrySpanExporter`, but streamed spans skip the exporter entirely.
+ * Infer and backfill span data from OTel semantic conventions.
+ * This mirrors what the `SentrySpanExporter` does for non-streamed spans via `getSpanData`/`inferSpanData`.
+ * Streamed spans skip the exporter, so we do the inference here during capture.
+ *
+ * Uses `safeSetSpanJSONAttributes` so explicitly set attributes are never overwritten.
  */
-function inferOpFromAttributes(
-  attributes?: RawAttributes<Record<string, unknown>>,
-  spanKind?: number,
-): string | undefined {
+function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: number): void {
+  const attributes = spanJSON.attributes;
   if (!attributes) {
-    return undefined;
+    return;
   }
 
   const httpMethod = attributes['http.request.method'] || attributes['http.method'];
   if (httpMethod) {
+    const opParts = ['http'];
     if (spanKind === SPAN_KIND_CLIENT) {
-      return 'http.client';
+      opParts.push('client');
+    } else if (spanKind === SPAN_KIND_SERVER) {
+      opParts.push('server');
     }
-    if (spanKind === SPAN_KIND_SERVER) {
-      return 'http.server';
+
+    if (attributes['sentry.http.prefetch']) {
+      opParts.push('prefetch');
     }
-    return 'http';
+
+    safeSetSpanJSONAttributes(spanJSON, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.'),
+    });
+    return;
   }
 
   const dbSystem = attributes['db.system.name'] || attributes['db.system'];
   if (dbSystem) {
-    return 'db';
+    safeSetSpanJSONAttributes(spanJSON, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+    });
+    return;
   }
 
-  return undefined;
+  if (attributes['rpc.service']) {
+    safeSetSpanJSONAttributes(spanJSON, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc',
+    });
+    return;
+  }
+
+  if (attributes['messaging.system']) {
+    safeSetSpanJSONAttributes(spanJSON, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'message',
+    });
+    return;
+  }
+
+  const faasTrigger = attributes['faas.trigger'];
+  if (faasTrigger) {
+    safeSetSpanJSONAttributes(spanJSON, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${faasTrigger}`,
+    });
+  }
 }
