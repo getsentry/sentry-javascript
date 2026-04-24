@@ -149,6 +149,49 @@ const SENSITIVE_HEADER_SNIPPETS = [
   'cookie',
 ];
 
+/**
+ * Extra substrings matched only against individual Cookie / Set-Cookie **names** (not header names),
+ * so we can cover common session secrets that do not match {@link SENSITIVE_HEADER_SNIPPETS}
+ * (e.g. `connect.sid` does not contain `session`) without false positives on arbitrary HTTP headers.
+ */
+const SENSITIVE_COOKIE_NAME_SNIPPETS = [
+  // Express / Connect default session cookie
+  '.sid',
+  // PHP session cookie
+  'phpsess',
+  // Common opaque session id suffix / cookie names (e.g. ASPSESSIONID*, BIGipServer*)
+  'sessid',
+  // Laravel etc. "remember me" tokens
+  'remember',
+  // OAuth / OIDC auxiliary cookies
+  'oauth',
+  'oidc',
+  'pkce',
+  'nonce',
+  // Explicit token-style cookie names
+  'id_token',
+  'access_token',
+  'refresh_token',
+  // RFC 6265bis cookie name prefixes for high-security cookies
+  '__secure-',
+  '__host-',
+  // Load balancer / CDN sticky-session cookies (opaque routing tokens)
+  'awsalb',
+  'awselb',
+  'akamai',
+  // BaaS / IdP session cookies (names often omit "session")
+  '__stripe',
+  'cognito',
+  'firebase',
+  'supabase',
+  'sb-',
+  // Auth.js / NextAuth.js
+  'next-auth',
+  // Step-up / MFA cookies
+  'mfa',
+  '2fa',
+];
+
 const PII_HEADER_SNIPPETS = ['x-forwarded-', '-user'];
 
 /**
@@ -196,17 +239,23 @@ export function httpHeadersToSpanAttributes(
 
           const lowerCasedCookieKey = cookieKey.toLowerCase();
 
-          addSpanAttribute(
+          addSpanAttribute({
             spanAttributes,
-            lowerCasedHeaderKey,
-            lowerCasedCookieKey,
-            cookieValue,
+            headerKey: lowerCasedHeaderKey,
+            cookieKey: lowerCasedCookieKey,
+            value: cookieValue,
             sendDefaultPii,
             lifecycle,
-          );
+          });
         }
       } else {
-        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii, lifecycle);
+        addSpanAttribute({
+          spanAttributes,
+          headerKey: lowerCasedHeaderKey,
+          value,
+          sendDefaultPii,
+          lifecycle,
+        });
       }
     });
   } catch {
@@ -220,15 +269,31 @@ function normalizeAttributeKey(key: string): string {
   return key.replace(/-/g, '_');
 }
 
-function addSpanAttribute(
-  spanAttributes: Record<string, string>,
-  headerKey: string,
-  cookieKey: string,
-  value: string | string[] | undefined,
-  sendPii: boolean,
-  lifecycle: 'request' | 'response',
-): void {
-  const headerValue = handleHttpHeader(cookieKey || headerKey, value, sendPii);
+type AddSpanAttributeOptions = {
+  spanAttributes: Record<string, string>;
+  /** Lowercased HTTP header name (e.g. `cookie`, `set-cookie`, `accept`). */
+  headerKey: string;
+  /**
+   * Lowercased cookie name when this attribute comes from a parsed `Cookie` / `Set-Cookie` value.
+   * Omit for non-cookie headers; when present and non-empty, cookie-specific sensitivity rules apply.
+   */
+  cookieKey?: string;
+  value: string | string[] | undefined;
+  sendDefaultPii: boolean;
+  lifecycle: 'request' | 'response';
+};
+
+function addSpanAttribute({
+  spanAttributes,
+  headerKey,
+  cookieKey,
+  value,
+  sendDefaultPii,
+  lifecycle,
+}: AddSpanAttributeOptions): void {
+  const isCookieSubKey = Boolean(cookieKey);
+  const nameForSensitivity = cookieKey || headerKey;
+  const headerValue = handleHttpHeader(nameForSensitivity, value, sendDefaultPii, isCookieSubKey);
   if (headerValue == null) {
     return;
   }
@@ -241,10 +306,15 @@ function handleHttpHeader(
   lowerCasedKey: string,
   value: string | string[] | undefined,
   sendPii: boolean,
+  isCookieSubKey: boolean = false,
 ): string | undefined {
+  const snippetsForSensitivity = isCookieSubKey
+    ? [...SENSITIVE_HEADER_SNIPPETS, ...SENSITIVE_COOKIE_NAME_SNIPPETS]
+    : SENSITIVE_HEADER_SNIPPETS;
+
   const isSensitive = sendPii
-    ? SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))
-    : [...PII_HEADER_SNIPPETS, ...SENSITIVE_HEADER_SNIPPETS].some(snippet => lowerCasedKey.includes(snippet));
+    ? snippetsForSensitivity.some(snippet => lowerCasedKey.includes(snippet))
+    : [...PII_HEADER_SNIPPETS, ...snippetsForSensitivity].some(snippet => lowerCasedKey.includes(snippet));
 
   if (isSensitive) {
     return '[Filtered]';
