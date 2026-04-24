@@ -5,7 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
@@ -17,7 +16,6 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
@@ -234,39 +232,13 @@ function inferHttpSpanData(
     return;
   }
 
-  // Infer name and source from URL attributes
+  // Only overwrite the span name when we have an explicit http.route — it's more specific than
+  // what OTel instrumentation sets as the span name. For all other cases (url.full, http.target),
+  // the OTel-set name is already good enough and we'd risk producing a worse name (e.g. full URL).
   const httpRoute = attributes['http.route'];
-  const httpTarget = attributes['http.target'];
-  const httpUrl = attributes['url.full'] || attributes['http.url'];
-  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
-  const sanitizedUrl = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
-
-  let urlPath: string | undefined;
-  let source: string | undefined;
-
   if (typeof httpRoute === 'string') {
-    urlPath = httpRoute;
-    source = 'route';
-  } else if (spanKind === SPAN_KIND_SERVER && typeof httpTarget === 'string') {
-    urlPath = stripUrlQueryAndFragment(httpTarget);
-    source = 'url';
-  } else if (sanitizedUrl) {
-    urlPath = sanitizedUrl;
-    source = 'url';
-  } else if (typeof httpTarget === 'string') {
-    urlPath = stripUrlQueryAndFragment(httpTarget);
-    source = 'url';
-  }
-
-  if (urlPath) {
-    const isClientOrServer = spanKind === SPAN_KIND_CLIENT || spanKind === SPAN_KIND_SERVER;
-    const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] || 'manual';
-    const isAutoSpan = `${origin}`.startsWith('auto');
-
-    if (isClientOrServer || isAutoSpan) {
-      spanJSON.name = `${httpMethod} ${urlPath}`;
-      safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source });
-    }
+    spanJSON.name = `${httpMethod} ${httpRoute}`;
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' });
   }
 }
 
