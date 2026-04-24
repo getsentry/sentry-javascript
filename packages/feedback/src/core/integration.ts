@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+/* eslint-disable complexity */
 
 import type {
   FeedbackInternalOptions,
@@ -15,6 +16,11 @@ import {
   DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
+  ERROR_EMPTY_MESSAGE_TEXT,
+  ERROR_FORBIDDEN_TEXT,
+  ERROR_GENERIC_TEXT,
+  ERROR_NO_CLIENT_TEXT,
+  ERROR_TIMEOUT_TEXT,
   FORM_TITLE,
   HIDE_TOOL_TEXT,
   HIGHLIGHT_TOOL_TEXT,
@@ -119,6 +125,11 @@ export const buildFeedbackIntegration = ({
     highlightToolText = HIGHLIGHT_TOOL_TEXT,
     hideToolText = HIDE_TOOL_TEXT,
     removeHighlightText = REMOVE_HIGHLIGHT_TEXT,
+    errorEmptyMessageText = ERROR_EMPTY_MESSAGE_TEXT,
+    errorNoClientText = ERROR_NO_CLIENT_TEXT,
+    errorTimeoutText = ERROR_TIMEOUT_TEXT,
+    errorForbiddenText = ERROR_FORBIDDEN_TEXT,
+    errorGenericText = ERROR_GENERIC_TEXT,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -164,6 +175,11 @@ export const buildFeedbackIntegration = ({
       highlightToolText,
       hideToolText,
       removeHighlightText,
+      errorEmptyMessageText,
+      errorNoClientText,
+      errorTimeoutText,
+      errorForbiddenText,
+      errorGenericText,
 
       onFormClose,
       onFormOpen,
