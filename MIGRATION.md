@@ -613,6 +613,22 @@ on casing, or use `tracePropagationTargets` in combination with a more specific 
 As part of this, the `g` and `y` flags are ignored on `tracePropagationTargets` regular expressions. These flags made
 matching stateful via `lastIndex`, so a target like `/myApi\.com/g` previously matched only every other request.
 
+### `sendFeedback` rejects with an `Error`
+
+Affected SDKs: All SDKs running in the browser.
+
+`Sentry.sendFeedback()` now rejects with an `Error` in all cases. Previously it rejected with a plain string when the request timed out, was rejected with a 403, or otherwise failed to send, while the synchronous validation paths (empty message, no client configured) already threw an `Error`. The message text itself is unchanged, and is still customizable through the `errorMessages` hint, so read it off `error.message`:
+
+```js
+try {
+  await Sentry.sendFeedback({ message: 'Hello' });
+} catch (error) {
+  // v10: a string on send failures, an Error on validation failures
+  // v11: always an Error
+  console.log(error.message);
+}
+```
+
 ### Span attribute changes
 
 Affected SDKs: All SDKs.
