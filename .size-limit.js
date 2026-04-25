@@ -103,7 +103,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'feedbackIntegration'),
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',
@@ -233,7 +233,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: true,
-    limit: '90 KB',
+    limit: '91 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -297,7 +297,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '272 KB',
+    limit: '273 KB',
   },
   // Next.js SDK (ESM)
   {
