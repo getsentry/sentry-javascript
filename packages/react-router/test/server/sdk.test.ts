@@ -3,7 +3,6 @@ import type { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import * as LowQualityModule from '../../src/server/integration/lowQualityTransactionsFilterIntegration';
 import { init as reactRouterInit } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
@@ -48,28 +47,29 @@ describe('React Router server SDK', () => {
       expect(client).not.toBeUndefined();
     });
 
-    it('adds the low quality transactions filter integration by default', () => {
-      const filterSpy = vi.spyOn(LowQualityModule, 'lowQualityTransactionsFilterIntegration');
+    it('configures ignoreSpans to drop low-quality transactions', () => {
+      reactRouterInit({});
 
-      reactRouterInit({
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      });
-
-      expect(filterSpy).toHaveBeenCalled();
-
-      expect(nodeInit).toHaveBeenCalledTimes(1);
-      const initOptions = nodeInit.mock.calls[0]?.[0];
-
-      expect(initOptions).toBeDefined();
-
-      const defaultIntegrations = initOptions?.defaultIntegrations as Integration[];
-      expect(Array.isArray(defaultIntegrations)).toBe(true);
-
-      const filterIntegration = defaultIntegrations.find(
-        integration => integration.name === 'LowQualityTransactionsFilter',
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([
+            /GET \/node_modules\//,
+            /GET \/favicon\.ico/,
+            /GET \/@id\//,
+            /GET \/__manifest\?/,
+          ]),
+        }),
       );
+    });
 
-      expect(filterIntegration).toBeDefined();
+    it('preserves user-provided ignoreSpans entries', () => {
+      reactRouterInit({ ignoreSpans: [/keep-me/] });
+
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([/keep-me/]),
+        }),
+      );
     });
 
     it('adds reactRouterServer integration by default', () => {
