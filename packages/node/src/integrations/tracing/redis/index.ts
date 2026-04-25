@@ -1,7 +1,4 @@
 import type { Span } from '@opentelemetry/api';
-import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
-import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
-import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
@@ -14,6 +11,7 @@ import {
   truncate,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
   GET_COMMANDS,
@@ -21,7 +19,10 @@ import {
   getCacheOperation,
   isInCommands,
   shouldConsiderForCache,
-} from '../../utils/redisCache';
+} from '../../../utils/redisCache';
+import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
+import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';
+import { RedisInstrumentation } from './vendored/redis-instrumentation';
 
 interface RedisOptions {
   /**
@@ -46,11 +47,11 @@ const INTEGRATION_NAME = 'Redis';
 export let _redisOptions: RedisOptions = {};
 
 /* Only exported for testing purposes */
-export const cacheResponseHook: RedisResponseCustomAttributeFunction = (
+export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   span: Span,
-  redisCommand,
-  cmdArgs,
-  response,
+  redisCommand: string,
+  cmdArgs: IORedisCommandArgs,
+  response: unknown,
 ) => {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
