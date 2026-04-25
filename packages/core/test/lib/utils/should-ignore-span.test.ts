@@ -103,6 +103,56 @@ describe('shouldIgnoreSpan', () => {
     expect(shouldIgnoreSpan({ description: 'GET /health', op: 'http.server' }, [{ op: 'http.server' }])).toBe(true);
   });
 
+  describe('attribute matching', () => {
+    it.each([
+      // strings: pattern matching (substring + regex)
+      ['GET', 'GE', true],
+      ['GET', 'POST', false],
+      ['GET', /^GET$/, true],
+      ['GET', /^POST$/, false],
+      // numbers: strict equality
+      [200, 200, true],
+      [404, 200, false],
+      // booleans: strict equality
+      [true, true, true],
+      [true, false, false],
+      // no type coercion across primitive types
+      [true, 'true', false],
+      // arrays: element-wise strict equality (one positive per element type, plus mismatch shapes)
+      [['a', 'b'], ['a', 'b'], true],
+      [['a', 'b'], ['a', 'c'], false],
+      [['a', 'b'], ['a'], false],
+      [[1, 2], [1, 2], true],
+      [[true, false], [true, false], true],
+    ])('matches attribute value %j against pattern %j → %s', (actual, pattern, expected) => {
+      const span = { description: 'span', op: 'op', attributes: { x: actual } };
+      expect(shouldIgnoreSpan(span, [{ attributes: { x: pattern } }])).toBe(expected);
+    });
+
+    it('does not match when the attribute key is absent on the span', () => {
+      const span = { description: 'span', op: 'op', attributes: {} };
+      expect(shouldIgnoreSpan(span, [{ attributes: { 'missing.key': 'x' } }])).toBe(false);
+    });
+
+    it('requires every attribute entry to match', () => {
+      const span = { description: 'span', op: 'op', attributes: { a: 1, b: 2 } };
+      expect(shouldIgnoreSpan(span, [{ attributes: { a: 1, b: 2 } }])).toBe(true);
+      expect(shouldIgnoreSpan(span, [{ attributes: { a: 1, b: 3 } }])).toBe(false);
+    });
+
+    it('requires both name and attributes to match', () => {
+      const span = { description: 'GET /healthz', op: 'http.server', attributes: { 'http.method': 'GET' } };
+      expect(shouldIgnoreSpan(span, [{ name: /healthz?/, attributes: { 'http.method': 'GET' } }])).toBe(true);
+      expect(shouldIgnoreSpan(span, [{ name: /healthz?/, attributes: { 'http.method': 'POST' } }])).toBe(false);
+      expect(shouldIgnoreSpan(span, [{ name: /other/, attributes: { 'http.method': 'GET' } }])).toBe(false);
+    });
+
+    it('still matches an attribute-only filter on a span without a description', () => {
+      const span = { description: undefined as unknown as string, op: undefined, attributes: { foo: 'bar' } };
+      expect(shouldIgnoreSpan(span, [{ attributes: { foo: 'bar' } }])).toBe(true);
+    });
+  });
+
   it('emits a debug log when a span is ignored', () => {
     const debugLogSpy = vi.spyOn(debug, 'log');
     const span = { description: 'testDescription', op: 'testOp' };

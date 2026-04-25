@@ -179,7 +179,13 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         // Ignored spans will get dropped later (in the client) but since we already adjust
         // the idle span end timestamp here, we can already take to-be-ignored spans out of
         // the calculation here.
-        if (ignoreSpans && shouldIgnoreSpan(currentSpanJson, ignoreSpans)) {
+        if (
+          ignoreSpans &&
+          shouldIgnoreSpan(
+            { description: currentSpanJson.description, op: currentSpanJson.op, attributes: currentSpanJson.data },
+            ignoreSpans,
+          )
+        ) {
           return acc;
         }
         return acc ? Math.max(acc, currentSpanJson.timestamp) : currentSpanJson.timestamp;
