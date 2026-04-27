@@ -173,7 +173,8 @@ const SPAN_KIND_CLIENT = 2;
  * Backfills: `sentry.op`, `sentry.source`, and `name` (description).
  * Uses `safeSetSpanJSONAttributes` so explicitly set attributes are never overwritten.
  */
-function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: number): void {
+/** Exported only for tests. */
+export function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: number): void {
   const attributes = spanJSON.attributes;
   if (!attributes) {
     return;

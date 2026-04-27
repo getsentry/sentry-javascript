@@ -21,7 +21,7 @@ import {
   withScope,
   withStreamedSpan,
 } from '../../../../src';
-import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
+import { inferSpanDataFromOtelAttributes, safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('captureSpan', () => {
@@ -481,5 +481,159 @@ describe('safeSetSpanJSONAttributes', () => {
     safeSetSpanJSONAttributes(spanJSON, { a: undefined, b: null });
 
     expect(spanJSON.attributes).toEqual({});
+  });
+});
+
+describe('inferSpanDataFromOtelAttributes', () => {
+  function makeSpanJSON(name: string, attributes: Record<string, unknown>): StreamedSpanJSON {
+    return {
+      name,
+      span_id: 'abc123',
+      trace_id: 'def456',
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+      is_segment: false,
+      attributes,
+    };
+  }
+
+  describe('http spans', () => {
+    it('infers http.client op for CLIENT kind', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET' });
+      inferSpanDataFromOtelAttributes(spanJSON, 2); // SPAN_KIND_CLIENT
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http.client');
+    });
+
+    it('infers http.server op for SERVER kind', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET' });
+      inferSpanDataFromOtelAttributes(spanJSON, 1); // SPAN_KIND_SERVER
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http.server');
+    });
+
+    it('infers http op when kind is unknown', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http');
+    });
+
+    it('appends prefetch to op', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET', 'sentry.http.prefetch': true });
+      inferSpanDataFromOtelAttributes(spanJSON, 2);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http.client.prefetch');
+    });
+
+    it('sets name and source from http.route', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET', 'http.route': '/users/:id' });
+      inferSpanDataFromOtelAttributes(spanJSON, 1);
+      expect(spanJSON.name).toBe('GET /users/:id');
+      expect(spanJSON.attributes?.['sentry.source']).toBe('route');
+    });
+
+    it('does not overwrite name when no http.route', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET', 'url.full': 'http://example.com/api' });
+      inferSpanDataFromOtelAttributes(spanJSON, 2);
+      expect(spanJSON.name).toBe('GET');
+    });
+
+    it('does not overwrite sentry.op if already set', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET', 'sentry.op': 'http.client.custom' });
+      inferSpanDataFromOtelAttributes(spanJSON, 2);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http.client.custom');
+    });
+
+    it('restores custom span name from sentry.custom_span_name', () => {
+      const spanJSON = makeSpanJSON('overwritten-by-otel', {
+        'http.request.method': 'GET',
+        'sentry.custom_span_name': 'my-custom-name',
+        'sentry.source': 'custom',
+        'http.route': '/users/:id',
+      });
+      inferSpanDataFromOtelAttributes(spanJSON, 1);
+      expect(spanJSON.name).toBe('my-custom-name');
+    });
+
+    it('does not overwrite name when sentry.source is custom', () => {
+      const spanJSON = makeSpanJSON('my-name', {
+        'http.request.method': 'GET',
+        'sentry.source': 'custom',
+        'http.route': '/users/:id',
+      });
+      inferSpanDataFromOtelAttributes(spanJSON, 1);
+      expect(spanJSON.name).toBe('my-name');
+    });
+
+    it('supports legacy http.method attribute', () => {
+      const spanJSON = makeSpanJSON('GET', { 'http.method': 'GET' });
+      inferSpanDataFromOtelAttributes(spanJSON, 2);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http.client');
+    });
+  });
+
+  describe('db spans', () => {
+    it('infers db op', () => {
+      const spanJSON = makeSpanJSON('redis', { 'db.system': 'redis' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('db');
+    });
+
+    it('sets name from db.statement', () => {
+      const spanJSON = makeSpanJSON('mysql', { 'db.system': 'mysql', 'db.statement': 'SELECT * FROM users' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.name).toBe('SELECT * FROM users');
+      expect(spanJSON.attributes?.['sentry.source']).toBe('task');
+    });
+
+    it('skips db inference for cache spans', () => {
+      const spanJSON = makeSpanJSON('cache-get', { 'db.system': 'redis', 'sentry.op': 'cache.get_item' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('cache.get_item');
+      expect(spanJSON.name).toBe('cache-get');
+    });
+
+    it('restores custom span name from sentry.custom_span_name', () => {
+      const spanJSON = makeSpanJSON('overwritten', {
+        'db.system': 'mysql',
+        'db.statement': 'SELECT 1',
+        'sentry.custom_span_name': 'my-db-span',
+        'sentry.source': 'custom',
+      });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.name).toBe('my-db-span');
+    });
+  });
+
+  describe('other span types', () => {
+    it('infers rpc op', () => {
+      const spanJSON = makeSpanJSON('grpc', { 'rpc.service': 'UserService' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('rpc');
+    });
+
+    it('infers message op', () => {
+      const spanJSON = makeSpanJSON('kafka', { 'messaging.system': 'kafka' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('message');
+    });
+
+    it('infers faas op from trigger', () => {
+      const spanJSON = makeSpanJSON('lambda', { 'faas.trigger': 'http' });
+      inferSpanDataFromOtelAttributes(spanJSON);
+      expect(spanJSON.attributes?.['sentry.op']).toBe('http');
+    });
+  });
+
+  it('does nothing when attributes are missing', () => {
+    const spanJSON = makeSpanJSON('test', undefined as unknown as Record<string, unknown>);
+    spanJSON.attributes = undefined;
+    inferSpanDataFromOtelAttributes(spanJSON, 2);
+    expect(spanJSON.attributes).toBeUndefined();
+  });
+
+  it('does nothing for spans without recognizable attributes', () => {
+    const spanJSON = makeSpanJSON('test', { 'custom.attr': 'value' });
+    inferSpanDataFromOtelAttributes(spanJSON);
+    expect(spanJSON.attributes?.['sentry.op']).toBeUndefined();
+    expect(spanJSON.name).toBe('test');
   });
 });
