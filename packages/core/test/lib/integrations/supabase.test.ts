@@ -310,4 +310,38 @@ describe('Supabase Integration', () => {
       expect(contexts.supabase).toEqual({});
     });
   });
+
+  describe('array insert body', () => {
+    beforeEach(() => {
+      vi.spyOn(breadcrumbModule, 'addBreadcrumb').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('includes insert(...) in span description and db.body when payload is a non-empty array', async () => {
+      tracingMocks.startSpan.mockClear();
+      const client = createMockSupabaseClient(
+        { status: 200 },
+        {
+          method: 'POST',
+          url: 'https://example.supabase.co/rest/v1/todos?columns=',
+          body: [{ title: 'Test Todo' }],
+          sendDefaultPii: true,
+        },
+      );
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').insert({}).then();
+
+      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      expect(spanOptions.name).toMatch(/^insert\(\.\.\.\)/);
+      expect(spanOptions.name).toContain('from(todos)');
+      expect(spanOptions.attributes['db.body']).toEqual([{ title: 'Test Todo' }]);
+    });
+  });
 });

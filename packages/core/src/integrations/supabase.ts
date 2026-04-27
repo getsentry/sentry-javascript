@@ -150,6 +150,25 @@ function isInstrumented<T>(fn: T): boolean | undefined {
 }
 
 /**
+ * Plain-object bodies are copied into `plainBody`; array inserts (and other non-plain shapes) stay only on `rawBody`.
+ * Returns a payload suitable for span attributes / breadcrumbs when the client has `sendDefaultPii` enabled.
+ */
+function getMutationBodyPayloadForTelemetry(rawBody: unknown, plainBody: Record<string, unknown>): unknown | undefined {
+  if (Object.keys(plainBody).length > 0) {
+    return plainBody;
+  }
+  if (Array.isArray(rawBody) && rawBody.length > 0) {
+    return rawBody;
+  }
+  return undefined;
+}
+
+/** True when the PostgREST builder carries a mutation body (for `insert(...)`, etc. in span descriptions). */
+function hasMutationBodyForDescription(rawBody: unknown, plainBody: Record<string, unknown>): boolean {
+  return getMutationBodyPayloadForTelemetry(rawBody, plainBody) !== undefined;
+}
+
+/**
  * Extracts the database operation type from the HTTP method and headers
  * @param method - The HTTP method of the request
  * @param headers - The request headers
@@ -363,11 +382,15 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
         }
 
         const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+        const bodyPayload = getMutationBodyPayloadForTelemetry(typedThis.body, body);
 
         // Adding operation to the beginning of the description if it's not a `select` operation
         // For example, it can be an `insert` or `update` operation but the query can be `select(...)`
         // For `select` operations, we don't need repeat it in the description
-        const mutationPart = operation === 'select' ? '' : `${operation}${Object.keys(body).length ? '(...) ' : ''}`;
+        const mutationPart =
+          operation === 'select'
+            ? ''
+            : `${operation}${hasMutationBodyForDescription(typedThis.body, body) ? '(...) ' : ''}`;
         const queryPart = sendDefaultPii ? queryItems.join(' ') : queryItems.length > 0 ? '[redacted]' : '';
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
@@ -387,8 +410,8 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           attributes['db.query'] = queryItems;
         }
 
-        if (Object.keys(body).length && sendDefaultPii) {
-          attributes['db.body'] = body;
+        if (bodyPayload !== undefined && sendDefaultPii) {
+          attributes['db.body'] = bodyPayload;
         }
 
         return startSpan(
@@ -420,8 +443,8 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     if (queryItems.length && sendDefaultPii) {
                       supabaseContext.query = queryItems;
                     }
-                    if (Object.keys(body).length && sendDefaultPii) {
-                      supabaseContext.body = body;
+                    if (bodyPayload !== undefined && sendDefaultPii) {
+                      supabaseContext.body = bodyPayload;
                     }
 
                     captureException(err, scope => {
@@ -452,8 +475,8 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     data.query = queryItems;
                   }
 
-                  if (Object.keys(body).length && sendDefaultPii) {
-                    data.body = body;
+                  if (bodyPayload !== undefined && sendDefaultPii) {
+                    data.body = bodyPayload;
                   }
 
                   if (Object.keys(data).length) {
