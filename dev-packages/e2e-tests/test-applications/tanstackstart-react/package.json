@@ -45,11 +45,6 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "pnpm": {
-    "overrides": {
-      "@tanstack/start-plugin-core": "1.167.35"
-    }
-  },
   "sentryTest": {
     "variants": [
       {

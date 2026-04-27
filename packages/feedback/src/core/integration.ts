@@ -1,11 +1,14 @@
 /* eslint-disable max-lines */
+/* eslint-disable complexity */
 
 import type {
+  FeedbackErrorMessages,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
+  SendFeedback,
 } from '@sentry/core';
 import { addIntegration, debug, isBrowser } from '@sentry/core';
 import {
@@ -15,6 +18,11 @@ import {
   DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
+  ERROR_EMPTY_MESSAGE_TEXT,
+  ERROR_FORBIDDEN_TEXT,
+  ERROR_GENERIC_TEXT,
+  ERROR_NO_CLIENT_TEXT,
+  ERROR_TIMEOUT_TEXT,
   FORM_TITLE,
   HIDE_TOOL_TEXT,
   HIGHLIGHT_TOOL_TEXT,
@@ -119,6 +127,11 @@ export const buildFeedbackIntegration = ({
     highlightToolText = HIGHLIGHT_TOOL_TEXT,
     hideToolText = HIDE_TOOL_TEXT,
     removeHighlightText = REMOVE_HIGHLIGHT_TEXT,
+    errorEmptyMessageText = ERROR_EMPTY_MESSAGE_TEXT,
+    errorNoClientText = ERROR_NO_CLIENT_TEXT,
+    errorTimeoutText = ERROR_TIMEOUT_TEXT,
+    errorForbiddenText = ERROR_FORBIDDEN_TEXT,
+    errorGenericText = ERROR_GENERIC_TEXT,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -164,6 +177,11 @@ export const buildFeedbackIntegration = ({
       highlightToolText,
       hideToolText,
       removeHighlightText,
+      errorEmptyMessageText,
+      errorNoClientText,
+      errorTimeoutText,
+      errorForbiddenText,
+      errorGenericText,
 
       onFormClose,
       onFormOpen,
@@ -230,6 +248,16 @@ export const buildFeedbackIntegration = ({
           debug.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
+      const errorMessages: FeedbackErrorMessages = {
+        ERROR_EMPTY_MESSAGE: options.errorEmptyMessageText,
+        ERROR_NO_CLIENT: options.errorNoClientText,
+        ERROR_TIMEOUT: options.errorTimeoutText,
+        ERROR_FORBIDDEN: options.errorForbiddenText,
+        ERROR_GENERIC: options.errorGenericText,
+      };
+      const wrappedSendFeedback: SendFeedback = (params, hint) =>
+        sendFeedback(params, { includeReplay: true, ...hint, errorMessages });
+
       const dialog = modalIntegration.createDialog({
         options: {
           ...options,
@@ -243,7 +271,7 @@ export const buildFeedbackIntegration = ({
           },
         },
         screenshotIntegration,
-        sendFeedback,
+        sendFeedback: wrappedSendFeedback,
         shadow: _createShadow(options),
       });
 

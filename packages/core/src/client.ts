@@ -1600,7 +1600,13 @@ function processBeforeSend(
       const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
 
       // 1.1 If the root span should be ignored, drop the whole transaction
-      if (ignoreSpans?.length && shouldIgnoreSpan(rootSpanJson, ignoreSpans)) {
+      if (
+        ignoreSpans?.length &&
+        shouldIgnoreSpan(
+          { description: rootSpanJson.description, op: rootSpanJson.op, attributes: rootSpanJson.data },
+          ignoreSpans,
+        )
+      ) {
         // dropping the whole transaction!
         return null;
       }
@@ -1624,7 +1630,10 @@ function processBeforeSend(
 
         for (const span of initialSpans) {
           // 2.a If the child span should be ignored, reparent it to the root span
-          if (ignoreSpans?.length && shouldIgnoreSpan(span, ignoreSpans)) {
+          if (
+            ignoreSpans?.length &&
+            shouldIgnoreSpan({ description: span.description, op: span.op, attributes: span.data }, ignoreSpans)
+          ) {
             reparentChildSpans(initialSpans, span);
             continue;
           }

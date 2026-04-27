@@ -7,7 +7,7 @@ import { DEBUG_BUILD } from '../debug-build';
  *
  * Priority:
  * 1. If `enableRpcTracePropagation` is set, use it (ignore `instrumentPrototypeMethods`)
- * 2. If only `instrumentPrototypeMethods` is set, use it with deprecation warning (converted to boolean)
+ * 2. If only `instrumentPrototypeMethods` is set, use it with deprecation warning
  * 3. If neither is set, return `false`
  *
  * @returns The effective setting for RPC trace propagation
@@ -39,40 +39,6 @@ export function getEffectiveRpcPropagation(options: CloudflareOptions): boolean 
       instrumentPrototypeMethods === true ||
       (Array.isArray(instrumentPrototypeMethods) && instrumentPrototypeMethods.length > 0)
     );
-  }
-
-  return false;
-}
-
-/**
- * Gets the method filter for prototype method instrumentation.
- *
- * Returns:
- * - `null` if no instrumentation should occur
- * - `true` if all methods should be instrumented
- * - `string[]` if only specific methods should be instrumented (deprecated behavior)
- *
- * @returns The method filter or null if no instrumentation
- */
-export function getPrototypeMethodFilter(options: CloudflareOptions): boolean | string[] {
-  const { enableRpcTracePropagation, instrumentPrototypeMethods } = options;
-
-  // If the new option is explicitly set, use it (boolean only, no filtering)
-  if (enableRpcTracePropagation !== undefined) {
-    return !!enableRpcTracePropagation;
-  }
-
-  // Fall back to deprecated option - preserve array filtering behavior
-  if (instrumentPrototypeMethods !== undefined) {
-    if (instrumentPrototypeMethods === true) {
-      return true;
-    }
-
-    if (Array.isArray(instrumentPrototypeMethods) && instrumentPrototypeMethods.length > 0) {
-      return instrumentPrototypeMethods;
-    }
-
-    return false;
   }
 
   return false;

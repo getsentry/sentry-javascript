@@ -1,27 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { type SpanJSON } from '@sentry/core';
-import { APP_NAME, isNode } from './constants';
-
-// In Node, @sentry/node/preload eagerly activates the OTel HonoInstrumentation,
-// which wraps all Hono instance methods at construction time via WrappedHono.
-const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
-const OTEL_ORIGIN = 'auto.http.otel.hono';
+import { APP_NAME } from './constants';
 
 const SCENARIOS = [
   {
     name: 'root app middleware',
     prefix: '/test-middleware',
-    origin: MIDDLEWARE_ORIGIN,
   },
   {
     name: 'sub-app middleware (route group)',
     prefix: '/test-subapp-middleware',
-    origin: isNode ? OTEL_ORIGIN : MIDDLEWARE_ORIGIN,
   },
 ] as const;
 
-for (const { name, prefix, origin } of SCENARIOS) {
+for (const { name, prefix } of SCENARIOS) {
   test.describe(name, () => {
     test('creates a span for named middleware', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
@@ -43,7 +36,7 @@ for (const { name, prefix, origin } of SCENARIOS) {
         expect.objectContaining({
           description: 'middlewareA',
           op: 'middleware.hono',
-          origin,
+          origin: 'auto.middleware.hono',
           status: 'ok',
         }),
       );
@@ -68,18 +61,13 @@ for (const { name, prefix, origin } of SCENARIOS) {
         expect.objectContaining({
           description: '<anonymous>',
           op: 'middleware.hono',
-          origin: MIDDLEWARE_ORIGIN,
+          origin: 'auto.middleware.hono',
           status: 'ok',
         }),
       );
     });
 
     test('multiple middleware are sibling spans under the same parent', async ({ baseURL }) => {
-      test.skip(
-        isNode,
-        'Node double-instruments middleware (too many spans) - TODO: fix this in the SDK and re-enable the test',
-      );
-
       const transactionPromise = waitForTransaction(APP_NAME, event => {
         return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/multi`;
       });
@@ -90,7 +78,6 @@ for (const { name, prefix, origin } of SCENARIOS) {
       const transaction = await transactionPromise;
       const spans = transaction.spans || [];
 
-      // Sort spans because they are in a different order in Node/Bun (OTel-based)
       const middlewareSpans = spans.sort((a, b) => (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0));
 
       expect(middlewareSpans).toHaveLength(2);
@@ -139,10 +126,6 @@ for (const { name, prefix, origin } of SCENARIOS) {
       const transaction = await transactionPromise;
       const spans = transaction.spans || [];
 
-      // On the /error path only one middleware (failingMiddleware) is registered,
-      // so we can find the error span by status alone. On Node for sub-apps, the
-      // OTel layer wraps before patchRoute, so the function name may be lost in
-      // the patchRoute span — but the error status is always set.
       const failingSpan = spans.find(
         (span: SpanJSON) => span.op === 'middleware.hono' && span.status === 'internal_error',
       );
@@ -169,36 +152,8 @@ for (const { name, prefix, origin } of SCENARIOS) {
   });
 }
 
-test.describe('.all() handler on sub-app (method ALL edge case)', () => {
-  test('Node: OTel wraps .all() and produces a hono span', async ({ baseURL }) => {
-    test.skip(!isNode, 'Node-specific: OTel wraps .all() at construction time');
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return (
-        event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
-      );
-    });
-
-    const response = await fetch(`${baseURL}/test-subapp-middleware/all-handler`);
-    expect(response.status).toBe(200);
-
-    const body = await response.json();
-    expect(body).toEqual({ handler: 'all' });
-
-    const transaction = await transactionPromise;
-    const spans = transaction.spans || [];
-
-    // On Node, OTel wraps .all() at construction time. Since the handler
-    // returns a Response, OTel classifies it as 'request_handler' (not
-    // middleware). patchRoute also wraps it but sees the anonymous OTel wrapper.
-    // Either way, the handler IS instrumented — verify any hono span exists.
-    const honoSpan = spans.find((span: SpanJSON) => span.op?.endsWith('.hono'));
-    expect(honoSpan).toBeDefined();
-  });
-
-  test('Bun/Cloudflare: patchRoute wraps .all() as middleware span', async ({ baseURL }) => {
-    test.skip(isNode, 'Bun/Cloudflare-specific: patchRoute is the sole wrapper');
-
+test.describe('patchRoute wraps .all() as middleware span (in sub-app)', () => {
+  test('patchRoute wraps .all() as middleware span', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
         event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
@@ -225,7 +180,7 @@ test.describe('.all() handler on sub-app (method ALL edge case)', () => {
       expect.objectContaining({
         description: 'allCatchAll',
         op: 'middleware.hono',
-        origin: MIDDLEWARE_ORIGIN,
+        origin: 'auto.middleware.hono',
         status: 'ok',
       }),
     );

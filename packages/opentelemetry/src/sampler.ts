@@ -99,7 +99,11 @@ export class SentrySampler implements Sampler {
             const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes, spanKind);
             if (
               shouldIgnoreSpan(
-                { description: inferredChildName, op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp },
+                {
+                  description: inferredChildName,
+                  op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp,
+                  attributes: spanAttributes,
+                },
                 ignoreSpans,
               )
             ) {
@@ -147,7 +151,11 @@ export class SentrySampler implements Sampler {
       this._isSpanStreaming &&
       ignoreSpans?.length &&
       shouldIgnoreSpan(
-        { description: inferredSpanName, op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op },
+        {
+          description: inferredSpanName,
+          op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op,
+          attributes: mergedAttributes,
+        },
         ignoreSpans,
       )
     ) {
