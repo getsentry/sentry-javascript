@@ -3,6 +3,7 @@ import { applySdkMetadata, debug, setTag } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getNodeDefaultIntegrations, init as initNodeSdk } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { lowQualityTransactionsFilterIntegration } from './integration/lowQualityTransactionsFilterIntegration';
 import { reactRouterServerIntegration } from './integration/reactRouterServer';
 
 /**
@@ -10,15 +11,12 @@ import { reactRouterServerIntegration } from './integration/reactRouterServer';
  * @param options The options for the SDK.
  */
 export function getDefaultReactRouterServerIntegrations(options: NodeOptions): Integration[] {
-  return [...getNodeDefaultIntegrations(options), reactRouterServerIntegration()];
+  return [
+    ...getNodeDefaultIntegrations(options),
+    lowQualityTransactionsFilterIntegration(options),
+    reactRouterServerIntegration(),
+  ];
 }
-
-const LOW_QUALITY_TRANSACTIONS_REGEXES = [
-  /GET \/node_modules\//,
-  /GET \/favicon\.ico/,
-  /GET \/@id\//,
-  /GET \/__manifest\?/,
-];
 
 /**
  * Initializes the server side of the React Router SDK
@@ -28,8 +26,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...options,
     defaultIntegrations: getDefaultReactRouterServerIntegrations(options),
   };
-
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...LOW_QUALITY_TRANSACTIONS_REGEXES];
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
