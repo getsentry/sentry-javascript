@@ -36,6 +36,8 @@ import {
 
 let _insideCreateReactAgent = false;
 
+const SENTRY_PATCHED = '__sentry_patched__';
+
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
  *
@@ -48,7 +50,11 @@ export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
   options: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
-  return new Proxy(originalCompile, {
+  if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
+    return originalCompile;
+  }
+
+  const wrapped = new Proxy(originalCompile, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
       // Skip when called from within createReactAgent to avoid duplicate instrumentation
       if (_insideCreateReactAgent) {
@@ -102,6 +108,9 @@ export function instrumentStateGraphCompile(
       );
     },
   }) as (...args: unknown[]) => CompiledGraph;
+
+  Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
+  return wrapped;
 }
 
 /**
@@ -234,10 +243,14 @@ export function instrumentCreateReactAgent(
   originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
   options?: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
+  if (Object.prototype.hasOwnProperty.call(originalCreateReactAgent, SENTRY_PATCHED)) {
+    return originalCreateReactAgent;
+  }
+
   const resolvedOptions = resolveAIRecordingOptions(options);
   const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
 
-  return new Proxy(originalCreateReactAgent, {
+  const wrapped = new Proxy(originalCreateReactAgent, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
       const llm = extractLLMFromParams(args);
       const agentName = extractAgentNameFromParams(args);
@@ -278,6 +291,9 @@ export function instrumentCreateReactAgent(
       return compiledGraph;
     },
   }) as (...args: unknown[]) => CompiledGraph;
+
+  Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
+  return wrapped;
 }
 
 /**
