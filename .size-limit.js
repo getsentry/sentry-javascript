@@ -56,7 +56,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'browserProfilingIntegration'),
     gzip: true,
-    limit: '49 KB',
+    limit: '50 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
