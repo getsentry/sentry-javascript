@@ -3,9 +3,10 @@ import { addNonEnumerableProperty } from './object';
 /**
  * Internal symbols for normalization behavior. JSON and other structured user payloads cannot
  * carry these keys, so they cannot spoof SDK-only normalization hints.
+ * We use Symbol.for to ensure that the symbols are the same across different modules/files.
  */
-const SENTRY_SKIP_NORMALIZATION = Symbol('sentry.skipNormalization');
-const SENTRY_OVERRIDE_NORMALIZATION_DEPTH = Symbol('sentry.overrideNormalizationDepth');
+const SENTRY_SKIP_NORMALIZATION = Symbol.for('sentry.skipNormalization');
+const SENTRY_OVERRIDE_NORMALIZATION_DEPTH = Symbol.for('sentry.overrideNormalizationDepth');
 
 /** Marks an object so `normalize` returns it unchanged (already-normalized SDK data). */
 export function setSkipNormalizationHint(obj: object): void {
