@@ -169,9 +169,14 @@ export function instrumentDurableObjectWithSentry<
             return value;
           }
 
+          // Bind the method to the original object to ensure private fields work correctly.
+          // When called via the Proxy, `this` would be the Proxy, but private fields require
+          // the original object. Bound functions ignore the thisArg passed via Reflect.apply.
+          const boundValue = (value as UncheckedMethod).bind(proxyTarget);
+
           const wrapped = wrapMethodWithSentry(
             { options, context, spanName: prop, spanOp: 'rpc' },
-            value as UncheckedMethod,
+            boundValue,
             undefined,
             true,
           );

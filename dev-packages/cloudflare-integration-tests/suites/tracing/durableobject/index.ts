@@ -9,26 +9,22 @@ interface Env {
 // Regression test for https://github.com/getsentry/sentry-javascript/issues/17127
 // This class mimics a real-world DO with private fields/methods and multiple public methods
 class TestDurableObjectBase extends DurableObject<Env> {
-  // Real private field for internal state (not accessed by RPC methods due to proxy limitations)
-  #requestCount = 0;
+  // Private field used by RPC methods - tests that private fields work with instrumentation
+  #greeting = 'Hello';
 
   public constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
   }
 
-  // Real private method for internal use
-  #incrementCount(): void {
-    this.#requestCount++;
-  }
-
-  // Internal method that uses private fields (called from non-RPC context like alarm/fetch)
-  getRequestCount(): number {
-    return this.#requestCount;
-  }
-
-  // The method being called in tests via RPC
+  // RPC method that uses a private field - this would throw TypeError if the Proxy
+  // doesn't correctly bind `this` to the original object
   async sayHello(name: string): Promise<string> {
-    return `Hello, ${name}`;
+    return `${this.#greeting}, ${name}`;
+  }
+
+  // RPC method that modifies a private field
+  async setGreeting(greeting: string): Promise<void> {
+    this.#greeting = greeting;
   }
 
   // Other public methods that are not called - should not interfere with RPC
@@ -61,6 +57,13 @@ export default {
 
     if (request.url.includes('hello')) {
       const greeting = await stub.sayHello('world');
+      return new Response(greeting);
+    }
+
+    // Test endpoint that modifies and reads a private field via RPC
+    if (request.url.includes('custom-greeting')) {
+      await stub.setGreeting('Howdy');
+      const greeting = await stub.sayHello('partner');
       return new Response(greeting);
     }
 
