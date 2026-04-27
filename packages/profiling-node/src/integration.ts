@@ -430,7 +430,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
+        `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION.major}.${NODE_VERSION.minor}.${NODE_VERSION.patch}).`,
         'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
         'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
         'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',

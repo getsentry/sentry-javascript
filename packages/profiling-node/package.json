@@ -50,6 +50,7 @@
     "/scripts/prune-profiler-binaries.js"
   ],
   "scripts": {
+    "install": "node scripts/check-build.js",
     "clean": "rm -rf build && rm -rf lib",
     "lint": "yarn lint:eslint && yarn lint:clang",
     "lint:eslint": "eslint . --format stylish",
@@ -63,6 +64,8 @@
     "build:types:downlevel": "yarn downlevel-dts lib/types lib/types-ts3.8 --to ts3.8",
     "build:types": "tsc -p tsconfig.types.json && yarn build:types:downlevel",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:bindings:configure": "node-gyp configure",
+    "build:bindings": "node-gyp build && node scripts/copy-target.js",
     "build:copy-bindings": "cp -r compiled-bindings/ lib/",
     "build:dev": "yarn clean && yarn build",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
