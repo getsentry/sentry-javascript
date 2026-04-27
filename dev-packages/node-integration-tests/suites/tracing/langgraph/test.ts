@@ -13,6 +13,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -501,7 +502,7 @@ describe('LangGraph integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          'gen_ai.tool.name': 'add',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
         }),
         description: 'execute_tool add',
         op: 'gen_ai.execute_tool',
@@ -511,7 +512,7 @@ describe('LangGraph integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          'gen_ai.tool.name': 'multiply',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
         }),
         description: 'execute_tool multiply',
         op: 'gen_ai.execute_tool',
