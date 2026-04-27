@@ -320,5 +320,90 @@ describe('ServerRuntimeClient', () => {
       // Verify it's a fresh buffer with no pending items
       expect(bufferAfterDispose.$).toEqual([]);
     });
+
+    it('calls registered cleanup callbacks on dispose', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const cleanup1 = vi.fn();
+      const cleanup2 = vi.fn();
+      const cleanup3 = vi.fn();
+
+      client.registerCleanup(cleanup1);
+      client.registerCleanup(cleanup2);
+      client.registerCleanup(cleanup3);
+
+      expect(cleanup1).not.toHaveBeenCalled();
+      expect(cleanup2).not.toHaveBeenCalled();
+      expect(cleanup3).not.toHaveBeenCalled();
+
+      client.dispose();
+
+      expect(cleanup1).toHaveBeenCalledTimes(1);
+      expect(cleanup2).toHaveBeenCalledTimes(1);
+      expect(cleanup3).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears cleanup callbacks after dispose', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const cleanup = vi.fn();
+      client.registerCleanup(cleanup);
+
+      client.dispose();
+      expect(cleanup).toHaveBeenCalledTimes(1);
+
+      // Calling dispose again should not call cleanup again
+      client.dispose();
+      expect(cleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it('continues to call other cleanup callbacks if one throws', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const cleanup1 = vi.fn();
+      const throwingCleanup = vi.fn(() => {
+        throw new Error('cleanup error');
+      });
+      const cleanup2 = vi.fn();
+
+      client.registerCleanup(cleanup1);
+      client.registerCleanup(throwingCleanup);
+      client.registerCleanup(cleanup2);
+
+      expect(() => client.dispose()).not.toThrow();
+
+      expect(cleanup1).toHaveBeenCalledTimes(1);
+      expect(throwingCleanup).toHaveBeenCalledTimes(1);
+      expect(cleanup2).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('registerCleanup', () => {
+    it('accepts cleanup functions', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const cleanup = vi.fn();
+
+      expect(() => client.registerCleanup(cleanup)).not.toThrow();
+    });
+
+    it('can register multiple cleanup functions', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+
+      const cleanups = Array.from({ length: 10 }, () => vi.fn());
+
+      cleanups.forEach(cleanup => client.registerCleanup(cleanup));
+
+      client.dispose();
+
+      cleanups.forEach(cleanup => {
+        expect(cleanup).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 });
