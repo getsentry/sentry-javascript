@@ -450,8 +450,7 @@ describe('LangGraph integration', () => {
   // createReactAgent tests
   const EXPECTED_TRANSACTION_REACT_AGENT = {
     transaction: 'main',
-    spans: expect.arrayContaining([
-      // invoke_agent span (no create_agent span expected)
+    spans: [
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
@@ -465,14 +464,14 @@ describe('LangGraph integration', () => {
         origin: 'auto.ai.langgraph',
         status: 'ok',
       }),
-      // chat span (from Anthropic integration) should be a child with inherited agent name
+      expect.objectContaining({ op: 'http.client' }),
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
         }),
         op: 'gen_ai.chat',
       }),
-    ]),
+    ],
   };
 
   createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
@@ -488,8 +487,7 @@ describe('LangGraph integration', () => {
   // createReactAgent with tools - verifies tool execution spans
   const EXPECTED_TRANSACTION_REACT_AGENT_TOOLS = {
     transaction: 'main',
-    spans: expect.arrayContaining([
-      // invoke_agent span
+    spans: [
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
@@ -498,27 +496,33 @@ describe('LangGraph integration', () => {
         op: 'gen_ai.invoke_agent',
         status: 'ok',
       }),
-      // execute_tool span for "add"
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
+          'gen_ai.tool.type': 'function',
         }),
         description: 'execute_tool add',
         op: 'gen_ai.execute_tool',
         status: 'ok',
       }),
-      // execute_tool span for "multiply"
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
           [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
+          'gen_ai.tool.type': 'function',
         }),
         description: 'execute_tool multiply',
         op: 'gen_ai.execute_tool',
         status: 'ok',
       }),
-    ]),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+    ],
   };
 
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
