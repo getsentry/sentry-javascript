@@ -1,6 +1,13 @@
 import * as http from 'node:http';
 import { buffer } from 'node:stream/consumers';
-import { debug, dsnFromString, getEnvelopeEndpointWithUrlEncodedAuth } from '@sentry/core';
+import {
+  consoleSandbox,
+  debug,
+  type DsnComponents,
+  dsnToString,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  makeDsn,
+} from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
 /**
@@ -94,6 +101,19 @@ export class AwsLambdaExtension {
    * Starts the Sentry tunnel.
    */
   public startSentryTunnel(): void {
+    const allowedDsnComponents = getSentryDSNFromEnv();
+
+    if (!allowedDsnComponents) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          'Sentry Lambda extension: SENTRY_DSN is not set or is invalid. The /envelope tunnel will forward ' +
+            'any DSN in the envelope header without allowlist validation. Set SENTRY_DSN to the same DSN as ' +
+            'your SDK to restrict outbound requests.',
+        );
+      });
+    }
+
     const server = http.createServer(async (req, res) => {
       if (req.method === 'POST' && req.url?.startsWith('/envelope')) {
         try {
@@ -104,12 +124,30 @@ export class AwsLambdaExtension {
           const envelope = new TextDecoder().decode(envelopeBytes);
           const piece = envelope.split('\n')[0];
           const header = JSON.parse(piece || '{}') as { dsn?: string };
-          if (!header.dsn) {
-            throw new Error('DSN is not set');
+          const envelopeDsn = header.dsn;
+          if (!envelopeDsn) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid envelope: missing DSN' }));
+            return;
           }
-          const dsn = dsnFromString(header.dsn);
+
+          // When SENTRY_DSN is set, same allowlist check as handleTunnelRequest in @sentry/core (SSRF protection).
+          // If not set, we allow any DSN (but warn about this once, above)
+          if (allowedDsnComponents) {
+            if (dsnToString(allowedDsnComponents) !== envelopeDsn) {
+              DEBUG_BUILD &&
+                debug.warn(`Sentry Lambda extension tunnel: rejected request with unauthorized DSN (${envelopeDsn})`);
+              res.writeHead(403, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'DSN not allowed' }));
+              return;
+            }
+          }
+
+          const dsn = allowedDsnComponents || makeDsn(envelopeDsn);
           if (!dsn) {
-            throw new Error('Invalid DSN');
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid DSN' }));
+            return;
           }
           const upstreamSentryUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsn);
 
@@ -142,4 +180,21 @@ export class AwsLambdaExtension {
       process.exit(1);
     });
   }
+}
+
+/**
+ * DSN components allowed for the Lambda extension `/envelope` tunnel, derived from `SENTRY_DSN`.
+ *
+ * Exported only for testing purposes.
+ */
+export function getSentryDSNFromEnv(): DsnComponents | undefined {
+  const raw = process.env.SENTRY_DSN?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  const components = makeDsn(raw);
+  if (!components) {
+    return undefined;
+  }
+  return components;
 }
