@@ -20,7 +20,7 @@ describe('rpcMeta', () => {
         'arg1',
         42,
         {
-          __sentry: {
+          __sentry_rpc_meta__: {
             'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
             baggage: 'sentry-environment=production',
           },
@@ -56,7 +56,7 @@ describe('rpcMeta', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        __sentry: { 'sentry-trace': 'abc-def-1', baggage: 'sentry-sample_rate=1.0' },
+        __sentry_rpc_meta__: { 'sentry-trace': 'abc-def-1', baggage: 'sentry-sample_rate=1.0' },
       });
     });
 
@@ -78,7 +78,7 @@ describe('rpcMeta', () => {
         'arg1',
         42,
         {
-          __sentry: {
+          __sentry_rpc_meta__: {
             'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
             baggage: 'sentry-environment=production',
           },
@@ -110,8 +110,8 @@ describe('rpcMeta', () => {
       expect(result.rpcMeta).toBeUndefined();
     });
 
-    it('does not extract if __sentry value is not an object', () => {
-      const args = ['arg1', { __sentry: 'not-an-object' }];
+    it('does not extract if __sentry_rpc_meta__ value is not an object', () => {
+      const args = ['arg1', { __sentry_rpc_meta__: 'not-an-object' }];
 
       const result = extractRpcMeta(args);
 
@@ -119,8 +119,8 @@ describe('rpcMeta', () => {
       expect(result.rpcMeta).toBeUndefined();
     });
 
-    it('does not extract if __sentry value is null', () => {
-      const args = ['arg1', { __sentry: null }];
+    it('does not extract if __sentry_rpc_meta__ value is null', () => {
+      const args = ['arg1', { __sentry_rpc_meta__: null }];
 
       const result = extractRpcMeta(args);
 
@@ -129,7 +129,7 @@ describe('rpcMeta', () => {
     });
 
     it('handles meta with only trace (no baggage)', () => {
-      const args = [{ __sentry: { 'sentry-trace': 'abc-def-1' } }];
+      const args = [{ __sentry_rpc_meta__: { 'sentry-trace': 'abc-def-1' } }];
 
       const result = extractRpcMeta(args);
 

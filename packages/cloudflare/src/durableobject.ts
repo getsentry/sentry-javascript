@@ -146,8 +146,10 @@ export function instrumentDurableObjectWithSentry<
 
       return new Proxy(obj, {
         get(proxyTarget, prop, receiver) {
+          const value = Reflect.get(proxyTarget, prop, receiver);
+
           if (typeof prop !== 'string' || BUILT_IN_DO_METHODS.has(prop)) {
-            return Reflect.get(proxyTarget, prop, receiver);
+            return value;
           }
 
           const cached = rpcMethodCache.get(prop);
@@ -155,8 +157,6 @@ export function instrumentDurableObjectWithSentry<
           if (cached) {
             return cached;
           }
-
-          const value = Reflect.get(proxyTarget, prop, receiver);
 
           if (
             typeof value !== 'function' ||

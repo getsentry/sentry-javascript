@@ -5,17 +5,17 @@ import { getTraceData, type SerializedTraceData } from '@sentry/core';
  * This enables transparent trace propagation across Cloudflare Workers RPC
  * calls (Cap'n Proto), which have no native header/metadata support.
  */
-const SENTRY_RPC_META_KEY = '__sentry';
+const SENTRY_RPC_META_KEY = '__sentry_rpc_meta__';
 
 interface SentryRpcMeta {
-  __sentry: SerializedTraceData;
+  __sentry_rpc_meta__: SerializedTraceData;
 }
 
 function isSentryRpcMeta(value: unknown): value is SentryRpcMeta {
   if (typeof value !== 'object' || value === null || !(SENTRY_RPC_META_KEY in value)) {
     return false;
   }
-  const sentry = (value as SentryRpcMeta).__sentry;
+  const sentry = (value as SentryRpcMeta).__sentry_rpc_meta__;
   return typeof sentry === 'object' && sentry !== null;
 }
 
@@ -51,7 +51,7 @@ export function extractRpcMeta<T extends unknown[]>(
   if (isSentryRpcMeta(last)) {
     return {
       args: args.slice(0, -1) as T,
-      rpcMeta: last.__sentry,
+      rpcMeta: last.__sentry_rpc_meta__,
     };
   }
 

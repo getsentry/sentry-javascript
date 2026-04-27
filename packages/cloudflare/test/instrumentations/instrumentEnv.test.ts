@@ -228,7 +228,7 @@ describe('instrumentEnv', () => {
       (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
-        __sentry: {
+        __sentry_rpc_meta__: {
           'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
           baggage: 'sentry-environment=production',
         },
