@@ -293,6 +293,353 @@ describe('instrumentQueue', () => {
     });
   });
 
+  describe('enableQueueTracePropagation', () => {
+    test('extracts trace context from envelopes and unwraps the body before the user handler sees it', async () => {
+      const seenBodies: unknown[] = [];
+      const handler = {
+        queue(batch, _env, _context) {
+          for (const m of batch.messages) {
+            seenBodies.push(m.body);
+          }
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, enableQueueTracePropagation: true }), handler);
+
+      const trace_id = 'a'.repeat(32);
+      const span_id = 'b'.repeat(16);
+      const batch: MessageBatch<unknown> = {
+        queue: 'test-queue',
+        messages: [
+          {
+            id: '1',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id, span_id, sampled: true }, body: { hello: 'world' } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+          {
+            id: '2',
+            timestamp: new Date(),
+            body: 'plain-string',
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+        ],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      };
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      // Envelope-wrapped message: body unwrapped
+      expect(seenBodies[0]).toEqual({ hello: 'world' });
+      // Plain message: passed through unchanged
+      expect(seenBodies[1]).toBe('plain-string');
+    });
+
+    test('attaches a span link per unique producer span when envelopes are present', async () => {
+      const handler = {
+        queue(_batch, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          tracesSampleRate: 1,
+          enableQueueTracePropagation: true,
+          beforeSendTransaction(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      const traceA = 'a'.repeat(32);
+      const traceB = 'b'.repeat(32);
+      const spanA = '1'.repeat(16);
+      const spanB = '2'.repeat(16);
+
+      const batch: MessageBatch<unknown> = {
+        queue: 'test-queue',
+        messages: [
+          {
+            id: '1',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceA, span_id: spanA, sampled: true }, body: { n: 1 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+          {
+            id: '2',
+            // duplicate context — should dedupe to a single link
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceA, span_id: spanA, sampled: true }, body: { n: 2 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+          {
+            id: '3',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceB, span_id: spanB, sampled: true }, body: { n: 3 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+        ],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      };
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      const links = (sentryEvent.contexts?.trace as Record<string, unknown>)?.links as
+        | Array<{ trace_id: string; span_id: string; attributes?: Record<string, unknown> }>
+        | undefined;
+      expect(links).toHaveLength(2);
+      expect(links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            trace_id: traceA,
+            span_id: spanA,
+            attributes: expect.objectContaining({ 'sentry.link.type': 'previous_trace' }),
+          }),
+          expect.objectContaining({
+            trace_id: traceB,
+            span_id: spanB,
+            attributes: expect.objectContaining({ 'sentry.link.type': 'previous_trace' }),
+          }),
+        ]),
+      );
+    });
+
+    test('sets sentry.previous_trace attribute on the consumer span using the first producer context', async () => {
+      const handler = {
+        queue(_batch, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          tracesSampleRate: 1,
+          enableQueueTracePropagation: true,
+          beforeSendTransaction(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      const traceA = 'a'.repeat(32);
+      const spanA = '1'.repeat(16);
+      const traceB = 'b'.repeat(32);
+      const spanB = '2'.repeat(16);
+
+      const batch: MessageBatch<unknown> = {
+        queue: 'test-queue',
+        messages: [
+          {
+            id: '1',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceA, span_id: spanA, sampled: true }, body: { n: 1 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+          // A second producer is also linked, but the attribute uses the first.
+          {
+            id: '2',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceB, span_id: spanB, sampled: true }, body: { n: 2 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+        ],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      };
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      const data = (sentryEvent.contexts?.trace as Record<string, unknown>)?.data as Record<string, unknown>;
+      expect(data['sentry.previous_trace']).toBe(`${traceA}-${spanA}-1`);
+    });
+
+    test('encodes sampled=false as the -0 suffix in sentry.previous_trace', async () => {
+      const handler = {
+        queue(_batch, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          tracesSampleRate: 1,
+          enableQueueTracePropagation: true,
+          beforeSendTransaction(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      const traceId = 'a'.repeat(32);
+      const spanId = '1'.repeat(16);
+      const batch: MessageBatch<unknown> = {
+        queue: 'test-queue',
+        messages: [
+          {
+            id: '1',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: traceId, span_id: spanId, sampled: false }, body: { n: 1 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+        ],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      };
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      const data = (sentryEvent.contexts?.trace as Record<string, unknown>)?.data as Record<string, unknown>;
+      expect(data['sentry.previous_trace']).toBe(`${traceId}-${spanId}-0`);
+    });
+
+    test('does not set sentry.previous_trace when no envelope is present', async () => {
+      const handler = {
+        queue(_batch, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          tracesSampleRate: 1,
+          enableQueueTracePropagation: true,
+          beforeSendTransaction(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, createMockExecutionContext());
+
+      const data = (sentryEvent.contexts?.trace as Record<string, unknown>)?.data as Record<string, unknown>;
+      expect(data['sentry.previous_trace']).toBeUndefined();
+      expect((sentryEvent.contexts?.trace as Record<string, unknown>)?.links).toBeUndefined();
+    });
+
+    test('binds Message methods to the underlying target so ack() and retry() preserve `this`', async () => {
+      const ackImpl = vi.fn(function (this: unknown) {
+        // Cloudflare's runtime check: `this` must be the original Message instance,
+        // not a Proxy. We simulate that here by checking the brand on `this`.
+        if ((this as Record<string, unknown>)?.__brand !== 'cf-message') {
+          throw new TypeError('Illegal invocation');
+        }
+      });
+      const retryImpl = vi.fn(function (this: unknown) {
+        if ((this as Record<string, unknown>)?.__brand !== 'cf-message') {
+          throw new TypeError('Illegal invocation');
+        }
+      });
+      const originalMessage = {
+        __brand: 'cf-message',
+        id: '1',
+        timestamp: new Date(),
+        body: { __sentry_v1: { trace_id: 'a'.repeat(32), span_id: 'b'.repeat(16), sampled: true }, body: { n: 1 } },
+        attempts: 1,
+        retry: retryImpl,
+        ack: ackImpl,
+      };
+
+      const handler = {
+        queue(batch, _env, _context) {
+          // Calls go through the Proxy; the brand check inside ack/retry must still pass.
+          batch.messages[0]!.ack();
+          batch.messages[0]!.retry();
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, enableQueueTracePropagation: true }), handler);
+
+      const batch = {
+        queue: 'test-queue',
+        messages: [originalMessage],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      } as unknown as MessageBatch<unknown>;
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      expect(ackImpl).toHaveBeenCalledTimes(1);
+      expect(retryImpl).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not add links when option is off', async () => {
+      const handler = {
+        queue(_batch, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      let sentryEvent: Event = {};
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          tracesSampleRate: 1,
+          beforeSendTransaction(event) {
+            sentryEvent = event;
+            return null;
+          },
+        }),
+        handler,
+      );
+
+      const batch: MessageBatch<unknown> = {
+        queue: 'test-queue',
+        messages: [
+          {
+            id: '1',
+            timestamp: new Date(),
+            body: { __sentry_v1: { trace_id: 'a'.repeat(32), span_id: 'b'.repeat(16), sampled: true }, body: { n: 1 } },
+            attempts: 1,
+            retry: vi.fn(),
+            ack: vi.fn(),
+          },
+        ],
+        retryAll: vi.fn(),
+        ackAll: vi.fn(),
+      };
+
+      await wrappedHandler.queue?.(batch, MOCK_ENV, createMockExecutionContext());
+
+      const links = (sentryEvent.contexts?.trace as Record<string, unknown>)?.links;
+      expect(links).toBeUndefined();
+    });
+  });
+
   test('flush must be called when all waitUntil are done', async () => {
     const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
     vi.useFakeTimers();

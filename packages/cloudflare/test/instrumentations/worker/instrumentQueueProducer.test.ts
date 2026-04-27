@@ -150,4 +150,68 @@ describe('instrumentQueueProducer', () => {
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as Queue & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
   });
+
+  describe('trace propagation', () => {
+    test('does not wrap the body when propagateTraces is false', async () => {
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE', false);
+
+      await wrapped.send({ hello: 'world' });
+
+      const passed = (queue.send as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(passed).toEqual({ hello: 'world' });
+    });
+
+    test('wraps object bodies with __sentry_v1 envelope when propagateTraces is true', async () => {
+      vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({
+        spanContext: () => ({ traceId: 'a'.repeat(32), spanId: 'b'.repeat(16), traceFlags: 1 }),
+      } as unknown as ReturnType<typeof SentryCore.getActiveSpan>);
+      vi.spyOn(SentryCore, 'spanIsSampled').mockReturnValue(true);
+
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE', true);
+
+      await wrapped.send({ hello: 'world' });
+
+      const passed = (queue.send as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(passed).toEqual({
+        __sentry_v1: { trace_id: 'a'.repeat(32), span_id: 'b'.repeat(16), sampled: true },
+        body: { hello: 'world' },
+      });
+    });
+
+    test('does not wrap non-object bodies when propagateTraces is true', async () => {
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE', true);
+
+      await wrapped.send('plain string');
+
+      const passed = (queue.send as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(passed).toBe('plain string');
+    });
+
+    test('wraps each object body in sendBatch with the same producer span context', async () => {
+      vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({
+        spanContext: () => ({ traceId: 'c'.repeat(32), spanId: 'd'.repeat(16), traceFlags: 1 }),
+      } as unknown as ReturnType<typeof SentryCore.getActiveSpan>);
+      vi.spyOn(SentryCore, 'spanIsSampled').mockReturnValue(true);
+
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE', true);
+
+      await wrapped.sendBatch([{ body: { n: 1 } }, { body: 'string-body' }, { body: { n: 2 } }]);
+
+      const passed = (queue.sendBatch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+      expect(passed[0].body).toEqual({
+        __sentry_v1: { trace_id: 'c'.repeat(32), span_id: 'd'.repeat(16), sampled: true },
+        body: { n: 1 },
+      });
+      // Non-object body is not wrapped
+      expect(passed[1].body).toBe('string-body');
+      expect(passed[2].body).toEqual({
+        __sentry_v1: { trace_id: 'c'.repeat(32), span_id: 'd'.repeat(16), sampled: true },
+        body: { n: 2 },
+      });
+    });
+  });
 });

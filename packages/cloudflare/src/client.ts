@@ -200,6 +200,28 @@ interface BaseCloudflareOptions {
   enableRpcTracePropagation?: boolean;
 
   /**
+   * Enable trace propagation between Cloudflare Queue producers and consumers.
+   *
+   * Cloudflare Queue messages have no header channel, so when this option is enabled
+   * the SDK wraps each object-shaped message body in a small envelope that carries
+   * the producer's (trace_id, span_id). On the consumer side, the SDK extracts
+   * those values, transparently unwraps the body, and attaches a span Link from
+   * the batch `process` span to each message's producer `send` span.
+   *
+   * Only object-shaped bodies are wrapped. Strings, ArrayBuffers, and typed arrays
+   * are sent unchanged (no link is created for them). If a non-instrumented
+   * producer sends to the same queue, the consumer simply emits a `process` span
+   * with no link.
+   *
+   * **Important:** This option should be enabled on **both sides** (the producing
+   * Worker and the consuming Worker, which may be the same Worker) for full
+   * trace propagation.
+   *
+   * @default false
+   */
+  enableQueueTracePropagation?: boolean;
+
+  /**
    * @deprecated Use `enableRpcTracePropagation` instead. This option will be removed in a future major version.
    *
    * Enable instrumentation of prototype methods for DurableObjects.

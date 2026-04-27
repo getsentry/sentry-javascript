@@ -1,5 +1,12 @@
 import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions } from '@cloudflare/workers-types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  spanIsSampled,
+  startSpan,
+} from '@sentry/core';
+import { isWrappableBody, wrapBodyWithTraceContext } from '../../utils/queueEnvelope';
 
 const ORIGIN = 'auto.faas.cloudflare.queue';
 
@@ -23,14 +30,35 @@ function getBodySize(body: unknown): number | undefined {
   }
 }
 
+function maybeWrapBody(body: unknown, propagateTraces: boolean): unknown {
+  if (!propagateTraces || !isWrappableBody(body)) {
+    return body;
+  }
+  const span = getActiveSpan();
+  if (!span) {
+    return body;
+  }
+  const ctx = span.spanContext();
+  return wrapBodyWithTraceContext(body, {
+    trace_id: ctx.traceId,
+    span_id: ctx.spanId,
+    sampled: spanIsSampled(span),
+  });
+}
+
 /**
  * Wraps a Queue producer binding to create `queue.publish` spans on
  * `send` and `sendBatch` calls.
  *
+ * When `propagateTraces` is true, message bodies that are plain objects are
+ * wrapped with a trace-context envelope so the consumer can attach a span
+ * Link from its `process` span to this producer's `send` span. Non-object
+ * bodies are sent unchanged.
+ *
  * The queue's own name is not available on the binding object, so we use
  * the env binding key (e.g. `MY_QUEUE`) as `messaging.destination.name`.
  */
-export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: string): T {
+export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: string, propagateTraces = false): T {
   return new Proxy(queue, {
     get(target, prop, receiver) {
       if (prop === 'send') {
@@ -50,7 +78,7 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
               },
             },
-            () => original.call(target, message as never, options),
+            () => original.call(target, maybeWrapBody(message, propagateTraces) as never, options),
           );
         };
       }
@@ -83,7 +111,12 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
               },
             },
-            () => original.call(target, messageArray as never, options),
+            () => {
+              const wrapped = propagateTraces
+                ? messageArray.map(m => ({ ...m, body: maybeWrapBody(m.body, propagateTraces) }))
+                : messageArray;
+              return original.call(target, wrapped as never, options);
+            },
           );
         };
       }
