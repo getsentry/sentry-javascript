@@ -248,9 +248,12 @@ function inferHttpSpanData(
     safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' });
   } else {
     // Infer span name from URL attributes, matching the non-streamed exporter's behavior.
-    const urlPath = getUrlPath(attributes, spanKind);
-    if (urlPath) {
-      spanJSON.name = `${httpMethod} ${urlPath}`;
+    // Only overwrite the name for OTel spans (known spanKind)
+    if (spanKind === SPAN_KIND_CLIENT || spanKind === SPAN_KIND_SERVER) {
+      const urlPath = getUrlPath(attributes, spanKind);
+      if (urlPath) {
+        spanJSON.name = `${httpMethod} ${urlPath}`;
+      }
     }
     safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' });
   }
@@ -260,7 +263,10 @@ function inferHttpSpanData(
  * Extract a URL path from span attributes for use in the span name.
  * Mirrors the logic in the non-streamed exporter's `getSanitizedUrl`.
  */
-function getUrlPath(attributes: RawAttributes<Record<string, unknown>>, spanKind: number | undefined): string | undefined {
+function getUrlPath(
+  attributes: RawAttributes<Record<string, unknown>>,
+  spanKind: number | undefined,
+): string | undefined {
   const httpUrl = attributes['http.url'] || attributes['url.full'];
   const httpTarget = attributes['http.target'];
 
