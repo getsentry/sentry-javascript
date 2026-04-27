@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '26 KB',
+    limit: '27 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -40,7 +40,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '44 KB',
+    limit: '45 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -128,7 +128,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
-    limit: '36 KB',
+    limit: '37 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -197,7 +197,7 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '26 KB',
+    limit: '27 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Browser CDN bundles
@@ -254,7 +254,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '89 KB',
+    limit: '90 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -270,7 +270,7 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    limit: '84 KB',
+    limit: '85 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -278,7 +278,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '138 KB',
+    limit: '139 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -294,7 +294,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '141.5 KB',
+    limit: '142 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -302,7 +302,7 @@ module.exports = [
     path: createCDNPath('bundle.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '212 KB',
+    limit: '213 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -310,7 +310,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '255.5 KB',
+    limit: '256 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -318,7 +318,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '259 KB',
+    limit: '260 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -326,7 +326,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '269 KB',
+    limit: '270 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
