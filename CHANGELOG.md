@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.55.2
+
+- fix(v8/profiling-node): Restore install script to build binaries from source ([#20517](https://github.com/getsentry/sentry-javascript/pull/20517))
+- fix(v8/publish): Ensure all packages are tagged with `v8` on when publishing to NPM ([#19974](https://github.com/getsentry/sentry-javascript/pull/19974))
+
 ## 8.55.1
 
 - fix(v8/browser): Ensure that performance.measure spans have a positive duration ([#19959](https://github.com/getsentry/sentry-javascript/pull/19959))
