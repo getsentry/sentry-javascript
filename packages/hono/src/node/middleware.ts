@@ -1,5 +1,4 @@
 import { type BaseTransportOptions, debug, type Options, getClient } from '@sentry/core';
-import { init } from './sdk';
 import type { Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';

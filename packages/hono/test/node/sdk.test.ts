@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../../src/node/sdk';
 
 vi.mock('@sentry/node', () => ({
-  init: vi.fn().mockReturnValue({ /* fake client returned by node init */ }),
+  init: vi.fn().mockReturnValue({
+    /* fake client returned by node init */
+  }),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -34,11 +36,7 @@ describe('Hono Node SDK – init()', () => {
     init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
     expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-    expect(applySdkMetadataMock).toHaveBeenCalledWith(
-      expect.any(Object),
-      'hono',
-      ['hono', 'node'],
-    );
+    expect(applySdkMetadataMock).toHaveBeenCalledWith(expect.any(Object), 'hono', ['hono', 'node']);
   });
 
   it('calls @sentry/node init with the provided DSN', () => {
@@ -175,4 +173,3 @@ describe('Hono Node SDK – init()', () => {
     expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
   });
 });
-
