@@ -134,6 +134,11 @@ describe('shouldIgnoreSpan', () => {
       expect(shouldIgnoreSpan(span, [{ attributes: { 'missing.key': 'x' } }])).toBe(false);
     });
 
+    it('does not match a filter with an empty attributes object', () => {
+      const span = { description: 'foo', op: 'bar', attributes: { x: 1 } };
+      expect(shouldIgnoreSpan(span, [{ attributes: {} }])).toBe(false);
+    });
+
     it('requires every attribute entry to match', () => {
       const span = { description: 'span', op: 'op', attributes: { a: 1, b: 2 } };
       expect(shouldIgnoreSpan(span, [{ attributes: { a: 1, b: 2 } }])).toBe(true);

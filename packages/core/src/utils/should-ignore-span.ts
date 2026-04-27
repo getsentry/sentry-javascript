@@ -28,7 +28,8 @@ export function shouldIgnoreSpan(
       continue;
     }
 
-    if (!pattern.name && !pattern.op && !pattern.attributes) {
+    const hasAttributes = !!pattern.attributes && Object.keys(pattern.attributes).length > 0;
+    if (!pattern.name && !pattern.op && !hasAttributes) {
       continue;
     }
 
