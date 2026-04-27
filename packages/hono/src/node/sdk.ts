@@ -12,7 +12,7 @@ import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 export function init(options: HonoNodeOptions): Client | undefined {
   const existingClient = getClient();
   if (existingClient) {
-    debug.log('Sentry is already initialized, skipping re-initialization.');
+    existingClient.getOptions().debug && debug.log('Sentry is already initialized, skipping re-initialization.');
     return existingClient;
   }
 

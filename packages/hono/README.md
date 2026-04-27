@@ -138,7 +138,7 @@ NODE_OPTIONS="--import ./instrument.mjs"
 
 ### 4. Add the Sentry middleware to your Hono app
 
-Add the `sentry` middleware to your Hono app. Since Sentry was already initialized in the instrument file, no options are needed:
+Add the `sentry` middleware to your Hono app. Since Sentry was already initialized in the instrument file, no options are passed here:
 
 ```ts
 import { Hono } from 'hono';
