@@ -530,10 +530,11 @@ describe('inferSpanDataFromOtelAttributes', () => {
       expect(spanJSON.attributes?.['sentry.source']).toBe('route');
     });
 
-    it('does not overwrite name when no http.route', () => {
+    it('does not overwrite name when no http.route but sets source to url', () => {
       const spanJSON = makeSpanJSON('GET', { 'http.request.method': 'GET', 'url.full': 'http://example.com/api' });
       inferSpanDataFromOtelAttributes(spanJSON, 2);
       expect(spanJSON.name).toBe('GET');
+      expect(spanJSON.attributes?.['sentry.source']).toBe('url');
     });
 
     it('does not overwrite sentry.op if already set', () => {

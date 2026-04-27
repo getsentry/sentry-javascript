@@ -248,6 +248,11 @@ function inferHttpSpanData(
   if (typeof httpRoute === 'string') {
     spanJSON.name = `${httpMethod} ${httpRoute}`;
     safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' });
+  } else {
+    // Fallback: set source to 'url' for HTTP spans without a route.
+    // The spec requires sentry.span.source on segment spans, and the non-streamed exporter
+    // always sets this — so we need to ensure it's present for streamed spans too.
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' });
   }
 }
 
