@@ -9,9 +9,10 @@ const LOW_QUALITY_TRANSACTIONS_REGEXES = [
   /GET \/__manifest\?/,
 ];
 
+// TODO(v11): Remove the `_options` parameter (unused and only kept for back-compat with the previous signature)
 const _lowQualityTransactionsFilterIntegration = ((_options?: NodeOptions) => ({
   name: 'LowQualityTransactionsFilter',
-  beforeSetup(client: Client) {
+  beforeSetup(client) {
     const opts = client.getOptions();
     opts.ignoreSpans = [...(opts.ignoreSpans || []), ...LOW_QUALITY_TRANSACTIONS_REGEXES];
   },
