@@ -60,18 +60,18 @@ jobs:
           fi
           cat /tmp/bump-summary.md
 
-      - name: Configure git
-        if: steps.bump.outputs.exit_code == '0'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Commit and push
         if: steps.bump.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
+          slug=$(gh api /user --jq '.login')
+          id=$(gh api /user --jq '.id')
           git checkout -B bot/bump-size-limits
           git add .size-limit.js
-          git commit -m "chore(size-limit): auto-bump weekly drift"
+          git -c "user.name=$slug" \
+              -c "user.email=$id+$slug@users.noreply.github.com" \
+              commit -m "chore(size-limit): auto-bump weekly drift"
           git push --force-with-lease origin bot/bump-size-limits
 
       - name: Open or update PR
