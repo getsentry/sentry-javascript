@@ -26,17 +26,19 @@ sentryTest(
       page.locator('button').click(),
     ]);
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.lcp?.value).toBeDefined();
+    const lcpSpan = eventData.spans?.find(({ op }) => op === 'ui.webvital.lcp');
+    expect(lcpSpan).toBeDefined();
+    const lcpAttrs = lcpSpan?.data ?? {};
+    expect(lcpAttrs['browser.web_vital.lcp.value']).toBeGreaterThan(0);
 
     // This should be body > img, but it can be flakey as sometimes it will report
     // the button as LCP.
-    expect(eventData.contexts?.trace?.data?.['lcp.element'].startsWith('body >')).toBe(true);
+    expect(String(lcpAttrs['browser.web_vital.lcp.element']).startsWith('body >')).toBe(true);
 
     // Working around flakiness
     // Only testing this when the LCP element is an image, not a button
-    if (eventData.contexts?.trace?.data?.['lcp.element'] === 'body > img') {
-      expect(eventData.contexts?.trace?.data?.['lcp.size']).toBe(107400);
+    if (lcpAttrs['browser.web_vital.lcp.element'] === 'body > img') {
+      expect(lcpAttrs['browser.web_vital.lcp.size']).toBe(107400);
 
       const lcp = await (await page.waitForFunction('window._LCP')).jsonValue();
       const lcp2 = await (await page.waitForFunction('window._LCP2')).jsonValue();

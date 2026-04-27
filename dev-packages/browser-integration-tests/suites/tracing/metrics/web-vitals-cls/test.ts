@@ -11,43 +11,49 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
   await page.setViewportSize({ width: 800, height: 1200 });
 });
 
+function getClsAttrs(eventData: Event): Record<string, unknown> {
+  const clsSpan = eventData.spans?.find(({ op }) => op === 'ui.webvital.cls');
+  expect(clsSpan).toBeDefined();
+  return clsSpan?.data ?? {};
+}
+
 sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.05`);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
+  const clsAttrs = getClsAttrs(eventData);
+  const clsValue = clsAttrs['browser.web_vital.cls.value'] as number;
 
   // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.03);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.07);
+  expect(clsValue).toBeGreaterThan(0.03);
+  expect(clsValue).toBeLessThan(0.07);
 
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p#partial');
+  expect(clsAttrs['browser.web_vital.cls.source.1']).toBe('body > div#content > p#partial');
 });
 
 sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.21`);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
+  const clsAttrs = getClsAttrs(eventData);
+  const clsValue = clsAttrs['browser.web_vital.cls.value'] as number;
 
   // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.18);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.23);
+  expect(clsValue).toBeGreaterThan(0.18);
+  expect(clsValue).toBeLessThan(0.23);
 
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p');
+  expect(clsAttrs['browser.web_vital.cls.source.1']).toBe('body > div#content > p');
 });
 
 sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.35`);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
+  const clsAttrs = getClsAttrs(eventData);
+  const clsValue = clsAttrs['browser.web_vital.cls.value'] as number;
 
   // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.34);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.36);
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p');
+  expect(clsValue).toBeGreaterThan(0.34);
+  expect(clsValue).toBeLessThan(0.36);
+  expect(clsAttrs['browser.web_vital.cls.source.1']).toBe('body > div#content > p');
 });

@@ -639,8 +639,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // afterAllSetup (rather than setup) so that a user-provided webVitalsIntegration -
       // which may be ordered after browserTracingIntegration in the integrations array -
       // has already been installed by the time we check.
-      if (!client.getIntegrationByName(WEB_VITALS_INTEGRATION_NAME)) {
-        client.addIntegration(webVitalsIntegration());
+      if (!client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        client.addIntegration?.(webVitalsIntegration());
       }
 
       let startingUrl: string | undefined = getLocationHref();
