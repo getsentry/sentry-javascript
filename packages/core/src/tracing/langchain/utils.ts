@@ -3,7 +3,6 @@ import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -520,7 +519,6 @@ export function getAgentAttributesFromMetadata(metadata?: Record<string, unknown
   const agentName = metadata?.lc_agent_name;
   if (typeof agentName === 'string') {
     attrs[GEN_AI_AGENT_NAME_ATTRIBUTE] = agentName;
-    attrs[GEN_AI_PIPELINE_NAME_ATTRIBUTE] = agentName;
   }
   return attrs;
 }

@@ -6,7 +6,6 @@ import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
@@ -91,7 +90,6 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         const callAgentName = (callConfig?.metadata as Record<string, unknown>)?.lc_agent_name ?? agentName;
         if (typeof callAgentName === 'string') {
           spanAttributes[GEN_AI_AGENT_NAME_ATTRIBUTE] = callAgentName;
-          spanAttributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE] = callAgentName;
         }
 
         if (toolDescription) {
