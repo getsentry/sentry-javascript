@@ -23,6 +23,9 @@ describe('getSentryDSNFromEnv', () => {
       publicKey: 'public',
       host: 'o1.ingest.sentry.io',
       projectId: '1',
+      pass: '',
+      path: '',
+      port: '',
     });
   });
 
