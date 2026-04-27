@@ -18,6 +18,7 @@ import {
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import {
   INTERNAL_getSegmentSpan,
   showSpanDropWarning,
@@ -241,19 +242,47 @@ function inferHttpSpanData(
     return;
   }
 
-  // Only overwrite the span name when we have an explicit http.route — it's more specific than
-  // what OTel instrumentation sets as the span name. For all other cases (url.full, http.target),
-  // the OTel-set name is already good enough and we'd risk producing a worse name (e.g. full URL).
   const httpRoute = attributes['http.route'];
   if (typeof httpRoute === 'string') {
     spanJSON.name = `${httpMethod} ${httpRoute}`;
     safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' });
   } else {
-    // Fallback: set source to 'url' for HTTP spans without a route.
-    // The spec requires sentry.span.source on segment spans, and the non-streamed exporter
-    // always sets this — so we need to ensure it's present for streamed spans too.
+    // Infer span name from URL attributes, matching the non-streamed exporter's behavior.
+    const urlPath = getUrlPath(attributes, spanKind);
+    if (urlPath) {
+      spanJSON.name = `${httpMethod} ${urlPath}`;
+    }
     safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' });
   }
+}
+
+/**
+ * Extract a URL path from span attributes for use in the span name.
+ * Mirrors the logic in the non-streamed exporter's `getSanitizedUrl`.
+ */
+function getUrlPath(attributes: RawAttributes<Record<string, unknown>>, spanKind: number | undefined): string | undefined {
+  const httpUrl = attributes['http.url'] || attributes['url.full'];
+  const httpTarget = attributes['http.target'];
+
+  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+
+  // For server spans, prefer the relative target path
+  if (spanKind === SPAN_KIND_SERVER && typeof httpTarget === 'string') {
+    return stripUrlQueryAndFragment(httpTarget);
+  }
+
+  // For client spans (and others), use the full sanitized URL
+  if (sanitizedUrl) {
+    return sanitizedUrl;
+  }
+
+  // Fall back to target if no full URL is available
+  if (typeof httpTarget === 'string') {
+    return stripUrlQueryAndFragment(httpTarget);
+  }
+
+  return undefined;
 }
 
 function inferDbSpanData(spanJSON: StreamedSpanJSON, attributes: RawAttributes<Record<string, unknown>>): void {
