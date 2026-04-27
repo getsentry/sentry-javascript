@@ -1,11 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import type { Event } from '@sentry/core';
 import { APP_NAME } from '../constants';
 
 test.describe('low-quality transaction filter', () => {
   test('does not send a server transaction for /__manifest? requests', async ({ page }) => {
-    const serverTxns: Event[] = [];
+    const serverTxns: Array<{ transaction?: string }> = [];
 
     const navigationPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
@@ -19,9 +18,13 @@ test.describe('low-quality transaction filter', () => {
     });
 
     await page.goto('/performance');
+    await page.waitForTimeout(1000);
     await page.getByRole('link', { name: 'SSR Page' }).click();
 
     await navigationPromise;
+
+    // Force the server to flush any in-flight transactions before we assert
+    await page.evaluate(() => fetch('/__sentry-flush'));
 
     expect(serverTxns.some(t => t.transaction?.match(/GET \/__manifest\?/))).toBe(false);
   });
