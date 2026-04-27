@@ -1,17 +1,11 @@
 import { serve } from '@hono/node-server';
 import { sentry } from '@sentry/hono/node';
-import { loggingTransport, sendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { Hono } from 'hono';
 
 const app = new Hono();
 
-app.use(
-  sentry(app, {
-    dsn: 'https://public@dsn.ingest.sentry.io/1337',
-    tracesSampleRate: 1.0,
-    transport: loggingTransport,
-  }),
-);
+app.use(sentry(app));
 
 app.get('/', c => {
   return c.text('Hello from Hono on Node!');
