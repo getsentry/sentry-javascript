@@ -11,7 +11,7 @@ function clean(err) {
 
 function recompileFromSource() {
   console.log('@sentry/profiling-node: Compiling from source...');
-  let spawn = child_process.spawnSync('npm', ['run', 'build:bindings:configure'], {
+  let spawn = child_process.spawnSync('npm run build:bindings:configure', {
     stdio: ['inherit', 'inherit', 'pipe'],
     env: process.env,
     shell: true,
@@ -23,7 +23,7 @@ function recompileFromSource() {
     return;
   }
 
-  spawn = child_process.spawnSync('npm', ['run', 'build:bindings'], {
+  spawn = child_process.spawnSync('npm run build:bindings', {
     stdio: ['inherit', 'inherit', 'pipe'],
     env: process.env,
     shell: true,
