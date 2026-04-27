@@ -12,7 +12,6 @@ export {
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
   startTrackingWebVitals,
-  startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
 

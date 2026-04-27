@@ -5,11 +5,11 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
+    Sentry.webVitalsIntegration({ disable: ['inp'] }),
     Sentry.browserTracingIntegration({
       enableLongTask: false,
       enableLongAnimationFrame: true,
       instrumentPageLoad: false,
-      enableInp: false,
     }),
     Sentry.spanStreamingIntegration(),
   ],

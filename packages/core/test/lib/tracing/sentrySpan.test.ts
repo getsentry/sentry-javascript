@@ -4,7 +4,6 @@ import { setCurrentClient } from '../../../src/sdk';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import type { SpanJSON } from '../../../src/types-hoist/span';
 import { spanToJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -102,97 +101,6 @@ describe('SentrySpan', () => {
       const endTime = Date.now();
       span.end(endTime);
       expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
-    });
-
-    test('uses sampled config for standalone span', () => {
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-        }),
-      );
-      setCurrentClient(client);
-
-      // @ts-expect-error Accessing private transport API
-      const mockSend = vi.spyOn(client._transport, 'send');
-
-      const notSampledSpan = new SentrySpan({
-        name: 'not-sampled',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: false,
-      });
-      notSampledSpan.end();
-      expect(mockSend).not.toHaveBeenCalled();
-
-      const sampledSpan = new SentrySpan({
-        name: 'is-sampled',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      sampledSpan.end();
-      expect(mockSend).toHaveBeenCalledTimes(1);
-    });
-
-    test('sends the span if `beforeSendSpan` does not modify the span', () => {
-      const beforeSendSpan = vi.fn(span => span);
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-          beforeSendSpan,
-        }),
-      );
-      setCurrentClient(client);
-
-      // @ts-expect-error Accessing private transport API
-      const mockSend = vi.spyOn(client._transport, 'send');
-      const span = new SentrySpan({
-        name: 'test',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      span.end();
-      expect(mockSend).toHaveBeenCalled();
-    });
-
-    test('does not drop the span if `beforeSendSpan` returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      const beforeSendSpan = vi.fn(() => null as unknown as SpanJSON);
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://username@domain/123',
-          enableSend: true,
-          beforeSendSpan,
-        }),
-      );
-      setCurrentClient(client);
-
-      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
-      // @ts-expect-error Accessing private transport API
-      const mockSend = vi.spyOn(client._transport, 'send');
-      const span = new SentrySpan({
-        name: 'test',
-        isStandalone: true,
-        startTimestamp: 1,
-        endTimestamp: 2,
-        sampled: true,
-      });
-      span.end();
-
-      expect(mockSend).toHaveBeenCalled();
-      expect(recordDroppedEventSpy).not.toHaveBeenCalled();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-      consoleWarnSpy.mockRestore();
     });
 
     test('build TransactionEvent for basic root span', () => {

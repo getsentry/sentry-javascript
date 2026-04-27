@@ -438,20 +438,14 @@ function createChildOrRootSpan({
  * but some of them need to be transformed.
  */
 function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
-  const exp = options.experimental || {};
-  const initialCtx: SentrySpanArguments = {
-    isStandalone: exp.standalone,
-    ...options,
-  };
-
   if (options.startTime) {
-    const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...initialCtx };
+    const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...options };
     ctx.startTimestamp = spanTimeInputToSeconds(options.startTime);
     delete ctx.startTime;
     return ctx;
   }
 
-  return initialCtx;
+  return options;
 }
 
 function getAcs(): AsyncContextStrategy {

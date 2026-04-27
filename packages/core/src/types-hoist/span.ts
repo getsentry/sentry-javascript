@@ -230,15 +230,6 @@ export interface SentrySpanArguments {
    * as certain context information is only available during span creation.
    */
   links?: SpanLink[];
-
-  /**
-   * Set to `true` if this span should be sent as a standalone segment span
-   * as opposed to a transaction.
-   *
-   * @experimental this option is currently experimental and should only be
-   * used within SDK code. It might be removed or changed in the future.
-   */
-  isStandalone?: boolean | undefined;
 }
 
 /**

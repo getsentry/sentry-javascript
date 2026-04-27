@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { createSpanEnvelope } from '../envelope';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
@@ -10,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import type { SpanEnvelope } from '../types-hoist/envelope';
 import type { TransactionEvent } from '../types-hoist/event';
 import type { SpanLink } from '../types-hoist/link';
 import type {
@@ -70,9 +68,6 @@ export class SentrySpan implements Span {
   /** The timed events added to this span. */
   protected _events: TimedEvent[];
 
-  /** if true, treat span as a standalone span (not part of a transaction) */
-  private _isStandaloneSpan?: boolean;
-
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
    * or other span methods.
@@ -107,8 +102,6 @@ export class SentrySpan implements Span {
     }
 
     this._events = [];
-
-    this._isStandaloneSpan = spanContext.isStandalone;
 
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
@@ -240,8 +233,6 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
-      is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
-      segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
       links: convertSpanLinksForEnvelope(this._links),
     };
   }
@@ -263,7 +254,7 @@ export class SentrySpan implements Span {
       start_timestamp: this._startTime,
       // just in case _endTime is not set, we use the start time (i.e. duration 0)
       end_timestamp: this._endTime ?? this._startTime,
-      is_segment: this._isStandaloneSpan || this === getRootSpan(this),
+      is_segment: this === getRootSpan(this),
       status: getSimpleStatusMessage(this._status),
       attributes: this._attributes,
       links: getStreamedSpanLinks(this._links),
@@ -299,56 +290,19 @@ export class SentrySpan implements Span {
     return this;
   }
 
-  /**
-   * This method should generally not be used,
-   * but for now we need a way to publicly check if the `_isStandaloneSpan` flag is set.
-   * USE THIS WITH CAUTION!
-   * @internal
-   * @hidden
-   * @experimental
-   */
-  public isStandaloneSpan(): boolean {
-    return !!this._isStandaloneSpan;
-  }
-
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
-      // Guarding sending standalone v1 spans as v2 streamed spans for now.
-      // Otherwise they'd be sent once as v1 spans and again as streamed spans.
-      // We'll migrate CLS and LCP spans to streamed spans in a later PR and
-      // INP spans in the next major of the SDK. At that point, we can fully remove
-      // standalone v1 spans <3
-      if (!this._isStandaloneSpan) {
-        client.emit('afterSpanEnd', this);
-      }
+      client.emit('afterSpanEnd', this);
     }
 
-    // A segment span is basically the root span of a local span tree.
-    // So for now, this is either what we previously refer to as the root span,
-    // or a standalone span.
-    const isSegmentSpan = this._isStandaloneSpan || this === getRootSpan(this);
-
-    if (!isSegmentSpan) {
+    if (this !== getRootSpan(this)) {
       return;
     }
 
-    // if this is a standalone span, we send it immediately
-    if (this._isStandaloneSpan) {
-      if (this._sampled) {
-        sendSpanEnvelope(createSpanEnvelope([this], client));
-      } else {
-        DEBUG_BUILD &&
-          debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-        if (client) {
-          client.recordDroppedEvent('sample_rate', 'span');
-        }
-      }
-      return;
-    } else if (client && hasSpanStreamingEnabled(client)) {
-      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+    if (client && hasSpanStreamingEnabled(client)) {
       client.emit('afterSegmentSpanEnd', this);
       return;
     }
@@ -382,8 +336,8 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // The transaction span itself as well as any potential standalone spans should be filtered out
-    const finishedSpans = getSpanDescendants(this).filter(span => span !== this && !isStandaloneSpan(span));
+    // The transaction span itself should be filtered out
+    const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
 
     const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
@@ -447,32 +401,4 @@ function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): val
 // We want to filter out any incomplete SpanJSON objects
 function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
   return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
-}
-
-/** `SentrySpan`s can be sent as a standalone span rather than belonging to a transaction */
-function isStandaloneSpan(span: Span): boolean {
-  return span instanceof SentrySpan && span.isStandaloneSpan();
-}
-
-/**
- * Sends a `SpanEnvelope`.
- *
- * Note: If the envelope's spans are dropped, e.g. via `beforeSendSpan`,
- * the envelope will not be sent either.
- */
-function sendSpanEnvelope(envelope: SpanEnvelope): void {
-  const client = getClient();
-  if (!client) {
-    return;
-  }
-
-  const spanItems = envelope[1];
-  if (!spanItems || spanItems.length === 0) {
-    client.recordDroppedEvent('before_send', 'span');
-    return;
-  }
-
-  // sendEnvelope should not throw
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  client.sendEnvelope(envelope);
 }

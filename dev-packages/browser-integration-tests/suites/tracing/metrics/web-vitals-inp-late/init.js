@@ -7,7 +7,6 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       enableLongTask: false,
-      enableInp: true,
       instrumentPageLoad: false,
       instrumentNavigation: false,
     }),
