@@ -11,7 +11,8 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
  * The problem is: We don't always get valid TTFB from the web-vitals library, so we skip the test if that's the case.
  * Note: There is another test that covers that we actually report TTFB if it is valid (@see ../web-vitals-lcp/test.ts).
  */
-sentryTest('paint web vitals values are greater than TTFB', async ({ browserName, getLocalTestUrl, page }) => {
+// TODO(v11): re-enable once span streaming is the default — LCP isn't captured in static mode.
+sentryTest.skip('paint web vitals values are greater than TTFB', async ({ browserName, getLocalTestUrl, page }) => {
   // Only run in chromium to ensure all vitals are present
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();

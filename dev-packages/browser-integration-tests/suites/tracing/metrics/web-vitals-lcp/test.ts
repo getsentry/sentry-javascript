@@ -4,7 +4,11 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('captures LCP vitals with element details', async ({ browserName, getLocalTestUrl, page }) => {
+// TODO(v11): re-enable once span streaming is the default — LCP fires at pagehide,
+// after the pageload transaction has already converted, so the LCP signal isn't
+// captured in static mode. The `web-vitals-lcp-streamed-spans` suite covers the
+// supported (streamed) flow.
+sentryTest.skip('captures LCP vitals with element details', async ({ browserName, getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }

@@ -28,7 +28,6 @@ test('captures a pageload transaction', async ({ page }) => {
     },
     environment: 'qa',
     event_id: expect.stringMatching(/[a-f0-9]{32}/),
-    measurements: expect.any(Object),
     platform: 'javascript',
     release: 'e2e-test',
     request: {

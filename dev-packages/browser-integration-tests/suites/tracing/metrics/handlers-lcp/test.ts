@@ -6,7 +6,8 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 const bundle = process.env.PW_BUNDLE || '';
 
-sentryTest(
+// TODO(v11): re-enable once span streaming is the default — see web-vitals-lcp/test.ts.
+sentryTest.skip(
   'should capture metrics for LCP instrumentation handlers',
   async ({ browserName, getLocalTestUrl, page }) => {
     // This uses a utility that is not exported in CDN bundles

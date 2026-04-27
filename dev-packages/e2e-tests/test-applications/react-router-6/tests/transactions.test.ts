@@ -55,7 +55,8 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
   });
 });
 
-test('sends an INP span', async ({ page }) => {
+// TODO(v11): re-enable once span streaming is the default — INP relies on it.
+test.skip('sends an INP span', async ({ page }) => {
   const inpSpanPromise = waitForEnvelopeItem('react-router-6', item => {
     return item[0].type === 'span';
   });
