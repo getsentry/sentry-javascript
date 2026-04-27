@@ -32,7 +32,7 @@ describe('instrumentEnv', () => {
     expect(instrumented.UNKNOWN).toBe(unknownBinding);
   });
 
-  it('returns env as-is when enableRpcTracePropagation is disabled', () => {
+  it('does not instrument DurableObjectNamespace when enableRpcTracePropagation is disabled', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -42,8 +42,7 @@ describe('instrumentEnv', () => {
     const env = { COUNTER: doNamespace };
     const instrumented = instrumentEnv(env);
 
-    // When trace propagation is disabled, env is returned as-is
-    expect(instrumented).toBe(env);
+    // DO bindings pass through untouched when RPC propagation is disabled
     expect(instrumented.COUNTER).toBe(doNamespace);
     expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
   });
@@ -172,5 +171,46 @@ describe('instrumentEnv', () => {
 
     expect(instrumented.NULL_VAL).toBeNull();
     expect(instrumented.UNDEF_VAL).toBeUndefined();
+  });
+
+  it('wraps Queue bindings in a proxy even without enableRpcTracePropagation', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const sendBatch = vi.fn().mockResolvedValue(undefined);
+    const queue = { send, sendBatch };
+    const env = { MY_QUEUE: queue };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_QUEUE as typeof queue;
+    // Wrapped binding is a Proxy, not the original reference
+    expect(wrapped).not.toBe(queue);
+    // Calls are forwarded to the underlying queue
+    await wrapped.send('hello');
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0]).toBe('hello');
+  });
+
+  it('caches the wrapped Queue binding across repeated access', () => {
+    const queue = { send: vi.fn(), sendBatch: vi.fn() };
+    const env = { MY_QUEUE: queue };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_QUEUE).toBe(instrumented.MY_QUEUE);
+  });
+
+  it('wraps Queue bindings independently from DO bindings', () => {
+    const queue = { send: vi.fn(), sendBatch: vi.fn() };
+    const doNamespace = {
+      idFromName: vi.fn(),
+      idFromString: vi.fn(),
+      get: vi.fn(),
+      newUniqueId: vi.fn(),
+    };
+    const env = { MY_QUEUE: queue, COUNTER: doNamespace };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+    // Access both — DO instrumentation only fires on property access
+    expect(instrumented.MY_QUEUE).not.toBe(queue);
+    instrumented.COUNTER;
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
   });
 });

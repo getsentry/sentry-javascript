@@ -42,6 +42,8 @@ function wrapQueueHandler(
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',
+          'messaging.operation.type': 'process',
+          'messaging.operation.name': 'process',
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
