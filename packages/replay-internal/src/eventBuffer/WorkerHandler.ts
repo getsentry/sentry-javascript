@@ -92,12 +92,25 @@ export class WorkerHandler {
         resolve: resolve as (value: unknown) => void,
         reject,
       });
-      this._worker.postMessage({ id, method, arg });
+      try {
+        this._worker.postMessage({ id, method, arg });
+      } catch (error) {
+        // If postMessage throws synchronously (e.g. DataCloneError, worker
+        // already terminated), drop the pending entry so it doesn't leak.
+        this._pending.delete(id);
+        reject(error);
+      }
     });
   }
 
   private _onMessage = ({ data }: MessageEvent): void => {
     const response = data as WorkerResponse;
+    // The worker emits an init message with `id: undefined` on load, which is
+    // handled by `ensureReady()` via its own listener. Ignore anything that
+    // doesn't carry a numeric id we issued.
+    if (typeof response.id !== 'number') {
+      return;
+    }
     const pending = this._pending.get(response.id);
     if (!pending || pending.method !== response.method) {
       return;

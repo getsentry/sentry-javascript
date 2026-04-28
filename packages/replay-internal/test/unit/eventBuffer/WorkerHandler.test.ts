@@ -57,6 +57,11 @@ class MockWorker implements Pick<Worker, 'addEventListener' | 'removeEventListen
     while (this._pendingRequests.length > 0) this.flushOne();
   }
 
+  /** Dispatch a message that doesn't correspond to a queued request. */
+  public dispatchRaw(response: Partial<WorkerResponse>): void {
+    this._dispatch('message', { data: response } as MessageEvent);
+  }
+
   public get pendingCount(): number {
     return this._pendingRequests.length;
   }
@@ -120,6 +125,37 @@ describe('Unit | eventBuffer | WorkerHandler', () => {
     worker.flushOne({ success: false, response: 'boom' });
 
     await expect(promise).rejects.toThrow('Error in compression worker');
+  });
+
+  it('rejects and cleans up the pending entry when worker.postMessage throws synchronously', async () => {
+    const { worker, handler } = makeHandler();
+    const error = new Error('DataCloneError');
+    worker.postMessage = () => {
+      throw error;
+    };
+
+    await expect(handler.postMessage('addEvent', 'a')).rejects.toBe(error);
+
+    // A subsequent successful call should still work — the previous failure
+    // didn't leave a stale entry behind.
+    worker.postMessage = MockWorker.prototype.postMessage.bind(worker);
+    const promise = handler.postMessage<string>('addEvent', 'b');
+    worker.flushOne();
+    await expect(promise).resolves.toBe('result-1');
+  });
+
+  it('ignores messages without a numeric id (e.g. the worker init message)', async () => {
+    const { worker, handler } = makeHandler();
+
+    const promise = handler.postMessage<string>('addEvent', 'a');
+
+    // Simulate the init message the worker emits on load. Should be ignored
+    // and not crash.
+    worker.dispatchRaw({ id: undefined, method: 'init', success: true });
+
+    // The legitimate response still resolves.
+    worker.flushOne();
+    await expect(promise).resolves.toBe('result-0');
   });
 
   it('destroy() rejects pending requests and detaches the listener', async () => {
