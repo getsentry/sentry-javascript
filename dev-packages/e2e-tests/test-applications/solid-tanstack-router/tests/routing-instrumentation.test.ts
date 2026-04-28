@@ -91,23 +91,16 @@ test('sends pageload transaction with web vitals measurements', async ({ page })
     transaction_info: {
       source: 'route',
     },
-    measurements: expect.objectContaining({
-      ttfb: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      lcp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      fp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      fcp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-    }),
+    contexts: {
+      trace: {
+        data: expect.objectContaining({
+          'browser.web_vital.ttfb.value': expect.any(Number),
+          'browser.web_vital.fp.value': expect.any(Number),
+          'browser.web_vital.fcp.value': expect.any(Number),
+          // LCP isn't asserted: it fires at pagehide, after the pageload transaction
+          // converts in static mode. Covered by web-vitals-lcp-streamed-spans.
+        }),
+      },
+    },
   });
 });

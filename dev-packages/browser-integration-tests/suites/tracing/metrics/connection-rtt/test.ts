@@ -26,8 +26,7 @@ sentryTest('should capture a `connection.rtt` metric. xxx', async ({ getLocalTes
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.['connection.rtt']?.value).toBe(0);
+  expect(eventData.contexts?.trace?.data?.['network.connection.rtt']).toBe(0);
 });
 
 sentryTest(
@@ -40,8 +39,7 @@ sentryTest(
 
     await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(200);
+    expect(eventData.contexts?.trace?.data?.['network.connection.rtt']).toBe(200);
   },
 );
 
@@ -55,8 +53,7 @@ sentryTest(
 
     await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(100);
+    expect(eventData.contexts?.trace?.data?.['network.connection.rtt']).toBe(100);
   },
 );
 
@@ -70,7 +67,6 @@ sentryTest(
 
     await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(50);
+    expect(eventData.contexts?.trace?.data?.['network.connection.rtt']).toBe(50);
   },
 );
