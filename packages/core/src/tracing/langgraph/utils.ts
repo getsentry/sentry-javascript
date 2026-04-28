@@ -31,14 +31,14 @@ import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
  */
 export function extractLLMFromParams(args: unknown[]): BaseChatModel | null {
   const arg = args[0];
-  return typeof arg === 'object' &&
-    !!arg &&
-    'llm' in arg &&
-    !!arg.llm &&
-    typeof arg.llm === 'object' &&
-    typeof (arg.llm as BaseChatModel).modelName === 'string'
-    ? (arg.llm as BaseChatModel)
-    : null;
+  if (typeof arg !== 'object' || !arg || !('llm' in arg) || !arg.llm || typeof arg.llm !== 'object') {
+    return null;
+  }
+  const llm = arg.llm as BaseChatModel;
+  if (typeof llm.modelName !== 'string' && typeof llm.model !== 'string') {
+    return null;
+  }
+  return llm;
 }
 
 /**

@@ -133,7 +133,7 @@ function instrumentCompiledGraphInvoke(
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const modelName = llm?.modelName;
+      const modelName = llm?.modelName ?? llm?.model;
       return startSpan(
         {
           op: 'gen_ai.invoke_agent',

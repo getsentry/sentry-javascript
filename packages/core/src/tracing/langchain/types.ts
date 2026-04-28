@@ -41,7 +41,8 @@ export interface LangChainSerialized {
  */
 export interface BaseChatModel {
   lc_namespace: string[];
-  modelName: string;
+  modelName?: string;
+  model?: string;
 }
 
 /**

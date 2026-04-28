@@ -21,6 +21,15 @@ describe('extractLLMFromParams', () => {
       lc_namespace: ['langchain'],
     });
   });
+
+  it('extracts llm object with model when modelName is absent', () => {
+    expect(
+      extractLLMFromParams([{ llm: { model: 'claude-3-5-sonnet-20241022', lc_namespace: ['langchain'] } }]),
+    ).toStrictEqual({
+      model: 'claude-3-5-sonnet-20241022',
+      lc_namespace: ['langchain'],
+    });
+  });
 });
 
 describe('extractAgentNameFromParams', () => {
