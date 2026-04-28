@@ -5,6 +5,9 @@ const config = function (userConfig: Record<string, unknown>): Configuration {
     ...userConfig,
     target: 'web',
     mode: 'none',
+    resolve: {
+      conditionNames: ['webpack', 'import', 'require', 'browser', 'default'],
+    },
     module: {
       rules: [
         {
