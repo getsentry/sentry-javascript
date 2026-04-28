@@ -100,7 +100,7 @@ jobs:
         id: install_dependencies
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v6.1
+        uses: ./.github/actions/nx-affected-list
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:

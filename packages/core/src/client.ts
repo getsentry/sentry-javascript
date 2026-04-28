@@ -1170,9 +1170,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Register a cleanup function to be called when the client is disposed.
+   * This is useful for integrations that need to clean up global state.
+   *
+   * NOTE: This is a no-op in the base `Client` class. Subclasses like `ServerRuntimeClient`
+   * override this method to actually register and execute cleanup callbacks.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public registerCleanup(callback: () => void): void {
+    // No-op in base class - subclasses override to implement cleanup registration
+  }
+
+  /**
    * Disposes of the client and releases all resources.
    *
-   * Subclasses should override this method to clean up their own resources.
+   * Subclasses should override this method to clean up their own resources, including invoking
+   * any callbacks registered via {@link Client.registerCleanup}. The base implementation is a
+   * no-op and does NOT execute registered cleanup callbacks.
+   *
    * After calling dispose(), the client should not be used anymore.
    */
   public dispose(): void {
