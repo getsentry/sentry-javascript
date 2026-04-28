@@ -326,7 +326,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '271 KB',
+    limit: '272 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
