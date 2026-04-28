@@ -1,7 +1,8 @@
 import type { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { failingMiddleware, middlewareA, middlewareB } from './middleware';
-import { middlewareRoutes, subAppWithMiddleware } from './route-groups/test-middleware';
+import { middlewareRoutes, subAppWithInlineMiddleware, subAppWithMiddleware } from './route-groups/test-middleware';
+import { routePatterns } from './route-groups/test-route-patterns';
 
 export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): void {
   app.get('/', c => {
@@ -36,4 +37,10 @@ export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): v
 
   // Sub-app middleware: registered on the sub-app, wrapped at mount time by route() patching
   app.route('/test-subapp-middleware', subAppWithMiddleware);
+
+  // Inline middleware patterns: direct method, .all(), .on() with inline/separate middleware
+  app.route('/test-inline-middleware', subAppWithInlineMiddleware);
+
+  // Route patterns: HTTP methods, .all(), .on(), sync/async, errors
+  app.route('/test-routes', routePatterns);
 }

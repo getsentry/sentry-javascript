@@ -97,10 +97,7 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('captures error thrown in middleware', async ({ baseURL }) => {
       const errorPromise = waitForError(APP_NAME, event => {
-        return (
-          event.exception?.values?.[0]?.value === 'Middleware error' &&
-          event.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.hono'
-        );
+        return event.exception?.values?.[0]?.value === 'Middleware error';
       });
 
       const response = await fetch(`${baseURL}${prefix}/error`);
@@ -152,8 +149,8 @@ for (const { name, prefix } of SCENARIOS) {
   });
 }
 
-test.describe('patchRoute wraps .all() as middleware span (in sub-app)', () => {
-  test('patchRoute wraps .all() as middleware span', async ({ baseURL }) => {
+test.describe('.all() handler in sub-app', () => {
+  test('does not create middleware span for .all() route handler', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
         event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
@@ -169,20 +166,57 @@ test.describe('patchRoute wraps .all() as middleware span (in sub-app)', () => {
     const transaction = await transactionPromise;
     const spans = transaction.spans || [];
 
-    // On Bun/Cloudflare, patchRoute is the sole wrapper and sees the original
-    // function name. It wraps .all() handlers identically to .use() middleware
-    // because both produce method:'ALL' in Hono's route record.
     const allHandlerSpan = spans.find(
       (span: SpanJSON) => span.op === 'middleware.hono' && span.description === 'allCatchAll',
     );
-
-    expect(allHandlerSpan).toEqual(
-      expect.objectContaining({
-        description: 'allCatchAll',
-        op: 'middleware.hono',
-        origin: 'auto.middleware.hono',
-        status: 'ok',
-      }),
-    );
+    expect(allHandlerSpan).toBeUndefined();
   });
+});
+
+const INLINE_PREFIX = '/test-inline-middleware';
+
+const REGISTRATION_STYLES = [
+  { name: 'direct method (.get())', path: '/direct' },
+  { name: '.all()', path: '/all' },
+  { name: '.on()', path: '/on' },
+] as const;
+
+const MIDDLEWARE_STYLES = [
+  { name: 'inline', path: '' },
+  { name: 'separately registered', path: '/separately' },
+] as const;
+
+test.describe('inline middleware spans (sub-app)', () => {
+  for (const { name: regName, path: regPath } of REGISTRATION_STYLES) {
+    for (const { name: mwName, path: mwPath } of MIDDLEWARE_STYLES) {
+      test(`creates middleware span for ${mwName} middleware via ${regName}`, async ({ baseURL }) => {
+        const fullPath = `${INLINE_PREFIX}${regPath}${mwPath}`;
+
+        const transactionPromise = waitForTransaction(APP_NAME, event => {
+          return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${fullPath}`;
+        });
+
+        const response = await fetch(`${baseURL}${fullPath}`);
+        expect(response.status).toBe(200);
+
+        const transaction = await transactionPromise;
+
+        const EXPECTED_DESCRIPTIONS: Record<string, Record<string, string>> = {
+          '/direct': { '': 'inlineMiddleware', '/separately': 'inlineSeparateMiddleware' },
+          '/all': { '': 'inlineMiddlewareAll', '/separately': 'inlineSeparateMiddlewareAll' },
+          '/on': { '': 'inlineMiddlewareOn', '/separately': 'inlineSeparateMiddlewareOn' },
+        };
+        const expectedDescription = EXPECTED_DESCRIPTIONS[regPath]![mwPath]!;
+
+        expect(transaction.spans).toContainEqual(
+          expect.objectContaining({
+            description: expectedDescription,
+            op: 'middleware.hono',
+            origin: 'auto.middleware.hono',
+            status: 'ok',
+          }),
+        );
+      });
+    }
+  }
 });

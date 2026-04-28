@@ -187,7 +187,7 @@ describe('patchAppUse (middleware spans)', () => {
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'subMiddleware' }));
     });
 
-    it('does not wrap route handlers (only method ALL from use())', async () => {
+    it('does not wrap sole route handlers on sub-apps', async () => {
       const app = new Hono();
       patchAppUse(app);
       patchRoute(app);
@@ -260,7 +260,7 @@ describe('patchAppUse (middleware spans)', () => {
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'adminAuth' }));
     });
 
-    it('also wraps .all() handlers on sub-apps (same method: ALL in route record)', async () => {
+    it('does not wrap .all() handlers with less than 2 params (they are route handlers, not middleware)', async () => {
       const app = new Hono();
       patchAppUse(app);
       patchRoute(app);
@@ -273,10 +273,10 @@ describe('patchAppUse (middleware spans)', () => {
       app.route('/api', subApp);
       await app.fetch(new Request('http://localhost/api/catch-all'));
 
-      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'allHandler' }));
+      expect(startInactiveSpanMock).not.toHaveBeenCalled();
     });
 
-    it('wraps mixed .use() and .all() handlers on the same sub-app', async () => {
+    it('wraps .use() middleware but not .all() handlers on the same sub-app', async () => {
       const app = new Hono();
       patchAppUse(app);
       patchRoute(app);
@@ -295,10 +295,10 @@ describe('patchAppUse (middleware spans)', () => {
 
       const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
       expect(spanNames).toContain('mw');
-      expect(spanNames).toContain('allRoute');
+      expect(spanNames).not.toContain('allRoute');
     });
 
-    it('does not wrap .get()/.post()/.put()/.delete() handlers on sub-apps', async () => {
+    it('does not wrap sole .get()/.post()/.put()/.delete() handlers on sub-apps (they are final handlers, not middleware)', async () => {
       const app = new Hono();
       patchAppUse(app);
       patchRoute(app);
@@ -310,11 +310,87 @@ describe('patchAppUse (middleware spans)', () => {
       subApp.post('/resource', async function postHandler() {
         return new Response('post');
       });
+      subApp.put('/resource', async function postHandler() {
+        return new Response('put');
+      });
+      subApp.delete('/resource', async function postHandler() {
+        return new Response('delete');
+      });
 
       app.route('/api', subApp);
       await app.fetch(new Request('http://localhost/api/resource'));
 
       expect(startInactiveSpanMock).not.toHaveBeenCalled();
+    });
+
+    it('wraps inline middleware in .get(path, mw, handler) on sub-apps', async () => {
+      const app = new Hono();
+      patchAppUse(app);
+      patchRoute(app);
+
+      const subApp = new Hono();
+      subApp.get(
+        '/resource',
+        async function inlineMw(_c: unknown, next: () => Promise<void>) {
+          await next();
+        },
+        async function getHandler() {
+          return new Response('get');
+        },
+      );
+
+      app.route('/api', subApp);
+      await app.fetch(new Request('http://localhost/api/resource'));
+
+      const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+      expect(spanNames).toContain('inlineMw');
+      expect(spanNames).not.toContain('getHandler');
+    });
+
+    it('wraps separately registered middleware for .get() on sub-apps', async () => {
+      const app = new Hono();
+      patchAppUse(app);
+      patchRoute(app);
+
+      const subApp = new Hono();
+      subApp.get('/resource', async function separateMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      subApp.get('/resource', async function getHandler() {
+        return new Response('get');
+      });
+
+      app.route('/api', subApp);
+      await app.fetch(new Request('http://localhost/api/resource'));
+
+      const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+      expect(spanNames).toContain('separateMw');
+      expect(spanNames).not.toContain('getHandler');
+    });
+
+    it('wraps inline middleware registered via .on() on sub-apps', async () => {
+      const app = new Hono();
+      patchAppUse(app);
+      patchRoute(app);
+
+      const subApp = new Hono();
+      subApp.on(
+        'GET',
+        '/resource',
+        async function onMw(_c: unknown, next: () => Promise<void>) {
+          await next();
+        },
+        async function onHandler() {
+          return new Response('on');
+        },
+      );
+
+      app.route('/api', subApp);
+      await app.fetch(new Request('http://localhost/api/resource'));
+
+      const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+      expect(spanNames).toContain('onMw');
+      expect(spanNames).not.toContain('onHandler');
     });
 
     it('wraps middleware in nested sub-apps (sub-app mounting another sub-app)', async () => {
