@@ -1,5 +1,45 @@
-packages/replay-internal                                   @getsentry/replay-sdk-web
-packages/replay-worker                            @getsentry/replay-sdk-web
-packages/replay-canvas                            @getsentry/replay-sdk-web
-packages/feedback                                 @getsentry/feedback-sdk
-dev-packages/browser-integration-tests/suites/replay  @getsentry/replay-sdk-web
+# Browser, replay, feedback, and related packages
+/packages/browser/                  @getsentry/team-javascript-sdks-browser
+/packages/browser-utils/            @getsentry/team-javascript-sdks-browser
+/packages/replay-internal/          @getsentry/team-javascript-sdks-browser
+/packages/replay-worker/            @getsentry/team-javascript-sdks-browser
+/packages/replay-canvas/            @getsentry/team-javascript-sdks-browser
+/packages/feedback/                 @getsentry/team-javascript-sdks-browser
+/dev-packages/browser-integration-tests/ @getsentry/team-javascript-sdks-browser
+
+# Node/server runtimes and related packages
+/packages/node/                     @getsentry/team-javascript-sdks-server
+/packages/node-core/                @getsentry/team-javascript-sdks-server
+/packages/node-native/              @getsentry/team-javascript-sdks-server
+/packages/profiling-node/           @getsentry/team-javascript-sdks-server
+/packages/opentelemetry/            @getsentry/team-javascript-sdks-server
+/packages/deno/                     @getsentry/team-javascript-sdks-server
+/packages/bun/                      @getsentry/team-javascript-sdks-server
+/packages/cloudflare/               @getsentry/team-javascript-sdks-server
+/packages/aws-serverless/           @getsentry/team-javascript-sdks-server
+/packages/google-cloud-serverless/  @getsentry/team-javascript-sdks-server
+/packages/vercel-edge/              @getsentry/team-javascript-sdks-server
+/dev-packages/node-integration-tessts/ @getsentry/team-javascript-sdks-server
+
+# Framework integration packages
+/packages/angular/                  @getsentry/team-javascript-sdks-framework
+/packages/astro/                    @getsentry/team-javascript-sdks-framework
+/packages/effect/                   @getsentry/team-javascript-sdks-framework
+/packages/elysia/                   @getsentry/team-javascript-sdks-framework
+/packages/ember/                    @getsentry/team-javascript-sdks-framework
+/packages/gatsby/                   @getsentry/team-javascript-sdks-framework
+/packages/hono/                     @getsentry/team-javascript-sdks-framework
+/packages/nestjs/                   @getsentry/team-javascript-sdks-framework
+/packages/nextjs/                   @getsentry/team-javascript-sdks-framework
+/packages/nitro/                    @getsentry/team-javascript-sdks-framework
+/packages/nuxt/                     @getsentry/team-javascript-sdks-framework
+/packages/react/                    @getsentry/team-javascript-sdks-framework
+/packages/react-router/             @getsentry/team-javascript-sdks-framework
+/packages/remix/                    @getsentry/team-javascript-sdks-framework
+/packages/solid/                    @getsentry/team-javascript-sdks-framework
+/packages/solidstart/               @getsentry/team-javascript-sdks-framework
+/packages/svelte/                   @getsentry/team-javascript-sdks-framework
+/packages/sveltekit/                @getsentry/team-javascript-sdks-framework
+/packages/tanstackstart/            @getsentry/team-javascript-sdks-framework
+/packages/tanstackstart-react/      @getsentry/team-javascript-sdks-framework
+/packages/vue/                      @getsentry/team-javascript-sdks-framework
