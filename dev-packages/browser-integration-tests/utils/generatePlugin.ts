@@ -147,7 +147,7 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  * so that the compiled versions aren't included
  */
 function generateSentryAlias(): Record<string, string> {
-  if (!useCompiledModule && !useBundleOrLoader) {
+  if (!useBundleOrLoader) {
     return {};
   }
 
