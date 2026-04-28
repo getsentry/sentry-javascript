@@ -166,10 +166,8 @@ test.describe('.all() handler in sub-app', () => {
     const transaction = await transactionPromise;
     const spans = transaction.spans || [];
 
-    const allHandlerSpan = spans.find(
-      (span: SpanJSON) => span.op === 'middleware.hono' && span.description === 'allCatchAll',
-    );
-    expect(allHandlerSpan).toBeUndefined();
+    // No middleware is called for this route, so there should be no spans.
+    expect(spans).toEqual([]);
   });
 });
 
