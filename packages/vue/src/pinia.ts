@@ -1,4 +1,10 @@
-import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  setNormalizationDepthOverrideHint,
+} from '@sentry/core';
 import type { Ref } from 'vue';
 
 // Inline Pinia types
@@ -112,9 +118,8 @@ export const createSentryPiniaPlugin: (
             state: piniaStateContext,
           };
 
-          addNonEnumerableProperty(
+          setNormalizationDepthOverrideHint(
             newState,
-            '__sentry_override_normalization_depth__',
             3 + // 3 layers for `state.value.transformedState
               normalizationDepth, // rest for the actual state
           );

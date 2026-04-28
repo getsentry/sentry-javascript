@@ -32,7 +32,15 @@ function checkDsn(url: string, dsn: DsnComponents | undefined): boolean {
     return false;
   }
 
-  return dsn ? urlParts.host.includes(dsn.host) && /(^|&|\?)sentry_key=/.test(urlParts.search) : false;
+  if (!dsn) {
+    return false;
+  }
+
+  return hostnameMatchesDsnHost(urlParts.hostname, dsn.host) && /(^|&|\?)sentry_key=/.test(urlParts.search);
+}
+
+function hostnameMatchesDsnHost(hostname: string, dsnHost: string): boolean {
+  return hostname === dsnHost || (dsnHost.length > 0 && hostname.endsWith(`.${dsnHost}`));
 }
 
 function removeTrailingSlash(str: string): string {
