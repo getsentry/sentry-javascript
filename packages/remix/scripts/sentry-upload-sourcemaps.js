@@ -70,7 +70,7 @@ const argv = yargs(process.argv.slice(2))
 
 if (!argv.uploadSourcemaps) {
   process.stderr.write(
-    '[Sentry] Warning: Calling this script without --upload-sourcemaps is deprecated. Use: `npx @sentry/remix --upload-sourcemaps`',
+    '[Sentry] Warning: Calling this script without --upload-sourcemaps is deprecated. Use: `npx @sentry/remix --upload-sourcemaps`\n',
   );
 }
 
