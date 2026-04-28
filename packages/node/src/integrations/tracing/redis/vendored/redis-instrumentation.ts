@@ -368,7 +368,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
 
     const multiCommanderModule = new InstrumentationNodeModuleFile(
       `${basePackageName}/dist/lib/client/multi-command.js`,
-      ['^1.0.0', '^5.0.0'],
+      ['^1.0.0', '>=5.0.0 <5.12.0'],
       (moduleExports: any) => {
         const redisClientMultiCommandPrototype = moduleExports?.default?.prototype;
         if (isWrapped(redisClientMultiCommandPrototype?.exec)) {
@@ -401,7 +401,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
 
     const clientIndexModule = new InstrumentationNodeModuleFile(
       `${basePackageName}/dist/lib/client/index.js`,
-      ['^1.0.0', '^5.0.0'],
+      ['^1.0.0', '>=5.0.0 <5.12.0'],
       (moduleExports: any) => {
         const redisClientPrototype = moduleExports?.default?.prototype;
         if (redisClientPrototype?.multi) {
@@ -445,7 +445,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
 
     return new InstrumentationNodeModuleDefinition(
       basePackageName,
-      ['^1.0.0', '^5.0.0'],
+      ['^1.0.0', '>=5.0.0 <5.12.0'],
       (moduleExports: any) => moduleExports,
       () => {},
       [commanderModuleFile, multiCommanderModule, clientIndexModule],
