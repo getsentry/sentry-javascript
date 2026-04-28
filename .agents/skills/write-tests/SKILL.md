@@ -117,9 +117,7 @@ This is the single most common place where loose assertions creep in:
 
 ```typescript
 // Bad: silently ignores any missing or extra properties in the call
-expect(startSpan).toHaveBeenCalledWith(
-  expect.objectContaining({ name: 'middleware', op: 'middleware.hono' }),
-);
+expect(startSpan).toHaveBeenCalledWith(expect.objectContaining({ name: 'middleware', op: 'middleware.hono' }));
 
 // Good: exact match on the full argument — if the shape changes, the test catches it
 expect(startSpan).toHaveBeenCalledWith({
