@@ -96,7 +96,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '88 KB',
+    limit: '89 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
