@@ -19,7 +19,9 @@
 /packages/aws-serverless/           @getsentry/team-javascript-sdks-server
 /packages/google-cloud-serverless/  @getsentry/team-javascript-sdks-server
 /packages/vercel-edge/              @getsentry/team-javascript-sdks-server
-/dev-packages/node-integration-tessts/ @getsentry/team-javascript-sdks-server
+/dev-packages/node-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/node-core-integration-tests/ @getsentry/team-javascript-sdks-server
+/dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework
