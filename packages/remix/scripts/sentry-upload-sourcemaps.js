@@ -8,6 +8,10 @@ const DEFAULT_URL_PREFIX = '~/build/';
 const DEFAULT_BUILD_PATH = 'public/build';
 
 const argv = yargs(process.argv.slice(2))
+  .option('upload-sourcemaps', {
+    type: 'boolean',
+    describe: 'Specifies the upload sourcemaps command. Recommended for forward compatibility.',
+  })
   .option('release', {
     type: 'string',
     describe:
@@ -48,7 +52,7 @@ const argv = yargs(process.argv.slice(2))
     default: true,
   })
   .usage(
-    'Usage: $0\n' +
+    'Usage: npx @sentry/remix --upload-sourcemaps\n' +
       '  [--release RELEASE]\n' +
       '  [--org ORG]\n' +
       '  [--project PROJECT]\n' +
@@ -63,6 +67,12 @@ const argv = yargs(process.argv.slice(2))
       'https://github.com/getsentry/sentry-cli',
   )
   .wrap(120).argv;
+
+if (!argv.uploadSourcemaps) {
+  process.stderr.write(
+    '[Sentry] Warning: Calling this script without --upload-sourcemaps is deprecated. Use: `npx @sentry/remix --upload-sourcemaps`',
+  );
+}
 
 const buildPath = argv.buildPath || DEFAULT_BUILD_PATH;
 const urlPrefix = argv.urlPrefix || DEFAULT_URL_PREFIX;
