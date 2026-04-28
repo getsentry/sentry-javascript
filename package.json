@@ -156,7 +156,7 @@
     "we need to resolve them to the CommonJS versions."
   ],
   "resolutions": {
-    "**/nx/minimatch": "10.2.4",
+    "**/nx/minimatch": "10.2.5",
     "**/ng-packagr/postcss-url/minimatch": "3.1.5",
     "**/@angular-devkit/build-angular/minimatch": "5.1.9",
     "gauge/strip-ansi": "6.0.1",
