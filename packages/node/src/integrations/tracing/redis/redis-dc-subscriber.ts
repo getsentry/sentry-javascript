@@ -68,9 +68,7 @@ let currentResponseHook: IORedisInstrumentationConfig['responseHook'] | undefine
  * In node-redis < 5.12.0 the channels are never published to, so subscribers are inert and
  * there is no double-instrumentation against the IITM-based patcher (gated to < 5.12.0).
  */
-export function subscribeRedisDiagnosticChannels(
-  responseHook?: IORedisInstrumentationConfig['responseHook'],
-): void {
+export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumentationConfig['responseHook']): void {
   currentResponseHook = responseHook;
   if (subscribed) return;
 
@@ -198,12 +196,7 @@ function setupConnectChannel(): void {
   });
 }
 
-function runResponseHook(
-  span: Span,
-  command: string,
-  args: Array<string | Buffer>,
-  result: unknown,
-): void {
+function runResponseHook(span: Span, command: string, args: Array<string | Buffer>, result: unknown): void {
   const hook = currentResponseHook;
   if (!hook) return;
   try {

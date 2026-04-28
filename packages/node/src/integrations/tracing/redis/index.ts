@@ -125,7 +125,7 @@ export const instrumentRedis = Object.assign(
     // `@sentry/opentelemetry/tracing-channel`, which needs the Sentry OTel context manager
     // to be registered before it can `bindStore`. `initOpenTelemetry()` runs after integration
     // `setupOnce`, so defer to the next tick.
-    Promise.resolve().then(() => subscribeRedisDiagnosticChannels(cacheResponseHook));
+    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(cacheResponseHook));
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),
