@@ -1,7 +1,8 @@
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
-import { sentryTanstackStart } from '../../src/vite/sentryTanstackStart';
+import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
+import { makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
 const mockSourceMapsConfigPlugin: Plugin = {
   name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
@@ -28,6 +29,12 @@ const mockMiddlewarePlugin: Plugin = {
   transform: vi.fn(),
 };
 
+const mockTunnelRoutePlugin: Plugin = {
+  name: 'sentry-tanstackstart-tunnel-route',
+  enforce: 'pre',
+  transform: vi.fn(),
+};
+
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
@@ -35,6 +42,10 @@ vi.mock('../../src/vite/sourceMaps', () => ({
 
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
+}));
+
+vi.mock('../../src/vite/tunnelRoute', () => ({
+  makeTunnelRoutePlugin: vi.fn(() => mockTunnelRoutePlugin),
 }));
 
 describe('sentryTanstackStart()', () => {
@@ -54,12 +65,23 @@ describe('sentryTanstackStart()', () => {
       expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin, mockEnableSourceMapsPlugin]);
     });
 
-    it('returns no plugins in development mode', () => {
+    it('returns no plugins in development mode when tunnelRoute is not configured', () => {
       process.env.NODE_ENV = 'development';
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
       expect(plugins).toEqual([]);
+    });
+
+    it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
+      process.env.NODE_ENV = 'development';
+
+      const plugins = sentryTanstackStart({
+        autoInstrumentMiddleware: false,
+        tunnelRoute: { allowedDsns: ['https://public@o0.ingest.sentry.io/0'] },
+      });
+
+      expect(plugins).toEqual([mockTunnelRoutePlugin]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
@@ -125,6 +147,39 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart({ sourcemaps: { disable: true } });
 
       expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: undefined });
+    });
+  });
+
+  describe('managed tunnel route', () => {
+    it('includes the managed tunnel route plugin in production when configured', () => {
+      const plugins = sentryTanstackStart({
+        tunnelRoute: {
+          allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
+          path: '/monitor',
+        },
+        sourcemaps: { disable: true },
+      });
+
+      expect(plugins).toEqual([
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+        mockTunnelRoutePlugin,
+        mockMiddlewarePlugin,
+      ]);
+    });
+
+    it('passes tunnelRoute options through to the tunnel route plugin', () => {
+      const options: SentryTanstackStartOptions = {
+        tunnelRoute: {
+          allowedDsns: ['https://public@o0.ingest.sentry.io/0'],
+          path: '/monitor' as const,
+        },
+        sourcemaps: { disable: true },
+      };
+
+      sentryTanstackStart(options);
+
+      expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
     });
   });
 });

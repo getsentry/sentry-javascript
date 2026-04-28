@@ -73,6 +73,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
 export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -256,6 +257,7 @@ export {
 } from './utils/misc';
 export { isNodeEnv, loadModule } from './utils/node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
+export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
@@ -452,6 +454,8 @@ export type {
   ReplayStopReason,
 } from './types-hoist/replay';
 export type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,

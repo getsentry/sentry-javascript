@@ -4,7 +4,7 @@ import { test, expect } from './lambda-fixtures';
 
 test.describe('Lambda layer', () => {
   test('tracing in CJS works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
       return transactionEvent?.transaction === 'LayerTracingCjs';
     });
 
@@ -72,7 +72,7 @@ test.describe('Lambda layer', () => {
   });
 
   test('tracing in ESM works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
       return transactionEvent?.transaction === 'LayerTracingEsm';
     });
 
@@ -140,7 +140,7 @@ test.describe('Lambda layer', () => {
   });
 
   test('capturing errors works', async ({ lambdaClient }) => {
-    const errorEventPromise = waitForError('aws-serverless-lambda-sam', errorEvent => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'test';
     });
 
@@ -168,7 +168,7 @@ test.describe('Lambda layer', () => {
   });
 
   test('capturing errors works in ESM', async ({ lambdaClient }) => {
-    const errorEventPromise = waitForError('aws-serverless-lambda-sam', errorEvent => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'test esm';
     });
 
@@ -196,7 +196,7 @@ test.describe('Lambda layer', () => {
   });
 
   test('streaming handlers work', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
       return transactionEvent?.transaction === 'LayerStreaming';
     });
 

@@ -7,7 +7,7 @@ import type { IntegrationFn } from '../types-hoist/integration';
 import { debug } from '../utils/debug-logger';
 import { isError, isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
-import { addNonEnumerableProperty } from '../utils/object';
+import { setSkipNormalizationHint } from '../utils/normalizationHints';
 import { truncate } from '../utils/string';
 
 const INTEGRATION_NAME = 'ExtraErrorData';
@@ -66,7 +66,7 @@ function _enhanceEventWithErrorData(
     if (isPlainObject(normalizedErrorData)) {
       // We mark the error data as "already normalized" here, because we don't want other normalization procedures to
       // potentially truncate the data we just already normalized, with a certain depth setting.
-      addNonEnumerableProperty(normalizedErrorData, '__sentry_skip_normalization__', true);
+      setSkipNormalizationHint(normalizedErrorData);
       contexts[exceptionName] = normalizedErrorData;
     }
 

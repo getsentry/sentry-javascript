@@ -1,3 +1,5 @@
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { Client, Event, EventType, StreamedSpanJSON } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReactRouterInstrumentation } from '../../../src/server/instrumentation/reactRouter';
 import { reactRouterServerIntegration } from '../../../src/server/integration/reactRouterServer';
@@ -97,5 +99,134 @@ describe('reactRouterServerIntegration', () => {
     expect(enableOtelDataLoaderSpanCreationSpy).not.toHaveBeenCalled();
     expect(ReactRouterInstrumentation).toHaveBeenCalledTimes(1);
     expect(registerServerBuildGlobalSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('processEvent', () => {
+    const client = {} as Client;
+    const hint = {};
+
+    it('preserves http.route when it is not "*"', () => {
+      const integration = reactRouterServerIntegration();
+      const event = {
+        type: 'transaction' as EventType,
+        transaction: 'GET /users/:id',
+        contexts: {
+          trace: {
+            data: { [ATTR_HTTP_ROUTE]: '/users/:id' },
+            origin: 'auto.http.otel.http',
+          },
+        },
+      } as unknown as Event;
+
+      integration.processEvent!(event, hint, client);
+
+      expect(event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE]).toBe('/users/:id');
+    });
+
+    it('deletes bogus "*" route when origin is instrumentation_api', () => {
+      const integration = reactRouterServerIntegration();
+      const event = {
+        type: 'transaction' as EventType,
+        transaction: 'GET *',
+        contexts: {
+          trace: {
+            data: { [ATTR_HTTP_ROUTE]: '*' },
+            origin: 'auto.http.otel.instrumentation_api',
+          },
+        },
+      } as unknown as Event;
+
+      integration.processEvent!(event, hint, client);
+
+      expect(event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE]).toBeUndefined();
+    });
+
+    it('deletes bogus "*" route when legacy origin and transaction name was renamed', () => {
+      const integration = reactRouterServerIntegration();
+      const event = {
+        type: 'transaction' as EventType,
+        transaction: 'GET /api/users',
+        contexts: {
+          trace: {
+            data: { [ATTR_HTTP_ROUTE]: '*' },
+            origin: 'auto.http.otel.http',
+          },
+        },
+      } as unknown as Event;
+
+      integration.processEvent!(event, hint, client);
+
+      expect(event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE]).toBeUndefined();
+    });
+
+    it('keeps "*" when legacy origin and transaction name still ends with " *"', () => {
+      const integration = reactRouterServerIntegration();
+      const event = {
+        type: 'transaction' as EventType,
+        transaction: 'GET *',
+        contexts: {
+          trace: {
+            data: { [ATTR_HTTP_ROUTE]: '*' },
+            origin: 'auto.http.otel.http',
+          },
+        },
+      } as unknown as Event;
+
+      integration.processEvent!(event, hint, client);
+
+      expect(event.contexts?.trace?.data?.[ATTR_HTTP_ROUTE]).toBe('*');
+    });
+  });
+
+  describe('processSegmentSpan', () => {
+    const client = {} as Client;
+
+    it('preserves http.route when it is not "*"', () => {
+      const integration = reactRouterServerIntegration();
+      const span = {
+        name: 'GET /users/:id',
+        attributes: { [ATTR_HTTP_ROUTE]: '/users/:id', 'sentry.origin': 'auto.http.otel.http' },
+      } as unknown as StreamedSpanJSON;
+
+      integration.processSegmentSpan!(span, client);
+
+      expect(span.attributes?.[ATTR_HTTP_ROUTE]).toBe('/users/:id');
+    });
+
+    it('deletes bogus "*" route when origin is instrumentation_api', () => {
+      const integration = reactRouterServerIntegration();
+      const span = {
+        name: 'GET *',
+        attributes: { [ATTR_HTTP_ROUTE]: '*', 'sentry.origin': 'auto.http.otel.instrumentation_api' },
+      } as unknown as StreamedSpanJSON;
+
+      integration.processSegmentSpan!(span, client);
+
+      expect(span.attributes?.[ATTR_HTTP_ROUTE]).toBeUndefined();
+    });
+
+    it('deletes bogus "*" route when legacy origin and span name was renamed', () => {
+      const integration = reactRouterServerIntegration();
+      const span = {
+        name: 'GET /api/users',
+        attributes: { [ATTR_HTTP_ROUTE]: '*', 'sentry.origin': 'auto.http.otel.http' },
+      } as unknown as StreamedSpanJSON;
+
+      integration.processSegmentSpan!(span, client);
+
+      expect(span.attributes?.[ATTR_HTTP_ROUTE]).toBeUndefined();
+    });
+
+    it('keeps "*" when legacy origin and span name still ends with " *"', () => {
+      const integration = reactRouterServerIntegration();
+      const span = {
+        name: 'GET *',
+        attributes: { [ATTR_HTTP_ROUTE]: '*', 'sentry.origin': 'auto.http.otel.http' },
+      } as unknown as StreamedSpanJSON;
+
+      integration.processSegmentSpan!(span, client);
+
+      expect(span.attributes?.[ATTR_HTTP_ROUTE]).toBe('*');
+    });
   });
 });

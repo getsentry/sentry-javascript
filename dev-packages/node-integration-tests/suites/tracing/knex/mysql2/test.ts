@@ -63,7 +63,7 @@ describe('knex auto instrumentation', () => {
         };
 
         await createRunner()
-          .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
+          .withDockerCompose({ workingDirectory: [__dirname] })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()
           .completed();

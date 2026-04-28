@@ -58,6 +58,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/nestjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs): SDK for NestJS
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
+- [`@sentry/nitro`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro): SDK for Nitro
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/tanstackstart-react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react): SDK for TanStack Start React
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK

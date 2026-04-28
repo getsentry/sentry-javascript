@@ -128,7 +128,9 @@ test.describe('database integration', () => {
 
   test('captures database error and marks span as failed', async ({ request }) => {
     const errorPromise = waitForError('nuxt-5', errorEvent => {
-      return !!errorEvent?.exception?.values?.[0]?.value?.includes('no such table');
+      return !!errorEvent?.exception?.values?.some(
+        value => value.mechanism?.type === 'auto.db.nuxt' && value.value?.includes('no such table'),
+      );
     });
 
     const transactionPromise = waitForTransaction('nuxt-5', transactionEvent => {
@@ -141,9 +143,11 @@ test.describe('database integration', () => {
 
     const [error, transaction] = await Promise.all([errorPromise, transactionPromise]);
 
-    expect(error).toBeDefined();
-    expect(error.exception?.values?.[0]?.value).toContain('no such table');
-    expect(error.exception?.values?.[0]?.mechanism).toEqual({
+    const dbException = error.exception?.values?.find(value => value.mechanism?.type === 'auto.db.nuxt');
+
+    expect(dbException).toBeDefined();
+    expect(dbException?.value).toContain('no such table');
+    expect(dbException?.mechanism).toEqual({
       handled: false,
       type: 'auto.db.nuxt',
     });

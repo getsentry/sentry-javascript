@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'hono-4';
+import { APP_NAME } from './constants';
 
 test('captures error thrown in route handler', async ({ baseURL }) => {
   const errorWaiter = waitForError(APP_NAME, event => {
