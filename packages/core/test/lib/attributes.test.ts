@@ -92,7 +92,7 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     describe('invalid values (non-primitives)', () => {
-      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+      it.each([[[1, 'foo', true]], [[NaN, 1, 2]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
         'returns undefined for non-primitive raw values (%s)',
         value => {
           const result = attributeValueToTypedAttributeValue(value);
@@ -100,7 +100,7 @@ describe('attributeValueToTypedAttributeValue', () => {
         },
       );
 
-      it.each([[[1, 'foo', true]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+      it.each([[[1, 'foo', true]], [[NaN, 1, 2]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
         'returns undefined for non-primitive attribute object values (%s)',
         value => {
           const result = attributeValueToTypedAttributeValue({ value });

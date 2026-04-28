@@ -205,5 +205,5 @@ function isHomogeneousPrimitiveArray(arr: unknown): arr is Array<string> | Array
   if (arr.length === 0) return true;
   const t = typeof arr[0];
   if (t !== 'string' && t !== 'number' && t !== 'boolean') return false;
-  return arr.every(v => typeof v === t);
+  return arr.every(v => typeof v === t && (t !== 'number' || !Number.isNaN(v)));
 }
