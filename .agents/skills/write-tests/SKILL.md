@@ -29,6 +29,8 @@ Follow these steps in order before writing any test code.
    - What cleanup they do in `beforeEach` (`clearAllMocks` vs `restoreAllMocks`)
    - How they import the module under test (`../../src/...` vs `@sentry/...`)
    - The `describe`/`it` nesting depth and naming style
+   - What setup functions are called together — does the function under test require companion
+     initialization? (e.g., does `patchRoute` also need `patchAppUse` to work correctly?)
 
    Match what you find. Consistency within a package matters more than idealized best practice.
 
@@ -106,31 +108,52 @@ it('sets transaction name from route path', () => {
 
 ### Precise assertions
 
-`toMatchObject`, `expect.objectContaining`, and `expect.arrayContaining` silently ignore fields you
-_should_ care about. A test that asserts `expect(tags).toMatchObject({})` can never fail — which
-means it's not a test. This has caused real bugs to ship in this codebase.
+Default to exact matching. `toMatchObject`, `expect.objectContaining`, and `expect.arrayContaining`
+silently ignore fields that matter. This has caused real bugs to ship in this codebase.
 
-Choose the right assertion based on what you know about the object:
-
-- **Know all the fields?** → `toEqual` (exact match, always preferred)
-- **Object too large to enumerate?** → assert individual fields with `.toBe()`
-- **Finding an item in an array?** → `toContainEqual` + `toHaveLength`
+**Use `toEqual` unless you have a specific reason not to.** The same applies to
+`toHaveBeenCalledWith` — spell out every argument rather than wrapping in `objectContaining`.
+This is the single most common place where loose assertions creep in:
 
 ```typescript
-// Bad: passes no matter what tags contains
-expect(tags).toMatchObject({});
+// Bad: silently ignores any missing or extra properties in the call
+expect(startSpan).toHaveBeenCalledWith(
+  expect.objectContaining({ name: 'middleware', op: 'middleware.hono' }),
+);
 
-// Good: exact match on a known, small object
-expect(mechanism).toEqual({ handled: false, type: 'auto.http.hono.context_error' });
+// Good: exact match on the full argument — if the shape changes, the test catches it
+expect(startSpan).toHaveBeenCalledWith({
+  name: 'middleware',
+  op: 'middleware.hono',
+  onlyIfParent: true,
+  parentSpan: fakeRootSpan,
+  attributes: { 'sentry.op': 'middleware.hono', 'sentry.origin': 'auto.middleware.hono' },
+});
+```
 
-// Good: individual fields when the full object is too large
+When you genuinely can't enumerate all fields (e.g., a large framework-generated object), fall
+back to individual `.toBe()` checks on the fields that matter:
+
+```typescript
 expect(event.transaction).toBe('GET /users/:id');
 expect(event.contexts?.trace?.op).toBe('http.server');
-
-// Good: array search paired with length check
-expect(spans).toHaveLength(2);
-expect(spans).toContainEqual(expect.objectContaining({ description: 'middlewareA' }));
 ```
+
+**Every `toContain` / `toContainEqual` needs a `toHaveLength` companion.** Without it, the
+assertion passes even if the array has unexpected extra items:
+
+```typescript
+// Bad: doesn't notice extra unexpected spans
+expect(spanNames).toContain('authMiddleware');
+
+// Good: locks down both content and count
+expect(spanNames).toHaveLength(1);
+expect(spanNames).toContain('authMiddleware');
+```
+
+**Use exported constants, not magic numbers.** If the code under test uses named constants like
+`SPAN_STATUS_OK`, reference those same constants in assertions. If the constant's value ever
+changes, tests using magic numbers silently pass with wrong expectations.
 
 ### Naming
 
@@ -372,6 +395,8 @@ Before you're done, verify each test against these criteria:
 - [ ] Edge cases covered: empty inputs, boundaries, error paths, null/undefined
 - [ ] Realistic test data (not `"foo"`, `"test"`, `123`)
 - [ ] No try/catch for error testing — `toThrow` / `rejects.toThrow` only
-- [ ] Assertions use `toEqual` by default; `toMatchObject`/`objectContaining` only when justified
+- [ ] Assertions use `toEqual` by default; `toHaveBeenCalledWith` spells out full arguments
+- [ ] Array lookups (`toContain`, `toContainEqual`) paired with `toHaveLength`
+- [ ] Uses exported constants (e.g., `SPAN_STATUS_OK`) instead of magic numbers
 - [ ] Passes in isolation (`vitest run <file>` or single Playwright test)
 - [ ] Matches the existing conventions of the package's test directory
