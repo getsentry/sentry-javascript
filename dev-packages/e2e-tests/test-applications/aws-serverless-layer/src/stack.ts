@@ -75,10 +75,13 @@ export class LocalLambdaStack extends Stack {
           Layers: [{ Ref: this.sentryLayer.logicalId }],
           Environment: {
             Variables: {
-              SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
+              // We only set SENTRY_DSN if not running TunnelNoDsn, because there
+              // we want to test that the extension tunnel forwards requests when SENTRY_DSN is missing.
+              TUNNEL_TEST_DSN: dsn,
+              ...(lambdaDir !== 'TunnelNoDsn' ? { SENTRY_DSN: dsn } : {}),
             },
           },
         },
