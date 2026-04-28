@@ -175,7 +175,7 @@ function estimatePrimitiveSizeInBytes(value: Primitive): number {
  *    breaking change once we add support for other non-primitive values.
  */
 function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
-  if (Array.isArray(value) && isHomogeneousPrimitiveArray(value)) {
+  if (isHomogeneousPrimitiveArray(value)) {
     return { value, type: 'array' };
   }
 
@@ -200,7 +200,10 @@ function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
   }
 }
 
-function isHomogeneousPrimitiveArray(arr: unknown[]): boolean {
+function isHomogeneousPrimitiveArray(
+  arr: unknown,
+): arr is Array<string> | Array<number> | Array<boolean> {
+  if (!Array.isArray(arr)) return false;
   if (arr.length === 0) return true;
   const t = typeof arr[0];
   if (t !== 'string' && t !== 'number' && t !== 'boolean') return false;
