@@ -2,6 +2,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
 import { debug } from '../util/logger';
 
+interface PendingRequest {
+  method: WorkerRequest['method'];
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+}
+
 /**
  * Event buffer that uses a web worker to compress events.
  * Exported only for testing.
@@ -10,10 +16,16 @@ export class WorkerHandler {
   private _worker: Worker;
   private _id: number;
   private _ensureReadyPromise?: Promise<void>;
+  private _pending: Map<number, PendingRequest>;
 
   public constructor(worker: Worker) {
     this._worker = worker;
     this._id = 0;
+    this._pending = new Map();
+    // A single long-lived listener routes responses by id. Per-request
+    // listeners would make worker dispatch O(n) per response, so a burst of N
+    // in-flight requests becomes O(n^2) main-thread work.
+    this._worker.addEventListener('message', this._onMessage);
   }
 
   /**
@@ -62,6 +74,9 @@ export class WorkerHandler {
    */
   public destroy(): void {
     DEBUG_BUILD && debug.log('Destroying compression worker');
+    this._worker.removeEventListener('message', this._onMessage);
+    this._pending.forEach(pending => pending.reject(new Error('Worker destroyed')));
+    this._pending.clear();
     this._worker.terminate();
   }
 
@@ -71,39 +86,33 @@ export class WorkerHandler {
   public postMessage<T>(method: WorkerRequest['method'], arg?: WorkerRequest['arg']): Promise<T> {
     const id = this._getAndIncrementId();
 
-    return new Promise((resolve, reject) => {
-      const listener = ({ data }: MessageEvent): void => {
-        const response = data as WorkerResponse;
-        if (response.method !== method) {
-          return;
-        }
-
-        // There can be multiple listeners for a single method, the id ensures
-        // that the response matches the caller.
-        if (response.id !== id) {
-          return;
-        }
-
-        // At this point, we'll always want to remove listener regardless of result status
-        this._worker.removeEventListener('message', listener);
-
-        if (!response.success) {
-          // TODO: Do some error handling, not sure what
-          DEBUG_BUILD && debug.error('Error in compression worker: ', response.response);
-
-          reject(new Error('Error in compression worker'));
-          return;
-        }
-
-        resolve(response.response as T);
-      };
-
-      // Note: we can't use `once` option because it's possible it needs to
-      // listen to multiple messages
-      this._worker.addEventListener('message', listener);
+    return new Promise<T>((resolve, reject) => {
+      this._pending.set(id, {
+        method,
+        resolve: resolve as (value: unknown) => void,
+        reject,
+      });
       this._worker.postMessage({ id, method, arg });
     });
   }
+
+  private _onMessage = ({ data }: MessageEvent): void => {
+    const response = data as WorkerResponse;
+    const pending = this._pending.get(response.id);
+    if (!pending || pending.method !== response.method) {
+      return;
+    }
+
+    this._pending.delete(response.id);
+
+    if (!response.success) {
+      DEBUG_BUILD && debug.error('Error in compression worker: ', response.response);
+      pending.reject(new Error('Error in compression worker'));
+      return;
+    }
+
+    pending.resolve(response.response);
+  };
 
   /** Get the current ID and increment it for the next call. */
   private _getAndIncrementId(): number {
