@@ -1,11 +1,8 @@
 import * as Sentry from '@sentry/node';
 import http from 'http';
-http.get('http://localhost:9999/external', () => {}).on('error', () => {});
 
-// Flush the span buffer before the process exits.
-// The span buffer uses an unref'd timeout, so without an explicit flush
-// the process would exit before the buffer drains.
-// Using beforeExit ensures the request has completed and the span has ended.
-process.on('beforeExit', () => {
+// Use 127.0.0.1 directly to avoid IPv6 DNS resolution delays on CI (Ubuntu).
+// localhost may resolve to ::1 first, causing the connection to hang.
+http.get('http://127.0.0.1:9999/external', () => {}).on('error', () => {
   void Sentry.flush();
 });
