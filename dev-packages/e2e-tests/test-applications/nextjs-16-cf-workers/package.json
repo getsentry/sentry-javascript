@@ -45,7 +45,7 @@
         "label": "nextjs-16-cf-workers (latest)"
       }
     ],
-     "optionalVariants": [
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nextjs-16-cf-workers (canary)"
