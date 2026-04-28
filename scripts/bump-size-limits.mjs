@@ -175,7 +175,9 @@ async function main() {
   // 1. Run size-limit. Capture JSON. execFile (no shell).
   let raw;
   try {
-    const { stdout } = await execFileAsync('yarn', ['size-limit', '--json'], {
+    // `--silent` suppresses yarn's `yarn run v…` header and `Done in …` footer,
+    // which would otherwise break JSON.parse on the captured stdout.
+    const { stdout } = await execFileAsync('yarn', ['--silent', 'size-limit', '--json'], {
       cwd: REPO_ROOT,
       maxBuffer: 16 * 1024 * 1024,
     });
