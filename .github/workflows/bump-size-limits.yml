@@ -45,14 +45,14 @@ jobs:
         run: yarn build
 
       - name: Run bumper
-        id: bump
         # Capture stdout AND exit code without failing the step on exit-2 (no-op).
+        # The script writes .size-limit.js in place; create-pull-request handles
+        # commit/branch/PR — if there's no diff, it skips opening a PR.
         run: |
           set +e
           node scripts/bump-size-limits.mjs > /tmp/bump-summary.md
           code=$?
           set -e
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then
             echo "::error::bump script failed with exit code $code"
             cat /tmp/bump-summary.md || true
@@ -60,37 +60,18 @@ jobs:
           fi
           cat /tmp/bump-summary.md
 
-      - name: Commit and push
-        if: steps.bump.outputs.exit_code == '0'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          slug=$(gh api /user --jq '.login')
-          id=$(gh api /user --jq '.id')
-          git checkout -B bot/bump-size-limits
-          git add .size-limit.js
-          git -c "user.name=$slug" \
-              -c "user.email=$id+$slug@users.noreply.github.com" \
-              commit -m "chore(size-limit): auto-bump weekly drift"
-          git push --force-with-lease origin bot/bump-size-limits
-
-      - name: Open or update PR
-        if: steps.bump.outputs.exit_code == '0'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          existing=$(gh pr list --head bot/bump-size-limits --base develop --state open --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            gh pr edit "$existing" --body-file /tmp/bump-summary.md
-            echo "Updated existing PR #$existing"
-          else
-            gh pr create \
-              --base develop \
-              --head bot/bump-size-limits \
-              --title "chore(size-limit): weekly auto-bump" \
-              --body-file /tmp/bump-summary.md \
-              --label "Dev: CI"
-          fi
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: 'chore(size-limit): auto-bump weekly drift'
+          title: 'chore(size-limit): weekly auto-bump'
+          body-path: /tmp/bump-summary.md
+          branch: bot/bump-size-limits
+          base: develop
+          labels: 'Dev: CI'
+          add-paths: '.size-limit.js'
+          delete-branch: true
 
       - name: Open or comment on failure issue
         if: failure()
