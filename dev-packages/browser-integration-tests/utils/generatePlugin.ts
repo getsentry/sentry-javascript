@@ -147,6 +147,10 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  * so that the compiled versions aren't included
  */
 function generateSentryAlias(): Record<string, string> {
+  if (!useCompiledModule && !useBundleOrLoader) {
+    return {};
+  }
+
   const rootPackageJson = JSON.parse(fs.readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf8')) as { workspaces: string[] };
   const packageNames = rootPackageJson.workspaces
     .filter(workspace => !workspace.startsWith('dev-packages/'))
@@ -189,7 +193,10 @@ class SentryScenarioGenerationPlugin {
   }
 
   public apply(compiler: Compiler): void {
-    compiler.options.resolve.alias = generateSentryAlias();
+    const sentryAlias = generateSentryAlias();
+    if (Object.keys(sentryAlias).length > 0) {
+      compiler.options.resolve.alias = sentryAlias;
+    }
     compiler.options.externals = useBundleOrLoader
       ? {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
