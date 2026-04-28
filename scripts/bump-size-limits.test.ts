@@ -8,7 +8,6 @@ const {
   BYTES_PER_KB,
   BYTES_PER_KIB,
   computeNewLimit,
-  DRIFT_THRESHOLD_BYTES,
   extractCurrentLimit,
   HEADROOM_BYTES,
   parseSizeLimitOutput,
@@ -24,7 +23,6 @@ function readFixture(): string {
 
 describe('constants', () => {
   it('exports the documented thresholds', () => {
-    expect(DRIFT_THRESHOLD_BYTES).toBe(1000);
     expect(HEADROOM_BYTES).toBe(5000);
     expect(BYTES_PER_KB).toBe(1000);
     expect(BYTES_PER_KIB).toBe(1024);
@@ -32,38 +30,24 @@ describe('constants', () => {
 });
 
 describe('computeNewLimit', () => {
-  it('returns null when limit−current is within ±1000 bytes (within tolerance)', () => {
-    expect(computeNewLimit(26_500, 27_000)).toBeNull(); // 500 below limit — fine
-    expect(computeNewLimit(27_500, 27_000)).toBeNull(); // 500 over limit — fine
-    expect(computeNewLimit(26_001, 27_000)).toBeNull(); // 999 below — fine
-  });
-
-  it('returns null at exact ±1000-byte boundary (≤, not <)', () => {
-    expect(computeNewLimit(26_000, 27_000)).toBeNull();
-    expect(computeNewLimit(28_000, 27_000)).toBeNull();
-  });
-
-  it('bumps up when current exceeds limit by more than 1000 bytes', () => {
-    // current 27_500, limit 26_000, drift = 1_500 (over). new = ceil((27500+5000)/1000)*1000 = 33_000
-    expect(computeNewLimit(27_500, 26_000)).toBe(33_000);
-  });
-
-  it('bumps down when current is more than 1000 bytes below limit', () => {
-    // current 21_000, limit 27_000 → new = 26_000
-    expect(computeNewLimit(21_000, 27_000)).toBe(26_000);
+  it('always returns currentSize + 5 KB, rounded up to the next full KB', () => {
+    // current 27_500 → +5000 = 32_500 → ceil to 33_000
+    expect(computeNewLimit(27_500)).toBe(33_000);
+    // current 21_000 → +5000 = 26_000 → already round → 26_000
+    expect(computeNewLimit(21_000)).toBe(26_000);
   });
 
   it('rounds up to next full KB', () => {
     // current 27_001 → +5000 = 32_001 → ceil to 33_000
-    expect(computeNewLimit(27_001, 25_000)).toBe(33_000);
+    expect(computeNewLimit(27_001)).toBe(33_000);
     // current 27_999 → +5000 = 32_999 → ceil to 33_000
-    expect(computeNewLimit(27_999, 25_000)).toBe(33_000);
+    expect(computeNewLimit(27_999)).toBe(33_000);
     // current 28_000 → +5000 = 33_000 → already round → 33_000
-    expect(computeNewLimit(28_000, 25_000)).toBe(33_000);
+    expect(computeNewLimit(28_000)).toBe(33_000);
   });
 
   it('handles zero-size measurements safely', () => {
-    expect(computeNewLimit(0, 27_000)).toBe(5_000);
+    expect(computeNewLimit(0)).toBe(5_000);
   });
 });
 
@@ -135,7 +119,7 @@ describe('renderSummary', () => {
   it('renders an empty header when there are no changes', () => {
     const out = renderSummary([]);
     expect(out).toContain('## Size limit auto-bump');
-    expect(out).toContain('No drift greater than 1 KB. No changes needed.');
+    expect(out).toContain('All size limits already provide ≥5 KB headroom. No changes needed.');
   });
 
   it('renders a markdown table for one change', () => {

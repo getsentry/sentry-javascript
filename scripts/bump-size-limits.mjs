@@ -2,8 +2,8 @@
  * Auto-bumper for .size-limit.js.
  *
  * - Reads `yarn size-limit --json` output
- * - For each entry where |currentSize − limit| > 1000 bytes, computes a new limit of
- *   roundUpToKB(currentSize + 5000)
+ * - For each entry, computes a new limit of roundUpToKB(currentSize + 5000)
+ *   and applies it whenever the displayed value would change
  * - Rewrites .size-limit.js as plain text (NEVER require()d — the file contains
  *   user-defined webpack/esbuild config functions that we don't want executing)
  *
@@ -21,24 +21,20 @@ const execFileAsync = promisify(execFile);
 const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), '..', '..');
 const SIZE_LIMIT_FILE = path.join(REPO_ROOT, '.size-limit.js');
 
-export const DRIFT_THRESHOLD_BYTES = 1000;
 export const HEADROOM_BYTES = 5000;
 export const BYTES_PER_KB = 1000;
 export const BYTES_PER_KIB = 1024;
 
 /**
- * Compute the new size-limit in bytes for an entry, or null if the entry's
- * limit is already within tolerance of the measured size.
+ * Compute the new size-limit in bytes for an entry: currentSize + 5KB,
+ * rounded up to the next full KB. Always returns a number — the no-op
+ * check is done downstream by comparing the displayed (KB/KiB-rounded)
+ * value against the existing one.
  *
  * @param {number} currentBytes - measured size in bytes
- * @param {number} limitBytes - currently-configured limit in bytes
- * @returns {number | null} new limit in bytes, rounded up to the next KB; null if no change needed
+ * @returns {number} new limit in bytes, rounded up to the next KB
  */
-export function computeNewLimit(currentBytes, limitBytes) {
-  const drift = limitBytes - currentBytes;
-  if (Math.abs(drift) <= DRIFT_THRESHOLD_BYTES) {
-    return null;
-  }
+export function computeNewLimit(currentBytes) {
   const target = currentBytes + HEADROOM_BYTES;
   return Math.ceil(target / BYTES_PER_KB) * BYTES_PER_KB;
 }
@@ -163,7 +159,7 @@ export function rewriteSizeLimitFile(src, changes) {
 export function renderSummary(changes) {
   const header = '## Size limit auto-bump\n';
   if (changes.length === 0) {
-    return `${header}\nNo drift greater than 1 KB. No changes needed.\n`;
+    return `${header}\nAll size limits already provide ≥5 KB headroom. No changes needed.\n`;
   }
   const lines = [header, '| Entry | Old limit | New limit | Δ |', '| --- | --- | --- | --- |'];
   for (const c of changes) {
@@ -202,8 +198,7 @@ async function main() {
   const changes = [];
   const summaryRows = [];
   for (const m of measurements) {
-    const newBytes = computeNewLimit(m.size, m.sizeLimit);
-    if (newBytes === null) continue;
+    const newBytes = computeNewLimit(m.size);
 
     const cur = extractCurrentLimit(src, m.name);
     if (!cur) {
