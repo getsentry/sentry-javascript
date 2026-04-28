@@ -66,8 +66,11 @@ test('sends an INP span', async ({ page }) => {
 
   await page.waitForTimeout(500);
 
-  // Page hide to trigger INP
+  // Page hide to trigger INP. Set visibilityState=hidden so v8's `whenIdle` short-circuits
+  // instead of waiting on requestIdleCallback, which Chromium 147+ throttles after pagehide.
   await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
     window.dispatchEvent(new Event('pagehide'));
   });
 
