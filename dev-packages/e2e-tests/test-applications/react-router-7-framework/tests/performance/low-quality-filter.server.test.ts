@@ -4,7 +4,7 @@ import { APP_NAME } from '../constants';
 
 test.describe('low-quality transaction filter', () => {
   test('does not send a server transaction for /__manifest? requests', async ({ page }) => {
-    const serverTxns: Array<{ transaction?: string }> = [];
+    const serverTxns: Array<{ contexts?: { trace?: { data?: Record<string, unknown> } } }> = [];
 
     const navigationPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
@@ -26,6 +26,9 @@ test.describe('low-quality transaction filter', () => {
     // Force the server to flush any in-flight transactions before we assert
     await page.evaluate(() => fetch('/__sentry-flush'));
 
-    expect(serverTxns.some(t => t.transaction?.match(/GET \/__manifest\?/))).toBe(false);
+    const targetIsManifest = (t: (typeof serverTxns)[number]) =>
+      typeof t.contexts?.trace?.data?.['http.target'] === 'string' &&
+      (t.contexts.trace.data['http.target'] as string).includes('/__manifest');
+    expect(serverTxns.some(targetIsManifest)).toBe(false);
   });
 });

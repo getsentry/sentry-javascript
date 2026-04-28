@@ -16,12 +16,12 @@ function setupIntegrationAndGetIgnoreSpans(initial: Partial<ClientOptions> = {})
 }
 
 describe('lowQualityTransactionsFilterIntegration', () => {
-  it('appends the low-quality regexes to ignoreSpans', () => {
+  it('appends the low-quality filters to ignoreSpans', () => {
     expect(setupIntegrationAndGetIgnoreSpans()).toEqual([
       /GET \/node_modules\//,
       /GET \/favicon\.ico/,
       /GET \/@id\//,
-      /GET \/__manifest\?/,
+      { attributes: { 'http.target': /\/__manifest/ } },
     ]);
   });
 
@@ -31,19 +31,19 @@ describe('lowQualityTransactionsFilterIntegration', () => {
       /GET \/node_modules\//,
       /GET \/favicon\.ico/,
       /GET \/@id\//,
-      /GET \/__manifest\?/,
+      { attributes: { 'http.target': /\/__manifest/ } },
     ]);
   });
 
   describe('drops low-quality transactions', () => {
     it.each([
-      ['node_modules requests', 'GET /node_modules/some-package/index.js'],
-      ['favicon.ico requests', 'GET /favicon.ico'],
-      ['@id/ requests', 'GET /@id/some-id'],
-      ['manifest requests', 'GET /__manifest?p=%2Fperformance%2Fserver-action'],
-    ])('%s', (_label, name) => {
+      ['node_modules requests', { description: 'GET /node_modules/some-package/index.js' }],
+      ['favicon.ico requests', { description: 'GET /favicon.ico' }],
+      ['@id/ requests', { description: 'GET /@id/some-id' }],
+      ['manifest requests', { description: 'GET *', attributes: { 'http.target': '/__manifest?paths=foo' } }],
+    ])('%s', (_label, span) => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
-      expect(shouldIgnoreSpan({ description: name, op: 'http.server' }, ignoreSpans)).toBe(true);
+      expect(shouldIgnoreSpan({ op: 'http.server', ...span }, ignoreSpans)).toBe(true);
     });
   });
 
