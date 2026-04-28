@@ -33,11 +33,15 @@ describe('maskAttribute', () => {
   test.each([
     ['masks if `maskAllText` is true', defaultArgs, '***'],
     [
-      'does not mask if `maskAllText` is false, despite `maskTextSelector` ',
-      { ...defaultArgs, maskAllText: false, maskTextSelector: 'classy' },
+      'masks when key is in `maskAttributes` even if `maskAllText` is false',
+      { ...defaultArgs, maskAllText: false },
+      '***',
+    ],
+    [
+      'does not mask when key is not in `maskAttributes` and `maskAllText` is false',
+      { ...defaultArgs, maskAllText: false, key: 'id', maskAttributes: ['title'] },
       'foo',
     ],
-    ['does not mask if `maskAllText` is false', { ...defaultArgs, maskAllText: false }, 'foo'],
     [
       'does not mask if `unmaskTextSelector` matches',
       { ...defaultArgs, privacyOptions: { ...privacyOptions, unmaskTextSelector: '.classy' } },
@@ -51,6 +55,30 @@ describe('maskAttribute', () => {
     [
       'masks `value` attribute on `<input>` with type "button"',
       { ...defaultArgs, el: inputButton, value: 'input value' },
+      '***** *****',
+    ],
+    [
+      'does not mask submit `value` when `maskAllText` is false unless `value` is in `maskAttributes`',
+      {
+        ...defaultArgs,
+        el: inputSubmit,
+        key: 'value',
+        maskAttributes: ['title'],
+        maskAllText: false,
+        value: 'input value',
+      },
+      'input value',
+    ],
+    [
+      'masks submit `value` when `maskAllText` is false if `value` is in `maskAttributes`',
+      {
+        ...defaultArgs,
+        el: inputSubmit,
+        key: 'value',
+        maskAttributes: ['value'],
+        maskAllText: false,
+        value: 'input value',
+      },
       '***** *****',
     ],
   ])('%s', (_: string, input, output) => {

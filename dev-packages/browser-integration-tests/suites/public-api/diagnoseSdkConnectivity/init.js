@@ -4,6 +4,11 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration({ idleTimeout: 3000, childSpanTimeout: 3000 })],
+  integrations: [
+    Sentry.browserTracingIntegration({
+      idleTimeout: 3000,
+      childSpanTimeout: 3000,
+    }),
+  ],
   tracesSampleRate: 1,
 });

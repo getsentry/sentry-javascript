@@ -3,6 +3,7 @@ import { GLOBAL_OBJ } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
@@ -114,6 +115,40 @@ describe('Server init()', () => {
 
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
+  });
+
+  describe('ignoreSpans', () => {
+    function getIgnoreSpans(): NonNullable<SentryNode.NodeOptions['ignoreSpans']> {
+      const callArgs = nodeInit.mock.calls[0]?.[0] as SentryNode.NodeOptions;
+      return callArgs.ignoreSpans ?? [];
+    }
+
+    function regexSources(patterns: NonNullable<SentryNode.NodeOptions['ignoreSpans']>): string[] {
+      return patterns.filter((p): p is RegExp => p instanceof RegExp).map(p => p.source);
+    }
+
+    it('appends the Next.js name patterns and attribute filter', () => {
+      init({});
+      const patterns = getIgnoreSpans();
+      const sources = regexSources(patterns);
+
+      expect(sources).toContain('^GET (\\/.*)?\\/_next\\/static\\/');
+      expect(sources).toContain('\\/__nextjs_original-stack-frame');
+      expect(sources).toContain('^\\/404$');
+      expect(sources).toContain('^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \\/(404|_not-found)$');
+      expect(sources).toContain('^NextServer\\.getRequestHandler$');
+      expect(patterns).toContainEqual({
+        attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true },
+      });
+    });
+
+    it('preserves user-provided ignoreSpans entries', () => {
+      init({ ignoreSpans: ['user-pattern', /custom-regex/] });
+      const patterns = getIgnoreSpans();
+
+      expect(patterns).toContain('user-pattern');
+      expect(regexSources(patterns)).toContain('custom-regex');
+    });
   });
 
   describe('OpenNext/Cloudflare runtime detection', () => {

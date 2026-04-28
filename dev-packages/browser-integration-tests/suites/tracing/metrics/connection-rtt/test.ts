@@ -15,14 +15,14 @@ async function createSessionWithLatency(page: Page, latency: number) {
   await session.send('Network.emulateNetworkConditions', {
     offline: false,
     latency: latency,
-    downloadThroughput: (25 * 1024) / 8,
+    downloadThroughput: (100 * 1024) / 8,
     uploadThroughput: (5 * 1024) / 8,
   });
 
   return session;
 }
 
-sentryTest('should capture a `connection.rtt` metric.', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture a `connection.rtt` metric. xxx', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

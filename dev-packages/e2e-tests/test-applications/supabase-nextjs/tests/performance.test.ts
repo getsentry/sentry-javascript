@@ -57,37 +57,16 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
 
   const transactionEvent = await pageloadTransactionPromise;
 
-  expect(transactionEvent.spans).toContainEqual(
-    expect.objectContaining({
-      description: 'select(*) filter(order, asc) from(todos)',
-      op: 'db',
-      data: expect.objectContaining({
-        'db.operation': 'select',
-        'db.query': ['select(*)', 'filter(order, asc)'],
-        'db.system': 'postgresql',
-        'sentry.op': 'db',
-        'sentry.origin': 'auto.db.supabase',
-      }),
-      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      status: 'ok',
-      timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      origin: 'auto.db.supabase',
-    }),
-  );
-
-  expect(transactionEvent.spans).toContainEqual({
+  // Client uses default sendDefaultPii: false — URL filters and bodies are not attached to spans/breadcrumbs.
+  const redactedSelectSpan = expect.objectContaining({
+    description: '[redacted] from(todos)',
+    op: 'db',
     data: expect.objectContaining({
       'db.operation': 'select',
-      'db.query': ['select(*)', 'filter(order, asc)'],
       'db.system': 'postgresql',
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',
     }),
-    description: 'select(*) filter(order, asc) from(todos)',
-    op: 'db',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
@@ -97,20 +76,26 @@ test('Sends client-side Supabase db-operation spans and breadcrumbs to Sentry', 
     origin: 'auto.db.supabase',
   });
 
+  expect(transactionEvent.spans).toContainEqual(redactedSelectSpan);
+
+  const selectSpan = transactionEvent.spans?.find(
+    (s: { description?: string }) => s.description === '[redacted] from(todos)',
+  );
+  expect(selectSpan).toBeDefined();
+  expect(selectSpan!.data).not.toHaveProperty('db.query');
+
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.select',
-    message: 'select(*) filter(order, asc) from(todos)',
-    data: expect.any(Object),
+    message: '[redacted] from(todos)',
   });
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
     type: 'supabase',
     category: 'db.insert',
-    message: 'insert(...) select(*) from(todos)',
-    data: expect.any(Object),
+    message: 'insert(...) [redacted] from(todos)',
   });
 });
 

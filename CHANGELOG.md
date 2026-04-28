@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+- **feat(nitro): Add `@sentry/nitro` SDK**
+
+  A new `@sentry/nitro` package provides first-class Sentry support for [Nitro](https://nitro.build/) applications, with HTTP handler and error instrumentation, middleware tracing, request isolation, and build-time source map uploading via `withSentryConfig`.
+  Read more in the [Nitro SDK docs](https://docs.sentry.io/platforms/javascript/guides/nitro/) and the [Nitro SDK readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/nitro/README.md).
+
+## 10.50.0
+
+### Important Changes
+
+- **feat(effect): Support v4 beta ([#20394](https://github.com/getsentry/sentry-javascript/pull/20394))**
+
+  The `@sentry/effect` integration now supports Effect v4 beta, enabling Sentry instrumentation for the latest Effect framework version.
+  Read more in the [Effect SDK readme](https://github.com/getsentry/sentry-javascript/blob/39740da9e46de76f4b03bb7ae11849ea761dac14/packages/effect/README.md).
+
+- **feat(hono): Add `@sentry/hono/bun` for Bun runtime ([#20355](https://github.com/getsentry/sentry-javascript/pull/20355))**
+
+  A new `@sentry/hono/bun` entry point adds first-class support for running Hono applications instrumented with Sentry on the Bun runtime.
+  Read more in the [Hono SDK readme](https://github.com/getsentry/sentry-javascript/blob/39740da9e46de76f4b03bb7ae11849ea761dac14/packages/hono/README.md).
+
+- **feat(replay): Add replayStart/replayEnd client lifecycle hooks ([#20369](https://github.com/getsentry/sentry-javascript/pull/20369))**
+
+  New `replayStart` and `replayEnd` client lifecycle hooks let you react to replay session start and end events in your application.
+
+### Other Changes
+
+- feat(core): Emit `no_parent_span` client outcomes for discarded spans requiring a parent ([#20350](https://github.com/getsentry/sentry-javascript/pull/20350))
+- feat(deps): Bump protobufjs from 7.5.4 to 7.5.5 ([#20372](https://github.com/getsentry/sentry-javascript/pull/20372))
+- feat(hono): Add runtime packages as optional peer dependencies ([#20423](https://github.com/getsentry/sentry-javascript/pull/20423))
+- feat(opentelemetry): Add tracingChannel utility for context propagation ([#20358](https://github.com/getsentry/sentry-javascript/pull/20358))
+- fix(browser): Enrich graphqlClient spans for relative URLs ([#20370](https://github.com/getsentry/sentry-javascript/pull/20370))
+- fix(browser): Filter implausible LCP values ([#20338](https://github.com/getsentry/sentry-javascript/pull/20338))
+- fix(cloudflare): Use TransformStream to keep track of streams ([#20452](https://github.com/getsentry/sentry-javascript/pull/20452))
+- fix(console): Re-patch console in AWS Lambda runtimes ([#20337](https://github.com/getsentry/sentry-javascript/pull/20337))
+- fix(core): Correct `GoogleGenAIIstrumentedMethod` typo in type name
+- fix(core): Handle stateless MCP wrapper transport correlation ([#20293](https://github.com/getsentry/sentry-javascript/pull/20293))
+- fix(hono): Remove undefined from options type ([#20419](https://github.com/getsentry/sentry-javascript/pull/20419))
+- fix(node): Guard against null `httpVersion` in outgoing request span attributes ([#20430](https://github.com/getsentry/sentry-javascript/pull/20430))
+- fix(node-core): Pass rejection reason instead of Promise as originalException ([#20366](https://github.com/getsentry/sentry-javascript/pull/20366))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Ignore claude worktrees ([#20440](https://github.com/getsentry/sentry-javascript/pull/20440))
+- chore: Prevent test from creating zombie process ([#20392](https://github.com/getsentry/sentry-javascript/pull/20392))
+- chore: Update size-limit ([#20412](https://github.com/getsentry/sentry-javascript/pull/20412))
+- chore(dev-deps): Bump nx from 22.5.0 to 22.6.5 ([#20458](https://github.com/getsentry/sentry-javascript/pull/20458))
+- chore(e2e-tests): Use tarball symlinks for E2E tests instead of verdaccio ([#20386](https://github.com/getsentry/sentry-javascript/pull/20386))
+- chore(lint): Remove lint warnings ([#20413](https://github.com/getsentry/sentry-javascript/pull/20413))
+- chore(test): Remove empty variant tests ([#20443](https://github.com/getsentry/sentry-javascript/pull/20443))
+- chore(tests): Use verdaccio as node process instead of docker image ([#20336](https://github.com/getsentry/sentry-javascript/pull/20336))
+- docs(readme): Update usage instructions for binary scripts ([#20426](https://github.com/getsentry/sentry-javascript/pull/20426))
+- ref(node): Vendor undici instrumentation ([#20190](https://github.com/getsentry/sentry-javascript/pull/20190))
+- test(aws-serverless): Ensure aws-serverless E2E tests run locally ([#20441](https://github.com/getsentry/sentry-javascript/pull/20441))
+- test(aws-serverless): Split npm & layer tests ([#20442](https://github.com/getsentry/sentry-javascript/pull/20442))
+- test(browser): Fix flaky sessions route-lifecycle test + upgrade axios ([#20197](https://github.com/getsentry/sentry-javascript/pull/20197))
+- test(cloudflare): Use `.makeRequestAndWaitForEnvelope` to wait for envelopes ([#20208](https://github.com/getsentry/sentry-javascript/pull/20208))
+- test(effect): Rename effect e2e tests to a versioned folder ([#20390](https://github.com/getsentry/sentry-javascript/pull/20390))
+- test(hono): Add E2E test for Hono on Cloudflare, Node and Bun ([#20406](https://github.com/getsentry/sentry-javascript/pull/20406))
+- test(hono): Add E2E tests for middleware spans ([#20451](https://github.com/getsentry/sentry-javascript/pull/20451))
+- test(nextjs): Unskip blocked cf tests ([#20356](https://github.com/getsentry/sentry-javascript/pull/20356))
+- test(node): Refactor integration tests for `honoIntegration` ([#20397](https://github.com/getsentry/sentry-javascript/pull/20397))
+- test(node): Use docker-compose healthchecks for service readiness ([#20429](https://github.com/getsentry/sentry-javascript/pull/20429))
+- test(node-core): Fix minute-boundary race in session-aggregate tests ([#20437](https://github.com/getsentry/sentry-javascript/pull/20437))
+- test(nuxt): Fix flaky database error test ([#20447](https://github.com/getsentry/sentry-javascript/pull/20447))
+
+</details>
+
 ## 10.49.0
 
 ### Important Changes

@@ -28,6 +28,9 @@ export default defineConfig({
         singleThread: true,
       },
     },
+    sequence: {
+      shuffle: true,
+    },
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS

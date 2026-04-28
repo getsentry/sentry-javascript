@@ -610,6 +610,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
     {
       description: spanArguments.name || '',
       op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+      attributes: spanArguments.attributes,
     },
     ignoreSpans,
   );
