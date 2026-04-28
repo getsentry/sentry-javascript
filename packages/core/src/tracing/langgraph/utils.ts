@@ -334,3 +334,27 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
     span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, totalTokens);
   }
 }
+
+/** Merge `sentryHandler` into a langchain `callbacks` value (`BaseCallbackHandler[]` or `BaseCallbackManager`). */
+export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): unknown {
+  if (!existing) {
+    return [sentryHandler];
+  }
+
+  if (Array.isArray(existing)) {
+    if (existing.includes(sentryHandler)) {
+      return existing;
+    }
+    return [...existing, sentryHandler];
+  }
+
+  const manager = existing as { addHandler?: (h: unknown) => void; handlers?: unknown[] };
+  if (typeof manager.addHandler === 'function') {
+    const alreadyAdded = Array.isArray(manager.handlers) && manager.handlers.includes(sentryHandler);
+    if (!alreadyAdded) {
+      manager.addHandler(sentryHandler);
+    }
+  }
+
+  return existing;
+}

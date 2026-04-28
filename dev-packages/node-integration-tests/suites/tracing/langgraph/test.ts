@@ -534,4 +534,23 @@ describe('LangGraph integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: event => {
+            const spans = event.spans ?? [];
+            const chatSpans = spans.filter(s => s.op === 'gen_ai.chat');
+            expect(chatSpans).toHaveLength(1);
+            expect(chatSpans[0]?.data).toMatchObject({
+              [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'plain_assistant',
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

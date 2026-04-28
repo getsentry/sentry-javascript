@@ -30,6 +30,7 @@ import {
   extractAgentNameFromParams,
   extractLLMFromParams,
   extractToolsFromCompiledGraph,
+  mergeSentryCallback,
   setResponseAttributes,
   wrapToolsWithSpans,
 } from './utils';
@@ -53,6 +54,8 @@ export function instrumentStateGraphCompile(
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
   }
+
+  const sentryHandler = createLangChainCallbackHandler(options);
 
   const wrapped = new Proxy(originalCompile, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
@@ -90,6 +93,8 @@ export function instrumentStateGraphCompile(
                 compiledGraph,
                 compileOptions,
                 options,
+                undefined,
+                sentryHandler,
               ) as typeof originalInvoke;
             }
 
@@ -174,12 +179,7 @@ function instrumentCompiledGraphInvoke(
                 ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
               };
 
-              const existingCallbacks = invokeConfig.callbacks as unknown[] | undefined;
-              if (!existingCallbacks) {
-                invokeConfig.callbacks = [sentryCallbackHandler];
-              } else if (Array.isArray(existingCallbacks) && !existingCallbacks.includes(sentryCallbackHandler)) {
-                invokeConfig.callbacks = [...existingCallbacks, sentryCallbackHandler];
-              }
+              invokeConfig.callbacks = mergeSentryCallback(invokeConfig.callbacks, sentryCallbackHandler);
             }
 
             // Extract available tools from the graph instance
