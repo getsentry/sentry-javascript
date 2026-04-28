@@ -14,11 +14,11 @@
     "@types/node": "^18.19.1"
   },
   "dependencies": {
-    "@sentry/browser": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry-internal/replay": "latest || *",
-    "@sentry/wasm": "latest || *"
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry-internal/replay": "file:../../packed/sentry-internal-replay-packed.tgz",
+    "@sentry/wasm": "file:../../packed/sentry-wasm-packed.tgz"
   },
   "volta": {
     "extends": "../../package.json"

@@ -10,7 +10,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node": "latest || *"
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz"
   },
   "devDependencies": {
     "rollup": "^4.35.0",

@@ -12,7 +12,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@sentry/solidstart": "latest || *"
+    "@sentry/solidstart": "file:../../packed/sentry-solidstart-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

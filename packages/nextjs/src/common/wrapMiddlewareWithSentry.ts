@@ -13,6 +13,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
+import { isPathnameUnderSentryTunnelRoute } from '../common/utils/tunnelPathnameMatch';
 import type { EdgeRouteHandler } from '../edge/types';
 
 /**
@@ -36,7 +37,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
         // Check if the current request matches the tunnel route
         if (req instanceof Request) {
           const url = new URL(req.url);
-          const isTunnelRequest = url.pathname.startsWith(tunnelRoute);
+          const isTunnelRequest = isPathnameUnderSentryTunnelRoute(url.pathname, tunnelRoute);
 
           if (isTunnelRequest) {
             // Create a simple response that mimics NextResponse.next() so we don't need to import internals here

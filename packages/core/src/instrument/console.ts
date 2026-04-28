@@ -8,14 +8,16 @@ import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 /**
  * Add an instrumentation handler for when a console.xxx method is called.
+ * Returns a function to remove the handler.
  *
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addConsoleInstrumentationHandler(handler: (data: HandlerDataConsole) => void): void {
+export function addConsoleInstrumentationHandler(handler: (data: HandlerDataConsole) => void): () => void {
   const type = 'console';
-  addHandler(type, handler);
+  const removeHandler = addHandler(type, handler);
   maybeInstrument(type, instrumentConsole);
+  return removeHandler;
 }
 
 function instrumentConsole(): void {
@@ -32,8 +34,7 @@ function instrumentConsole(): void {
       originalConsoleMethods[level] = originalConsoleMethod;
 
       return function (...args: any[]): void {
-        const handlerData: HandlerDataConsole = { args, level };
-        triggerHandlers('console', handlerData);
+        triggerHandlers('console', { args, level } as HandlerDataConsole);
 
         const log = originalConsoleMethods[level];
         log?.apply(GLOBAL_OBJ.console, args);

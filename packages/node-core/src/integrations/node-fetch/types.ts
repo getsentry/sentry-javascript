@@ -15,7 +15,8 @@
  */
 
 /**
- * Vendored from https://github.com/open-telemetry/opentelemetry-js-contrib/blob/28e209a9da36bc4e1f8c2b0db7360170ed46cb80/plugins/node/instrumentation-undici/src/types.ts
+ * Aligned with upstream Undici request shape; see `packages/node/.../node-fetch/vendored/types.ts`
+ * (vendored from `@opentelemetry/instrumentation-undici`).
  */
 
 export interface UndiciRequest {
@@ -24,9 +25,9 @@ export interface UndiciRequest {
   path: string;
   /**
    * Serialized string of headers in the form `name: value\r\n` for v5
-   * Array of strings v6
+   * Array of strings `[key1, value1, ...]` for v6 (values may be `string | string[]`)
    */
-  headers: string | string[];
+  headers: string | (string | string[])[];
   /**
    * Helper method to add headers (from v6)
    */

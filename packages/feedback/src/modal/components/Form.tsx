@@ -131,8 +131,9 @@ export function Form({
           onSubmitSuccess(data, eventId);
         } catch (error) {
           DEBUG_BUILD && debug.error(error);
-          setError(error as string);
-          onSubmitError(error as Error);
+          const err = error instanceof Error ? error : new Error(String(error));
+          setError(err.message);
+          onSubmitError(err);
         }
       } finally {
         setIsSubmitting(false);

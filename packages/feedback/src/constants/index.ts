@@ -26,6 +26,14 @@ export const HIGHLIGHT_TOOL_TEXT = 'Highlight';
 export const HIDE_TOOL_TEXT = 'Hide';
 export const REMOVE_HIGHLIGHT_TEXT = 'Remove';
 
+export const ERROR_EMPTY_MESSAGE_TEXT = 'Unable to submit feedback with empty message';
+export const ERROR_NO_CLIENT_TEXT = 'No client setup, cannot send feedback.';
+export const ERROR_TIMEOUT_TEXT = 'Unable to determine if Feedback was correctly sent.';
+export const ERROR_FORBIDDEN_TEXT =
+  'Unable to send feedback. This could be because this domain is not in your list of allowed domains.';
+export const ERROR_GENERIC_TEXT =
+  'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.';
+
 export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';
 

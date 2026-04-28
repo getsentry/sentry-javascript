@@ -29,7 +29,18 @@ npm install @sentry/hono
 
 ## Setup (Cloudflare Workers)
 
-### 1. Enable Node.js compatibility
+### 1. Install Peer Dependency
+
+Additionally to `@sentry/hono`, install the `@sentry/cloudflare` package:
+
+```bash
+npm install --save @sentry/cloudflare
+```
+
+Make sure the installed version always stays in sync. The `@sentry/cloudflare` package is a required peer dependency when using `@sentry/hono/cloudflare`.
+You won't import `@sentry/cloudflare` directly in your code, but it needs to be installed in your project.
+
+### 2. Enable Node.js compatibility
 
 Set the `nodejs_compat` compatibility flag in your `wrangler.jsonc`/`wrangler.toml` config. This is because the SDK needs access to the `AsyncLocalStorage` API to work correctly.
 
@@ -43,7 +54,7 @@ Set the `nodejs_compat` compatibility flag in your `wrangler.jsonc`/`wrangler.to
 compatibility_flags = ["nodejs_compat"]
 ```
 
-### 2. Initialize Sentry in your Hono app
+### 3. Initialize Sentry in your Hono app
 
 Initialize the Sentry Hono middleware as early as possible in your app:
 
@@ -85,9 +96,49 @@ export default app;
 
 ## Setup (Node)
 
-### 1. Initialize Sentry in your Hono app
+### 1. Install Peer Dependency
 
-Initialize the Sentry Hono middleware as early as possible in your app:
+Additionally to `@sentry/hono`, install the `@sentry/node` package:
+
+```bash
+npm install --save @sentry/node
+```
+
+Make sure the installed version always stays in sync. The `@sentry/node` package is a required peer dependency when using `@sentry/hono/node`.
+You won't import `@sentry/node` directly in your code, but it needs to be installed in your project.
+
+### 2. Initialize Sentry in a separate file
+
+Create an `instrument.mjs` (or `instrument.ts`) file that initializes Sentry before the rest of your application runs.
+This ensures Sentry can wrap third-party libraries (e.g. database clients) as early as possible:
+
+```ts
+// instrument.mjs (or instrument.ts)
+import * as Sentry from '@sentry/hono/node';
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
+### 3. Load the instrument file with `--import`
+
+When starting your Hono Node application, use the `--import` CLI flag to load `instrument.mjs` before your app code:
+
+```bash
+node --import ./instrument.mjs app.js
+```
+
+This option can also be added to the `NODE_OPTIONS` environment variable:
+
+```bash
+NODE_OPTIONS="--import ./instrument.mjs"
+```
+
+### 4. Add the Sentry middleware to your Hono app
+
+Add the `sentry` middleware to your Hono app. Since Sentry was already initialized in the instrument file, no options are passed here:
 
 ```ts
 import { Hono } from 'hono';
@@ -96,10 +147,42 @@ import { sentry } from '@sentry/hono/node';
 
 const app = new Hono();
 
+// Add Sentry middleware right after creating the app
+app.use(sentry(app));
+
+// ... your routes and other middleware
+
+serve(app);
+```
+
+## Setup (Bun)
+
+### 1. Install Peer Dependency
+
+Additionally to `@sentry/hono`, install the `@sentry/bun` package:
+
+```bash
+npm install --save @sentry/bun
+```
+
+Make sure the installed version always stays in sync. The `@sentry/bun` package is a required peer dependency when using `@sentry/hono/bun`.
+You won't import `@sentry/bun` directly in your code, but it needs to be installed in your project.
+
+### 2. Initialize Sentry in your Hono app
+
+Initialize the Sentry Hono middleware as early as possible in your app:
+
+```ts
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { sentry } from '@sentry/hono/bun';
+
+const app = new Hono();
+
 // Initialize Sentry middleware right after creating the app
 app.use(
   sentry(app, {
-    dsn: '__DSN__', // or process.env.SENTRY_DSN
+    dsn: '__DSN__', // or process.env.SENTRY_DSN or Bun.env.SENTRY_DSN
     tracesSampleRate: 1.0,
   }),
 );
@@ -108,21 +191,3 @@ app.use(
 
 serve(app);
 ```
-
-### 2. Add `preload` script to start command
-
-To ensure that Sentry can capture spans from third-party libraries (e.g. database clients) used in your Hono app, Sentry needs to wrap these libraries as early as possible.
-
-When starting the Hono Node application, use the `@sentry/node/preload` hook with the `--import` CLI option to ensure modules are wrapped before the application code runs:
-
-```bash
-node --import @sentry/node/preload index.js
-```
-
-This option can also be added to the `NODE_OPTIONS` environment variable:
-
-```bash
-NODE_OPTIONS="--import @sentry/node/preload"
-```
-
-Read more about this preload script in the docs: https://docs.sentry.io/platforms/javascript/guides/hono/install/late-initialization/#late-initialization-with-esm

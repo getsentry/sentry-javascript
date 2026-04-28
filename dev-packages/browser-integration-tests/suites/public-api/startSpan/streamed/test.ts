@@ -179,6 +179,14 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
+          'http.request.header.user_agent': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'url.full': {
+            type: 'string',
+            value: expect.any(String),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test',

@@ -3,7 +3,7 @@ import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
 import { normalize } from './utils/normalize';
-import { addNonEnumerableProperty } from './utils/object';
+import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
@@ -53,9 +53,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       procedure_type: type,
     };
 
-    addNonEnumerableProperty(
+    setNormalizationDepthOverrideHint(
       trpcContext,
-      '__sentry_override_normalization_depth__',
       1 + // 1 for context.input + the normal normalization depth
         (clientOptions?.normalizeDepth ?? 5), // 5 is a sane depth
     );

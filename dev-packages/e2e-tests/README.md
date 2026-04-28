@@ -198,7 +198,7 @@ try {
 ```
 
 Test apps in the folder `test-applications` will be automatically picked up by CI in the job `job_e2e_tests` (in `.github/workflows/build.yml`).
-The test matrix for CI is generated in `dev-packages/e2e-tests/lib/getTestMatrix.ts`.
+The test matrix for CI is generated in `dev-packages/e2e-tests/lib/getTestMatrix.mjs`.
 
 For each test app, CI checks its dependencies (and devDependencies) to see if any of them have changed in the current PR (based on nx affected projects).
 For example, if something is changed in the browser package, only E2E test apps that depend on browser will run, while others will be skipped.

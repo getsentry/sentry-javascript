@@ -41,5 +41,27 @@ describe('Sentry server SDK', () => {
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
     });
+
+    it('configures ignoreSpans to drop prerendered http.server spans', () => {
+      init({});
+
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([
+            { op: 'http.server', attributes: { 'sentry.origin': 'auto.http.otel.http' } },
+          ]),
+        }),
+      );
+    });
+
+    it('preserves user-provided ignoreSpans entries', () => {
+      init({ ignoreSpans: [/keep-me/] });
+
+      expect(nodeInit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ignoreSpans: expect.arrayContaining([/keep-me/]),
+        }),
+      );
+    });
   });
 });

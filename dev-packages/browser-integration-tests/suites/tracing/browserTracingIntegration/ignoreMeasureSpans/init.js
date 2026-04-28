@@ -7,7 +7,6 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       ignorePerformanceApiSpans: ['measure-ignore', /mark-i/],
-      idleTimeout: 9000,
     }),
   ],
   tracesSampleRate: 1,
