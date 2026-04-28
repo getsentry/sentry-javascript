@@ -1,0 +1,40 @@
+name: 'Nx Affected List'
+description: 'Outputs a space-separated list of Nx projects affected by changes between base and head commits.'
+
+inputs:
+  base:
+    description: 'Base commit SHA'
+    required: false
+  head:
+    description: 'Head commit SHA'
+    required: false
+
+outputs:
+  affected:
+    description: 'Space-separated list of affected project names'
+    value: ${{ steps.affected.outputs.affected }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get affected Nx projects
+      id: affected
+      shell: bash
+      env:
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+      run: |
+        set -euo pipefail
+        extra_args=()
+        if [ -n "${INPUT_BASE:-}" ]; then extra_args+=(--base="$INPUT_BASE"); fi
+        if [ -n "${INPUT_HEAD:-}" ]; then extra_args+=(--head="$INPUT_HEAD"); fi
+
+        # Fail the step on nx/git errors so empty output cannot skip integration jobs silently.
+        AFFECTED=$(./node_modules/.bin/nx show projects --affected "${extra_args[@]}" | tr '\n' ' ' | xargs)
+        echo "affected=$AFFECTED" >> "$GITHUB_OUTPUT"
+
+        if [ -n "$AFFECTED" ]; then
+          echo "Affected projects: $AFFECTED"
+        else
+          echo "No affected projects found"
+        fi
