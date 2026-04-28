@@ -277,13 +277,13 @@ export function sentryWebpackPluginFactory({
 
         compiler.hooks.afterEmit.tapAsync(
           "sentry-webpack-plugin",
-          (compilation: WebpackCompilation, callback: () => void) => {
+          (compilation: WebpackCompilation, callback: (err?: Error) => void) => {
             const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
             const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
 
-            void sentryBuildPluginManager
-              .createRelease()
-              .then(async () => {
+            const run = async (): Promise<void> => {
+              try {
+                await sentryBuildPluginManager.createRelease();
                 if (sourcemapsEnabled && options.sourcemaps?.disable !== "disable-upload") {
                   const outputPath = compilation.outputOptions.path ?? path.resolve();
                   const buildArtifacts = Object.keys(compilation.assets).map((asset) =>
@@ -291,14 +291,16 @@ export function sentryWebpackPluginFactory({
                   );
                   await upload(buildArtifacts);
                 }
-              })
-              .then(() => {
-                callback();
-              })
-              .finally(() => {
+              } finally {
                 freeGlobalDependencyOnBuildArtifacts();
-                void sentryBuildPluginManager.deleteArtifacts();
-              });
+                await sentryBuildPluginManager.deleteArtifacts();
+              }
+            };
+
+            run().then(
+              () => callback(),
+              (err: Error) => callback(err)
+            );
           }
         );
 
