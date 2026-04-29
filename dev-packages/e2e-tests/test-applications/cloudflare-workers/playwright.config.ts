@@ -6,10 +6,11 @@ if (!testEnv) {
 }
 
 const APP_PORT = 38787;
+export const INSPECTOR_PORT = 9230;
 
 const config = getPlaywrightConfig(
   {
-    startCommand: `pnpm dev --port ${APP_PORT}`,
+    startCommand: `pnpm dev --port ${APP_PORT} --inspector-port ${INSPECTOR_PORT}`,
     port: APP_PORT,
   },
   {

@@ -20,3 +20,9 @@ export { createBasicSentryServer, createTestServer } from './server';
 export { startMockSentryServer } from './mock-sentry-server';
 export type { MockSentryServerOptions, MockSentryServer } from './mock-sentry-server';
 export * from './sourcemap-upload-utils';
+
+export { CDPClient } from './cdp-client';
+export type { CDPClientOptions, HeapUsage } from './cdp-client';
+
+export { MemoryProfiler } from './memory-profiler';
+export type { MemoryProfilerOptions, SnapshotStats, SnapshotComparisonResult } from './memory-profiler';
