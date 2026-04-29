@@ -2,6 +2,7 @@ import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
+import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 import type { FetchBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { HandlerDataFetch } from './types-hoist/instrument';
 import type { ResponseHookInfo } from './types-hoist/request';
@@ -110,13 +111,15 @@ export function instrumentFetchRequest(
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
+  // With span streaming, we always emit http.client spans, even without a parent span
+  const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
   const span =
-    shouldCreateSpanResult && hasParent
+    shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
       : new SentryNonRecordingSpan();
 
-  if (shouldCreateSpanResult && !hasParent) {
+  if (shouldCreateSpanResult && !shouldEmitSpan) {
     client?.recordDroppedEvent('no_parent_span', 'span');
   }
 
@@ -136,7 +139,7 @@ export function instrumentFetchRequest(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
       propagateTraceparent,
     );
     if (headers) {
