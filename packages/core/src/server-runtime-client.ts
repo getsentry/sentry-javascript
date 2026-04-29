@@ -31,6 +31,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
+  private _disposeCallbacks: (() => void)[] = [];
+
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -155,6 +157,13 @@ export class ServerRuntimeClient<
   }
 
   /**
+   * @inheritDoc
+   */
+  public override registerCleanup(callback: () => void): void {
+    this._disposeCallbacks.push(callback);
+  }
+
+  /**
    * Disposes of the client and releases all resources.
    *
    * This method clears all internal state to allow the client to be garbage collected.
@@ -167,6 +176,16 @@ export class ServerRuntimeClient<
    */
   public override dispose(): void {
     DEBUG_BUILD && debug.log('Disposing client...');
+
+    // Run all registered cleanup callbacks
+    for (const callback of this._disposeCallbacks) {
+      try {
+        callback();
+      } catch {
+        // Ignore errors in cleanup callbacks
+      }
+    }
+    this._disposeCallbacks.length = 0;
 
     for (const hookName of Object.keys(this._hooks)) {
       this._hooks[hookName]?.clear();

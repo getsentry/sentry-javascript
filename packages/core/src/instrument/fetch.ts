@@ -15,6 +15,7 @@ type FetchResource = string | { toString(): string } | { url: string };
  * Add an instrumentation handler for when a fetch request happens.
  * The handler function is called once when the request starts and once when it ends,
  * which can be identified by checking if it has an `endTimestamp`.
+ * Returns a function to remove the handler.
  *
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
@@ -22,24 +23,27 @@ type FetchResource = string | { toString(): string } | { url: string };
 export function addFetchInstrumentationHandler(
   handler: (data: HandlerDataFetch) => void,
   skipNativeFetchCheck?: boolean,
-): void {
+): () => void {
   const type = 'fetch';
-  addHandler(type, handler);
+  const removeHandler = addHandler(type, handler);
   maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
+  return removeHandler;
 }
 
 /**
  * Add an instrumentation handler for long-lived fetch requests, like consuming server-sent events (SSE) via fetch.
  * The handler will resolve the request body and emit the actual `endTimestamp`, so that the
  * span can be updated accordingly.
+ * Returns a function to remove the handler.
  *
  * Only used internally
  * @hidden
  */
-export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
+export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFetch) => void): () => void {
   const type = 'fetch-body-resolved';
-  addHandler(type, handler);
+  const removeHandler = addHandler(type, handler);
   maybeInstrument(type, () => instrumentFetch(streamHandler));
+  return removeHandler;
 }
 
 function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
