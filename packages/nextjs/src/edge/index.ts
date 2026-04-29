@@ -4,7 +4,6 @@
 import { context } from '@opentelemetry/api';
 import {
   applySdkMetadata,
-  type EventProcessor,
   getCapturedScopesOnSpan,
   getCurrentScope,
   getGlobalScope,
@@ -17,7 +16,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   spanToJSON,
-  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
@@ -31,6 +29,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { enhanceMiddlewareRootSpan } from './enhanceMiddlewareRootSpan';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -85,6 +84,12 @@ export function init(options: VercelEdgeOptions = {}): void {
     ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };
 
+  const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
+    // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
+    { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+  ];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
   // Use appropriate SDK metadata based on the runtime environment
   if (isRunningOnCloudflare) {
     applySdkMetadata(opts, 'nextjs', ['nextjs', 'cloudflare']);
@@ -137,31 +142,34 @@ export function init(options: VercelEdgeOptions = {}): void {
   // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
   // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
   // "custom", doesn't trigger.
+  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
+  // `enhanceMiddlewareRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
+  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
   client?.on('preprocessEvent', event => {
-    // The otel auto inference will clobber the transaction name because the span has an http.target
-    if (
-      event.type === 'transaction' &&
-      event.contexts?.trace?.data?.['next.span_type'] === 'Middleware.execute' &&
-      event.contexts?.trace?.data?.['next.span_name']
-    ) {
-      if (event.transaction) {
-        // Older nextjs versions pass the full url appended to the middleware name, which results in high cardinality transaction names.
-        // We want to remove the url from the name here.
-        const spanName = event.contexts.trace.data['next.span_name'];
-
-        if (typeof spanName === 'string') {
-          const match = spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
-          if (match) {
-            const normalizedName = `middleware ${match[1]}`;
-            event.transaction = normalizedName;
-          } else {
-            event.transaction = stripUrlQueryAndFragment(event.contexts.trace.data['next.span_name']);
-          }
-        }
-      }
+    if (event.type === 'transaction' && event.contexts?.trace?.data) {
+      enhanceMiddlewareRootSpan({
+        attributes: event.contexts.trace.data,
+        getName: () => event.transaction,
+        setName: name => {
+          event.transaction = name;
+        },
+      });
     }
 
     setUrlProcessingMetadata(event);
+  });
+
+  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
+  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
+  client?.on('processSegmentSpan', span => {
+    const attributes = (span.attributes ??= {});
+    enhanceMiddlewareRootSpan({
+      attributes,
+      getName: () => span.name,
+      setName: name => {
+        span.name = name;
+      },
+    });
   });
 
   client?.on('spanEnd', span => {
@@ -170,28 +178,11 @@ export function init(options: VercelEdgeOptions = {}): void {
     }
   });
 
-  getGlobalScope().addEventProcessor(
-    Object.assign(
-      (event => {
-        // Filter transactions that we explicitly want to drop.
-        if (event.type === 'transaction') {
-          if (event.contexts?.trace?.data?.[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]) {
-            return null;
-          }
-
-          return event;
-        } else {
-          return event;
-        }
-      }) satisfies EventProcessor,
-      { id: 'NextLowQualityTransactionsFilter' },
-    ),
-  );
-
   try {
     // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
     if (process.turbopack) {
       getGlobalScope().setTag('turbopack', true);
+      getGlobalScope().setAttribute('turbopack', true);
     }
   } catch {
     // Noop
