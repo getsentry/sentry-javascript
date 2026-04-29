@@ -189,12 +189,5 @@ export class AwsLambdaExtension {
  */
 export function getSentryDSNFromEnv(): DsnComponents | undefined {
   const raw = process.env.SENTRY_DSN?.trim();
-  if (!raw) {
-    return undefined;
-  }
-  const components = makeDsn(raw);
-  if (!components) {
-    return undefined;
-  }
-  return components;
+  return raw ? makeDsn(raw) : undefined;
 }
