@@ -30,8 +30,11 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   const tmpDir = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true, skipDsnRouteHandler: true });
 
   await page.route(`${TEST_HOST}/*.*`, route => {
-    const file = route.request().url().split('/').pop();
+    const pathname = new URL(route.request().url()).pathname;
+    const file = pathname.split('/').pop() || '';
 
+    // Loader + subject both fetch the CDN bundle. Chromium may not hit `page.route` twice for the same URL
+    // (memory cache); subject.js uses a cache-busted URL so we reliably observe two network loads.
     if (file === 'cdn.bundle.js') {
       cdnLoadedCount++;
     }
@@ -47,10 +50,8 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
 
   const eventData = envelopeRequestParser(req);
 
-  await waitForFunction(() => cdnLoadedCount === 2);
-
   // Still loaded the CDN bundle twice
-  expect(cdnLoadedCount).toBe(2);
+  await expect.poll(() => cdnLoadedCount, { timeout: 15_000 }).toBe(2);
 
   // But only sent to Sentry once
   expect(sentryEventCount).toBe(1);
@@ -62,10 +63,3 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   expect(eventData.exception?.values?.length).toBe(1);
   expect(eventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');
 });
-
-async function waitForFunction(cb: () => boolean, timeout = 2000, increment = 100) {
-  while (timeout > 0 && !cb()) {
-    await new Promise(resolve => setTimeout(resolve, increment));
-    await waitForFunction(cb, timeout - increment, increment);
-  }
-}
