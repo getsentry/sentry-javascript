@@ -3,7 +3,6 @@ import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
@@ -513,7 +512,7 @@ export function extractLlmResponseAttributes(
   return attrs;
 }
 
-export function getAgentAttributesFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
   const attrs: Record<string, SpanAttributeValue> = {};
   // lc_agent_name is injected by instrumentCompiledGraphInvoke (langgraph integration)
   const agentName = metadata?.lc_agent_name;
