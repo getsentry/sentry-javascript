@@ -39,16 +39,15 @@ sentryTest(
     }
 
     const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
-    await page.goto(url);
 
-    const profileChunkEnvelopePromise = getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
+    const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
       page,
       1,
-      { envelopeType: 'profile_chunk' },
+      { url, envelopeType: 'profile_chunk', timeout: 5000 },
       properFullEnvelopeRequestParser,
     );
 
-    const profileChunkEnvelopeItem = (await profileChunkEnvelopePromise)[0][1][0];
+    const profileChunkEnvelopeItem = profileChunkEnvelopes[0][1][0];
     const envelopeItemHeader = profileChunkEnvelopeItem[0];
     const envelopeItemPayload = profileChunkEnvelopeItem[1];
 
