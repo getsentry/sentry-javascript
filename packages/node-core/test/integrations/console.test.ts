@@ -25,7 +25,7 @@ describe('consoleIntegration in Lambda (patchWithDefineProperty)', () => {
   it('calls registered handler when console.log is called', () => {
     const handler = vi.fn();
     // Setup the integration so it calls maybeInstrument with the Lambda strategy
-    consoleIntegration().setup?.({ on: vi.fn() } as any);
+    consoleIntegration().setup?.({ on: vi.fn(), registerCleanup: vi.fn() } as any);
 
     addConsoleInstrumentationHandler(handler);
 

@@ -5,13 +5,10 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
 import { arch, platform } from 'node:process';
-import { globSync } from 'glob';
 import { execFileSync } from 'node:child_process';
 
-const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './src/lambda-functions-layer';
-const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './src/lambda-functions-npm';
+const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 export const SAM_PORT = 3001;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
@@ -31,8 +28,6 @@ function resolvePackagesDir(): string {
 }
 
 export class LocalLambdaStack extends Stack {
-  sentryLayer: CfnResource;
-
   constructor(scope: Construct, id: string, props: StackProps, hostIp: string) {
     console.log('[LocalLambdaStack] Creating local SAM Lambda Stack');
     super(scope, id, props);
@@ -40,92 +35,57 @@ export class LocalLambdaStack extends Stack {
     this.templateOptions.templateFormatVersion = '2010-09-09';
     this.templateOptions.transforms = ['AWS::Serverless-2016-10-31'];
 
-    console.log('[LocalLambdaStack] Add Sentry Lambda layer containing the Sentry SDK to the SAM stack');
-
-    const [layerZipFile] = globSync('sentry-node-serverless-*.zip', { cwd: LAYER_DIR });
-
-    if (!layerZipFile) {
-      throw new Error(`[LocalLambdaStack] Could not find sentry-node-serverless zip file in ${LAYER_DIR}`);
-    }
-
-    this.sentryLayer = new CfnResource(this, 'SentryNodeServerlessSDK', {
-      type: 'AWS::Serverless::LayerVersion',
-      properties: {
-        ContentUri: path.join(LAYER_DIR, layerZipFile),
-        CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x', 'nodejs22.x'],
-        CompatibleArchitectures: [samLambdaArchitecture()],
-      },
-    });
-
     const dsn = `http://public@${hostIp}:3031/1337`;
     console.log(`[LocalLambdaStack] Using Sentry DSN: ${dsn}`);
 
-    this.addLambdaFunctions({ functionsDir: LAMBDA_FUNCTIONS_WITH_LAYER_DIR, dsn, addLayer: true });
-    this.addLambdaFunctions({ functionsDir: LAMBDA_FUNCTIONS_WITH_NPM_DIR, dsn, addLayer: false });
+    this.addLambdaFunctions(dsn);
   }
 
-  private addLambdaFunctions({
-    functionsDir,
-    dsn,
-    addLayer,
-  }: {
-    functionsDir: string;
-    dsn: string;
-    addLayer: boolean;
-  }) {
-    console.log(`[LocalLambdaStack] Add all Lambda functions defined in ${functionsDir} to the SAM stack`);
+  private addLambdaFunctions(dsn: string) {
+    console.log(`[LocalLambdaStack] Add all Lambda functions defined in ${LAMBDA_FUNCTIONS_DIR} to the SAM stack`);
 
     const lambdaDirs = fs
-      .readdirSync(functionsDir)
-      .filter(dir => fs.statSync(path.join(functionsDir, dir)).isDirectory());
+      .readdirSync(LAMBDA_FUNCTIONS_DIR)
+      .filter(dir => fs.statSync(path.join(LAMBDA_FUNCTIONS_DIR, dir)).isDirectory());
 
     for (const lambdaDir of lambdaDirs) {
-      const functionName = `${addLayer ? 'Layer' : 'Npm'}${lambdaDir}`;
+      const functionName = `Npm${lambdaDir}`;
 
-      if (!addLayer) {
-        const lambdaPath = path.resolve(functionsDir, lambdaDir);
-        const packageLockPath = path.join(lambdaPath, 'package-lock.json');
-        const nodeModulesPath = path.join(lambdaPath, 'node_modules');
+      const lambdaPath = path.resolve(LAMBDA_FUNCTIONS_DIR, lambdaDir);
+      const packageLockPath = path.join(lambdaPath, 'package-lock.json');
+      const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
-        // Point the dependency at the locally built packages so tests use the current workspace bits
-        // We need to link all @sentry/* packages that are dependencies of aws-serverless
-        // because otherwise npm will try to install them from the registry, where the current version is not yet published
-        const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
-        const dependencies: Record<string, string> = {};
+      const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
+      const dependencies: Record<string, string> = {};
 
-        const packagesDir = resolvePackagesDir();
-        for (const pkgName of packagesToLink) {
-          const pkgDir = path.join(packagesDir, pkgName);
-          if (!fs.existsSync(pkgDir)) {
-            throw new Error(
-              `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
-            );
-          }
-          const relativePath = path.relative(lambdaPath, pkgDir);
-          dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
+      const packagesDir = resolvePackagesDir();
+      for (const pkgName of packagesToLink) {
+        const pkgDir = path.join(packagesDir, pkgName);
+        if (!fs.existsSync(pkgDir)) {
+          throw new Error(
+            `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
+          );
         }
-
-        console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
-
-        if (fs.existsSync(packageLockPath)) {
-          // Prevent stale lock files from pinning the published package version
-          fs.rmSync(packageLockPath);
-        }
-
-        if (fs.existsSync(nodeModulesPath)) {
-          // Ensure we reinstall from the workspace instead of reusing cached dependencies
-          fs.rmSync(nodeModulesPath, { recursive: true, force: true });
-        }
-
-        const packageJson = {
-          dependencies,
-        };
-
-        fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-        // Use --install-links to copy files instead of creating symlinks for file: dependencies.
-        // Symlinks don't work inside the Docker container because the target paths don't exist there.
-        execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
+        const relativePath = path.relative(lambdaPath, pkgDir);
+        dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
       }
+
+      console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
+
+      if (fs.existsSync(packageLockPath)) {
+        fs.rmSync(packageLockPath);
+      }
+
+      if (fs.existsSync(nodeModulesPath)) {
+        fs.rmSync(nodeModulesPath, { recursive: true, force: true });
+      }
+
+      const packageJson = {
+        dependencies,
+      };
+
+      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+      execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
@@ -135,11 +95,10 @@ export class LocalLambdaStack extends Stack {
         type: 'AWS::Serverless::Function',
         properties: {
           Architectures: [samLambdaArchitecture()],
-          CodeUri: path.join(functionsDir, lambdaDir),
+          CodeUri: path.join(LAMBDA_FUNCTIONS_DIR, lambdaDir),
           Handler: 'index.handler',
           Runtime: `nodejs${process.env.NODE_VERSION}.x`,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
-          Layers: addLayer ? [{ Ref: this.sentryLayer.logicalId }] : undefined,
           Environment: {
             Variables: {
               SENTRY_DSN: dsn,

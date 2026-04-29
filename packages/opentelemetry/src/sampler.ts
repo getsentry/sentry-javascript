@@ -75,10 +75,13 @@ export class SentrySampler implements Sampler {
     const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
 
     // If we have a http.client span that has no local parent, we never want to sample it
-    // but we want to leave downstream sampling decisions up to the server
+    // but we want to leave downstream sampling decisions up to the server.
+    // Exception: when span streaming is enabled, we always emit these spans.
     if (spanKind === SpanKind.CLIENT && maybeSpanHttpMethod && (!parentSpan || parentContext?.isRemote)) {
-      this._client.recordDroppedEvent('no_parent_span', 'span');
-      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
+      if (!this._isSpanStreaming) {
+        this._client.recordDroppedEvent('no_parent_span', 'span');
+        return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
+      }
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
@@ -96,7 +99,11 @@ export class SentrySampler implements Sampler {
             const { description: inferredChildName, op: childOp } = inferSpanData(spanName, spanAttributes, spanKind);
             if (
               shouldIgnoreSpan(
-                { description: inferredChildName, op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp },
+                {
+                  description: inferredChildName,
+                  op: spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? childOp,
+                  attributes: spanAttributes,
+                },
                 ignoreSpans,
               )
             ) {
@@ -144,7 +151,11 @@ export class SentrySampler implements Sampler {
       this._isSpanStreaming &&
       ignoreSpans?.length &&
       shouldIgnoreSpan(
-        { description: inferredSpanName, op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op },
+        {
+          description: inferredSpanName,
+          op: mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ?? op,
+          attributes: mergedAttributes,
+        },
         ignoreSpans,
       )
     ) {

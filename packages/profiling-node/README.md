@@ -238,8 +238,10 @@ Once you run `node esbuild.serverless.js` esbuild wil bundle and output the file
 the binaries will be copied. This is wasteful as you will likely only need one of these libraries to be available during
 runtime.
 
-To prune the other libraries, profiling-node ships with a small utility script that helps you prune unused binaries. The
-script can be invoked via `sentry-prune-profiler-binaries`:
+> **Deprecation notice:** This script will be removed in the next major version. If you depend on it, please comment on
+> [this issue](https://github.com/getsentry/sentry-javascript/issues/20567).
+
+To prune the other libraries, profiling-node ships with a small utility script that helps you prune unused binaries:
 
 ```bash
 npx --package=@sentry/profiling-node sentry-prune-profiler-binaries

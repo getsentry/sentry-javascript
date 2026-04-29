@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/node';
+import { createRequire } from 'node:module';
 import postgres from 'postgres';
+
+const require = createRequire(import.meta.url);
+const { waitForPostgres } = require('./wait-for-postgres.js');
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
@@ -15,6 +19,7 @@ async function run() {
     },
     async () => {
       try {
+        await waitForPostgres(sql);
         // Test sql.unsafe() - this was not being instrumented before the fix
         await sql.unsafe('CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))');
 

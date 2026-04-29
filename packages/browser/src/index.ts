@@ -72,6 +72,7 @@ export {
   instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
   instrumentLangGraph,
+  instrumentCreateReactAgent,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   logger,

@@ -39,7 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "canary",
+    "eslint-config-next": "^16",
     "typescript": "^5"
   },
   "volta": {

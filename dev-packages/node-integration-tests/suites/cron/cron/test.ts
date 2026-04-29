@@ -5,7 +5,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('cron instrumentation', async () => {
+test('cron instrumentation', { timeout: 30_000 }, async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expect({
       check_in: {

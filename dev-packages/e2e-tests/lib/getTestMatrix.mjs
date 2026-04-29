@@ -1,42 +1,21 @@
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import { sync as globSync } from 'glob';
-import * as path from 'path';
-import { dirname } from 'path';
-import { parseArgs } from 'util';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
-interface MatrixInclude {
-  /** The test application (directory) name. */
-  'test-application': string;
-  /** Optional override for the build command to run. */
-  'build-command'?: string;
-  /** Optional override for the assert command to run. */
-  'assert-command'?: string;
-  /** Optional label for the test run. If not set, defaults to value of `test-application`. */
-  label?: string;
-}
-
-interface PackageJsonSentryTestConfig {
-  /** If this is true, the test app is optional. */
-  optional?: boolean;
-  /** Variant configs that should be run in non-optional test runs. */
-  variants?: Partial<MatrixInclude>[];
-  /** Variant configs that should be run in optional test runs. */
-  optionalVariants?: Partial<MatrixInclude>[];
-  /** Skip this test app for matrix generation. */
-  skip?: boolean;
-}
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * This methods generates a matrix for the GitHub Actions workflow to run the E2E tests.
- * It checks which test applications are affected by the current changes in the PR and then generates a matrix
+ * Generates a matrix for the GitHub Actions workflow to run the E2E tests.
+ * Checks which test applications are affected by the current changes in the PR and then generates a matrix
  * including all test apps that have at least one dependency that was changed in the PR.
  * If no `--base=xxx` is provided, it will output all test applications.
  *
  * If `--optional=true` is set, it will generate a matrix of optional test applications only.
  * Otherwise, these will be skipped.
  */
-function run(): void {
+function run() {
   const { values } = parseArgs({
     args: process.argv.slice(2),
     options: {
@@ -52,9 +31,7 @@ function run(): void {
   // eslint-disable-next-line no-console
   console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
 
-  const testApplications = globSync('*/package.json', {
-    cwd: `${__dirname}/../test-applications`,
-  }).map(filePath => dirname(filePath));
+  const testApplications = discoverTestApplicationDirs();
 
   // For GitHub Action debugging (using stderr the 'matrix=...' output is not polluted)
   // eslint-disable-next-line no-console
@@ -67,7 +44,7 @@ function run(): void {
     : testApplications;
 
   const optionalMode = optional === 'true';
-  const includes: MatrixInclude[] = [];
+  const includes = [];
 
   includedTestApplications.forEach(testApp => {
     addIncludesForTestApp(testApp, includes, { optionalMode });
@@ -78,11 +55,18 @@ function run(): void {
   console.log(`matrix=${JSON.stringify({ include: includes })}`);
 }
 
-function addIncludesForTestApp(
-  testApp: string,
-  includes: MatrixInclude[],
-  { optionalMode }: { optionalMode: boolean },
-): void {
+/** Direct children of `test-applications/` that contain a `package.json` (replaces glob one-segment + package.json). */
+function discoverTestApplicationDirs() {
+  const appsRoot = path.join(__dirname, '..', 'test-applications');
+  return fs
+    .readdirSync(appsRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .filter(name => fs.existsSync(path.join(appsRoot, name, 'package.json')))
+    .sort();
+}
+
+function addIncludesForTestApp(testApp, includes, { optionalMode }) {
   const packageJson = getPackageJson(testApp);
 
   const shouldSkip = packageJson.sentryTest?.skip || false;
@@ -108,7 +92,7 @@ function addIncludesForTestApp(
   });
 }
 
-function getSentryDependencies(appName: string): string[] {
+function getSentryDependencies(appName) {
   const packageJson = getPackageJson(appName);
 
   const dependencies = {
@@ -119,11 +103,7 @@ function getSentryDependencies(appName: string): string[] {
   return Object.keys(dependencies).filter(key => key.startsWith('@sentry'));
 }
 
-function getPackageJson(appName: string): {
-  dependencies?: { [key: string]: string };
-  devDependencies?: { [key: string]: string };
-  sentryTest?: PackageJsonSentryTestConfig;
-} {
+function getPackageJson(appName) {
   const fullPath = path.resolve(__dirname, '..', 'test-applications', appName, 'package.json');
 
   if (!fs.existsSync(fullPath)) {
@@ -133,19 +113,14 @@ function getPackageJson(appName: string): {
   return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
 }
 
-run();
-
-function getAffectedTestApplications(
-  testApplications: string[],
-  { base = 'develop', head }: { base?: string; head?: string },
-): string[] {
+function getAffectedTestApplications(testApplications, { base = 'develop', head }) {
   const additionalArgs = [`--base=${base}`];
 
   if (head) {
     additionalArgs.push(`--head=${head}`);
   }
 
-  let affectedProjects: string[] = [];
+  let affectedProjects = [];
   try {
     affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
       .toString()
@@ -201,7 +176,7 @@ function getAffectedTestApplications(
   return Array.from(testAppsToRun);
 }
 
-function getChangedTestApps(base: string, head?: string): false | Set<string> {
+function getChangedTestApps(base, head) {
   const changedFiles = execSync(`git diff --name-only ${base}${head ? `..${head}` : ''} -- .`, {
     encoding: 'utf-8',
   })
@@ -214,7 +189,7 @@ function getChangedTestApps(base: string, head?: string): false | Set<string> {
   // eslint-disable-next-line no-console
   console.error(`Changed files since ${base}${head ? `..${head}` : ''}: ${JSON.stringify(changedFiles)}`);
 
-  const changedTestApps: Set<string> = new Set();
+  const changedTestApps = new Set();
   const testAppsPrefix = 'dev-packages/e2e-tests/test-applications/';
 
   for (const file of changedFiles) {
@@ -233,3 +208,5 @@ function getChangedTestApps(base: string, head?: string): false | Set<string> {
 
   return changedTestApps;
 }
+
+run();
