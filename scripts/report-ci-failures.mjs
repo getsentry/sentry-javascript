@@ -68,9 +68,10 @@ export default async function run({ github, context, core }) {
       core.info(`Could not fetch annotations for ${jobName}: ${e.message}`);
     }
 
-    // If no test names found, fall back to one issue per job
+    // If no test names found, abort - this could mean something else, e.g. cache restoration or similar fails
+    // and also the issue is not super helpful in this case
     if (testNames.length === 0) {
-      testNames = ['Unknown test'];
+      continue;
     }
 
     // Create one issue per failing test for proper deduplication
