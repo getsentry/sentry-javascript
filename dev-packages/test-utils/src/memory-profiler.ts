@@ -115,11 +115,11 @@ export interface SnapshotComparisonResult {
  * ```
  */
 export class MemoryProfiler {
-  private readonly _cdp: CDPClient;
-  private readonly _gcSettleDelayMs: number;
-  private _initialized: boolean;
-
+  readonly #cdp: CDPClient;
+  readonly #gcSettleDelayMs: number;
   readonly #debug: boolean;
+
+  #initialized: boolean;
 
   public constructor(options: MemoryProfilerOptions = {}) {
     const {
@@ -134,31 +134,31 @@ export class MemoryProfiler {
 
     this.#debug = debug;
 
-    this._cdp = new CDPClient({
+    this.#cdp = new CDPClient({
       url: `ws://${host}:${port}${path}`,
       retries,
       retryDelayMs,
       debug,
     });
-    this._gcSettleDelayMs = gcSettleDelayMs;
-    this._initialized = false;
+    this.#gcSettleDelayMs = gcSettleDelayMs;
+    this.#initialized = false;
   }
 
   /**
    * Connect to the V8 inspector and enable required CDP domains.
    */
   public async connect(): Promise<void> {
-    await this._cdp.connect();
-    await this._cdp.send('HeapProfiler.enable');
-    await this._cdp.send('Runtime.enable');
-    this._initialized = true;
+    await this.#cdp.connect();
+    await this.#cdp.send('HeapProfiler.enable');
+    await this.#cdp.send('Runtime.enable');
+    this.#initialized = true;
   }
 
   /**
    * Check if the profiler is connected to the inspector.
    */
   public isConnected(): boolean {
-    return this._cdp.isConnected() && this._initialized;
+    return this.#cdp.isConnected() && this.#initialized;
   }
 
   /**
@@ -169,17 +169,21 @@ export class MemoryProfiler {
    * but never send a response to the `takeHeapSnapshot` request. We work around that by
    * resolving once chunk events go idle for `chunkIdleMs` (default 2s).
    *
+   * @param outputPath - Optional file path to save the snapshot
+   * @param chunkIdleMs - How long to wait after the last chunk before considering the snapshot complete
+   * @param overallTimeoutMs - Maximum time to wait for any chunks before throwing (prevents infinite hang)
    * @returns The full snapshot string.
    */
-  public async takeHeapSnapshot(outputPath?: string, chunkIdleMs = 2000): Promise<string> {
-    this._ensureConnected();
-    await this._collectGarbage();
+  public async takeHeapSnapshot(outputPath?: string, chunkIdleMs = 2000, overallTimeoutMs = 5000): Promise<string> {
+    this.#ensureConnected();
+    await this.#collectGarbage();
 
     const chunks: string[] = [];
+    const startedAt = Date.now();
     let lastChunkAt = Date.now();
     let receivedAny = false;
 
-    const unsubscribe = this._cdp.on('HeapProfiler.addHeapSnapshotChunk', params => {
+    const unsubscribe = this.#cdp.on('HeapProfiler.addHeapSnapshotChunk', params => {
       const chunk = (params as { chunk?: string }).chunk;
       if (typeof chunk === 'string') {
         chunks.push(chunk);
@@ -189,14 +193,18 @@ export class MemoryProfiler {
     });
 
     try {
-      await this._cdp.sendFireAndForget('HeapProfiler.takeHeapSnapshot', {
+      await this.#cdp.sendFireAndForget('HeapProfiler.takeHeapSnapshot', {
         reportProgress: false,
         captureNumericValue: false,
       });
 
-      // Poll until chunks stop arriving for `chunkIdleMs`.
+      // Poll until chunks stop arriving for `chunkIdleMs`, or we hit the overall timeout
       const pollInterval = 200;
+
       while (!receivedAny || Date.now() - lastChunkAt < chunkIdleMs) {
+        if (!receivedAny && Date.now() - startedAt > overallTimeoutMs) {
+          throw new Error(`Heap snapshot timed out after ${overallTimeoutMs}ms: no chunks received from V8 inspector`);
+        }
         await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
     } finally {
@@ -219,8 +227,8 @@ export class MemoryProfiler {
    * as it measures actual retained objects rather than V8 internal metrics.
    */
   public compareSnapshots(baselineSnapshot: string, finalSnapshot: string): SnapshotComparisonResult {
-    const baseline = this._parseSnapshotStats(baselineSnapshot);
-    const final = this._parseSnapshotStats(finalSnapshot);
+    const baseline = this.#parseSnapshotStats(baselineSnapshot);
+    const final = this.#parseSnapshotStats(finalSnapshot);
 
     const nodeGrowth = final.nodeCount - baseline.nodeCount;
     const edgeGrowth = final.edgeCount - baseline.edgeCount;
@@ -254,12 +262,16 @@ export class MemoryProfiler {
   /**
    * Parse a heap snapshot string and extract statistics.
    */
-  private _parseSnapshotStats(snapshotJson: string): SnapshotStats {
+  #parseSnapshotStats(snapshotJson: string): SnapshotStats {
     const snapshot = JSON.parse(snapshotJson) as V8HeapSnapshot;
     const meta = snapshot.snapshot?.meta;
 
     if (!meta?.node_fields) {
       throw new Error('Invalid heap snapshot format: missing meta.node_fields');
+    }
+
+    if (!meta?.edge_fields) {
+      throw new Error('Invalid heap snapshot format: missing meta.edge_fields');
     }
 
     const nodeFieldCount = meta.node_fields.length;
@@ -282,22 +294,24 @@ export class MemoryProfiler {
    * Close the connection to the inspector.
    */
   public async close(): Promise<void> {
-    await this._cdp.close();
-    this._initialized = false;
+    await this.#cdp.close();
+    this.#initialized = false;
   }
 
-  private _ensureConnected(): void {
-    if (!this._initialized) {
+  #ensureConnected(): void {
+    if (!this.#initialized) {
       throw new Error('MemoryProfiler not connected. Call connect() first.');
     }
   }
 
-  private async _collectGarbage(): Promise<void> {
-    // Multiple GC passes to ensure full collection - some V8 inspectors need this
+  async #collectGarbage(): Promise<void> {
+    // V8 uses generational GC (young/old generations) and incremental marking.
+    // A single GC call may only collect young generation objects. Multiple passes
+    // ensure objects are promoted to old generation and fully collected, giving
+    // more stable heap measurements for leak detection.
     for (let i = 0; i < 3; i++) {
-      await this._cdp.sendFireAndForget('HeapProfiler.collectGarbage', undefined, 500);
+      await this.#cdp.sendFireAndForget('HeapProfiler.collectGarbage', undefined, 500);
     }
-    // Final settle delay
-    await new Promise(resolve => setTimeout(resolve, this._gcSettleDelayMs));
+    await new Promise(resolve => setTimeout(resolve, this.#gcSettleDelayMs));
   }
 }

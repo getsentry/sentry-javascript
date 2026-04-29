@@ -1,7 +1,7 @@
 import { WebSocket } from 'ws';
 
 /**
- * Configuration options for the CDP client.
+ * Configuration options for the Chrome Developer Protocol (CDP) client.
  */
 export interface CDPClientOptions {
   /**
@@ -78,20 +78,20 @@ type EventHandler = (params: unknown) => void;
  * ```
  */
 export class CDPClient {
-  private _ws: WebSocket | null;
-  private _messageId: number;
-  private _pendingRequests: Map<number, PendingRequest>;
-  private _eventHandlers: Map<string, Set<EventHandler>>;
-  private _connected: boolean;
-  private readonly _options: Required<CDPClientOptions>;
+  #ws: WebSocket | null;
+  #messageId: number;
+  #pendingRequests: Map<number, PendingRequest>;
+  #eventHandlers: Map<string, Set<EventHandler>>;
+  #connected: boolean;
+  readonly #options: Required<CDPClientOptions>;
 
   public constructor(options: CDPClientOptions) {
-    this._ws = null;
-    this._messageId = 0;
-    this._pendingRequests = new Map();
-    this._eventHandlers = new Map();
-    this._connected = false;
-    this._options = {
+    this.#ws = null;
+    this.#messageId = 0;
+    this.#pendingRequests = new Map();
+    this.#eventHandlers = new Map();
+    this.#connected = false;
+    this.#options = {
       retries: 5,
       retryDelayMs: 1000,
       connectionTimeoutMs: 10000,
@@ -106,14 +106,14 @@ export class CDPClient {
    * Will retry according to the configured retry settings.
    */
   public async connect(): Promise<void> {
-    const { retries, retryDelayMs } = this._options;
+    const { retries, retryDelayMs } = this.#options;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        await this._tryConnect();
+        await this.#tryConnect();
         return;
       } catch (err) {
-        this._log(`Connection attempt ${attempt}/${retries} failed:`, (err as Error).message);
+        this.#log(`Connection attempt ${attempt}/${retries} failed:`, (err as Error).message);
         if (attempt < retries) {
           await new Promise(resolve => setTimeout(resolve, retryDelayMs));
         } else {
@@ -132,27 +132,26 @@ export class CDPClient {
    * @returns The result from the CDP method
    */
   public async send<T = unknown>(method: string, params?: Record<string, unknown>, timeoutMs?: number): Promise<T> {
-    if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
+    if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket not connected');
     }
 
-    const timeout = timeoutMs ?? this._options.defaultTimeoutMs;
-    const id = ++this._messageId;
+    const timeout = timeoutMs ?? this.#options.defaultTimeoutMs;
+    const id = ++this.#messageId;
     const message = JSON.stringify({ id, method, params });
 
-    this._log('Sending:', method, params || '');
+    this.#log('Sending:', method, params || '');
 
     return new Promise((resolve, reject) => {
-      this._pendingRequests.set(id, {
+      this.#pendingRequests.set(id, {
         resolve: value => resolve(value as T),
         reject,
       });
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this._ws!.send(message);
+      this.#ws!.send(message);
 
       setTimeout(() => {
-        if (this._pendingRequests.has(id)) {
-          this._pendingRequests.delete(id);
+        if (this.#pendingRequests.has(id)) {
+          this.#pendingRequests.delete(id);
           reject(new Error(`CDP request ${method} timed out after ${timeout}ms`));
         }
       }, timeout);
@@ -168,16 +167,16 @@ export class CDPClient {
    * @param settleDelayMs - Time to wait after sending (default: 100ms)
    */
   public async sendFireAndForget(method: string, params?: Record<string, unknown>, settleDelayMs = 100): Promise<void> {
-    if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
+    if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket not connected');
     }
 
-    const id = ++this._messageId;
+    const id = ++this.#messageId;
     const message = JSON.stringify({ id, method, params });
 
-    this._log('Sending (fire-and-forget):', method, params || '');
+    this.#log('Sending (fire-and-forget):', method, params || '');
 
-    this._ws.send(message);
+    this.#ws.send(message);
 
     // Give the command time to execute
     await new Promise(resolve => setTimeout(resolve, settleDelayMs));
@@ -188,17 +187,17 @@ export class CDPClient {
    * Returns a function that, when called, removes the handler.
    */
   public on(method: string, handler: EventHandler): () => void {
-    let handlers = this._eventHandlers.get(method);
+    let handlers = this.#eventHandlers.get(method);
     if (!handlers) {
       handlers = new Set();
-      this._eventHandlers.set(method, handlers);
+      this.#eventHandlers.set(method, handlers);
     }
     handlers.add(handler);
 
     return () => {
       handlers.delete(handler);
       if (handlers.size === 0) {
-        this._eventHandlers.delete(method);
+        this.#eventHandlers.delete(method);
       }
     };
   }
@@ -207,101 +206,113 @@ export class CDPClient {
    * Check if the client is currently connected.
    */
   public isConnected(): boolean {
-    return this._connected && this._ws?.readyState === WebSocket.OPEN;
+    return this.#connected && this.#ws?.readyState === WebSocket.OPEN;
   }
 
   /**
    * Close the WebSocket connection.
    */
   public async close(): Promise<void> {
-    if (this._ws) {
-      this._ws.close();
-      this._ws = null;
-      this._connected = false;
+    if (this.#ws) {
+      this.#ws.close();
+      this.#ws = null;
+      this.#connected = false;
     }
   }
 
-  private _log(...args: unknown[]): void {
-    if (this._options.debug) {
+  #log(...args: unknown[]): void {
+    if (this.#options.debug) {
       // eslint-disable-next-line no-console
       console.log('[CDPClient]', ...args);
     }
   }
 
-  private async _tryConnect(): Promise<void> {
-    const { url, connectionTimeoutMs } = this._options;
+  async #tryConnect(): Promise<void> {
+    const { url, connectionTimeoutMs } = this.#options;
 
     return new Promise((resolve, reject) => {
+      this.#ws = new WebSocket(url);
+
       const timeoutId = setTimeout(() => {
+        // Close the WebSocket to prevent state corruption from orphaned sockets on retry
+        this.#ws?.close();
         reject(new Error(`Connection to ${url} timed out after ${connectionTimeoutMs}ms`));
       }, connectionTimeoutMs);
 
-      this._ws = new WebSocket(url);
-
-      this._ws.on('open', () => {
+      this.#ws.on('open', () => {
         clearTimeout(timeoutId);
-        this._connected = true;
-        this._log('WebSocket connected to', url);
+        this.#connected = true;
+        this.#log('WebSocket connected to', url);
         resolve();
       });
 
-      this._ws.on('error', (err: Error) => {
+      this.#ws.on('error', (err: Error) => {
         clearTimeout(timeoutId);
+        this.#ws?.close();
         reject(new Error(`Failed to connect to inspector at ${url}: ${err.message}`));
       });
 
-      this._ws.on('close', () => {
-        this._connected = false;
+      this.#ws.on('close', () => {
+        this.#connected = false;
       });
 
-      this._ws.on('message', (data: Buffer) => {
-        try {
-          const rawMessage = data.toString();
-          this._log('Received raw message:', rawMessage.slice(0, 500));
-
-          const message = JSON.parse(rawMessage) as CDPResponse;
-
-          // CDP event (not a response to our request)
-          if (message.method) {
-            this._log('CDP event:', message.method);
-            const handlers = this._eventHandlers.get(message.method);
-            if (handlers) {
-              for (const handler of handlers) {
-                try {
-                  handler(message.params);
-                } catch (err) {
-                  this._log('Event handler threw:', err);
-                }
-              }
-            }
-            return;
-          }
-
-          if (message.id !== undefined) {
-            this._log(
-              'CDP response for id:',
-              message.id,
-              'error:',
-              message.error,
-              'has result:',
-              message.result !== undefined,
-            );
-            const pending = this._pendingRequests.get(message.id);
-            if (pending) {
-              this._pendingRequests.delete(message.id);
-              if (message.error) {
-                pending.reject(new Error(`CDP error: ${message.error.message}`));
-              } else {
-                pending.resolve(message.result);
-              }
-            } else {
-              this._log('No pending request found for id:', message.id);
-            }
-          }
-        } catch (e) {
-          this._log('Failed to parse CDP message:', e);
-        }
-      });
+      this.#setupMessageHandler();
     });
+  }
+
+  #setupMessageHandler(): void {
+    this.#ws?.on('message', (data: Buffer) => {
+      try {
+        const rawMessage = data.toString();
+        this.#log('Received raw message:', rawMessage.slice(0, 500));
+
+        const message = JSON.parse(rawMessage) as CDPResponse;
+
+        if (message.method) {
+          this.#handleCdpEvent(message);
+          return;
+        }
+
+        if (message.id !== undefined) {
+          this.#handleCdpResponse(message);
+        }
+      } catch (e) {
+        this.#log('Failed to parse CDP message:', e);
+      }
+    });
+  }
+
+  #handleCdpEvent(message: CDPResponse): void {
+    this.#log('CDP event:', message.method);
+
+    const handlers = this.#eventHandlers.get(message.method!);
+
+    if (handlers) {
+      for (const handler of handlers) {
+        try {
+          handler(message.params);
+        } catch (err) {
+          this.#log('Event handler threw:', err);
+        }
+      }
+    }
+  }
+
+  #handleCdpResponse(message: CDPResponse): void {
+    this.#log('CDP response for id:', message.id, 'error:', message.error, 'has result:', message.result !== undefined);
+
+    const pending = this.#pendingRequests.get(message.id!);
+
+    if (pending) {
+      this.#pendingRequests.delete(message.id!);
+
+      if (message.error) {
+        pending.reject(new Error(`CDP error: ${message.error.message}`));
+      } else {
+        pending.resolve(message.result);
+      }
+    } else {
+      this.#log('No pending request found for id:', message.id);
+    }
   }
 }
