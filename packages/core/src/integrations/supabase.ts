@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
@@ -146,6 +147,25 @@ function isInstrumented<T>(fn: T): boolean | undefined {
   } catch {
     return false;
   }
+}
+
+/**
+ * Plain-object bodies are copied into `plainBody`; array inserts (and other non-plain shapes) stay only on `rawBody`.
+ * Returns a payload suitable for span attributes / breadcrumbs when the client has `sendDefaultPii` enabled.
+ */
+function getMutationBodyPayloadForTelemetry(rawBody: unknown, plainBody: Record<string, unknown>): unknown | undefined {
+  if (Object.keys(plainBody).length > 0) {
+    return plainBody;
+  }
+  if (Array.isArray(rawBody) && rawBody.length > 0) {
+    return rawBody;
+  }
+  return undefined;
+}
+
+/** True when the PostgREST builder carries a mutation body (for `insert(...)`, etc. in span descriptions). */
+function hasMutationBodyForDescription(rawBody: unknown, plainBody: Record<string, unknown>): boolean {
+  return getMutationBodyPayloadForTelemetry(rawBody, plainBody) !== undefined;
 }
 
 /**
@@ -361,12 +381,19 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           }
         }
 
+        const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+        const bodyPayload = getMutationBodyPayloadForTelemetry(typedThis.body, body);
+
         // Adding operation to the beginning of the description if it's not a `select` operation
         // For example, it can be an `insert` or `update` operation but the query can be `select(...)`
         // For `select` operations, we don't need repeat it in the description
-        const description = `${operation === 'select' ? '' : `${operation}${body ? '(...) ' : ''}`}${queryItems.join(
-          ' ',
-        )} from(${table})`;
+        const mutationPart =
+          operation === 'select'
+            ? ''
+            : `${operation}${hasMutationBodyForDescription(typedThis.body, body) ? '(...) ' : ''}`;
+        const queryPart = sendDefaultPii ? queryItems.join(' ') : queryItems.length > 0 ? '[redacted]' : '';
+        const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
+        const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
         const attributes: Record<string, any> = {
           'db.table': table,
@@ -379,12 +406,12 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
         };
 
-        if (queryItems.length) {
+        if (queryItems.length && sendDefaultPii) {
           attributes['db.query'] = queryItems;
         }
 
-        if (Object.keys(body).length) {
-          attributes['db.body'] = body;
+        if (bodyPayload !== undefined && sendDefaultPii) {
+          attributes['db.body'] = bodyPayload;
         }
 
         return startSpan(
@@ -413,11 +440,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     }
 
                     const supabaseContext: Record<string, any> = {};
-                    if (queryItems.length) {
+                    if (queryItems.length && sendDefaultPii) {
                       supabaseContext.query = queryItems;
                     }
-                    if (Object.keys(body).length) {
-                      supabaseContext.body = body;
+                    if (bodyPayload !== undefined && sendDefaultPii) {
+                      supabaseContext.body = bodyPayload;
                     }
 
                     captureException(err, scope => {
@@ -444,12 +471,12 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
                   const data: Record<string, unknown> = {};
 
-                  if (queryItems.length) {
+                  if (queryItems.length && sendDefaultPii) {
                     data.query = queryItems;
                   }
 
-                  if (Object.keys(body).length) {
-                    data.body = body;
+                  if (bodyPayload !== undefined && sendDefaultPii) {
+                    data.body = bodyPayload;
                   }
 
                   if (Object.keys(data).length) {

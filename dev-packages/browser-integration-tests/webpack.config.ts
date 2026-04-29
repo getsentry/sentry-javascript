@@ -3,7 +3,11 @@ import type { Configuration } from 'webpack';
 const config = function (userConfig: Record<string, unknown>): Configuration {
   return {
     ...userConfig,
+    target: 'web',
     mode: 'none',
+    resolve: {
+      conditionNames: ['webpack', 'import', 'require', 'browser', 'default'],
+    },
     module: {
       rules: [
         {

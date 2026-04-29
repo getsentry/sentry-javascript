@@ -193,4 +193,33 @@ describe('wrapMiddlewareWithSentry', () => {
     expect(origFunction).toHaveBeenCalledWith(mockRequest);
     expect(result).toBe(mockReturnValue);
   });
+
+  test('should not treat paths as tunnel when they only share a prefix with tunnelRoute', async () => {
+    (globalThis as any)._sentryRewritesTunnelPath = '/api/t';
+
+    const mockReturnValue = { status: 200 };
+    const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
+    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
+
+    const mockRequest = new Request('https://example.com/api/things', { method: 'GET' });
+
+    const result = await wrappedOriginal(mockRequest);
+
+    expect(origFunction).toHaveBeenCalledWith(mockRequest);
+    expect(result).toBe(mockReturnValue);
+  });
+
+  test('should skip processing for tunnel sub-paths under tunnelRoute', async () => {
+    (globalThis as any)._sentryRewritesTunnelPath = '/api/t';
+
+    const origFunction: EdgeRouteHandler = vi.fn(async () => ({ status: 200 }));
+    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
+
+    const mockRequest = new Request('https://example.com/api/t/envelope?o=1');
+
+    const result = await wrappedOriginal(mockRequest);
+
+    expect(origFunction).not.toHaveBeenCalled();
+    expect(result).toBeDefined();
+  });
 });

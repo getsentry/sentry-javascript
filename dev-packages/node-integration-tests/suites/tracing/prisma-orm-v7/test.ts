@@ -37,7 +37,6 @@ conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
               expect(spanDescriptions).toContain('prisma:client:operation');
               expect(spanDescriptions).toContain('prisma:client:serialize');
               expect(spanDescriptions).toContain('prisma:client:connect');
-              expect(spanDescriptions).toContain('prisma:client:db_query');
 
               // Verify the create operation has correct metadata
               const createSpan = prismaSpans.find(
@@ -48,11 +47,17 @@ conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
               );
               expect(createSpan).toBeDefined();
 
-              // Verify db_query span has system info and correct op (v7 uses db.system.name)
-              const dbQuerySpan = prismaSpans.find(span => span.description === 'prisma:client:db_query');
+              // Verify db_query span has system info and correct op (v7 uses db.system.name).
+              // The SDK should rewrite the span name to the actual SQL text (same as v5/v6
+              // `prisma:engine:db_query`), so we find it via op/origin rather than description.
+              const dbQuerySpan = prismaSpans.find(
+                span => span.data?.['sentry.op'] === 'db' && span.data?.['db.query.text'],
+              );
+              expect(dbQuerySpan).toBeDefined();
               expect(dbQuerySpan?.data?.['db.system.name']).toBe('postgresql');
-              expect(dbQuerySpan?.data?.['sentry.op']).toBe('db');
               expect(dbQuerySpan?.op).toBe('db');
+              expect(dbQuerySpan?.description).toBe(dbQuerySpan?.data?.['db.query.text']);
+              expect(dbQuerySpan?.description).not.toBe('prisma:client:db_query');
             },
           })
           .start()

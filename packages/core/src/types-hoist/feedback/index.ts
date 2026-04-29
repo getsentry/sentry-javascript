@@ -6,10 +6,17 @@ import type {
   FeedbackTextConfiguration,
   FeedbackThemeConfiguration,
 } from './config';
-import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
+import type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
+  FeedbackEvent,
+  SendFeedback,
+  SendFeedbackParams,
+  UserFeedback,
+} from './sendFeedback';
 
 export type { FeedbackFormData } from './form';
-export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
+export type { FeedbackErrorCode, FeedbackErrorMessages, FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback };
 
 /**
  * The integration's internal `options` member where every value should be set

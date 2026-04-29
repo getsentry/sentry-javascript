@@ -1,6 +1,8 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
+import type { SerializedTraceData } from '@sentry/core';
 import {
   captureException,
+  continueTrace,
   getClient,
   isThenable,
   type Scope,
@@ -15,6 +17,7 @@ import type { CloudflareOptions } from './client';
 import { flushAndDispose } from './flush';
 import { ensureInstrumented } from './instrument';
 import { init } from './sdk';
+import { extractRpcMeta } from './utils/rpcMeta';
 import { buildSpanLinks, getStoredSpanContext, storeSpanContext } from './utils/traceLinks';
 
 /** Extended DurableObjectState with originalStorage exposed by instrumentContext */
@@ -64,8 +67,20 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
     handler,
     original =>
       new Proxy(original, {
-        apply(target, thisArg, args: Parameters<T>) {
+        apply(target, thisArg, rawArgs: Parameters<T>) {
           const { startNewTrace } = wrapperOptions;
+
+          // For RPC methods, extract Sentry trace context from the trailing argument.
+          // The caller side (instrumentDurableObjectStub / JSRPC proxy) appends it;
+          // we strip it here so the user's method never sees it.
+          let args = rawArgs;
+          let rpcMeta: SerializedTraceData | undefined;
+
+          if (wrapperOptions.spanOp === 'rpc') {
+            const extracted = extractRpcMeta(rawArgs);
+            args = extracted.args;
+            rpcMeta = extracted.rpcMeta;
+          }
 
           // For startNewTrace, always use withIsolationScope to ensure a fresh scope
           // Otherwise, use existing client's scope or isolation scope
@@ -212,6 +227,13 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
                 }
               });
             };
+
+            if (rpcMeta) {
+              return continueTrace(
+                { sentryTrace: rpcMeta['sentry-trace'] || '', baggage: rpcMeta.baggage || '' },
+                executeSpan,
+              );
+            }
 
             if (startNewTrace) {
               return startNewTraceCore(() => executeSpan());

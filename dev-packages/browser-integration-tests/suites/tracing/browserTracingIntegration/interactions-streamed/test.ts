@@ -52,6 +52,14 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'url.full': {
+        type: 'string',
+        value: expect.any(String),
+      },
       [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',

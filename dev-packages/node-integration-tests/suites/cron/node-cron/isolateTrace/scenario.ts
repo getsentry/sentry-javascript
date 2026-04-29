@@ -53,4 +53,4 @@ const task2 = cronWithCheckIn.schedule(
 
 setTimeout(() => {
   process.exit();
-}, 5000);
+}, 15_000);

@@ -56,6 +56,10 @@ Arguments:\n
   process.exit(0);
 }
 
+console.warn(
+  '[Sentry] Warning: This script will be removed in the next major version. See: https://github.com/getsentry/sentry-javascript/issues/20567',
+);
+
 const ARGV_ERRORS = [];
 
 const NODE_TO_ABI = {

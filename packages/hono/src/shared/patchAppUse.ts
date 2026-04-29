@@ -1,18 +1,8 @@
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  startInactiveSpan,
-} from '@sentry/core';
+import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 
-const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
-
 /**
- * Patches `app.use` so that every middleware registered through it is automatically
- * wrapped in a Sentry span. Supports both forms: `app.use(...handlers)` and `app.use(path, ...handlers)`.
+ * Patches the Hono app so that middleware is automatically traced as Sentry spans.
  */
 export function patchAppUse<E extends Env>(app: Hono<E>): void {
   app.use = new Proxy(app.use, {
@@ -28,37 +18,4 @@ export function patchAppUse<E extends Env>(app: Hono<E>): void {
       return Reflect.apply(target, thisArg, allHandlers);
     },
   });
-}
-
-/**
- * Wraps a Hono middleware handler so that its execution is traced as a Sentry span.
- * Uses startInactiveSpan so that all middleware spans are siblings under the request/transaction
- * (onion order: A → B → handler → B → A does not nest B under A in the trace).
- */
-function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
-  return async function sentryTracedMiddleware(context, next) {
-    const span = startInactiveSpan({
-      name: handler.name || '<anonymous>',
-      op: 'middleware.hono',
-      onlyIfParent: true,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.hono',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MIDDLEWARE_ORIGIN,
-      },
-    });
-
-    try {
-      const result = await handler(context, next);
-      span.setStatus({ code: SPAN_STATUS_OK });
-      return result;
-    } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, {
-        mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
-      });
-      throw error;
-    } finally {
-      span.end();
-    }
-  };
 }

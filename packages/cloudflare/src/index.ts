@@ -110,6 +110,7 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
   instrumentLangGraph,
+  instrumentCreateReactAgent,
 } from '@sentry/core';
 
 export { withSentry } from './withSentry';

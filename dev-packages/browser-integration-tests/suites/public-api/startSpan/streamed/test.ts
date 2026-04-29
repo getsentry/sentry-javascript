@@ -56,6 +56,8 @@ sentryTest(
       [
         { content_type: 'application/vnd.sentry.items.span.v2+json', item_count: 4, type: 'span' },
         {
+          version: 2,
+          ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
           items: expect.any(Array),
         },
       ],
@@ -176,6 +178,14 @@ sentryTest(
             value: expect.any(String),
           },
           'culture.timezone': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'http.request.header.user_agent': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'url.full': {
             type: 'string',
             value: expect.any(String),
           },
