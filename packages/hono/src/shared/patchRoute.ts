@@ -60,9 +60,10 @@ export function patchRoute<E extends Env>(app: Hono<E>): void {
  * always accepts (context, next) while .all() handlers typically accept only (context).
  * https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
  */
-function wrapSubAppMiddleware(routes: HonoRoute[]): void {
+export function wrapSubAppMiddleware(routes: HonoRoute[]): void {
   const lastIndexByKey = new Map<string, number>();
   for (const [i, route] of routes.entries()) {
+    // \0 (null byte) is a collision-free delimiter: it cannot appear in a valid HTTP method name or URL path
     lastIndexByKey.set(`${route.method}\0${route.path}`, i);
   }
 

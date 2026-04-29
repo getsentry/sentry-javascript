@@ -4,7 +4,6 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  isAlreadyCaptured,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   updateSpanName,
   winterCGRequestToRequestData,
@@ -43,7 +42,7 @@ export function responseHandler(context: Context): void {
 
   getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
 
-  if (context.error && !isAlreadyCaptured(context.error)) {
+  if (context.error) {
     getClient()?.captureException(context.error, {
       mechanism: { handled: false, type: 'auto.http.hono.context_error' },
     });

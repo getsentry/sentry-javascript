@@ -89,7 +89,7 @@ describe('responseHandler', () => {
       expect(() => responseHandler(createMockContext(500, new Error('boom')) as any)).not.toThrow();
     });
 
-    it('does not re-capture errors already captured by wrapMiddlewareWithSpan', () => {
+    it('delegates deduplication to captureException — calls it even for errors with __sentry_captured__', () => {
       const mockCaptureException = vi.fn();
       getClientMock.mockReturnValue({
         captureException: mockCaptureException,
@@ -101,7 +101,10 @@ describe('responseHandler', () => {
       // oxlint-disable-next-line typescript/no-explicit-any
       responseHandler(createMockContext(500, error) as any);
 
-      expect(mockCaptureException).not.toHaveBeenCalled();
+      // captureException is called — it handles deduplication internally via checkOrSetAlreadyCaught
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: { handled: false, type: 'auto.http.hono.context_error' },
+      });
     });
   });
 
