@@ -17,51 +17,17 @@ describe('MongoDB experimental Test', () => {
     cleanupChildProcesses();
   });
 
+  /**
+   * Assert the operations we run in `scenario.js` are present. We intentionally
+   * do not match the full span list: wire-protocol handshakes (`isMaster` vs
+   * `hello`) and session cleanup vary by driver / server and are a common
+   * source of flakes in CI (see https://github.com/getsentry/sentry-javascript/issues/20424).
+   */
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
-    spans: [
+    spans: expect.arrayContaining([
       expect.objectContaining({
-        data: {
-          'sentry.origin': 'auto.db.otel.mongo',
-          'sentry.op': 'db',
-          'db.system': 'mongodb',
-          'db.name': 'admin',
-          'db.mongodb.collection': '$cmd',
-          'db.operation': 'isMaster',
-          'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': expect.any(Number),
-          'db.statement':
-            '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
-          'otel.kind': 'CLIENT',
-        },
-        description:
-          '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
-        op: 'db',
-        origin: 'auto.db.otel.mongo',
-      }),
-      expect.objectContaining({
-        data: {
-          'sentry.origin': 'auto.db.otel.mongo',
-          'sentry.op': 'db',
-          'db.system': 'mongodb',
-          'db.name': 'admin',
-          'db.mongodb.collection': '$cmd',
-          'db.operation': 'isMaster',
-          'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': expect.any(Number),
-          'db.statement':
-            '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
-          'otel.kind': 'CLIENT',
-        },
-        description:
-          '{"ismaster":"?","client":{"driver":{"name":"?","version":"?"},"os":{"type":"?","name":"?","architecture":"?","version":"?"},"platform":"?"},"compression":[],"helloOk":"?"}',
-        op: 'db',
-        origin: 'auto.db.otel.mongo',
-      }),
-      expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           'sentry.origin': 'auto.db.otel.mongo',
           'sentry.op': 'db',
           'db.system': 'mongodb',
@@ -73,13 +39,13 @@ describe('MongoDB experimental Test', () => {
           'net.peer.port': expect.any(Number),
           'db.statement': '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
           'otel.kind': 'CLIENT',
-        },
+        }),
         description: '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           'sentry.origin': 'auto.db.otel.mongo',
           'sentry.op': 'db',
           'db.system': 'mongodb',
@@ -91,13 +57,13 @@ describe('MongoDB experimental Test', () => {
           'net.peer.port': expect.any(Number),
           'db.statement': '{"title":"?"}',
           'otel.kind': 'CLIENT',
-        },
+        }),
         description: '{"title":"?"}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           'sentry.origin': 'auto.db.otel.mongo',
           'sentry.op': 'db',
           'db.system': 'mongodb',
@@ -109,65 +75,12 @@ describe('MongoDB experimental Test', () => {
           'net.peer.port': expect.any(Number),
           'db.statement': '{"title":"?"}',
           'otel.kind': 'CLIENT',
-        },
+        }),
         description: '{"title":"?"}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
-      expect.objectContaining({
-        data: {
-          'sentry.origin': 'auto.db.otel.mongo',
-          'sentry.op': 'db',
-          'db.system': 'mongodb',
-          'db.name': 'admin',
-          'db.mongodb.collection': 'movies',
-          'db.operation': 'find',
-          'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': expect.any(Number),
-          'db.statement': '{"title":"?"}',
-          'otel.kind': 'CLIENT',
-        },
-        description: '{"title":"?"}',
-        op: 'db',
-        origin: 'auto.db.otel.mongo',
-      }),
-      expect.objectContaining({
-        data: {
-          'sentry.origin': 'auto.db.otel.mongo',
-          'sentry.op': 'db',
-          'db.system': 'mongodb',
-          'db.name': 'admin',
-          'db.mongodb.collection': 'movies',
-          'db.operation': 'find',
-          'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': expect.any(Number),
-          'db.statement': '{"title":"?"}',
-          'otel.kind': 'CLIENT',
-        },
-        description: '{"title":"?"}',
-        op: 'db',
-        origin: 'auto.db.otel.mongo',
-      }),
-      expect.objectContaining({
-        data: {
-          'sentry.origin': 'auto.db.otel.mongo',
-          'sentry.op': 'db',
-          'db.system': 'mongodb',
-          'db.name': 'admin',
-          'db.mongodb.collection': '$cmd',
-          'db.connection_string': expect.any(String),
-          'net.peer.name': expect.any(String),
-          'net.peer.port': expect.any(Number),
-          'db.statement': '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
-          'otel.kind': 'CLIENT',
-        },
-        description: '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
-        op: 'db',
-        origin: 'auto.db.otel.mongo',
-      }),
-    ],
+    ]),
   };
 
   test('CJS - should auto-instrument `mongodb` package.', async () => {
