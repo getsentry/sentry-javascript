@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('no_parent_span with streaming enabled', () => {
+describe('http.client span with streaming enabled', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
