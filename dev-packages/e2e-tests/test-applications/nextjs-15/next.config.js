@@ -4,7 +4,9 @@ const { withSentryConfig } = require('@sentry/nextjs');
 process.env.VERCEL = '1';
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  serverExternalPackages: ['@napi-rs/keyring'],
+};
 
 module.exports = withSentryConfig(nextConfig, {
   silent: true,

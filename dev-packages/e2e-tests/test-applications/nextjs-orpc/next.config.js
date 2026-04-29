@@ -1,5 +1,7 @@
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  serverExternalPackages: ['@napi-rs/keyring'],
+};
 
 import { withSentryConfig } from '@sentry/nextjs';
 

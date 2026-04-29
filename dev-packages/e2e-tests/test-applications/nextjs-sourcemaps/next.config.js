@@ -1,7 +1,9 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  serverExternalPackages: ['@napi-rs/keyring'],
+};
 
 module.exports = withSentryConfig(nextConfig, {
   sentryUrl: 'http://localhost:3032',

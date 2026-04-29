@@ -4,7 +4,13 @@ import type { NextConfig } from 'next';
 // Simulate Vercel environment for cron monitoring tests
 process.env.VERCEL = '1';
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  serverExternalPackages: ['@napi-rs/keyring'],
+  webpack: config => {
+    config.externals.push('@napi-rs/keyring');
+    return config;
+  },
+};
 
 export default withSentryConfig(nextConfig, {
   silent: true,
