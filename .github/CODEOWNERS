@@ -22,7 +22,7 @@
 /dev-packages/node-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/node-core-integration-tests/ @getsentry/team-javascript-sdks-server
 /dev-packages/cloudflare-integration-tests/ @getsentry/team-javascript-sdks-server
-/dev-packages/bun-integration-tests @getsentry/team-javascript-sdks-server
+/dev-packages/bun-integration-tests/ @getsentry/team-javascript-sdks-server
 
 # Framework integration packages
 /packages/angular/                  @getsentry/team-javascript-sdks-framework
