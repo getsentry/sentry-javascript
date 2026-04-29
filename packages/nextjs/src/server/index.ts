@@ -284,6 +284,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
     if (process.turbopack) {
       getGlobalScope().setTag('turbopack', true);
+      getGlobalScope().setAttribute('turbopack', true);
     }
   } catch {
     // Noop
