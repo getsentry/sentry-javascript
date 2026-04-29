@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-plugin-playground",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -17,7 +17,7 @@
     "start:proxyLogger": "ts-node scripts/request-logger-proxy.ts"
   },
   "dependencies": {
-    "@sentry/bundler-plugin-core": "5.2.0",
+    "@sentry/bundler-plugin-core": "5.2.1",
     "@sentry/integrations": "7.50",
     "@sentry/node": "7.50",
     "@types/express": "^4.17.13",

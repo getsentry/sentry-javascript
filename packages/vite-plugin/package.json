@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vite-plugin",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "Official Sentry Vite plugin",
   "repository": "git://github.com/getsentry/sentry-javascript-bundler-plugins.git",
   "homepage": "https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin",
@@ -48,12 +48,12 @@
     "prepack": "ts-node ./src/prepack.ts"
   },
   "dependencies": {
-    "@sentry/bundler-plugin-core": "5.2.0",
-    "@sentry/rollup-plugin": "5.2.0"
+    "@sentry/bundler-plugin-core": "5.2.1",
+    "@sentry/rollup-plugin": "5.2.1"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config": "5.2.0",
-    "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.2.0",
+    "@sentry-internal/eslint-config": "5.2.1",
+    "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.2.1",
     "@types/node": "^18.6.3",
     "eslint": "^8.18.0",
     "vitest": "^4.0.0",

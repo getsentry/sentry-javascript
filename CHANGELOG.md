@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.2.1
+
+### Bug Fixes 🐛
+
+- (webpack) Await source map deletion before signaling build completion by @andreiborza in [#918](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/918)
+
+### Internal Changes 🔧
+
+- (ci) Disable changelog preview by @chargome in [#917](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/917)
+- Add additional integration tests by @timfish in [#914](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/914)
+- Remove unused e2e tests by @timfish in [#915](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/915)
+
 ## 5.2.0
 
 ### New Features ✨
