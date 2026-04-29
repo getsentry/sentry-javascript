@@ -45,20 +45,19 @@ export function patchRoute<E extends Env>(app: Hono<E>): void {
 }
 
 /**
- * Wraps middleware handlers in a sub-app's routes array with Sentry spans.
+ * Figures out which handlers in a sub-app's flat routes array are middleware (and should get a span), then wraps them.
  *
- * When multiple handlers share the same method+path (e.g. `app.get('/path', mw, handler)`),
- * Hono registers each as a separate route entry. We wrap all but the last entry per group
- * (those are the middleware), leaving the final handler unwrapped.
+ * The challenge: Hono stores every handler as a plain { method, path, handler } entry. There is no "isMiddleware" flag.
+ * Two heuristics identify middleware:
  *
- * For `method: 'ALL'` handlers that are last-for-group (from `.use()` or `.all()`),
- * we use an arity (# of params) heuristic: middleware takes `(context, next)` (length >= 2),
- * while final handlers take only `(context)` (length < 2). This distinguishes
- * `.use()` middleware (should be traced) from `.all()` route handlers (should not).
+ * 1. Position within a group. `app.get('/path', mw, handler)` produces two entries with the same method+path.
+ *    All but the last one must be middleware, because only middleware calls `next()` to pass control to the next handler.
  *
- * Hono's .use() and .all() both register as method 'ALL', but .use() middleware
- * always accepts (context, next) while .all() handlers typically accept only (context).
- * https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
+ * 2. Function arity (# of params) for method 'ALL'. Both `.use()` and `.all()` store their handlers under method 'ALL',
+ *    so we can't use position alone to tell them apart when one is the last (or only) entry in its group.
+ *    The deciding factor: Hono's `.use()` only accepts `(context, next)` (handlers with 2+ params). While `.all()` route
+ *    handlers typically only accept `(context)`.
+ *    See: https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
  */
 export function wrapSubAppMiddleware(routes: HonoRoute[]): void {
   const lastIndexByKey = new Map<string, number>();
