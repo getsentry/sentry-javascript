@@ -421,6 +421,14 @@ export function shouldSkipFeedbackTest(): boolean {
  * @returns `true` if we should skip the feature flags test
  */
 export function shouldSkipFeatureFlagsTest(): boolean {
+  return shouldSkipCdnBundleTest();
+}
+
+/**
+ * Returns true if we're running in a CDN bundle environment (not ESM/CJS).
+ * Use this to skip tests for integrations that are only available via npm, not CDN bundles.
+ */
+export function shouldSkipCdnBundleTest(): boolean {
   const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
 }

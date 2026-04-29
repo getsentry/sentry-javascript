@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipCdnBundleTest, shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, observeStreamedSpan, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
 sentryTest(
   'filters ui.interaction.click spans for spotlight elements via ignoreSpans in streaming mode',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
+    // spotlightBrowserIntegration is not available in CDN bundles
+    if (shouldSkipTracingTest() || shouldSkipCdnBundleTest()) {
       sentryTest.skip();
     }
 

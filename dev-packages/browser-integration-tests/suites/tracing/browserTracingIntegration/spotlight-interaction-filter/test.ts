@@ -4,13 +4,15 @@ import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+  shouldSkipCdnBundleTest,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
 sentryTest(
   'filters ui.interaction.click spans for spotlight elements via ignoreSpans',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
+    // spotlightBrowserIntegration is not available in CDN bundles
+    if (shouldSkipTracingTest() || shouldSkipCdnBundleTest()) {
       sentryTest.skip();
     }
 
