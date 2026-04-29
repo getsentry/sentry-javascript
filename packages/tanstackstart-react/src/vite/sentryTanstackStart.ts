@@ -2,6 +2,8 @@ import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
+import type { TunnelRouteOptions } from './tunnelRoute';
+import { makeTunnelRoutePlugin } from './tunnelRoute';
 
 /**
  * Build-time options for the Sentry TanStack Start SDK.
@@ -19,6 +21,23 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * @default true
    */
   autoInstrumentMiddleware?: boolean;
+
+  /**
+   * Configures a framework-managed same-origin tunnel route for Sentry envelopes.
+   *
+   * This creates a TanStack Start server route backed by `createSentryTunnelRoute()` and applies the resulting path
+   * as the default `tunnel` option on the client.
+   *
+   * You can pass:
+   * - `true` to generate an opaque route path per dev session or production build.
+   * - `'/custom-path'` to use a fixed static route path.
+   * - `{ allowedDsns, path }` for full control. If `allowedDsns` is omitted or empty, the tunnel route derives the DSN
+   *   from the active server Sentry client at runtime.
+   *
+   * If you also pass `tunnel` to `Sentry.init()`, that explicit runtime option wins and a warning is emitted because
+   * the managed tunnel route is being bypassed.
+   */
+  tunnelRoute?: TunnelRouteOptions;
 }
 
 /**
@@ -46,12 +65,18 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
-  // only add plugins in production builds
+  const tunnelRoutePlugin = options.tunnelRoute ? makeTunnelRoutePlugin(options.tunnelRoute, options.debug) : undefined;
+
+  // only add build-time plugins in production builds
   if (process.env.NODE_ENV === 'development') {
-    return [];
+    return tunnelRoutePlugin ? [tunnelRoutePlugin] : [];
   }
 
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+
+  if (tunnelRoutePlugin) {
+    plugins.push(tunnelRoutePlugin);
+  }
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {

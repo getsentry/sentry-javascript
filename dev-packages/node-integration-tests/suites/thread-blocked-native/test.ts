@@ -177,43 +177,50 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('worker thread', async () => {
+  test('worker thread', { timeout: 60_000 }, async () => {
     const instrument = join(__dirname, 'instrument.mjs');
     await createRunner(__dirname, 'worker-main.mjs')
       .withMockSentryServer()
       .withFlags('--import', instrument)
       .expect({
         event: event => {
-          const crashedThread = event.threads?.values?.find(thread => thread.crashed)?.id as string;
+          const crashedThread = event.threads?.values?.find(thread => thread.crashed)?.id as string | undefined;
           expect(crashedThread).toBeDefined();
 
+          const expectedEvent = ANR_EVENT();
           expect(event).toMatchObject({
-            ...ANR_EVENT(),
+            ...expectedEvent,
+            // We compare this separately below
+            threads: expect.any(Object),
             exception: {
               ...EXCEPTION(crashedThread),
             },
-            threads: {
-              values: [
-                {
-                  id: '0',
-                  name: 'main',
-                  crashed: false,
-                  current: true,
-                  main: true,
-                  stacktrace: {
-                    frames: expect.any(Array),
-                  },
-                },
-                {
-                  id: crashedThread,
-                  name: `worker-${crashedThread}`,
-                  crashed: true,
-                  current: true,
-                  main: false,
-                },
-              ],
-            },
           });
+
+          const threadValues = event.threads?.values ?? [];
+          expect(threadValues).toHaveLength(2);
+          // Any order is fine, we just check that both are present
+          expect(threadValues).toContainEqual(
+            expect.objectContaining({
+              id: '0',
+              name: 'main',
+              crashed: false,
+              current: true,
+              main: true,
+              stacktrace: {
+                frames: expect.any(Array),
+              },
+            }),
+          );
+          expect(threadValues).toContainEqual(
+            expect.objectContaining({
+              id: crashedThread,
+              name: `worker-${crashedThread}`,
+              crashed: true,
+              current: true,
+              main: false,
+            }),
+          );
         },
       })
       .start()

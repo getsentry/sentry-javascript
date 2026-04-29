@@ -2,6 +2,124 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.51.0
+
+### Important Changes
+
+- **feat(cloudflare): Add trace propagation for RPC method calls ([#20343](https://github.com/getsentry/sentry-javascript/pull/20343))**
+
+  Trace context is now propagated across Cloudflare Workers RPC calls, connecting traces between Workers and Durable Objects.
+  This feature is opt-in and requires setting `enableRpcTracePropagation: true` in your SDK configuration:
+
+  ```ts
+  // Worker
+  export default Sentry.withSentry(
+    env => ({
+      dsn: env.SENTRY_DSN,
+      enableRpcTracePropagation: true,
+    }),
+    handler,
+  );
+
+  // Durable Object
+  export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
+    env => ({
+      dsn: env.SENTRY_DSN,
+      enableRpcTracePropagation: true,
+    }),
+    MyDurableObjectBase,
+  );
+  ```
+
+- **feat(hono)!: Change setup for `@sentry/hono/node` (`init` in external file) ([#20497](https://github.com/getsentry/sentry-javascript/pull/20497))**
+
+  To improve Node.js instrumentation, the `sentry()` middleware exported from `@sentry/hono/node` no longer accepts configuration options.
+  Instead, you must configure the SDK by calling `Sentry.init()` in a dedicated instrumentation file that runs before your application code (read more in the [Hono SDK readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/hono/README.md):
+
+  ```ts
+  // instrument.mjs (or instrument.ts)
+  import * as Sentry from '@sentry/hono/node';
+
+  Sentry.init({
+    dsn: '__DSN__',
+    tracesSampleRate: 1.0,
+  });
+  ```
+
+- **feat(nitro): Add `@sentry/nitro` SDK ([#19224](https://github.com/getsentry/sentry-javascript/pull/19224))**
+
+  A new `@sentry/nitro` package provides first-class Sentry support for [Nitro](https://nitro.build/) applications, with HTTP handler and error instrumentation, middleware tracing, request isolation, and build-time source map uploading via `withSentryConfig`.
+  Read more in the [Nitro SDK docs](https://docs.sentry.io/platforms/javascript/guides/nitro/) and the [Nitro SDK readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/nitro/README.md).
+
+### Other Changes
+
+- deps(minimatch): Upgrade patch version to use new `brace-expansion` peer-dep ([#20198](https://github.com/getsentry/sentry-javascript/pull/20198))
+- docs: Add deprecation notices to `bin` scripts ([#20570](https://github.com/getsentry/sentry-javascript/pull/20570))
+- feat(astro): Drop prerendered http.server filter via `ignoreSpans` ([#20513](https://github.com/getsentry/sentry-javascript/pull/20513))
+- feat(aws-serverless): Validate extension tunnel DSN against `SENTRY_DSN` ([#20528](https://github.com/getsentry/sentry-javascript/pull/20528))
+- feat(browser): Add `ingest_settings` to span v2 envelope payload ([#20411](https://github.com/getsentry/sentry-javascript/pull/20411))
+- feat(browser): Add support for streamed spans in `httpContextIntegration` ([#20464](https://github.com/getsentry/sentry-javascript/pull/20464))
+- feat(core): Backfill otel attributes on streamed spans ([#20439](https://github.com/getsentry/sentry-javascript/pull/20439))
+- feat(core): clear up integrations on dispose ([#20407](https://github.com/getsentry/sentry-javascript/pull/20407))
+- feat(core): Instrument langgraph createReactAgent ([#20344](https://github.com/getsentry/sentry-javascript/pull/20344))
+- feat(core): Support attribute matching in `ignoreSpans` ([#20512](https://github.com/getsentry/sentry-javascript/pull/20512))
+- feat(feedback): allow error messages to be customized ([#20474](https://github.com/getsentry/sentry-javascript/pull/20474))
+- feat(hono): Support middleware spans defined in app groups ([#20465](https://github.com/getsentry/sentry-javascript/pull/20465))
+- feat(nextjs): Filter unwanted segments when span streaming is enabled ([#20384](https://github.com/getsentry/sentry-javascript/pull/20384))
+- feat(nextjs): Migrate edge event processors to span-first APIs ([#20551](https://github.com/getsentry/sentry-javascript/pull/20551))
+- feat(nextjs): Migrate server event processors to span-first APIs ([#20527](https://github.com/getsentry/sentry-javascript/pull/20527))
+- feat(nextjs): Set global attribute for turbopack usage ([#20558](https://github.com/getsentry/sentry-javascript/pull/20558))
+- feat(nitro): Nitro SDK ([#19224](https://github.com/getsentry/sentry-javascript/pull/19224))
+- feat(react-router): Clean up bogus `*` http.route attribute on segment spans ([#20471](https://github.com/getsentry/sentry-javascript/pull/20471))
+- feat(react-router): Drop low-quality transactions via `ignoreSpans` ([#20514](https://github.com/getsentry/sentry-javascript/pull/20514))
+- feat(sveltekit): Support span streaming in `svelteKitSpansEnhancement` integration ([#20496](https://github.com/getsentry/sentry-javascript/pull/20496))
+- feat(tanstackstart-react): Add dynamic tunnel route helper and generator ([#20264](https://github.com/getsentry/sentry-javascript/pull/20264))
+- fix: update prisma v7 spans descriptions ([#20456](https://github.com/getsentry/sentry-javascript/pull/20456))
+- fix(core): Avoid parse-time SyntaxError on Safari <16.4 in postgresjs ([#20498](https://github.com/getsentry/sentry-javascript/pull/20498))
+- fix(core): Ensure `isSentryRequest` handles subdomains properly ([#20530](https://github.com/getsentry/sentry-javascript/pull/20530))
+- fix(core): Ensure ip address headers are stripped when lower case ([#20484](https://github.com/getsentry/sentry-javascript/pull/20484))
+- fix(core): Filter more cookie names for PII ([#20485](https://github.com/getsentry/sentry-javascript/pull/20485))
+- fix(core): Use symbol for normalization checks ([#20486](https://github.com/getsentry/sentry-javascript/pull/20486))
+- fix(hono): Distinguish `.use()` middleware in sub-apps from `.all()` handlers ([#20554](https://github.com/getsentry/sentry-javascript/pull/20554))
+- fix(nextjs): Ensure we do not match tunnel endpoints too broadly ([#20488](https://github.com/getsentry/sentry-javascript/pull/20488))
+- fix(opentelemetry): Add conditional browser export to avoid node deps ([#20556](https://github.com/getsentry/sentry-javascript/pull/20556))
+- fix(replay): Avoid main-thread blocking in WorkerHandler under event bursts ([#20548](https://github.com/getsentry/sentry-javascript/pull/20548))
+- fix(replay): Ensure `maskAttributes` works with `maskAllText=false` ([#20491](https://github.com/getsentry/sentry-javascript/pull/20491))
+- fix(supabase): Consider `sendDefaultPii` for supabase integration ([#20490](https://github.com/getsentry/sentry-javascript/pull/20490))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add size limit reports on PRs for Cloudflare ([#20055](https://github.com/getsentry/sentry-javascript/pull/20055))
+- chore: Update CODEOWNERS ([#20559](https://github.com/getsentry/sentry-javascript/pull/20559))
+- chore(build): Opt-out of nx analytics ([#20487](https://github.com/getsentry/sentry-javascript/pull/20487))
+- chore(ci): Automatically bump size limit every week ([#20531](https://github.com/getsentry/sentry-javascript/pull/20531))
+- chore(ci): Bump pnpm/action-setup to v5 and pin to commit SHA ([#20462](https://github.com/getsentry/sentry-javascript/pull/20462))
+- chore(ci): Do not report flaky test issues if we cannot find a test name ([#20589](https://github.com/getsentry/sentry-javascript/pull/20589))
+- chore(ci): Streamline CI setup to split bundle, layer, tarball generation ([#20396](https://github.com/getsentry/sentry-javascript/pull/20396))
+- chore(ci): Vendor nx-affected-list action, drop dkhunt27 dependency ([#20463](https://github.com/getsentry/sentry-javascript/pull/20463))
+- chore(e2e): Add vue and vue-router to nuxt-4 canary build step to fix rollup resolution ([#20519](https://github.com/getsentry/sentry-javascript/pull/20519))
+- chore(e2e): Remove @tanstack/start-plugin-core override ([#20518](https://github.com/getsentry/sentry-javascript/pull/20518))
+- chore(size-limit): weekly auto-bump ([#20572](https://github.com/getsentry/sentry-javascript/pull/20572))
+- chore(skill): Add skill for writing unit and E2E tests ([#20561](https://github.com/getsentry/sentry-javascript/pull/20561))
+- chore(test): Reduce unneeded `idleTimeout` test config ([#20467](https://github.com/getsentry/sentry-javascript/pull/20467))
+- ci(size-bump): Fix path in size-limit auto-bump workflow ([#20566](https://github.com/getsentry/sentry-javascript/pull/20566))
+- fix(e2e/tanstackstart-react): pin @tanstack/start-plugin-core to unblock CI ([#20482](https://github.com/getsentry/sentry-javascript/pull/20482))
+- fix(tests): Remove nitro canary test job ([#20473](https://github.com/getsentry/sentry-javascript/pull/20473))
+- ref(browser): Use `safeSetSpanJSONAttributes` in cultureContext integration ([#20481](https://github.com/getsentry/sentry-javascript/pull/20481))
+- test(browser): Unflake some more tests ([#20591](https://github.com/getsentry/sentry-javascript/pull/20591))
+- test(nextjs): Pin `eslint-config-next` package to major ([#20552](https://github.com/getsentry/sentry-javascript/pull/20552))
+- test(node): Fix flaky ANR test ([#20592](https://github.com/getsentry/sentry-javascript/pull/20592))
+- test(node): Fix flaky worker thread integration test ([#20588](https://github.com/getsentry/sentry-javascript/pull/20588))
+- test(node): Unflake postgres tests ([#20593](https://github.com/getsentry/sentry-javascript/pull/20593))
+- test(node): Update timeout for cron integration tests ([#20586](https://github.com/getsentry/sentry-javascript/pull/20586))
+- test(supabase): Stop supabase before initializing ([#20563](https://github.com/getsentry/sentry-javascript/pull/20563))
+- test(tanstack): Prefix test labels ([#20569](https://github.com/getsentry/sentry-javascript/pull/20569))
+
+</details>
+
 ## 10.50.0
 
 ### Important Changes

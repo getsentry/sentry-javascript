@@ -1,7 +1,8 @@
 import type { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { testMiddleware } from './route-groups/test-middleware';
-import { middlewareA, middlewareB, failingMiddleware } from './middleware';
+import { failingMiddleware, middlewareA, middlewareB } from './middleware';
+import { middlewareRoutes, subAppWithInlineMiddleware, subAppWithMiddleware } from './route-groups/test-middleware';
+import { routePatterns } from './route-groups/test-route-patterns';
 
 export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): void {
   app.get('/', c => {
@@ -24,9 +25,7 @@ export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): v
     throw new HTTPException(code, { message: `HTTPException ${code}` });
   });
 
-  // === Middleware ===
-  // Middleware is registered on the main app (the patched instance) via `app.use()`
-  // TODO: In the future, we may want to support middleware registration on sub-apps (route groups)
+  // Root-app middleware: registered on the patched main app instance
   app.use('/test-middleware/named/*', middlewareA);
   app.use('/test-middleware/anonymous/*', async (c, next) => {
     c.header('X-Custom', 'anonymous');
@@ -34,6 +33,14 @@ export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): v
   });
   app.use('/test-middleware/multi/*', middlewareA, middlewareB);
   app.use('/test-middleware/error/*', failingMiddleware);
+  app.route('/test-middleware', middlewareRoutes);
 
-  app.route('/test-middleware', testMiddleware);
+  // Sub-app middleware: registered on the sub-app, wrapped at mount time by route() patching
+  app.route('/test-subapp-middleware', subAppWithMiddleware);
+
+  // Inline middleware patterns: direct method, .all(), .on() with inline/separate middleware
+  app.route('/test-inline-middleware', subAppWithInlineMiddleware);
+
+  // Route patterns: HTTP methods, .all(), .on(), sync/async, errors
+  app.route('/test-routes', routePatterns);
 }

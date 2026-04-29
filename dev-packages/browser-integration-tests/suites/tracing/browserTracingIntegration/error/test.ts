@@ -21,9 +21,9 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.goto(url);
-
     const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+
+    await page.goto(url);
 
     await runScriptInSandbox(page, {
       content: `

@@ -13,6 +13,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -445,4 +446,111 @@ describe('LangGraph integration', () => {
       });
     },
   );
+
+  // createReactAgent tests
+  const EXPECTED_TRANSACTION_REACT_AGENT = {
+    transaction: 'main',
+    spans: [
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'helpful_assistant',
+        }),
+        description: 'invoke_agent helpful_assistant',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
+        }),
+        op: 'gen_ai.chat',
+      }),
+    ],
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT })
+        .start()
+        .completed();
+    });
+  });
+
+  // createReactAgent with tools - verifies tool execution spans
+  const EXPECTED_TRANSACTION_REACT_AGENT_TOOLS = {
+    transaction: 'main',
+    spans: [
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'math_assistant',
+        }),
+        op: 'gen_ai.invoke_agent',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
+          'gen_ai.tool.type': 'function',
+        }),
+        description: 'execute_tool add',
+        op: 'gen_ai.execute_tool',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
+          'gen_ai.tool.type': 'function',
+        }),
+        description: 'execute_tool multiply',
+        op: 'gen_ai.execute_tool',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+    ],
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT_TOOLS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: event => {
+            const spans = event.spans ?? [];
+            const chatSpans = spans.filter(s => s.op === 'gen_ai.chat');
+            expect(chatSpans).toHaveLength(1);
+            expect(chatSpans[0]?.data).toMatchObject({
+              [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'plain_assistant',
+            });
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
