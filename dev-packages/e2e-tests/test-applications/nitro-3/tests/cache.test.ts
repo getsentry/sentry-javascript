@@ -38,14 +38,13 @@ test.describe('Cache Instrumentation', () => {
         span.data[SEMANTIC_ATTRIBUTE_CACHE_KEY].includes('user:123') &&
         !span.data?.[SEMANTIC_ATTRIBUTE_CACHE_HIT],
     );
-    if (cacheMissSpan) {
-      expect(cacheMissSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-        [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
-        'db.operation.name': 'getItem',
-      });
-    }
+    expect(cacheMissSpan).toBeDefined();
+    expect(cacheMissSpan?.data).toMatchObject({
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
+      'db.operation.name': 'getItem',
+    });
 
     // Find cache hit (second call to getCachedUser('123'))
     const cacheHitSpan = getItemSpans.find(
@@ -54,14 +53,13 @@ test.describe('Cache Instrumentation', () => {
         span.data[SEMANTIC_ATTRIBUTE_CACHE_KEY].includes('user:123') &&
         span.data?.[SEMANTIC_ATTRIBUTE_CACHE_HIT],
     );
-    if (cacheHitSpan) {
-      expect(cacheHitSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-        [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-        'db.operation.name': 'getItem',
-      });
-    }
+    expect(cacheHitSpan).toBeDefined();
+    expect(cacheHitSpan?.data).toMatchObject({
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
+      'db.operation.name': 'getItem',
+    });
 
     // setItem spans for cachedFunction - when cache miss occurs, value is set
     const setItemSpans = findSpansByOp('cache.set_item');
@@ -72,13 +70,12 @@ test.describe('Cache Instrumentation', () => {
         typeof span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === 'string' &&
         span.data[SEMANTIC_ATTRIBUTE_CACHE_KEY].includes('user:123'),
     );
-    if (cacheSetSpan) {
-      expect(cacheSetSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-        'db.operation.name': 'setItem',
-      });
-    }
+    expect(cacheSetSpan).toBeDefined();
+    expect(cacheSetSpan?.data).toMatchObject({
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+      'db.operation.name': 'setItem',
+    });
 
     // Spans for different cached functions
     const dataKeySpans = getItemSpans.filter(

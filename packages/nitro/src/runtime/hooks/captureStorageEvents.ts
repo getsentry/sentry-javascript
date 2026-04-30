@@ -79,7 +79,8 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   channel.subscribe({
     asyncEnd(data: TracingChannelContextWithSpan<TraceContext & { result?: unknown }>) {
       if (data._sentrySpan && CACHE_HIT_OPERATIONS.has(operation)) {
-        data._sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, isCacheHit(data.keys?.[0], data.result));
+        const hit = operation === 'hasItem' ? Boolean(data.result) : isCacheHit(data.keys?.[0], data.result);
+        data._sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, hit);
       }
 
       data._sentrySpan?.setStatus({ code: SPAN_STATUS_OK });
@@ -126,7 +127,9 @@ function isCacheHit(key: unknown, value: unknown): boolean {
       return !isEmpty;
     }
 
-    return validateCacheEntry(key, JSON.parse(String(value)) as CacheEntry);
+    const entry = typeof value === 'string' ? (JSON.parse(value) as CacheEntry) : (value as CacheEntry);
+
+    return validateCacheEntry(key, entry);
   } catch {
     return false;
   }
