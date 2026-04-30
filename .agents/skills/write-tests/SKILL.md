@@ -22,7 +22,17 @@ Follow these steps in order before writing any test code.
 1. **Decide the framework.** Testing a function's return value, side effects, or module interactions
    → Vitest (lives under `packages/<name>/test/`). Testing that a real HTTP request to a running app
    produces the correct Sentry envelope → Playwright (lives under
-   `dev-packages/e2e-tests/test-applications/<app>/tests/`).
+   `dev-packages/e2e-tests/test-applications/<app>/tests/`). Testing Node SDK instrumentation
+   against real envelope output → node-integration-tests (lives under
+   `dev-packages/node-integration-tests/suites/`).
+
+   **Parameterization differs by framework — pick the right one:**
+
+   | Framework              | How to parameterize                                           |
+   | ---------------------- | ------------------------------------------------------------- |
+   | Vitest                 | `it.each` / `it.for` (runner-integrated, one test each)       |
+   | Playwright E2E         | `.forEach()` outside `test()` (registers separate tests)      |
+   | Node integration tests | Loops **inside** a single `test()` body (one Node.js process) |
 
 2. **Read 2–3 existing test files** in the target `test/` directory. Specifically note:
    - Which `vi.mock` style they use (string path or import form)
@@ -299,6 +309,64 @@ describe('patchRoute', () => {
 
 ---
 
+## Writing node-integration-tests
+
+Node integration tests (`dev-packages/node-integration-tests/`) use `createEsmAndCjsTests` to
+run a real Node scenario file and assert on captured Sentry envelopes.
+
+### Minimize `test()` calls — each one spawns a separate Node process
+
+**This is the opposite of the Playwright rule.** In Playwright, each `test()` is cheap — use
+`.forEach()` to register many tests. In node-integration-tests, each `test()` forks a fresh Node
+process with full startup cost. A `describe.each` matrix that looks reasonable in a unit test
+context balloons into dozens of cold starts and slows CI by a large factor.
+
+**Rule: loop inside the test body, not around `test()` calls.**
+
+```typescript
+// Bad: 2 routes × 5 methods = 10 separate Node processes
+createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+  describe.each(['/sync', '/async'])('when using %s route', route => {
+    describe.each(['get', 'post', 'put', 'delete', 'patch'])('when using %s method', method => {
+      test('handles transaction', async () => {
+        // ...
+      });
+    });
+  });
+});
+```
+
+```typescript
+// Good: one Node process, all combinations asserted in a single test run
+createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+  test('handles transactions for all route/method/path combinations', async () => {
+    const runner = createRunner();
+    const requests: Array<{ method: string; url: string }> = [];
+
+    for (const route of ['/sync', '/async']) {
+      for (const method of ['get', 'post', 'put', 'delete', 'patch']) {
+        const fullPath = `${route}${path}`;
+        runner.expect({
+          transaction: { transaction: `${method.toUpperCase()} ${fullPath}` },
+        });
+        requests.push({ method, url: fullPath });
+      }
+    }
+
+    const started = runner.start();
+    for (const req of requests) {
+      await started.makeRequest(req.method, req.url);
+    }
+    await started.completed();
+  }, 60_000);
+});
+```
+
+If a subset of cases has meaningfully different expectations (e.g., error vs. success), split
+into two tests — not thirty.
+
+---
+
 ## Writing Playwright E2E tests
 
 ### When to write E2E tests
@@ -366,17 +434,35 @@ expect(mechanism?.type).toBe('auto.http.hono.context_error');
 
 ### Parameterized E2E tests
 
-For Playwright tests (unlike Vitest), `for...of` loops are the established codebase convention.
-Use `for...of` (not `.forEach()`) so Playwright's test registration works correctly:
+For Playwright tests (unlike Vitest), use standard JS `.forEach()` as this is recommended by Playwright,
+**not** `it.each` or `it.for`, which are Vitest-only APIs. The `.forEach()` runs at discovery time, registering
+each case as its own independent test. All cases then run separately at execution time.
 
 ```typescript
-for (const { name, prefix } of SCENARIOS) {
-  test.describe(name, () => {
-    test('captures named middleware span', async ({ baseURL }) => {
-      // ...
-    });
+[
+  { a: 1, b: 1, expected: 2 },
+  { a: 1, b: 2, expected: 3 },
+  { a: 2, b: 1, expected: 3 },
+].forEach(({ a, b, expected }) => {
+  test(`given ${a} and ${b} as arguments, returns ${expected}`, ({ page }) => {
+    expect(a + b).toEqual(expected);
   });
-}
+});
+```
+
+**Don't put the loop inside a single test.** That collapses all cases into one test body — a
+failure in one iteration aborts the rest, and the runner reports a single failure with no
+per-case visibility:
+
+```typescript
+// Bad: all routes tested in one test — a failure on /users skips /posts entirely
+test('captures transactions for all routes', async ({ baseURL }) => {
+  for (const route of ['/users', '/posts', '/comments']) {
+    const txn = await waitForTransaction(APP_NAME, e => e.transaction === `GET ${route}`);
+    await fetch(`${baseURL}${route}`);
+    expect(txn.contexts?.trace?.op).toBe('http.server');
+  }
+});
 ```
 
 ### Common pitfalls
