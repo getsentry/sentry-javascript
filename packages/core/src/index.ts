@@ -166,7 +166,7 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors } from './tracing/vercel-ai';
+export { addVercelAiProcessors, processVercelAiSpanAttributes } from './tracing/vercel-ai';
 export { _INTERNAL_getSpanContextForToolCallId, _INTERNAL_cleanupToolCallSpanContext } from './tracing/vercel-ai/utils';
 export { toolCallSpanContextMap as _INTERNAL_toolCallSpanContextMap } from './tracing/vercel-ai/constants';
 export { instrumentOpenAiClient } from './tracing/openai';

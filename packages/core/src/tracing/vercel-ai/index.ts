@@ -4,7 +4,7 @@ import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin, StreamedSpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
@@ -233,19 +233,12 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
-function processEndedVercelAiSpan(span: SpanJSON): void {
-  const { data: attributes, origin } = span;
-
-  if (origin !== 'auto.vercelai.otel') {
-    return;
-  }
-
-  // The Vercel AI SDK sets span status to raw error message strings.
-  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
-  if (span.status && span.status !== 'ok') {
-    span.status = 'internal_error';
-  }
-
+/**
+ * Rename and normalize Vercel AI SDK attributes to OpenTelemetry semantic conventions.
+ * This is the shared attribute processing logic used by both the legacy event processor
+ * path (SpanJSON) and the streamed span path (StreamedSpanJSON).
+ */
+export function processVercelAiSpanAttributes(attributes: Record<string, unknown>): void {
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
@@ -338,6 +331,31 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   }
 }
 
+function processEndedVercelAiSpan(span: SpanJSON): void {
+  const { data: attributes, origin } = span;
+
+  if (origin !== 'auto.vercelai.otel') {
+    return;
+  }
+
+  // The Vercel AI SDK sets span status to raw error message strings.
+  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
+  if (span.status && span.status !== 'ok') {
+    span.status = 'internal_error';
+  }
+
+  processVercelAiSpanAttributes(attributes);
+}
+
+function processEndedVercelAiStreamedSpan(span: StreamedSpanJSON): void {
+  const attributes = span.attributes;
+  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
+    return;
+  }
+
+  processVercelAiSpanAttributes(attributes);
+}
+
 /**
  * Renames an attribute key in the provided attributes object if the old key exists.
  * This function safely handles null and undefined values.
@@ -427,9 +445,14 @@ export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+  client.on('processSpan', span => {
+    console.log('processSpan', span);
+    processEndedVercelAiStreamedSpan(span);
+    console.log('after processSpan', span);
+  });
 }
 
-function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
+function addProviderMetadataToAttributes(attributes: Record<string, unknown>): void {
   const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
   if (providerMetadata) {
     try {
@@ -506,7 +529,7 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
 /**
  * Sets an attribute only if the value is not null or undefined.
  */
-function setAttributeIfDefined(attributes: SpanAttributes, key: string, value: SpanAttributeValue | undefined): void {
+function setAttributeIfDefined(attributes: Record<string, unknown>, key: string, value: SpanAttributeValue | undefined): void {
   if (value != null) {
     attributes[key] = value;
   }
