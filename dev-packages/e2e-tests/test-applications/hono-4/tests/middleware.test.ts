@@ -18,13 +18,15 @@ for (const { name, prefix } of SCENARIOS) {
   test.describe(name, () => {
     test('creates a span for named middleware', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/named`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/named`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/named`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/named`);
+
       const spans = transaction.spans || [];
 
       const middlewareSpan = spans.find(
@@ -48,13 +50,15 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('creates a span for anonymous middleware', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/anonymous`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/anonymous`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/anonymous`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/anonymous`);
+
       const spans = transaction.spans || [];
 
       expect(spans).toContainEqual(
@@ -69,13 +73,15 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('multiple middleware are sibling spans under the same parent', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/multi`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/multi`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/multi`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/multi`);
+
       const spans = transaction.spans || [];
 
       const middlewareSpans = spans.sort((a, b) => (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0));
@@ -115,12 +121,14 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('sets error status on middleware span when middleware throws', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/error/*`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/error`);
       });
 
       await fetch(`${baseURL}${prefix}/error`);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/error/*`);
+
       const spans = transaction.spans || [];
 
       const failingSpan = spans.find(
@@ -153,7 +161,8 @@ test.describe('.all() handler in sub-app', () => {
   test('does not create middleware span for .all() route handler', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
-        event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
+        event.contexts?.trace?.op === 'http.server' &&
+        !!event.transaction?.includes('/test-subapp-middleware/all-handler')
       );
     });
 
@@ -164,6 +173,8 @@ test.describe('.all() handler in sub-app', () => {
     expect(body).toEqual({ handler: 'all' });
 
     const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe('GET /test-subapp-middleware/all-handler');
+
     const spans = transaction.spans || [];
 
     // No middleware is called for this route, so there should be no spans.
@@ -191,13 +202,14 @@ test.describe('inline middleware spans (sub-app)', () => {
         const fullPath = `${INLINE_PREFIX}${regPath}${mwPath}`;
 
         const transactionPromise = waitForTransaction(APP_NAME, event => {
-          return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${fullPath}`;
+          return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(fullPath);
         });
 
         const response = await fetch(`${baseURL}${fullPath}`);
         expect(response.status).toBe(200);
 
         const transaction = await transactionPromise;
+        expect(transaction.transaction).toBe(`GET ${fullPath}`);
 
         const EXPECTED_DESCRIPTIONS: Record<string, Record<string, string>> = {
           '/direct': { '': 'inlineMiddleware', '/separately': 'inlineSeparateMiddleware' },

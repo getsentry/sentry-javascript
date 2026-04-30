@@ -11,45 +11,45 @@ const REGISTRATION_STYLES = [
 ] as const;
 
 test.describe('HTTP methods', () => {
-  for (const method of ['POST', 'PUT', 'DELETE', 'PATCH']) {
+  ['POST', 'PUT', 'DELETE', 'PATCH'].forEach(method => {
     test(`sends transaction for ${method}`, async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `${method} ${PREFIX}`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(PREFIX);
       });
 
       const response = await fetch(`${baseURL}${PREFIX}`, { method });
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
       expect(transaction.transaction).toBe(`${method} ${PREFIX}`);
+      expect(transaction.contexts?.trace?.op).toBe('http.server');
     });
-  }
+  });
 });
 
 test.describe('route registration styles', () => {
-  for (const { name, path } of REGISTRATION_STYLES) {
+  REGISTRATION_STYLES.forEach(({ name, path }) => {
     test(`${name} sends transaction`, async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}${path}`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${PREFIX}${path}`);
       });
 
       const response = await fetch(`${baseURL}${PREFIX}${path}`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
       expect(transaction.transaction).toBe(`GET ${PREFIX}${path}`);
+      expect(transaction.contexts?.trace?.op).toBe('http.server');
     });
-  }
+  });
 
-  for (const { name, path } of [
+  [
     { name: '.all()', path: '/all' },
     { name: '.on()', path: '/on' },
-  ]) {
+  ].forEach(({ name, path }) => {
     test(`${name} responds to POST`, async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `POST ${PREFIX}${path}`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${PREFIX}${path}`);
       });
 
       const response = await fetch(`${baseURL}${PREFIX}${path}`, { method: 'POST' });
@@ -58,23 +58,24 @@ test.describe('route registration styles', () => {
       const transaction = await transactionPromise;
       expect(transaction.transaction).toBe(`POST ${PREFIX}${path}`);
     });
-  }
+  });
 });
 
 test('async handler sends transaction', async ({ baseURL }) => {
   const transactionPromise = waitForTransaction(APP_NAME, event => {
-    return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}/async`;
+    return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${PREFIX}/async`);
   });
 
   const response = await fetch(`${baseURL}${PREFIX}/async`);
   expect(response.status).toBe(200);
 
   const transaction = await transactionPromise;
+  expect(transaction.transaction).toBe(`GET ${PREFIX}/async`);
   expect(transaction.contexts?.trace?.op).toBe('http.server');
 });
 
 test.describe('500 HTTPException capture', () => {
-  for (const { name, path } of REGISTRATION_STYLES) {
+  REGISTRATION_STYLES.forEach(({ name, path }) => {
     test(`captures 500 from ${name} route with correct mechanism`, async ({ baseURL }) => {
       const fullPath = `${PREFIX}${path}/500`;
 
@@ -94,7 +95,7 @@ test.describe('500 HTTPException capture', () => {
         }),
       );
     });
-  }
+  });
 
   test('captures 500 error with POST method', async ({ baseURL }) => {
     const errorPromise = waitForError(APP_NAME, event => {
@@ -119,26 +120,29 @@ test.describe('500 HTTPException capture', () => {
   });
 });
 
-test.describe('4xx HTTPException capture', () => {
-  for (const code of [401, 402, 403]) {
-    test(`captures ${code} HTTPException`, async ({ baseURL }) => {
+test.describe('4xx HTTPException filtering', () => {
+  [401, 402, 403].forEach(code => {
+    test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
       const fullPath = `${PREFIX}/${code}`;
+      let errorEventOccurred = false;
 
-      const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === `response ${code}` && !!event.request?.url?.includes(fullPath);
+      waitForError(APP_NAME, event => {
+        if (event.exception?.values?.[0]?.value === `response ${code}` && event.request?.url?.includes(fullPath)) {
+          errorEventOccurred = true;
+        }
+        return false;
+      });
+
+      const transactionPromise = waitForTransaction(APP_NAME, event => {
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${PREFIX}/${code}`);
       });
 
       const response = await fetch(`${baseURL}${fullPath}`);
       expect(response.status).toBe(code);
 
-      const errorEvent = await errorPromise;
-      expect(errorEvent.exception?.values?.[0]?.value).toBe(`response ${code}`);
-      expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
-        expect.objectContaining({
-          handled: false,
-          type: 'auto.http.hono.context_error',
-        }),
-      );
+      const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${PREFIX}/${code}`);
+      expect(errorEventOccurred).toBe(false);
     });
-  }
+  });
 });

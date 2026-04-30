@@ -12,6 +12,7 @@ import {
   type WrappedFunction,
 } from '@sentry/core';
 import { type MiddlewareHandler } from 'hono';
+import { isExpectedError } from './isExpectedError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
@@ -46,9 +47,13 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
       return result;
     } catch (error) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, {
-        mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
-      });
+
+      if (!isExpectedError(error)) {
+        captureException(error, {
+          mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
+        });
+      }
+
       throw error;
     } finally {
       span.end();
