@@ -11,7 +11,7 @@
   "types": "build/types/src/index.d.ts",
   "scripts": {
     "build": "run-s build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && run-p clean:script",
@@ -20,7 +20,7 @@
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "type-check": "tsc",
     "test": "vitest run",
-    "test:watch": "yarn test --watch"
+    "test:watch": "pnpm test --watch"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",

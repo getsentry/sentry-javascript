@@ -22,7 +22,7 @@
     "access": "public"
   },
   "scripts": {
-    "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
+    "clean": "pnpm rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "test": "vitest run",

@@ -1,7 +1,7 @@
 /**
  * Auto-bumper for .size-limit.js.
  *
- * - Reads `yarn size-limit --json` output
+ * - Reads `pnpm size-limit --json` output
  * - For each entry, computes a new limit of roundUpToKB(currentSize + 5000)
  *   and applies it whenever the displayed value would change
  * - Rewrites .size-limit.js as plain text (NEVER require()d — the file contains
@@ -40,7 +40,7 @@ export function computeNewLimit(currentBytes) {
 }
 
 /**
- * Parse and strict-validate the JSON output from `yarn size-limit --json`.
+ * Parse and strict-validate the JSON output from `pnpm size-limit --json`.
  *
  * @param {string} raw - JSON string
  * @returns {Array<{ name: string, size: number, sizeLimit: number }>}
@@ -175,7 +175,7 @@ async function main() {
   // 1. Run size-limit. Capture JSON. execFile (no shell).
   let raw;
   try {
-    // `--silent` suppresses yarn's `yarn run v…` header and `Done in …` footer,
+    // `--silent` suppresses yarn's `pnpm run v…` header and `Done in …` footer,
     // which would otherwise break JSON.parse on the captured stdout.
     const { stdout } = await execFileAsync('yarn', ['--silent', 'size-limit', '--json'], {
       cwd: REPO_ROOT,

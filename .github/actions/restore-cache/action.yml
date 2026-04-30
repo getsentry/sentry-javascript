@@ -9,6 +9,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.15.9
+
     - name: Check dependency cache
       id: dep-cache
       uses: actions/cache/restore@v5
@@ -23,5 +28,5 @@ runs:
 
     - name: Install dependencies
       if: steps.dep-cache.outputs.cache-hit != 'true'
-      run: yarn install --ignore-engines --frozen-lockfile
+      run: pnpm install --frozen-lockfile
       shell: bash

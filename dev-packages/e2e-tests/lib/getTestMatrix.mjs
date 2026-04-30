@@ -122,7 +122,7 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
+    affectedProjects = execSync(`pnpm --silent nx show projects --affected ${additionalArgs.join(' ')}`)
       .toString()
       .split('\n')
       .map(line => line.trim())

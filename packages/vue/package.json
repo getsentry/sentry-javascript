@@ -78,7 +78,7 @@
     "build:types": "run-s build:types:core build:types:router build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:router": "tsc -p tsconfig.router-types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "pnpm downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

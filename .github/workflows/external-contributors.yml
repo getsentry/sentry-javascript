@@ -26,8 +26,12 @@ jobs:
         with:
           node-version-file: 'package.json'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Add external contributor to CHANGELOG.md
         uses: ./dev-packages/external-contributor-gh-action

@@ -36,7 +36,7 @@ async function fetchPreviousComment(octokit, repo, pr) {
 async function execSizeLimit() {
   let output = '';
 
-  const status = await exec('yarn run --silent size-limit --json', [], {
+  const status = await exec('pnpm run --silent size-limit --json', [], {
     windowsVerbatimArguments: false,
     ignoreReturnCode: true,
     cwd: process.cwd(),

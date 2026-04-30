@@ -35,7 +35,7 @@
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
     "build:tarball": "run-s build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"

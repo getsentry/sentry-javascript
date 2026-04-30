@@ -1,13 +1,13 @@
 # Sentry JavaScript SDK
 
-Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
+Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/Yarn/PNPM version management
+- [Volta](https://volta.sh/) for Node.js/PNPM version management
 - Requires `VOLTA_FEATURE_PNPM=1`
-- After cloning: `yarn install && yarn build`
-- Never change Volta, Yarn, or package manager versions unless explicitly asked
+- After cloning: `pnpm install && pnpm build`
+- Never change Volta or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -24,23 +24,23 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 ## Package Manager
 
-Use **yarn**: `yarn install`, `yarn build:dev`, `yarn test`, `yarn lint`
+Use **pnpm**: `pnpm install`, `pnpm build:dev`, `pnpm test`, `pnpm lint`
 
 | Command                               | Purpose                       |
 | ------------------------------------- | ----------------------------- |
-| `yarn build`                          | Full production build         |
-| `yarn build:dev`                      | Dev build (transpile + types) |
-| `yarn build:dev:filter @sentry/<pkg>` | Build one package + deps      |
-| `yarn build:bundle`                   | Browser bundles only          |
-| `yarn test`                           | All unit tests                |
-| `yarn verify`                         | Lint + format check           |
-| `yarn fix`                            | Format + lint fix             |
-| `yarn lint`                           | Lint (Oxlint)                 |
-| `yarn lint:fix`                       | Lint + auto-fix (Oxlint)      |
-| `yarn format`                         | Format files (Oxfmt)          |
-| `yarn format:check`                   | Check formatting (Oxfmt)      |
+| `pnpm build`                          | Full production build         |
+| `pnpm build:dev`                      | Dev build (transpile + types) |
+| `pnpm build:dev:filter @sentry/<pkg>` | Build one package + deps      |
+| `pnpm build:bundle`                   | Browser bundles only          |
+| `pnpm test`                           | All unit tests                |
+| `pnpm verify`                         | Lint + format check           |
+| `pnpm fix`                            | Format + lint fix             |
+| `pnpm lint`                           | Lint (Oxlint)                 |
+| `pnpm lint:fix`                       | Lint + auto-fix (Oxlint)      |
+| `pnpm format`                         | Format files (Oxfmt)          |
+| `pnpm format:check`                   | Check formatting (Oxfmt)      |
 
-Single package: `cd packages/<name> && yarn test`
+Single package: `cd packages/<name> && pnpm test`
 
 ## Commit Attribution
 
@@ -61,10 +61,10 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Before Every Commit
 
-1. `yarn format`
-2. `yarn lint`
-3. `yarn test`
-4. `yarn build:dev`
+1. `pnpm format`
+2. `pnpm lint`
+3. `pnpm test`
+4. `pnpm build:dev`
 5. NEVER push on `develop`
 
 ## Architecture
@@ -110,8 +110,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
-- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
-- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `pnpm lint` (Oxlint) instead
+- Never run `prettier` — use `pnpm format` (Oxfmt) instead
 - ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
 - Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
 

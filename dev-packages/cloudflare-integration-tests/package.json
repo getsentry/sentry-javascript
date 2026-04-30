@@ -10,7 +10,7 @@
     "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
     "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
     "test": "vitest run",
-    "test:watch": "yarn test --watch"
+    "test:watch": "pnpm test --watch"
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.1",
