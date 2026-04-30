@@ -24,7 +24,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^6.0.3",
-    "wrangler": "^4.86.0"
+    "wrangler": "4.86.0"
   },
   "volta": {
     "extends": "../../package.json"

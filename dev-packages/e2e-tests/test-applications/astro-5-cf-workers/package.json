@@ -18,7 +18,7 @@
     "astro": "^5.17.1"
   },
   "devDependencies": {
-    "wrangler": "^4.63.0"
+    "wrangler": "4.86.0"
   },
   "volta": {
     "extends": "../../package.json"
