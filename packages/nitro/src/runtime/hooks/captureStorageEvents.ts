@@ -77,9 +77,6 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
   });
 
   channel.subscribe({
-    start() {},
-    asyncStart() {},
-    end() {},
     asyncEnd(data: TracingChannelContextWithSpan<TraceContext & { result?: unknown }>) {
       if (data._sentrySpan && CACHE_HIT_OPERATIONS.has(operation)) {
         data._sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, isCacheHit(data.keys?.[0], data.result));
