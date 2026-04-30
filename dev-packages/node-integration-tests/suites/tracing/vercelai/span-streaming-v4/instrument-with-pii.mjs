@@ -8,4 +8,5 @@ Sentry.init({
   sendDefaultPii: true,
   transport: loggingTransport,
   traceLifecycle: 'stream',
+  integrations: [Sentry.vercelAIIntegration()],
 });
