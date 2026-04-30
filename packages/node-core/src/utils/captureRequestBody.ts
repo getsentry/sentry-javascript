@@ -1,8 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 import type { Scope } from '@sentry/core';
-import { debug } from '@sentry/core';
+import { debug, getMaxBodyByteLength, type MaxRequestBodySize } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { MAX_BODY_BYTE_LENGTH } from '../integrations/http/constants';
 
 /**
  * This method patches the request object to capture the body.
@@ -13,7 +12,7 @@ import { MAX_BODY_BYTE_LENGTH } from '../integrations/http/constants';
 export function patchRequestToCaptureBody(
   req: IncomingMessage,
   isolationScope: Scope,
-  maxIncomingRequestBodySize: 'small' | 'medium' | 'always',
+  maxIncomingRequestBodySize: MaxRequestBodySize,
   integrationName: string,
 ): void {
   let bodyByteLength = 0;
@@ -28,12 +27,7 @@ export function patchRequestToCaptureBody(
    */
   const callbackMap = new WeakMap();
 
-  const maxBodySize =
-    maxIncomingRequestBodySize === 'small'
-      ? 1_000
-      : maxIncomingRequestBodySize === 'medium'
-        ? 10_000
-        : MAX_BODY_BYTE_LENGTH;
+  const maxBodySize = getMaxBodyByteLength(maxIncomingRequestBodySize);
 
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method

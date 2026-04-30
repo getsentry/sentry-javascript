@@ -12,6 +12,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
+import { captureIncomingRequestBody } from './integrations/httpServer';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
@@ -82,6 +83,10 @@ export function wrapRequestHandler(
       if (typeof request.cf.httpProtocol === 'string') {
         attributes['network.protocol.name'] = request.cf.httpProtocol;
       }
+    }
+
+    if (client) {
+      await captureIncomingRequestBody(client, request);
     }
 
     // Do not capture spans for OPTIONS and HEAD requests
