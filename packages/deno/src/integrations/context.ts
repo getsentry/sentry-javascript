@@ -1,5 +1,5 @@
 import type { Event, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoContext';
 
@@ -53,10 +53,32 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
 }
 
 const _denoContextIntegration = (() => {
+  // Eagerly resolve the async OS release so it's available synchronously in processSegmentSpan
+  let cachedOsRelease: string | undefined;
+  getOSRelease()
+    .then(release => {
+      cachedOsRelease = release;
+    })
+    .catch(() => {
+      // Ignore - os.version will be undefined
+    });
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
       return addDenoRuntimeContext(event);
+    },
+    processSegmentSpan(span) {
+      safeSetSpanJSONAttributes(span, {
+        'app.start_time': new Date(Date.now() - performance.now()).toISOString(),
+        'device.archs': [Deno.build.arch],
+        // eslint-disable-next-line no-restricted-globals
+        'device.processor_count': navigator.hardwareConcurrency,
+        'os.name': getOSName(),
+        'os.version': cachedOsRelease,
+        'process.runtime.engine.name': 'v8',
+        'process.runtime.engine.version': Deno.version.v8,
+      });
     },
   };
 }) satisfies IntegrationFn;
