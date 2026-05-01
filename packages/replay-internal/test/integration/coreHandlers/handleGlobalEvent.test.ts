@@ -2,34 +2,22 @@
  * @vitest-environment jsdom
  */
 
-import "../../utils/mock-internal-setTimeout";
-import type { Event } from "@sentry/core";
-import { getClient } from "@sentry/core";
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
-import {
-  MAX_REPLAY_DURATION,
-  REPLAY_EVENT_NAME,
-  SESSION_IDLE_EXPIRE_DURATION,
-} from "../../../src/constants";
-import { handleGlobalEventListener } from "../../../src/coreHandlers/handleGlobalEvent";
-import type { ReplayContainer } from "../../../src/replay";
-import { makeSession } from "../../../src/session/Session";
-import * as resetReplayIdOnDynamicSamplingContextModule from "../../../src/util/resetReplayIdOnDynamicSamplingContext";
-import { Error } from "../../fixtures/error";
-import { Transaction } from "../../fixtures/transaction";
-import { resetSdkMock } from "../../mocks/resetSdkMock";
+import '../../utils/mock-internal-setTimeout';
+import type { Event } from '@sentry/core';
+import { getClient } from '@sentry/core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_REPLAY_DURATION, REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
+import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
+import type { ReplayContainer } from '../../../src/replay';
+import { makeSession } from '../../../src/session/Session';
+import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
+import { Error } from '../../fixtures/error';
+import { Transaction } from '../../fixtures/transaction';
+import { resetSdkMock } from '../../mocks/resetSdkMock';
 
 let replay: ReplayContainer;
 
-describe("Integration | coreHandlers | handleGlobalEvent", () => {
+describe('Integration | coreHandlers | handleGlobalEvent', () => {
   beforeAll(() => {
     vi.useFakeTimers();
   });
@@ -50,10 +38,10 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     replay.stop();
   });
 
-  it("deletes breadcrumbs from replay events", () => {
+  it('deletes breadcrumbs from replay events', () => {
     const replayEvent = {
       type: REPLAY_EVENT_NAME,
-      breadcrumbs: [{ type: "fakecrumb" }],
+      breadcrumbs: [{ type: 'fakecrumb' }],
     };
 
     // @ts-expect-error replay event type
@@ -62,35 +50,35 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     });
   });
 
-  it("does not delete breadcrumbs from error and transaction events", () => {
+  it('does not delete breadcrumbs from error and transaction events', () => {
     expect(
       handleGlobalEventListener(replay)(
         {
-          breadcrumbs: [{ type: "fakecrumb" }],
+          breadcrumbs: [{ type: 'fakecrumb' }],
         },
         {},
       ),
     ).toEqual(
       expect.objectContaining({
-        breadcrumbs: [{ type: "fakecrumb" }],
+        breadcrumbs: [{ type: 'fakecrumb' }],
       }),
     );
     expect(
       handleGlobalEventListener(replay)(
         {
-          type: "transaction",
-          breadcrumbs: [{ type: "fakecrumb" }],
+          type: 'transaction',
+          breadcrumbs: [{ type: 'fakecrumb' }],
         },
         {},
       ),
     ).toEqual(
       expect.objectContaining({
-        breadcrumbs: [{ type: "fakecrumb" }],
+        breadcrumbs: [{ type: 'fakecrumb' }],
       }),
     );
   });
 
-  it("does not add replayId for transactions in error mode", async () => {
+  it('does not add replayId for transactions in error mode', async () => {
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
@@ -106,11 +94,11 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     );
   });
 
-  it("does not add replayId if replay is not enabled", async () => {
+  it('does not add replayId if replay is not enabled', async () => {
     const transaction = Transaction();
     const error = Error();
 
-    replay["_isEnabled"] = false;
+    replay['_isEnabled'] = false;
 
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
       expect.not.objectContaining({
@@ -125,18 +113,18 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     );
   });
 
-  it("does not add replayId if replay session is expired", async () => {
+  it('does not add replayId if replay session is expired', async () => {
     const transaction = Transaction();
     const error = Error();
 
     const now = Date.now();
 
     replay.session = makeSession({
-      id: "test-session-id",
+      id: 'test-session-id',
       segmentId: 0,
       lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
       started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
-      sampled: "session",
+      sampled: 'session',
     });
 
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
@@ -152,9 +140,9 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     );
   });
 
-  it("tags errors and transactions with replay id for session samples", async () => {
+  it('tags errors and transactions with replay id for session samples', async () => {
     const { replay, integration } = await resetSdkMock({});
-    integration["_initialize"](getClient()!);
+    integration['_initialize'](getClient()!);
 
     const transaction = Transaction();
     const error = Error();
@@ -170,10 +158,10 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     );
   });
 
-  it("does not collect errorIds", async () => {
-    const error1 = Error({ event_id: "err1" });
-    const error2 = Error({ event_id: "err2" });
-    const error3 = Error({ event_id: "err3" });
+  it('does not collect errorIds', async () => {
+    const error1 = Error({ event_id: 'err1' });
+    const error2 = Error({ event_id: 'err2' });
+    const error3 = Error({ event_id: 'err3' });
 
     const handler = handleGlobalEventListener(replay);
 
@@ -184,10 +172,10 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
   });
 
-  it("does not collect traceIds", async () => {
-    const transaction1 = Transaction("tr1");
-    const transaction2 = Transaction("tr2");
-    const transaction3 = Transaction("tr3");
+  it('does not collect traceIds', async () => {
+    const transaction1 = Transaction('tr1');
+    const transaction2 = Transaction('tr2');
+    const transaction3 = Transaction('tr3');
 
     const handler = handleGlobalEventListener(replay);
 
@@ -198,13 +186,13 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
   });
 
-  it("ignores profile & replay events", async () => {
-    const profileEvent: Event = { type: "profile" };
-    const replayEvent: Event = { type: "replay_event" };
+  it('ignores profile & replay events', async () => {
+    const profileEvent: Event = { type: 'profile' };
+    const replayEvent: Event = { type: 'replay_event' };
 
     const handler = handleGlobalEventListener(replay);
 
-    expect(replay.recordingMode).toBe("buffer");
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(profileEvent, {});
     handler(replayEvent, {});
@@ -218,218 +206,205 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe("buffer");
+    expect(replay.recordingMode).toBe('buffer');
   });
 
-  it("does not skip non-rrweb errors", () => {
+  it('does not skip non-rrweb errors', () => {
     const errorEvent: Event = {
       exception: {
         values: [
           {
-            type: "TypeError",
+            type: 'TypeError',
             value: "Cannot read properties of undefined (reading 'contains')",
             stacktrace: {
               frames: [
                 {
-                  filename:
-                    "http://example.com/..node_modules/packages/replay/build/npm/some-other-file.js",
-                  function: "MutationBuffer.processMutations",
+                  filename: 'http://example.com/..node_modules/packages/replay/build/npm/some-other-file.js',
+                  function: 'MutationBuffer.processMutations',
                   in_app: true,
                   lineno: 101,
                   colno: 23,
                 },
                 {
-                  filename: "<anonymous>",
-                  function: "Array.forEach",
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
                   in_app: true,
                 },
               ],
             },
             mechanism: {
-              type: "generic",
+              type: 'generic',
               handled: true,
             },
           },
         ],
       },
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(
-      errorEvent,
-    );
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it("skips exception with __rrweb__ set", () => {
+  it('skips exception with __rrweb__ set', () => {
     const errorEvent: Event = {
       exception: {
         values: [
           {
-            type: "TypeError",
+            type: 'TypeError',
             value: "Cannot read properties of undefined (reading 'contains')",
             stacktrace: {
               frames: [
                 {
-                  filename: "scrambled.js",
-                  function: "MutationBuffer.processMutations",
+                  filename: 'scrambled.js',
+                  function: 'MutationBuffer.processMutations',
                   in_app: true,
                   lineno: 101,
                   colno: 23,
                 },
                 {
-                  filename: "<anonymous>",
-                  function: "Array.forEach",
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
                   in_app: true,
                 },
               ],
             },
             mechanism: {
-              type: "generic",
+              type: 'generic',
               handled: true,
             },
           },
         ],
       },
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    const originalException = new window.Error("some exception");
+    const originalException = new window.Error('some exception');
     // @ts-expect-error this could be set by rrweb
     originalException.__rrweb__ = true;
 
-    expect(
-      handleGlobalEventListener(replay)(errorEvent, { originalException }),
-    ).toEqual(null);
+    expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(null);
   });
 
-  it("handles string exceptions", () => {
+  it('handles string exceptions', () => {
     const errorEvent: Event = {
       exception: {
         values: [
           {
-            type: "TypeError",
+            type: 'TypeError',
             value: "Cannot read properties of undefined (reading 'contains')",
             stacktrace: {
               frames: [
                 {
-                  filename: "scrambled.js",
-                  function: "MutationBuffer.processMutations",
+                  filename: 'scrambled.js',
+                  function: 'MutationBuffer.processMutations',
                   in_app: true,
                   lineno: 101,
                   colno: 23,
                 },
                 {
-                  filename: "<anonymous>",
-                  function: "Array.forEach",
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
                   in_app: true,
                 },
               ],
             },
             mechanism: {
-              type: "generic",
+              type: 'generic',
               handled: true,
             },
           },
         ],
       },
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    const originalException = "some string exception";
+    const originalException = 'some string exception';
 
-    expect(
-      handleGlobalEventListener(replay)(errorEvent, { originalException }),
-    ).toEqual(errorEvent);
+    expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(errorEvent);
   });
 
-  it("does not skip rrweb internal errors with _experiments.captureExceptions", () => {
+  it('does not skip rrweb internal errors with _experiments.captureExceptions', () => {
     const errorEvent: Event = {
       exception: {
         values: [
           {
-            type: "TypeError",
+            type: 'TypeError',
             value: "Cannot read properties of undefined (reading 'contains')",
             stacktrace: {
               frames: [
                 {
                   filename:
-                    "http://example.com/..node_modules/packages/replay/build/npm/esm/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/mutation.js?v=90704e8a",
-                  function: "MutationBuffer.processMutations",
+                    'http://example.com/..node_modules/packages/replay/build/npm/esm/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/mutation.js?v=90704e8a',
+                  function: 'MutationBuffer.processMutations',
                   in_app: true,
                   lineno: 101,
                   colno: 23,
                 },
                 {
-                  filename: "<anonymous>",
-                  function: "Array.forEach",
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
                   in_app: true,
                 },
               ],
             },
             mechanism: {
-              type: "generic",
+              type: 'generic',
               handled: true,
             },
           },
         ],
       },
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
     replay.getOptions()._experiments = { captureExceptions: true };
 
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(
-      errorEvent,
-    );
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it("does not skip non-rrweb errors when no stacktrace exists", () => {
+  it('does not skip non-rrweb errors when no stacktrace exists', () => {
     const errorEvent: Event = {
       exception: {
         values: [
           {
-            type: "TypeError",
+            type: 'TypeError',
             value: "Cannot read properties of undefined (reading 'contains')",
             stacktrace: {
               frames: [],
             },
             mechanism: {
-              type: "generic",
+              type: 'generic',
               handled: true,
             },
           },
         ],
       },
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(
-      errorEvent,
-    );
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it("does not skip non-rrweb errors when no exception", () => {
+  it('does not skip non-rrweb errors when no exception', () => {
     const errorEvent: Event = {
       exception: undefined,
-      level: "error",
-      event_id: "ff1616b1e13744c6964281349aecc82a",
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(
-      errorEvent,
-    );
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it("does not add replayId if replay is paused", async () => {
+  it('does not add replayId if replay is paused', async () => {
     const transaction = Transaction();
     const error = Error();
 
-    replay["_isPaused"] = true;
+    replay['_isPaused'] = true;
 
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
       expect.not.objectContaining({
@@ -444,15 +419,15 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     );
   });
 
-  it("resets replayId on DSC when session expires", () => {
+  it('resets replayId on DSC when session expires', () => {
     const errorEvent = Error();
     const txEvent = Transaction();
 
-    vi.spyOn(replay, "checkAndHandleExpiredSession").mockReturnValue(false);
+    vi.spyOn(replay, 'checkAndHandleExpiredSession').mockReturnValue(false);
 
     const resetReplayIdSpy = vi.spyOn(
       resetReplayIdOnDynamicSamplingContextModule,
-      "resetReplayIdOnDynamicSamplingContext",
+      'resetReplayIdOnDynamicSamplingContext',
     );
 
     handleGlobalEventListener(replay)(errorEvent, {});
@@ -461,22 +436,22 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(resetReplayIdSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("resets replayId on DSC when replay is paused and session has expired", () => {
+  it('resets replayId on DSC when replay is paused and session has expired', () => {
     const now = Date.now();
 
     replay.session = makeSession({
-      id: "test-session-id",
+      id: 'test-session-id',
       segmentId: 0,
       lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
       started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
-      sampled: "session",
+      sampled: 'session',
     });
 
-    replay["_isPaused"] = true;
+    replay['_isPaused'] = true;
 
     const resetReplayIdSpy = vi.spyOn(
       resetReplayIdOnDynamicSamplingContextModule,
-      "resetReplayIdOnDynamicSamplingContext",
+      'resetReplayIdOnDynamicSamplingContext',
     );
 
     const errorEvent = Error();
@@ -486,22 +461,22 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(resetReplayIdSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("does not reset replayId on DSC when replay is paused but session is still valid", () => {
+  it('does not reset replayId on DSC when replay is paused but session is still valid', () => {
     const now = Date.now();
 
     replay.session = makeSession({
-      id: "test-session-id",
+      id: 'test-session-id',
       segmentId: 0,
       lastActivity: now,
       started: now,
-      sampled: "session",
+      sampled: 'session',
     });
 
-    replay["_isPaused"] = true;
+    replay['_isPaused'] = true;
 
     const resetReplayIdSpy = vi.spyOn(
       resetReplayIdOnDynamicSamplingContextModule,
-      "resetReplayIdOnDynamicSamplingContext",
+      'resetReplayIdOnDynamicSamplingContext',
     );
 
     const errorEvent = Error();
@@ -511,23 +486,23 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(resetReplayIdSpy).not.toHaveBeenCalled();
   });
 
-  it("resets replayId on DSC when replay is paused and session exceeds max duration", () => {
+  it('resets replayId on DSC when replay is paused and session exceeds max duration', () => {
     const now = Date.now();
 
     replay.session = makeSession({
-      id: "test-session-id",
+      id: 'test-session-id',
       segmentId: 0,
       // Recent activity, but session started too long ago
       lastActivity: now,
       started: now - MAX_REPLAY_DURATION - 1,
-      sampled: "session",
+      sampled: 'session',
     });
 
-    replay["_isPaused"] = true;
+    replay['_isPaused'] = true;
 
     const resetReplayIdSpy = vi.spyOn(
       resetReplayIdOnDynamicSamplingContextModule,
-      "resetReplayIdOnDynamicSamplingContext",
+      'resetReplayIdOnDynamicSamplingContext',
     );
 
     const errorEvent = Error();
@@ -536,22 +511,22 @@ describe("Integration | coreHandlers | handleGlobalEvent", () => {
     expect(resetReplayIdSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("resets replayId on DSC when replay is disabled and session has expired", () => {
+  it('resets replayId on DSC when replay is disabled and session has expired', () => {
     const now = Date.now();
 
     replay.session = makeSession({
-      id: "test-session-id",
+      id: 'test-session-id',
       segmentId: 0,
       lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
       started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
-      sampled: "session",
+      sampled: 'session',
     });
 
-    replay["_isEnabled"] = false;
+    replay['_isEnabled'] = false;
 
     const resetReplayIdSpy = vi.spyOn(
       resetReplayIdOnDynamicSamplingContextModule,
-      "resetReplayIdOnDynamicSamplingContext",
+      'resetReplayIdOnDynamicSamplingContext',
     );
 
     const errorEvent = Error();
