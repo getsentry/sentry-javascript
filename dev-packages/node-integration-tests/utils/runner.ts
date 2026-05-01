@@ -9,6 +9,7 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedStreamedSpanContainer,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
@@ -20,6 +21,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
 import { inspect, promisify } from 'util';
 import { afterAll, beforeAll, describe, test } from 'vitest';
+import type { DeepPartial } from './assertions';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -29,7 +31,9 @@ import {
   assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
+  assertSentrySpanContainer,
   assertSentryTransaction,
+  assertSpanEnvelopeHeader,
 } from './assertions';
 
 const execPromise = promisify(exec);
@@ -65,66 +69,57 @@ interface DockerOptions {
    */
   workingDirectory: string[];
   /**
-   * The strings to look for in the output to know that the docker compose is ready for the test to be run
-   */
-  readyMatches: string[];
-  /**
    * The command to run after docker compose is up
    */
   setupCommand?: string;
 }
 
 /**
- * Runs docker compose up and waits for the readyMatches to appear in the output
+ * Runs `docker compose up -d --wait`, which blocks until every service's
+ * healthcheck reports healthy. Each suite defines its healthcheck in its
+ * own docker-compose.yml.
  *
  * Returns a function that can be called to docker compose down
  */
 async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
-  return new Promise((resolve, reject) => {
-    const cwd = join(...options.workingDirectory);
-    const close = (): void => {
-      spawnSync('docker', ['compose', 'down', '--volumes'], {
-        cwd,
-        stdio: process.env.DEBUG ? 'inherit' : undefined,
-      });
-    };
+  const cwd = join(...options.workingDirectory);
+  const close = (): void => {
+    spawnSync('docker', ['compose', 'down', '--volumes'], {
+      cwd,
+      stdio: process.env.DEBUG ? 'inherit' : undefined,
+    });
+  };
 
-    // ensure we're starting fresh
-    close();
+  // ensure we're starting fresh
+  close();
 
-    const child = spawn('docker', ['compose', 'up'], { cwd });
-
-    const timeout = setTimeout(() => {
-      close();
-      reject(new Error('Timed out waiting for docker-compose'));
-    }, 75_000);
-
-    function newData(data: Buffer): void {
-      const text = data.toString('utf8');
-
-      if (process.env.DEBUG) log(text);
-
-      for (const match of options.readyMatches) {
-        if (text.includes(match)) {
-          child.stdout.removeAllListeners();
-          clearTimeout(timeout);
-          if (options.setupCommand) {
-            try {
-              // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
-              const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
-              execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
-            } catch (e) {
-              log('Error running docker setup command', e);
-            }
-          }
-          resolve(close);
-        }
-      }
-    }
-
-    child.stdout.on('data', newData);
-    child.stderr.on('data', newData);
+  const result = spawnSync('docker', ['compose', 'up', '-d', '--wait'], {
+    cwd,
+    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
   });
+
+  if (result.status !== 0) {
+    const stderr = result.stderr?.toString() ?? '';
+    const stdout = result.stdout?.toString() ?? '';
+    // Surface container logs to make healthcheck failures easier to diagnose in CI
+    const logs = spawnSync('docker', ['compose', 'logs'], { cwd }).stdout?.toString() ?? '';
+    close();
+    throw new Error(
+      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
+    );
+  }
+
+  if (options.setupCommand) {
+    try {
+      // Prepend local node_modules/.bin to PATH so additionalDependencies binaries take precedence
+      const env = { ...process.env, PATH: `${cwd}/node_modules/.bin:${process.env.PATH}` };
+      execSync(options.setupCommand, { cwd, stdio: 'inherit', env });
+    } catch (e) {
+      log('Error running docker setup command', e);
+    }
+  }
+
+  return close;
 }
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
@@ -135,6 +130,9 @@ type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) 
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
 type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
+type ExpectedSpanContainer =
+  | DeepPartial<SerializedStreamedSpanContainer>
+  | ((container: SerializedStreamedSpanContainer) => void);
 
 type Expected =
   | {
@@ -160,6 +158,9 @@ type Expected =
     }
   | {
       trace_metric: ExpectedMetricContainer;
+    }
+  | {
+      span: ExpectedSpanContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -167,7 +168,8 @@ type ExpectedEnvelopeHeader =
   | { transaction: Partial<Envelope[0]> }
   | { session: Partial<Envelope[0]> }
   | { sessions: Partial<Envelope[0]> }
-  | { log: Partial<Envelope[0]> };
+  | { log: Partial<Envelope[0]> }
+  | { span: Partial<Envelope[0]> };
 
 type StartResult = {
   completed(): Promise<void>;
@@ -479,7 +481,11 @@ export function createRunner(...paths: string[]) {
                 return;
               }
 
-              assertEnvelopeHeader(header, expected);
+              if (envelopeItemType === 'span') {
+                assertSpanEnvelopeHeader(header, expected);
+              } else {
+                assertEnvelopeHeader(header, expected);
+              }
 
               expectCallbackCalled();
             } catch (e) {
@@ -530,6 +536,9 @@ export function createRunner(...paths: string[]) {
               expectCallbackCalled();
             } else if ('trace_metric' in expected) {
               expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
+              expectCallbackCalled();
+            } else if ('span' in expected) {
+              expectSpanContainer(item[1] as SerializedStreamedSpanContainer, expected.span);
               expectCallbackCalled();
             } else {
               throw new Error(
@@ -794,6 +803,14 @@ function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricC
     expected(item);
   } else {
     assertSentryMetricContainer(item, expected);
+  }
+}
+
+function expectSpanContainer(item: SerializedStreamedSpanContainer, expected: ExpectedSpanContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentrySpanContainer(item, expected);
   }
 }
 

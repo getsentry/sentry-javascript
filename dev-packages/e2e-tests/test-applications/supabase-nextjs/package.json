@@ -7,14 +7,14 @@
     "build": "next build",
     "start": "next start",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
-    "start-local-supabase": "supabase init --force --workdir . && supabase start -o env && supabase db reset",
+    "start-local-supabase": "supabase stop --no-backup 2>/dev/null || true && supabase init --force --workdir . && supabase start -o env && supabase db reset",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm start-local-supabase && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
     "@next/font": "14.2.15",
-    "@sentry/nextjs": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@supabase/auth-helpers-react": "0.5.0",
     "@supabase/auth-ui-react": "0.4.7",
     "@supabase/supabase-js": "2.49.1",

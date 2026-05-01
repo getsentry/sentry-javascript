@@ -14,7 +14,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/nuxt": "latest || *",
+    "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "nuxt": "^3.14.0"
   },
   "devDependencies": {

@@ -82,7 +82,7 @@ async function _addEvent(
     return await eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
     const isExceeded = error && error instanceof EventBufferSizeExceededError;
-    const reason = isExceeded ? 'addEventSizeExceeded' : 'addEvent';
+    const reason = isExceeded ? 'eventBufferOverflow' : 'eventBufferError';
     const client = getClient();
 
     if (client) {

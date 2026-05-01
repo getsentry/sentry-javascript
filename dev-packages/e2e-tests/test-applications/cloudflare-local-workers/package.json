@@ -15,7 +15,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@sentry/cloudflare": "latest || *"
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",

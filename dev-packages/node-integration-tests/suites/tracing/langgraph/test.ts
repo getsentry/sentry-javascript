@@ -4,6 +4,7 @@ import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -12,6 +13,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
@@ -362,6 +364,193 @@ describe('LangGraph integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-resume.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should not throw when invoke is called with null input (resume scenario)', async () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_RESUME }).start().completed();
+    });
+  });
+
+  const longContent = 'A'.repeat(50_000);
+
+  const EXPECTED_TRANSACTION_NO_TRUNCATION = {
+    transaction: 'langgraph-test',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
+            { role: 'user', content: longContent },
+            { role: 'assistant', content: 'Some reply' },
+            { role: 'user', content: 'Follow-up question' },
+          ]),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-no-truncation.mjs',
+    'instrument-no-truncation.mjs',
+    (createRunner, test) => {
+      test('does not truncate input messages when enableTruncation is false', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_NO_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  const streamingLongContent = 'A'.repeat(50_000);
+
+  createEsmAndCjsTests(__dirname, 'scenario-span-streaming.mjs', 'instrument-streaming.mjs', (createRunner, test) => {
+    test('automatically disables truncation when span streaming is enabled', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+
+            const chatSpan = spans.find(s =>
+              s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes(streamingLongContent),
+            );
+            expect(chatSpan).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-span-streaming.mjs',
+    'instrument-streaming-with-truncation.mjs',
+    (createRunner, test) => {
+      test('respects explicit enableTruncation: true even when span streaming is enabled', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+
+              // With explicit enableTruncation: true, content should be truncated despite streaming.
+              const chatSpan = spans.find(s =>
+                s.attributes?.[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.startsWith('[{"role":"user","content":"AAAA'),
+              );
+              expect(chatSpan).toBeDefined();
+              expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value.length).toBeLessThan(
+                streamingLongContent.length,
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  // createReactAgent tests
+  const EXPECTED_TRANSACTION_REACT_AGENT = {
+    transaction: 'main',
+    spans: [
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
+          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'helpful_assistant',
+        }),
+        description: 'invoke_agent helpful_assistant',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'helpful_assistant',
+        }),
+        op: 'gen_ai.chat',
+      }),
+    ],
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT })
+        .start()
+        .completed();
+    });
+  });
+
+  // createReactAgent with tools - verifies tool execution spans
+  const EXPECTED_TRANSACTION_REACT_AGENT_TOOLS = {
+    transaction: 'main',
+    spans: [
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'math_assistant',
+        }),
+        op: 'gen_ai.invoke_agent',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'add',
+          'gen_ai.tool.type': 'function',
+        }),
+        description: 'execute_tool add',
+        op: 'gen_ai.execute_tool',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'multiply',
+          'gen_ai.tool.type': 'function',
+        }),
+        description: 'execute_tool multiply',
+        op: 'gen_ai.execute_tool',
+        status: 'ok',
+      }),
+      expect.objectContaining({ op: 'http.client' }),
+      expect.objectContaining({ op: 'gen_ai.chat' }),
+    ],
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT_TOOLS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: event => {
+            const spans = event.spans ?? [];
+            const chatSpans = spans.filter(s => s.op === 'gen_ai.chat');
+            expect(chatSpans).toHaveLength(1);
+            expect(chatSpans[0]?.data).toMatchObject({
+              [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'plain_assistant',
+            });
+          },
+        })
+        .start()
+        .completed();
     });
   });
 });

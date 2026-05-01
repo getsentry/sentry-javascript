@@ -34,7 +34,7 @@ describe('mysql2 auto instrumentation', () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
+      .withDockerCompose({ workingDirectory: [__dirname] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

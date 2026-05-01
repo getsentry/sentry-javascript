@@ -27,7 +27,7 @@
     "@playwright/test": "~1.56.0",
     "@ember/string": "~3.1.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/ember": "latest || *",
+    "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
     "@tsconfig/ember": "~3.0.6",
     "@tsconfig/node18": "18.2.4",
     "@types/ember": "~4.0.11",

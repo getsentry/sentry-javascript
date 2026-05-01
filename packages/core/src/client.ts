@@ -11,6 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
@@ -27,11 +28,12 @@ import type { Metric } from './types-hoist/metric';
 import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
+import type { ReplayEndEvent, ReplayStartEvent } from './types-hoist/replay';
 import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
+import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
 import { createClientReportEnvelope } from './utils/clientreport';
@@ -503,6 +505,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public addIntegration(integration: Integration): void {
     const isAlreadyInstalled = this._integrations[integration.name];
 
+    if (!isAlreadyInstalled && integration.beforeSetup) {
+      integration.beforeSetup(this);
+    }
+
     // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
     // Here we need to check manually to make sure to not run this multiple times
@@ -614,6 +620,28 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /**
+   * Register a callback for after a span is ended and the `spanEnd` hook has run.
+   * NOTE: The span cannot be mutated anymore in this callback.
+   */
+  public on(hook: 'afterSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
+
+  /**
+   * Register a callback for after a segment span is ended and the `segmentSpanEnd` hook has run.
+   * NOTE: The segment span cannot be mutated anymore in this callback.
+   */
+  public on(hook: 'afterSegmentSpanEnd', callback: (immutableSegmentSpan: Readonly<Span>) => void): () => void;
+
+  /**
+   * Register a callback for when a span JSON is processed, to add some data to the span JSON.
+   */
+  public on(hook: 'processSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
+
+  /**
+   * Register a callback for when a segment span JSON is processed, to add some data to the segment span JSON.
+   */
+  public on(hook: 'processSegmentSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
+
+  /**
    * Register a callback for when an idle span is allowed to auto-finish.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -698,6 +726,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a callback when the feedback widget is opened in a user's browser
    */
   public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when a replay session starts recording (either session or buffer mode).
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayStart', callback: (event: ReplayStartEvent) => void): () => void;
+
+  /**
+   * A hook that is called when a replay session stops recording, either manually or due to an
+   * internal condition such as `maxReplayDuration` expiry, send failure, or mutation limit.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayEnd', callback: (event: ReplayEndEvent) => void): () => void;
 
   /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
@@ -886,6 +927,26 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'spanEnd', span: Span): void;
 
   /**
+   * Fire a hook event after a span ends and the `spanEnd` hook has run.
+   */
+  public emit(hook: 'afterSpanEnd', immutableSpan: Readonly<Span>): void;
+
+  /**
+   * Fire a hook event after a segment span ends and the `spanEnd` hook has run.
+   */
+  public emit(hook: 'afterSegmentSpanEnd', immutableSegmentSpan: Readonly<Span>): void;
+
+  /**
+   * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
+   */
+  public emit(hook: 'processSpan', streamedSpanJSON: StreamedSpanJSON): void;
+
+  /**
+   * Fire a hook event for when a segment span JSON is processed, to add some data to the segment span JSON.
+   */
+  public emit(hook: 'processSegmentSpan', streamedSpanJSON: StreamedSpanJSON): void;
+
+  /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
    */
   public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
@@ -953,6 +1014,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event for when the feedback widget is opened in a user's browser
    */
   public emit(hook: 'openFeedbackWidget'): void;
+
+  /**
+   * Fire a hook event when a replay session starts recording.
+   */
+  public emit(hook: 'replayStart', event: ReplayStartEvent): void;
+
+  /**
+   * Fire a hook event when a replay session stops recording.
+   */
+  public emit(hook: 'replayEnd', event: ReplayEndEvent): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
@@ -1099,9 +1170,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Register a cleanup function to be called when the client is disposed.
+   * This is useful for integrations that need to clean up global state.
+   *
+   * NOTE: This is a no-op in the base `Client` class. Subclasses like `ServerRuntimeClient`
+   * override this method to actually register and execute cleanup callbacks.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public registerCleanup(callback: () => void): void {
+    // No-op in base class - subclasses override to implement cleanup registration
+  }
+
+  /**
    * Disposes of the client and releases all resources.
    *
-   * Subclasses should override this method to clean up their own resources.
+   * Subclasses should override this method to clean up their own resources, including invoking
+   * any callbacks registered via {@link Client.registerCleanup}. The base implementation is a
+   * no-op and does NOT execute registered cleanup callbacks.
+   *
    * After calling dispose(), the client should not be used anymore.
    */
   public dispose(): void {
@@ -1513,7 +1599,9 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
+  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
@@ -1527,7 +1615,13 @@ function processBeforeSend(
       const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
 
       // 1.1 If the root span should be ignored, drop the whole transaction
-      if (ignoreSpans?.length && shouldIgnoreSpan(rootSpanJson, ignoreSpans)) {
+      if (
+        ignoreSpans?.length &&
+        shouldIgnoreSpan(
+          { description: rootSpanJson.description, op: rootSpanJson.op, attributes: rootSpanJson.data },
+          ignoreSpans,
+        )
+      ) {
         // dropping the whole transaction!
         return null;
       }
@@ -1551,7 +1645,10 @@ function processBeforeSend(
 
         for (const span of initialSpans) {
           // 2.a If the child span should be ignored, reparent it to the root span
-          if (ignoreSpans?.length && shouldIgnoreSpan(span, ignoreSpans)) {
+          if (
+            ignoreSpans?.length &&
+            shouldIgnoreSpan({ description: span.description, op: span.op, attributes: span.data }, ignoreSpans)
+          ) {
             reparentChildSpans(initialSpans, span);
             continue;
           }

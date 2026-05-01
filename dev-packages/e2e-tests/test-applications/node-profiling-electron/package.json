@@ -11,8 +11,8 @@
     "@electron/rebuild": "^3.7.0",
     "@playwright/test": "~1.56.0",
     "@sentry/electron": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/profiling-node": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/profiling-node": "file:../../packed/sentry-profiling-node-packed.tgz",
     "electron": "^33.2.0"
   },
   "volta": {

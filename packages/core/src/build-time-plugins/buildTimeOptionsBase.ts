@@ -241,6 +241,19 @@ interface SourceMapsOptions {
    * The globbing patterns must follow the implementation of the `glob` package: https://www.npmjs.com/package/glob#glob-primer
    */
   filesToDeleteAfterUpload?: string | Array<string>;
+
+  /**
+   * Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map.
+   *
+   * The hook receives the following arguments:
+   * - `source` - the source file path from the source map's `sources` field
+   * - `map` - the source map object
+   * - `context` - an optional object containing `mapDir`, the absolute path to the directory of the source map file
+   *
+   * Defaults to making all sources relative to `process.cwd()` while building.
+   */
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- matches the bundler plugin's RewriteSourcesHook type
+  rewriteSources?: (source: string, map: any, context?: { mapDir: string }) => string;
 }
 
 type AutoSetCommitsOptions = {

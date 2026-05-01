@@ -18,6 +18,8 @@ export declare function init(options: Options | clientSdk.BrowserOptions | serve
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
+export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
+export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
@@ -40,3 +42,4 @@ export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewares
 export declare const tanstackRouterBrowserTracingIntegration: typeof clientSdk.tanstackRouterBrowserTracingIntegration;
 export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
 export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;
+export declare const createSentryTunnelRoute: typeof serverSdk.createSentryTunnelRoute;

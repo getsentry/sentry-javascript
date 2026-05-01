@@ -13,6 +13,12 @@ export interface LangChainOptions {
    * @default false (respects sendDefaultPii option)
    */
   recordOutputs?: boolean;
+
+  /**
+   * Enable or disable truncation of recorded input messages.
+   * Defaults to `true`.
+   */
+  enableTruncation?: boolean;
 }
 
 /**
@@ -28,6 +34,15 @@ export interface LangChainSerialized {
   name?: string;
   graph?: Record<string, unknown>;
   kwargs?: Record<string, unknown>;
+}
+
+/**
+ * Subset of the 'llm' param passed to createReactAgent
+ */
+export interface BaseChatModel {
+  lc_namespace: string[];
+  modelName?: string;
+  model?: string;
 }
 
 /**

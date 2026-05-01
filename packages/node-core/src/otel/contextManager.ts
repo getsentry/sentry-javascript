@@ -1,11 +1,7 @@
-import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { wrapContextManagerClass } from '@sentry/opentelemetry';
+import { SentryAsyncLocalStorageContextManager } from '@sentry/opentelemetry';
 
 /**
- * This is a custom ContextManager for OpenTelemetry, which extends the default AsyncLocalStorageContextManager.
+ * This is a custom ContextManager for OpenTelemetry & Sentry.
  * It ensures that we create a new hub per context, so that the OTEL Context & the Sentry Scopes are always in sync.
- *
- * Note that we currently only support AsyncHooks with this,
- * but since this should work for Node 14+ anyhow that should be good enough.
  */
-export const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
+export const SentryContextManager = SentryAsyncLocalStorageContextManager;

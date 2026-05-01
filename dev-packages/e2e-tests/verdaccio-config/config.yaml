@@ -8,13 +8,13 @@
 # https://github.com/verdaccio/verdaccio/tree/master/conf
 #
 
-# path to a directory with all packages
-storage: /verdaccio/storage/data
+# Repo-local storage (relative to this file). Absolute /verdaccio/... matches Docker-only templates and is not writable on typical dev machines.
+storage: ./storage/data
 
 # https://verdaccio.org/docs/configuration#authentication
 auth:
   htpasswd:
-    file: /verdaccio/storage/htpasswd
+    file: ./storage/htpasswd
 
 # https://verdaccio.org/docs/configuration#uplinks
 # a list of other known repositories we can talk to
@@ -237,6 +237,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/wasm':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/nitro':
     access: $all
     publish: $all
     unpublish: $all

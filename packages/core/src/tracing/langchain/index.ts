@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -5,12 +6,13 @@ import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { resolveAIRecordingOptions } from '../ai/utils';
+import { resolveAIRecordingOptions, shouldEnableTruncation } from '../ai/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -23,6 +25,8 @@ import {
   extractChatModelRequestAttributes,
   extractLLMRequestAttributes,
   extractLlmResponseAttributes,
+  extractToolDefinitions,
+  getAgentNameFromMetadata,
   getInvocationParams,
 } from './utils';
 
@@ -34,6 +38,7 @@ import {
  */
 export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+  const enableTruncation = shouldEnableTruncation(options.enableTruncation);
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
@@ -89,6 +94,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         prompts,
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );
@@ -100,6 +106,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           name: `${operationName} ${modelName}`,
           op: 'gen_ai.chat',
           attributes: {
+            ...getAgentNameFromMetadata(metadata),
             ...attributes,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           },
@@ -117,7 +124,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       messages: unknown,
       runId: string,
       _parentRunId?: string,
-      _extraParams?: Record<string, unknown>,
+      extraParams?: Record<string, unknown>,
       tags?: string[],
       metadata?: Record<string, unknown>,
       _runName?: string,
@@ -127,9 +134,16 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         llm as LangChainSerialized,
         messages as LangChainMessage[][],
         recordInputs,
+        enableTruncation,
         invocationParams,
         metadata,
       );
+
+      const toolDefsJson = extractToolDefinitions(extraParams);
+      if (toolDefsJson) {
+        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = toolDefsJson;
+      }
+
       const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE];
       const operationName = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE];
 
@@ -138,6 +152,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           name: `${operationName} ${modelName}`,
           op: 'gen_ai.chat',
           attributes: {
+            ...getAgentNameFromMetadata(metadata),
             ...attributes,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           },
@@ -190,17 +205,23 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       runId: string,
       _parentRunId?: string,
       _tags?: string[],
-      _metadata?: Record<string, unknown>,
+      metadata?: Record<string, unknown>,
       _runType?: string,
       runName?: string,
     ) {
+      // Skip chain spans when inside an agent context (createReactAgent).
+      // The agent already creates an invoke_agent span; internal chain steps
+      // (ChannelWrite, Branch, prompt, etc.) are noise.
+      if (metadata?.__sentry_langgraph__) {
+        return;
+      }
+
       const chainName = runName || chain.name || 'unknown_chain';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
         'langchain.chain.name': chainName,
       };
 
-      // Add inputs if recordInputs is enabled
       if (recordInputs) {
         attributes['langchain.chain.inputs'] = JSON.stringify(inputs);
       }
@@ -252,14 +273,30 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool Start Handler
-    handleToolStart(tool: { name?: string }, input: string, runId: string, _parentRunId?: string) {
-      const toolName = tool.name || 'unknown_tool';
+    handleToolStart(
+      tool: { name?: string },
+      input: string,
+      runId: string,
+      _parentRunId?: string,
+      _tags?: string[],
+      metadata?: Record<string, unknown>,
+      runName?: string,
+    ) {
+      // Skip tool spans when inside an agent context (createReactAgent).
+      // Tool spans are created by wrapToolsWithSpans with richer attributes.
+      if (metadata?.__sentry_langgraph__) {
+        return;
+      }
+
+      // runName is set to tool.name by LangChain's StructuredTool.call()
+      const toolName = runName || tool.name || 'unknown_tool';
       const attributes: Record<string, SpanAttributeValue> = {
+        ...getAgentNameFromMetadata(metadata),
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
         [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
       };
 
-      // Add input if recordInputs is enabled
       if (recordInputs) {
         attributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = input;
       }
@@ -284,10 +321,13 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleToolEnd(output: unknown, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        // Add output if recordOutputs is enabled
         if (recordOutputs) {
+          // LangChain tools may return ToolMessage objects — extract the content
+          const outputObj = output as Record<string, unknown> | undefined;
+          const content =
+            outputObj && typeof outputObj === 'object' && 'content' in outputObj ? outputObj.content : output;
           span.setAttributes({
-            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: JSON.stringify(output),
+            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: typeof content === 'string' ? content : JSON.stringify(content),
           });
         }
         exitSpan(runId);

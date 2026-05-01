@@ -5,7 +5,7 @@ import { APP_NAME } from '../constants';
 test.describe('client - pageload performance', () => {
   test('should send pageload transaction', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance';
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
     });
 
     await page.goto(`/performance`);
@@ -55,7 +55,10 @@ test.describe('client - pageload performance', () => {
 
   test('should update pageload transaction for dynamic routes', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/with/:param';
+      return (
+        transactionEvent.transaction === '/performance/with/:param' &&
+        transactionEvent.contexts?.trace?.op === 'pageload'
+      );
     });
 
     await page.goto(`/performance/with/sentry`);

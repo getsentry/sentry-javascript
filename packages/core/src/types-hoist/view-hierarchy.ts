@@ -14,5 +14,6 @@ export type ViewHierarchyWindow = {
 
 export type ViewHierarchyData = {
   rendering_system: string;
+  positioning?: 'absolute' | 'relative';
   windows: ViewHierarchyWindow[];
 };

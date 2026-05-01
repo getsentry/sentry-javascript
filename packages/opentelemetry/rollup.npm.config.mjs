@@ -2,6 +2,9 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
+    // `tracingChannel` is a Node.js-only subpath so `node:diagnostics_channel`
+    // isn't pulled into the main bundle (breaks edge/browser builds).
+    entrypoints: ['src/index.ts', 'src/tracingChannel.ts', 'src/index.browser.ts'],
     packageSpecificConfig: {
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn

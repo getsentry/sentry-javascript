@@ -42,7 +42,7 @@ describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
     };
 
     await createRunner(__dirname, 'scenario.js')
-      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1433'] })
+      .withDockerCompose({ workingDirectory: [__dirname] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

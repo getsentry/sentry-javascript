@@ -1,7 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
-  consoleIntegration,
   consoleSandbox,
   conversationIdIntegration,
   debug,
@@ -14,6 +13,7 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -34,6 +34,7 @@ import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexcept
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
+import { consoleIntegration } from '../integrations/console';
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
@@ -212,12 +213,18 @@ function getClientOptions(
   const integrations = options.integrations;
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(mergedOptions);
 
+  const resolvedIntegrations = getIntegrationsToSetup({
+    defaultIntegrations,
+    integrations,
+  });
+
+  if (mergedOptions.traceLifecycle === 'stream' && !resolvedIntegrations.some(i => i.name === 'SpanStreaming')) {
+    resolvedIntegrations.push(spanStreamingIntegration());
+  }
+
   return {
     ...mergedOptions,
-    integrations: getIntegrationsToSetup({
-      defaultIntegrations,
-      integrations,
-    }),
+    integrations: resolvedIntegrations,
   };
 }
 

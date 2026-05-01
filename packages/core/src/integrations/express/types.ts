@@ -136,7 +136,12 @@ export type ExpressRouter = {
 export type IgnoreMatcher = string | RegExp | ((name: string) => boolean);
 
 export type ExpressIntegrationOptions = {
-  express: ExpressModuleExport; //Express
+  /**
+   * @deprecated Pass the express module as the first argument, and an
+   * options getter as the second argument to patchExpressModule.
+   */
+  express?: ExpressModuleExport;
+
   /** Ignore specific based on their name */
   ignoreLayers?: IgnoreMatcher[];
   /** Ignore specific layers based on their type */

@@ -54,10 +54,18 @@ async function buildLambdaLayer(): Promise<void> {
 
   replaceSDKSource();
 
-  fsForceMkdirSync('./build/aws/dist-serverless/extensions');
-  fs.copyFileSync('./src/lambda-extension/sentry-extension', './build/aws/dist-serverless/extensions/sentry-extension');
-  fs.chmodSync('./build/aws/dist-serverless/extensions/sentry-extension', 0o755);
+  // Copy the Lambda extension from the shared build output into the layer structure.
+  // build/lambda-extension/ contains both index.mjs and the sentry-extension wrapper.
+  // Lambda requires the wrapper to be in /opt/extensions/ for auto-discovery,
+  // so it gets copied there separately.
+  fs.cpSync('./build/lambda-extension', './build/aws/dist-serverless/sentry-extension', { recursive: true });
   fs.chmodSync('./build/aws/dist-serverless/sentry-extension/index.mjs', 0o755);
+  fsForceMkdirSync('./build/aws/dist-serverless/extensions');
+  fs.copyFileSync(
+    './build/aws/dist-serverless/sentry-extension/sentry-extension',
+    './build/aws/dist-serverless/extensions/sentry-extension',
+  );
+  fs.chmodSync('./build/aws/dist-serverless/extensions/sentry-extension', 0o755);
 
   const zipFilename = `sentry-node-serverless-${version}.zip`;
   // Only include these directories in the zip file
@@ -65,6 +73,9 @@ async function buildLambdaLayer(): Promise<void> {
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
   run(`zip -r -y ${zipFilename} ${dirsToZip.join(' ')}`, { cwd: 'build/aws/dist-serverless' });
+
+  // Cleanup temporary installation files
+  fs.rmSync('build/aws/dist-serverless/nodejs/', { recursive: true, force: true });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

@@ -14,7 +14,7 @@
     "@cfworker/json-schema": "^4.0.0",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",
     "@modelcontextprotocol/node": "2.0.0-alpha.2",
-    "@sentry/node": "latest || *",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^18.19.1",
     "express": "^4.21.2",
@@ -25,7 +25,7 @@
     "@modelcontextprotocol/client": "2.0.0-alpha.2",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/core": "latest || *"
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
   "type": "module",
   "volta": {

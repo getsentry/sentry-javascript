@@ -131,4 +131,30 @@ describe('moduleMetadataInjectionLoader', () => {
 
     expect(result).toContain('"_sentryBundlerPluginAppKey:test-key-123":true');
   });
+
+  it('should inject after multiple directives', () => {
+    const loaderThis = createLoaderThis('my-app');
+    const userCode = '"use strict";\n"use client";\nimport React from \'react\';';
+
+    const result = moduleMetadataInjectionLoader.call(loaderThis, userCode);
+
+    const metadataIndex = result.indexOf('_sentryModuleMetadata');
+    const clientDirectiveIndex = result.indexOf('"use client"');
+    const importIndex = result.indexOf("import React from 'react';");
+
+    expect(metadataIndex).toBeGreaterThan(clientDirectiveIndex);
+    expect(metadataIndex).toBeLessThan(importIndex);
+  });
+
+  it('should inject after comments between multiple directives', () => {
+    const loaderThis = createLoaderThis('my-app');
+    const userCode = '"use strict";\n/* keep */\n"use client";\nimport React from \'react\';';
+
+    const result = moduleMetadataInjectionLoader.call(loaderThis, userCode);
+
+    const metadataIndex = result.indexOf('_sentryModuleMetadata');
+    const clientDirectiveIndex = result.indexOf('"use client"');
+
+    expect(metadataIndex).toBeGreaterThan(clientDirectiveIndex);
+  });
 });

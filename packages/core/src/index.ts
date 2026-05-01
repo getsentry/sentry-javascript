@@ -71,6 +71,9 @@ export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
+export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
+export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -84,11 +87,13 @@ export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
   spanToJSON,
+  spanToStreamedSpanJSON,
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
@@ -101,6 +106,9 @@ export { getTraceData } from './utils/traceData';
 export { shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
+export { makeWeakRef, derefWeakRef } from './utils/weakRef';
+export type { MaybeWeakRef } from './utils/weakRef';
+export { shouldIgnoreSpan } from './utils/should-ignore-span';
 export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -142,7 +150,7 @@ export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
 // eslint-disable-next-line deprecation/deprecation
-export { instrumentFetchRequest } from './fetch';
+export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
@@ -171,7 +179,7 @@ export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
-export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
+export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
@@ -185,8 +193,15 @@ export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
-  GoogleGenAIIstrumentedMethod,
+  GoogleGenAIInstrumentedMethod,
 } from './tracing/google-genai/types';
+// eslint-disable-next-line deprecation/deprecation
+export type { GoogleGenAIIstrumentedMethod } from './tracing/google-genai/types';
+
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
+
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -242,6 +257,7 @@ export {
 } from './utils/misc';
 export { isNodeEnv, loadModule } from './utils/node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
+export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
@@ -401,6 +417,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  StreamedSpanEnvelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -428,8 +445,17 @@ export type {
   Profile,
   ProfileChunk,
 } from './types-hoist/profiling';
-export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './types-hoist/replay';
 export type {
+  ReplayEndEvent,
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStartEvent,
+  ReplayStopReason,
+} from './types-hoist/replay';
+export type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
@@ -468,9 +494,13 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SerializedStreamedSpan,
+  SerializedStreamedSpanContainer,
+  StreamedSpanJSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
+export type { SpanLink } from './types-hoist/link';
 export type {
   Metric,
   MetricType,

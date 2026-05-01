@@ -21,7 +21,6 @@ import type { ThreadState, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
 
 type CurrentScopes = {
-  scope: Scope;
   isolationScope: Scope;
 };
 
@@ -275,14 +274,16 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
     ...getExceptionAndThreads(crashedThreadId, threads),
   };
 
-  const asyncState = threads[crashedThreadId]?.asyncState;
-  if (asyncState) {
-    // We need to rehydrate the scopes from the serialized objects so we can call getScopeData()
-    const scope = Object.assign(new Scope(), asyncState.scope).getScopeData();
-    const isolationScope = Object.assign(new Scope(), asyncState.isolationScope).getScopeData();
+  const scope = crashedThread.pollState?.scope
+    ? new Scope().update(crashedThread.pollState.scope).getScopeData()
+    : new Scope().getScopeData();
+
+  if (crashedThread?.asyncState?.isolationScope) {
+    // We need to rehydrate the scope from the serialized object with properties beginning with _user, etc
+    const isolationScope = Object.assign(new Scope(), crashedThread.asyncState.isolationScope).getScopeData();
     mergeScopeData(scope, isolationScope);
-    applyScopeToEvent(event, scope);
   }
+  applyScopeToEvent(event, scope);
 
   const allDebugImages: Record<string, string> = Object.values(threads).reduce((acc, threadState) => {
     return { ...acc, ...threadState.pollState?.debugImages };

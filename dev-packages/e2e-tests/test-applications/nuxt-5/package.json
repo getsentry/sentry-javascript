@@ -23,7 +23,7 @@
   ],
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "latest || *",
+    "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "nitro": "latest",
     "nuxt": "npm:nuxt-nightly@5x"
   },

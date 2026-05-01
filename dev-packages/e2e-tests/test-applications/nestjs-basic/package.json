@@ -19,9 +19,9 @@
     "@nestjs/microservices": "^10.0.0",
     "@nestjs/schedule": "^4.1.0",
     "@nestjs/platform-express": "^10.0.0",
-    "@sentry/nestjs": "latest || *",
+    "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
     "reflect-metadata": "^0.2.0",
-    "axios": "1.13.5",
+    "axios": "1.15.0",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {

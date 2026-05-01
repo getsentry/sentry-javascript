@@ -2,6 +2,7 @@ import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
 import { isSentryRequestSpan } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
+import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -59,7 +60,7 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
     const pathname = httpTarget.split('?')[0] || '';
 
-    return pathname === tunnelPath || pathname.startsWith(`${tunnelPath}/`);
+    return isPathnameUnderSentryTunnelRoute(pathname, tunnelPath);
   }
 
   return false;

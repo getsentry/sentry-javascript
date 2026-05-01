@@ -1,10 +1,11 @@
 import type { Integration } from '@sentry/core';
-import { debug, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { debug, getGlobalScope, getIsolationScope, SentryNonRecordingSpan } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { getClient, getCurrentScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
+import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from '../src/client/routing/appRouterRoutingInstrumentation';
 
 const reactInit = vi.spyOn(SentryReact, 'init');
 const debugLogSpy = vi.spyOn(debug, 'log');
@@ -19,6 +20,7 @@ Object.defineProperty(global, 'addEventListener', { value: () => undefined, writ
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
+const originalNavigator = WINDOW.navigator;
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const originalGlobalAddEventListener = WINDOW.addEventListener;
 
@@ -26,6 +28,7 @@ afterAll(() => {
   // Clean up JSDom
   Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
   Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
+  Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
 });
 
@@ -43,6 +46,7 @@ describe('Client init()', () => {
     getIsolationScope().clear();
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
+    Object.defineProperty(WINDOW, 'navigator', { value: originalNavigator, writable: true, configurable: true });
   });
 
   it('inits the React SDK', () => {
@@ -80,20 +84,68 @@ describe('Client init()', () => {
     );
   });
 
-  it('adds 404 transaction filter', () => {
-    init({
-      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      tracesSampleRate: 1.0,
-    });
-    const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
+  describe('transaction filtering', () => {
+    const TEST_DSN_404 = 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012';
 
-    // Ensure we have no current span, so our next span is a transaction
-    SentryReact.withActiveSpan(null, () => {
-      SentryReact.startInactiveSpan({ name: '/404' })?.end();
+    it('drops /404 transactions', () => {
+      init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0 });
+      const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
+
+      // Ensure we have no current span, so our next span is a transaction
+      SentryReact.withActiveSpan(null, () => {
+        SentryReact.startInactiveSpan({ name: '/404' })?.end();
+      });
+
+      expect(transportSend).not.toHaveBeenCalled();
+      expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
     });
 
-    expect(transportSend).not.toHaveBeenCalled();
-    expect(debugLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
+    it('drops incomplete navigation transactions', () => {
+      init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0 });
+      const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
+
+      // Ensure we have no current span, so our next span is a transaction
+      SentryReact.withActiveSpan(null, () => {
+        SentryReact.startInactiveSpan({ name: INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME })?.end();
+      });
+
+      expect(transportSend).not.toHaveBeenCalled();
+      expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
+    });
+
+    describe('span streaming', () => {
+      it('drops /404 segment spans', () => {
+        init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0, traceLifecycle: 'stream' });
+
+        // Ensure we have no current span, so our next span is a segment span
+        const span = SentryReact.withActiveSpan(null, () => SentryReact.startInactiveSpan({ name: '/404' }));
+
+        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
+      });
+
+      it('drops incomplete navigation segment spans', () => {
+        init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0, traceLifecycle: 'stream' });
+
+        // Ensure we have no current span, so our next span is a segment span
+        const span = SentryReact.withActiveSpan(null, () =>
+          SentryReact.startInactiveSpan({ name: INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME }),
+        );
+
+        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+        expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
+      });
+
+      it('drops /404 non-segment spans', () => {
+        init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0, traceLifecycle: 'stream' });
+
+        SentryReact.startSpan({ name: 'parent' }, parent => {
+          expect(parent).not.toBeInstanceOf(SentryNonRecordingSpan);
+          const child = SentryReact.startInactiveSpan({ name: '/404' });
+          expect(child).toBeInstanceOf(SentryNonRecordingSpan);
+        });
+      });
+    });
   });
 
   describe('integrations', () => {
@@ -159,6 +211,25 @@ describe('Client init()', () => {
 
         // @ts-expect-error Test setup for build-time flag
         delete globalThis.__SENTRY_TRACING__;
+      });
+
+      it("doesn't run Next.js router instrumentation for bot user agents", () => {
+        Object.defineProperty(WINDOW, 'navigator', {
+          value: {
+            userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          },
+          writable: true,
+          configurable: true,
+        });
+
+        const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+
+        init({
+          dsn: TEST_DSN,
+          tracesSampleRate: 1.0,
+        });
+
+        expect(setIntervalSpy).not.toHaveBeenCalled();
       });
     });
   });

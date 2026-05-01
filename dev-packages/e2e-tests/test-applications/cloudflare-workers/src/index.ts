@@ -19,6 +19,13 @@ class MyDurableObjectBase extends DurableObject<Env> {
     throw new Error('Should be recorded in Sentry.');
   }
 
+  async alarm(): Promise<void> {
+    const action = await this.ctx.storage.get<string>('alarm-action');
+    if (action === 'throw') {
+      throw new Error('Alarm error captured by Sentry');
+    }
+  }
+
   async fetch(request: Request) {
     const url = new URL(request.url);
     switch (url.pathname) {
@@ -31,6 +38,12 @@ class MyDurableObjectBase extends DurableObject<Env> {
         const [client, server] = Object.values(webSocketPair);
         this.ctx.acceptWebSocket(server);
         return new Response(null, { status: 101, webSocket: client });
+      }
+      case '/setAlarm': {
+        const action = url.searchParams.get('action') || 'succeed';
+        await this.ctx.storage.put('alarm-action', action);
+        await this.ctx.storage.setAlarm(Date.now() + 500);
+        return new Response('Alarm set');
       }
       case '/storage/put': {
         await this.ctx.storage.put('test-key', 'test-value');
@@ -72,7 +85,7 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    instrumentPrototypeMethods: true,
+    enableRpcTracePropagation: true,
   }),
   MyDurableObjectBase,
 );
@@ -88,6 +101,7 @@ export default Sentry.withSentry(
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
+    enableRpcTracePropagation: true,
   }),
   {
     async fetch(request, env) {

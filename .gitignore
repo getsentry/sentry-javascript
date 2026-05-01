@@ -67,6 +67,7 @@ packages/**/*.junit.xml
 
 # Local Claude Code settings that should not be committed
 .claude/settings.local.json
+.claude/worktrees
 
 # Triage report
 **/triage_report.md

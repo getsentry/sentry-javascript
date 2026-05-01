@@ -1,6 +1,7 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import type { LegacyCSPReport } from './types-hoist/csp';
 import type { DsnComponents } from './types-hoist/dsn';
 import type {
@@ -141,7 +142,10 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
 
   const filteredSpans = ignoreSpans?.length
-    ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
+    ? spans.filter(span => {
+        const json = spanToJSON(span);
+        return !shouldIgnoreSpan({ description: json.description, op: json.op, attributes: json.data }, ignoreSpans);
+      })
     : spans;
   const droppedSpans = spans.length - filteredSpans.length;
 
@@ -152,7 +156,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
-        const processedSpan = beforeSendSpan(spanJson);
+        const processedSpan = !isStreamedBeforeSendSpanCallback(beforeSendSpan) ? beforeSendSpan(spanJson) : spanJson;
 
         if (!processedSpan) {
           showSpanDropWarning();

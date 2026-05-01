@@ -1,9 +1,8 @@
 import * as SentryCore from '@sentry/core';
-import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/node/middleware';
-import type { Integration } from '@sentry/core';
+import { init } from '../../src/node/sdk';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn(),
@@ -29,231 +28,150 @@ describe('Hono Node Middleware', () => {
     vi.clearAllMocks();
   });
 
-  describe('sentry middleware', () => {
-    it('calls applySdkMetadata with "hono"', () => {
+  describe('sentry middleware (external init)', () => {
+    it('does not call init', () => {
       const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
+      sentry(app);
 
-      sentry(app, options);
-
-      expect(applySdkMetadataMock).toHaveBeenCalledTimes(1);
-      expect(applySdkMetadataMock).toHaveBeenCalledWith(options, 'hono', ['hono', 'node']);
-    });
-
-    it('calls init from @sentry/node', () => {
-      const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
-
-      sentry(app, options);
-
-      expect(initNodeMock).toHaveBeenCalledTimes(1);
-      expect(initNodeMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-        }),
-      );
-    });
-
-    it('sets SDK metadata before calling Node init', () => {
-      const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
-
-      sentry(app, options);
-
-      const applySdkMetadataCallOrder = applySdkMetadataMock.mock.invocationCallOrder[0];
-      const initNodeCallOrder = (initNodeMock as Mock).mock.invocationCallOrder[0];
-
-      expect(applySdkMetadataCallOrder).toBeLessThan(initNodeCallOrder as number);
-    });
-
-    it('preserves all user options', () => {
-      const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-        environment: 'production',
-        sampleRate: 0.5,
-        tracesSampleRate: 1.0,
-        debug: true,
-      };
-
-      sentry(app, options);
-
-      expect(initNodeMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          environment: 'production',
-          sampleRate: 0.5,
-          tracesSampleRate: 1.0,
-          debug: true,
-        }),
-      );
+      expect(initNodeMock).not.toHaveBeenCalled();
     });
 
     it('returns a middleware handler function', () => {
       const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
-
-      const middleware = sentry(app, options);
+      const middleware = sentry(app);
 
       expect(middleware).toBeDefined();
       expect(typeof middleware).toBe('function');
-      expect(middleware).toHaveLength(2); // Hono middleware takes (context, next)
+      expect(middleware).toHaveLength(2);
     });
 
     it('returns an async middleware handler', () => {
       const app = new Hono();
-      const middleware = sentry(app, {});
+      const middleware = sentry(app);
 
       expect(middleware.constructor.name).toBe('AsyncFunction');
     });
 
-    it('passes an integrations function to initNode (never a raw array)', () => {
-      const app = new Hono();
-      sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    it('emits a warning when Sentry is not initialized', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
 
-      const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
-      expect(typeof callArgs.integrations).toBe('function');
+      const app = new Hono();
+      sentry(app);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
     });
 
-    it('includes hono SDK metadata', () => {
+    it('does not emit a warning when Sentry is already initialized', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      const fakeClient = { getOptions: () => ({ debug: false }) };
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
       const app = new Hono();
-      const options = {
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      };
+      sentry(app);
 
-      sentry(app, options);
-
-      expect(initNodeMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _metadata: expect.objectContaining({
-            sdk: expect.objectContaining({
-              name: 'sentry.javascript.hono',
-              version: SDK_VERSION,
-              packages: [
-                { name: 'npm:@sentry/hono', version: SDK_VERSION },
-                { name: 'npm:@sentry/node', version: SDK_VERSION },
-              ],
-            }),
-          }),
-        }),
-      );
+      expect(warnSpy).not.toHaveBeenCalled();
     });
   });
 
-  describe('Hono integration filtering', () => {
-    const honoIntegration = { name: 'Hono' } as Integration;
-    const otherIntegration = { name: 'Other' } as Integration;
+  describe('double-init guard', () => {
+    it('skips re-initialization when a client already exists', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      const getClientSpy = vi
+        .spyOn(SentryCore, 'getClient')
+        .mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
-    const getIntegrationsFn = (): ((defaults: Integration[]) => Integration[]) => {
-      const callArgs = (initNodeMock as Mock).mock.calls[0]?.[0];
-      return callArgs.integrations as (defaults: Integration[]) => Integration[];
-    };
+      const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    describe('when integrations is an array', () => {
-      it('keeps a user-explicitly-provided Hono integration', () => {
-        const app = new Hono();
-        sentry(app, { integrations: [honoIntegration, otherIntegration] });
+      expect(result).toBe(fakeClient);
+      expect(initNodeMock).not.toHaveBeenCalled();
 
-        const integrationsFn = getIntegrationsFn();
-        const result = integrationsFn([]);
-        expect(result.map(i => i.name)).toContain('Hono');
-        expect(result.map(i => i.name)).toContain('Other');
-      });
-
-      it('keeps non-Hono user integrations', () => {
-        const app = new Hono();
-        sentry(app, { integrations: [otherIntegration] });
-
-        const integrationsFn = getIntegrationsFn();
-        expect(integrationsFn([])).toEqual([otherIntegration]);
-      });
-
-      it('preserves user-provided Hono even when defaults would also provide it', () => {
-        const app = new Hono();
-        sentry(app, { integrations: [honoIntegration] });
-
-        const integrationsFn = getIntegrationsFn();
-        // Defaults include Hono, but it should be filtered from defaults; user's copy is kept
-        const result = integrationsFn([honoIntegration, otherIntegration]);
-        expect(result.filter(i => i.name === 'Hono')).toHaveLength(1);
-      });
-
-      it('removes Hono from defaults when user does not explicitly provide it', () => {
-        const app = new Hono();
-        sentry(app, { integrations: [otherIntegration] });
-
-        const integrationsFn = getIntegrationsFn();
-        const defaultsWithHono = [honoIntegration, otherIntegration];
-        const result = integrationsFn(defaultsWithHono);
-        expect(result.map(i => i.name)).not.toContain('Hono');
-      });
-
-      it('deduplicates non-Hono integrations when user integrations overlap with defaults', () => {
-        const app = new Hono();
-        const duplicateIntegration = { name: 'Other' } as Integration;
-        sentry(app, { integrations: [duplicateIntegration] });
-
-        const integrationsFn = getIntegrationsFn();
-        const defaultsWithOverlap = [honoIntegration, otherIntegration];
-        const result = integrationsFn(defaultsWithOverlap);
-        expect(result).toHaveLength(1);
-        expect(result[0]?.name).toBe('Other');
-      });
+      getClientSpy.mockRestore();
     });
 
-    describe('when integrations is a function', () => {
-      it('passes defaults without Hono to the user function', () => {
-        const app = new Hono();
-        const userFn = vi.fn((_defaults: Integration[]) => [otherIntegration]);
-        const defaultIntegration = { name: 'Default' } as Integration;
+    it('initializes normally when no client exists yet', () => {
+      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
 
-        sentry(app, { integrations: userFn });
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-        const integrationsFn = getIntegrationsFn();
-        integrationsFn([honoIntegration, defaultIntegration]);
+      expect(initNodeMock).toHaveBeenCalledTimes(1);
 
-        const receivedDefaults = userFn.mock.calls[0]?.[0] as Integration[];
-        expect(receivedDefaults.map(i => i.name)).not.toContain('Hono');
-        expect(receivedDefaults.map(i => i.name)).toContain('Default');
-      });
+      getClientSpy.mockRestore();
+    });
+  });
 
-      it('preserves a Hono integration explicitly returned by the user function', () => {
-        const app = new Hono();
-        sentry(app, { integrations: () => [honoIntegration, otherIntegration] });
+  describe('sentry middleware without options (external init)', () => {
+    it('does not call init when no options are provided', () => {
+      const app = new Hono();
+      sentry(app);
 
-        const integrationsFn = getIntegrationsFn();
-        const result = integrationsFn([]);
-        expect(result.map(i => i.name)).toContain('Hono');
-        expect(result.map(i => i.name)).toContain('Other');
-      });
-
-      it('does not include Hono when user function just returns defaults', () => {
-        const app = new Hono();
-        sentry(app, { integrations: (defaults: Integration[]) => defaults });
-
-        const integrationsFn = getIntegrationsFn();
-        const result = integrationsFn([honoIntegration, otherIntegration]);
-        expect(result.map(i => i.name)).not.toContain('Hono');
-        expect(result.map(i => i.name)).toContain('Other');
-      });
+      expect(initNodeMock).not.toHaveBeenCalled();
+      expect(applySdkMetadataMock).not.toHaveBeenCalled();
     });
 
-    describe('when integrations is undefined', () => {
-      it('removes Hono from defaults', () => {
-        const app = new Hono();
-        sentry(app, {});
+    it('returns a middleware handler function', () => {
+      const app = new Hono();
+      const middleware = sentry(app);
 
-        const integrationsFn = getIntegrationsFn();
-        expect(integrationsFn([honoIntegration, otherIntegration])).toEqual([otherIntegration]);
-      });
+      expect(middleware).toBeDefined();
+      expect(typeof middleware).toBe('function');
+      expect(middleware).toHaveLength(2);
+    });
+
+    it('returns an async middleware handler', () => {
+      const app = new Hono();
+      const middleware = sentry(app);
+
+      expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+
+    it('emits a warning when Sentry is not initialized', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+      const app = new Hono();
+      sentry(app);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry is not initialized'));
+    });
+
+    it('does not emit a warning when Sentry is already initialized', () => {
+      const warnSpy = vi.spyOn(SentryCore.debug, 'warn');
+      const fakeClient = { getOptions: () => ({ debug: false }) };
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const app = new Hono();
+      const middleware = sentry(app);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(middleware.constructor.name).toBe('AsyncFunction');
+    });
+  });
+
+  describe('double-init guard', () => {
+    it('skips re-initialization when a client already exists', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      const getClientSpy = vi
+        .spyOn(SentryCore, 'getClient')
+        .mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(result).toBe(fakeClient);
+      expect(initNodeMock).not.toHaveBeenCalled();
+      expect(applySdkMetadataMock).not.toHaveBeenCalled();
+
+      getClientSpy.mockRestore();
+    });
+
+    it('initializes normally when no client exists yet', () => {
+      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(initNodeMock).toHaveBeenCalledTimes(1);
+
+      getClientSpy.mockRestore();
     });
   });
 });

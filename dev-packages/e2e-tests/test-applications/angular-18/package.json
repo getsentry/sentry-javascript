@@ -23,7 +23,7 @@
     "@angular/platform-browser": "^18.0.0",
     "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^18.0.0",
-    "@sentry/angular": "* || latest",
+    "@sentry/angular": "file:../../packed/sentry-angular-packed.tgz",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
@@ -31,7 +31,7 @@
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/core": "latest || *",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@angular-devkit/build-angular": "^18.0.0",
     "@angular/cli": "^18.0.0",
     "@angular/compiler-cli": "^18.0.0",

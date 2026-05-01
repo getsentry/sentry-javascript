@@ -1,5 +1,5 @@
 import type { CultureContext, IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'CultureContext';
@@ -15,6 +15,17 @@ const _cultureContextIntegration = (() => {
           ...event.contexts,
           culture: { ...culture, ...event.contexts?.culture },
         };
+      }
+    },
+    processSegmentSpan(span) {
+      const culture = getCultureContext();
+
+      if (culture) {
+        safeSetSpanJSONAttributes(span, {
+          'culture.locale': culture.locale,
+          'culture.timezone': culture.timezone,
+          'culture.calendar': culture.calendar,
+        });
       }
     },
   };
