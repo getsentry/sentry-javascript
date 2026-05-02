@@ -91,10 +91,7 @@ export function initWithoutDefaultIntegrations(userOptions: BunOptions = {}): Li
   return _init(userOptions, () => []);
 }
 
-function _init(
-  _options: BunOptions,
-  getDefaultIntegrationsImpl: (options: Options) => Integration[],
-): LightNodeClient {
+function _init(_options: BunOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]): LightNodeClient {
   const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
   if (options.debug === true) {
