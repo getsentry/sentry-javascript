@@ -104,8 +104,10 @@ export interface HttpIncomingMessage {
 
 /** Minimal interface for a Node.js http / https module export */
 export interface HttpExport {
-  request: (...args: unknown[]) => HttpClientRequest;
-  get: (...args: unknown[]) => HttpClientRequest;
+  //oxlint-disable typescript/no-explicit-any
+  request: (...args: any[]) => HttpClientRequest;
+  //oxlint-disable typescript/no-explicit-any
+  get: (...args: any[]) => HttpClientRequest;
   [key: string]: unknown;
 }
 
@@ -257,4 +259,23 @@ export interface HttpInstrumentationOptions {
    * the RPC metadata.
    */
   onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * Optional: pass in the `http` and `https` modules in order to detect
+   * whether a standalone OTel instrumentation is attempting to wrap them
+   * as well. This is fine, as long as `spans` option is disabled, but will
+   * result in double-emitting spans otherwise.
+   *
+   * Since this cannot be fully prevented due to module load timing, and isn't
+   * necessarily harmful per se (just noisy/annoying), and there are a number
+   * of reasonable approaches to fix it (disable the OTel instrumentation,
+   * disable this instrumentation, or keep both and disable spans in one or the
+   * other), we simply print a warning so the user can hopefully make an
+   * informed decision about how to address it (if at all).
+   */
+  http?: HttpModuleExport;
+  https?: HttpModuleExport;
+
+  /** suppress the warning about double-wrapping with OTel */
+  suppressOtelWarning?: boolean;
 }

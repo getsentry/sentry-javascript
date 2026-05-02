@@ -1,5 +1,4 @@
 import { subscribe } from 'node:diagnostics_channel';
-import type * as http from 'node:http';
 import { context, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
@@ -12,17 +11,13 @@ import type {
   HttpModuleExport,
   Span,
 } from '@sentry/core';
-import {
-  getHttpClientSubscriptions,
-  patchHttpModuleClient,
-  patchHttpsModuleClient,
-  SDK_VERSION,
-  getRequestOptions,
-} from '@sentry/core';
+import { getHttpClientSubscriptions, patchHttpModuleClient, SDK_VERSION, getRequestOptions } from '@sentry/core';
 import { INSTRUMENTATION_NAME } from './constants';
 import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
+import * as http from 'node:http';
+import * as https from 'node:https';
 
 const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
   (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
@@ -212,6 +207,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         context.bind(context.active(), response);
       },
       errorMonitor,
+      // Pass these in to detect OTel double-wrapping if we're enabling spans
+      http,
+      https,
     };
 
     // only generate the subscriber function if we'll actually use it
@@ -233,7 +231,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
     const wrapHttp = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
 
-    const wrapHttps = sub ?? ((moduleExports: HttpModuleExport) => patchHttpsModuleClient(moduleExports, patchOptions));
+    const wrapHttps = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
 
     /**
      * You may be wondering why we register these diagnostics-channel listeners

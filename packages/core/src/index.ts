@@ -150,7 +150,7 @@ export type { FeatureFlagsIntegration } from './integrations/featureFlags';
 export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
-export { patchHttpModuleClient, patchHttpsModuleClient } from './integrations/http/client-patch';
+export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
 export {
