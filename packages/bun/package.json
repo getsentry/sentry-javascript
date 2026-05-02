@@ -26,6 +26,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./light": {
+      "import": {
+        "types": "./build/types/light/index.d.ts",
+        "default": "./build/esm/light/index.js"
+      },
+      "require": {
+        "types": "./build/types/light/index.d.ts",
+        "default": "./build/cjs/light/index.js"
+      }
     }
   },
   "typesVersions": {
@@ -40,7 +50,8 @@
   },
   "dependencies": {
     "@sentry/core": "10.51.0",
-    "@sentry/node": "10.51.0"
+    "@sentry/node": "10.51.0",
+    "@sentry/node-core": "10.51.0"
   },
   "devDependencies": {
     "bun-types": "^1.2.9"
