@@ -1,9 +1,9 @@
 import type { BaseTransportOptions, Envelope, Event, Transport, TransportMakeRequestResponse } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import type { BunLightClient } from '../src/light/index';
+import { describe, expect, test } from 'bun:test';
+import type { LightNodeClient } from '../src/light/index';
 import { init, makeFetchTransport } from '../src/light/index';
 
-let envelopes: Envelope[] = [];
+const envelopes: Envelope[] = [];
 
 function testTransport(_options: BaseTransportOptions): Transport {
   return {
@@ -24,16 +24,8 @@ describe('Bun Light SDK', () => {
     transport: testTransport,
   };
 
-  beforeEach(() => {
-    envelopes = [];
-  });
-
-  afterEach(() => {
-    envelopes = [];
-  });
-
   test('SDK works as expected', async () => {
-    let client: BunLightClient | undefined;
+    let client: LightNodeClient | undefined;
     expect(() => {
       client = init(initOptions);
     }).not.toThrow();
@@ -41,7 +33,9 @@ describe('Bun Light SDK', () => {
     expect(client).not.toBeUndefined();
 
     client?.captureException(new Error('test'));
-    await client?.flush();
+    client?.flush();
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const errorEnvelope = envelopes.find(envelope => envelope?.[1][0]?.[0]?.type === 'event');
     expect(errorEnvelope).toBeDefined();

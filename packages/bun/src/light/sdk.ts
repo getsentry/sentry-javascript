@@ -25,21 +25,24 @@ import {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  processSessionIntegration,
   spotlightIntegration,
   systemErrorIntegration,
 } from '@sentry/node-core';
 import {
   httpIntegration,
+  LightNodeClient,
   nativeNodeFetchIntegration,
   setAsyncLocalStorageAsyncContextStrategy,
 } from '@sentry/node-core/light';
-import { BunLightClient } from './client';
 import { makeFetchTransport } from '../transports';
 import type { BunOptions } from '../types';
 
 const SPOTLIGHT_INTEGRATION_NAME = 'Spotlight';
 
-/** Get the default integrations for the Bun Light SDK. */
+/**
+ * Get default integrations for the Bun Light SDK.
+ */
 export function getDefaultIntegrations(): Integration[] {
   return [
     // Common
@@ -61,6 +64,7 @@ export function getDefaultIntegrations(): Integration[] {
     nodeContextIntegration(),
     modulesIntegration(),
     childProcessIntegration(),
+    processSessionIntegration(),
   ];
 }
 
@@ -69,39 +73,41 @@ export function getDefaultIntegrations(): Integration[] {
  *
  * This is a lightweight alternative to the default @sentry/bun entry point.
  * It does not load OpenTelemetry or any auto-instrumentation modules, making it
- * suitable for applications that do not want OpenTelemetry overhead.
+ * suitable for CLI tools and other non-server Bun applications.
  *
  * @example
  * import * as Sentry from '@sentry/bun/light';
+ *
  * Sentry.init({ dsn: '__DSN__' });
  */
-export function init(userOptions: BunOptions = {}): BunLightClient | undefined {
+export function init(userOptions: BunOptions = {}): LightNodeClient | undefined {
   return _init(userOptions, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Bun in light mode, without any integrations added by default.
  */
-export function initWithoutDefaultIntegrations(userOptions: BunOptions = {}): BunLightClient {
+export function initWithoutDefaultIntegrations(userOptions: BunOptions = {}): LightNodeClient {
   return _init(userOptions, () => []);
 }
 
-function _init(_options: BunOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]): BunLightClient {
+function _init(
+  _options: BunOptions,
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): LightNodeClient {
   const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
   if (options.debug === true) {
     debug.enable();
   }
 
+  // Use AsyncLocalStorage-based context strategy instead of OpenTelemetry
   setAsyncLocalStorageAsyncContextStrategy();
 
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  if (
-    options.spotlight &&
-    !options.integrations.some(({ name }: { name: string }) => name === SPOTLIGHT_INTEGRATION_NAME)
-  ) {
+  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
     options.integrations.push(
       spotlightIntegration({
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
@@ -111,10 +117,12 @@ function _init(_options: BunOptions, getDefaultIntegrationsImpl: (options: Optio
 
   applySdkMetadata(options, 'bun', ['bun', 'node-core']);
 
-  const client = new BunLightClient(options);
+  // LightNodeClient expects NodeClientOptions; our merged options are structurally compatible
+  const client: LightNodeClient = new LightNodeClient(options as ConstructorParameters<typeof LightNodeClient>[0]);
   getCurrentScope().setClient(client);
 
   client.init();
+
   client.startClientReportTracking();
 
   updateScopeFromEnvVariables();
@@ -128,7 +136,10 @@ function _init(_options: BunOptions, getDefaultIntegrationsImpl: (options: Optio
   return client;
 }
 
-function getClientOptions(options: BunOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]) {
+function getClientOptions(
+  options: BunOptions,
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): BunOptions & { integrations: Integration[] } {
   const release = getRelease(options.release);
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
@@ -139,6 +150,8 @@ function getClientOptions(options: BunOptions, getDefaultIntegrationsImpl: (opti
     sendClientReports: options.sendClientReports ?? true,
     transport: options.transport ?? makeFetchTransport,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
+    platform: 'javascript',
+    runtime: { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
     release,
     tracesSampleRate,

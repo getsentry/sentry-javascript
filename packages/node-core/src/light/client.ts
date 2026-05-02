@@ -21,8 +21,8 @@ export class LightNodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
-      platform: 'node',
-      runtime: { name: 'node', version: global.process.version },
+      platform: (options as ServerRuntimeClientOptions).platform || 'node',
+      runtime: (options as ServerRuntimeClientOptions).runtime || { name: 'node', version: global.process.version },
       serverName,
     };
 

@@ -1,8 +1,8 @@
-// Bun light-specific exports
+// Bun light-specific exports (override node-core/light equivalents)
 export { getDefaultIntegrations, init, initWithoutDefaultIntegrations } from './sdk';
 export { makeFetchTransport } from '../transports';
 
-// Re-export everything from @sentry/node-core/light (includes LightNodeClient,
-// setAsyncLocalStorageAsyncContextStrategy, httpIntegration, nativeNodeFetchIntegration,
-// and all common exports from @sentry/core and @sentry/node-core)
+// Re-export everything from @sentry/node-core/light.
+// Note: explicit exports above take precedence over the wildcard re-export below,
+// so our Bun-specific init/getDefaultIntegrations override the node-core ones.
 export * from '@sentry/node-core/light';
