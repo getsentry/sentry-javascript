@@ -34,6 +34,7 @@ import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
 import { getClient, getCurrentScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
+import { doubleWrapWarning } from './double-wrap-warning';
 
 type ChannelListener = (message: unknown, name: string | symbol) => void;
 
@@ -56,6 +57,9 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
       spans: createSpans = clientOptions ? hasSpansEnabled(clientOptions) : true,
       propagateTrace = false,
       breadcrumbs = true,
+      http,
+      https,
+      suppressOtelWarning = false,
     } = options;
 
     const { request } = data as { request: HttpClientRequest };
@@ -95,6 +99,13 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
         injectTracePropagationHeaders(request, propagationDecisionMap);
       }
       return;
+    }
+
+    // guard against OTel wrapping the same module and emitting double-spans
+    // this doesn't prevent it, just prints a debug warning for the user.
+    if (!suppressOtelWarning) {
+      if (http) doubleWrapWarning(http);
+      if (https) doubleWrapWarning(https);
     }
 
     // spans are enabled

@@ -40,7 +40,10 @@ import { getHttpClientSubscriptions } from './client-subscriptions';
 function patchHttpRequest(httpModule: HttpExport, options: HttpInstrumentationOptions): void {
   // avoid double-wrap
   if (!getOriginalFunction(httpModule.request)) {
-    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions(options);
+    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions({
+      ...options,
+      http: httpModule,
+    });
 
     const originalRequest = httpModule.request;
     wrapMethod(httpModule, 'request', function patchedRequest(this: HttpExport, ...args: unknown[]) {
@@ -89,8 +92,8 @@ function patchModule(httpModuleExport: HttpModuleExport, options: HttpInstrument
 }
 
 /**
- * Patch an `http`-module-shaped export so that every outgoing request is
- * tracked as a Sentry span.
+ * Patch an `node:http` or `node:https` module-shaped export so that every
+ * outgoing request is tracked by Sentry.
  *
  * @example
  * ```javascript
@@ -100,15 +103,6 @@ function patchModule(httpModuleExport: HttpModuleExport, options: HttpInstrument
  * ```
  */
 export const patchHttpModuleClient = (
-  httpModuleExport: HttpModuleExport,
-  options: HttpInstrumentationOptions = {},
-): HttpModuleExport => patchModule(httpModuleExport, options);
-
-/**
- * Patch an `https`-module-shaped export.  Equivalent to `patchHttpModule` but
- * sets default `protocol` / `port` for HTTPS when option objects are passed.
- */
-export const patchHttpsModuleClient = (
   httpModuleExport: HttpModuleExport,
   options: HttpInstrumentationOptions = {},
 ): HttpModuleExport => patchModule(httpModuleExport, options);

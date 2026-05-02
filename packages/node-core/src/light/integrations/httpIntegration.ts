@@ -115,6 +115,7 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
           ? (url, request) => ignoreOutgoingRequests(url, getRequestOptions(request as ClientRequest))
           : undefined,
         // No spans in light mode
+        // means we don't have pass modules to detect OTel double-wrap
         spans: false,
         errorMonitor,
       });

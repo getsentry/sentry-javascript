@@ -7,7 +7,7 @@ test('registers double spans when OTel HttpInstrumentation is also active — do
     .get('/api/v0', () => {})
     .start();
 
-  await createRunner(__dirname, 'scenario.ts')
+  const runner = createRunner(__dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
       transaction: txn => {
@@ -50,8 +50,14 @@ test('registers double spans when OTel HttpInstrumentation is also active — do
         expect(sentrySpan!.parent_span_id).toBe(otelSpan!.span_id);
       },
     })
-    .start()
-    .completed();
+    .start();
+
+  await runner.completed();
+
+  // The double-wrap warning should have been logged to stderr (via debug.warn)
+  // since scenario.ts initialises Sentry with debug: true.
+  const logs = runner.getLogs();
+  expect(logs.some(l => l.includes('Double-wrapped http.client detected'))).toBe(true);
 
   closeTestServer();
 });
