@@ -11,11 +11,12 @@ import { type Span } from '../../../../src/types-hoist/span';
 import { EventEmitter } from 'node:events';
 import { getOriginalFunction, markFunctionWrapped } from '../../../../src';
 
-let DEBUG_BUILD = false;
+// must be var to hoist above vi.mock
+var DEBUG_BUILD = true;
 beforeEach(() => (DEBUG_BUILD = true));
 vi.mock('../../../../src/debug-build', () => ({
   get DEBUG_BUILD() {
-    return DEBUG_BUILD;
+    return DEBUG_BUILD ?? true;
   },
 }));
 
