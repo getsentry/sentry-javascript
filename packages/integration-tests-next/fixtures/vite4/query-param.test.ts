@@ -10,7 +10,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
   runBundler();
   expect(readOutputFiles()).toMatchInlineSnapshot(`
     {
-      "common.js?seP58q4g": "!(function() {
+      "common.js?seP58q4g": "!function() {
       try {
         var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
@@ -18,7 +18,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
       } catch (e2) {
       }
-    })();
+    }();
     function add(a, b) {
       return a + b;
     }
@@ -26,7 +26,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
       add as a
     };
     ",
-      "entry1.js": "!(function() {
+      "entry1.js": "!function() {
       try {
         var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
@@ -34,11 +34,11 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
       } catch (e2) {
       }
-    })();
+    }();
     import { a as add } from "./common.js?seP58q4g";
     console.log(add(1, 2));
     ",
-      "entry2.js": "!(function() {
+      "entry2.js": "!function() {
       try {
         var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
@@ -46,7 +46,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, ctx }) => {
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
       } catch (e2) {
       }
-    })();
+    }();
     import { a as add } from "./common.js?seP58q4g";
     console.log(add(2, 4));
     ",

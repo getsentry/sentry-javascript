@@ -39,7 +39,7 @@ export function test(url: string, callback: TestCallback) {
         outDir,
         runBundler: (env) =>
           runBundler(
-            `rolldown --config ${testName}${configExt}`,
+            `pnpm rolldown --config ${testName}${configExt}`,
             {
               cwd,
               env: {

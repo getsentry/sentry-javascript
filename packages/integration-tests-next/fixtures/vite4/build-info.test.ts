@@ -5,7 +5,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
   runBundler();
   expect(readOutputFiles()).toMatchInlineSnapshot(`
     {
-      "basic.js": "!(function() {
+      "basic.js": "!function() {
       try {
         var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
         e.SENTRY_RELEASE = { id: "build-information-injection-test" };
@@ -14,7 +14,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
         n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
       } catch (e2) {
       }
-    })();
+    }();
     console.log("hello world");
     ",
     }

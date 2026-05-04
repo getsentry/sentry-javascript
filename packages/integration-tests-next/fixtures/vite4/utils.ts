@@ -33,7 +33,7 @@ export function test(url: string, callback: TestCallback) {
       outDir,
       runBundler: (env) =>
         runBundler(
-          `vite build --config ${testName}${configExt}`,
+          `pnpm vite build --config ${testName}${configExt}`,
           {
             cwd,
             env: {

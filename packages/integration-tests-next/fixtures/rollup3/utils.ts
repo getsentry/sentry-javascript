@@ -33,7 +33,7 @@ export function test(url: string, callback: TestCallback) {
       outDir,
       runBundler: (env) =>
         runBundler(
-          `rollup --config ${testName}${configExt}`,
+          `pnpm rollup --config ${testName}${configExt}`,
           {
             cwd,
             env: {
