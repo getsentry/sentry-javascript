@@ -48,7 +48,6 @@ export default defineNuxtModule<ModuleOptions>({
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
-
     const clientConfigFile = await findDefaultSdkInitFile('client', nuxt, moduleOptions);
 
     if (clientConfigFile) {
@@ -81,7 +80,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
-
     const isNitroV3 = (await getNitroMajorVersion()) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
