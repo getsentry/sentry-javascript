@@ -41,6 +41,9 @@ function deferredPromise<T = void>(
   };
 }
 
+/** Extra wait after wrangler's DEV_SERVER_READY for multi-worker dev (main + sub-worker). */
+const DEV_SERVER_READY_SETTLE_MS = 100;
+
 type Expected = Envelope | ((envelope: Envelope) => void);
 
 type StartResult = {
@@ -75,6 +78,8 @@ export function createRunner(...paths: string[]) {
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
   let serverUrl: string | undefined;
   const extraWranglerArgs: string[] = [];
+  /** True when this scenario runs a second wrangler process (wrangler-sub-worker.jsonc). */
+  const hasSubWorkerDevServer = existsSync(join(testPath, 'wrangler-sub-worker.jsonc'));
 
   return {
     withServerUrl: function (url: string) {
@@ -226,7 +231,7 @@ export function createRunner(...paths: string[]) {
             }
           }
 
-          if (existsSync(join(testPath, 'wrangler-sub-worker.jsonc'))) {
+          if (hasSubWorkerDevServer) {
             childSubWorker = spawn(
               'wrangler',
               [
@@ -283,7 +288,17 @@ export function createRunner(...paths: string[]) {
 
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
-          child.on('message', (msg: string) => onChildMessage(msg, setWorkerPort));
+          child.on('message', (msg: string) =>
+            onChildMessage(msg, port => {
+              // Miniflare can accept DEV_SERVER_READY before service bindings to the sub-worker are usable.
+              // A fixed settle time is simpler than HTTP probes; only applied for two-process scenarios.
+              if (hasSubWorkerDevServer) {
+                setTimeout(() => setWorkerPort(port), DEV_SERVER_READY_SETTLE_MS);
+              } else {
+                setWorkerPort(port);
+              }
+            }),
+          );
         })
         .catch(e => reject(e));
 
