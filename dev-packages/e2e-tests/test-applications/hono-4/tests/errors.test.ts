@@ -54,48 +54,52 @@ test.describe('HTTPException errors', () => {
     });
   });
 
-  test('does not capture 3xx HTTPException', async ({ baseURL }) => {
-    let errorEventOccurred = false;
+  [301, 302].forEach(code => {
+    test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
+      let errorEventOccurred = false;
 
-    waitForError(APP_NAME, event => {
-      if (event.exception?.values?.[0]?.value === 'HTTPException 301') {
-        errorEventOccurred = true;
-      }
-      return false;
+      waitForError(APP_NAME, event => {
+        if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
+          errorEventOccurred = true;
+        }
+        return false;
+      });
+
+      const transactionPromise = waitForTransaction(APP_NAME, event => {
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
+      });
+
+      const response = await fetch(`${baseURL}/http-exception/${code}`, { redirect: 'manual' });
+      expect(response.status).toBe(code);
+
+      const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe('GET /http-exception/:code');
+      expect(errorEventOccurred).toBe(false);
     });
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
-    });
-
-    const response = await fetch(`${baseURL}/http-exception/301`, { redirect: 'manual' });
-    expect(response.status).toBe(301);
-
-    const transaction = await transactionPromise;
-    expect(transaction.transaction).toBe('GET /http-exception/:code');
-    expect(errorEventOccurred).toBe(false);
   });
 
-  test('does not capture 4xx HTTPException', async ({ baseURL }) => {
-    let errorEventOccurred = false;
+  [401, 403, 404].forEach(code => {
+    test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
+      let errorEventOccurred = false;
 
-    waitForError(APP_NAME, event => {
-      if (event.exception?.values?.[0]?.value === 'HTTPException 404') {
-        errorEventOccurred = true;
-      }
-      return false;
+      waitForError(APP_NAME, event => {
+        if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
+          errorEventOccurred = true;
+        }
+        return false;
+      });
+
+      const transactionPromise = waitForTransaction(APP_NAME, event => {
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
+      });
+
+      const response = await fetch(`${baseURL}/http-exception/${code}`);
+      expect(response.status).toBe(code);
+
+      const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe('GET /http-exception/:code');
+      expect(errorEventOccurred).toBe(false);
     });
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
-    });
-
-    const response = await fetch(`${baseURL}/http-exception/404`);
-    expect(response.status).toBe(404);
-
-    const transaction = await transactionPromise;
-    expect(transaction.transaction).toBe('GET /http-exception/:code');
-    expect(errorEventOccurred).toBe(false);
   });
 });
 
