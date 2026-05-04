@@ -292,7 +292,10 @@ export function createRunner(...paths: string[]) {
 
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
-          waitForReady(child).then(setWorkerPort).catch(reject);
+
+          const workerPort = await waitForReady(child);
+
+          setWorkerPort(workerPort);
         })
         .catch(e => reject(e));
 
