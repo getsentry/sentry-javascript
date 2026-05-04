@@ -8,14 +8,14 @@ export type RawAttribute<T> = T extends { value: any } | { unit: any } ? Attribu
 
 export type Attributes = Record<string, TypedAttributeValue>;
 
-export type AttributeValueType = string | number | boolean | Array<string> | Array<number> | Array<boolean>;
+export type AttributeValueType = string | number | boolean | Array<unknown>;
 
 type AttributeTypeMap = {
   string: string;
   integer: number;
   double: number;
   boolean: boolean;
-  array: Array<string> | Array<number> | Array<boolean>;
+  array: Array<unknown>;
 };
 
 /* Generates a type from the AttributeTypeMap like:
@@ -63,9 +63,9 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
 /**
  * Converts an attribute value to a typed attribute value.
  *
- * For now, we support primitive values and homogeneous arrays of primitives, either raw or
- * inside attribute objects. If @param useFallback is true, we stringify other non-primitive values
- * to a string attribute value. Otherwise we return `undefined` for unsupported values.
+ * For now, we support primitive values and arrays, either raw or inside attribute objects.
+ * If @param useFallback is true, we stringify other non-primitive values to a string attribute
+ * value. Otherwise we return `undefined` for unsupported values.
  *
  * @param value - The value of the passed attribute.
  * @param useFallback - If true, unsupported values will be stringified to a string attribute value.
@@ -135,21 +135,27 @@ export function estimateTypedAttributesSizeInBytes(attributes: Attributes | unde
     return 0;
   }
   let weight = 0;
+  const fallbackWeight = 100;
+
   for (const [key, attr] of Object.entries(attributes)) {
     weight += key.length * 2;
     weight += attr.type.length * 2;
     weight += (attr.unit?.length ?? 0) * 2;
     const val = attr.value;
 
-    if (Array.isArray(val)) {
+    if (Array.isArray(val) && isPrimitive(val[0])) {
       // Assumption: Individual array items have the same type and roughly the same size
       // probably not always true but allows us to cut down on runtime
       weight += estimatePrimitiveSizeInBytes(val[0]) * val.length;
+    } else if (Array.isArray(val) && !isPrimitive(val[0])) {
+      // Fallback for arrays with non-primitive values (e.g. objects)
+      // Again (to cut down on runtime), we intentionally don't traverse the full hierarchy
+      weight += fallbackWeight * val.length;
     } else if (isPrimitive(val)) {
       weight += estimatePrimitiveSizeInBytes(val);
     } else {
       // default fallback for anything else (objects)
-      weight += 100;
+      weight += fallbackWeight;
     }
   }
   return weight;
@@ -167,15 +173,12 @@ function estimatePrimitiveSizeInBytes(value: Primitive): number {
 }
 
 /**
- * NOTE: We return typed attributes for primitives and homogeneous arrays of primitives:
- *  - Homogeneous primitive arrays ship with `type: 'array'` (Relay's wire tag for arrays).
- *  - Mixed-type and nested arrays are not supported and return undefined.
+ * NOTE: We return typed attributes for primitives and arrays:
+ *  - Relay currently only supports arrays consisting of primitive values. Attributes with non-conforming arrays are dropped by Relay, so runtime type validation in the SDK is unnecessary.
  *  - Objects are not supported yet and product support is still TBD.
- *  - We still keep the type signature for TypedAttributeValue wider to avoid a
- *    breaking change once we add support for other non-primitive values.
  */
 function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
-  if (isHomogeneousPrimitiveArray(value)) {
+  if (Array.isArray(value) && value.length !== 0) {
     return { value, type: 'array' };
   }
 
@@ -198,12 +201,4 @@ function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
     // Therefore, we ignore it.
     return { value, type: primitiveType };
   }
-}
-
-function isHomogeneousPrimitiveArray(arr: unknown): arr is Array<string> | Array<number> | Array<boolean> {
-  if (!Array.isArray(arr)) return false;
-  if (arr.length === 0) return true;
-  const t = typeof arr[0];
-  if (t !== 'string' && t !== 'number' && t !== 'boolean') return false;
-  return arr.every(v => typeof v === t && (t !== 'number' || !Number.isNaN(v)));
 }

@@ -76,23 +76,28 @@ describe('attributeValueToTypedAttributeValue', () => {
       );
     });
 
-    describe('homogeneous primitive arrays', () => {
-      it.each([[['foo', 'bar']], [[1, 2, 3]], [[true, false, true]], [[] as unknown[]]])(
-        'emits a typed array attribute for raw value %j',
-        value => {
-          const result = attributeValueToTypedAttributeValue(value);
-          expect(result).toStrictEqual({ value, type: 'array' });
-        },
-      );
+    // Element types are not validated at runtime — Relay drops non-conforming arrays.
+    describe('arrays', () => {
+      it.each([
+        [['foo', 'bar']],
+        [[1, 2, 3]],
+        [[true, false, true]],
+        [[1, 'foo', true]],
+        [[NaN, 1, 2]],
+        [{ value: ['foo', 'bar'] }],
+      ])('emits a typed array attribute for value %j', value => {
+        const result = attributeValueToTypedAttributeValue(value);
+        const expected = Array.isArray(value) ? value : (value as { value: unknown[] }).value;
+        expect(result).toStrictEqual({ value: expected, type: 'array' });
+      });
 
-      it('emits a typed array attribute for attribute object values', () => {
-        const result = attributeValueToTypedAttributeValue({ value: ['foo', 'bar'] });
-        expect(result).toStrictEqual({ value: ['foo', 'bar'], type: 'array' });
+      it('returns undefined for empty arrays', () => {
+        expect(attributeValueToTypedAttributeValue([])).toBeUndefined();
       });
     });
 
     describe('invalid values (non-primitives)', () => {
-      it.each([[[1, 'foo', true]], [[NaN, 1, 2]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+      it.each([[{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
         'returns undefined for non-primitive raw values (%s)',
         value => {
           const result = attributeValueToTypedAttributeValue(value);
@@ -100,7 +105,7 @@ describe('attributeValueToTypedAttributeValue', () => {
         },
       );
 
-      it.each([[[1, 'foo', true]], [[NaN, 1, 2]], [{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
+      it.each([[{ foo: 'bar' }], [() => 'test'], [Symbol('test')]])(
         'returns undefined for non-primitive attribute object values (%s)',
         value => {
           const result = attributeValueToTypedAttributeValue({ value });
@@ -194,22 +199,6 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     describe('invalid values (non-primitives) - stringified fallback', () => {
-      it('stringifies mixed-type arrays (not homogeneous)', () => {
-        const result = attributeValueToTypedAttributeValue(['foo', 1, true], true);
-        expect(result).toStrictEqual({
-          value: '["foo",1,true]',
-          type: 'string',
-        });
-      });
-
-      it('stringifies mixed arrays', () => {
-        const result = attributeValueToTypedAttributeValue([1, 'foo', true], true);
-        expect(result).toStrictEqual({
-          value: '[1,"foo",true]',
-          type: 'string',
-        });
-      });
-
       it('stringifies objects', () => {
         const result = attributeValueToTypedAttributeValue({ foo: 'bar' }, true);
         expect(result).toStrictEqual({
@@ -437,10 +426,10 @@ describe('serializeAttributes', () => {
       });
     });
 
-    it('drops mixed-type arrays by default and stringifies them with fallback', () => {
-      expect(serializeAttributes({ mixed: ['a', 1] })).toStrictEqual({});
-      expect(serializeAttributes({ mixed: ['a', 1] }, true)).toStrictEqual({
-        mixed: { type: 'string', value: '["a",1]' },
+    // Element types are not validated at runtime — Relay drops non-conforming arrays.
+    it('accepts mixed-type arrays', () => {
+      expect(serializeAttributes({ mixed: ['a', 1] })).toStrictEqual({
+        mixed: { type: 'array', value: ['a', 1] },
       });
     });
   });
