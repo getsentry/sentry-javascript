@@ -9,6 +9,7 @@ test.describe('client - pageload performance', () => {
     });
 
     await page.goto(`/performance`);
+    await page.getByRole('heading', { name: 'Performance Page' }).waitFor();
 
     const transaction = await txPromise;
 
@@ -62,6 +63,7 @@ test.describe('client - pageload performance', () => {
     });
 
     await page.goto(`/performance/with/sentry`);
+    await page.getByRole('heading', { name: 'Dynamic Parameter Page' }).waitFor();
 
     const transaction = await txPromise;
 
