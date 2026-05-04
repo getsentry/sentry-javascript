@@ -262,6 +262,56 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
     });
 
+    test('does not capture request body for HEAD requests', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { method: 'HEAD' }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('head request');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('does not capture request body for OPTIONS requests', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { method: 'OPTIONS' }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('options request');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
     test('does not capture request body for binary content types', async () => {
       let sentryEvent: Event = {};
       const context = createMockExecutionContext();

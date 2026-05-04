@@ -12,7 +12,7 @@ import { DEBUG_BUILD } from '../debug-build';
 export function patchRequestToCaptureBody(
   req: IncomingMessage,
   isolationScope: Scope,
-  maxIncomingRequestBodySize: MaxRequestBodySize,
+  maxIncomingRequestBodySize: Omit<MaxRequestBodySize, 'none'>,
   integrationName: string,
 ): void {
   let bodyByteLength = 0;

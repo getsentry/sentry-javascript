@@ -85,10 +85,6 @@ export function wrapRequestHandler(
       }
     }
 
-    if (client) {
-      await captureIncomingRequestBody(client, request);
-    }
-
     // Do not capture spans for OPTIONS and HEAD requests
     if (request.method === 'OPTIONS' || request.method === 'HEAD') {
       try {
@@ -101,6 +97,10 @@ export function wrapRequestHandler(
       } finally {
         waitUntil?.(flushAndDispose(client));
       }
+    }
+
+    if (client) {
+      await captureIncomingRequestBody(client, request);
     }
 
     return continueTrace(

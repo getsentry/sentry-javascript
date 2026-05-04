@@ -92,7 +92,8 @@ export async function captureIncomingRequestBody(client: Client, request: Reques
   }
 
   // Skip GET and HEAD requests - they don't have bodies
-  if (request.method === 'GET' || request.method === 'HEAD') {
+  // Also skip OPTIONS, even if they may have a body, they might not give a lot of extra value
+  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
     return;
   }
 

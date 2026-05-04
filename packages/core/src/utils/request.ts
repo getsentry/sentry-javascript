@@ -5,6 +5,7 @@ import type { PolymorphicRequest } from '../types-hoist/polymorphics';
 import type { RequestEventData } from '../types-hoist/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
 import { debug } from './debug-logger';
+import { safeUnref } from './timer';
 
 /**
  * Maximum size of incoming HTTP request bodies attached to events.
@@ -31,7 +32,7 @@ const TEXT_CONTENT_TYPES = [
 /**
  * Convert a `maxRequestBodySize` setting to a maximum byte length.
  */
-export function getMaxBodyByteLength(maxRequestBodySize: MaxRequestBodySize): number {
+export function getMaxBodyByteLength(maxRequestBodySize: Omit<MaxRequestBodySize, 'none'>): number {
   if (maxRequestBodySize === 'small') return 1_000;
   if (maxRequestBodySize === 'medium') return 10_000;
   return MAX_BODY_BYTE_LENGTH;
@@ -146,7 +147,7 @@ export async function captureBodyFromWinterCGRequest(
     const clonedRequest = request.clone();
     const bodyPromise = clonedRequest.text();
     const timeoutPromise = new Promise<null>(resolve => {
-      setTimeout(() => resolve(null), 2000);
+      safeUnref(setTimeout(() => resolve(null), 2000));
     });
 
     const body = await Promise.race([bodyPromise, timeoutPromise]);
