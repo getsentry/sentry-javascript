@@ -15,7 +15,6 @@ import {
   SENTRY_WRAPPED_FUNCTIONS,
 } from '../../src/vite/utils';
 
-
 const resolvePathMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@nuxt/kit', () => ({
@@ -53,38 +52,45 @@ describe('findDefaultSdkInitFile', () => {
     },
   );
 
-  it('should return a custom client config file if it exists', async () => {
-    const expectedPath = '/some/path/mock-app/app/client-sentry-config.ts';
+  it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
+    'should return a client config from a custom config root dir if it exists with .%s extension',
+    async ext => {
+      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
+      });
 
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.toString() === expectedPath;
-    });
+      const baseDir = '/users/some-user/front-example/app/config';
 
-    resolvePathMock.mockResolvedValue(expectedPath);
+      resolvePathMock.mockResolvedValue(baseDir);
 
-    const result = await findDefaultSdkInitFile('client', undefined, {
-      clientConfigFile: '~/client-sentry-config.ts',
-    });
+      const result = await findDefaultSdkInitFile('client', undefined, {
+        configRootDir: '~/config',
+      });
 
-    expect(result).toBe(expectedPath);
-    expect(resolvePathMock).toHaveBeenCalledWith('~/client-sentry-config.ts');
-  });
+      expect(result).toBe(`${baseDir}/sentry.client.config.${ext}`);
+      expect(resolvePathMock).toHaveBeenCalledWith('~/config');
+    },
+  );
 
-  it('should return a custom server config file if it exists', async () => {
-    const expectedPath = '/users/some-user/front-example/app/server-sentry-config.ts';
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.toString() === expectedPath;
-    });
+  it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
+    'should return a server config from a custom config root dir if it exists with .%s extension',
+    async ext => {
+      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
+      });
 
-    resolvePathMock.mockResolvedValue(expectedPath);
+      const baseDir = '/users/some-user/front-example/app/config';
 
-    const result = await findDefaultSdkInitFile('server', undefined, {
-      serverConfigFile: '~/server-sentry-config.ts',
-    });
+      resolvePathMock.mockResolvedValue(baseDir);
 
-    expect(result).toBe(expectedPath);
-    expect(resolvePathMock).toHaveBeenCalledWith('~/server-sentry-config.ts');
-  });
+      const result = await findDefaultSdkInitFile('server', undefined, {
+        configRootDir: '~/config',
+      });
+
+      expect(result).toBe(`${baseDir}/sentry.server.config.${ext}`);
+      expect(resolvePathMock).toHaveBeenCalledWith('~/config');
+    },
+  );
 
   it('should return undefined if no file with specified extensions exists', async () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);

@@ -232,27 +232,13 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    *
    * ```ts
    * sentry: {
-   *   clientConfigFile: '~/client-sentry-config.ts',
+   *   configRootDir: '~',
    * }
    * ```
+   *
+   * @default '<projectRoot>'
    */
-  clientConfigFile?: string;
-
-  /**
-   * Provide the resolved path to a custom Sentry server config file.
-   *
-   * If not provided, the default location (`<projectRoot>/sentry.server.config.(js|ts)`) will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initialize with the options specified in the `sentry` module options or with default options.
-   *
-   * @example
-   *
-   * ```ts
-   * sentry: {
-   *   serverConfigFile: '~/server-sentry-config.ts',
-   * }
-   * ```
-   */
-  serverConfigFile?: string;
+  configRootDir?: string;
 
   /**
    * When `autoInjectServerSentry` is set to `"experimental_dynamic-import"`, the SDK will wrap your Nitro server entrypoint

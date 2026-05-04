@@ -36,25 +36,11 @@ export async function findDefaultSdkInitFile(
   const relativePaths: string[] = [];
 
   if (type === 'server') {
-    if (options?.serverConfigFile) {
-      const resolvedPath = await resolvePath(options.serverConfigFile);
-      if (fs.existsSync(resolvedPath)) {
-        return resolvedPath;
-      }
-      throw new Error(`Server configuration file not found: ${resolvedPath}`);
-    }
     for (const ext of possibleFileExtensions) {
       relativePaths.push(`sentry.${type}.config.${ext}`);
       relativePaths.push(path.join('public', `instrument.${type}.${ext}`));
     }
   } else {
-    if (options?.clientConfigFile) {
-      const resolvedPath = await resolvePath(options.clientConfigFile);
-      if (fs.existsSync(resolvedPath)) {
-        return resolvedPath;
-      }
-      throw new Error(`Client configuration file not found: ${resolvedPath}`);
-    }
     for (const ext of possibleFileExtensions) {
       relativePaths.push(`sentry.${type}.config.${ext}`);
     }
@@ -73,9 +59,14 @@ export async function findDefaultSdkInitFile(
   }
 
   // As a fallback, also check CWD (left for pure compatibility)
-  const cwd = process.cwd();
+  let rootDir: string;
+  if (options?.configRootDir) {
+    rootDir = await resolvePath(options.configRootDir);
+  } else {
+    rootDir = process.cwd();
+  }
   for (const relativePath of relativePaths) {
-    const fullPath = path.resolve(cwd, relativePath);
+    const fullPath = path.resolve(rootDir, relativePath);
     if (fs.existsSync(fullPath)) {
       return fullPath;
     }
