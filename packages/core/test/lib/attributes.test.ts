@@ -426,7 +426,7 @@ describe('serializeAttributes', () => {
       });
     });
 
-    // Element types are not validated at runtime — Relay drops non-conforming arrays.
+    // Element types are not validated at runtime by the SDK (Relay drops non-conforming arrays).
     it('accepts mixed-type arrays', () => {
       expect(serializeAttributes({ mixed: ['a', 1] })).toStrictEqual({
         mixed: { type: 'array', value: ['a', 1] },
