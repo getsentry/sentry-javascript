@@ -7,14 +7,12 @@ on:
     # Saturday/Sunday are never counted as business days.
     - cron: '0 10 * * 1-5'
 
-# pulls.* list + listRequestedReviewers → pull-requests: read
-# issues timeline + comments + createComment → issues: write
+# pulls.* list + listRequestedReviewers + createComment on PRs → pull-requests: write
 # repos.listCollaborators (outside) → Metadata read on the token (see GitHub App permission map)
 # checkout → contents: read
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}
@@ -27,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Remind pending reviewers
         uses: actions/github-script@v7

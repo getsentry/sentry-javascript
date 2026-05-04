@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry",
-  "version": "10.50.0",
+  "version": "10.51.0",
   "description": "Official Sentry utilities for OpenTelemetry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry",
@@ -19,10 +19,26 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
+        "node": {
+          "types": "./build/types/index.d.ts",
+          "default": "./build/esm/index.js"
+        },
+        "browser": {
+          "types": "./build/types/index.d.ts",
+          "default": "./build/esm/index.browser.js"
+        },
         "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
       },
       "require": {
+        "node": {
+          "types": "./build/types/index.d.ts",
+          "default": "./build/cjs/index.js"
+        },
+        "browser": {
+          "types": "./build/types/index.d.ts",
+          "default": "./build/cjs/index.browser.js"
+        },
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
@@ -49,7 +65,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "10.50.0"
+    "@sentry/core": "10.51.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",

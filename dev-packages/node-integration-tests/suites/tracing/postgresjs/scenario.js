@@ -1,5 +1,6 @@
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
+const { waitForPostgres } = require('./wait-for-postgres.js');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -23,6 +24,7 @@ async function run() {
     },
     async () => {
       try {
+        await waitForPostgres(sql);
         await sql`
           CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));
         `;

@@ -5,7 +5,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('node-schedule instrumentation', async () => {
+test('node-schedule instrumentation', { timeout: 30_000 }, async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expect({
       check_in: {

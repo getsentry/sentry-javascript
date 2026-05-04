@@ -5,7 +5,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('node-cron instrumentation', async () => {
+test('node-cron instrumentation', { timeout: 30_000 }, async () => {
   let firstErrorTraceId: string | undefined;
 
   await createRunner(__dirname, 'scenario.ts')

@@ -39,6 +39,7 @@ describe('logs', () => {
       .expect({
         log: logsContainer => {
           expect(logsContainer).toEqual({
+            version: 2,
             items: [
               {
                 timestamp: expect.any(Number),

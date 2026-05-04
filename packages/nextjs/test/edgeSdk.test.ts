@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/edge';
 
 // normally this is set as part of the build process, so mock it here
@@ -71,6 +72,30 @@ describe('Edge init()', () => {
       const dedupeIntegration = findIntegrationByName(vercelEdgeInitOptions.integrations, 'Dedupe');
 
       expect(dedupeIntegration).toBeDefined();
+    });
+  });
+
+  describe('ignoreSpans', () => {
+    function getIgnoreSpans(): NonNullable<SentryVercelEdge.VercelEdgeOptions['ignoreSpans']> {
+      const callArgs = vercelEdgeInit.mock.calls[0]?.[0] as SentryVercelEdge.VercelEdgeOptions;
+      return callArgs.ignoreSpans ?? [];
+    }
+
+    it('appends the TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION attribute filter', () => {
+      init({});
+      const patterns = getIgnoreSpans();
+
+      expect(patterns).toContainEqual({
+        attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true },
+      });
+    });
+
+    it('preserves user-provided ignoreSpans entries', () => {
+      init({ ignoreSpans: ['user-pattern', /custom-regex/] });
+      const patterns = getIgnoreSpans();
+
+      expect(patterns).toContain('user-pattern');
+      expect(patterns.some(p => p instanceof RegExp && p.source === 'custom-regex')).toBe(true);
     });
   });
 

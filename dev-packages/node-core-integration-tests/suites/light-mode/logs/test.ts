@@ -11,6 +11,7 @@ describe('light mode logs', () => {
       .expect({
         log: logsContainer => {
           expect(logsContainer).toEqual({
+            version: 2,
             items: [
               {
                 attributes: {

@@ -12,16 +12,17 @@
   },
   "dependencies": {
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
-    "hono": "4.12.12"
+    "hono": "4.12.14"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.31",
     "@cloudflare/workers-types": "^4.20250521.0",
     "typescript": "^5.9.3",
     "vitest": "3.1.0",
-    "wrangler": "4.61.0"
+    "wrangler": "^4.61.0"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {
