@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **feat(browser): Add `ingest_settings` to v2 log envelope payload ([#20453](https://github.com/getsentry/sentry-javascript/pull/20453))**
+
+  Inference of user data (e.g. browser name/version) on log events is now gated behind the `sendDefaultPii` option. Previously, this data was always inferred by default.
+
 - **feat(nitro): Add `@sentry/nitro` SDK**
 
   A new `@sentry/nitro` package provides first-class Sentry support for [Nitro](https://nitro.build/) applications, with HTTP handler and error instrumentation, middleware tracing, request isolation, and build-time source map uploading via `withSentryConfig`.
