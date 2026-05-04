@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
 
-it('does not propagate trace when enableRpcTracePropagation is disabled', async ({ signal }) => {
+it('does not propagate trace when enableRpcTracePropagation is disabled (WorkerEntrypoint)', async ({ signal }) => {
   let workerTraceId: string | undefined;
   let doTraceId: string | undefined;
 
