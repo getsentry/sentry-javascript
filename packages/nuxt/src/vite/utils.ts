@@ -42,8 +42,9 @@ export async function findDefaultSdkInitFile(
         if (fs.existsSync(resolvedPath)) {
           return resolvedPath;
         }
-      } catch {
-        // Fails silently as the file is optional
+        throw new Error(`Server configuration file not found: ${resolvedPath}`);
+      } catch (e) {
+        throw new Error(`Error resolving server configuration file: ${options.serverConfigFile}. Cause: ${e}`);
       }
     }
     for (const ext of possibleFileExtensions) {
@@ -57,8 +58,9 @@ export async function findDefaultSdkInitFile(
         if (fs.existsSync(resolvedPath)) {
           return resolvedPath;
         }
-      } catch {
-        // Fails silently as the file is optional
+        throw new Error(`Client configuration file not found: ${resolvedPath}`);
+      } catch (e) {
+        throw new Error(`Error resolving client configuration file: ${options.clientConfigFile}. Cause: ${e}`);
       }
     }
     for (const ext of possibleFileExtensions) {
