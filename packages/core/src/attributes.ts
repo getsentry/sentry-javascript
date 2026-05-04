@@ -135,7 +135,6 @@ export function estimateTypedAttributesSizeInBytes(attributes: Attributes | unde
     return 0;
   }
   let weight = 0;
-
   for (const [key, attr] of Object.entries(attributes)) {
     weight += key.length * 2;
     weight += attr.type.length * 2;
