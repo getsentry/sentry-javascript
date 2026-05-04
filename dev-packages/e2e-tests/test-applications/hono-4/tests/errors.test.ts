@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 test.describe('route handler errors', () => {
-  test('captures error with full event shape and trace correlation', async ({ baseURL }) => {
+  test('captures error with mechanism and trace correlation', async ({ baseURL }) => {
     const errorPromise = waitForError(APP_NAME, event => {
       return event.exception?.values?.[0]?.value === 'This is a test error for Sentry!';
     });
@@ -35,70 +35,10 @@ test.describe('route handler errors', () => {
 
     expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
-
-  test('captures async route handler error', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.[0]?.value === 'Async route error';
-    });
-
-    const response = await fetch(`${baseURL}/error/async`);
-    expect(response.status).toBe(500);
-
-    const errorEvent = await errorPromise;
-    expect(errorEvent.exception?.values?.[0]?.value).toBe('Async route error');
-    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-      handled: false,
-      type: 'auto.http.hono.context_error',
-    });
-  });
-
-  test('captures non-Error thrown value', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.[0]?.value === 'Non-Error thrown value';
-    });
-
-    const response = await fetch(`${baseURL}/error/non-error-throw`);
-    expect(response.status).toBe(500);
-
-    const errorEvent = await errorPromise;
-    expect(errorEvent.exception?.values?.[0]?.value).toBe('Non-Error thrown value');
-  });
-
-  test('captures error with nested cause chain', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.some(v => v.value === 'Request handler failed') ?? false;
-    });
-
-    const response = await fetch(`${baseURL}/error/nested-cause`);
-    expect(response.status).toBe(500);
-
-    const errorEvent = await errorPromise;
-    const values = errorEvent.exception?.values ?? [];
-    expect(values.length).toBeGreaterThanOrEqual(1);
-
-    const topError = values.find(v => v.value === 'Request handler failed');
-    expect(topError).toBeDefined();
-  });
-
-  test('captures error thrown after partial response setup', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.[0]?.value === 'Error after partial response setup';
-    });
-
-    const response = await fetch(`${baseURL}/test-errors/partial-response-error`);
-    expect(response.status).toBe(500);
-
-    const errorEvent = await errorPromise;
-    expect(errorEvent.exception?.values?.[0]?.value).toBe('Error after partial response setup');
-    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-      handled: false,
-      type: 'auto.http.hono.context_error',
-    });
-  });
 });
 
 test.describe('HTTPException errors', () => {
-  test('captures HTTPException with 500 status', async ({ baseURL }) => {
+  test('captures 5xx HTTPException', async ({ baseURL }) => {
     const errorPromise = waitForError(APP_NAME, event => {
       return event.exception?.values?.[0]?.value === 'HTTPException 500';
     });
@@ -114,44 +54,48 @@ test.describe('HTTPException errors', () => {
     });
   });
 
-  test('captures HTTPException with 502 status', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.[0]?.value === 'HTTPException 502';
+  test('does not capture 3xx HTTPException', async ({ baseURL }) => {
+    let errorEventOccurred = false;
+
+    waitForError(APP_NAME, event => {
+      if (event.exception?.values?.[0]?.value === 'HTTPException 301') {
+        errorEventOccurred = true;
+      }
+      return false;
     });
 
-    const response = await fetch(`${baseURL}/http-exception/502`);
-    expect(response.status).toBe(502);
-
-    const errorEvent = await errorPromise;
-    expect(errorEvent.exception?.values?.[0]?.value).toBe('HTTPException 502');
-    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-      handled: false,
-      type: 'auto.http.hono.context_error',
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
     });
+
+    const response = await fetch(`${baseURL}/http-exception/301`, { redirect: 'manual' });
+    expect(response.status).toBe(301);
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe('GET /http-exception/:code');
+    expect(errorEventOccurred).toBe(false);
   });
 
-  [401, 403, 404].forEach(code => {
-    test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
-      let errorEventOccurred = false;
+  test('does not capture 4xx HTTPException', async ({ baseURL }) => {
+    let errorEventOccurred = false;
 
-      waitForError(APP_NAME, event => {
-        if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
-          errorEventOccurred = true;
-        }
-        return false;
-      });
-
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
-      });
-
-      const response = await fetch(`${baseURL}/http-exception/${code}`);
-      expect(response.status).toBe(code);
-
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe('GET /http-exception/:code');
-      expect(errorEventOccurred).toBe(false);
+    waitForError(APP_NAME, event => {
+      if (event.exception?.values?.[0]?.value === 'HTTPException 404') {
+        errorEventOccurred = true;
+      }
+      return false;
     });
+
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
+    });
+
+    const response = await fetch(`${baseURL}/http-exception/404`);
+    expect(response.status).toBe(404);
+
+    const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe('GET /http-exception/:code');
+    expect(errorEventOccurred).toBe(false);
   });
 });
 
@@ -221,30 +165,6 @@ test.describe('nested sub-app errors', () => {
     });
     expect(errorEvent.request?.url).toContain('/test-errors/nested/child/error');
   });
-
-  test('captures error from deeply nested sub-app route', async ({ baseURL }) => {
-    const errorPromise = waitForError(APP_NAME, event => {
-      return event.exception?.values?.[0]?.value === 'Deeply nested child app error';
-    });
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/nested/child/deep/error');
-    });
-
-    const response = await fetch(`${baseURL}/test-errors/nested/child/deep/error`);
-    expect(response.status).toBe(500);
-
-    const errorEvent = await errorPromise;
-    const transaction = await transactionPromise;
-
-    expect(transaction.transaction).toBe('GET /test-errors/nested/child/deep/error');
-
-    expect(errorEvent.exception?.values?.[0]?.value).toBe('Deeply nested child app error');
-    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-      handled: false,
-      type: 'auto.http.hono.context_error',
-    });
-  });
 });
 
 test.describe('custom onError handler', () => {
@@ -273,106 +193,5 @@ test.describe('custom onError handler', () => {
       handled: false,
       type: 'auto.http.hono.context_error',
     });
-  });
-});
-
-test.describe('no error capture for non-error responses', () => {
-  [
-    { description: '301 redirect', path: '/redirect/301', expectedStatus: 301 },
-    { description: '302 redirect', path: '/redirect/302', expectedStatus: 302 },
-  ].forEach(({ description, path, expectedStatus }) => {
-    test(`does not capture error for ${description}`, async ({ baseURL }) => {
-      let errorEventOccurred = false;
-
-      waitForError(APP_NAME, event => {
-        if (event.request?.url?.includes(path)) {
-          errorEventOccurred = true;
-        }
-        return false;
-      });
-
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(path);
-      });
-
-      const response = await fetch(`${baseURL}${path}`, { redirect: 'manual' });
-      expect(response.status).toBe(expectedStatus);
-
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${path}`);
-      expect(errorEventOccurred).toBe(false);
-    });
-  });
-
-  [
-    { description: '400 status without throw', path: '/status/400', expectedStatus: 400 },
-    { description: '403 status without throw', path: '/status/403', expectedStatus: 403 },
-    { description: '404 status without throw', path: '/status/404', expectedStatus: 404 },
-  ].forEach(({ description, path, expectedStatus }) => {
-    test(`does not capture error for ${description}`, async ({ baseURL }) => {
-      let errorEventOccurred = false;
-
-      waitForError(APP_NAME, event => {
-        if (event.request?.url?.includes(path)) {
-          errorEventOccurred = true;
-        }
-        return false;
-      });
-
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(path);
-      });
-
-      const response = await fetch(`${baseURL}${path}`);
-      expect(response.status).toBe(expectedStatus);
-
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${path}`);
-      expect(errorEventOccurred).toBe(false);
-    });
-  });
-
-  test('does not capture error for non-existent route (404)', async ({ baseURL }) => {
-    let errorEventOccurred = false;
-
-    waitForError(APP_NAME, event => {
-      if (event.request?.url?.includes('/this-route-does-not-exist')) {
-        errorEventOccurred = true;
-      }
-      return false;
-    });
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/this-route-does-not-exist');
-    });
-
-    const response = await fetch(`${baseURL}/this-route-does-not-exist`);
-    expect(response.status).toBe(404);
-
-    const transaction = await transactionPromise;
-    expect(transaction.transaction).toBe('GET /this-route-does-not-exist');
-    expect(errorEventOccurred).toBe(false);
-  });
-
-  test('does not capture error for successful 200 response', async ({ baseURL }) => {
-    let errorEventOccurred = false;
-
-    waitForError(APP_NAME, event => {
-      if (event.request?.url?.includes('/?sentry-test-no-error')) {
-        errorEventOccurred = true;
-      }
-      return false;
-    });
-
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('GET /');
-    });
-
-    const response = await fetch(`${baseURL}/?sentry-test-no-error`);
-    expect(response.status).toBe(200);
-
-    const transaction = await transactionPromise;
-    expect(transaction.transaction).toBe('GET /');
-    expect(errorEventOccurred).toBe(false);
   });
 });

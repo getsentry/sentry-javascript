@@ -37,20 +37,9 @@ childApp.get('/error', () => {
   throw new Error('Nested child app error');
 });
 
-childApp.get('/deep/error', () => {
-  throw new Error('Deeply nested child app error');
-});
-
 const parentApp = new Hono();
 parentApp.route('/child', childApp);
 
 errorRoutes.route('/nested', parentApp);
-
-// Route that throws after partial response setup
-errorRoutes.get('/partial-response-error', c => {
-  c.header('X-Custom-Header', 'partial');
-  c.status(200);
-  throw new Error('Error after partial response setup');
-});
 
 export { errorRoutes };

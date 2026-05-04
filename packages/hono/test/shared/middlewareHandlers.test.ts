@@ -1,5 +1,4 @@
 import * as SentryCore from '@sentry/core';
-import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { responseHandler } from '../../src/shared/middlewareHandlers';
 
