@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-import { APP_NAME } from './constants';
+import { APP_NAME, RUNTIME } from './constants';
 
 test.describe('route handler errors', () => {
   test('captures error with mechanism and trace correlation', async ({ baseURL }) => {
@@ -54,6 +54,8 @@ test.describe('HTTPException errors', () => {
     });
   });
 
+  // On Node/Bun, httpServerSpansIntegration drops transactions for 3xx/4xx responses (ignoreStatusCodes), so we just use a request guard.
+  // On Cloudflare the transaction is available, and we additionally verify its name.
   [301, 302].forEach(code => {
     test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
       let errorEventOccurred = false;
@@ -66,14 +68,25 @@ test.describe('HTTPException errors', () => {
       });
 
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
+        return RUNTIME === 'cloudflare'
+          ? event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/')
+          : event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
       });
 
       const response = await fetch(`${baseURL}/http-exception/${code}`, { redirect: 'manual' });
       expect(response.status).toBe(code);
 
+      if (RUNTIME !== 'cloudflare') {
+        // Simple request guard for non-Cloudflare runtimes since the other transaction is dropped for 4xx responses
+        await fetch(`${baseURL}/`);
+      }
+
       const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe('GET /http-exception/:code');
+
+      if (RUNTIME === 'cloudflare') {
+        expect(transaction.transaction).toBe('GET /http-exception/:code');
+      }
+
       expect(errorEventOccurred).toBe(false);
     });
   });
@@ -90,14 +103,25 @@ test.describe('HTTPException errors', () => {
       });
 
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/');
+        return RUNTIME === 'cloudflare'
+          ? event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/')
+          : event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
       });
 
       const response = await fetch(`${baseURL}/http-exception/${code}`);
       expect(response.status).toBe(code);
 
+      if (RUNTIME !== 'cloudflare') {
+        // Simple request guard for non-Cloudflare runtimes since the other transaction is dropped for 4xx responses
+        await fetch(`${baseURL}/`);
+      }
+
       const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe('GET /http-exception/:code');
+
+      if (RUNTIME === 'cloudflare') {
+        expect(transaction.transaction).toBe('GET /http-exception/:code');
+      }
+
       expect(errorEventOccurred).toBe(false);
     });
   });
@@ -129,17 +153,28 @@ test.describe('middleware errors', () => {
     });
 
     const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return (
-        event.contexts?.trace?.op === 'http.server' &&
-        !!event.transaction?.includes('/test-errors/middleware-http-exception-4xx')
-      );
+      if (RUNTIME === 'cloudflare') {
+        return (
+          event.contexts?.trace?.op === 'http.server' &&
+          !!event.transaction?.includes('/test-errors/middleware-http-exception-4xx')
+        );
+      }
+      return event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
     });
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception-4xx`);
     expect(response.status).toBe(401);
 
+    if (RUNTIME !== 'cloudflare') {
+      await fetch(`${baseURL}/`);
+    }
+
     const transaction = await transactionPromise;
-    expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx/*');
+
+    if (RUNTIME === 'cloudflare') {
+      expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx/*');
+    }
+
     expect(errorEventOccurred).toBe(false);
   });
 });
