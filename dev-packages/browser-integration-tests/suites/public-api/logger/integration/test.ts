@@ -162,7 +162,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
             'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
             'sentry.message.template': { value: 'Array: {}', type: 'string' },
-            'sentry.message.parameter.0': { value: '[1,2,3,"string"]', type: 'string' },
+            'sentry.message.parameter.0': { value: [1, 2, 3, 'string'], type: 'array' },
           },
         },
         {
