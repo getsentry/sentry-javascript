@@ -23,7 +23,7 @@
     "wrangler": "4.86.0"
   },
   "volta": {
-    "node": "22.22.0",
+    "node": "24.15.0",
     "extends": "../../package.json"
   }
 }

@@ -28,6 +28,7 @@
     "wrangler": "4.86.0"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {
