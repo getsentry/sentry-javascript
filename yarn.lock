@@ -5436,7 +5436,7 @@
   dependencies:
     "@tybys/wasm-util" "^0.10.1"
 
-"@nestjs/common@11.1.19":
+"@nestjs/common@11.1.19", "@nestjs/common@^11":
   version "11.1.19"
   resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-11.1.19.tgz#50ba93ae45ebaeda6163554b8e2ecec545a25c92"
   integrity sha512-qeiTt2tv+e5QyDKqG8HlVZb2wx64FEaSGFJouqTSRs+kG44iTfl3xlz1XqVped+rihx4hmjWgL5gkhtdK3E6+Q==
@@ -5454,17 +5454,6 @@
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
-    tslib "2.8.1"
-
-"@nestjs/common@^11":
-  version "11.1.17"
-  resolved "https://registry.npmjs.org/@nestjs/common/-/common-11.1.17.tgz"
-  integrity sha512-hLODw5Abp8OQgA+mUO4tHou4krKgDtUcM9j5Ihxncst9XeyxYBTt2bwZm4e4EQr5E352S4Fyy6V3iFx9ggxKAg==
-  dependencies:
-    uid "2.0.2"
-    file-type "21.3.2"
-    iterare "1.2.1"
-    load-esm "1.0.3"
     tslib "2.8.1"
 
 "@nestjs/core@11.1.19":
