@@ -283,16 +283,13 @@ function processJSX(context: JSXProcessingContext, jsxNode: Babel.NodePath): voi
   // NOTE: I don't know of a case where `openingElement` would have more than one item,
   // but it's safer to always iterate
   const paths = jsxNode.get("openingElement");
-  const openingElements = Array.isArray(paths) ? paths : [paths];
+  const openingElements = (
+    Array.isArray(paths) ? paths : [paths]
+  ) as Babel.NodePath<Babel.types.JSXOpeningElement>[];
 
   const hasInjectedAttributes = openingElements.reduce(
     (prev, openingElement) =>
-      prev ||
-      applyAttributes(
-        context,
-        openingElement as Babel.NodePath<Babel.types.JSXOpeningElement>,
-        context.componentName
-      ),
+      prev || applyAttributes(context, openingElement, context.componentName),
     false
   );
 

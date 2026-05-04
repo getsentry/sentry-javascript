@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.18.5",
+    "@types/babel__core": "^7.20.5",
     "@babel/preset-react": "^7.23.3",
     "@sentry-internal/eslint-config": "5.2.1",
     "@sentry-internal/sentry-bundler-plugin-tsconfig": "5.2.1",

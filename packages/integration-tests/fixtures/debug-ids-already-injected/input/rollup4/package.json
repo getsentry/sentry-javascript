@@ -1,6 +1,0 @@
-{
-  "type": "module",
-  "dependencies": {
-    "rollup": "^4"
-  }
-}

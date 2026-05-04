@@ -1,9 +1,0 @@
-{
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@sentry-internal/sentry-bundler-plugin-tsconfig/base-config.json",
-  "include": ["./**/*"],
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "types": ["node"]
-  }
-}

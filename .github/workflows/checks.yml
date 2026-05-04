@@ -141,36 +141,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Use dependency cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        id: dependency-cache
-        with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/package.json') }}-${{ hashFiles('**/yarn.lock') }}
-      - name: Install dependencies
-        run: yarn --frozen-lockfile --ignore-engines
-        if: steps.dependency-cache.outputs.cache-hit != 'true'
-      - name: Download build artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: dist-artifacts-${{ github.run_id }}
-          path: packages
-      - run: yarn test:integration
-
-  test-integration-next:
-    needs: build
-    name: "Integration Tests Next (Node ${{ matrix.node-version }}, OS ${{ matrix.os }})"
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [18, 20, 22, 24]
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ matrix.node-version }}
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 10
@@ -188,7 +158,7 @@ jobs:
         with:
           name: dist-artifacts-${{ github.run_id }}
           path: packages
-      - run: yarn test:integration-next
+      - run: yarn test:integration
 
   lint:
     needs: build

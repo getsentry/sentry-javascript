@@ -6,8 +6,9 @@ module.exports = {
     ".eslintrc.js",
     "fixtures/*/out",
     "fixtures/*/src",
-    // We ignore Vite fixtures for now because there are a couple of version mismatches.
+    // We ignore Vite and Rollup fixtures for now because there are a couple of version mismatches.
     "fixtures/vite*/**/*",
+    "fixtures/rollup*/**/*",
   ],
   parserOptions: {
     tsconfigRootDir: __dirname,

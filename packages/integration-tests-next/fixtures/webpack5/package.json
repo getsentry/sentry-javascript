@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "babel-loader": "^8.0.0",
     "webpack": "5.105.4",
     "webpack-cli": "6.0.1",
     "@babel/preset-react": "7.23.3",
