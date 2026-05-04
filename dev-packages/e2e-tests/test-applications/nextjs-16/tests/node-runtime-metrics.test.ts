@@ -8,7 +8,7 @@ const EXPECTED_ATTRIBUTES = {
   'sentry.origin': { value: 'auto.node.runtime_metrics', type: 'string' },
 };
 
-test('Should emit node runtime memory metrics', async ({ request }) => {
+test('Should emit node runtime memory metrics', async ({ baseURL }) => {
   const rssPromise = waitForMetric('nextjs-16', metric => {
     return metric.name === 'node.runtime.mem.rss';
   });
@@ -22,7 +22,7 @@ test('Should emit node runtime memory metrics', async ({ request }) => {
   });
 
   // Trigger a request to ensure the server is running and metrics start being collected
-  await request.get('/');
+  await fetch(`${baseURL}/`);
 
   const rss = await rssPromise;
   const heapUsed = await heapUsedPromise;
@@ -59,12 +59,12 @@ test('Should emit node runtime memory metrics', async ({ request }) => {
   });
 });
 
-test('Should emit node runtime CPU utilization metric', async ({ request }) => {
+test('Should emit node runtime CPU utilization metric', async ({ baseURL }) => {
   const cpuUtilPromise = waitForMetric('nextjs-16', metric => {
     return metric.name === 'node.runtime.cpu.utilization';
   });
 
-  await request.get('/');
+  await fetch(`${baseURL}/`);
 
   const cpuUtil = await cpuUtilPromise;
 
@@ -78,7 +78,7 @@ test('Should emit node runtime CPU utilization metric', async ({ request }) => {
   });
 });
 
-test('Should emit node runtime event loop metrics', async ({ request }) => {
+test('Should emit node runtime event loop metrics', async ({ baseURL }) => {
   const elDelayP50Promise = waitForMetric('nextjs-16', metric => {
     return metric.name === 'node.runtime.event_loop.delay.p50';
   });
@@ -91,7 +91,7 @@ test('Should emit node runtime event loop metrics', async ({ request }) => {
     return metric.name === 'node.runtime.event_loop.utilization';
   });
 
-  await request.get('/');
+  await fetch(`${baseURL}/`);
 
   const elDelayP50 = await elDelayP50Promise;
   const elDelayP99 = await elDelayP99Promise;
@@ -127,12 +127,12 @@ test('Should emit node runtime event loop metrics', async ({ request }) => {
   });
 });
 
-test('Should emit node runtime uptime counter', async ({ request }) => {
+test('Should emit node runtime uptime counter', async ({ baseURL }) => {
   const uptimePromise = waitForMetric('nextjs-16', metric => {
     return metric.name === 'node.runtime.process.uptime';
   });
 
-  await request.get('/');
+  await fetch(`${baseURL}/`);
 
   const uptime = await uptimePromise;
 
