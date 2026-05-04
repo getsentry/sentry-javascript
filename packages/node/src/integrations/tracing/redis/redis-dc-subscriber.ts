@@ -85,7 +85,10 @@ export function subscribeRedisDiagnosticChannels(responseHook?: IORedisInstrumen
 
 function setupCommandChannel(): void {
   const channel = tracingChannel<CommandData>(CHANNEL_COMMAND, data => {
-    const statement = safeSerialize(data.command, data.args);
+    // node-redis >= 5.12.0 includes the command name as args[0] in the DC payload.
+    // Strip it so serialization and cache key extraction see only the actual arguments.
+    const actualArgs = data.args.slice(1);
+    const statement = safeSerialize(data.command, actualArgs);
     return startSpanManual(
       {
         name: `redis-${data.command}`,
@@ -109,7 +112,8 @@ function setupCommandChannel(): void {
     asyncEnd: data => {
       const span = data._sentrySpan;
       if (!span) return;
-      runResponseHook(span, data.command, data.args, data.result);
+      // Same slice: strip command name from args before passing to the response hook.
+      runResponseHook(span, data.command, data.args.slice(1), data.result);
       span.end();
     },
     error: data => {
