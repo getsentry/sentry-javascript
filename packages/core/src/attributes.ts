@@ -8,14 +8,14 @@ export type RawAttribute<T> = T extends { value: any } | { unit: any } ? Attribu
 
 export type Attributes = Record<string, TypedAttributeValue>;
 
-export type AttributeValueType = string | number | boolean | Array<unknown>;
+export type AttributeValueType = string | number | boolean | Array<string> | Array<number> | Array<boolean>;
 
 type AttributeTypeMap = {
   string: string;
   integer: number;
   double: number;
   boolean: boolean;
-  array: Array<unknown>;
+  array: Array<string> | Array<number> | Array<boolean>;
 };
 
 /* Generates a type from the AttributeTypeMap like:
@@ -143,14 +143,10 @@ export function estimateTypedAttributesSizeInBytes(attributes: Attributes | unde
     weight += (attr.unit?.length ?? 0) * 2;
     const val = attr.value;
 
-    if (Array.isArray(val) && isPrimitive(val[0])) {
+    if (Array.isArray(val)) {
       // Assumption: Individual array items have the same type and roughly the same size
       // probably not always true but allows us to cut down on runtime
       weight += estimatePrimitiveSizeInBytes(val[0]) * val.length;
-    } else if (Array.isArray(val) && !isPrimitive(val[0])) {
-      // Fallback for arrays with non-primitive values (e.g. objects)
-      // Again (to cut down on runtime), we intentionally don't traverse the full hierarchy
-      weight += fallbackWeight * val.length;
     } else if (isPrimitive(val)) {
       weight += estimatePrimitiveSizeInBytes(val);
     } else {
