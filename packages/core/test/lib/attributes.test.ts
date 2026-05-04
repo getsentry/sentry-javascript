@@ -76,7 +76,7 @@ describe('attributeValueToTypedAttributeValue', () => {
       );
     });
 
-    // Element types are not validated at runtime — Relay drops non-conforming arrays.
+    // Element types are not validated at runtime by the SDK (Relay drops non-conforming arrays).
     describe('arrays', () => {
       it.each([
         [['foo', 'bar']],
