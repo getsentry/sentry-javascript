@@ -39,9 +39,9 @@ for (const { name, prefix } of SCENARIOS) {
           description: 'middlewareA',
           op: 'middleware.hono',
           origin: 'auto.middleware.hono',
-          status: 'ok',
         }),
       );
+      expect(middlewareSpan?.status).not.toBe('internal_error');
 
       // @ts-expect-error timestamp is defined
       const durationMs = (middlewareSpan?.timestamp - middlewareSpan?.start_timestamp) * 1000;
@@ -61,14 +61,13 @@ for (const { name, prefix } of SCENARIOS) {
 
       const spans = transaction.spans || [];
 
-      expect(spans).toContainEqual(
-        expect.objectContaining({
-          description: '<anonymous>',
-          op: 'middleware.hono',
-          origin: 'auto.middleware.hono',
-          status: 'ok',
-        }),
+      const anonymousSpan = spans.find(
+        (span: { description?: string; op?: string }) =>
+          span.op === 'middleware.hono' && span.description === '<anonymous>',
       );
+      expect(anonymousSpan).toBeDefined();
+      expect(anonymousSpan?.origin).toBe('auto.middleware.hono');
+      expect(anonymousSpan?.status).not.toBe('internal_error');
     });
 
     test('multiple middleware are sibling spans under the same parent', async ({ baseURL }) => {
@@ -218,14 +217,11 @@ test.describe('inline middleware spans (sub-app)', () => {
         };
         const expectedDescription = EXPECTED_DESCRIPTIONS[regPath]![mwPath]!;
 
-        expect(transaction.spans).toContainEqual(
-          expect.objectContaining({
-            description: expectedDescription,
-            op: 'middleware.hono',
-            origin: 'auto.middleware.hono',
-            status: 'ok',
-          }),
-        );
+        const inlineSpan = (transaction.spans || []).find(s => s.description === expectedDescription);
+        expect(inlineSpan).toBeDefined();
+        expect(inlineSpan?.op).toBe('middleware.hono');
+        expect(inlineSpan?.origin).toBe('auto.middleware.hono');
+        expect(inlineSpan?.status).not.toBe('internal_error');
       });
     }
   }

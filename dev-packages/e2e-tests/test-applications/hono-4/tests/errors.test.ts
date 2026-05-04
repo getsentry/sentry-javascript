@@ -128,9 +128,16 @@ test.describe('HTTPException errors', () => {
 });
 
 test.describe('middleware errors', () => {
-  test('captures 5xx HTTPException thrown in middleware', async ({ baseURL }) => {
+  test('captures 5xx HTTPException thrown in middleware with error span status', async ({ baseURL }) => {
     const errorPromise = waitForError(APP_NAME, event => {
       return event.exception?.values?.[0]?.value === 'Service Unavailable from middleware';
+    });
+
+    const transactionPromise = waitForTransaction(APP_NAME, event => {
+      return (
+        event.contexts?.trace?.op === 'http.server' &&
+        !!event.transaction?.includes('/test-errors/middleware-http-exception')
+      );
     });
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception`);
@@ -140,6 +147,10 @@ test.describe('middleware errors', () => {
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Service Unavailable from middleware');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.middleware.hono');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
+
+    const transaction = await transactionPromise;
+    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+    expect(middlewareSpan?.status).toBe('internal_error');
   });
 
   test('does not capture 4xx HTTPException thrown in middleware', async ({ baseURL }) => {
@@ -173,6 +184,9 @@ test.describe('middleware errors', () => {
 
     if (RUNTIME === 'cloudflare') {
       expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx/*');
+
+      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
+      expect(middlewareSpan?.status).not.toBe('internal_error');
     }
 
     expect(errorEventOccurred).toBe(false);
