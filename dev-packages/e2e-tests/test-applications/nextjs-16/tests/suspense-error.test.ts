@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForRootSpan } from '@sentry-internal/test-utils';
 
 test('should not capture serverside suspense errors', async ({ page }) => {
-  const pageServerComponentTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /suspense-error';
+  const pageServerComponentRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
+    return rootSpan.name === 'GET /suspense-error';
   });
 
   let errorEvent;
@@ -18,8 +18,8 @@ test('should not capture serverside suspense errors', async ({ page }) => {
   // Just to be a little bit more sure
   await page.waitForTimeout(5000);
 
-  const pageServerComponentTransaction = await pageServerComponentTransactionPromise;
-  expect(pageServerComponentTransaction).toBeDefined();
+  const pageServerComponentRootSpan = await pageServerComponentRootSpanPromise;
+  expect(pageServerComponentRootSpan).toBeDefined();
 
   expect(errorEvent).toBeUndefined();
 });

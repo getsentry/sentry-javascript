@@ -19,8 +19,10 @@
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
+    "test:build-span-streaming": "NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING=1 pnpm test:build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
+    "test:assert-span-streaming": "NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING=1 pnpm test:assert"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -74,6 +76,11 @@
         "build-command": "pnpm test:build-canary-webpack",
         "label": "nextjs-16 (canary, webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "pnpm test:build-span-streaming",
+        "label": "nextjs-16 (span streaming, turbopack)",
+        "assert-command": "pnpm test:assert-span-streaming"
       }
     ]
   }

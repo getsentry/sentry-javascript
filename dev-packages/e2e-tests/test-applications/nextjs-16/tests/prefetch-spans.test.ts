@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForRootSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Prefetch client spans should have a http.request.prefetch attribute', async ({ page }) => {
   test.skip(isDevMode, "Prefetch requests don't have the prefetch header in dev mode");
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === '/prefetching';
+  const pageloadRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
+    return rootSpan.name === '/prefetching';
   });
 
   await page.goto(`/prefetching`);
@@ -14,10 +14,12 @@ test('Prefetch client spans should have a http.request.prefetch attribute', asyn
   // Make it more likely that nextjs prefetches
   await page.hover('#prefetch-link');
 
-  expect((await pageloadTransactionPromise).spans).toContainEqual(
+  const rootSpan = await pageloadRootSpanPromise;
+
+  expect(rootSpan.childSpans).toContainEqual(
     expect.objectContaining({
       op: 'http.client',
-      data: expect.objectContaining({
+      attributes: expect.objectContaining({
         'http.request.prefetch': true,
       }),
     }),

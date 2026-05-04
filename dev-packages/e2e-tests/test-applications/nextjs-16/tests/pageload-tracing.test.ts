@@ -1,31 +1,26 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForRootSpan } from '@sentry-internal/test-utils';
 
 test('App router transactions should be attached to the pageload request span', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /pageload-tracing';
+  const serverRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
+    return rootSpan.name === 'GET /pageload-tracing';
   });
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === '/pageload-tracing';
+  const pageloadRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
+    return rootSpan.name === '/pageload-tracing';
   });
 
   await page.goto(`/pageload-tracing`);
 
-  const [serverTransaction, pageloadTransaction] = await Promise.all([
-    serverTransactionPromise,
-    pageloadTransactionPromise,
-  ]);
+  const [serverRootSpan, pageloadRootSpan] = await Promise.all([serverRootSpanPromise, pageloadRootSpanPromise]);
 
-  const pageloadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-
-  expect(pageloadTraceId).toBeTruthy();
-  expect(serverTransaction.contexts?.trace?.trace_id).toBe(pageloadTraceId);
+  expect(pageloadRootSpan.traceId).toBeTruthy();
+  expect(serverRootSpan.traceId).toBe(pageloadRootSpan.traceId);
 });
 
 test('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /pageload-tracing';
+  const serverRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
+    return rootSpan.name === 'GET /pageload-tracing';
   });
 
   await fetch(`${baseURL}/pageload-tracing`, {
@@ -39,9 +34,9 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
     },
   });
 
-  const serverTransaction = await serverTransactionPromise;
+  const serverRootSpan = await serverRootSpanPromise;
 
-  expect(serverTransaction.contexts?.trace?.data).toEqual(
+  expect(serverRootSpan.attributes).toEqual(
     expect.objectContaining({
       'http.request.header.user_agent': 'Custom-NextJS-Agent/15.0',
       'http.request.header.content_type': 'text/html',
