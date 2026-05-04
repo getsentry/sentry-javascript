@@ -7,6 +7,9 @@ interface ValidateProfileOptions {
   isChunkFormat?: boolean;
 }
 
+/** Seconds — consecutive chunk timestamps can jitter slightly below float precision (see profiling flakes). */
+const CHUNK_SAMPLE_TIMESTAMP_EPSILON_SEC = 1e-5;
+
 /**
  * Validates the metadata of a profile chunk envelope.
  * https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
@@ -66,9 +69,9 @@ export function validateProfile(
       const ts = chunkProfileSample.timestamp;
       expect(Number.isFinite(ts)).toBe(true);
       expect(ts).toBeGreaterThan(0);
-      // Monotonic non-decreasing timestamps
-      expect(ts).toBeGreaterThanOrEqual(previousTimestamp);
-      previousTimestamp = ts;
+      // Monotonic non-decreasing timestamps (epsilon: jitter / IEEE754 around ~1e9 epoch seconds)
+      expect(ts).toBeGreaterThanOrEqual(previousTimestamp - CHUNK_SAMPLE_TIMESTAMP_EPSILON_SEC);
+      previousTimestamp = Math.max(previousTimestamp, ts);
     } else {
       // Legacy format uses elapsed_since_start_ns as a string
       const legacyProfileSample = sample as ThreadCpuProfile['samples'][number];
