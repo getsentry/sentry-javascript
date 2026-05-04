@@ -6,7 +6,6 @@ import {
   addVitePlugin,
   createResolver,
   defineNuxtModule,
-  resolvePath,
 } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';

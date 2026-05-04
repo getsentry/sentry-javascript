@@ -2,7 +2,7 @@ import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SentryNuxtModuleOptions } from '../common/types';
+import type { SentryNuxtModuleOptions } from '../common/types';
 import { resolvePath } from '@nuxt/kit';
 
 /**
@@ -27,7 +27,11 @@ export async function getNitroMajorVersion(): Promise<number> {
  *  Find the default SDK init file for the given type (client or server).
  *  The sentry.server.config file is prioritized over the instrument.server file.
  */
-export async function findDefaultSdkInitFile(type: 'server' | 'client', nuxt?: Nuxt, options?: SentryNuxtModuleOptions): Promise<string | undefined> {
+export async function findDefaultSdkInitFile(
+  type: 'server' | 'client',
+  nuxt?: Nuxt,
+  options?: SentryNuxtModuleOptions,
+): Promise<string | undefined> {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
   const relativePaths: string[] = [];
 
@@ -38,8 +42,8 @@ export async function findDefaultSdkInitFile(type: 'server' | 'client', nuxt?: N
         if (fs.existsSync(resolvedPath)) {
           return resolvedPath;
         }
-      } catch(e) {
-        console.error(`Error resolving server config file: ${options.serverConfigFile}`, e);
+      } catch {
+        // Fails silently as the file is optional
       }
     }
     for (const ext of possibleFileExtensions) {
@@ -53,8 +57,8 @@ export async function findDefaultSdkInitFile(type: 'server' | 'client', nuxt?: N
         if (fs.existsSync(resolvedPath)) {
           return resolvedPath;
         }
-      } catch(e) {
-        console.error(`Error resolving client config file: ${options.clientConfigFile}`, e);
+      } catch {
+        // Fails silently as the file is optional
       }
     }
     for (const ext of possibleFileExtensions) {
