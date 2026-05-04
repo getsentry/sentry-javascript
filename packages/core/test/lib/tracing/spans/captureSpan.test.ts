@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
+  requestDataIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -425,6 +426,316 @@ describe('captureSpan', () => {
       );
 
       consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe('request data on segment spans', () => {
+    function createClientWithRequestDataIntegration(options: Record<string, unknown> = {}): TestClient {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          integrations: [requestDataIntegration()],
+          ...options,
+        }),
+      );
+      client.init();
+      return client;
+    }
+
+    it('applies normalizedRequest data as attributes on the segment span', () => {
+      const client = createClientWithRequestDataIntegration({ release: '1.0.0' });
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'https://example.com/api/users',
+            method: 'GET',
+            query_string: 'page=1&limit=10',
+            headers: {
+              'content-type': 'application/json',
+              accept: 'application/json',
+            },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        'url.full': { type: 'string', value: 'https://example.com/api/users' },
+        'http.request.method': { type: 'string', value: 'GET' },
+        'url.query': { type: 'string', value: 'page=1&limit=10' },
+        'http.request.header.content_type': { type: 'string', value: 'application/json' },
+        'http.request.header.accept': { type: 'string', value: 'application/json' },
+      });
+    });
+
+    it('does not apply request data to child (non-segment) spans', () => {
+      const client = createClientWithRequestDataIntegration({ release: '1.0.0' });
+
+      const serializedChildSpan = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'https://example.com/api/users',
+            method: 'GET',
+          },
+        });
+
+        return startSpan({ name: 'segment' }, () => {
+          const childSpan = startInactiveSpan({ name: 'child' });
+          childSpan.end();
+          return captureSpan(childSpan, client);
+        });
+      });
+
+      expect(serializedChildSpan?.is_segment).toBe(false);
+      expect(serializedChildSpan?.attributes).not.toHaveProperty('url.full');
+      expect(serializedChildSpan?.attributes).not.toHaveProperty('http.request.method');
+    });
+
+    it('sets user.ip_address from request headers when sendDefaultPii is true', () => {
+      const client = createClientWithRequestDataIntegration({ sendDefaultPii: true });
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'https://example.com',
+            headers: {
+              'x-forwarded-for': '203.0.113.50',
+            },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: { type: 'string', value: '203.0.113.50' },
+      });
+    });
+
+    it('falls back to ipAddress from sdkProcessingMetadata when headers have no IP', () => {
+      const client = createClientWithRequestDataIntegration({ sendDefaultPii: true });
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'https://example.com',
+            headers: {},
+          },
+          ipAddress: '192.168.1.1',
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: { type: 'string', value: '192.168.1.1' },
+      });
+    });
+
+    it('does not set user.ip_address when sendDefaultPii is false', () => {
+      const client = createClientWithRequestDataIntegration({ sendDefaultPii: false });
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'https://example.com',
+            headers: {
+              'x-forwarded-for': '203.0.113.50',
+            },
+          },
+          ipAddress: '192.168.1.1',
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      // User IP should not be set because sendDefaultPii is false
+      // (Note: applyCommonSpanAttributes also skips user attributes when sendDefaultPii is false)
+      expect(serialized.attributes).not.toMatchObject({
+        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: expect.anything(),
+      });
+    });
+
+    it('does not add request attributes when normalizedRequest is missing', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).not.toHaveProperty('url.full');
+      expect(serialized.attributes).not.toHaveProperty('http.request.method');
+      expect(serialized.attributes).not.toHaveProperty('url.query');
+    });
+
+    it('handles query_string in object format', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            query_string: { page: '1', limit: '10' },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        'url.query': { type: 'string', value: 'page=1&limit=10' },
+      });
+    });
+
+    it('applies cookies as individual header attributes', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            cookies: {
+              theme: 'dark',
+              locale: 'en',
+            },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        'http.request.header.cookie.theme': { type: 'string', value: 'dark' },
+        'http.request.header.cookie.locale': { type: 'string', value: 'en' },
+      });
+    });
+
+    it('filters sensitive cookies from normalizedRequest.cookies', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            cookies: {
+              theme: 'dark',
+              'connect.sid': 's%3Aabc123.signature',
+              session_token: 'secret-value',
+            },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      // Non-sensitive cookie passes through
+      expect(serialized.attributes).toMatchObject({
+        'http.request.header.cookie.theme': { type: 'string', value: 'dark' },
+      });
+
+      // Sensitive cookies are filtered
+      expect(serialized.attributes).toMatchObject({
+        'http.request.header.cookie.connect.sid': { type: 'string', value: '[Filtered]' },
+        'http.request.header.cookie.session_token': { type: 'string', value: '[Filtered]' },
+      });
+    });
+
+    it('applies request body data as http.request.body.data attribute', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            data: { key: 'value' },
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        'http.request.body.data': { type: 'string', value: '{"key":"value"}' },
+      });
+    });
+
+    it('applies string request body data as-is', () => {
+      const client = createClientWithRequestDataIntegration();
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            data: 'raw body content',
+          },
+        });
+
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.end();
+
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.attributes).toMatchObject({
+        'http.request.body.data': { type: 'string', value: 'raw body content' },
+      });
     });
   });
 });
