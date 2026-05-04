@@ -37,15 +37,11 @@ export async function findDefaultSdkInitFile(
 
   if (type === 'server') {
     if (options?.serverConfigFile) {
-      try {
-        const resolvedPath = await resolvePath(options.serverConfigFile);
-        if (fs.existsSync(resolvedPath)) {
-          return resolvedPath;
-        }
-        throw new Error(`Server configuration file not found: ${resolvedPath}`);
-      } catch (e) {
-        throw new Error(`Error resolving server configuration file: ${options.serverConfigFile}. Cause: ${e}`);
+      const resolvedPath = await resolvePath(options.serverConfigFile);
+      if (fs.existsSync(resolvedPath)) {
+        return resolvedPath;
       }
+      throw new Error(`Server configuration file not found: ${resolvedPath}`);
     }
     for (const ext of possibleFileExtensions) {
       relativePaths.push(`sentry.${type}.config.${ext}`);
@@ -53,15 +49,11 @@ export async function findDefaultSdkInitFile(
     }
   } else {
     if (options?.clientConfigFile) {
-      try {
-        const resolvedPath = await resolvePath(options.clientConfigFile);
-        if (fs.existsSync(resolvedPath)) {
-          return resolvedPath;
-        }
-        throw new Error(`Client configuration file not found: ${resolvedPath}`);
-      } catch (e) {
-        throw new Error(`Error resolving client configuration file: ${options.clientConfigFile}. Cause: ${e}`);
+      const resolvedPath = await resolvePath(options.clientConfigFile);
+      if (fs.existsSync(resolvedPath)) {
+        return resolvedPath;
       }
+      throw new Error(`Client configuration file not found: ${resolvedPath}`);
     }
     for (const ext of possibleFileExtensions) {
       relativePaths.push(`sentry.${type}.config.${ext}`);
