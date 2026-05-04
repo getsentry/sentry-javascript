@@ -22,6 +22,10 @@ function isSystemError(error: unknown): error is SystemError {
 
   // Appears this is the recommended way to check for Node.js SystemError
   // https://github.com/nodejs/node/issues/46869
+  if (typeof util.getSystemErrorMap !== 'function') {
+    return false;
+  }
+
   return util.getSystemErrorMap().has(error.errno);
 }
 
