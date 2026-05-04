@@ -135,7 +135,6 @@ export function estimateTypedAttributesSizeInBytes(attributes: Attributes | unde
     return 0;
   }
   let weight = 0;
-  const fallbackWeight = 100;
 
   for (const [key, attr] of Object.entries(attributes)) {
     weight += key.length * 2;
@@ -151,7 +150,7 @@ export function estimateTypedAttributesSizeInBytes(attributes: Attributes | unde
       weight += estimatePrimitiveSizeInBytes(val);
     } else {
       // default fallback for anything else (objects)
-      weight += fallbackWeight;
+      weight += 100;
     }
   }
   return weight;
