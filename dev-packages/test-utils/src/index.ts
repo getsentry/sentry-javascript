@@ -22,7 +22,7 @@ export type { MockSentryServerOptions, MockSentryServer } from './mock-sentry-se
 export * from './sourcemap-upload-utils';
 
 export { CDPClient } from './cdp-client';
-export type { CDPClientOptions, HeapUsage } from './cdp-client';
+export type { CDPClientOptions } from './cdp-client';
 
 export { MemoryProfiler } from './memory-profiler';
 export type { MemoryProfilerOptions, SnapshotStats, SnapshotComparisonResult } from './memory-profiler';

@@ -238,11 +238,11 @@ export class MemoryProfiler {
       baseline,
       final,
       nodeGrowth,
-      nodeGrowthPercent: (nodeGrowth / baseline.nodeCount) * 100,
+      nodeGrowthPercent: baseline.nodeCount > 0 ? (nodeGrowth / baseline.nodeCount) * 100 : 0,
       edgeGrowth,
-      edgeGrowthPercent: (edgeGrowth / baseline.edgeCount) * 100,
+      edgeGrowthPercent: baseline.edgeCount > 0 ? (edgeGrowth / baseline.edgeCount) * 100 : 0,
       sizeGrowth,
-      sizeGrowthPercent: (sizeGrowth / baseline.totalSize) * 100,
+      sizeGrowthPercent: baseline.totalSize > 0 ? (sizeGrowth / baseline.totalSize) * 100 : 0,
     };
 
     if (this.#debug) {

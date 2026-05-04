@@ -41,14 +41,6 @@ export interface CDPClientOptions {
   debug?: boolean;
 }
 
-/**
- * Response type for CDP heap usage queries.
- */
-export interface HeapUsage {
-  usedSize: number;
-  totalSize: number;
-}
-
 interface CDPResponse {
   id?: number;
   method?: string;
