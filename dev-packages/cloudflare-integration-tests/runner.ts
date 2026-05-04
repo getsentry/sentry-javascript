@@ -116,6 +116,7 @@ export function createRunner(...paths: string[]) {
       let envelopeCount = 0;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
       const { resolve: setWorkerPort, promise: workerPortPromise } = deferredPromise<number>();
+      const { resolve: setSubWorkerPort, promise: subWorkerPortPromise, reject: rejectSubWorker } = deferredPromise<number>();
       let child: ReturnType<typeof spawn> | undefined;
       let childSubWorker: ReturnType<typeof spawn> | undefined;
 
@@ -218,11 +219,11 @@ export function createRunner(...paths: string[]) {
             reject(e);
           };
 
-          function onChildMessage(message: string, onReady?: (port: number) => void): void {
+          function onChildMessage(message: string, onReady: (port: number) => void): void {
             const msg = JSON.parse(message) as { event: string; port?: number };
             if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
               if (process.env.DEBUG) log('worker ready on port', msg.port);
-              onReady?.(msg.port);
+              onReady(msg.port);
             }
           }
 
@@ -245,14 +246,14 @@ export function createRunner(...paths: string[]) {
               { stdio, signal },
             );
 
-            // Wait for the sub-worker to be ready before starting the main worker
-            await new Promise<void>((resolveSubWorker, rejectSubWorker) => {
-              childSubWorker!.on('message', (msg: string) => onChildMessage(msg, () => resolveSubWorker()));
-              childSubWorker!.on('error', rejectSubWorker);
-              childSubWorker!.on('exit', code => {
-                rejectSubWorker(new Error(`Sub-worker exited with code ${code}`));
-              });
+            childSubWorker.on('message', (msg: string) => onChildMessage(msg, setSubWorkerPort));
+            childSubWorker.on('error', rejectSubWorker);
+            childSubWorker.on('exit', code => {
+              rejectSubWorker(new Error(`Sub-worker exited with code ${code}`));
             });
+
+            // Wait for the sub-worker to be ready before starting the main worker
+            await subWorkerPortPromise;
           }
 
           child = spawn(
