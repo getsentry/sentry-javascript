@@ -208,22 +208,33 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('Starting scenario', testPath);
 
-          const stdio: ('inherit' | 'ipc' | 'ignore')[] = process.env.DEBUG
-            ? ['inherit', 'inherit', 'inherit', 'ipc']
-            : ['ignore', 'ignore', 'ignore', 'ipc'];
-
           const onChildError = (e: Error) => {
             // eslint-disable-next-line no-console
             console.error('Error starting child process:', e);
             reject(e);
           };
 
-          function onChildMessage(message: string, onReady?: (port: number) => void): void {
-            const msg = JSON.parse(message) as { event: string; port?: number };
-            if (msg.event === 'DEV_SERVER_READY' && typeof msg.port === 'number') {
-              if (process.env.DEBUG) log('worker ready on port', msg.port);
-              onReady?.(msg.port);
-            }
+          // Inspired by workers-sdk: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/e2e/helpers/wrangler.ts
+          function waitForReady(childProcess: ReturnType<typeof spawn>): Promise<number> {
+            return new Promise((resolve, reject) => {
+              const stdout = childProcess.stdout;
+              if (!stdout) {
+                reject(new Error('No stdout available'));
+                return;
+              }
+
+              let output = '';
+              stdout.on('data', (chunk: Buffer) => {
+                const text = chunk.toString();
+                if (process.env.DEBUG) process.stdout.write(text);
+                output += text;
+
+                const match = output.match(/Ready on (https?:\/\/[^\s]+)/);
+                if (match?.[1]) {
+                  resolve(parseInt(new URL(match[1]).port, 10));
+                }
+              });
+            });
           }
 
           if (existsSync(join(testPath, 'wrangler-sub-worker.jsonc'))) {
@@ -242,17 +253,15 @@ export function createRunner(...paths: string[]) {
                 '--inspector-port',
                 '0',
               ],
-              { stdio, signal },
+              { stdio: ['ignore', 'pipe', 'inherit'], signal },
             );
 
-            // Wait for the sub-worker to be ready before starting the main worker
-            await new Promise<void>((resolveSubWorker, rejectSubWorker) => {
-              childSubWorker!.on('message', (msg: string) => onChildMessage(msg, () => resolveSubWorker()));
-              childSubWorker!.on('error', rejectSubWorker);
-              childSubWorker!.on('exit', code => {
-                rejectSubWorker(new Error(`Sub-worker exited with code ${code}`));
-              });
+            childSubWorker.on('error', onChildError);
+            childSubWorker.on('exit', code => {
+              onChildError(new Error(`Sub-worker exited with code ${code}`));
             });
+
+            await waitForReady(childSubWorker);
           }
 
           child = spawn(
@@ -273,7 +282,7 @@ export function createRunner(...paths: string[]) {
               '0',
               ...extraWranglerArgs,
             ],
-            { stdio, signal },
+            { stdio: ['ignore', 'pipe', 'inherit'], signal },
           );
 
           CLEANUP_STEPS.add(() => {
@@ -283,7 +292,10 @@ export function createRunner(...paths: string[]) {
 
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
-          child.on('message', (msg: string) => onChildMessage(msg, setWorkerPort));
+
+          const workerPort = await waitForReady(child);
+
+          setWorkerPort(workerPort);
         })
         .catch(e => reject(e));
 

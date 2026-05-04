@@ -32,6 +32,7 @@ export const chainAndCopyPromiseLike = <V, T extends PromiseLike<V>>(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const copyProps = <T extends Record<string, any>>(original: T, chained: T): T => {
+  if (!chained) return original;
   let mutated = false;
   //oxlint-disable-next-line guard-for-in
   for (const key in original) {

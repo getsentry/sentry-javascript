@@ -23,6 +23,8 @@ sentryTest('should capture all logging methods', async ({ getLocalTestUrl, page 
       content_type: 'application/vnd.sentry.items.log+json',
     },
     {
+      version: 2,
+      ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
       items: [
         {
           timestamp: expect.any(Number),
