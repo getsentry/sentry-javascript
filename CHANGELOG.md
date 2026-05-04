@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
+
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry.
+
 - **feat(browser): Add `ingest_settings` to v2 log envelope payload ([#20453](https://github.com/getsentry/sentry-javascript/pull/20453))**
 
   Inference of user data (e.g. IP address, browser name/version) on log events is now gated behind the `sendDefaultPii` option. Previously, this data was always inferred by default.
