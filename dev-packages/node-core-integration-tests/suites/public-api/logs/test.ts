@@ -11,6 +11,7 @@ describe('logger public API', () => {
       .expect({
         log: logsContainer => {
           expect(logsContainer).toEqual({
+            version: 2,
             items: [
               {
                 attributes: {
