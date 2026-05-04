@@ -64,11 +64,11 @@ describe('findDefaultSdkInitFile', () => {
       resolvePathMock.mockResolvedValue(baseDir);
 
       const result = await findDefaultSdkInitFile('client', undefined, {
-        configRootDir: '~/config',
+        configDir: '~/config',
       });
 
       expect(result).toBe(`${baseDir}/sentry.client.config.${ext}`);
-      expect(resolvePathMock).toHaveBeenCalledWith('~/config');
+      expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
 
@@ -84,11 +84,11 @@ describe('findDefaultSdkInitFile', () => {
       resolvePathMock.mockResolvedValue(baseDir);
 
       const result = await findDefaultSdkInitFile('server', undefined, {
-        configRootDir: '~/config',
+        configDir: '~/config',
       });
 
       expect(result).toBe(`${baseDir}/sentry.server.config.${ext}`);
-      expect(resolvePathMock).toHaveBeenCalledWith('~/config');
+      expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
 

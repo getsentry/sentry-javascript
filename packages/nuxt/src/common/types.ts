@@ -233,7 +233,7 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    *
    * ```ts
    * sentry: {
-   *   configRootDir: '~/sentry-config',
+   *   configDir: '~/sentry-config',
    *   // Sentry module will search for `<projectRoot>/<srcDir>/sentry-config/sentry.(client|server).config.(js|ts)` files.
    * }
    * ```
@@ -241,7 +241,7 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    *
    * @default '<projectRoot>'
    */
-  configRootDir?: string;
+  configDir?: string;
 
   /**
    * When `autoInjectServerSentry` is set to `"experimental_dynamic-import"`, the SDK will wrap your Nitro server entrypoint
