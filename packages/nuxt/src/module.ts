@@ -6,6 +6,7 @@ import {
   addVitePlugin,
   createResolver,
   defineNuxtModule,
+  resolvePath,
 } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
@@ -47,7 +48,8 @@ export default defineNuxtModule<ModuleOptions>({
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
-    const clientConfigFile = findDefaultSdkInitFile('client', nuxt);
+
+    const clientConfigFile = await findDefaultSdkInitFile('client', nuxt, moduleOptions);
 
     if (clientConfigFile) {
       // Inject the client-side Sentry config file with a side effect import
@@ -78,7 +80,8 @@ export default defineNuxtModule<ModuleOptions>({
       });
     }
 
-    const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
+    const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
+
     const isNitroV3 = (await getNitroMajorVersion()) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
