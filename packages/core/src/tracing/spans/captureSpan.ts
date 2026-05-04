@@ -16,9 +16,12 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
+import type { QueryParams, RequestEventData } from '../../types-hoist/request';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
+import { httpHeadersToSpanAttributes } from '../../utils/request';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
+import { getClientIPAddress } from '../../vendor/getIpAddress';
 import {
   INTERNAL_getSegmentSpan,
   showSpanDropWarning,
@@ -63,7 +66,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   inferSpanDataFromOtelAttributes(spanJSON, spanKind);
 
   if (spanJSON.is_segment) {
-    applyScopeToSegmentSpan(spanJSON, finalScopeData);
+    applyScopeToSegmentSpan(spanJSON, finalScopeData, client);
     // Allow hook subscribers to mutate the segment span JSON
     // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
@@ -96,9 +99,84 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   };
 }
 
-function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
-  // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
-  // This will follow in a separate PR
+function applyScopeToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, scopeData: ScopeData, client: Client): void {
+  const { normalizedRequest, ipAddress } = scopeData.sdkProcessingMetadata;
+  const { sendDefaultPii } = client.getOptions();
+
+  if (normalizedRequest && client.getIntegrationByName('RequestData')) {
+    applyRequestDataToSegmentSpan(segmentSpanJSON, normalizedRequest, ipAddress, sendDefaultPii);
+  }
+}
+
+// Span-streaming counterpart of requestDataIntegration's processEvent.
+function applyRequestDataToSegmentSpan(
+  segmentSpanJSON: StreamedSpanJSON,
+  normalizedRequest: RequestEventData,
+  ipAddress: string | undefined,
+  sendDefaultPii: boolean | undefined,
+): void {
+  const attributes: Record<string, unknown> = {};
+
+  if (normalizedRequest.url) {
+    attributes['url.full'] = normalizedRequest.url;
+  }
+
+  if (normalizedRequest.method) {
+    attributes['http.request.method'] = normalizedRequest.method;
+  }
+
+  if (normalizedRequest.query_string) {
+    attributes['url.query'] = normalizeQueryString(normalizedRequest.query_string);
+  }
+
+  safeSetSpanJSONAttributes(segmentSpanJSON, attributes);
+
+  if (normalizedRequest.headers) {
+    const headerAttributes = httpHeadersToSpanAttributes(normalizedRequest.headers, sendDefaultPii ?? false, 'request');
+    safeSetSpanJSONAttributes(segmentSpanJSON, headerAttributes);
+  }
+
+  if (normalizedRequest.cookies) {
+    // Reconstruct a cookie header string so httpHeadersToSpanAttributes can apply
+    // the same sensitivity filtering (session tokens, auth cookies, etc.) it uses for raw headers.
+    const cookieString = Object.entries(normalizedRequest.cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ');
+    if (cookieString) {
+      const cookieAttributes = httpHeadersToSpanAttributes(
+        { cookie: cookieString },
+        sendDefaultPii ?? false,
+        'request',
+      );
+      safeSetSpanJSONAttributes(segmentSpanJSON, cookieAttributes);
+    }
+  }
+
+  if (normalizedRequest.data != null) {
+    const serialized =
+      typeof normalizedRequest.data === 'string' ? normalizedRequest.data : JSON.stringify(normalizedRequest.data);
+    if (serialized) {
+      safeSetSpanJSONAttributes(segmentSpanJSON, { 'http.request.body.data': serialized });
+    }
+  }
+
+  if (sendDefaultPii) {
+    const ip = (normalizedRequest.headers && getClientIPAddress(normalizedRequest.headers)) || ipAddress || undefined;
+    if (ip) {
+      safeSetSpanJSONAttributes(segmentSpanJSON, { [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: ip });
+    }
+  }
+}
+
+function normalizeQueryString(queryString: QueryParams): string | undefined {
+  if (typeof queryString === 'string') {
+    return queryString || undefined;
+  }
+
+  const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
+  const result = pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
+
+  return result || undefined;
 }
 
 function applyCommonSpanAttributes(
