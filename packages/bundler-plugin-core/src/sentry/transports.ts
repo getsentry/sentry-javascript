@@ -12,6 +12,8 @@ import type {
   TransportRequest,
   TransportRequestExecutor,
 } from "@sentry/types";
+import { join } from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
 
 // Estimated maximum size for reasonable standalone event
 const GZIP_THRESHOLD = 1024 * 32;
@@ -105,6 +107,7 @@ export function makeOptionallyEnabledNodeTransport(
 ): (options: BaseTransportOptions) => Transport {
   return (nodeTransportOptions) => {
     const nodeTransport = makeNodeTransport(nodeTransportOptions);
+
     return {
       flush: (timeout) => nodeTransport.flush(timeout),
       send: async (request) => {
@@ -120,10 +123,9 @@ export function makeOptionallyEnabledNodeTransport(
 
         if (await shouldSendTelemetry) {
           if (process.env["SENTRY_TEST_OUT_DIR"]) {
-            // eslint-disable-next-line @typescript-eslint/unbound-method
-            const { join } = await import("node:path");
-            const { appendFileSync } = await import("node:fs");
-            const path = join(process.env["SENTRY_TEST_OUT_DIR"], "sentry-telemetry.json");
+            const outDir = process.env["SENTRY_TEST_OUT_DIR"];
+            mkdirSync(outDir, { recursive: true });
+            const path = join(outDir, "sentry-telemetry.json");
             appendFileSync(path, JSON.stringify(request) + ",\n");
             return { statusCode: 200 };
           }

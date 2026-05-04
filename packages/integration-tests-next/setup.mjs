@@ -27,7 +27,7 @@ for (const dir of directories) {
     continue;
   }
 
-  execSync("pnpm install", {
+  execSync("pnpm install --force", {
     cwd: dir,
     stdio: "inherit",
   });

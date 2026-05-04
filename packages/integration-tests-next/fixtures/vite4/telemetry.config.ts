@@ -12,6 +12,8 @@ export default defineConfig({
         entryFileNames: "[name].js",
       },
     },
+    // We already delete the directory and don't want our telemetry file to be deleted
+    emptyOutDir: false,
   },
   plugins: [sentryVitePlugin(sentryConfig)],
 });

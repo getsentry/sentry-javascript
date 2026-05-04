@@ -72,7 +72,13 @@ export function readAllFiles(
               "TIMESTAMP"
             )
             .replace(/[a-f0-9]{32}/g, "UUID")
+            .replace(/"[a-f0-9]{16}"/g, '"SHORT_UUID"')
+            .replaceAll(process.version, "NODE_VERSION")
+            .replace(/"ci":false/g, '"ci":true')
+            .replace(/"platform":".+?"/g, '"platform":"PLATFORM"')
             .replace(/"duration":[\d.]+/g, '"duration":DURATION')
+            .replace(/"start_timestamp":[\d.]+/g, '"start_timestamp":START_TIMESTAMP')
+            .replace(/"timestamp":[\d.]+/g, '"timestamp":TIMESTAMP')
             .replace(/"release":"[\d.]+"/g, '"release":"PLUGIN_VERSION"');
         } else {
           // Normalize Windows line endings for cross-platform snapshots
