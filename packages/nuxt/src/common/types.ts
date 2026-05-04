@@ -225,16 +225,19 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
   /**
    * Provide the resolved path to a custom Sentry client config file.
    *
-   * If not provided, the default location (`<projectRoot>/sentry.client.config.(js|ts)`) will be used to look up the config file.
+   * If not provided, the default location (`<projectRoot>/sentry.(client|server).config.(js|ts)`) will be used to look up the config file.
    * If there is no file at the default location either, the SDK won't be initialized.
    *
+   * Relatives path using Nuxt aliases are supported.
    * @example
    *
    * ```ts
    * sentry: {
-   *   configRootDir: '~',
+   *   configRootDir: '~/sentry-config',
+   *   // Sentry module will search for `<projectRoot>/<srcDir>/sentry-config/sentry.(client|server).config.(js|ts)` files.
    * }
    * ```
+   *
    *
    * @default '<projectRoot>'
    */
