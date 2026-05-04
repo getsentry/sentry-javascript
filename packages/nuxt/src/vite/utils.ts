@@ -3,7 +3,7 @@ import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { resolvePath } from '@nuxt/kit';
+import { resolveAlias } from '@nuxt/kit';
 
 /**
  * Gets the major version of the installed nitro package.
@@ -27,11 +27,11 @@ export async function getNitroMajorVersion(): Promise<number> {
  *  Find the default SDK init file for the given type (client or server).
  *  The sentry.server.config file is prioritized over the instrument.server file.
  */
-export async function findDefaultSdkInitFile(
+export function findDefaultSdkInitFile(
   type: 'server' | 'client',
   nuxt?: Nuxt,
   options?: SentryNuxtModuleOptions,
-): Promise<string | undefined> {
+): string | undefined {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
   const relativePaths: string[] = [];
 
@@ -61,7 +61,7 @@ export async function findDefaultSdkInitFile(
   // As a fallback, also check CWD (left for pure compatibility)
   let rootDir: string;
   if (options?.configRootDir) {
-    rootDir = await resolvePath(options.configRootDir);
+    rootDir = resolveAlias(options.configRootDir);
   } else {
     rootDir = process.cwd();
   }
