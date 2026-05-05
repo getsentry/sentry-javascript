@@ -1,0 +1,20 @@
+{
+  "name": "cloudflare-workerentrypoint-do-rpc-disabled",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["MyDurableObject"],
+      "tag": "v1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "MyDurableObject",
+        "name": "MY_DURABLE_OBJECT",
+      },
+    ],
+  },
+}

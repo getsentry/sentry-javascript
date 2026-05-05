@@ -1,12 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
-import {
-  envelopeRequestParser,
-  hidePage,
-  shouldSkipTracingTest,
-  waitForClientReportRequest,
-} from '../../../utils/helpers';
 
 sentryTest(
   'sends http.client span for fetch requests without an active span when span streaming is enabled',

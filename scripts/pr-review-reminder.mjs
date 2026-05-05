@@ -174,6 +174,16 @@ export default async function run({ github, context, core }) {
     const pendingTeams = requested.teams; // team reviewers
     if (pendingReviewers.length === 0 && pendingTeams.length === 0) continue;
 
+    // Skip if the PR already has at least one approval — no need to nudge remaining reviewers
+    const reviews = await github.paginate(github.rest.pulls.listReviews, {
+      owner,
+      repo,
+      pull_number: pr.number,
+      per_page: 100,
+    });
+    const hasApproval = reviews.some(r => r.state === 'APPROVED');
+    if (hasApproval) continue;
+
     // Fetch the PR timeline to determine when each review was (last) requested
     const timeline = await github.paginate(github.rest.issues.listEventsForTimeline, {
       owner,

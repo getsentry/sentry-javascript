@@ -25,7 +25,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7",
+    "vite": "^7.3.2",
     "vite-plugin-solid": "^2.11.2"
   },
   "volta": {

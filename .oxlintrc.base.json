@@ -131,6 +131,16 @@
       }
     },
     {
+      "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-this-alias": "off",
+        "max-lines": "off",
+        "no-bitwise": "off"
+      }
+    },
+    {
       "files": [
         "**/scenarios/**",
         "**/rollup-utils/**",
