@@ -4,7 +4,7 @@ import { saveSession } from '../session/saveSession';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { isSessionExpired } from '../util/isSessionExpired';
+import { shouldRefreshSession } from '../session/shouldRefreshSession';
 import { debug } from '../util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
@@ -16,14 +16,14 @@ import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
   return Object.assign(
     (event: Event, hint: EventHint) => {
-      // Aggressively check for expired session and clean stale replay_id from DSC.
+      // Check for expired session and clean stale replay_id from DSC.
       // This must run BEFORE the isEnabled/isPaused guards because when paused,
-      // the guards short-circuit without cleaning DSC. The cached DSC on the scope
-      // (set by browserTracingIntegration when the idle span ended) persists the
-      // stale replay_id indefinitely until explicitly deleted.
+      // the guards short-circuit without cleaning DSC. Uses shouldRefreshSession
+      // instead of isSessionExpired to respect the buffer-mode carve-out:
+      // buffer sessions with segmentId === 0 are kept alive even when time-expired.
       if (
         replay.session &&
-        isSessionExpired(replay.session, {
+        shouldRefreshSession(replay.session, {
           maxReplayDuration: replay.getOptions().maxReplayDuration,
           sessionIdleExpire: replay.timeouts.sessionIdleExpire,
         })

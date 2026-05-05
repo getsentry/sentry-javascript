@@ -50,7 +50,6 @@ import { debounce } from './util/debounce';
 import { getRecordingSamplingOptions } from './util/getRecordingSamplingOptions';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
-import { isSessionExpired } from './util/isSessionExpired';
 import { debug } from './util/logger';
 import {
   resetReplayIdOnDynamicSamplingContext,
@@ -1011,7 +1010,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, {
+    const expired = shouldRefreshSession(this.session, {
       maxReplayDuration: this._options.maxReplayDuration,
       sessionIdleExpire: this.timeouts.sessionIdleExpire,
     });
