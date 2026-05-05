@@ -4,7 +4,7 @@ import type { QueryParams, RequestEventData } from '../../types-hoist/request';
 import type { StreamedSpanJSON } from '../../types-hoist/span';
 import { httpHeadersToSpanAttributes } from '../../utils/request';
 import { getClientIPAddress, ipHeaderNames } from '../../vendor/getIpAddress';
-import { safeSetSpanJSONAttributes } from './captureSpan';
+import { safeSetSpanJSONAttributes } from './spanAttributeUtils';
 
 // Span-streaming counterpart of requestDataIntegration's processEvent.
 export function applyRequestDataToSegmentSpan(
@@ -30,6 +30,25 @@ export function applyRequestDataToSegmentSpan(
 
   safeSetSpanJSONAttributes(segmentSpanJSON, attributes);
 
+  // Process cookies before headers so normalizedRequest.cookies takes precedence
+  // over the raw cookie header (matching the processEvent path in requestdata.ts).
+  if (include.cookies) {
+    const cookieString = normalizedRequest.cookies
+      ? Object.entries(normalizedRequest.cookies)
+          .map(([name, value]) => `${name}=${value}`)
+          .join('; ')
+      : normalizedRequest.headers?.cookie;
+
+    if (cookieString) {
+      const cookieAttributes = httpHeadersToSpanAttributes(
+        { cookie: cookieString },
+        sendDefaultPii ?? false,
+        'request',
+      );
+      safeSetSpanJSONAttributes(segmentSpanJSON, cookieAttributes);
+    }
+  }
+
   if (include.headers && normalizedRequest.headers) {
     const headers = { ...normalizedRequest.headers };
 
@@ -49,23 +68,6 @@ export function applyRequestDataToSegmentSpan(
 
     const headerAttributes = httpHeadersToSpanAttributes(headers, sendDefaultPii ?? false, 'request');
     safeSetSpanJSONAttributes(segmentSpanJSON, headerAttributes);
-  }
-
-  if (include.cookies) {
-    const cookieString = normalizedRequest.cookies
-      ? Object.entries(normalizedRequest.cookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ')
-      : normalizedRequest.headers?.cookie;
-
-    if (cookieString) {
-      const cookieAttributes = httpHeadersToSpanAttributes(
-        { cookie: cookieString },
-        sendDefaultPii ?? false,
-        'request',
-      );
-      safeSetSpanJSONAttributes(segmentSpanJSON, cookieAttributes);
-    }
   }
 
   if (include.data && normalizedRequest.data != null) {

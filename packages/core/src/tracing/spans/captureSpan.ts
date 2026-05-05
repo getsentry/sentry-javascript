@@ -1,5 +1,6 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
+import type { RequestDataIncludeOptions } from '../../integrations/requestdata';
 import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -16,7 +17,6 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import type { RequestDataIncludeOptions } from '../../integrations/requestdata';
 import type { Integration } from '../../types-hoist/integration';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
@@ -30,6 +30,7 @@ import {
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
 import { applyRequestDataToSegmentSpan } from './requestData';
+import { safeSetSpanJSONAttributes } from './spanAttributeUtils';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -157,22 +158,7 @@ export function applyBeforeSendSpanCallback(
   return modifedSpan;
 }
 
-/**
- * Safely set attributes on a span JSON.
- * If an attribute already exists, it will not be overwritten.
- */
-export function safeSetSpanJSONAttributes(
-  spanJSON: StreamedSpanJSON,
-  newAttributes: RawAttributes<Record<string, unknown>>,
-): void {
-  const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
-
-  Object.entries(newAttributes).forEach(([key, value]) => {
-    if (value != null && !(key in originalAttributes)) {
-      originalAttributes[key] = value;
-    }
-  });
-}
+export { safeSetSpanJSONAttributes } from './spanAttributeUtils';
 
 // OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)
 const SPAN_KIND_SERVER = 1;
