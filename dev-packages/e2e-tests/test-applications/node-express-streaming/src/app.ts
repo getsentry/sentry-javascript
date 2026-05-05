@@ -11,7 +11,6 @@ Sentry.init({
   traceLifecycle: 'stream',
   integrations: [
     Sentry.spanStreamingIntegration(),
-    // @ts-expect-error - headersToSpanAttributes type mismatch in packed tarballs
     Sentry.nativeNodeFetchIntegration({
       headersToSpanAttributes: {
         responseHeaders: ['content-length'],
