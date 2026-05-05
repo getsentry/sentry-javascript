@@ -1,0 +1,13 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "cloudflare-workers-streaming"
+main = "src/index.ts"
+compatibility_date = "2024-07-25"
+compatibility_flags = ["nodejs_compat"]
+
+[[durable_objects.bindings]]
+name = "MY_DURABLE_OBJECT"
+class_name = "MyDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MyDurableObject"]
