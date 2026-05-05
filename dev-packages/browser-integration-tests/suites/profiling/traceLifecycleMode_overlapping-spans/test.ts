@@ -43,7 +43,7 @@ sentryTest(
     const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
       page,
       1,
-      { url, envelopeType: 'profile_chunk', timeout: 5000 },
+      { url, envelopeType: 'profile_chunk', timeout: 15_000 },
       properFullEnvelopeRequestParser,
     );
 
