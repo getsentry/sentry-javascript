@@ -27,7 +27,7 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
-    "next": "16.1.7",
+    "next": "16.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^7",

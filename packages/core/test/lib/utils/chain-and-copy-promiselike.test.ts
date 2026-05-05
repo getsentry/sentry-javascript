@@ -53,4 +53,25 @@ describe('chain and copy promiselike objects', () => {
     expect(success).toBe(true);
     expect(error).toBe(false);
   });
+
+  it('returns original when .then() returns undefined', () => {
+    const original = {
+      value: 42,
+      then() {
+        return undefined;
+      },
+      customMethod() {
+        return 'hello';
+      },
+    } as unknown as PromiseLike<number> & { customMethod: () => string };
+
+    const q = chainAndCopyPromiseLike(
+      original,
+      () => {},
+      () => {},
+    );
+
+    expect(q).toBe(original);
+    expect((q as typeof original).customMethod()).toBe('hello');
+  });
 });

@@ -7,6 +7,7 @@ import { instrumentWorkerEntrypointScheduled } from './worker/instrumentSchedule
 import { instrumentWorkerEntrypointTail } from './worker/instrumentTail';
 import { getFinalOptions } from '../options';
 import { instrumentContext } from '../utils/instrumentContext';
+import { instrumentEnv } from './worker/instrumentEnv';
 
 export type WorkerEntrypointConstructor<Env = typeof cloudflareEnv, Props = {}> = new (
   ctx: ExecutionContext,
@@ -63,7 +64,8 @@ export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor
     construct(target, [ctx, env]) {
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
-      const obj = new target(context, env);
+      const instrumentedEnv = instrumentEnv(env, options);
+      const obj = new target(context, instrumentedEnv);
 
       // Override this.ctx to ensure the instrumented context is used
       // This is necessary because the base WorkerEntrypoint class sets this.ctx
@@ -72,6 +74,15 @@ export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor
       if ('ctx' in obj) {
         Object.defineProperty(obj, 'ctx', {
           value: context,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+      }
+
+      if ('env' in obj) {
+        Object.defineProperty(obj, 'env', {
+          value: instrumentedEnv,
           writable: true,
           enumerable: true,
           configurable: true,

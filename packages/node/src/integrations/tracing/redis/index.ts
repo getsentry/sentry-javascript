@@ -1,7 +1,4 @@
 import type { Span } from '@opentelemetry/api';
-import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
-import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
-import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
@@ -14,6 +11,7 @@ import {
   truncate,
 } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
+import type { IORedisCommandArgs } from '../../../utils/redisCache';
 import {
   calculateCacheItemSize,
   GET_COMMANDS,
@@ -21,7 +19,10 @@ import {
   getCacheOperation,
   isInCommands,
   shouldConsiderForCache,
-} from '../../utils/redisCache';
+} from '../../../utils/redisCache';
+import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
+import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';
+import { RedisInstrumentation } from './vendored/redis-instrumentation';
 
 interface RedisOptions {
   /**
@@ -46,11 +47,11 @@ const INTEGRATION_NAME = 'Redis';
 export let _redisOptions: RedisOptions = {};
 
 /* Only exported for testing purposes */
-export const cacheResponseHook: RedisResponseCustomAttributeFunction = (
+export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   span: Span,
-  redisCommand,
-  cmdArgs,
-  response,
+  redisCommand: string,
+  cmdArgs: IORedisCommandArgs,
+  response: unknown,
 ) => {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
@@ -69,8 +70,12 @@ export const cacheResponseHook: RedisResponseCustomAttributeFunction = (
 
   // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
   // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-  const networkPeerAddress = spanToJSON(span).data['net.peer.name'];
-  const networkPeerPort = spanToJSON(span).data['net.peer.port'];
+  // Fall back to stable semconv attributes (server.address/server.port) when
+  // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
+  // set for node-redis v4/v5.
+  const spanData = spanToJSON(span).data;
+  const networkPeerAddress = spanData['net.peer.name'] ?? spanData['server.address'];
+  const networkPeerPort = spanData['net.peer.port'] ?? spanData['server.port'];
   if (networkPeerPort && networkPeerAddress) {
     span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
   }
