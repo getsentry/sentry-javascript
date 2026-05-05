@@ -32,7 +32,7 @@ const TEXT_CONTENT_TYPES = [
 /**
  * Convert a `maxRequestBodySize` setting to a maximum byte length.
  */
-export function getMaxBodyByteLength(maxRequestBodySize: Omit<MaxRequestBodySize, 'none'>): number {
+export function getMaxBodyByteLength(maxRequestBodySize: Exclude<MaxRequestBodySize, 'none'>): number {
   if (maxRequestBodySize === 'small') return 1_000;
   if (maxRequestBodySize === 'medium') return 10_000;
   return MAX_BODY_BYTE_LENGTH;
