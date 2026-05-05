@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDurableObjectNamespace, isJSRPC } from '../../src/utils/isBinding';
+import { isDurableObjectNamespace, isJSRPC, isQueue } from '../../src/utils/isBinding';
 
 describe('isJSRPC', () => {
   it('returns false for a plain object', () => {
@@ -118,5 +118,54 @@ describe('isDurableObjectNamespace', () => {
 
   it('returns false when idFromName is not a function', () => {
     expect(isDurableObjectNamespace({ idFromName: 'not-a-function' })).toBe(false);
+  });
+});
+
+describe('isQueue', () => {
+  it('returns true for an object with send and sendBatch methods', () => {
+    const queue = {
+      send: async () => {},
+      sendBatch: async () => {},
+    };
+    expect(isQueue(queue)).toBe(true);
+  });
+
+  it('returns false when send is missing', () => {
+    expect(isQueue({ sendBatch: async () => {} })).toBe(false);
+  });
+
+  it('returns false when sendBatch is missing', () => {
+    expect(isQueue({ send: async () => {} })).toBe(false);
+  });
+
+  it('returns false when send is not a function', () => {
+    expect(isQueue({ send: 'nope', sendBatch: async () => {} })).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(isQueue(null)).toBe(false);
+    expect(isQueue(undefined)).toBe(false);
+  });
+
+  it('returns false for a JSRPC proxy even though it returns functions for send/sendBatch', () => {
+    const jsrpcProxy = new Proxy(
+      {},
+      {
+        get(_target, _prop) {
+          return () => {};
+        },
+      },
+    );
+    expect(isQueue(jsrpcProxy)).toBe(false);
+  });
+
+  it('returns false for a DurableObjectNamespace-like object', () => {
+    const doNamespace = {
+      idFromName: () => ({}),
+      idFromString: () => ({}),
+      get: () => ({}),
+      newUniqueId: () => ({}),
+    };
+    expect(isQueue(doNamespace)).toBe(false);
   });
 });

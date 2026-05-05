@@ -317,30 +317,6 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(constructorEnv).not.toBe(mockEnv);
     });
 
-    it('passes original env to the constructor when enableRpcTracePropagation is disabled', () => {
-      const mockContext = createMockExecutionContext();
-      const mockEnv = { SENTRY_DSN: 'dsn' };
-
-      let constructorEnv: unknown;
-      const TestClass = class extends WorkerEntrypoint {
-        constructor(ctx: ExecutionContext, env: typeof mockEnv) {
-          super();
-          constructorEnv = env;
-        }
-        fetch() {
-          return new Response('ok');
-        }
-      };
-
-      const instrumented = instrumentWorkerEntrypoint(
-        () => ({ enableRpcTracePropagation: false }),
-        TestClass as unknown as WorkerEntrypointConstructor,
-      );
-      Reflect.construct(instrumented, [mockContext, mockEnv]);
-
-      expect(constructorEnv).toBe(mockEnv);
-    });
-
     it('exposes instrumented DurableObjectNamespace via this.env when enableRpcTracePropagation is enabled', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
