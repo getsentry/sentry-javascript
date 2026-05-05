@@ -4,13 +4,7 @@ import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
-import type {
-  Span,
-  SpanAttributes,
-  SpanAttributeValue,
-  SpanJSON,
-  StreamedSpanJSON,
-} from '../../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
@@ -493,9 +487,7 @@ export function addVercelAiProcessors(client: Client): void {
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
   client.on('processSpan', span => {
-    console.log('processSpan', span);
     processEndedVercelAiStreamedSpan(span);
-    console.log('after processSpan', span);
   });
 }
 
