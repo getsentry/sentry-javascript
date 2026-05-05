@@ -31,11 +31,31 @@ test('Sends client-side error to Sentry', async ({ page }) => {
   expect(errorEvent.contexts?.trace?.span_id).toEqual(expect.any(String));
 });
 
-// Note: API route errors in TanStack Start are handled internally by the framework
-// and don't bubble up to the Cloudflare handler. @sentry/cloudflare cannot instrument
-// TanStack Start's internal error handling. For full server-side error capture,
-// users would need @sentry/tanstackstart-react middleware, which isn't compatible
-// with Cloudflare Workers.
+test('Sends API route error to Sentry', async ({ page }) => {
+  const errorEventPromise = waitForError('tanstackstart-react-cloudflare', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
+  });
+
+  await page.goto('/');
+
+  await expect(page.locator('#api-error-btn')).toBeVisible();
+
+  await page.locator('#api-error-btn').click();
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values?.[0]).toEqual({
+    type: 'Error',
+    value: 'Sentry API Route Test Error',
+    stacktrace: expect.objectContaining({
+      frames: expect.any(Array),
+    }),
+    mechanism: {
+      type: 'auto.middleware.tanstackstart.request',
+      handled: false,
+    },
+  });
+});
 
 test('Sends server-side transaction for fetch request', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {

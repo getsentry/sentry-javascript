@@ -15,7 +15,7 @@
   "dependencies": {
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
-    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
     "@tanstack/react-start": "^1.136.0",
     "@tanstack/react-router": "^1.136.0",
     "react": "^19.2.0",

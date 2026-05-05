@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
-import { getTraceData } from '@sentry/core';
+import { getTraceData } from '@sentry/tanstackstart-react';
 
 export const Route = createRootRoute({
   head: () => {
