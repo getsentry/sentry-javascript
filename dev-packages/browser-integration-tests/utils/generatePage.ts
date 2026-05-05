@@ -38,11 +38,13 @@ export async function generatePage(
     compiler.run(err => {
       if (err) {
         reject(err);
+        return;
       }
 
       compiler.close(err => {
         if (err) {
           reject(err);
+          return;
         }
 
         resolve();

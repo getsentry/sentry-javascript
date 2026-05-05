@@ -1,0 +1,12 @@
+{
+  "name": "cloudflare-worker-worker-do-rpc",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+  "services": [
+    {
+      "binding": "SUB_WORKER",
+      "service": "cloudflare-worker-worker-do-rpc-sub",
+    },
+  ],
+}

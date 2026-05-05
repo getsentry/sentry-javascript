@@ -25,4 +25,4 @@ const job = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * * *', () => 
 
 setTimeout(() => {
   process.exit();
-}, 5000);
+}, 15_000);

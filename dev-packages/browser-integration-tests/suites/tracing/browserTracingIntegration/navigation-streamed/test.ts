@@ -81,6 +81,14 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: expect.any(String),
       },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'url.full': {
+        type: 'string',
+        value: expect.any(String),
+      },
       'device.processor_count': {
         type: expect.stringMatching(/^(integer)|(double)$/),
         value: expect.any(Number),

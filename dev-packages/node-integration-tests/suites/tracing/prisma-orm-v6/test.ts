@@ -16,7 +16,6 @@ describe('Prisma ORM v6 Tests', () => {
         await createRunner()
           .withDockerCompose({
             workingDirectory: [cwd],
-            readyMatches: ['port 5432'],
             setupCommand: `yarn prisma generate --schema ${cwd}/prisma/schema.prisma && yarn prisma migrate dev -n sentry-test --schema ${cwd}/prisma/schema.prisma`,
           })
           .expect({

@@ -31,11 +31,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "canary",
+    "eslint-config-next": "^16",
     "typescript": "^5",
     "wrangler": "^4.61.0"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {
@@ -43,7 +44,9 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16-cf-workers (latest)"
-      },
+      }
+    ],
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nextjs-16-cf-workers (canary)"

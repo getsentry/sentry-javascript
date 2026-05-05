@@ -25,12 +25,5 @@
   },
   "volta": {
     "node": "22.18.0"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "label": "node 22 (light mode, requires Node 22+ for diagnostics_channel)"
-      }
-    ]
   }
 }

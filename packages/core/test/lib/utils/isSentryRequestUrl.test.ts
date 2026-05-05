@@ -46,4 +46,24 @@ describe('isSentryRequestUrl', () => {
   it('handles undefined client', () => {
     expect(isSentryRequestUrl('http://sentry-dsn.com/my-url?sentry_key=123', undefined)).toBe(false);
   });
+
+  it('does not treat attacker-controlled hostnames that merely contain the DSN host as Sentry URLs', () => {
+    const dsnHost = 'o123456.ingest.sentry.io';
+    const client = {
+      getOptions: () => ({ tunnel: '' }),
+      getDsn: () => ({ host: dsnHost }),
+    } as unknown as Client;
+
+    expect(isSentryRequestUrl(`https://${dsnHost}.attacker.com/exfil?sentry_key=fake&data=stolen`, client)).toBe(false);
+  });
+
+  it('still matches legitimate subdomains of the DSN host', () => {
+    const dsnHost = 'ingest.sentry.io';
+    const client = {
+      getOptions: () => ({ tunnel: '' }),
+      getDsn: () => ({ host: dsnHost }),
+    } as unknown as Client;
+
+    expect(isSentryRequestUrl('https://o123456.ingest.sentry.io/api/1/store/?sentry_key=abc', client)).toBe(true);
+  });
 });

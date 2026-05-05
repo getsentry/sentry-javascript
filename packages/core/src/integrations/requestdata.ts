@@ -106,12 +106,16 @@ function extractNormalizedRequestData(
       delete (headers as { cookie?: string }).cookie;
     }
 
-    // Remove IP headers in case IP data should not be included in the event
+    // Remove IP headers in case IP data should not be included in the event.
+    // Match case-insensitively — same as getClientIPAddress — so lowercase keys are stripped too.
     if (!include.ip) {
-      ipHeaderNames.forEach(ipHeaderName => {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (headers as Record<string, unknown>)[ipHeaderName];
-      });
+      const ipHeaderNamesLower = new Set(ipHeaderNames.map(name => name.toLowerCase()));
+      for (const key of Object.keys(headers)) {
+        if (ipHeaderNamesLower.has(key.toLowerCase())) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete (headers as Record<string, unknown>)[key];
+        }
+      }
     }
   }
 

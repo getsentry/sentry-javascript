@@ -348,5 +348,23 @@ describe('SentrySampler', () => {
       expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
       expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
     });
+
+    it('always emits streamed http.client spans without a local parent', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' }));
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+      const sampler = new SentrySampler(client);
+
+      const ctx = context.active();
+      const traceId = generateTraceId();
+      const spanName = 'GET http://example.com/api';
+      const spanKind = SpanKind.CLIENT;
+      const spanAttributes = {
+        [ATTR_HTTP_REQUEST_METHOD]: 'GET',
+      };
+
+      const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, undefined);
+      expect(actual.decision).toBe(SamplingDecision.RECORD_AND_SAMPLED);
+      expect(spyOnDroppedEvent).not.toHaveBeenCalled();
+    });
   });
 });

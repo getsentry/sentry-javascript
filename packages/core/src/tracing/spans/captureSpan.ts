@@ -2,7 +2,9 @@ import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
 import type { ScopeData } from '../../scope';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
@@ -16,6 +18,7 @@ import {
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
 import {
   INTERNAL_getSegmentSpan,
   showSpanDropWarning,
@@ -50,6 +53,14 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
+
+  // Backfill span data from OTel semantic conventions when not explicitly set.
+  // OTel-originated spans don't have sentry.op, description, etc. — the non-streamed path
+  // infers these in the SentrySpanExporter, but streamed spans skip the exporter entirely.
+  // Access `kind` via duck-typing — OTel span objects have this property but it's not on Sentry's Span type.
+  // This must run before all hooks and beforeSendSpan so that user callbacks can see and override inferred values.
+  const spanKind = (span as { kind?: number }).kind;
+  inferSpanDataFromOtelAttributes(spanJSON, spanKind);
 
   if (spanJSON.is_segment) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
@@ -149,4 +160,154 @@ export function safeSetSpanJSONAttributes(
       originalAttributes[key] = value;
     }
   });
+}
+
+// OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)
+const SPAN_KIND_SERVER = 1;
+const SPAN_KIND_CLIENT = 2;
+
+/**
+ * Infer and backfill span data from OTel semantic conventions.
+ * This mirrors what the `SentrySpanExporter` does for non-streamed spans via `getSpanData`/`inferSpanData`.
+ * Streamed spans skip the exporter, so we do the inference here during capture.
+ *
+ * Backfills: `sentry.op`, `sentry.source`, and `name` (description).
+ * Uses `safeSetSpanJSONAttributes` so explicitly set attributes are never overwritten.
+ */
+/** Exported only for tests. */
+export function inferSpanDataFromOtelAttributes(spanJSON: StreamedSpanJSON, spanKind?: number): void {
+  const attributes = spanJSON.attributes;
+  if (!attributes) {
+    return;
+  }
+
+  const httpMethod = attributes['http.request.method'] || attributes['http.method'];
+  if (httpMethod) {
+    inferHttpSpanData(spanJSON, attributes, spanKind, httpMethod);
+    return;
+  }
+
+  const dbSystem = attributes['db.system.name'] || attributes['db.system'];
+  const opIsCache =
+    typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
+    `${attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]}`.startsWith('cache.');
+  if (dbSystem && !opIsCache) {
+    inferDbSpanData(spanJSON, attributes);
+    return;
+  }
+
+  if (attributes['rpc.service']) {
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'rpc' });
+    return;
+  }
+
+  if (attributes['messaging.system']) {
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'message' });
+    return;
+  }
+
+  const faasTrigger = attributes['faas.trigger'];
+  if (faasTrigger) {
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${faasTrigger}` });
+  }
+}
+
+function inferHttpSpanData(
+  spanJSON: StreamedSpanJSON,
+  attributes: RawAttributes<Record<string, unknown>>,
+  spanKind: number | undefined,
+  httpMethod: unknown,
+): void {
+  // Infer op: http.client, http.server, or just http
+  const opParts = ['http'];
+  if (spanKind === SPAN_KIND_CLIENT) {
+    opParts.push('client');
+  } else if (spanKind === SPAN_KIND_SERVER) {
+    opParts.push('server');
+  }
+  if (attributes['sentry.http.prefetch']) {
+    opParts.push('prefetch');
+  }
+  safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.') });
+
+  // If the user set a custom span name via updateSpanName(), apply it — OTel instrumentation
+  // may have overwritten span.name after the user set it, so we restore from the attribute.
+  const customName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+  if (typeof customName === 'string') {
+    spanJSON.name = customName;
+    return;
+  }
+
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
+    return;
+  }
+
+  const httpRoute = attributes['http.route'];
+  if (typeof httpRoute === 'string') {
+    spanJSON.name = `${httpMethod} ${httpRoute}`;
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' });
+  } else {
+    // Infer span name from URL attributes, matching the non-streamed exporter's behavior.
+    // Only overwrite the name for OTel spans (known spanKind)
+    if (spanKind === SPAN_KIND_CLIENT || spanKind === SPAN_KIND_SERVER) {
+      const urlPath = getUrlPath(attributes, spanKind);
+      if (urlPath) {
+        spanJSON.name = `${httpMethod} ${urlPath}`;
+      }
+    }
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' });
+  }
+}
+
+/**
+ * Extract a URL path from span attributes for use in the span name.
+ * Mirrors the logic in the non-streamed exporter's `getSanitizedUrl`.
+ */
+function getUrlPath(
+  attributes: RawAttributes<Record<string, unknown>>,
+  spanKind: number | undefined,
+): string | undefined {
+  const httpUrl = attributes['http.url'] || attributes['url.full'];
+  const httpTarget = attributes['http.target'];
+
+  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+
+  // For server spans, prefer the relative target path
+  if (spanKind === SPAN_KIND_SERVER && typeof httpTarget === 'string') {
+    return stripUrlQueryAndFragment(httpTarget);
+  }
+
+  // For client spans (and others), use the full sanitized URL
+  if (sanitizedUrl) {
+    return sanitizedUrl;
+  }
+
+  // Fall back to target if no full URL is available
+  if (typeof httpTarget === 'string') {
+    return stripUrlQueryAndFragment(httpTarget);
+  }
+
+  return undefined;
+}
+
+function inferDbSpanData(spanJSON: StreamedSpanJSON, attributes: RawAttributes<Record<string, unknown>>): void {
+  safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db' });
+
+  // If the user set a custom span name via updateSpanName(), apply it.
+  const customName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+  if (typeof customName === 'string') {
+    spanJSON.name = customName;
+    return;
+  }
+
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
+    return;
+  }
+
+  const statement = attributes['db.statement'];
+  if (statement) {
+    spanJSON.name = `${statement}`;
+    safeSetSpanJSONAttributes(spanJSON, { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' });
+  }
 }

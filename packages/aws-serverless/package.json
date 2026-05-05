@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "10.49.0",
+  "version": "10.51.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -70,9 +70,9 @@
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.69.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@sentry/core": "10.49.0",
-    "@sentry/node": "10.49.0",
-    "@sentry/node-core": "10.49.0",
+    "@sentry/core": "10.51.0",
+    "@sentry/node": "10.51.0",
+    "@sentry/node-core": "10.51.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
@@ -80,11 +80,12 @@
     "@vercel/nft": "^1.3.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:extension && run-s build:layer",
+    "build": "run-p build:transpile build:types",
     "build:extension": "rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaExtension.ts",
     "build:layer": "rimraf build/aws && yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "run-s build:transpile:npm build:extension",
+    "build:transpile:npm": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
@@ -117,20 +118,10 @@
         ],
         "outputs": [
           "{projectRoot}/build/npm/esm",
-          "{projectRoot}/build/npm/cjs"
-        ]
-      },
-      "build:extension": {
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "dependsOn": [
-          "^build:transpile"
-        ],
-        "outputs": [
+          "{projectRoot}/build/npm/cjs",
           "{projectRoot}/build/lambda-extension"
-        ]
+        ],
+        "cache": true
       },
       "build:layer": {
         "inputs": [
@@ -139,7 +130,7 @@
         ],
         "dependsOn": [
           "build:transpile",
-          "build:extension"
+          "build:types"
         ],
         "outputs": [
           "{projectRoot}/build/aws"

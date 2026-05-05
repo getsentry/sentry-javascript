@@ -1,39 +1,27 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import {
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_QUERY,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-} from '@opentelemetry/semantic-conventions';
+import { ATTR_URL_QUERY, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
   debug,
-  extractTraceparentData,
   getClient,
   getGlobalScope,
   GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
-import {
-  TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL,
-  TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
-  TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
-} from '../common/span-attributes-with-logic-attached';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
@@ -155,6 +143,23 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
+  const nextjsIgnoreSpans: NonNullable<NodeOptions['ignoreSpans']> = [
+    // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
+    /^GET (\/.*)?\/_next\/static\//,
+    // Dev source-map fetch endpoints
+    /\/__nextjs_original-stack-frame/,
+    // Pages router /404
+    /^\/404$/,
+    // App router /404 and /_not-found segments (any HTTP method)
+    /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
+    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
+    /^NextServer\.getRequestHandler$/,
+    // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
+    // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
+    { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+  ];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();
   }
@@ -197,62 +202,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   getGlobalScope().addEventProcessor(
     Object.assign(
-      (event => {
-        if (event.type === 'transaction') {
-          // Filter out transactions for static assets
-          // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
-          // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
-          if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
-            return null;
-          }
-
-          // Filter out requests to resolve source maps for stack frames in dev mode
-          if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
-            return null;
-          }
-
-          // Filter out /404 transactions which seem to be created excessively
-          if (
-            // Pages router
-            event.transaction === '/404' ||
-            // App router (could be "GET /404", "POST /404", ...)
-            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/)
-          ) {
-            return null;
-          }
-
-          // Filter transactions that we explicitly want to drop.
-          if (event.contexts?.trace?.data?.[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]) {
-            return null;
-          }
-
-          // Next.js 13 sometimes names the root transactions like this containing useless tracing.
-          if (event.transaction === 'NextServer.getRequestHandler') {
-            return null;
-          }
-
-          // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
-          if (typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string') {
-            const traceparentData = extractTraceparentData(
-              event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL],
-            );
-
-            if (traceparentData?.parentSampled === false) {
-              return null;
-            }
-          }
-
-          return event;
-        } else {
-          return event;
-        }
-      }) satisfies EventProcessor,
-      { id: 'NextLowQualityTransactionsFilter' },
-    ),
-  );
-
-  getGlobalScope().addEventProcessor(
-    Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
           return event;
@@ -289,72 +238,42 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
   // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
   // "custom", doesn't trigger.
+  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
+  // `enhanceHandleRequestRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
+  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
   client?.on('preprocessEvent', event => {
-    // Enhance route handler transactions
-    if (
-      event.type === 'transaction' &&
-      event.contexts?.trace?.data?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest'
-    ) {
-      event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
-      event.contexts.trace.op = 'http.server';
-
-      if (event.transaction) {
-        event.transaction = stripUrlQueryAndFragment(event.transaction);
-      }
-
-      // eslint-disable-next-line deprecation/deprecation
-      const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
-      // eslint-disable-next-line deprecation/deprecation
-      const target = event.contexts?.trace?.data?.[SEMATTRS_HTTP_TARGET];
-      const route = event.contexts.trace.data[ATTR_HTTP_ROUTE] || event.contexts.trace.data[ATTR_NEXT_ROUTE];
-      const spanName = event.contexts.trace.data[ATTR_NEXT_SPAN_NAME];
-
-      if (typeof method === 'string' && typeof route === 'string' && !route.startsWith('middleware')) {
-        const cleanRoute = route.replace(/\/route$/, '');
-        event.transaction = `${method} ${cleanRoute}`;
-        event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
-        // Preserve next.route in case it did not get hoisted
-        event.contexts.trace.data[ATTR_NEXT_ROUTE] = cleanRoute;
-      }
-
-      // backfill transaction name for pages that would otherwise contain unparameterized routes
-      if (event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL] && event.transaction !== 'GET /_app') {
-        event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
-      }
-
-      const middlewareMatch =
-        typeof spanName === 'string' && spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
-
-      if (middlewareMatch) {
-        const normalizedName = `middleware ${middlewareMatch[1]}`;
-        event.transaction = normalizedName;
-        event.contexts.trace.op = 'http.server.middleware';
-      }
-
-      // Next.js overrides transaction names for page loads that throw an error
-      // but we want to keep the original target name
-      if (event.transaction === 'GET /_error' && target) {
-        event.transaction = `${method ? `${method} ` : ''}${target}`;
-      }
-    }
-
-    // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
-    if (
-      event.type === 'transaction' &&
-      typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string'
-    ) {
-      const traceparentData = extractTraceparentData(event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL]);
-
-      if (traceparentData?.traceId) {
-        event.contexts.trace.trace_id = traceparentData.traceId;
-      }
-
-      if (traceparentData?.parentSpanId) {
-        event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
-      }
+    if (event.type === 'transaction' && event.contexts?.trace?.data) {
+      enhanceHandleRequestRootSpan({
+        attributes: event.contexts.trace.data,
+        getName: () => event.transaction,
+        setName: name => {
+          event.transaction = name;
+        },
+        setOp: op => {
+          event.contexts!.trace!.op = op;
+        },
+      });
     }
 
     setUrlProcessingMetadata(event);
+  });
+
+  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
+  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
+  client?.on('processSegmentSpan', span => {
+    const attributes = (span.attributes ??= {});
+    enhanceHandleRequestRootSpan({
+      attributes,
+      getName: () => span.name,
+      setName: name => {
+        span.name = name;
+      },
+      // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
+      // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
+      setOp: op => {
+        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+      },
+    });
   });
 
   if (process.env.NODE_ENV === 'development') {
@@ -365,6 +284,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
     if (process.turbopack) {
       getGlobalScope().setTag('turbopack', true);
+      getGlobalScope().setAttribute('turbopack', true);
     }
   } catch {
     // Noop

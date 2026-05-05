@@ -210,7 +210,11 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   });
 
   test('from forked process', async () => {
-    await createRunner(__dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
+    await createRunner(__dirname, 'forker.js')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start()
+      .completed();
   });
 
   test('worker can be stopped and restarted', async () => {

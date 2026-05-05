@@ -197,7 +197,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'url.port': {
             type: 'string',
-            value: '8787',
+            value: expect.stringMatching(/^\d{4,5}$/),
           },
           'url.scheme': {
             type: 'string',
@@ -221,7 +221,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'http.request.header.cf_connecting_ip': {
             type: 'string',
-            value: '::1',
+            value: expect.stringMatching(/^(::1|127\.0\.0\.1)$/),
           },
           'http.request.header.host': {
             type: 'string',

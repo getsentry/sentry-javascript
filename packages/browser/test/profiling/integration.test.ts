@@ -69,7 +69,6 @@ describe('BrowserProfilingIntegration', () => {
   });
 
   it("warns when profileLifecycle is 'trace' but tracing is disabled", async () => {
-    debug.enable();
     const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
     // @ts-expect-error mock constructor

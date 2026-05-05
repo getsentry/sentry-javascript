@@ -4,7 +4,7 @@ import { test, expect } from './lambda-fixtures';
 
 test.describe('NPM package', () => {
   test('tracing in CJS works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
       return transactionEvent?.transaction === 'NpmTracingCjs';
     });
 
@@ -72,7 +72,7 @@ test.describe('NPM package', () => {
   });
 
   test('tracing in ESM works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
       return transactionEvent?.transaction === 'NpmTracingEsm';
     });
 

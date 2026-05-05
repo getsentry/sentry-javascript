@@ -2,6 +2,17 @@ import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
+/** Avoid flakes on slow CI: fixed sleeps can fire before the child process has finished exiting. */
+async function waitForChildExit(childHasExited: () => boolean, timeoutMs = 30_000): Promise<void> {
+  const start = Date.now();
+  while (!childHasExited()) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error('Timed out waiting for child process to exit');
+    }
+    await new Promise<void>(resolve => setTimeout(resolve, 100));
+  }
+}
+
 const ANR_EVENT = {
   // Ensure we have context
   contexts: {
@@ -178,7 +189,7 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   test('should exit', async () => {
     const runner = createRunner(__dirname, 'should-exit.js').start();
 
-    await new Promise(resolve => setTimeout(resolve, 5_000));
+    await waitForChildExit(() => runner.childHasExited());
 
     expect(runner.childHasExited()).toBe(true);
   });
@@ -186,7 +197,7 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   test('should exit forced', async () => {
     const runner = createRunner(__dirname, 'should-exit-forced.js').start();
 
-    await new Promise(resolve => setTimeout(resolve, 5_000));
+    await waitForChildExit(() => runner.childHasExited());
 
     expect(runner.childHasExited()).toBe(true);
   });
@@ -210,7 +221,11 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   });
 
   test('from forked process', async () => {
-    await createRunner(__dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
+    await createRunner(__dirname, 'forker.js')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start()
+      .completed();
   });
 
   test('worker can be stopped and restarted', async () => {

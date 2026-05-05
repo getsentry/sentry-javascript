@@ -73,6 +73,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { withStreamedSpan } from './tracing/spans/beforeSendSpan';
 export { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
@@ -178,7 +179,7 @@ export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
-export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
+export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
@@ -256,6 +257,7 @@ export {
 } from './utils/misc';
 export { isNodeEnv, loadModule } from './utils/node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './utils/normalize';
+export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
@@ -452,6 +454,8 @@ export type {
   ReplayStopReason,
 } from './types-hoist/replay';
 export type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,

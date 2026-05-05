@@ -1,23 +1,33 @@
-import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/core';
+import type {
+  Event,
+  EventHint,
+  FeedbackErrorMessages,
+  SendFeedback,
+  SendFeedbackParams,
+  TransportMakeRequestResponse,
+} from '@sentry/core';
 import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
+import { createFeedbackError, resolveFeedbackErrorMessage } from '../util/createFeedbackError';
 
 /**
  * Public API to send a Feedback item to Sentry
  */
 export const sendFeedback: SendFeedback = (
   params: SendFeedbackParams,
-  hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
+  hint: EventHint & { includeReplay?: boolean; errorMessages?: FeedbackErrorMessages } = { includeReplay: true },
 ): Promise<string> => {
+  const errorMessages = hint.errorMessages;
+
   if (!params.message) {
-    throw new Error('Unable to submit feedback with empty message');
+    throw createFeedbackError('ERROR_EMPTY_MESSAGE', errorMessages);
   }
 
   // We want to wait for the feedback to be sent (or not)
   const client = getClient();
 
   if (!client) {
-    throw new Error('No client setup, cannot send feedback.');
+    throw createFeedbackError('ERROR_NO_CLIENT', errorMessages);
   }
 
   if (params.tags && Object.keys(params.tags).length) {
@@ -35,7 +45,10 @@ export const sendFeedback: SendFeedback = (
   // We want to wait for the feedback to be sent (or not)
   return new Promise<string>((resolve, reject) => {
     // After 30s, we want to clear anyhow
-    const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 30_000);
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(resolveFeedbackErrorMessage('ERROR_TIMEOUT', errorMessages));
+    }, 30_000);
 
     const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
@@ -51,14 +64,10 @@ export const sendFeedback: SendFeedback = (
       }
 
       if (response?.statusCode === 403) {
-        return reject(
-          'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
-        );
+        return reject(resolveFeedbackErrorMessage('ERROR_FORBIDDEN', errorMessages));
       }
 
-      return reject(
-        'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
-      );
+      return reject(resolveFeedbackErrorMessage('ERROR_GENERIC', errorMessages));
     });
   });
 };
