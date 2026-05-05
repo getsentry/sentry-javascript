@@ -11,10 +11,8 @@ export {
   waitForStreamedSpan,
   waitForStreamedSpans,
   waitForStreamedSpanEnvelope,
-  waitForRootSpan,
   getSpanOp,
 } from './event-proxy-server';
-export type { ChildSpan, RootSpan } from './event-proxy-server';
 
 export { getPlaywrightConfig } from './playwright-config';
 export { createBasicSentryServer, createTestServer } from './server';
@@ -22,3 +20,9 @@ export { createBasicSentryServer, createTestServer } from './server';
 export { startMockSentryServer } from './mock-sentry-server';
 export type { MockSentryServerOptions, MockSentryServer } from './mock-sentry-server';
 export * from './sourcemap-upload-utils';
+
+export { CDPClient } from './cdp-client';
+export type { CDPClientOptions } from './cdp-client';
+
+export { MemoryProfiler } from './memory-profiler';
+export type { MemoryProfilerOptions, SnapshotStats, SnapshotComparisonResult } from './memory-profiler';
