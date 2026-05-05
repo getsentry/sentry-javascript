@@ -1,6 +1,7 @@
 import * as os from 'node:os';
+import type { StreamedSpanJSON } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { getAppContext, getDeviceContext } from '../../src/integrations/context';
+import { getAppContext, getDeviceContext, nodeContextIntegration } from '../../src/integrations/context';
 import { conditionalTest } from '../helpers/conditional';
 
 vi.mock('node:os', async () => {
@@ -51,6 +52,79 @@ describe('Context', () => {
       vi.spyOn(os, 'uptime').mockReturnValue(undefined as unknown as number);
       const deviceCtx = getDeviceContext({});
       expect(deviceCtx.boot_time).toBeUndefined();
+    });
+  });
+
+  describe('processSegmentSpan', () => {
+    it('sets context attributes on segment span', () => {
+      const integration = nodeContextIntegration();
+
+      const span: StreamedSpanJSON = {
+        trace_id: 'abc123',
+        span_id: 'def456',
+        name: 'test-span',
+        start_timestamp: Date.now(),
+        end_timestamp: Date.now(),
+        status: 'ok',
+        is_segment: true,
+        attributes: {},
+      };
+
+      integration.processSegmentSpan!(span, {} as any);
+
+      expect(span.attributes).toMatchObject({
+        'app.start_time': expect.any(String),
+        'device.archs': [os.arch()],
+        'device.processor_count': expect.any(Number),
+        'process.runtime.engine.name': 'v8',
+        'process.runtime.engine.version': process.versions.v8,
+      });
+    });
+
+    it('does not overwrite existing attributes', () => {
+      const integration = nodeContextIntegration();
+
+      const span: StreamedSpanJSON = {
+        trace_id: 'abc123',
+        span_id: 'def456',
+        name: 'test-span',
+        start_timestamp: Date.now(),
+        end_timestamp: Date.now(),
+        status: 'ok',
+        is_segment: true,
+        attributes: {
+          'process.runtime.engine.name': 'custom-engine',
+        },
+      };
+
+      integration.processSegmentSpan!(span, {} as any);
+
+      expect(span.attributes!['process.runtime.engine.name']).toBe('custom-engine');
+    });
+
+    it('respects disabled options', () => {
+      const integration = nodeContextIntegration({ app: false, device: false, os: false });
+
+      const span: StreamedSpanJSON = {
+        trace_id: 'abc123',
+        span_id: 'def456',
+        name: 'test-span',
+        start_timestamp: Date.now(),
+        end_timestamp: Date.now(),
+        status: 'ok',
+        is_segment: true,
+        attributes: {},
+      };
+
+      integration.processSegmentSpan!(span, {} as any);
+
+      expect(span.attributes).toMatchObject({
+        'process.runtime.engine.name': 'v8',
+        'process.runtime.engine.version': process.versions.v8,
+      });
+      expect(span.attributes!['app.start_time']).toBeUndefined();
+      expect(span.attributes!['device.archs']).toBeUndefined();
+      expect(span.attributes!['device.processor_count']).toBeUndefined();
     });
   });
 });

@@ -15,7 +15,7 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -53,6 +53,45 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
     ...options,
   };
 
+  const cachedSpanAttributes: Record<string, unknown> = {
+    'process.runtime.engine.name': 'v8',
+    'process.runtime.engine.version': process.versions.v8,
+  };
+
+  if (_options.app) {
+    // oxlint-disable-next-line sdk/no-unsafe-random-apis
+    cachedSpanAttributes['app.start_time'] = new Date(Date.now() - process.uptime() * 1000).toISOString();
+  }
+
+  if (_options.device) {
+    const deviceOpt = _options.device;
+    // Convention uses 'device.archs' (string[]), but array attributes are not yet serialized.
+    cachedSpanAttributes['device.archs'] = [os.arch()];
+    if (deviceOpt === true || (typeof deviceOpt === 'object' && deviceOpt.cpu)) {
+      const cpuInfo = os.cpus() as os.CpuInfo[] | undefined;
+      if (cpuInfo?.[0]) {
+        cachedSpanAttributes['device.processor_count'] = cpuInfo.length;
+      }
+    }
+  }
+
+  const osContextPromise = _options.os ? getOsContext() : undefined;
+
+  if (osContextPromise) {
+    osContextPromise
+      .then(osContext => {
+        if (osContext.name) {
+          cachedSpanAttributes['os.name'] = osContext.name;
+        }
+        if (osContext.version) {
+          cachedSpanAttributes['os.version'] = osContext.version;
+        }
+      })
+      .catch(() => {
+        // Ignore - os attributes will be undefined
+      });
+  }
+
   /** Add contexts to the event. Caches the context so we only look it up once. */
   async function addContext(event: Event): Promise<Event> {
     if (cachedContext === undefined) {
@@ -78,8 +117,8 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
   async function _getContexts(): Promise<Contexts> {
     const contexts: Contexts = {};
 
-    if (_options.os) {
-      contexts.os = await getOsContext();
+    if (osContextPromise) {
+      contexts.os = await osContextPromise;
     }
 
     if (_options.app) {
@@ -109,6 +148,9 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
     name: INTEGRATION_NAME,
     processEvent(event) {
       return addContext(event);
+    },
+    processSegmentSpan(span) {
+      safeSetSpanJSONAttributes(span, cachedSpanAttributes);
     },
   };
 }) satisfies IntegrationFn;
