@@ -55,7 +55,7 @@ describe('responseHandler', () => {
       });
     });
 
-    it('captures error regardless of status code', () => {
+    it('captures 5xx HTTPException', () => {
       const mockCaptureException = vi.fn();
       getClientMock.mockReturnValue({
         captureException: mockCaptureException,
@@ -101,7 +101,6 @@ describe('responseHandler', () => {
       // oxlint-disable-next-line typescript/no-explicit-any
       responseHandler(createMockContext(500, error) as any);
 
-      // captureException is called — it handles deduplication internally via checkOrSetAlreadyCaught
       expect(mockCaptureException).toHaveBeenCalledWith(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
       });
