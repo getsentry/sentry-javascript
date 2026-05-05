@@ -22,6 +22,7 @@
 
 import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { DiagLogger, Span, TracerProvider } from '@opentelemetry/api';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -244,6 +245,7 @@ class RedisInstrumentationV2_V3 extends InstrumentationBase<RedisInstrumentation
             [ATTR_DB_QUERY_TEXT]: dbStatementSerializer(cmd.command, cmd.args),
           });
         }
+        attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.db.otel.redis';
         const span = instrumentation.tracer.startSpan(`${RedisInstrumentationV2_V3.COMPONENT}-${cmd.command}`, {
           kind: SpanKind.CLIENT,
           attributes,
@@ -535,6 +537,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
       return function patchedConnect(this: any) {
         const options = this.options;
         const attributes = getClientAttributes(plugin._diag, options, plugin._semconvStability);
+        attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.db.otel.redis';
         const span = plugin.tracer.startSpan(`${RedisInstrumentationV4_V5.COMPONENT}-connect`, {
           kind: SpanKind.CLIENT,
           attributes,
@@ -591,6 +594,7 @@ class RedisInstrumentationV4_V5 extends InstrumentationBase<RedisInstrumentation
     } catch (e) {
       this._diag.error('dbStatementSerializer throw an exception', e, { commandName });
     }
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.db.otel.redis';
     const span = this.tracer.startSpan(`${RedisInstrumentationV4_V5.COMPONENT}-${commandName}`, {
       kind: SpanKind.CLIENT,
       attributes,
