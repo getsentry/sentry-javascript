@@ -18,6 +18,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
+  page.on('console', msg => console.log(msg.text()));
   const pageloadSpanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
