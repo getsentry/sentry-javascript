@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRootSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should capture errors for crashing streaming promises in server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
@@ -8,16 +8,16 @@ test('Should capture errors for crashing streaming promises in server components
     return !!errorEvent?.exception?.values?.some(value => value.value === 'I am a data streaming error');
   });
 
-  const serverRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === 'GET /streaming-rsc-error/[param]';
+  const serverTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'GET /streaming-rsc-error/[param]';
   });
 
   await page.goto(`/streaming-rsc-error/123`);
   const errorEvent = await errorEventPromise;
-  const serverRootSpan = await serverRootSpanPromise;
+  const serverTransactionEvent = await serverTransactionPromise;
 
   // error event is part of the transaction
-  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverRootSpan.traceId);
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverTransactionEvent.contexts?.trace?.trace_id);
 
   expect(errorEvent.request).toMatchObject({
     headers: expect.any(Object),

@@ -1,35 +1,31 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRootSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-const isSpanStreaming = process.env.NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING === '1';
-
 test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === 'middleware GET';
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET';
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
-  const middlewareRootSpan = await middlewareRootSpanPromise;
+  const middlewareTransaction = await middlewareTransactionPromise;
 
-  expect(middlewareRootSpan.status).toBe('ok');
-  expect(middlewareRootSpan.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+  expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
+  expect(middlewareTransaction.transaction_info?.source).toBe('route');
 
-  if (!isSpanStreaming) {
-    const raw = middlewareRootSpan.raw as Record<string, unknown>;
-    expect((raw as { contexts?: { runtime?: { name?: string } } }).contexts?.runtime?.name).toBe('node');
-    expect((raw as { transaction_info?: { source?: string } }).transaction_info?.source).toBe('route');
-    expect((raw as { tags?: Record<string, unknown> }).tags?.['my-isolated-tag']).toBe(true);
-    expect((raw as { tags?: Record<string, unknown> }).tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  }
+  // Assert that isolation scope works properly
+  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
+  expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Faulty middlewares', async ({ request }) => {
   test.skip(isDevMode, 'Throwing crashes the dev server atm'); // https://github.com/vercel/next.js/issues/85261
-  const middlewareRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === 'middleware GET';
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET';
   });
 
   const errorEventPromise = waitForError('nextjs-16', errorEvent => {
@@ -41,20 +37,29 @@ test('Faulty middlewares', async ({ request }) => {
   });
 
   await test.step('should record transactions', async () => {
-    const middlewareRootSpan = await middlewareRootSpanPromise;
-    expect(middlewareRootSpan.status).toMatch(/^(internal_error|error)$/);
-    expect(middlewareRootSpan.op).toBe('http.server.middleware');
-
-    if (!isSpanStreaming) {
-      const raw = middlewareRootSpan.raw as Record<string, unknown>;
-      expect((raw as { contexts?: { runtime?: { name?: string } } }).contexts?.runtime?.name).toBe('node');
-      expect((raw as { transaction_info?: { source?: string } }).transaction_info?.source).toBe('route');
-    }
+    const middlewareTransaction = await middlewareTransactionPromise;
+    expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
+    expect(middlewareTransaction.transaction_info?.source).toBe('route');
   });
+
+  // TODO: proxy errors currently not reported via onRequestError
+  // await test.step('should record exceptions', async () => {
+  //   const errorEvent = await errorEventPromise;
+
+  //   // Assert that isolation scope works properly
+  //   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+  //   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  //   expect([
+  //     'middleware GET', // non-otel webpack versions
+  //     '/middleware', // middleware file
+  //     '/proxy', // proxy file
+  //   ]).toContain(errorEvent.transaction);
+  // });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  test.skip(isSpanStreaming, 'Breadcrumb assertions require transaction envelope format');
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';

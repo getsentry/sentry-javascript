@@ -1,21 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRootSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should handle server action redirect without capturing errors', async ({ page }) => {
-  // Wait for the initial page load root span (client-side)
-  const pageLoadRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === '/redirect/origin';
+  // Wait for the initial page load transaction
+  const pageLoadTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === '/redirect/origin';
   });
 
   // Navigate to the origin page
   await page.goto('/redirect/origin');
 
-  const pageLoadRootSpan = await pageLoadRootSpanPromise;
-  expect(pageLoadRootSpan).toBeDefined();
+  const pageLoadTransaction = await pageLoadTransactionPromise;
+  expect(pageLoadTransaction).toBeDefined();
 
-  // Wait for the redirect root span (server-side)
-  const redirectRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === 'GET /redirect/destination';
+  // Wait for the redirect transaction
+  const redirectTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'GET /redirect/destination';
   });
 
   // No error should be captured
@@ -26,7 +26,7 @@ test('Should handle server action redirect without capturing errors', async ({ p
   // Click the redirect button
   await page.click('button[type="submit"]');
 
-  await redirectRootSpanPromise;
+  await redirectTransactionPromise;
 
   // Verify we got redirected to the destination page
   await expect(page).toHaveURL('/redirect/destination');

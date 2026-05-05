@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRootSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
@@ -8,16 +8,16 @@ test('Should capture errors from nested server components when `Sentry.captureRe
     return !!errorEvent?.exception?.values?.some(value => value.value === 'I am technically uncatchable');
   });
 
-  const serverRootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === 'GET /nested-rsc-error/[param]';
+  const serverTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'GET /nested-rsc-error/[param]';
   });
 
   await page.goto(`/nested-rsc-error/123`);
   const errorEvent = await errorEventPromise;
-  const serverRootSpan = await serverRootSpanPromise;
+  const serverTransactionEvent = await serverTransactionPromise;
 
   // error event is part of the transaction
-  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverRootSpan.traceId);
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverTransactionEvent.contexts?.trace?.trace_id);
 
   expect(errorEvent.request).toMatchObject({
     headers: expect.any(Object),

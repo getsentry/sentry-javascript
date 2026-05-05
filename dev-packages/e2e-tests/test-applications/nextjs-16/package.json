@@ -19,10 +19,8 @@
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
-    "test:build-span-streaming": "NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING=1 pnpm test:build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
-    "test:assert-span-streaming": "NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING=1 pnpm test:assert"
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -30,7 +28,7 @@
     "@vercel/queue": "^0.1.3",
     "ai": "^3.0.0",
     "import-in-the-middle": "^2",
-    "next": "16.1.7",
+    "next": "16.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^8",
@@ -76,11 +74,6 @@
         "build-command": "pnpm test:build-canary-webpack",
         "label": "nextjs-16 (canary, webpack)",
         "assert-command": "pnpm test:assert-webpack"
-      },
-      {
-        "build-command": "pnpm test:build-span-streaming",
-        "label": "nextjs-16 (span streaming, turbopack)",
-        "assert-command": "pnpm test:assert-span-streaming"
       }
     ]
   }

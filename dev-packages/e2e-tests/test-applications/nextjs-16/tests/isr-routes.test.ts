@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForRootSpan } from '@sentry-internal/test-utils';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should remove sentry-trace and baggage meta tags on ISR dynamic route page load', async ({ page }) => {
   // Navigate to ISR page
@@ -46,8 +46,10 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
 
   // Load the same ISR page 5 times to ensure cached HTML meta tags are consistently removed
   for (let i = 0; i < 5; i++) {
-    const rootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-      return rootSpan.name === '/isr-test/:product' && rootSpan.op === 'pageload';
+    const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+      return !!(
+        transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload'
+      );
     });
 
     if (i === 0) {
@@ -56,8 +58,8 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
       await page.reload();
     }
 
-    const rootSpan = await rootSpanPromise;
-    const traceId = rootSpan.traceId;
+    const transaction = await transactionPromise;
+    const traceId = transaction.contexts?.trace?.trace_id;
 
     expect(traceId).toBeDefined();
     expect(traceId).toMatch(/[a-f0-9]{32}/);
@@ -70,13 +72,23 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
 });
 
 test('ISR route should be identified correctly in the route manifest', async ({ page }) => {
-  const rootSpanPromise = waitForRootSpan('nextjs-16', async rootSpan => {
-    return rootSpan.name === '/isr-test/:product' && rootSpan.op === 'pageload';
+  const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto('/isr-test/laptop');
-  const rootSpan = await rootSpanPromise;
+  const transaction = await transactionPromise;
 
-  expect(rootSpan.name).toBe('/isr-test/:product');
-  expect(rootSpan.attributes['sentry.source']).toBe('route');
+  // Verify the transaction is properly parameterized
+  expect(transaction).toMatchObject({
+    transaction: '/isr-test/:product',
+    transaction_info: { source: 'route' },
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+        },
+      },
+    },
+  });
 });

@@ -1,8 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { Log } from '@sentry/nextjs';
 
-const enableSpanStreaming = process.env.NEXT_PUBLIC_E2E_NEXTJS_SPAN_STREAMING === '1';
-
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
@@ -10,12 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   // debug: true,
-  ...(enableSpanStreaming && { traceLifecycle: 'stream' as const }),
-  integrations: [
-    Sentry.vercelAIIntegration(),
-    Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 }),
-    ...(enableSpanStreaming ? [Sentry.spanStreamingIntegration()] : []),
-  ],
+  integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;
