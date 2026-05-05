@@ -618,13 +618,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
       this._maybeSaveSession();
+      setReplayIdOnDynamicSamplingContext(this.session.id);
     }
 
     this.startRecording();
-
-    if (this.session) {
-      setReplayIdOnDynamicSamplingContext(this.session.id);
-    }
   }
 
   /**
