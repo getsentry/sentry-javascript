@@ -148,6 +148,7 @@ test.describe('Alarm instrumentation', () => {
     const setAlarmSpan = await setAlarmSpanPromise;
     const alarmSpan = await alarmSpanPromise;
 
+    // Alarm creates a streamed span with correct attributes
     expect(getSpanOp(alarmSpan)).toBe('function');
     expect(alarmSpan.attributes?.['sentry.origin']?.value).toBe('auto.faas.cloudflare.durable_object');
 
