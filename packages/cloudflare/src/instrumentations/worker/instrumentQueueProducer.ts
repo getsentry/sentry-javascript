@@ -84,10 +84,13 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
           options?: QueueSendBatchOptions,
         ): Promise<void> {
           const messageArray = Array.from(messages);
-          const totalBodySize = messageArray.reduce<number>((acc, m) => {
+          const totalBodySize = messageArray.reduce<number | undefined>((acc, m) => {
             const size = getBodySize(m.body);
-            return size === undefined ? acc : acc + size;
-          }, 0);
+            if (size === undefined) {
+              return acc;
+            }
+            return (acc ?? 0) + size;
+          }, undefined);
 
           return startPublishSpan({ bindingName, bodySize: totalBodySize, messageCount: messageArray.length }, () =>
             Reflect.apply(original, target, [messageArray, options]),

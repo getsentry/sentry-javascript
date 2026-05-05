@@ -139,6 +139,36 @@ describe('instrumentQueueProducer', () => {
       expect(Array.isArray(passed)).toBe(true);
       expect(passed).toHaveLength(2);
     });
+
+    test('omits body size when all payloads cannot be serialized', async () => {
+      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
+
+      const circular1: Record<string, unknown> = {};
+      circular1.self = circular1;
+      const circular2: Record<string, unknown> = {};
+      circular2.self = circular2;
+
+      await wrapped.sendBatch([{ body: circular1 }, { body: circular2 }]);
+
+      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      expect(attrs['messaging.message.body.size']).toBeUndefined();
+    });
+
+    test('sums only sizable bodies when batch contains mixed payloads', async () => {
+      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
+
+      const circular: Record<string, unknown> = {};
+      circular.self = circular;
+
+      await wrapped.sendBatch([{ body: 'aa' }, { body: circular }, { body: 'bbb' }]);
+
+      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      expect(attrs['messaging.message.body.size']).toBe(5);
+    });
   });
 
   test('forwards unknown property accesses transparently', () => {
