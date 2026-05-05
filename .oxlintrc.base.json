@@ -141,10 +141,7 @@
       }
     },
     {
-      "files": [
-        "**/scenarios/**",
-        "**/rollup-utils/**",
-      ],
+      "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"
       }
