@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/client';
+import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
 import type { Event } from '../../../src/types-hoist/event';
+import type { StreamedSpanJSON } from '../../../src/types-hoist/span';
 import { ipHeaderNames } from '../../../src/vendor/getIpAddress';
 
 function mockClient(sendDefaultPii: boolean | undefined): Client {
@@ -600,5 +602,266 @@ describe('requestDataIntegration', () => {
 
     expect(normalizedHeaders['X-Forwarded-For']).toBe('192.168.1.1');
     expect(event.request?.headers?.['X-Forwarded-For']).toBeUndefined();
+  });
+});
+
+describe('requestDataIntegration processSegmentSpan', () => {
+  function makeSpan(overrides: Partial<StreamedSpanJSON> = {}): StreamedSpanJSON {
+    return {
+      name: 'GET /test',
+      span_id: 'abc123',
+      trace_id: 'def456',
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+      is_segment: true,
+      attributes: {},
+      ...overrides,
+    };
+  }
+
+  function mockIsolationScope(normalizedRequest: Record<string, unknown>, ipAddress?: string): void {
+    vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue({
+      getScopeData: () => ({
+        sdkProcessingMetadata: { normalizedRequest, ipAddress },
+      }),
+    } as ReturnType<typeof currentScopes.getIsolationScope>);
+  }
+
+  it('applies request data attributes to the segment span', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com/api/users',
+      method: 'GET',
+      query_string: 'page=1&limit=10',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.full': 'https://example.com/api/users',
+      'http.request.method': 'GET',
+      'url.query': 'page=1&limit=10',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.accept': 'application/json',
+    });
+  });
+
+  it('does not apply attributes when normalizedRequest is missing', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({});
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toEqual({});
+  });
+
+  it('sets user.ip_address from headers when sendDefaultPii is true', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com',
+      headers: { 'x-forwarded-for': '203.0.113.50' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(true));
+
+    expect(span.attributes).toMatchObject({
+      'user.ip_address': '203.0.113.50',
+    });
+  });
+
+  it('falls back to ipAddress from sdkProcessingMetadata', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ url: 'https://example.com', headers: {} }, '192.168.1.1');
+
+    integration.processSegmentSpan!(span, mockClient(true));
+
+    expect(span.attributes).toMatchObject({
+      'user.ip_address': '192.168.1.1',
+    });
+  });
+
+  it('does not set user.ip_address when sendDefaultPii is false', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com',
+      headers: { 'x-forwarded-for': '203.0.113.50' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).not.toHaveProperty('user.ip_address');
+  });
+
+  it('applies cookies from normalizedRequest.cookies', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      cookies: { theme: 'dark', locale: 'en' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'http.request.header.cookie.theme': 'dark',
+      'http.request.header.cookie.locale': 'en',
+    });
+  });
+
+  it('falls back to cookie header when normalizedRequest.cookies is not set', () => {
+    const integration = requestDataIntegration({ include: { headers: false } });
+    const span = makeSpan();
+
+    mockIsolationScope({
+      headers: { cookie: 'theme=dark; locale=en' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'http.request.header.cookie.theme': 'dark',
+      'http.request.header.cookie.locale': 'en',
+    });
+  });
+
+  it('filters sensitive cookies', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      cookies: { theme: 'dark', 'connect.sid': 'secret', session_token: 'secret' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'http.request.header.cookie.theme': 'dark',
+      'http.request.header.cookie.connect.sid': '[Filtered]',
+      'http.request.header.cookie.session_token': '[Filtered]',
+    });
+  });
+
+  it('applies request body data', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ data: { key: 'value' } });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'http.request.body.data': '{"key":"value"}',
+    });
+  });
+
+  it('handles query_string in object format', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ query_string: { page: '1', limit: '10' } });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.query': 'page=1&limit=10',
+    });
+  });
+
+  describe('respects include options', () => {
+    it('excludes url when include.url is false', () => {
+      const integration = requestDataIntegration({ include: { url: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({ url: 'https://example.com', method: 'GET' });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).not.toHaveProperty('url.full');
+      expect(span.attributes).toMatchObject({ 'http.request.method': 'GET' });
+    });
+
+    it('excludes headers when include.headers is false', () => {
+      const integration = requestDataIntegration({ include: { headers: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({
+        url: 'https://example.com',
+        headers: { 'content-type': 'application/json' },
+      });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).not.toHaveProperty('http.request.header.content_type');
+    });
+
+    it('strips cookie header when include.cookies is false', () => {
+      const integration = requestDataIntegration({ include: { cookies: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({
+        headers: { 'content-type': 'application/json', cookie: 'theme=dark' },
+      });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).toMatchObject({
+        'http.request.header.content_type': 'application/json',
+      });
+      expect(span.attributes).not.toHaveProperty('http.request.header.cookie.theme');
+    });
+
+    it('strips IP headers when include.ip is false', () => {
+      const integration = requestDataIntegration({ include: { ip: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.50' },
+      });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).toMatchObject({
+        'http.request.header.content_type': 'application/json',
+      });
+      expect(span.attributes).not.toHaveProperty('http.request.header.x_forwarded_for');
+      expect(span.attributes).not.toHaveProperty('user.ip_address');
+    });
+
+    it('excludes data when include.data is false', () => {
+      const integration = requestDataIntegration({ include: { data: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({ url: 'https://example.com', data: { key: 'value' } });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).not.toHaveProperty('http.request.body.data');
+    });
+
+    it('excludes query_string when include.query_string is false', () => {
+      const integration = requestDataIntegration({ include: { query_string: false } });
+      const span = makeSpan();
+
+      mockIsolationScope({ url: 'https://example.com', query_string: 'page=1' });
+
+      integration.processSegmentSpan!(span, mockClient(false));
+
+      expect(span.attributes).not.toHaveProperty('url.query');
+    });
   });
 });

@@ -1,6 +1,5 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
-import type { RequestDataIncludeOptions } from '../../integrations/requestdata';
 import type { ScopeData } from '../../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
@@ -17,7 +16,6 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
-import type { Integration } from '../../types-hoist/integration';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
@@ -29,8 +27,6 @@ import {
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
-import { applyRequestDataToSegmentSpan } from './requestData';
-import { safeSetSpanJSONAttributes } from './spanAttributeUtils';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -67,7 +63,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   inferSpanDataFromOtelAttributes(spanJSON, spanKind);
 
   if (spanJSON.is_segment) {
-    applyScopeToSegmentSpan(spanJSON, finalScopeData, client);
+    applyScopeToSegmentSpan(spanJSON, finalScopeData);
     // Allow hook subscribers to mutate the segment span JSON
     // This also invokes the `processSegmentSpan` hook of all integrations
     client.emit('processSegmentSpan', spanJSON);
@@ -100,18 +96,26 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   };
 }
 
-function applyScopeToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, scopeData: ScopeData, client: Client): void {
-  const { normalizedRequest, ipAddress } = scopeData.sdkProcessingMetadata;
+function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
+  // TODO: Apply contexts data from auto instrumentation to segment span
+  // This will follow in a separate PR
+}
 
-  const integration = client.getIntegrationByName<Integration & { _include: RequestDataIncludeOptions }>('RequestData');
-  if (normalizedRequest && integration) {
-    const { sendDefaultPii } = client.getOptions();
-    const include: RequestDataIncludeOptions = {
-      ...integration._include,
-      ip: integration._include.ip ?? sendDefaultPii,
-    };
-    applyRequestDataToSegmentSpan(segmentSpanJSON, normalizedRequest, ipAddress, include, sendDefaultPii);
-  }
+/**
+ * Safely set attributes on a span JSON.
+ * If an attribute already exists, it will not be overwritten.
+ */
+export function safeSetSpanJSONAttributes(
+  spanJSON: StreamedSpanJSON,
+  newAttributes: RawAttributes<Record<string, unknown>>,
+): void {
+  const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
+
+  Object.entries(newAttributes).forEach(([key, value]) => {
+    if (value != null && !(key in originalAttributes)) {
+      originalAttributes[key] = value;
+    }
+  });
 }
 
 function applyCommonSpanAttributes(
@@ -157,8 +161,6 @@ export function applyBeforeSendSpanCallback(
   }
   return modifedSpan;
 }
-
-export { safeSetSpanJSONAttributes } from './spanAttributeUtils';
 
 // OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)
 const SPAN_KIND_SERVER = 1;
