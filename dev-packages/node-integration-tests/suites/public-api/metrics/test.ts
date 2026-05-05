@@ -10,6 +10,7 @@ describe('metrics', () => {
     const runner = createRunner(__dirname, 'scenario.ts')
       .expect({
         trace_metric: {
+          version: 2,
           items: [
             {
               timestamp: expect.any(Number),

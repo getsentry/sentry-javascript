@@ -4,20 +4,18 @@
   </a>
 </p>
 
-# Official Sentry SDK for Hono (ALPHA)
+# Official Sentry SDK for Hono (BETA)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/hono.svg)](https://www.npmjs.com/package/@sentry/hono)
 
-This SDK is compatible with Hono 4+ and is currently in ALPHA. Alpha features are still in progress, may have bugs and might include breaking changes.
+This SDK is compatible with Hono 4+ and is currently in BETA. Beta features are still in progress and may have bugs.
 Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
 
 ## Links
 
-- [General SDK Docs](https://docs.sentry.io/quickstart/) - Official Docs for this Hono SDK are coming soon!
-
-The current [Hono SDK Docs](https://docs.sentry.io/platforms/javascript/guides/hono/) explain using Sentry in Hono by using other Sentry SDKs (e.g. `@sentry/node` or `@sentry/cloudflare`)
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/hono/)
 
 ## Install
 

@@ -5,6 +5,7 @@ import type { SerializedLog } from '../../../src/types-hoist/log';
 import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
 import * as utilsDsn from '../../../src/utils/dsn';
 import * as utilsEnvelope from '../../../src/utils/envelope';
+import { isBrowser } from '../../../src/utils/isBrowser';
 
 // Mock utils functions
 vi.mock('../../../src/utils/dsn', () => ({
@@ -13,20 +14,65 @@ vi.mock('../../../src/utils/dsn', () => ({
 vi.mock('../../../src/utils/envelope', () => ({
   createEnvelope: vi.fn((_headers, items) => [_headers, items]),
 }));
+vi.mock('../../../src/utils/isBrowser', () => ({
+  isBrowser: vi.fn(() => false),
+}));
+
+afterEach(() => {
+  vi.mocked(isBrowser).mockReturnValue(false);
+});
 
 describe('createLogContainerEnvelopeItem', () => {
-  it('creates an envelope item with correct structure', () => {
+  it('emits version: 2 without ingest_settings when not in browser', () => {
     const mockLog: SerializedLog = {
       timestamp: 1713859200,
-      level: 'error',
-      body: 'Test error message',
+      level: 'info',
+      body: 'Test log message',
     };
 
-    const result = createLogContainerEnvelopeItem([mockLog, mockLog]);
+    const result = createLogContainerEnvelopeItem([mockLog], true);
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({ type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' });
-    expect(result[1]).toEqual({ items: [mockLog, mockLog] });
+    expect(result[0]).toEqual({ type: 'log', item_count: 1, content_type: 'application/vnd.sentry.items.log+json' });
+    expect(result[1]).toEqual({
+      version: 2,
+      items: [mockLog],
+    });
+  });
+
+  it("includes ingest_settings with 'auto' values when in browser and inferUserData is true", () => {
+    vi.mocked(isBrowser).mockReturnValue(true);
+
+    const mockLog: SerializedLog = {
+      timestamp: 1713859200,
+      level: 'info',
+      body: 'Test log message',
+    };
+
+    const result = createLogContainerEnvelopeItem([mockLog], true);
+
+    expect(result[1]).toEqual({
+      version: 2,
+      ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
+      items: [mockLog],
+    });
+  });
+
+  it("includes ingest_settings with 'never' values when in browser and inferUserData is false", () => {
+    vi.mocked(isBrowser).mockReturnValue(true);
+
+    const mockLog: SerializedLog = {
+      timestamp: 1713859200,
+      level: 'info',
+      body: 'Test log message',
+    };
+
+    const result = createLogContainerEnvelopeItem([mockLog], false);
+
+    expect(result[1]).toEqual({
+      version: 2,
+      ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
+      items: [mockLog],
+    });
   });
 });
 
@@ -133,7 +179,7 @@ describe('createLogEnvelope', () => {
       expect.arrayContaining([
         expect.arrayContaining([
           { type: 'log', item_count: 2, content_type: 'application/vnd.sentry.items.log+json' },
-          { items: mockLogs },
+          { version: 2, items: mockLogs },
         ]),
       ]),
     );

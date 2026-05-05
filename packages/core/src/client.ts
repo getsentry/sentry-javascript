@@ -425,11 +425,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
+
+    // Emit `flush` unconditionally so weight-based log/metric flushers drain
+    // their buffers and clear their idle timers, even when no transport is
+    // configured (e.g. no DSN).
+    this.emit('flush');
+
     if (!transport) {
       return true;
     }
-
-    this.emit('flush');
 
     const clientFinished = await this._isClientDoneProcessing(timeout);
     const transportFlushed = await transport.flush(timeout);
