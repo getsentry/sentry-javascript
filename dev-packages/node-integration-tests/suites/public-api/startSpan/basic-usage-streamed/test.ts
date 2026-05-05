@@ -124,7 +124,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         });
 
         expect(segmentSpan).toEqual({
-          attributes: {
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
             [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
@@ -132,7 +132,11 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-          },
+            'process.runtime.engine.name': { type: 'string', value: 'v8' },
+            'process.runtime.engine.version': { type: 'string', value: expect.any(String) },
+            'app.start_time': { type: 'string', value: expect.any(String) },
+            'device.processor_count': { type: 'integer', value: expect.any(Number) },
+          }),
           name: 'test-span',
           is_segment: true,
           trace_id: traceId,
