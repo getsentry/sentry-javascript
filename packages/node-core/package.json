@@ -107,7 +107,8 @@
   "dependencies": {
     "@sentry/core": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
-    "import-in-the-middle": "^3.0.0"
+    "import-in-the-middle": "^3.0.0",
+    "require-in-the-middle": "^7.5.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",

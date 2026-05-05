@@ -1,16 +1,13 @@
-// Automatic istrumentation for Express using OTel
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 
-import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
+import { ensureIsWrapped, registerModuleWrapper } from '@sentry/node-core';
 import {
   type ExpressIntegrationOptions,
+  type ExpressModuleExport,
   type IntegrationFn,
   debug,
   patchExpressModule,
-  SDK_VERSION,
   defineIntegration,
   setupExpressErrorHandler as coreSetupExpressErrorHandler,
   type ExpressHandlerOptions,
@@ -19,6 +16,7 @@ export { expressErrorHandler } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 
 const INTEGRATION_NAME = 'Express';
+const MODULE_NAME = 'express';
 const SUPPORTED_VERSIONS = ['>=4.0.0 <6'];
 
 export function setupExpressErrorHandler(
@@ -30,44 +28,44 @@ export function setupExpressErrorHandler(
   ensureIsWrapped(app.use, 'express');
 }
 
-export type ExpressInstrumentationConfig = InstrumentationConfig &
-  Omit<ExpressIntegrationOptions, 'express' | 'onRouteResolved'>;
+export type ExpressInstrumentationConfig = Omit<ExpressIntegrationOptions, 'onRouteResolved'>;
 
-export const instrumentExpress = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  (options?: ExpressInstrumentationConfig) => new ExpressInstrumentation(options),
-);
-
-export class ExpressInstrumentation extends InstrumentationBase<ExpressInstrumentationConfig> {
-  public constructor(config: ExpressInstrumentationConfig = {}) {
-    super('sentry-express', SDK_VERSION, config);
-  }
-  public init(): InstrumentationNodeModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition(
-      'express',
-      SUPPORTED_VERSIONS,
-      express => {
-        try {
-          patchExpressModule(express, () => ({
-            ...this.getConfig(),
-            onRouteResolved(route) {
-              const rpcMetadata = getRPCMetadata(context.active());
-              if (route && rpcMetadata?.type === RPCType.HTTP) {
-                rpcMetadata.route = route;
-              }
-            },
-          }));
-        } catch (e) {
-          DEBUG_BUILD && debug.error('Failed to patch express module:', e);
-        }
-        return express;
-      },
-      // we do not ever actually unpatch in our SDKs
-      express => express,
-    );
-    return module;
-  }
+/**
+ * Instrument Express using registerModuleWrapper.
+ * This registers hooks for both CJS and ESM module loading.
+ *
+ * Calling this multiple times is safe:
+ * - Hooks are only registered once (first call)
+ * - Options are updated on each call
+ * - Use getOptions() in the patch to access current options at runtime
+ */
+export function instrumentExpress(options: ExpressInstrumentationConfig = {}): void {
+  registerModuleWrapper<ExpressModuleExport, ExpressInstrumentationConfig>({
+    moduleName: MODULE_NAME,
+    supportedVersions: SUPPORTED_VERSIONS,
+    options,
+    patch: (moduleExports, getOptions) => {
+      try {
+        patchExpressModule(moduleExports, () => ({
+          ...getOptions(),
+          onRouteResolved(route) {
+            const rpcMetadata = getRPCMetadata(context.active());
+            if (route && rpcMetadata?.type === RPCType.HTTP) {
+              rpcMetadata.route = route;
+            }
+          },
+        }));
+      } catch (e) {
+        DEBUG_BUILD && debug.error('Failed to patch express module:', e);
+      }
+      return moduleExports;
+    },
+  });
 }
+
+// Add id property for compatibility with preloadOpenTelemetry logging
+instrumentExpress.id = INTEGRATION_NAME;
+
 const _expressIntegration = ((options?: ExpressInstrumentationConfig) => {
   return {
     name: INTEGRATION_NAME,

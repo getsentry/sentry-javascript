@@ -137,6 +137,7 @@ export type {
   ExpressHandlerOptions,
   ExpressMiddleware,
   ExpressErrorMiddleware,
+  ExpressModuleExport,
 } from './integrations/express/types';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';

@@ -25,6 +25,8 @@ export { processSessionIntegration } from './integrations/processSession';
 
 export type { OpenTelemetryServerRuntimeOptions } from './types';
 
+export { registerModuleWrapper } from './module-wrapper';
+
 export {
   // This needs exporting so the NodeClient can be used without calling init
   setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
