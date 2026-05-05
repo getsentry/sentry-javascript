@@ -11,6 +11,7 @@ import {
 import type { Context } from 'hono';
 import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
+import { isExpectedError } from './isExpectedError';
 
 /**
  * Request handler for Hono framework
@@ -42,7 +43,7 @@ export function responseHandler(context: Context): void {
 
   getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
 
-  if (context.error) {
+  if (context.error && !isExpectedError(context.error)) {
     getClient()?.captureException(context.error, {
       mechanism: { handled: false, type: 'auto.http.hono.context_error' },
     });

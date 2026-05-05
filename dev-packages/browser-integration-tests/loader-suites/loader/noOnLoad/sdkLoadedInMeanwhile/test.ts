@@ -53,8 +53,9 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   // Still loaded the CDN bundle twice
   await expect.poll(() => cdnLoadedCount, { timeout: 15_000 }).toBe(2);
 
-  // But only sent to Sentry once
-  expect(sentryEventCount).toBe(1);
+  // But only sent to Sentry once (`waitForErrorRequest` can resolve before the DSN
+  // `page.route` handler increments — poll until the intercept has run)
+  await expect.poll(() => sentryEventCount, { timeout: 15_000 }).toBe(1);
 
   // Ensure loader does not overwrite init/config
   const options = await page.evaluate(() => (window as any).Sentry.getClient()?.getOptions());

@@ -1,4 +1,4 @@
-import type { CommandArgs as IORedisCommandArgs } from '@opentelemetry/instrumentation-ioredis';
+export type IORedisCommandArgs = Array<string | Buffer | number | unknown[]>;
 
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
