@@ -338,7 +338,7 @@ describe('instrumentWorkerEntrypoint', () => {
       );
       Reflect.construct(instrumented, [mockContext, mockEnv]);
 
-      expect(constructorEnv).toBe(mockEnv);
+      expect(constructorEnv).toStrictEqual(mockEnv);
     });
 
     it('exposes instrumented DurableObjectNamespace via this.env when enableRpcTracePropagation is enabled', async () => {
