@@ -95,15 +95,15 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
     };
 
     // node-redis emits a node-redis:connect DC event for the initial connection.
-    // That fires before startSpan so it becomes its own root transaction, received after the main one.
+    // That fires before startSpan so it arrives as the first envelope.
     const EXPECTED_CONNECT = {
       transaction: 'redis-connect',
     };
 
     await createRunner(__dirname, 'scenario-redis-5.js')
       .withDockerCompose({ workingDirectory: [__dirname] })
-      .expect({ transaction: EXPECTED_TRANSACTION })
       .expect({ transaction: EXPECTED_CONNECT })
+      .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });

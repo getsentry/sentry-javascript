@@ -12,9 +12,12 @@ Sentry.init({
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
 
-const { createClient } = require('redis-5');
-
 async function run() {
+  // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
+  // is registered before node-redis eagerly creates its native TracingChannels on require().
+  await Promise.resolve();
+
+  const { createClient } = require('redis-5');
   const redisClient = await createClient({ socket: { host: '127.0.0.1', port: 6379 } }).connect();
 
   await Sentry.startSpan(
