@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForEnvelopeItem, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
@@ -42,8 +42,8 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForEnvelopeItem('react-router-7-spa-streaming', item => {
-    return item[0].type === 'span';
+  const inpSpanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
+    return getSpanOp(span) === 'ui.interaction.click';
   });
 
   await page.goto(`/`);
@@ -59,28 +59,11 @@ test('sends an INP span', async ({ page }) => {
 
   const inpSpan = await inpSpanPromise;
 
-  expect(inpSpan[1]).toEqual({
-    data: {
-      'sentry.origin': 'auto.http.browser.inp',
-      'sentry.op': 'ui.interaction.click',
-      release: 'e2e-test',
-      environment: 'qa',
-      transaction: '/',
-      'sentry.exclusive_time': expect.any(Number),
-      replay_id: expect.any(String),
-      'user_agent.original': expect.stringContaining('Chrome'),
-      'client.address': '{{auto}}',
-    },
-    description: 'body > div#root > input#exception-button[type="button"]',
-    op: 'ui.interaction.click',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.any(String),
-    origin: 'auto.http.browser.inp',
-    exclusive_time: expect.any(Number),
-    measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
-    segment_id: expect.any(String),
-  });
+  expect(inpSpan.name).toBe('body > div#root > input#exception-button[type="button"]');
+  expect(inpSpan.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(inpSpan.span_id).toMatch(/[a-f0-9]{16}/);
+  expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
+  expect(inpSpan.attributes?.['sentry.op']?.value).toBe('ui.interaction.click');
+  expect(inpSpan.attributes?.['sentry.origin']?.value).toBe('auto.http.browser.inp');
+  expect(inpSpan.attributes?.['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
 });
