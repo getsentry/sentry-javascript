@@ -621,6 +621,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     this.startRecording();
+
+    if (this.session) {
+      setReplayIdOnDynamicSamplingContext(this.session.id);
+    }
   }
 
   /**
