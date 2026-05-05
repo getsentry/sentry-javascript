@@ -79,16 +79,16 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
             'cache.key': ['dc-cache:unavailable-data'],
           }),
         }),
-        // MGET: mixed cache/non-cache keys, span name is all keys joined
+        // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
+        // so cache detection cannot match prefixes — remains a plain db.redis span.
         expect.objectContaining({
-          description: 'dc-test-key, dc-cache:test-key, dc-cache:unavailable-data',
-          op: 'cache.get',
+          op: 'db.redis',
           origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
+            'sentry.op': 'db.redis',
             'sentry.origin': 'auto.db.otel.redis',
+            'db.system': 'redis',
             'db.statement': 'MGET [3 other arguments]',
-            'cache.hit': true,
-            'cache.key': ['dc-test-key', 'dc-cache:test-key', 'dc-cache:unavailable-data'],
           }),
         }),
       ]),
