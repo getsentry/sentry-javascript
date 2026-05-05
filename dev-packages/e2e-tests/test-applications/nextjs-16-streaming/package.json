@@ -19,7 +19,7 @@
     "@vercel/queue": "^0.1.3",
     "ai": "^3.0.0",
     "import-in-the-middle": "^2",
-    "next": "16.1.7",
+    "next": "16.2.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^8",
