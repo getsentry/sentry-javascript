@@ -7,33 +7,37 @@ async function run() {
   Sentry.setTag('test-tag', 'test-value');
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          rawCall: { rawPrompt: null, rawSettings: {} },
-          finishReason: 'tool-calls',
-          usage: { promptTokens: 15, completionTokens: 25 },
-          text: 'Tool call completed!',
-          toolCalls: [
-            {
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'getWeather',
-              args: '{ "location": "San Francisco" }',
-            },
-          ],
+    try {
+      await generateText({
+        model: new MockLanguageModelV1({
+          doGenerate: async () => ({
+            rawCall: { rawPrompt: null, rawSettings: {} },
+            finishReason: 'tool-calls',
+            usage: { promptTokens: 15, completionTokens: 25 },
+            text: 'Tool call completed!',
+            toolCalls: [
+              {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+                args: '{ "location": "San Francisco" }',
+              },
+            ],
+          }),
         }),
-      }),
-      tools: {
-        getWeather: {
-          parameters: z.object({ location: z.string() }),
-          execute: async () => {
-            throw new Error('Error in tool');
+        tools: {
+          getWeather: {
+            parameters: z.object({ location: z.string() }),
+            execute: async () => {
+              throw new Error('Error in tool');
+            },
           },
         },
-      },
-      prompt: 'What is the weather in San Francisco?',
-    });
+        prompt: 'What is the weather in San Francisco?',
+      });
+    } catch {
+      // Expected error - we want the spans to still be flushed
+    }
   });
 
   await Sentry.flush(2000);

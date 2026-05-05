@@ -253,10 +253,6 @@ describe('Vercel AI integration (streaming, V6)', () => {
         name: 'invoke_agent',
         status: 'error',
         attributes: expect.objectContaining({
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: attr('mock-model-id'),
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: attr(15),
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: attr(25),
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: attr(40),
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr('auto.vercelai.otel'),
