@@ -4,7 +4,13 @@ import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin, StreamedSpanJSON } from '../../types-hoist/span';
+import type {
+  Span,
+  SpanAttributes,
+  SpanAttributeValue,
+  SpanJSON,
+  StreamedSpanJSON,
+} from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
@@ -349,7 +355,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
 function processEndedVercelAiStreamedSpan(span: StreamedSpanJSON): void {
   const attributes = span.attributes;
-  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
+  if (attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
     return;
   }
 
@@ -529,7 +535,11 @@ function addProviderMetadataToAttributes(attributes: Record<string, unknown>): v
 /**
  * Sets an attribute only if the value is not null or undefined.
  */
-function setAttributeIfDefined(attributes: Record<string, unknown>, key: string, value: SpanAttributeValue | undefined): void {
+function setAttributeIfDefined(
+  attributes: Record<string, unknown>,
+  key: string,
+  value: SpanAttributeValue | undefined,
+): void {
   if (value != null) {
     attributes[key] = value;
   }
