@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForEnvelopeItem, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
@@ -17,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
   expect(span.attributes?.['sentry.source']?.value).toBe('route');
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
   const pageloadSpanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
