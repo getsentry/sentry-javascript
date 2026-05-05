@@ -9,7 +9,7 @@ Sentry.init({
   release: 'e2e-test',
   tunnel: 'http://localhost:3031/', // proxy server
   tracesSampleRate: 1.0,
-  integrations: [Sentry.spanStreamingIntegration()],
+  integrations: [Sentry.browserTracingIntegration(), Sentry.spanStreamingIntegration()],
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement, {
