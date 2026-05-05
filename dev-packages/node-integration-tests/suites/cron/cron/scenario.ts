@@ -1,11 +1,9 @@
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import { CronJob } from 'cron';
 
 Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  transport: loggingTransport,
 });
 
 const CronJobWithCheckIn = Sentry.cron.instrumentCron(CronJob, 'my-cron-job');

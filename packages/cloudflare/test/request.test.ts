@@ -204,6 +204,142 @@ describe('withSentry', () => {
 
       expect(sentryEvent.contexts?.culture).toEqual({ timezone: 'UTC' });
     });
+
+    test('captures request body with default integration (medium size)', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            // Default integrations include httpServerIntegration with 'medium' default
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ username: 'test', data: 'value' }),
+          }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('request body');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(
+        JSON.stringify({ username: 'test', data: 'value' }),
+      );
+    });
+
+    test('does not capture request body for GET requests', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('get request');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('does not capture request body for HEAD requests', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { method: 'HEAD' }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('head request');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('does not capture request body for OPTIONS requests', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', { method: 'OPTIONS' }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('options request');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('does not capture request body for binary content types', async () => {
+      let sentryEvent: Event = {};
+      const context = createMockExecutionContext();
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com', {
+            method: 'POST',
+            headers: { 'content-type': 'image/png' },
+            body: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+          }),
+          context,
+        },
+        () => {
+          SentryCore.captureMessage('binary');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
   });
 
   describe('error instrumentation', () => {

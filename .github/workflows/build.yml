@@ -274,7 +274,7 @@ jobs:
       pull-requests: write
     steps:
       - name: PR is opened against master
-        uses: mshick/add-pr-comment@e7516d74559b5514092f5b096ed29a629a1237c6
+        uses: mshick/add-pr-comment@8e4927817251f1ff60c001f04568532b38e0b4a0
         if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
         with:
           message: |
@@ -533,7 +533,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.3
+        uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -1057,7 +1057,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
-        uses: denoland/setup-deno@v2.0.3
+        uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: v2.1.5
       - name: Restore caches

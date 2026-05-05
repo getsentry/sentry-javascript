@@ -225,7 +225,13 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
   }
 
   const clientOptions = client.getOptions();
-  const envelope = createMetricEnvelope(metricBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
+  const envelope = createMetricEnvelope(
+    metricBuffer,
+    clientOptions._metadata,
+    clientOptions.tunnel,
+    client.getDsn(),
+    clientOptions.sendDefaultPii,
+  );
 
   // Clear the metric buffer after envelopes have been constructed.
   _getBufferMap().set(client, []);

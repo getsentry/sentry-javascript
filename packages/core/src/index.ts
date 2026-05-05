@@ -112,11 +112,15 @@ export { shouldIgnoreSpan } from './utils/should-ignore-span';
 export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
+  captureBodyFromWinterCGRequest,
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
   httpHeadersToSpanAttributes,
+  getMaxBodyByteLength,
+  MAX_BODY_BYTE_LENGTH,
 } from './utils/request';
+export type { MaxRequestBodySize } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
