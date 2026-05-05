@@ -5,7 +5,7 @@ import type { RequestEventData } from '../types-hoist/request';
 import { parseCookie } from '../utils/cookie';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 
-interface RequestDataIncludeOptions {
+export interface RequestDataIncludeOptions {
   cookies?: boolean;
   data?: boolean;
   headers?: boolean;
@@ -40,6 +40,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
+    _include: include,
     processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;

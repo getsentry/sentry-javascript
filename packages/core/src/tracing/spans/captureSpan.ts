@@ -16,12 +16,14 @@ import {
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
+import type { RequestDataIncludeOptions } from '../../integrations/requestdata';
+import type { Integration } from '../../types-hoist/integration';
 import type { QueryParams, RequestEventData } from '../../types-hoist/request';
 import type { SerializedStreamedSpan, Span, StreamedSpanJSON } from '../../types-hoist/span';
 import { httpHeadersToSpanAttributes } from '../../utils/request';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '../../utils/url';
-import { getClientIPAddress } from '../../vendor/getIpAddress';
+import { getClientIPAddress, ipHeaderNames } from '../../vendor/getIpAddress';
 import {
   INTERNAL_getSegmentSpan,
   showSpanDropWarning,
@@ -101,10 +103,15 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
 function applyScopeToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, scopeData: ScopeData, client: Client): void {
   const { normalizedRequest, ipAddress } = scopeData.sdkProcessingMetadata;
-  const { sendDefaultPii } = client.getOptions();
 
-  if (normalizedRequest && client.getIntegrationByName('RequestData')) {
-    applyRequestDataToSegmentSpan(segmentSpanJSON, normalizedRequest, ipAddress, sendDefaultPii);
+  const integration = client.getIntegrationByName<Integration & { _include: RequestDataIncludeOptions }>('RequestData');
+  if (normalizedRequest && integration) {
+    const { sendDefaultPii } = client.getOptions();
+    const include: RequestDataIncludeOptions = {
+      ...integration._include,
+      ip: integration._include.ip ?? sendDefaultPii,
+    };
+    applyRequestDataToSegmentSpan(segmentSpanJSON, normalizedRequest, ipAddress, include, sendDefaultPii);
   }
 }
 
@@ -113,11 +120,12 @@ function applyRequestDataToSegmentSpan(
   segmentSpanJSON: StreamedSpanJSON,
   normalizedRequest: RequestEventData,
   ipAddress: string | undefined,
+  include: RequestDataIncludeOptions,
   sendDefaultPii: boolean | undefined,
 ): void {
   const attributes: Record<string, unknown> = {};
 
-  if (normalizedRequest.url) {
+  if (include.url && normalizedRequest.url) {
     attributes['url.full'] = normalizedRequest.url;
   }
 
@@ -125,20 +133,34 @@ function applyRequestDataToSegmentSpan(
     attributes['http.request.method'] = normalizedRequest.method;
   }
 
-  if (normalizedRequest.query_string) {
+  if (include.query_string && normalizedRequest.query_string) {
     attributes['url.query'] = normalizeQueryString(normalizedRequest.query_string);
   }
 
   safeSetSpanJSONAttributes(segmentSpanJSON, attributes);
 
-  if (normalizedRequest.headers) {
-    const headerAttributes = httpHeadersToSpanAttributes(normalizedRequest.headers, sendDefaultPii ?? false, 'request');
+  if (include.headers && normalizedRequest.headers) {
+    const headers = { ...normalizedRequest.headers };
+
+    if (!include.cookies) {
+      delete headers.cookie;
+    }
+
+    if (!include.ip) {
+      const ipHeaderNamesLower = new Set(ipHeaderNames.map(name => name.toLowerCase()));
+      for (const key of Object.keys(headers)) {
+        if (ipHeaderNamesLower.has(key.toLowerCase())) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete headers[key];
+        }
+      }
+    }
+
+    const headerAttributes = httpHeadersToSpanAttributes(headers, sendDefaultPii ?? false, 'request');
     safeSetSpanJSONAttributes(segmentSpanJSON, headerAttributes);
   }
 
-  if (normalizedRequest.cookies) {
-    // Reconstruct a cookie header string so httpHeadersToSpanAttributes can apply
-    // the same sensitivity filtering (session tokens, auth cookies, etc.) it uses for raw headers.
+  if (include.cookies && normalizedRequest.cookies) {
     const cookieString = Object.entries(normalizedRequest.cookies)
       .map(([name, value]) => `${name}=${value}`)
       .join('; ');
@@ -152,7 +174,7 @@ function applyRequestDataToSegmentSpan(
     }
   }
 
-  if (normalizedRequest.data != null) {
+  if (include.data && normalizedRequest.data != null) {
     const serialized =
       typeof normalizedRequest.data === 'string' ? normalizedRequest.data : JSON.stringify(normalizedRequest.data);
     if (serialized) {
@@ -160,7 +182,7 @@ function applyRequestDataToSegmentSpan(
     }
   }
 
-  if (sendDefaultPii) {
+  if (include.ip) {
     const ip = (normalizedRequest.headers && getClientIPAddress(normalizedRequest.headers)) || ipAddress || undefined;
     if (ip) {
       safeSetSpanJSONAttributes(segmentSpanJSON, { [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: ip });

@@ -430,12 +430,15 @@ describe('captureSpan', () => {
   });
 
   describe('request data on segment spans', () => {
-    function createClientWithRequestDataIntegration(options: Record<string, unknown> = {}): TestClient {
+    function createClientWithRequestDataIntegration(
+      options: Record<string, unknown> = {},
+      integrationOptions?: Parameters<typeof requestDataIntegration>[0],
+    ): TestClient {
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://dsn@ingest.f00.f00/1',
           tracesSampleRate: 1,
-          integrations: [requestDataIntegration()],
+          integrations: [requestDataIntegration(integrationOptions)],
           ...options,
         }),
       );
@@ -735,6 +738,172 @@ describe('captureSpan', () => {
 
       expect(serialized.attributes).toMatchObject({
         'http.request.body.data': { type: 'string', value: 'raw body content' },
+      });
+    });
+
+    describe('respects include options', () => {
+      it('excludes url when include.url is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { url: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com/api',
+              method: 'GET',
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        expect(serialized.attributes).not.toHaveProperty('url.full');
+        expect(serialized.attributes).toMatchObject({
+          'http.request.method': { type: 'string', value: 'GET' },
+        });
+      });
+
+      it('excludes query_string when include.query_string is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { query_string: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com/api',
+              query_string: 'page=1',
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        expect(serialized.attributes).not.toHaveProperty('url.query');
+        expect(serialized.attributes).toMatchObject({
+          'url.full': { type: 'string', value: 'https://example.com/api' },
+        });
+      });
+
+      it('excludes headers when include.headers is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { headers: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com',
+              headers: { 'content-type': 'application/json' },
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        expect(serialized.attributes).not.toHaveProperty('http.request.header.content_type');
+        expect(serialized.attributes).toMatchObject({
+          'url.full': { type: 'string', value: 'https://example.com' },
+        });
+      });
+
+      it('strips cookie header when include.cookies is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { cookies: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com',
+              headers: {
+                'content-type': 'application/json',
+                cookie: 'theme=dark; locale=en',
+              },
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        // content-type header should still be present
+        expect(serialized.attributes).toMatchObject({
+          'http.request.header.content_type': { type: 'string', value: 'application/json' },
+        });
+
+        // cookie attributes should not be present
+        expect(serialized.attributes).not.toHaveProperty('http.request.header.cookie.theme');
+        expect(serialized.attributes).not.toHaveProperty('http.request.header.cookie.locale');
+      });
+
+      it('strips IP headers when include.ip is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { ip: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com',
+              headers: {
+                'content-type': 'application/json',
+                'x-forwarded-for': '203.0.113.50',
+              },
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        // content-type header should still be present
+        expect(serialized.attributes).toMatchObject({
+          'http.request.header.content_type': { type: 'string', value: 'application/json' },
+        });
+
+        // IP header and user.ip_address should not be present
+        expect(serialized.attributes).not.toHaveProperty('http.request.header.x_forwarded_for');
+        expect(serialized.attributes).not.toHaveProperty('user.ip_address');
+      });
+
+      it('excludes data when include.data is false', () => {
+        const client = createClientWithRequestDataIntegration({}, { include: { data: false } });
+
+        const span = withScope(scope => {
+          scope.setClient(client);
+          scope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              url: 'https://example.com',
+              data: { key: 'value' },
+            },
+          });
+
+          const span = startInactiveSpan({ name: 'my-span' });
+          span.end();
+          return span;
+        });
+
+        const serialized = captureSpan(span, client);
+
+        expect(serialized.attributes).not.toHaveProperty('http.request.body.data');
+        expect(serialized.attributes).toMatchObject({
+          'url.full': { type: 'string', value: 'https://example.com' },
+        });
       });
     });
   });
