@@ -237,9 +237,6 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    *   // Sentry module will search for `<projectRoot>/<srcDir>/sentry-config/sentry.(client|server).config.(js|ts)` files.
    * }
    * ```
-   *
-   *
-   * @default '<projectRoot>'
    */
   configDir?: string;
 

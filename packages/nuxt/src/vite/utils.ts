@@ -59,12 +59,7 @@ export async function findDefaultSdkInitFile(
   }
 
   // As a fallback, also check CWD (left for pure compatibility)
-  let rootDir: string;
-  if (options?.configDir) {
-    rootDir = await resolvePath(options.configDir, { type: 'dir' });
-  } else {
-    rootDir = process.cwd();
-  }
+  const rootDir = options?.configDir ? await resolvePath(options.configDir, { type: 'dir' }) : process.cwd();
   for (const relativePath of relativePaths) {
     const fullPath = path.resolve(rootDir, relativePath);
     if (fs.existsSync(fullPath)) {
