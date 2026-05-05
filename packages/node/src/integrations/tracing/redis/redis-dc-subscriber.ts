@@ -22,7 +22,7 @@ const CHANNEL_COMMAND = 'node-redis:command';
 const CHANNEL_BATCH = 'node-redis:batch';
 const CHANNEL_CONNECT = 'node-redis:connect';
 
-const ORIGIN = 'auto.db.redis.diagnostic-channel';
+const ORIGIN = 'auto.db.redis.diagnostic_channel';
 
 interface CommandData {
   command: string;
