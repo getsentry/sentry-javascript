@@ -460,9 +460,12 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     const descriptions = new Map<string, string>();
     for (const toolStr of attributes[AI_PROMPT_TOOLS_ATTRIBUTE] as unknown[]) {
       try {
-        const parsed = typeof toolStr === 'string' ? JSON.parse(toolStr) : toolStr;
+        const parsed = (typeof toolStr === 'string' ? JSON.parse(toolStr) : toolStr) as {
+          name?: string;
+          description?: string;
+        };
         if (parsed?.name && parsed?.description) {
-          descriptions.set(parsed.name as string, parsed.description as string);
+          descriptions.set(parsed.name, parsed.description);
         }
       } catch {
         // ignore parse errors
