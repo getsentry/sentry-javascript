@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'react-19-streaming',
+  proxyServerName: 'react-router-7-spa-streaming',
 });

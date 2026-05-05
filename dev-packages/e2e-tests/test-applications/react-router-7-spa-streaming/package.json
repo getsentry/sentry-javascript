@@ -1,26 +1,30 @@
 {
-  "name": "react-19-streaming-test-app",
+  "name": "react-router-7-spa-streaming",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
     "@sentry/react": "file:../../packed/sentry-react-packed.tgz",
-    "history": "4.9.0",
-    "@types/history": "4.7.11",
-    "@types/node": "^18.19.1",
-    "@types/react": "npm:types-react@rc",
-    "@types/react-dom": "npm:types-react-dom@rc",
-    "react": "19.0.0-rc-935180c7e0-20240524",
-    "react-dom": "19.0.0-rc-935180c7e0-20240524",
-    "react-scripts": "5.0.1",
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router": "^7.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "vite": "^6.4.2",
+    "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.0.0"
   },
   "scripts": {
-    "build": "react-scripts build",
-    "dev": "react-scripts start",
-    "start": "serve -s build",
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",
     "test:assert": "pnpm test"
   },
   "eslintConfig": {
@@ -41,12 +45,12 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "@playwright/test": "~1.56.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
-    "serve": "14.0.1"
-  },
   "volta": {
     "extends": "../../package.json"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "0.24.0"
+    }
   }
 }
