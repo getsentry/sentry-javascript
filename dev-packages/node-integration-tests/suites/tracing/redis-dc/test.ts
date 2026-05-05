@@ -12,10 +12,10 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
       spans: expect.arrayContaining([
         expect.objectContaining({
           op: 'db.redis',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
             'sentry.op': 'db.redis',
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system': 'redis',
             'db.statement': 'SET dc-test-key [1 other arguments]',
           }),
@@ -24,9 +24,9 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         expect.objectContaining({
           description: 'dc-cache:test-key',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.statement': 'SET dc-cache:test-key [1 other arguments]',
             'cache.key': ['dc-cache:test-key'],
             'cache.item_size': 2,
@@ -36,9 +36,9 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         expect.objectContaining({
           description: 'dc-cache:test-key-ex',
           op: 'cache.put',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.statement': 'SET dc-cache:test-key-ex [3 other arguments]',
             'cache.key': ['dc-cache:test-key-ex'],
             'cache.item_size': 2,
@@ -46,10 +46,10 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         }),
         expect.objectContaining({
           op: 'db.redis',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
             'sentry.op': 'db.redis',
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system': 'redis',
             'db.statement': 'GET dc-test-key',
           }),
@@ -58,9 +58,9 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         expect.objectContaining({
           description: 'dc-cache:test-key',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.statement': 'GET dc-cache:test-key',
             'cache.hit': true,
             'cache.key': ['dc-cache:test-key'],
@@ -71,9 +71,9 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         expect.objectContaining({
           description: 'dc-cache:unavailable-data',
           op: 'cache.get',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.statement': 'GET dc-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['dc-cache:unavailable-data'],
@@ -83,10 +83,10 @@ describe('redis v5 diagnostics_channel auto instrumentation', () => {
         // so cache detection cannot match prefixes — remains a plain db.redis span.
         expect.objectContaining({
           op: 'db.redis',
-          origin: 'auto.db.otel.redis',
+          origin: 'auto.db.redis.diagnostic_channel',
           data: expect.objectContaining({
             'sentry.op': 'db.redis',
-            'sentry.origin': 'auto.db.otel.redis',
+            'sentry.origin': 'auto.db.redis.diagnostic_channel',
             'db.system': 'redis',
             'db.statement': 'MGET [3 other arguments]',
           }),

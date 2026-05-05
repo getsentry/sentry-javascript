@@ -54,8 +54,6 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   cmdArgs: IORedisCommandArgs,
   response: unknown,
 ) => {
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
-
   const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
   const cacheOperation = getCacheOperation(redisCommand);
 
