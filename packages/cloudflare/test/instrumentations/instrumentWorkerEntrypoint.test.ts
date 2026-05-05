@@ -341,7 +341,7 @@ describe('instrumentWorkerEntrypoint', () => {
       expect(constructorEnv).toBe(mockEnv);
     });
 
-    it('exposes instrumented DurableObjectNamespace via this.env when enableRpcTracePropagation is enabled', () => {
+    it('exposes instrumented DurableObjectNamespace via this.env when enableRpcTracePropagation is enabled', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -376,7 +376,7 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1', {
         __sentry_rpc_meta__: {
@@ -386,7 +386,7 @@ describe('instrumentWorkerEntrypoint', () => {
       });
     });
 
-    it('returns original DurableObjectNamespace via this.env when enableRpcTracePropagation is disabled', () => {
+    it('returns original DurableObjectNamespace via this.env when enableRpcTracePropagation is disabled', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -421,12 +421,12 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
     });
 
-    it('injects Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is enabled', () => {
+    it('injects Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is enabled', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -460,7 +460,7 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
         __sentry_rpc_meta__: {
@@ -470,7 +470,7 @@ describe('instrumentWorkerEntrypoint', () => {
       });
     });
 
-    it('does not inject Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is disabled', () => {
+    it('does not inject Sentry RPC meta into JSRPC calls via this.env when enableRpcTracePropagation is disabled', async () => {
       vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: 'sentry-environment=production',
@@ -504,12 +504,12 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
     });
 
-    it('caches instrumented bindings across multiple accesses via this.env', () => {
+    it('caches instrumented bindings across multiple accesses via this.env', async () => {
       const mockContext = createMockExecutionContext();
       const doNamespace = {
         idFromName: vi.fn(),
@@ -535,12 +535,12 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(firstAccess).toBe(secondAccess);
     });
 
-    it('primitive env values are returned unchanged', () => {
+    it('primitive env values are returned unchanged', async () => {
       const mockContext = createMockExecutionContext();
       const mockEnv = { SENTRY_DSN: 'https://key@sentry.io/123', PORT: 8080, DEBUG: true };
 
@@ -562,7 +562,7 @@ describe('instrumentWorkerEntrypoint', () => {
         TestClass as unknown as WorkerEntrypointConstructor,
       );
       const obj = Reflect.construct(instrumented, [mockContext, mockEnv]);
-      obj.fetch(new Request('https://example.com'));
+      await obj.fetch(new Request('https://example.com'));
 
       expect(capturedDsn).toBe('https://key@sentry.io/123');
       expect(capturedPort).toBe(8080);
