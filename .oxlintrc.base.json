@@ -141,13 +141,7 @@
       }
     },
     {
-      "files": [
-        "**/scenarios/**",
-        "**/rollup-utils/**",
-        "**/bundle-analyzer-scenarios/**",
-        "**/bundle-analyzer-scenarios/*.cjs",
-        "**/bundle-analyzer-scenarios/*.js"
-      ],
+      "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"
       }
