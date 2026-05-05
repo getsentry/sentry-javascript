@@ -144,9 +144,6 @@
       "files": [
         "**/scenarios/**",
         "**/rollup-utils/**",
-        "**/bundle-analyzer-scenarios/**",
-        "**/bundle-analyzer-scenarios/*.cjs",
-        "**/bundle-analyzer-scenarios/*.js"
       ],
       "rules": {
         "no-console": "off"
