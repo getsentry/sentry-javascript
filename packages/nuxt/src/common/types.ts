@@ -228,7 +228,7 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    * If not provided, the default location (`<projectRoot>/sentry.(client|server).config.(js|ts)`) will be used to look up the config file.
    * If there is no file at the default location either, the SDK won't be initialized.
    *
-   * Relatives path using Nuxt aliases are supported.
+   * Resolves the full path to a file or directory, respecting Nuxt alias and extensions options.
    * @example
    *
    * ```ts
