@@ -20,6 +20,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -30,7 +31,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap } from './constants';
+import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -360,6 +361,23 @@ function processEndedVercelAiStreamedSpan(span: StreamedSpanJSON): void {
   }
 
   processVercelAiSpanAttributes(attributes);
+
+  // Look up tool description from the side-channel for execute_tool spans
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'gen_ai.execute_tool' && span.parent_span_id) {
+    const descriptions = toolDescriptionMap.get(span.parent_span_id);
+    if (descriptions) {
+      const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      if (typeof toolName === 'string') {
+        const desc = descriptions.get(toolName);
+        if (desc) {
+          attributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = desc;
+        }
+      }
+    }
+  }
+
+  // Clean up tool descriptions when the parent span ends
+  toolDescriptionMap.delete(span.span_id);
 }
 
 /**
@@ -441,6 +459,29 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
   if (modelId && operationName) {
     span.updateName(`${operationName} ${modelId}`);
+  }
+
+  // Store tool descriptions for the side-channel so processSpan can apply them to execute_tool spans
+  if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] && Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])) {
+    const descriptions = new Map<string, string>();
+    for (const toolStr of attributes[AI_PROMPT_TOOLS_ATTRIBUTE] as unknown[]) {
+      try {
+        const parsed = typeof toolStr === 'string' ? JSON.parse(toolStr) : toolStr;
+        if (parsed?.name && parsed?.description) {
+          descriptions.set(parsed.name as string, parsed.description as string);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+    if (descriptions.size > 0) {
+      // Tool call spans are siblings of doGenerate (both children of invoke_agent),
+      // so we key by the parent span ID (the invoke_agent span).
+      const parentSpanId = spanToJSON(span).parent_span_id;
+      if (parentSpanId) {
+        toolDescriptionMap.set(parentSpanId, descriptions);
+      }
+    }
   }
 }
 

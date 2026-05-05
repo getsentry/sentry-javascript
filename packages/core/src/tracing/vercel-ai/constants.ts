@@ -5,6 +5,10 @@ import type { ToolCallSpanContext } from './types';
 // without keeping full Span objects (and their potentially large attributes) alive.
 export const toolCallSpanContextMap = new Map<string, ToolCallSpanContext>();
 
+// Maps span_id → Map<toolName, description>.
+// Populated at spanStart of doGenerate spans, consumed at processSpan of execute_tool spans.
+export const toolDescriptionMap = new Map<string, Map<string, string>>();
+
 /** Maps Vercel AI span names to standardized OpenTelemetry operation names. */
 export const SPAN_TO_OPERATION_NAME = new Map<string, string>([
   ['ai.generateText', 'invoke_agent'],
