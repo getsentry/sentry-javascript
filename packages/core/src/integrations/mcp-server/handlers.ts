@@ -167,3 +167,74 @@ export function wrapAllMCPHandlers(serverInstance: MCPServerInstance): void {
   wrapResourceHandlers(serverInstance);
   wrapPromptHandlers(serverInstance);
 }
+
+/**
+ * Retroactively wraps handlers on tools, resources, and prompts that were registered
+ * before `wrapMcpServerWithSentry` was called.
+ *
+ * The MCP SDK stores registered entries in private maps and invokes them via the entry's
+ * own property at call time — `executor` for tools, `readCallback` for resources, and
+ * `handler` for prompts. Replacing those properties
+ * in-place is therefore equivalent to having wrapped the original registration call.
+ *
+ * NOTE: This intentionally accesses private MCP SDK internals (`_registeredTools` etc.).
+ * The properties and their shapes are verified against @modelcontextprotocol/sdk source:
+ * https://github.com/modelcontextprotocol/typescript-sdk/blob/2c0c481cb9dbfd15c8613f765c940a5f5bace94d/packages/server/src/server/mcp.ts#L304
+ * When upgrading the MCP SDK, re-verify that these internal maps and their callable
+ * properties still exist and are invoked directly (not captured by closure at registration).
+ * All access is defensive — if a property is absent or not a function we skip silently.
+ * @internal
+ */
+export function wrapExistingHandlers(serverInstance: MCPServerInstance): void {
+  const server = serverInstance as unknown as Record<string, unknown>;
+
+  // Tools: MCP SDK calls registeredTool.executor (generated from handler at registration time)
+  const registeredTools = server['_registeredTools'];
+  if (registeredTools && typeof registeredTools === 'object') {
+    for (const [name, tool] of Object.entries(registeredTools as Record<string, Record<string, unknown>>)) {
+      if (typeof tool['executor'] === 'function') {
+        tool['executor'] = createWrappedHandler(tool['executor'] as MCPHandler, 'registerTool', name);
+      }
+    }
+  }
+
+  // Resources: MCP SDK calls registeredResource.readCallback
+  const registeredResources = server['_registeredResources'];
+  if (registeredResources && typeof registeredResources === 'object') {
+    for (const [name, resource] of Object.entries(registeredResources as Record<string, Record<string, unknown>>)) {
+      if (typeof resource['readCallback'] === 'function') {
+        resource['readCallback'] = createWrappedHandler(
+          resource['readCallback'] as MCPHandler,
+          'registerResource',
+          name,
+        );
+      }
+    }
+  }
+
+  // Resource templates: MCP SDK calls registeredResourceTemplate.readCallback
+  const registeredResourceTemplates = server['_registeredResourceTemplates'];
+  if (registeredResourceTemplates && typeof registeredResourceTemplates === 'object') {
+    for (const [name, template] of Object.entries(
+      registeredResourceTemplates as Record<string, Record<string, unknown>>,
+    )) {
+      if (typeof template['readCallback'] === 'function') {
+        template['readCallback'] = createWrappedHandler(
+          template['readCallback'] as MCPHandler,
+          'registerResource',
+          name,
+        );
+      }
+    }
+  }
+
+  // Prompts: MCP SDK calls registeredPrompt.handler
+  const registeredPrompts = server['_registeredPrompts'];
+  if (registeredPrompts && typeof registeredPrompts === 'object') {
+    for (const [name, prompt] of Object.entries(registeredPrompts as Record<string, Record<string, unknown>>)) {
+      if (typeof prompt['handler'] === 'function') {
+        prompt['handler'] = createWrappedHandler(prompt['handler'] as MCPHandler, 'registerPrompt', name);
+      }
+    }
+  }
+}
