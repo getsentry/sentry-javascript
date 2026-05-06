@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src/client';
 import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
@@ -606,6 +606,10 @@ describe('requestDataIntegration', () => {
 });
 
 describe('requestDataIntegration processSegmentSpan', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   function makeSpan(overrides: Partial<StreamedSpanJSON> = {}): StreamedSpanJSON {
     return {
       name: 'GET /test',

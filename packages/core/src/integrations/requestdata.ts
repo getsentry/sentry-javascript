@@ -218,7 +218,7 @@ function normalizeQueryString(queryString: QueryParams): string | undefined {
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
-  const result = pairs.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
+  const result = pairs.map(([key, value]) => `${key}=${value}`).join('&');
 
   return result || undefined;
 }
