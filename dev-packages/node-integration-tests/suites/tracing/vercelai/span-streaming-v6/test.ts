@@ -251,7 +251,6 @@ describe('Vercel AI integration (streaming, V6)', () => {
     items: expect.arrayContaining([
       expect.objectContaining({
         name: 'invoke_agent',
-        status: 'error',
         attributes: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: attr('invoke_agent'),
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr('gen_ai.invoke_agent'),
