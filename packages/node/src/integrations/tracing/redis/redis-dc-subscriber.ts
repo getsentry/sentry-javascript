@@ -111,7 +111,8 @@ function setupCommandChannel(): void {
     end: NOOP,
     asyncEnd: data => {
       const span = data._sentrySpan;
-      if (!span) return;
+      // only end if error handler isn't going to
+      if (!span || data.error) return;
       // Same slice: strip command name from args before passing to the response hook.
       runResponseHook(span, data.command, data.args.slice(1), data.result);
       span.end();
@@ -152,7 +153,8 @@ function setupBatchChannel(): void {
     asyncStart: NOOP,
     end: NOOP,
     asyncEnd: data => {
-      data._sentrySpan?.end();
+      // only end if the error handler isn't going to
+      if (!data.error) data._sentrySpan?.end();
     },
     error: data => {
       const span = data._sentrySpan;
@@ -187,7 +189,8 @@ function setupConnectChannel(): void {
     asyncStart: NOOP,
     end: NOOP,
     asyncEnd: data => {
-      data._sentrySpan?.end();
+      // only end if the error handler isn't going to
+      if (!data.error) data._sentrySpan?.end();
     },
     error: data => {
       const span = data._sentrySpan;
