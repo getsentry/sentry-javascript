@@ -303,8 +303,6 @@ describe('Vercel AI integration (streaming)', () => {
     });
   });
 
-  // Truncation tests (moved from test.ts)
-
   const streamingLongContent = 'A'.repeat(50_000);
 
   createEsmAndCjsTests(__dirname, 'scenario-truncation.mjs', 'instrument.mjs', (createRunner, test) => {
