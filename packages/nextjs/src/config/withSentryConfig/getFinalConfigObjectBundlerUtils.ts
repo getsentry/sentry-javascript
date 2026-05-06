@@ -140,6 +140,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
           distDir,
           buildTool: bundlerInfo.isTurbopack ? 'turbopack' : 'webpack',
           usesNativeDebugIds: bundlerInfo.isTurbopack ? turboPackConfig?.debugIds : undefined,
+          sriEnabled: !!incomingUserNextConfigObject.experimental?.sri,
         },
         userSentryOptions,
       );
@@ -160,6 +161,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
               distDir,
               buildTool: bundlerInfo.isTurbopack ? 'turbopack' : 'webpack',
               usesNativeDebugIds: bundlerInfo.isTurbopack ? turboPackConfig?.debugIds : undefined,
+              sriEnabled: !!incomingUserNextConfigObject.experimental?.sri,
             },
             userSentryOptions,
           );
