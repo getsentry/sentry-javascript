@@ -7,9 +7,9 @@ import {
   getTraceData,
   parseUrl,
   shouldPropagateTraceForUrl,
+  mergeBaggageHeaders,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
-import { mergeBaggageHeaders } from './baggage';
 import { debug } from '@sentry/core';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';

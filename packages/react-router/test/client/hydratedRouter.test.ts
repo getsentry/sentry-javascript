@@ -163,7 +163,7 @@ describe('instrumentHydratedRouter', () => {
   it('creates navigation span in Framework Mode (flag not set means router() was never called)', () => {
     // This is a regression test for Framework Mode (e.g., Remix) where:
     // 1. createSentryClientInstrumentation() may be called during SDK init
-    // 2. But the framework doesn't support unstable_instrumentations, so router() is never called
+    // 2. But the framework doesn't invoke the instrumentations API, so router() is never called
     // 3. In this case, the legacy navigation instrumentation should still create spans
     //
     // We simulate this by ensuring the flag is NOT set (since router() was never called)

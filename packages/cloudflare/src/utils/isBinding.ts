@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { DurableObjectNamespace } from '@cloudflare/workers-types';
+import type { DurableObjectNamespace, Queue } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -58,4 +58,12 @@ const isNotJSRPC = (item: unknown): item is Record<string, unknown> => !isJSRPC(
  */
 export function isDurableObjectNamespace(item: unknown): item is DurableObjectNamespace {
   return item != null && isNotJSRPC(item) && typeof item.idFromName === 'function';
+}
+
+/**
+ * Duck-type check for Queue producer bindings.
+ * Queue has `send` and `sendBatch` async methods.
+ */
+export function isQueue(item: unknown): item is Queue {
+  return item != null && isNotJSRPC(item) && typeof item.send === 'function' && typeof item.sendBatch === 'function';
 }
