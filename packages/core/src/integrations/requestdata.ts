@@ -61,7 +61,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       return event;
     },
     processSegmentSpan(span, client) {
-      const { sdkProcessingMetadata } = getIsolationScope().getScopeData();
+      const { sdkProcessingMetadata = {} } = getIsolationScope().getScopeData();
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
       if (!normalizedRequest) {
@@ -92,6 +92,7 @@ export const requestDataIntegration = defineIntegration(_requestDataIntegration)
 function addNormalizedRequestDataToEvent(
   event: Event,
   req: RequestEventData,
+  // Data that should not go into `event.request` but is somehow related to requests
   additionalData: { ipAddress?: string },
   include: RequestDataIncludeOptions,
 ): void {
