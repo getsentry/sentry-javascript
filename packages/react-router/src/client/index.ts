@@ -24,7 +24,7 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
  */
 export type { ErrorBoundaryProps, FallbackRender } from '@sentry/react';
 
-// React Router instrumentation API for use with unstable_instrumentations (React Router 7.x)
+// React Router instrumentation API for use with HydratedRouter's `instrumentations` prop
 export {
   createSentryClientInstrumentation,
   isClientInstrumentationApiUsed,
