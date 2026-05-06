@@ -1,0 +1,37 @@
+import { expect, test } from '@playwright/test';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+test('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
+  page,
+}) => {
+  const errorEventPromise = waitForError('nextjs-16-streaming', errorEvent => {
+    return !!errorEvent?.exception?.values?.some(value => value.value === 'I am technically uncatchable');
+  });
+
+  const rootSpanPromise = waitForStreamedSpan('nextjs-16-streaming', span => {
+    return span.name === 'GET /nested-rsc-error/[param]' && span.is_segment;
+  });
+
+  await page.goto(`/nested-rsc-error/123`);
+  const errorEvent = await errorEventPromise;
+  const rootSpan = await rootSpanPromise;
+
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(rootSpan.trace_id);
+
+  expect(errorEvent.request).toMatchObject({
+    headers: expect.any(Object),
+    method: 'GET',
+  });
+
+  expect(errorEvent.contexts?.nextjs).toEqual({
+    route_type: 'render',
+    router_kind: 'App Router',
+    router_path: '/nested-rsc-error/[param]',
+    request_path: '/nested-rsc-error/123',
+  });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.function.nextjs.on_request_error',
+  });
+});

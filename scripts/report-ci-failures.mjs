@@ -102,7 +102,7 @@ export default async function run({ github, context, core }) {
         repo,
         title,
         body: issueBody.trim(),
-        labels: ['Tests'],
+        labels: ['Tests', 'Bug'],
       });
       core.info(`Created issue #${newIssue.data.number} for "${testName}" in ${jobName}`);
     }

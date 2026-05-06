@@ -133,7 +133,7 @@ test('Should record spans from http instrumentation', async ({ request }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: expect.objectContaining({
       'http.flavor': '1.1',
-      'http.host': 'example.com:80',
+      'http.host': 'example.com',
       'http.method': 'GET',
       'http.response.status_code': 200,
       'http.status_code': 200,
@@ -146,7 +146,7 @@ test('Should record spans from http instrumentation', async ({ request }) => {
       'net.transport': 'ip_tcp',
       'otel.kind': 'CLIENT',
       'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto.http.client',
       url: 'http://example.com/',
     }),
     description: 'GET http://example.com/',
@@ -155,6 +155,6 @@ test('Should record spans from http instrumentation', async ({ request }) => {
     timestamp: expect.any(Number),
     status: 'ok',
     op: 'http.client',
-    origin: 'auto.http.otel.http',
+    origin: 'auto.http.client',
   });
 });

@@ -5,6 +5,7 @@ import type { SerializedMetric } from '../../../src/types-hoist/metric';
 import type { SdkMetadata } from '../../../src/types-hoist/sdkmetadata';
 import * as utilsDsn from '../../../src/utils/dsn';
 import * as utilsEnvelope from '../../../src/utils/envelope';
+import { isBrowser } from '../../../src/utils/isBrowser';
 
 vi.mock('../../../src/utils/dsn', () => ({
   dsnToString: vi.fn(dsn => `https://${dsn.publicKey}@${dsn.host}/`),
@@ -12,9 +13,16 @@ vi.mock('../../../src/utils/dsn', () => ({
 vi.mock('../../../src/utils/envelope', () => ({
   createEnvelope: vi.fn((_headers, items) => [_headers, items]),
 }));
+vi.mock('../../../src/utils/isBrowser', () => ({
+  isBrowser: vi.fn(() => false),
+}));
+
+afterEach(() => {
+  vi.mocked(isBrowser).mockReturnValue(false);
+});
 
 describe('createMetricContainerEnvelopeItem', () => {
-  it('creates an envelope item with correct structure', () => {
+  it('emits version: 2 without ingest_settings when not in browser', () => {
     const mockMetric: SerializedMetric = {
       timestamp: 1713859200,
       trace_id: '3d9355f71e9c444b81161599adac6e29',
@@ -26,15 +34,63 @@ describe('createMetricContainerEnvelopeItem', () => {
       attributes: {},
     };
 
-    const result = createMetricContainerEnvelopeItem([mockMetric, mockMetric]);
+    const result = createMetricContainerEnvelopeItem([mockMetric], true);
 
-    expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       type: 'trace_metric',
-      item_count: 2,
+      item_count: 1,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     });
-    expect(result[1]).toEqual({ items: [mockMetric, mockMetric] });
+    expect(result[1]).toEqual({
+      version: 2,
+      items: [mockMetric],
+    });
+  });
+
+  it("includes ingest_settings with 'auto' values when in browser and inferUserData is true", () => {
+    vi.mocked(isBrowser).mockReturnValue(true);
+
+    const mockMetric: SerializedMetric = {
+      timestamp: 1713859200,
+      trace_id: '3d9355f71e9c444b81161599adac6e29',
+      span_id: '8b5f5e5e5e5e5e5e',
+      name: 'test.metric',
+      type: 'counter',
+      value: 1,
+      unit: 'count',
+      attributes: {},
+    };
+
+    const result = createMetricContainerEnvelopeItem([mockMetric], true);
+
+    expect(result[1]).toEqual({
+      version: 2,
+      ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
+      items: [mockMetric],
+    });
+  });
+
+  it("includes ingest_settings with 'never' values when in browser and inferUserData is false", () => {
+    vi.mocked(isBrowser).mockReturnValue(true);
+
+    const mockMetric: SerializedMetric = {
+      timestamp: 1713859200,
+      trace_id: '3d9355f71e9c444b81161599adac6e29',
+      span_id: '8b5f5e5e5e5e5e5e',
+      name: 'test.metric',
+      type: 'counter',
+      value: 1,
+      unit: 'count',
+      attributes: {},
+    };
+
+    const result = createMetricContainerEnvelopeItem([mockMetric], false);
+
+    expect(result[1]).toEqual({
+      version: 2,
+      ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
+      items: [mockMetric],
+    });
   });
 });
 
@@ -165,7 +221,7 @@ describe('createMetricEnvelope', () => {
       expect.arrayContaining([
         expect.arrayContaining([
           { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
-          { items: mockMetrics },
+          { version: 2, items: mockMetrics },
         ]),
       ]),
     );

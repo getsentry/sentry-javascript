@@ -2,39 +2,65 @@ import { expect, it } from 'vitest';
 import type { Event } from '@sentry/core';
 import { createRunner } from '../../../../runner';
 
-it('does not create RPC transaction when enableRpcTracePropagation is disabled', async ({ signal }) => {
-  let receivedTransactions: string[] = [];
+it('does not propagate trace when enableRpcTracePropagation is disabled', async ({ signal }) => {
+  let workerTraceId: string | undefined;
+  let doTraceId: string | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as Event;
 
-      // Should only receive the worker HTTP transaction, not the DO RPC transaction
       expect(transactionEvent).toEqual(
         expect.objectContaining({
           contexts: expect.objectContaining({
             trace: expect.objectContaining({
               op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
             }),
           }),
-          transaction: 'GET /rpc/hello',
         }),
       );
-      receivedTransactions.push(transactionEvent.transaction as string);
+
+      const txName = transactionEvent.transaction as string;
+      const traceId = transactionEvent.contexts?.trace?.trace_id as string;
+
+      if (txName === 'GET /do/hello') {
+        workerTraceId = traceId;
+      } else if (txName === 'GET /hello') {
+        doTraceId = traceId;
+      }
     })
+    .expect(envelope => {
+      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+
+      expect(transactionEvent).toEqual(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              op: 'http.server',
+            }),
+          }),
+        }),
+      );
+
+      const txName = transactionEvent.transaction as string;
+      const traceId = transactionEvent.contexts?.trace?.trace_id as string;
+
+      if (txName === 'GET /do/hello') {
+        workerTraceId = traceId;
+      } else if (txName === 'GET /hello') {
+        doTraceId = traceId;
+      }
+    })
+    .unordered()
     .start(signal);
 
-  // The RPC call should still work, just not be instrumented
-  const response = await runner.makeRequest<string>('get', '/rpc/hello');
+  const response = await runner.makeRequest<string>('get', '/do/hello');
   expect(response).toBe('Hello, World!');
 
   await runner.completed();
 
-  // Verify we only got the worker transaction, no RPC transaction
-  expect(receivedTransactions).toEqual(['GET /rpc/hello']);
-  expect(receivedTransactions).not.toContain('sayHello');
+  // Both transactions should exist but have different trace IDs (no propagation)
+  expect(workerTraceId).toBeDefined();
+  expect(doTraceId).toBeDefined();
+  expect(workerTraceId).not.toBe(doTraceId);
 });
