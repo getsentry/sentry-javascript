@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   truncate,
 } from '@sentry/core';
@@ -23,6 +22,7 @@ import {
 import type { IORedisResponseCustomAttributeFunction } from './vendored/types';
 import { IORedisInstrumentation } from './vendored/ioredis-instrumentation';
 import { RedisInstrumentation } from './vendored/redis-instrumentation';
+import { subscribeRedisDiagnosticChannels } from './redis-dc-subscriber';
 
 interface RedisOptions {
   /**
@@ -53,8 +53,6 @@ export const cacheResponseHook: IORedisResponseCustomAttributeFunction = (
   cmdArgs: IORedisCommandArgs,
   response: unknown,
 ) => {
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
-
   const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
   const cacheOperation = getCacheOperation(redisCommand);
 
@@ -120,6 +118,11 @@ export const instrumentRedis = Object.assign(
   (): void => {
     instrumentIORedis();
     instrumentRedisModule();
+    // node-redis >= 5.12.0 publishes via diagnostics_channel. The subscriber uses
+    // `@sentry/opentelemetry/tracing-channel`, which needs the Sentry OTel context manager
+    // to be registered before it can `bindStore`. `initOpenTelemetry()` runs after integration
+    // `setupOnce`, so defer to the next tick.
+    void Promise.resolve().then(() => subscribeRedisDiagnosticChannels(cacheResponseHook));
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),
