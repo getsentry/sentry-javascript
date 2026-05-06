@@ -27,6 +27,7 @@ import {
 } from '../ai/gen-ai-attributes';
 import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
+import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
@@ -456,8 +457,15 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.updateName(`${operationName} ${modelId}`);
   }
 
-  // Store tool descriptions in the toolDescriptionMap so processSpan can apply them to execute_tool spans
-  if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] && Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])) {
+  // Store tool descriptions in the toolDescriptionMap so processSpan can apply them to execute_tool spans.
+  // This is only needed for span streaming (transaction path handles this separately)
+  const client = getClient();
+  if (
+    client &&
+    hasSpanStreamingEnabled(client) &&
+    attributes[AI_PROMPT_TOOLS_ATTRIBUTE] &&
+    Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])
+  ) {
     const descriptions = new Map<string, string>();
 
     // parse tool names and descriptions from tool string array
