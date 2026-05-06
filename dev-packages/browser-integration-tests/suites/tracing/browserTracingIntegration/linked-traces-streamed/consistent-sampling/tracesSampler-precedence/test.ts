@@ -53,7 +53,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         discarded_events: [
           {
             category: 'span',
-            quantity: 1,
+            quantity: 2,
             reason: 'sample_rate',
           },
         ],
