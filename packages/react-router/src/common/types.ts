@@ -1,8 +1,7 @@
 /**
  * Types for React Router's instrumentation API.
  *
- * Derived from React Router v7.x `unstable_instrumentations` API.
- * The stable `instrumentations` API is planned for React Router v8.
+ * Derived from React Router's `instrumentations` API.
  * If React Router changes these types, this file must be updated.
  *
  * @see https://reactrouter.com/how-to/instrumentation

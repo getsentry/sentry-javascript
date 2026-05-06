@@ -19,7 +19,7 @@ export interface ReactRouterTracingIntegrationOptions {
 
   /**
    * Enable React Router's instrumentation API.
-   * When true, prepares for use with HydratedRouter's `unstable_instrumentations` prop.
+   * When true, prepares for use with HydratedRouter's `instrumentations` prop.
    * @experimental
    * @default false
    */
