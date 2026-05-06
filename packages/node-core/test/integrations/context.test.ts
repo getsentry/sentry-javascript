@@ -1,7 +1,13 @@
 import * as os from 'node:os';
 import type { StreamedSpanJSON } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { getAppContext, getDeviceContext, nodeContextIntegration } from '../../src/integrations/context';
+import {
+  contextsToSpanAttributes,
+  getAppContext,
+  getDeviceContext,
+  getDynamicSpanAttributes,
+  nodeContextIntegration,
+} from '../../src/integrations/context';
 import { conditionalTest } from '../helpers/conditional';
 
 vi.mock('node:os', async () => {
@@ -55,8 +61,81 @@ describe('Context', () => {
     });
   });
 
+  describe('contextsToSpanAttributes', () => {
+    it('maps app context', () => {
+      const attrs = contextsToSpanAttributes({ app: { app_start_time: '2026-01-01T00:00:00.000Z', app_memory: 100 } });
+      expect(attrs).toEqual({ 'app.start_time': '2026-01-01T00:00:00.000Z' });
+    });
+
+    it('maps device context', () => {
+      const attrs = contextsToSpanAttributes({
+        device: {
+          arch: 'arm64',
+          boot_time: '2026-01-01T00:00:00.000Z',
+          memory_size: 1024,
+          processor_count: 8,
+          cpu_description: 'Apple M1',
+          processor_frequency: 3200,
+          free_memory: 512,
+        },
+      });
+      expect(attrs).toEqual({
+        'device.archs': ['arm64'],
+        'device.boot_time': '2026-01-01T00:00:00.000Z',
+        'device.memory_size': 1024,
+        'device.processor_count': 8,
+        'device.cpu_description': 'Apple M1',
+        'device.processor_frequency': 3200,
+      });
+    });
+
+    it('maps os context', () => {
+      const attrs = contextsToSpanAttributes({ os: { name: 'macOS', version: '15.0', kernel_version: '24.0.0' } });
+      expect(attrs).toEqual({ 'os.name': 'macOS', 'os.version': '15.0', 'os.kernel_version': '24.0.0' });
+    });
+
+    it('maps culture context', () => {
+      const attrs = contextsToSpanAttributes({ culture: { locale: 'en-US', timezone: 'America/New_York' } });
+      expect(attrs).toEqual({ 'culture.locale': 'en-US', 'culture.timezone': 'America/New_York' });
+    });
+
+    it('maps cloud resource context', () => {
+      const attrs = contextsToSpanAttributes({
+        cloud_resource: { 'cloud.provider': 'aws', 'cloud.region': 'us-east-1' },
+      });
+      expect(attrs).toEqual({ 'cloud.provider': 'aws', 'cloud.region': 'us-east-1' });
+    });
+
+    it('skips undefined values', () => {
+      const attrs = contextsToSpanAttributes({ app: {}, device: {}, os: {} });
+      expect(attrs).toEqual({});
+    });
+  });
+
+  describe('getDynamicSpanAttributes', () => {
+    it('includes app memory when app context is provided', () => {
+      const attrs = getDynamicSpanAttributes(getAppContext(), undefined);
+      expect(attrs['app.memory']).toEqual(expect.any(Number));
+    });
+
+    it('includes device free memory when device context has free_memory', () => {
+      const attrs = getDynamicSpanAttributes(undefined, { free_memory: 1024 });
+      expect(attrs['device.free_memory']).toEqual(expect.any(Number));
+    });
+
+    it('excludes device free memory when device context has no free_memory', () => {
+      const attrs = getDynamicSpanAttributes(undefined, { arch: 'arm64' });
+      expect(attrs['device.free_memory']).toBeUndefined();
+    });
+
+    it('returns empty when no contexts provided', () => {
+      const attrs = getDynamicSpanAttributes(undefined, undefined);
+      expect(attrs).toEqual({});
+    });
+  });
+
   describe('processSegmentSpan', () => {
-    it('sets context attributes on segment span', () => {
+    it('sets static and dynamic context attributes on segment span', () => {
       const integration = nodeContextIntegration();
 
       const span: StreamedSpanJSON = {
@@ -75,9 +154,14 @@ describe('Context', () => {
       expect(span.attributes).toMatchObject({
         'app.start_time': expect.any(String),
         'device.archs': [os.arch()],
+        'device.memory_size': expect.any(Number),
         'device.processor_count': expect.any(Number),
+        'device.cpu_description': expect.any(String),
+        'device.processor_frequency': expect.any(Number),
         'process.runtime.engine.name': 'v8',
         'process.runtime.engine.version': process.versions.v8,
+        'app.memory': expect.any(Number),
+        'device.free_memory': expect.any(Number),
       });
     });
 
@@ -103,7 +187,13 @@ describe('Context', () => {
     });
 
     it('respects disabled options', () => {
-      const integration = nodeContextIntegration({ app: false, device: false, os: false });
+      const integration = nodeContextIntegration({
+        app: false,
+        device: false,
+        os: false,
+        culture: false,
+        cloudResource: false,
+      });
 
       const span: StreamedSpanJSON = {
         trace_id: 'abc123',
@@ -118,13 +208,10 @@ describe('Context', () => {
 
       integration.processSegmentSpan!(span, {} as any);
 
-      expect(span.attributes).toMatchObject({
+      expect(span.attributes).toEqual({
         'process.runtime.engine.name': 'v8',
         'process.runtime.engine.version': process.versions.v8,
       });
-      expect(span.attributes!['app.start_time']).toBeUndefined();
-      expect(span.attributes!['device.archs']).toBeUndefined();
-      expect(span.attributes!['device.processor_count']).toBeUndefined();
     });
   });
 });
