@@ -348,7 +348,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   processVercelAiSpanAttributes(attributes);
 }
 
-function processEndedVercelAiStreamedSpan(span: StreamedSpanJSON): void {
+function processVercelAiStreamedSpan(span: StreamedSpanJSON): void {
   const attributes = span.attributes;
   if (attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
     return;
@@ -356,9 +356,10 @@ function processEndedVercelAiStreamedSpan(span: StreamedSpanJSON): void {
 
   processVercelAiSpanAttributes(attributes);
 
-  // Look up tool description from the side-channel for execute_tool spans
+  // Look up tool description from the toolDescriptionMap for execute_tool spans
   if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'gen_ai.execute_tool' && span.parent_span_id) {
     const descriptions = toolDescriptionMap.get(span.parent_span_id);
+
     if (descriptions) {
       const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
       if (typeof toolName === 'string') {
@@ -455,9 +456,11 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.updateName(`${operationName} ${modelId}`);
   }
 
-  // Store tool descriptions for the side-channel so processSpan can apply them to execute_tool spans
+  // Store tool descriptions in the toolDescriptionMap so processSpan can apply them to execute_tool spans
   if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] && Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])) {
     const descriptions = new Map<string, string>();
+
+    // parse tool names and descriptions from tool string array
     for (const toolStr of attributes[AI_PROMPT_TOOLS_ATTRIBUTE] as unknown[]) {
       try {
         const parsed = (typeof toolStr === 'string' ? JSON.parse(toolStr) : toolStr) as {
@@ -490,7 +493,7 @@ export function addVercelAiProcessors(client: Client): void {
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
   client.on('processSpan', span => {
-    processEndedVercelAiStreamedSpan(span);
+    processVercelAiStreamedSpan(span);
   });
 }
 
