@@ -1,48 +1,28 @@
-/* eslint-disable max-lines */
-import type { ChannelListener } from 'node:diagnostics_channel';
-import { subscribe, unsubscribe } from 'node:diagnostics_channel';
-import { errorMonitor } from 'node:events';
-import type * as http from 'node:http';
-import type * as https from 'node:https';
-import { context, SpanStatusCode, trace } from '@opentelemetry/api';
+import { subscribe } from 'node:diagnostics_channel';
+import { context, trace } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import {
-  ATTR_HTTP_RESPONSE_STATUS_CODE,
-  ATTR_NETWORK_PEER_ADDRESS,
-  ATTR_NETWORK_PEER_PORT,
-  ATTR_NETWORK_PROTOCOL_VERSION,
-  ATTR_NETWORK_TRANSPORT,
-  ATTR_URL_FULL,
-  ATTR_USER_AGENT_ORIGINAL,
-  SEMATTRS_HTTP_RESPONSE_CONTENT_LENGTH,
-  SEMATTRS_HTTP_RESPONSE_CONTENT_LENGTH_UNCOMPRESSED,
-} from '@opentelemetry/semantic-conventions';
-import type { Span, SpanAttributes, SpanStatus } from '@sentry/core';
-import {
-  debug,
-  getHttpSpanDetailsFromUrlObject,
-  getSpanStatusFromHttpCode,
-  LRUMap,
-  parseStringToURLObject,
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  startInactiveSpan,
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
+import type {
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpInstrumentationOptions,
+  HttpModuleExport,
+  Span,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { getHttpClientSubscriptions, patchHttpModuleClient, SDK_VERSION, getRequestOptions } from '@sentry/core';
 import { INSTRUMENTATION_NAME } from './constants';
-import {
-  addRequestBreadcrumb,
-  addTracePropagationHeadersToOutgoingRequest,
-  getClientRequestUrl,
-  getRequestOptions,
-} from './outgoing-requests';
+import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
+import { NODE_VERSION } from '../../nodeVersion';
+import { errorMonitor } from 'node:events';
+import * as http from 'node:http';
+import * as https from 'node:https';
 
-type Http = typeof http;
-type Https = typeof https;
-type IncomingHttpHeaders = http.IncomingHttpHeaders;
-type OutgoingHttpHeaders = http.OutgoingHttpHeaders;
+const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL =
+  (NODE_VERSION.major === 22 && NODE_VERSION.minor >= 12) ||
+  (NODE_VERSION.major === 23 && NODE_VERSION.minor >= 2) ||
+  NODE_VERSION.major >= 24;
 
 export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
@@ -96,19 +76,19 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * Hooks for outgoing request spans, called when `createSpansForOutgoingRequests` is enabled.
    * These mirror the OTEL HttpInstrumentation hooks for backwards compatibility.
    */
-  outgoingRequestHook?: (span: Span, request: http.ClientRequest) => void;
-  outgoingResponseHook?: (span: Span, response: http.IncomingMessage) => void;
+  outgoingRequestHook?: (span: Span, request: ClientRequest | HttpClientRequest) => void;
+  outgoingResponseHook?: (span: Span, response: IncomingMessage | HttpIncomingMessage) => void;
   outgoingRequestApplyCustomAttributes?: (
     span: Span,
-    request: http.ClientRequest,
-    response: http.IncomingMessage,
+    request: HttpClientRequest,
+    response: HttpIncomingMessage,
   ) => void;
 
   // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
   // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
 
   /**
-   * @depreacted This no longer does anything.
+   * @deprecated This no longer does anything.
    */
   extractIncomingTraceFromHeader?: boolean;
 
@@ -125,7 +105,7 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   /**
    * @deprecated This no longer does anything.
    */
-  ignoreSpansForIncomingRequests?: (urlPath: string, request: http.IncomingMessage) => boolean;
+  ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
    * @deprecated This no longer does anything.
@@ -146,12 +126,12 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @deprecated This no longer does anything.
    */
   instrumentation?: {
-    requestHook?: (span: Span, req: http.ClientRequest | http.IncomingMessage) => void;
-    responseHook?: (span: Span, response: http.IncomingMessage | http.ServerResponse) => void;
+    requestHook?: (span: Span, req: ClientRequest | IncomingMessage) => void;
+    responseHook?: (span: Span, response: IncomingMessage | ServerResponse) => void;
     applyCustomAttributesOnSpan?: (
       span: Span,
-      request: http.ClientRequest | http.IncomingMessage,
-      response: http.IncomingMessage | http.ServerResponse,
+      request: ClientRequest | IncomingMessage,
+      response: IncomingMessage | ServerResponse,
     ) => void;
   };
 
@@ -178,64 +158,80 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
  * https://github.com/open-telemetry/opentelemetry-js/blob/f8ab5592ddea5cba0a3b33bf8d74f27872c0367f/experimental/packages/opentelemetry-instrumentation-http/src/http.ts
  */
 export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpInstrumentationOptions> {
-  private _propagationDecisionMap: LRUMap<string, boolean>;
-  private _ignoreOutgoingRequestsMap: WeakMap<http.ClientRequest, boolean>;
-
   public constructor(config: SentryHttpInstrumentationOptions = {}) {
     super(INSTRUMENTATION_NAME, SDK_VERSION, config);
-
-    this._propagationDecisionMap = new LRUMap<string, boolean>(100);
-    this._ignoreOutgoingRequestsMap = new WeakMap<http.ClientRequest, boolean>();
   }
 
   /** @inheritdoc */
   public init(): [InstrumentationNodeModuleDefinition, InstrumentationNodeModuleDefinition] {
-    // We register handlers when either http or https is instrumented
-    // but we only want to register them once, whichever is loaded first
+    const { outgoingRequestApplyCustomAttributes: applyCustomAttributesOnSpan, ...options } = this.getConfig();
+    const patchOptions: HttpInstrumentationOptions = {
+      propagateTrace: options.propagateTraceInOutgoingRequests,
+      applyCustomAttributesOnSpan,
+      ...options,
+      spans: options.createSpansForOutgoingRequests && (options.spans ?? true),
+      ignoreOutgoingRequests(url, request) {
+        return (
+          isTracingSuppressed(context.active()) ||
+          !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request as ClientRequest))
+        );
+      },
+      outgoingRequestHook(span, request) {
+        options.outgoingRequestHook?.(span, request);
+        // We monkey-patch `req.once('response'), which is used to trigger
+        // the callback of the request, so that it runs in the active context
+        // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
+        const originalOnce = request.once;
+
+        const newOnce = new Proxy(originalOnce, {
+          apply(target, thisArg, args: Parameters<typeof originalOnce>) {
+            const [event] = args;
+            if (event !== 'response') {
+              return target.apply(thisArg, args);
+            }
+
+            const parentContext = context.active();
+            const requestContext = trace.setSpan(parentContext, span);
+
+            return context.with(requestContext, () => {
+              return target.apply(thisArg, args);
+            });
+          },
+        });
+
+        // eslint-disable-next-line deprecation/deprecation
+        request.once = newOnce;
+      },
+      outgoingResponseHook(span, response) {
+        options.outgoingResponseHook?.(span, response);
+        context.bind(context.active(), response);
+      },
+      errorMonitor,
+      // Pass these in to detect OTel double-wrapping if we're enabling spans
+      http,
+      https,
+    };
+
+    // only generate the subscriber function if we'll actually use it
+    const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL
+      ? getHttpClientSubscriptions(patchOptions)
+      : {};
+
+    // guard because we cover both http and https with the same subscribers
     let hasRegisteredHandlers = false;
+    const sub = onHttpClientRequestCreated
+      ? <T extends HttpModuleExport>(moduleExports: T): T => {
+          if (!hasRegisteredHandlers && onHttpClientRequestCreated) {
+            hasRegisteredHandlers = true;
+            subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
+          }
+          return moduleExports;
+        }
+      : undefined;
 
-    const onHttpClientResponseFinish = ((_data: unknown) => {
-      const data = _data as { request: http.ClientRequest; response: http.IncomingMessage };
-      this._onOutgoingRequestFinish(data.request, data.response);
-    }) satisfies ChannelListener;
+    const wrapHttp = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
 
-    const onHttpClientRequestError = ((_data: unknown) => {
-      const data = _data as { request: http.ClientRequest };
-      this._onOutgoingRequestFinish(data.request, undefined);
-    }) satisfies ChannelListener;
-
-    const onHttpClientRequestCreated = ((_data: unknown) => {
-      const data = _data as { request: http.ClientRequest };
-      this._onOutgoingRequestCreated(data.request);
-    }) satisfies ChannelListener;
-
-    const wrap = <T extends Http | Https>(moduleExports: T): T => {
-      if (hasRegisteredHandlers) {
-        return moduleExports;
-      }
-
-      hasRegisteredHandlers = true;
-
-      subscribe('http.client.response.finish', onHttpClientResponseFinish);
-
-      // When an error happens, we still want to have a breadcrumb
-      // In this case, `http.client.response.finish` is not triggered
-      subscribe('http.client.request.error', onHttpClientRequestError);
-
-      // NOTE: This channel only exists since Node 22.12+
-      // Before that, outgoing requests are not patched
-      // and trace headers are not propagated, sadly.
-      if (this.getConfig().propagateTraceInOutgoingRequests || this.getConfig().createSpansForOutgoingRequests) {
-        subscribe('http.client.request.created', onHttpClientRequestCreated);
-      }
-      return moduleExports;
-    };
-
-    const unwrap = (): void => {
-      unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
-      unsubscribe('http.client.request.error', onHttpClientRequestError);
-      unsubscribe('http.client.request.created', onHttpClientRequestCreated);
-    };
+    const wrapHttps = sub ?? ((moduleExports: HttpModuleExport) => patchHttpModuleClient(moduleExports, patchOptions));
 
     /**
      * You may be wondering why we register these diagnostics-channel listeners
@@ -246,284 +242,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
      * especially the "import-on-top" pattern of setting up ESM applications.
      */
     return [
-      new InstrumentationNodeModuleDefinition('http', ['*'], wrap, unwrap),
-      new InstrumentationNodeModuleDefinition('https', ['*'], wrap, unwrap),
+      new InstrumentationNodeModuleDefinition('http', ['*'], wrapHttp),
+      new InstrumentationNodeModuleDefinition('https', ['*'], wrapHttps),
     ];
   }
-
-  /**
-   * Start a span for an outgoing request.
-   * The span wraps the callback of the request, and ends when the response is finished.
-   */
-  private _startSpanForOutgoingRequest(request: http.ClientRequest): Span {
-    // We monkey-patch `req.once('response'), which is used to trigger the callback of the request
-    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
-    const originalOnce = request.once;
-
-    const [name, attributes] = _getOutgoingRequestSpanData(request);
-
-    const span = startInactiveSpan({
-      name,
-      attributes,
-      onlyIfParent: true,
-    });
-
-    this.getConfig().outgoingRequestHook?.(span, request);
-
-    const newOnce = new Proxy(originalOnce, {
-      apply(target, thisArg, args: Parameters<typeof originalOnce>) {
-        const [event] = args;
-        if (event !== 'response') {
-          return target.apply(thisArg, args);
-        }
-
-        const parentContext = context.active();
-        const requestContext = trace.setSpan(parentContext, span);
-
-        return context.with(requestContext, () => {
-          return target.apply(thisArg, args);
-        });
-      },
-    });
-
-    // eslint-disable-next-line deprecation/deprecation
-    request.once = newOnce;
-
-    /**
-     * Determines if the request has errored or the response has ended/errored.
-     */
-    let responseFinished = false;
-
-    const endSpan = (status: SpanStatus): void => {
-      if (responseFinished) {
-        return;
-      }
-      responseFinished = true;
-
-      span.setStatus(status);
-      span.end();
-    };
-
-    request.prependListener('response', response => {
-      if (request.listenerCount('response') <= 1) {
-        response.resume();
-      }
-
-      context.bind(context.active(), response);
-
-      const additionalAttributes = _getOutgoingRequestEndedSpanData(response);
-      span.setAttributes(additionalAttributes);
-
-      this.getConfig().outgoingResponseHook?.(span, response);
-      this.getConfig().outgoingRequestApplyCustomAttributes?.(span, request, response);
-
-      const endHandler = (forceError: boolean = false): void => {
-        this._diag.debug('outgoingRequest on end()');
-
-        const status =
-          // eslint-disable-next-line deprecation/deprecation
-          forceError || typeof response.statusCode !== 'number' || (response.aborted && !response.complete)
-            ? { code: SpanStatusCode.ERROR }
-            : getSpanStatusFromHttpCode(response.statusCode);
-
-        endSpan(status);
-      };
-
-      response.on('end', () => {
-        endHandler();
-      });
-      response.on(errorMonitor, error => {
-        this._diag.debug('outgoingRequest on response error()', error);
-        endHandler(true);
-      });
-    });
-
-    // Fallback if proper response end handling above fails
-    request.on('close', () => {
-      endSpan({ code: SpanStatusCode.UNSET });
-    });
-    request.on(errorMonitor, error => {
-      this._diag.debug('outgoingRequest on request error()', error);
-      endSpan({ code: SpanStatusCode.ERROR });
-    });
-
-    return span;
-  }
-
-  /**
-   * This is triggered when an outgoing request finishes.
-   * It has access to the final request and response objects.
-   */
-  private _onOutgoingRequestFinish(request: http.ClientRequest, response?: http.IncomingMessage): void {
-    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling finished outgoing request');
-
-    const _breadcrumbs = this.getConfig().breadcrumbs;
-    const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
-
-    // Note: We cannot rely on the map being set by `_onOutgoingRequestCreated`, because that is not run in Node <22
-    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
-    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
-
-    if (breadCrumbsEnabled && !shouldIgnore) {
-      addRequestBreadcrumb(request, response);
-    }
-  }
-
-  /**
-   * This is triggered when an outgoing request is created.
-   * It creates a span (if enabled) and propagates trace headers within the span's context,
-   * so downstream services link to the outgoing HTTP span rather than its parent.
-   */
-  private _onOutgoingRequestCreated(request: http.ClientRequest): void {
-    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling outgoing request created');
-
-    const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
-    this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
-
-    if (shouldIgnore) {
-      return;
-    }
-
-    const shouldCreateSpan = this.getConfig().createSpansForOutgoingRequests && (this.getConfig().spans ?? true);
-    const shouldPropagate = this.getConfig().propagateTraceInOutgoingRequests;
-
-    if (shouldCreateSpan) {
-      const span = this._startSpanForOutgoingRequest(request);
-
-      // Propagate headers within the span's context so the sentry-trace header
-      // contains the outgoing span's ID, not the parent span's ID.
-      // Only do this if the span is recording (has a parent) - otherwise the non-recording
-      // span would produce all-zero trace IDs instead of using the scope's propagation context.
-      if (shouldPropagate && span.isRecording()) {
-        const requestContext = trace.setSpan(context.active(), span);
-        context.with(requestContext, () => {
-          addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
-        });
-      } else if (shouldPropagate) {
-        addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
-      }
-    } else if (shouldPropagate) {
-      addTracePropagationHeadersToOutgoingRequest(request, this._propagationDecisionMap);
-    }
-  }
-
-  /**
-   * Check if the given outgoing request should be ignored.
-   */
-  private _shouldIgnoreOutgoingRequest(request: http.ClientRequest): boolean {
-    if (isTracingSuppressed(context.active())) {
-      return true;
-    }
-
-    const ignoreOutgoingRequests = this.getConfig().ignoreOutgoingRequests;
-
-    if (!ignoreOutgoingRequests) {
-      return false;
-    }
-
-    const options = getRequestOptions(request);
-    const url = getClientRequestUrl(request);
-    return ignoreOutgoingRequests(url, options);
-  }
-}
-
-function _getOutgoingRequestSpanData(request: http.ClientRequest): [string, SpanAttributes] {
-  const url = getClientRequestUrl(request);
-
-  const [name, attributes] = getHttpSpanDetailsFromUrlObject(
-    parseStringToURLObject(url),
-    'client',
-    'auto.http.otel.http',
-    request,
-  );
-
-  const userAgent = request.getHeader('user-agent');
-
-  return [
-    name,
-    {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      'otel.kind': 'CLIENT',
-      [ATTR_USER_AGENT_ORIGINAL]: userAgent,
-      [ATTR_URL_FULL]: url,
-      'http.url': url,
-      'http.method': request.method,
-      'http.target': request.path || '/',
-      'net.peer.name': request.host,
-      'http.host': request.getHeader('host'),
-      ...attributes,
-    },
-  ];
-}
-
-/**
- * Exported for testing purposes.
- */
-export function _getOutgoingRequestEndedSpanData(response: http.IncomingMessage): SpanAttributes {
-  const { statusCode, statusMessage, httpVersion, socket } = response;
-
-  // httpVersion can be undefined in some cases and we seem to have encountered this before:
-  // https://github.com/getsentry/sentry-javascript/blob/ec8c8c64cde6001123db0199a8ca017b8863eac8/packages/node-core/src/integrations/http/httpServerSpansIntegration.ts#L158
-  // see: #20415
-  const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'ip_tcp' : 'ip_udp';
-
-  const additionalAttributes: SpanAttributes = {
-    [ATTR_HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    [ATTR_NETWORK_PROTOCOL_VERSION]: httpVersion,
-    'http.flavor': httpVersion,
-    [ATTR_NETWORK_TRANSPORT]: transport,
-    'net.transport': transport,
-    ['http.status_text']: statusMessage?.toUpperCase(),
-    'http.status_code': statusCode,
-    ...getResponseContentLengthAttributes(response),
-  };
-
-  if (socket) {
-    const { remoteAddress, remotePort } = socket;
-
-    additionalAttributes[ATTR_NETWORK_PEER_ADDRESS] = remoteAddress;
-    additionalAttributes[ATTR_NETWORK_PEER_PORT] = remotePort;
-    additionalAttributes['net.peer.ip'] = remoteAddress;
-    additionalAttributes['net.peer.port'] = remotePort;
-  }
-
-  return additionalAttributes;
-}
-
-function getResponseContentLengthAttributes(response: http.IncomingMessage): SpanAttributes {
-  const length = getContentLength(response.headers);
-  if (length == null) {
-    return {};
-  }
-
-  if (isCompressed(response.headers)) {
-    // eslint-disable-next-line deprecation/deprecation
-    return { [SEMATTRS_HTTP_RESPONSE_CONTENT_LENGTH]: length };
-  } else {
-    // eslint-disable-next-line deprecation/deprecation
-    return { [SEMATTRS_HTTP_RESPONSE_CONTENT_LENGTH_UNCOMPRESSED]: length };
-  }
-}
-
-function getContentLength(headers: http.OutgoingHttpHeaders | http.IncomingHttpHeaders): number | undefined {
-  const contentLengthHeader = headers['content-length'];
-  if (typeof contentLengthHeader === 'number') {
-    return contentLengthHeader;
-  }
-  if (typeof contentLengthHeader !== 'string') {
-    return undefined;
-  }
-
-  const contentLength = parseInt(contentLengthHeader, 10);
-  if (isNaN(contentLength)) {
-    return undefined;
-  }
-
-  return contentLength;
-}
-
-function isCompressed(headers: OutgoingHttpHeaders | IncomingHttpHeaders): boolean {
-  const encoding = headers['content-encoding'];
-
-  return !!encoding && encoding !== 'identity';
 }

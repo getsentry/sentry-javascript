@@ -42,11 +42,6 @@ export function captureTracingEvents(): void {
 }
 
 /**
- * No-op function to satisfy the tracing channel subscribe callbacks
- */
-const NOOP = (): void => {};
-
-/**
  * Extracts the HTTP status code from a tracing channel result.
  * The result is the return value of the traced handler, which is a Response for srvx
  * and may or may not be a Response for h3.
@@ -126,8 +121,6 @@ function setupH3TracingChannels(): void {
     start: (data: H3TracingRequestEvent) => {
       setServerTimingHeaders(data.event);
     },
-    asyncStart: NOOP,
-    end: NOOP,
     asyncEnd: (data: TracingChannelContextWithSpan<H3TracingRequestEvent>) => {
       onTraceEnd(data);
 
@@ -192,9 +185,6 @@ function setupSrvxTracingChannels(): void {
 
   // Subscribe to events (span already created in bindStore)
   fetchChannel.subscribe({
-    start: () => {},
-    asyncStart: () => {},
-    end: () => {},
     asyncEnd: data => {
       onTraceEnd(data);
 
@@ -239,9 +229,6 @@ function setupSrvxTracingChannels(): void {
 
   // Subscribe to events (span already created in bindStore)
   middlewareChannel.subscribe({
-    start: () => {},
-    asyncStart: () => {},
-    end: () => {},
     asyncEnd: onTraceEnd,
     error: onTraceError,
   });

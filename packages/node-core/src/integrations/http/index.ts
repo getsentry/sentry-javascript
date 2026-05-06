@@ -1,4 +1,5 @@
-import type { IncomingMessage, RequestOptions } from 'node:http';
+import type { RequestOptions } from 'node:http';
+import type { HttpIncomingMessage } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
@@ -73,7 +74,7 @@ interface HttpOptions {
    * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
    * You can use it to filter on additional properties like method, headers, etc.
    */
-  ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
 
   /**
    * Do not capture spans for incoming HTTP requests with the given status codes.
