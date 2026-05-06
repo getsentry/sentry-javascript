@@ -35,3 +35,4 @@
 index.d.ts
 runloop.d.ts
 types.d.ts
+utils/*.d.ts
