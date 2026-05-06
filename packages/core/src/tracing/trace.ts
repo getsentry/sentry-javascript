@@ -36,7 +36,7 @@ import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
 import type { Client } from '../client';
 
-const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
+export const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

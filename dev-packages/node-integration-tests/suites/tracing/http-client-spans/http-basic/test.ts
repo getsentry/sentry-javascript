@@ -29,13 +29,13 @@ test('captures spans for outgoing http requests', async () => {
           expect.objectContaining({
             description: expect.stringMatching(/GET .*\/api\/v0/),
             op: 'http.client',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http.client',
             status: 'ok',
           }),
           expect.objectContaining({
             description: expect.stringMatching(/GET .*\/api\/v1/),
             op: 'http.client',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http.client',
             status: 'not_found',
             data: expect.objectContaining({
               'http.response.status_code': 404,

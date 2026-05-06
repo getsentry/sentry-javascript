@@ -533,7 +533,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.3
+        uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: v2.1.5
       - name: Restore caches
@@ -1057,7 +1057,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
         if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
-        uses: denoland/setup-deno@v2.0.3
+        uses: denoland/setup-deno@v2.0.4
         with:
           deno-version: v2.1.5
       - name: Restore caches
