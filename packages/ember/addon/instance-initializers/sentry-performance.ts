@@ -1,22 +1,6 @@
 /* eslint-disable max-lines */
 import type ApplicationInstance from '@ember/application/instance';
-import { getOwnConfig } from '@embroider/macros';
-import { GLOBAL_OBJ } from '@sentry/core';
-import type { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
-import { instrumentForPerformance } from '../utils/performance';
-
-function getSentryConfig(): EmberSentryConfig {
-  const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
-  _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
-  const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
-  if (!environmentConfig.sentry) {
-    environmentConfig.sentry = {
-      browserTracingOptions: {},
-    };
-  }
-  Object.assign(environmentConfig.sentry, _global.__sentryEmberConfig);
-  return environmentConfig;
-}
+import { instrumentForPerformance, getSentryConfig } from '../utils/performance';
 
 export function initialize(appInstance: ApplicationInstance): void {
   // Disable in fastboot - we only want to run Sentry client-side

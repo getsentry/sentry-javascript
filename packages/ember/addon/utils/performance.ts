@@ -55,10 +55,20 @@ export function instrumentForPerformance(appInstance: ApplicationInstance): void
 
   const idleTimeout = config.transitionTimeout || 5000;
 
+  const emberSpecificConfig = {
+    minimumRunloopQueueDuration: config.minimumRunloopQueueDuration,
+    minimumComponentRenderDuration: config.minimumComponentRenderDuration,
+    enableComponentDefinitions: config.enableComponentDefinitions,
+    disableInitialLoadInstrumentation: config.disableInitialLoadInstrumentation,
+    disableRunloopPerformance: config.disableRunloopPerformance,
+    disableInstrumentComponents: config.disableInstrumentComponents,
+  };
+
   const browserTracing = browserTracingIntegration({
     appInstance,
     idleTimeout,
     ...browserTracingOptions,
+    ...emberSpecificConfig,
   });
 
   const client = getClient<BrowserClient>();

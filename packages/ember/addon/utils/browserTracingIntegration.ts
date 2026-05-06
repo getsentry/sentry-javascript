@@ -42,9 +42,9 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
 
   const globalsPerformanceConfig = {
     disableRunloopPerformance: options.disableRunloopPerformance ?? false,
-    minimumRunloopQueueDuration: options.minimumRunloopQueueDuration ?? 0,
+    minimumRunloopQueueDuration: options.minimumRunloopQueueDuration,
     disableInstrumentComponents: options.disableInstrumentComponents ?? false,
-    minimumComponentRenderDuration: options.minimumComponentRenderDuration ?? 0,
+    minimumComponentRenderDuration: options.minimumComponentRenderDuration,
     enableComponentDefinitions: options.enableComponentDefinitions ?? false,
     disableInitialLoadInstrumentation: options.disableInitialLoadInstrumentation ?? false,
   };
