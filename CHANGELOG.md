@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @sbs44. Thank you for your contribution!
+
 - **feat(browser): Add `ingest_settings` to v2 log envelope payload ([#20453](https://github.com/getsentry/sentry-javascript/pull/20453))**
 
   Inference of user data (e.g. IP address, browser name/version) on log events is now gated behind the `sendDefaultPii` option. Previously, this data was always inferred by default.

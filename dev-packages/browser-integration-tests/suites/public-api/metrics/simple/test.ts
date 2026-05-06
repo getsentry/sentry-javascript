@@ -27,6 +27,8 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     },
     {
+      version: 2,
+      ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
       items: [
         {
           timestamp: expect.any(Number),

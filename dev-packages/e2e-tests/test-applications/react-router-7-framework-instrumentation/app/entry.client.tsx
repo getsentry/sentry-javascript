@@ -26,8 +26,7 @@ startTransition(() => {
   hydrateRoot(
     document,
     <StrictMode>
-      {/* unstable_instrumentations is React Router 7.x's prop name (will become `instrumentations` in v8) */}
-      <HydratedRouter unstable_instrumentations={sentryClientInstrumentation} onError={Sentry.sentryOnError} />
+      <HydratedRouter instrumentations={sentryClientInstrumentation} onError={Sentry.sentryOnError} />
     </StrictMode>,
   );
 });

@@ -1,0 +1,13 @@
+{
+  "name": "d1-worker",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "test-db",
+      "database_id": "local-test-db",
+    },
+  ],
+}
