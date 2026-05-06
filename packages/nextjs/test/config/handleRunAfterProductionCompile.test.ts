@@ -388,6 +388,43 @@ describe('handleRunAfterProductionCompile', () => {
 
       expect(readdirSpy).not.toHaveBeenCalled();
     });
+
+    it('does NOT strip sourceMappingURL comments when SRI is enabled', async () => {
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+          sriEnabled: true,
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(readdirSpy).not.toHaveBeenCalled();
+    });
+
+    it('strips sourceMappingURL comments when SRI is not enabled', async () => {
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+          sriEnabled: false,
+        },
+        {
+          ...mockSentryBuildOptions,
+          sourcemaps: { deleteSourcemapsAfterUpload: true },
+        },
+      );
+
+      expect(readdirSpy).toHaveBeenCalledWith(
+        path.join('/path/to/.next', 'static'),
+        expect.objectContaining({ recursive: true }),
+      );
+    });
   });
 
   describe('path handling', () => {
