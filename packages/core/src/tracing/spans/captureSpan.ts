@@ -97,8 +97,25 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 }
 
 function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
-  // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
+  // TODO: Apply contexts data from auto instrumentation to segment span
   // This will follow in a separate PR
+}
+
+/**
+ * Safely set attributes on a span JSON.
+ * If an attribute already exists, it will not be overwritten.
+ */
+export function safeSetSpanJSONAttributes(
+  spanJSON: StreamedSpanJSON,
+  newAttributes: RawAttributes<Record<string, unknown>>,
+): void {
+  const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
+
+  Object.entries(newAttributes).forEach(([key, value]) => {
+    if (value != null && !(key in originalAttributes)) {
+      originalAttributes[key] = value;
+    }
+  });
 }
 
 function applyCommonSpanAttributes(
@@ -143,23 +160,6 @@ export function applyBeforeSendSpanCallback(
     return span;
   }
   return modifedSpan;
-}
-
-/**
- * Safely set attributes on a span JSON.
- * If an attribute already exists, it will not be overwritten.
- */
-export function safeSetSpanJSONAttributes(
-  spanJSON: StreamedSpanJSON,
-  newAttributes: RawAttributes<Record<string, unknown>>,
-): void {
-  const originalAttributes = spanJSON.attributes ?? (spanJSON.attributes = {});
-
-  Object.entries(newAttributes).forEach(([key, value]) => {
-    if (value != null && !(key in originalAttributes)) {
-      originalAttributes[key] = value;
-    }
-  });
 }
 
 // OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)
