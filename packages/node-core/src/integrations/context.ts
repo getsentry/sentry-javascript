@@ -198,6 +198,9 @@ export function contextsToSpanAttributes(contexts: Contexts): Record<string, unk
     if (osCtx.kernel_version) {
       attrs['os.kernel_version'] = osCtx.kernel_version;
     }
+    if (osCtx.build) {
+      attrs['os.build'] = osCtx.build;
+    }
   }
 
   if (culture) {

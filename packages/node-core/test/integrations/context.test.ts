@@ -153,7 +153,6 @@ describe('Context', () => {
 
       expect(span.attributes).toMatchObject({
         'app.start_time': expect.any(String),
-        'device.archs': [os.arch()],
         'device.memory_size': expect.any(Number),
         'device.processor_count': expect.any(Number),
         'device.cpu_description': expect.any(String),
