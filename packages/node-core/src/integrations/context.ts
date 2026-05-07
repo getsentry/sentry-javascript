@@ -15,7 +15,7 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -42,8 +42,6 @@ interface ContextOptions {
 }
 
 const _nodeContextIntegration = ((options: ContextOptions = {}) => {
-  let cachedContext: Promise<Contexts> | undefined;
-
   const _options = {
     app: true,
     os: true,
@@ -53,13 +51,56 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
     ...options,
   };
 
-  /** Add contexts to the event. Caches the context so we only look it up once. */
-  async function addContext(event: Event): Promise<Event> {
-    if (cachedContext === undefined) {
-      cachedContext = _getContexts();
-    }
+  // Compute contexts eagerly (shared between tx and span paths)
+  const appContext = _options.app ? getAppContext() : undefined;
+  const deviceContext = _options.device ? getDeviceContext(_options.device) : undefined;
+  const cultureContext = _options.culture ? getCultureContext() : undefined;
+  const cloudResourceContext = _options.cloudResource ? getCloudResourceContext() : undefined;
+  const osContextPromise = _options.os ? getOsContext() : undefined;
 
-    const updatedContext = _updateContext(await cachedContext);
+  // Map static context data to span attributes
+  const cachedSpanAttributes: Record<string, unknown> = {
+    'process.runtime.engine.name': 'v8',
+    'process.runtime.engine.version': process.versions.v8,
+    ...contextsToSpanAttributes({
+      app: appContext,
+      device: deviceContext,
+      culture: cultureContext,
+      cloud_resource: cloudResourceContext,
+    }),
+  };
+
+  if (osContextPromise) {
+    osContextPromise
+      .then(osCtx => Object.assign(cachedSpanAttributes, contextsToSpanAttributes({ os: osCtx })))
+      .catch(() => {
+        // Ignore - os attributes will be undefined
+      });
+  }
+
+  // Build contexts for event processing (reuses same data, awaits async OS context)
+  const contextsPromise: Promise<Contexts> = (async () => {
+    const contexts: Contexts = {};
+    if (osContextPromise) {
+      contexts.os = await osContextPromise;
+    }
+    if (appContext) {
+      contexts.app = appContext;
+    }
+    if (deviceContext) {
+      contexts.device = deviceContext;
+    }
+    if (cultureContext) {
+      contexts.culture = cultureContext;
+    }
+    if (cloudResourceContext) {
+      contexts.cloud_resource = cloudResourceContext;
+    }
+    return contexts;
+  })();
+
+  async function addContext(event: Event): Promise<Event> {
+    const updatedContext = _updateContext(await contextsPromise);
 
     // TODO(v11): conditional with `sendDefaultPii` here?
     event.contexts = {
@@ -74,41 +115,14 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
     return event;
   }
 
-  /** Get the contexts from node. */
-  async function _getContexts(): Promise<Contexts> {
-    const contexts: Contexts = {};
-
-    if (_options.os) {
-      contexts.os = await getOsContext();
-    }
-
-    if (_options.app) {
-      contexts.app = getAppContext();
-    }
-
-    if (_options.device) {
-      contexts.device = getDeviceContext(_options.device);
-    }
-
-    if (_options.culture) {
-      const culture = getCultureContext();
-
-      if (culture) {
-        contexts.culture = culture;
-      }
-    }
-
-    if (_options.cloudResource) {
-      contexts.cloud_resource = getCloudResourceContext();
-    }
-
-    return contexts;
-  }
-
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
       return addContext(event);
+    },
+    processSegmentSpan(span) {
+      safeSetSpanJSONAttributes(span, cachedSpanAttributes);
+      safeSetSpanJSONAttributes(span, getDynamicSpanAttributes(appContext, deviceContext));
     },
   };
 }) satisfies IntegrationFn;
@@ -140,6 +154,98 @@ function _updateContext(contexts: Contexts): Contexts {
   }
 
   return contexts;
+}
+
+export function contextsToSpanAttributes(contexts: Contexts): Record<string, unknown> {
+  const attrs: Record<string, unknown> = {};
+
+  const { app, device, os: osCtx, culture, cloud_resource } = contexts;
+
+  if (app) {
+    if (app.app_start_time) {
+      attrs['app.start_time'] = app.app_start_time;
+    }
+  }
+
+  if (device) {
+    if (device.arch) {
+      attrs['device.archs'] = [device.arch];
+    }
+    if (device.boot_time) {
+      attrs['device.boot_time'] = device.boot_time;
+    }
+    if (device.memory_size != null) {
+      attrs['device.memory_size'] = device.memory_size;
+    }
+    if (device.processor_count != null) {
+      attrs['device.processor_count'] = device.processor_count;
+    }
+    if (device.cpu_description) {
+      attrs['device.cpu_description'] = device.cpu_description;
+    }
+    if (device.processor_frequency != null) {
+      attrs['device.processor_frequency'] = device.processor_frequency;
+    }
+  }
+
+  if (osCtx) {
+    if (osCtx.name) {
+      attrs['os.name'] = osCtx.name;
+    }
+    if (osCtx.version) {
+      attrs['os.version'] = osCtx.version;
+    }
+    if (osCtx.kernel_version) {
+      attrs['os.kernel_version'] = osCtx.kernel_version;
+    }
+    if (osCtx.build) {
+      attrs['os.build'] = osCtx.build;
+    }
+  }
+
+  if (culture) {
+    if (culture.locale) {
+      attrs['culture.locale'] = culture.locale;
+    }
+    if (culture.timezone) {
+      attrs['culture.timezone'] = culture.timezone;
+    }
+  }
+
+  // CloudResourceContext already uses dot-notation keys matching span attribute conventions
+  if (cloud_resource) {
+    for (const [key, value] of Object.entries(cloud_resource)) {
+      if (value != null) {
+        attrs[key] = value;
+      }
+    }
+  }
+
+  return attrs;
+}
+
+export function getDynamicSpanAttributes(
+  appContext: AppContext | undefined,
+  deviceContext: DeviceContext | undefined,
+): Record<string, unknown> {
+  const attrs: Record<string, unknown> = {};
+
+  if (appContext) {
+    attrs['app.memory'] = process.memoryUsage().rss;
+    if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
+      const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+      if (freeMemory != null) {
+        attrs['app.free_memory'] = freeMemory;
+      }
+    }
+  }
+
+  // Only include if memory tracking was initially enabled (indicated by free_memory being set)
+  if (deviceContext?.free_memory != null) {
+    attrs['device.free_memory'] = os.freemem();
+  }
+
+  return attrs;
 }
 
 /**
