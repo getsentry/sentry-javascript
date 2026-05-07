@@ -7135,6 +7135,11 @@
   resolved "https://registry.yarnpkg.com/@redis/bloom/-/bloom-1.2.0.tgz#d3fd6d3c0af3ef92f26767b56414a370c7b63b71"
   integrity sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==
 
+"@redis/bloom@5.12.1":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/@redis/bloom/-/bloom-5.12.1.tgz#047dbfce93cfa7e5879fb58ad1b2afe87ebb2dc4"
+  integrity sha512-PUUfv+ms7jgPSBVoo/DN4AkPHj4D5TZSd6SbJX7egzBplkYUcKmHRE8RKia7UtZ8bSQbLguLvxVO+asKtQfZWA==
+
 "@redis/client@1.5.16":
   version "1.5.16"
   resolved "https://registry.yarnpkg.com/@redis/client/-/client-1.5.16.tgz#1d5919077a06a4b935b0e4bef9e036eef1a10371"
@@ -7143,6 +7148,13 @@
     cluster-key-slot "1.1.2"
     generic-pool "3.9.0"
     yallist "4.0.0"
+
+"@redis/client@5.12.1":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/@redis/client/-/client-5.12.1.tgz#a35a2bac546c727d7915d2d91b63a77111e51ebd"
+  integrity sha512-7aPGWeqA3uFm43o19umzdl16CEjK/JQGtSXVPevplTaOU3VJA/rseBC1QvYUz9lLDIMBimc4SW/zrW4S89BaCA==
+  dependencies:
+    cluster-key-slot "1.1.2"
 
 "@redis/graph@1.1.1":
   version "1.1.1"
@@ -7154,15 +7166,30 @@
   resolved "https://registry.yarnpkg.com/@redis/json/-/json-1.0.6.tgz#b7a7725bbb907765d84c99d55eac3fcf772e180e"
   integrity sha512-rcZO3bfQbm2zPRpqo82XbW8zg4G/w4W3tI7X8Mqleq9goQjAGLL7q/1n1ZX4dXEAmORVZ4s1+uKLaUOg7LrUhw==
 
+"@redis/json@5.12.1":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/@redis/json/-/json-5.12.1.tgz#52aff987abe4d41ec9644857fb00f16c7a97fdb7"
+  integrity sha512-eOze75esLve4vfqDel7aMX08CNaiLLQS2fV8mpRN9NxPe1rVR4vQyYiW/OgtGUysF6QOr9ANhfxABKNOJfXdKg==
+
 "@redis/search@1.1.6":
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/@redis/search/-/search-1.1.6.tgz#33bcdd791d9ed88ab6910243a355d85a7fedf756"
   integrity sha512-mZXCxbTYKBQ3M2lZnEddwEAks0Kc7nauire8q20oA0oA/LoA+E/b5Y5KZn232ztPb1FkIGqo12vh3Lf+Vw5iTw==
 
+"@redis/search@5.12.1":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/@redis/search/-/search-5.12.1.tgz#b7a738be918c8a7af91e39c5bd2023f30f392981"
+  integrity sha512-ItlxbxC9cKI6IU1TLWoczwJCRb6TdmkEpWv05UrPawqaAnWGRu3rcIqsc5vN483T2fSociuyV1UkWIL5I4//2w==
+
 "@redis/time-series@1.0.5":
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@redis/time-series/-/time-series-1.0.5.tgz#a6d70ef7a0e71e083ea09b967df0a0ed742bc6ad"
   integrity sha512-IFjIgTusQym2B5IZJG3XKr5llka7ey84fw/NOYqESP5WUfQs9zz1ww/9+qoz4ka/S6KcGBodzlCeZ5UImKbscg==
+
+"@redis/time-series@5.12.1":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/@redis/time-series/-/time-series-5.12.1.tgz#15b6deaaf3716bc2633311c0ed18201c9299392d"
+  integrity sha512-c6JL6E3EcZJuNqKFz+KM+l9l5mpcQiKvTwgA3blt5glWJ8hjDk0yeHN3beE/MpqYIQ8UEX44ItQzgkE/gCBELQ==
 
 "@remix-run/node-fetch-server@^0.13.0":
   version "0.13.0"
@@ -18871,10 +18898,10 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
-hono@^4.12.14:
-  version "4.12.14"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.14.tgz#4777c9512b7c84138e4f09e61e3d2fa305eb1414"
-  integrity sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==
+hono@^4.12.16:
+  version "4.12.16"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.16.tgz#90fcc63caa713199703bda08d8518f654e98b516"
+  integrity sha512-jN0ZewiNAWSe5khM3EyCmBb250+b40wWbwNILNfEvq84VREWwOIkuUsFONk/3i3nqkz7Oe1PcpM2mwQEK2L9Kg==
 
 hookable@^5.5.3:
   version "5.5.3"
@@ -26084,6 +26111,17 @@ redeyed@~1.0.0:
     "@redis/json" "1.0.6"
     "@redis/search" "1.1.6"
     "@redis/time-series" "1.0.5"
+
+"redis-5@npm:redis@^5.12.0":
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/redis/-/redis-5.12.1.tgz#f95297e01eca8b87a109601a2418647e05f16bee"
+  integrity sha512-LDsoVvb/CpoV9EN3FXvgvSHNJWuCIzl9MiO3ppOevuGLpSGJhwfQjpEwfFJcQvNSddHADDdZaWx0HnmMxRXG7g==
+  dependencies:
+    "@redis/bloom" "5.12.1"
+    "@redis/client" "5.12.1"
+    "@redis/json" "5.12.1"
+    "@redis/search" "5.12.1"
+    "@redis/time-series" "5.12.1"
 
 redis-errors@^1.0.0, redis-errors@^1.2.0:
   version "1.2.0"
