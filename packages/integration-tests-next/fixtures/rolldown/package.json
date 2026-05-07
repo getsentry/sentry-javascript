@@ -6,7 +6,7 @@
   "dependencies": {
     "@sentry/rollup-plugin": "5.2.1",
     "react": "19.2.4",
-    "rolldown": "1.0.0-rc.10"
+    "rolldown": "1.0.0"
   },
   "pnpm": {
     "overrides": {
