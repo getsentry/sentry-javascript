@@ -172,7 +172,7 @@ function estimatePrimitiveSizeInBytes(value: Primitive): number {
  *  - Objects are not supported yet and product support is still TBD.
  */
 function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
-  if (Array.isArray(value) && value.length !== 0) {
+  if (Array.isArray(value)) {
     return { value, type: 'array' };
   }
 

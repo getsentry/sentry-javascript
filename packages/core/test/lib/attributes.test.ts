@@ -91,8 +91,8 @@ describe('attributeValueToTypedAttributeValue', () => {
         expect(result).toStrictEqual({ value: expected, type: 'array' });
       });
 
-      it('returns undefined for empty arrays', () => {
-        expect(attributeValueToTypedAttributeValue([])).toBeUndefined();
+      it('emits a typed array attribute for empty arrays', () => {
+        expect(attributeValueToTypedAttributeValue([])).toStrictEqual({ value: [], type: 'array' });
       });
     });
 
