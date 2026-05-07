@@ -15,7 +15,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.3.2"
   },
   "dependencies": {
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",

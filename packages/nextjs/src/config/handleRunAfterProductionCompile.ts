@@ -15,7 +15,14 @@ export async function handleRunAfterProductionCompile(
     distDir,
     buildTool,
     usesNativeDebugIds,
-  }: { releaseName?: string; distDir: string; buildTool: 'webpack' | 'turbopack'; usesNativeDebugIds?: boolean },
+    sriEnabled,
+  }: {
+    releaseName?: string;
+    distDir: string;
+    buildTool: 'webpack' | 'turbopack';
+    usesNativeDebugIds?: boolean;
+    sriEnabled?: boolean;
+  },
   sentryBuildOptions: SentryBuildOptions,
 ): Promise<void> {
   if (sentryBuildOptions.debug) {
@@ -68,9 +75,18 @@ export async function handleRunAfterProductionCompile(
   // the deleted .map files, and in Next.js 16 (turbopack) those requests fall through
   // to the app router instead of returning 404, which can break middleware-dependent
   // features like Clerk auth.
+  // When SRI is enabled, we must skip this step because Next.js computes integrity
+  // hashes during the build — modifying files afterward invalidates those hashes.
   const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
-  if (deleteSourcemapsAfterUpload && buildTool === 'turbopack') {
+  if (deleteSourcemapsAfterUpload && buildTool === 'turbopack' && !sriEnabled) {
     await stripSourceMappingURLComments(path.join(distDir, 'static'), sentryBuildOptions.debug);
+  }
+
+  if (deleteSourcemapsAfterUpload && buildTool === 'turbopack' && sriEnabled && sentryBuildOptions.debug) {
+    // eslint-disable-next-line no-console
+    console.debug(
+      '[@sentry/nextjs] Skipping sourceMappingURL comment stripping because Subresource Integrity (SRI) is enabled.',
+    );
   }
 }
 

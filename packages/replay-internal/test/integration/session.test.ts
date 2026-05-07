@@ -438,6 +438,57 @@ describe('Integration | session', () => {
     );
   });
 
+  it('updates DSC with new replay_id after session refresh', async () => {
+    const { getCurrentScope } = await import('@sentry/core');
+
+    const initialSession = { ...replay.session } as Session;
+
+    // Simulate a cached DSC on the scope (as browserTracingIntegration does
+    // when the idle span ends) with the old session's replay_id.
+    const scope = getCurrentScope();
+    scope.setPropagationContext({
+      ...scope.getPropagationContext(),
+      dsc: {
+        trace_id: 'test-trace-id',
+        public_key: 'test-public-key',
+        replay_id: initialSession.id,
+      },
+    });
+
+    // Idle past expiration
+    const ELAPSED = SESSION_IDLE_EXPIRE_DURATION + 1;
+    vi.advanceTimersByTime(ELAPSED);
+
+    // Emit a recording event to put replay into paused state (mirrors the
+    // "creates a new session" test which does this before clicking)
+    const TEST_EVENT = getTestEventIncremental({
+      data: { name: 'lost event' },
+      timestamp: BASE_TIMESTAMP,
+    });
+    mockRecord._emitter(TEST_EVENT);
+    await new Promise(process.nextTick);
+
+    expect(replay.isPaused()).toBe(true);
+
+    // Trigger user activity to cause session refresh
+    domHandler({
+      name: 'click',
+      event: new Event('click'),
+    });
+
+    // _refreshSession is async (calls await stop() then initializeSampling)
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    // Should be a new session
+    expect(replay).not.toHaveSameSession(initialSession);
+
+    // The cached DSC should now have the NEW session's replay_id, not the old one
+    const dsc = scope.getPropagationContext().dsc;
+    expect(dsc?.replay_id).toBe(replay.session?.id);
+    expect(dsc?.replay_id).not.toBe(initialSession.id);
+  });
+
   it('increases segment id after each event', async () => {
     clearSession(replay);
     replay['_initializeSessionForSampling']();

@@ -3,7 +3,7 @@ import { browserProfilingIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
-Sentry.init({
+const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [browserProfilingIntegration()],
   tracesSampleRate: 1,
@@ -11,7 +11,7 @@ Sentry.init({
   profileLifecycle: 'trace',
 });
 
-function largeSum(amount = 1000000) {
+function largeSum(amount) {
   let sum = 0;
   for (let i = 0; i < amount; i++) {
     sum += Math.sqrt(i) * Math.sin(i);
@@ -28,7 +28,8 @@ function fibonacci(n) {
 let firstSpan;
 
 Sentry.startSpanManual({ name: 'root-largeSum-1', parentSpan: null, forceTransaction: true }, span => {
-  largeSum();
+  // Enough iterations that largeSum stays on-stack across several profiler ticks (10ms interval); otherwise sampling can miss it entirely.
+  largeSum(2_500_000);
   firstSpan = span;
 });
 
@@ -39,14 +40,13 @@ await Sentry.startSpanManual({ name: 'root-fibonacci-2', parentSpan: null, force
     console.log('child span');
   });
 
-  // Timeout to prevent flaky tests. Integration samples every 20ms, if function is too fast it might not get sampled
-  await new Promise(resolve => setTimeout(resolve, 21));
+  // Profiler uses a 10ms sample interval — wait long enough for multiple ticks
+  await new Promise(resolve => setTimeout(resolve, 40));
   span.end();
 });
 
-await new Promise(r => setTimeout(r, 21));
+await new Promise(r => setTimeout(r, 40));
 
 firstSpan.end();
 
-const client = Sentry.getClient();
 await client?.flush(5000);

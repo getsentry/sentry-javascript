@@ -406,9 +406,11 @@ function xhrCallback(
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
+  // With span streaming, we always emit http.client spans, even without a parent span
+  const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
   const span =
-    shouldCreateSpanResult && hasParent
+    shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan({
           name: `${method} ${urlForSpanName}`,
           attributes: {
@@ -425,7 +427,7 @@ function xhrCallback(
         })
       : new SentryNonRecordingSpan();
 
-  if (shouldCreateSpanResult && !hasParent) {
+  if (shouldCreateSpanResult && !shouldEmitSpan) {
     client?.recordDroppedEvent('no_parent_span', 'span');
   }
 
@@ -438,7 +440,7 @@ function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
       propagateTraceparent,
     );
   }

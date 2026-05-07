@@ -1,0 +1,6 @@
+{
+  "name": "cloudflare-worker-workerentrypoint-rpc-sub",
+  "main": "index-sub-worker.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_als"],
+}

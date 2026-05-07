@@ -193,7 +193,13 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
   }
 
   const clientOptions = client.getOptions();
-  const envelope = createLogEnvelope(logBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
+  const envelope = createLogEnvelope(
+    logBuffer,
+    clientOptions._metadata,
+    clientOptions.tunnel,
+    client.getDsn(),
+    clientOptions.sendDefaultPii,
+  );
 
   // Clear the log buffer after envelopes have been constructed.
   _getBufferMap().set(client, []);

@@ -131,13 +131,17 @@
       }
     },
     {
-      "files": [
-        "**/scenarios/**",
-        "**/rollup-utils/**",
-        "**/bundle-analyzer-scenarios/**",
-        "**/bundle-analyzer-scenarios/*.cjs",
-        "**/bundle-analyzer-scenarios/*.js"
-      ],
+      "files": ["**/integrations/tracing/redis/vendored/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-this-alias": "off",
+        "max-lines": "off",
+        "no-bitwise": "off"
+      }
+    },
+    {
+      "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"
       }

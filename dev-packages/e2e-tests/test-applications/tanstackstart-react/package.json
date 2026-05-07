@@ -45,30 +45,25 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "pnpm": {
-    "overrides": {
-      "@tanstack/start-plugin-core": "1.167.35"
-    }
-  },
   "sentryTest": {
     "variants": [
       {
-        "label": "tunnel-generated",
+        "label": "tanstackstart-react (tunnel-generated)",
         "build-command": "pnpm test:build:tunnel-generated",
         "assert-command": "pnpm test:assert:tunnel-generated"
       },
       {
-        "label": "tunnel-static",
+        "label": "tanstackstart-react (tunnel-static)",
         "build-command": "pnpm test:build:tunnel-static",
         "assert-command": "pnpm test:assert:tunnel-static"
       },
       {
-        "label": "tunnel-custom",
+        "label": "tanstackstart-react (tunnel-custom)",
         "build-command": "pnpm test:build:tunnel-custom",
         "assert-command": "pnpm test:assert:tunnel-custom"
       },
       {
-        "label": "tunnel-object",
+        "label": "tanstackstart-react (tunnel-object)",
         "build-command": "pnpm test:build:tunnel-object",
         "assert-command": "pnpm test:assert:tunnel-object"
       }

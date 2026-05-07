@@ -3,11 +3,20 @@ import { waitForStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 const SEGMENT_SPAN = {
   attributes: {
+    'app.start_time': {
+      type: 'string',
+      value: expect.any(String),
+    },
     'client.address': {
       type: 'string',
       value: expect.any(String),
     },
     'client.port': {
+      type: 'integer',
+      value: expect.any(Number),
+    },
+    // TODO: 'device.archs' is set but arrays are not yet serialized in span attributes
+    'device.processor_count': {
       type: 'integer',
       value: expect.any(Number),
     },
@@ -50,6 +59,14 @@ const SEGMENT_SPAN = {
     'http.response.status_code': {
       type: 'integer',
       value: expect.any(Number),
+    },
+    'os.name': {
+      type: 'string',
+      value: expect.any(String),
+    },
+    'os.version': {
+      type: 'string',
+      value: expect.any(String),
     },
     'sentry.environment': {
       type: 'string',
@@ -114,6 +131,14 @@ const SEGMENT_SPAN = {
     'user_agent.original': {
       type: 'string',
       value: 'node',
+    },
+    'process.runtime.engine.name': {
+      type: 'string',
+      value: 'v8',
+    },
+    'process.runtime.engine.version': {
+      type: 'string',
+      value: expect.any(String),
     },
   },
   end_timestamp: expect.any(Number),

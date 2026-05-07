@@ -1,6 +1,20 @@
-import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
+import { waitForTransaction, waitForError, waitForRequest } from '@sentry-internal/test-utils';
 import { InvokeCommand } from '@aws-sdk/client-lambda';
 import { test, expect } from './lambda-fixtures';
+
+interface TunnelInvokeResult {
+  attemptedDsn?: string;
+  status: number;
+  responseBody: string;
+}
+
+function parseLambdaPayload(payload: Uint8Array | undefined): TunnelInvokeResult {
+  if (!payload) {
+    throw new Error('Missing Lambda payload');
+  }
+
+  return JSON.parse(Buffer.from(payload).toString('utf8')) as TunnelInvokeResult;
+}
 
 test.describe('Lambda layer', () => {
   test('tracing in CJS works', async ({ lambdaClient }) => {
@@ -45,7 +59,7 @@ test.describe('Lambda layer', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',
@@ -113,7 +127,7 @@ test.describe('Lambda layer', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',
@@ -241,5 +255,68 @@ test.describe('Lambda layer', () => {
         op: 'test',
       }),
     );
+  });
+
+  test('extension tunnel validates DSN allowlist and rejects invalid envelopes', async ({ lambdaClient }) => {
+    const matchingMarker = `extension-tunnel-matching-${Date.now()}`;
+    const matchingRequestPromise = waitForRequest('aws-serverless-layer', requestData => {
+      return requestData.rawProxyRequestBody.includes(matchingMarker);
+    });
+
+    const matchingResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnel',
+        Payload: JSON.stringify({
+          marker: matchingMarker,
+        }),
+      }),
+    );
+    const matchingResult = parseLambdaPayload(matchingResponse.Payload);
+    expect(matchingResult.status).toBe(200);
+    await matchingRequestPromise;
+
+    const mismatchedResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnel',
+        Payload: JSON.stringify({
+          // Keep host/project/port valid but change public key, so DSN stays valid and fails allowlist match.
+          dsn: String(matchingResult.attemptedDsn).replace('://public@', '://unauthorized@'),
+        }),
+      }),
+    );
+    const mismatchedResult = parseLambdaPayload(mismatchedResponse.Payload);
+    expect(mismatchedResult.status).toBe(403);
+    expect(mismatchedResult.responseBody).toContain('DSN not allowed');
+
+    const missingDsnResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnel',
+        Payload: JSON.stringify({
+          omitDsn: true,
+        }),
+      }),
+    );
+    const missingDsnResult = parseLambdaPayload(missingDsnResponse.Payload);
+    expect(missingDsnResult.status).toBe(400);
+    expect(missingDsnResult.responseBody).toContain('missing DSN');
+  });
+
+  test('extension tunnel forwards requests when SENTRY_DSN is missing', async ({ lambdaClient }) => {
+    const marker = `extension-tunnel-no-sentry-dsn-${Date.now()}`;
+    const noDsnRequestPromise = waitForRequest('aws-serverless-layer', requestData => {
+      return requestData.rawProxyRequestBody.includes(marker);
+    });
+
+    const noDsnResponse = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnelNoDsn',
+        Payload: JSON.stringify({
+          marker,
+        }),
+      }),
+    );
+    const noDsnResult = parseLambdaPayload(noDsnResponse.Payload);
+    expect(noDsnResult.status).toBe(200);
+    await noDsnRequestPromise;
   });
 });

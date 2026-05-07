@@ -101,8 +101,16 @@ export interface ServerRuntimeOptions {
 }
 
 /**
+ * Allowed attribute value matchers in `ignoreSpans` filters.
+ * String span attributes use pattern matching (substring or RegExp).
+ * Non-string attribute values match by strict equality (arrays element-wise).
+ */
+export type IgnoreSpanAttributeValue = string | boolean | number | string[] | boolean[] | number[] | RegExp;
+
+/**
  * A filter object for ignoring spans.
- * At least one of the properties (`op` or `name`) must be set.
+ * At least one of the properties (`name`, `op`, or `attributes`) must be set.
+ * If multiple are set, all must match for the span to be ignored.
  */
 type IgnoreSpanFilter =
   | {
@@ -114,6 +122,12 @@ type IgnoreSpanFilter =
        * Spans with an op matching this pattern will be ignored.
        */
       op?: string | RegExp;
+      /**
+       * Spans whose attributes ALL match the corresponding entries will be ignored.
+       * String attribute values are matched as patterns (substring or RegExp).
+       * Non-string values match by strict equality (arrays element-wise).
+       */
+      attributes?: Record<string, IgnoreSpanAttributeValue>;
     }
   | {
       /**
@@ -124,6 +138,28 @@ type IgnoreSpanFilter =
        * Spans with an op matching this pattern will be ignored.
        */
       op: string | RegExp;
+      /**
+       * Spans whose attributes ALL match the corresponding entries will be ignored.
+       * String attribute values are matched as patterns (substring or RegExp).
+       * Non-string values match by strict equality (arrays element-wise).
+       */
+      attributes?: Record<string, IgnoreSpanAttributeValue>;
+    }
+  | {
+      /**
+       * Spans with a name matching this pattern will be ignored.
+       */
+      name?: string | RegExp;
+      /**
+       * Spans with an op matching this pattern will be ignored.
+       */
+      op?: string | RegExp;
+      /**
+       * Spans whose attributes ALL match the corresponding entries will be ignored.
+       * String attribute values are matched as patterns (substring or RegExp).
+       * Non-string values match by strict equality (arrays element-wise).
+       */
+      attributes: Record<string, IgnoreSpanAttributeValue>;
     };
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
@@ -326,7 +362,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * A list of span names or patterns to ignore.
    *
    * If you specify a pattern {@link IgnoreSpanFilter}, at least one
-   * of the properties (`op` or `name`) must be set.
+   * of the properties (`name`, `op`, or `attributes`) must be set.
+   * When multiple properties are set, all must match for the span to be ignored.
    *
    * @default []
    */

@@ -46,6 +46,7 @@ export type NextConfigObject = {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
     serverComponentsExternalPackages?: string[]; // next < v15.0.0
+    sri?: { algorithm?: string };
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env

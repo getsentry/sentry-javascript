@@ -1,37 +1,32 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { type SpanJSON } from '@sentry/core';
-import { APP_NAME, isNode } from './constants';
-
-// In Node, @sentry/node/preload eagerly activates the OTel HonoInstrumentation,
-// which wraps all Hono instance methods at construction time via WrappedHono.
-const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
-const OTEL_ORIGIN = 'auto.http.otel.hono';
+import { APP_NAME } from './constants';
 
 const SCENARIOS = [
   {
     name: 'root app middleware',
     prefix: '/test-middleware',
-    origin: MIDDLEWARE_ORIGIN,
   },
   {
     name: 'sub-app middleware (route group)',
     prefix: '/test-subapp-middleware',
-    origin: isNode ? OTEL_ORIGIN : MIDDLEWARE_ORIGIN,
   },
 ] as const;
 
-for (const { name, prefix, origin } of SCENARIOS) {
+for (const { name, prefix } of SCENARIOS) {
   test.describe(name, () => {
     test('creates a span for named middleware', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/named`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/named`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/named`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/named`);
+
       const spans = transaction.spans || [];
 
       const middlewareSpan = spans.find(
@@ -43,10 +38,10 @@ for (const { name, prefix, origin } of SCENARIOS) {
         expect.objectContaining({
           description: 'middlewareA',
           op: 'middleware.hono',
-          origin,
-          status: 'ok',
+          origin: 'auto.middleware.hono',
         }),
       );
+      expect(middlewareSpan?.status).not.toBe('internal_error');
 
       // @ts-expect-error timestamp is defined
       const durationMs = (middlewareSpan?.timestamp - middlewareSpan?.start_timestamp) * 1000;
@@ -55,42 +50,39 @@ for (const { name, prefix, origin } of SCENARIOS) {
 
     test('creates a span for anonymous middleware', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/anonymous`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/anonymous`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/anonymous`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/anonymous`);
+
       const spans = transaction.spans || [];
 
-      expect(spans).toContainEqual(
-        expect.objectContaining({
-          description: '<anonymous>',
-          op: 'middleware.hono',
-          origin: MIDDLEWARE_ORIGIN,
-          status: 'ok',
-        }),
+      const anonymousSpan = spans.find(
+        (span: { description?: string; op?: string }) =>
+          span.op === 'middleware.hono' && span.description === '<anonymous>',
       );
+      expect(anonymousSpan).toBeDefined();
+      expect(anonymousSpan?.origin).toBe('auto.middleware.hono');
+      expect(anonymousSpan?.status).not.toBe('internal_error');
     });
 
     test('multiple middleware are sibling spans under the same parent', async ({ baseURL }) => {
-      test.skip(
-        isNode,
-        'Node double-instruments middleware (too many spans) - TODO: fix this in the SDK and re-enable the test',
-      );
-
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/multi`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/multi`);
       });
 
       const response = await fetch(`${baseURL}${prefix}/multi`);
       expect(response.status).toBe(200);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/multi`);
+
       const spans = transaction.spans || [];
 
-      // Sort spans because they are in a different order in Node/Bun (OTel-based)
       const middlewareSpans = spans.sort((a, b) => (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0));
 
       expect(middlewareSpans).toHaveLength(2);
@@ -110,10 +102,7 @@ for (const { name, prefix, origin } of SCENARIOS) {
 
     test('captures error thrown in middleware', async ({ baseURL }) => {
       const errorPromise = waitForError(APP_NAME, event => {
-        return (
-          event.exception?.values?.[0]?.value === 'Middleware error' &&
-          event.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.hono'
-        );
+        return event.exception?.values?.[0]?.value === 'Middleware error';
       });
 
       const response = await fetch(`${baseURL}${prefix}/error`);
@@ -131,18 +120,16 @@ for (const { name, prefix, origin } of SCENARIOS) {
 
     test('sets error status on middleware span when middleware throws', async ({ baseURL }) => {
       const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${prefix}/error/*`;
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/error`);
       });
 
       await fetch(`${baseURL}${prefix}/error`);
 
       const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/error/*`);
+
       const spans = transaction.spans || [];
 
-      // On the /error path only one middleware (failingMiddleware) is registered,
-      // so we can find the error span by status alone. On Node for sub-apps, the
-      // OTel layer wraps before patchRoute, so the function name may be lost in
-      // the patchRoute span — but the error status is always set.
       const failingSpan = spans.find(
         (span: SpanJSON) => span.op === 'middleware.hono' && span.status === 'internal_error',
       );
@@ -169,13 +156,12 @@ for (const { name, prefix, origin } of SCENARIOS) {
   });
 }
 
-test.describe('.all() handler on sub-app (method ALL edge case)', () => {
-  test('Node: OTel wraps .all() and produces a hono span', async ({ baseURL }) => {
-    test.skip(!isNode, 'Node-specific: OTel wraps .all() at construction time');
-
+test.describe('.all() handler in sub-app', () => {
+  test('does not create middleware span for .all() route handler', async ({ baseURL }) => {
     const transactionPromise = waitForTransaction(APP_NAME, event => {
       return (
-        event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
+        event.contexts?.trace?.op === 'http.server' &&
+        !!event.transaction?.includes('/test-subapp-middleware/all-handler')
       );
     });
 
@@ -186,48 +172,57 @@ test.describe('.all() handler on sub-app (method ALL edge case)', () => {
     expect(body).toEqual({ handler: 'all' });
 
     const transaction = await transactionPromise;
+    expect(transaction.transaction).toBe('GET /test-subapp-middleware/all-handler');
+
     const spans = transaction.spans || [];
 
-    // On Node, OTel wraps .all() at construction time. Since the handler
-    // returns a Response, OTel classifies it as 'request_handler' (not
-    // middleware). patchRoute also wraps it but sees the anonymous OTel wrapper.
-    // Either way, the handler IS instrumented — verify any hono span exists.
-    const honoSpan = spans.find((span: SpanJSON) => span.op?.endsWith('.hono'));
-    expect(honoSpan).toBeDefined();
+    // No middleware is called for this route, so there should be no spans.
+    expect(spans).toEqual([]);
   });
+});
 
-  test('Bun/Cloudflare: patchRoute wraps .all() as middleware span', async ({ baseURL }) => {
-    test.skip(isNode, 'Bun/Cloudflare-specific: patchRoute is the sole wrapper');
+const INLINE_PREFIX = '/test-inline-middleware';
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return (
-        event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /test-subapp-middleware/all-handler'
-      );
-    });
+const REGISTRATION_STYLES = [
+  { name: 'direct method (.get())', path: '/direct' },
+  { name: '.all()', path: '/all' },
+  { name: '.on()', path: '/on' },
+] as const;
 
-    const response = await fetch(`${baseURL}/test-subapp-middleware/all-handler`);
-    expect(response.status).toBe(200);
+const MIDDLEWARE_STYLES = [
+  { name: 'inline', path: '' },
+  { name: 'separately registered', path: '/separately' },
+] as const;
 
-    const body = await response.json();
-    expect(body).toEqual({ handler: 'all' });
+test.describe('inline middleware spans (sub-app)', () => {
+  for (const { name: regName, path: regPath } of REGISTRATION_STYLES) {
+    for (const { name: mwName, path: mwPath } of MIDDLEWARE_STYLES) {
+      test(`creates middleware span for ${mwName} middleware via ${regName}`, async ({ baseURL }) => {
+        const fullPath = `${INLINE_PREFIX}${regPath}${mwPath}`;
 
-    const transaction = await transactionPromise;
-    const spans = transaction.spans || [];
+        const transactionPromise = waitForTransaction(APP_NAME, event => {
+          return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(fullPath);
+        });
 
-    // On Bun/Cloudflare, patchRoute is the sole wrapper and sees the original
-    // function name. It wraps .all() handlers identically to .use() middleware
-    // because both produce method:'ALL' in Hono's route record.
-    const allHandlerSpan = spans.find(
-      (span: SpanJSON) => span.op === 'middleware.hono' && span.description === 'allCatchAll',
-    );
+        const response = await fetch(`${baseURL}${fullPath}`);
+        expect(response.status).toBe(200);
 
-    expect(allHandlerSpan).toEqual(
-      expect.objectContaining({
-        description: 'allCatchAll',
-        op: 'middleware.hono',
-        origin: MIDDLEWARE_ORIGIN,
-        status: 'ok',
-      }),
-    );
-  });
+        const transaction = await transactionPromise;
+        expect(transaction.transaction).toBe(`GET ${fullPath}`);
+
+        const EXPECTED_DESCRIPTIONS: Record<string, Record<string, string>> = {
+          '/direct': { '': 'inlineMiddleware', '/separately': 'inlineSeparateMiddleware' },
+          '/all': { '': 'inlineMiddlewareAll', '/separately': 'inlineSeparateMiddlewareAll' },
+          '/on': { '': 'inlineMiddlewareOn', '/separately': 'inlineSeparateMiddlewareOn' },
+        };
+        const expectedDescription = EXPECTED_DESCRIPTIONS[regPath]![mwPath]!;
+
+        const inlineSpan = (transaction.spans || []).find(s => s.description === expectedDescription);
+        expect(inlineSpan).toBeDefined();
+        expect(inlineSpan?.op).toBe('middleware.hono');
+        expect(inlineSpan?.origin).toBe('auto.middleware.hono');
+        expect(inlineSpan?.status).not.toBe('internal_error');
+      });
+    }
+  }
 });
