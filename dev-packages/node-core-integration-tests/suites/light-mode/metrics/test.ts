@@ -11,6 +11,7 @@ describe('light mode metrics', () => {
       .unignore('trace_metric')
       .expect({
         trace_metric: {
+          version: 2,
           items: [
             {
               timestamp: expect.any(Number),

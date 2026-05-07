@@ -3,6 +3,9 @@ export { httpIntegration } from './integrations/http';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 
+export type { HttpServerIntegrationOptions } from './integrations/http/httpServerIntegration';
+export type { HttpServerSpansIntegrationOptions } from './integrations/http/httpServerSpansIntegration';
+
 export {
   SentryHttpInstrumentation,
   type SentryHttpInstrumentationOptions,

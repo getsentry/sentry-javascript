@@ -50,9 +50,11 @@ import { debounce } from './util/debounce';
 import { getRecordingSamplingOptions } from './util/getRecordingSamplingOptions';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
-import { isSessionExpired } from './util/isSessionExpired';
 import { debug } from './util/logger';
-import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
+import {
+  resetReplayIdOnDynamicSamplingContext,
+  setReplayIdOnDynamicSamplingContext,
+} from './util/resetReplayIdOnDynamicSamplingContext';
 import { closestElementOfNode } from './util/rrweb';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError, ReplayDurationLimitError } from './util/sendReplayRequest';
@@ -876,6 +878,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     this.startRecording();
+
+    // Update the cached DSC with the new replay_id when in session mode.
+    // The cached DSC on the scope (set by browserTracingIntegration) persists
+    // across session refreshes, and the `createDsc` hook won't fire for it.
+    if (this.recordingMode === 'session' && this.session) {
+      setReplayIdOnDynamicSamplingContext(this.session.id);
+    }
   }
 
   /**
@@ -1001,12 +1010,13 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, {
+    const expired = shouldRefreshSession(this.session, {
       maxReplayDuration: this._options.maxReplayDuration,
       sessionIdleExpire: this.timeouts.sessionIdleExpire,
     });
 
     if (expired) {
+      resetReplayIdOnDynamicSamplingContext();
       return;
     }
 
