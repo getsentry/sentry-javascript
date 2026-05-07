@@ -1,17 +1,17 @@
 import {
   captureException,
   getActiveSpan,
-  getRootSpan,
   getOriginalFunction,
+  getRootSpan,
   markFunctionWrapped,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
   startInactiveSpan,
   type WrappedFunction,
 } from '@sentry/core';
 import { type MiddlewareHandler } from 'hono';
+import { isExpectedError } from './isExpectedError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
 
@@ -41,14 +41,15 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
     });
 
     try {
-      const result = await handler(context, next);
-      span.setStatus({ code: SPAN_STATUS_OK });
-      return result;
+      return await handler(context, next);
     } catch (error) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, {
-        mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
-      });
+      if (!isExpectedError(error)) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        captureException(error, {
+          mechanism: { handled: false, type: MIDDLEWARE_ORIGIN },
+        });
+      }
+
       throw error;
     } finally {
       span.end();

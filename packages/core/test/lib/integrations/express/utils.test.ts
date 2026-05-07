@@ -15,7 +15,6 @@ import {
   getLayerMetadata,
   getLayerPath,
   getRouterPath,
-  hasDefaultProp,
   isExpressWithoutRouterPrototype,
   isExpressWithRouterPrototype,
   isLayerIgnored,
@@ -365,14 +364,6 @@ describe('getConstructedRoute', () => {
     storeLayer(req, '/*');
     storeLayer(req, '/c');
     expect(getConstructedRoute(req)).toBe('/a/b/c');
-  });
-});
-
-describe('hasDefaultProp', () => {
-  it('returns detects the presence of a default function prop', () => {
-    expect(hasDefaultProp({ default: function express() {} })).toBe(true);
-    expect(hasDefaultProp({ default: 'other thing' })).toBe(false);
-    expect(hasDefaultProp({})).toBe(false);
   });
 });
 

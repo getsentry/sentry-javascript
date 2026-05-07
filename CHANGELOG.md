@@ -4,6 +4,92 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.52.0
+
+### Important Changes
+
+- **Beta release of the official Hono Sentry SDK**
+
+  This release marks the beta release of the `@sentry/hono` Sentry SDK. For details on how to use it, check out the
+  [Sentry Hono SDK docs](https://docs.sentry.io/platforms/javascript/guides/hono/). Please reach out on
+  [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
+- **feat(browser): Add `ingest_settings` to v2 log envelope payload ([#20453](https://github.com/getsentry/sentry-javascript/pull/20453))**
+
+  Inference of user data (e.g. IP address, browser name/version) on log events is now gated behind the `sendDefaultPii` option. Previously, this data was always inferred by default.
+
+### Other Changes
+
+- docs(hono): Add new docs link and move to BETA release ([#20666](https://github.com/getsentry/sentry-javascript/pull/20666))
+- feat(browser): Add `ingest_settings` to v2 metrics envelope payload ([#20454](https://github.com/getsentry/sentry-javascript/pull/20454))
+- feat(browser): Migrate spotlight event processor to `ignoreSpans` ([#20595](https://github.com/getsentry/sentry-javascript/pull/20595))
+- feat(cloudflare): Capture request body via httpServerIntegration ([#20614](https://github.com/getsentry/sentry-javascript/pull/20614))
+- feat(cloudflare): Support rpc trace propagation for WorkerEntrypoint ([#20523](https://github.com/getsentry/sentry-javascript/pull/20523))
+- feat(cloudflare): Support tracing for queue producer ([#20529](https://github.com/getsentry/sentry-javascript/pull/20529))
+- feat(core): Apply request data to segment spans in span streaming ([#20654](https://github.com/getsentry/sentry-javascript/pull/20654))
+- feat(core): Migrate Vercel AI event processor to span streaming ([#20608](https://github.com/getsentry/sentry-javascript/pull/20608))
+- feat(deno): Add `processSegmentSpan` to Deno context integration ([#20613](https://github.com/getsentry/sentry-javascript/pull/20613))
+- feat(http): Portable node:http client instrumentation ([#20393](https://github.com/getsentry/sentry-javascript/pull/20393))
+- feat(nitro): Add unstorage tracing channel instrumentation ([#20615](https://github.com/getsentry/sentry-javascript/pull/20615))
+- feat(node-core): Add `processSegmentSpan` to node context integration ([#20678](https://github.com/getsentry/sentry-javascript/pull/20678))
+- feat(node): Use diagnostics_channel for redis >= 5.12.0 ([#20573](https://github.com/getsentry/sentry-javascript/pull/20573))
+- feat(node): Vendor ioredis, redis instrumentations ([#20510](https://github.com/getsentry/sentry-javascript/pull/20510))
+- feat(replay): Reset replay id from DSC on session expiry/refresh ([#20129](https://github.com/getsentry/sentry-javascript/pull/20129))
+- fix: Bump fast-xml-parser to fix vulnerability ([#20644](https://github.com/getsentry/sentry-javascript/pull/20644))
+- fix: Bump vite versions to fix vulnerability ([#20646](https://github.com/getsentry/sentry-javascript/pull/20646))
+- fix(core): Drain buffers in flush() when there is no transport ([#20207](https://github.com/getsentry/sentry-javascript/pull/20207))
+- fix(core): Guard against undefined chained in copyProps ([#20637](https://github.com/getsentry/sentry-javascript/pull/20637))
+- fix(deps): Bump rollup-plugin-license to fix lodash vulnerabilities ([#20636](https://github.com/getsentry/sentry-javascript/pull/20636))
+- fix(deps): Bump transitive deps for medium security fixes ([#20683](https://github.com/getsentry/sentry-javascript/pull/20683))
+- fix(hono): Do not capture 3xx and 4xx errors and add tests ([#20640](https://github.com/getsentry/sentry-javascript/pull/20640))
+- fix(nextjs): Skip build modification when SRI is enabled ([#20694](https://github.com/getsentry/sentry-javascript/pull/20694))
+- fix(opentelemetry): Respect OTEL_SERVICE_NAME, OTEL_RESOURCE_ATTRIBUTES ([#20509](https://github.com/getsentry/sentry-javascript/pull/20509))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Remove `bundle-analyzer-scenarios` dev packages ([#20680](https://github.com/getsentry/sentry-javascript/pull/20680))
+- chore(deps): Bump @hono/node-server from 1.19.10 to 1.19.13 ([#20117](https://github.com/getsentry/sentry-javascript/pull/20117))
+- chore(deps): Bump @nestjs packages to fix path-to-regexp ReDoS ([#20642](https://github.com/getsentry/sentry-javascript/pull/20642))
+- chore(deps): Bump axios from 1.15.0 to 1.15.2 ([#20665](https://github.com/getsentry/sentry-javascript/pull/20665))
+- chore(deps): Bump ip-address from 10.1.0 to 10.2.0 ([#20695](https://github.com/getsentry/sentry-javascript/pull/20695))
+- chore(deps): Bump simple-git from 3.33.0 to 3.36.0 ([#20696](https://github.com/getsentry/sentry-javascript/pull/20696))
+- chore(deps): Bump vulnerable testem version ([#20634](https://github.com/getsentry/sentry-javascript/pull/20634))
+- ci(deps): Bump actions/checkout from 4 to 6 ([#20620](https://github.com/getsentry/sentry-javascript/pull/20620))
+- ci(deps): Bump actions/create-github-app-token from 2 to 3 ([#20079](https://github.com/getsentry/sentry-javascript/pull/20079))
+- ci(deps): Bump denoland/setup-deno from 2.0.3 to 2.0.4 ([#20080](https://github.com/getsentry/sentry-javascript/pull/20080))
+- ci(deps): Bump getsentry/craft from 2.24.1 to 2.26.2 ([#20621](https://github.com/getsentry/sentry-javascript/pull/20621))
+- feat(deps): Bump @xmldom/xmldom from 0.8.12 to 0.8.13 ([#20457](https://github.com/getsentry/sentry-javascript/pull/20457))
+- feat(deps): Bump follow-redirects from 1.15.11 to 1.16.0 ([#20267](https://github.com/getsentry/sentry-javascript/pull/20267))
+- feat(deps): Bump hono from 4.12.12 to 4.12.14 ([#20340](https://github.com/getsentry/sentry-javascript/pull/20340))
+- fix(tests): Use stable instrumentations api in rr tests ([#20690](https://github.com/getsentry/sentry-javascript/pull/20690))
+- ref(tests): Rename streamed http.client span test folders ([#20602](https://github.com/getsentry/sentry-javascript/pull/20602))
+- test(browser): Fix browserTracingIntegration unit test ([#20604](https://github.com/getsentry/sentry-javascript/pull/20604))
+- test(browser): Fix flaky browser integration test for profiles ([#20587](https://github.com/getsentry/sentry-javascript/pull/20587))
+- test(browser): Fix flaky loader test ([#20596](https://github.com/getsentry/sentry-javascript/pull/20596))
+- test(browser): Fix flaky loader test ([#20655](https://github.com/getsentry/sentry-javascript/pull/20655))
+- test(browser): Make browser profiling test less flaky ([#20664](https://github.com/getsentry/sentry-javascript/pull/20664))
+- test(cloudflare): Add e2e test for MCPAgent with DurableObject instrumentation ([#20601](https://github.com/getsentry/sentry-javascript/pull/20601))
+- test(cloudflare): Add integration tests for scheduled, D1, and workflow ([#20609](https://github.com/getsentry/sentry-javascript/pull/20609))
+- test(cloudflare): Reduce flakiness for cloudflare with sub workers ([#20632](https://github.com/getsentry/sentry-javascript/pull/20632))
+- test(cloudflare): Use Node v24 for Cloudflare e2e tests ([#20628](https://github.com/getsentry/sentry-javascript/pull/20628))
+- test(deps): Bump Next.js in E2E test apps to fix Server Components DoS ([#20633](https://github.com/getsentry/sentry-javascript/pull/20633))
+- test(e2e): Add node-express-streaming E2E test app ([#20684](https://github.com/getsentry/sentry-javascript/pull/20684))
+- test(e2e): Add span streaming test app for Cloudflare Workers ([#20681](https://github.com/getsentry/sentry-javascript/pull/20681))
+- test(e2e): Add span streaming test app for next 16 ([#20648](https://github.com/getsentry/sentry-javascript/pull/20648))
+- test(e2e): Add span streaming test app for React Router 7 SPA ([#20677](https://github.com/getsentry/sentry-javascript/pull/20677))
+- test(e2e): Remove remaining `npmrc` pointing to Verdaccio ([#20611](https://github.com/getsentry/sentry-javascript/pull/20611))
+- test(nextjs): Fix flaky node runtime metrics E2E tests ([#20624](https://github.com/getsentry/sentry-javascript/pull/20624))
+- test(node): Fix ANR test for flakiness ([#20656](https://github.com/getsentry/sentry-javascript/pull/20656))
+- test(node): Fix flaky node cron test ([#20661](https://github.com/getsentry/sentry-javascript/pull/20661))
+- test(node): Unflake mongodb test ([#20662](https://github.com/getsentry/sentry-javascript/pull/20662))
+- test(react-router): Fix flaky E2E tests ([#20630](https://github.com/getsentry/sentry-javascript/pull/20630))
+- test(test-utils): Add MemoryProfiler for heap snapshot testing via CDP ([#20555](https://github.com/getsentry/sentry-javascript/pull/20555))
+
+</details>
+
+Work in this release was contributed by @sbs44. Thank you for your contribution!
+
 ## 10.51.0
 
 ### Important Changes

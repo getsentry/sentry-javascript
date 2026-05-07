@@ -64,7 +64,7 @@
     "@sentry-internal/replay": "10.51.0",
     "@sentry/opentelemetry": "10.51.0",
     "@supabase/supabase-js": "2.49.3",
-    "axios": "1.15.0",
+    "axios": "1.15.2",
     "babel-loader": "^10.1.1",
     "fflate": "0.8.2",
     "html-webpack-plugin": "^5.5.0",

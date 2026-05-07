@@ -590,7 +590,6 @@ describe('Browser Profiling v2 trace lifecycle', () => {
 
     Sentry.init({
       ...getBaseOptionsForTraceLifecycle(send),
-      debug: true,
     });
 
     Sentry.uiProfiler.startProfiler();
@@ -691,7 +690,6 @@ describe('Browser Profiling v2 manual lifecycle', () => {
 
     Sentry.init({
       ...getBaseOptionsForManualLifecycle(send),
-      debug: true,
     });
 
     Sentry.uiProfiler.startProfiler();

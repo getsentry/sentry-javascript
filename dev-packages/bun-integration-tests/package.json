@@ -15,7 +15,7 @@
   "dependencies": {
     "@sentry/bun": "10.51.0",
     "@sentry/hono": "10.51.0",
-    "hono": "^4.12.12"
+    "hono": "^4.12.14"
   },
   "devDependencies": {
     "@sentry-internal/test-utils": "10.51.0",

@@ -156,7 +156,7 @@ describe('reactRouterTracingIntegration', () => {
       // Scenario:
       // 1. User sets useInstrumentationAPI: true in reactRouterTracingIntegration options
       // 2. createSentryClientInstrumentation() is called eagerly during SDK init
-      // 3. BUT in Framework Mode, React Router doesn't support unstable_instrumentations,
+      // 3. BUT in Framework Mode, React Router doesn't invoke the instrumentations API,
       //    so router() method is NEVER called by the framework
       // 4. The SENTRY_CLIENT_INSTRUMENTATION_FLAG must NOT be set in this case
       // 5. isClientInstrumentationApiUsed() must return false
