@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bun-integration-tests",
-  "version": "10.51.0",
+  "version": "10.52.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -13,12 +13,12 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@sentry/bun": "10.51.0",
-    "@sentry/hono": "10.51.0",
+    "@sentry/bun": "10.52.0",
+    "@sentry/hono": "10.52.0",
     "hono": "^4.12.14"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "10.51.0",
+    "@sentry-internal/test-utils": "10.52.0",
     "bun-types": "^1.2.9",
     "vitest": "^3.2.4"
   },
