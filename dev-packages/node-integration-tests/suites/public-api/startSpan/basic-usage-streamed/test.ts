@@ -135,6 +135,8 @@ test('sends a streamed span envelope with correct spans for a manually started s
           'process.runtime.engine.version': { type: 'string', value: expect.any(String) },
           'app.start_time': { type: 'string', value: expect.any(String) },
           'app.memory': { type: 'integer', value: expect.any(Number) },
+          // TODO: device.archs is an array and currently dropped during serialization
+          // 'device.archs': { type: 'array', value: [expect.any(String)] },
           'device.boot_time': { type: 'string', value: expect.any(String) },
           'device.memory_size': { type: 'integer', value: expect.any(Number) },
           'device.free_memory': { type: 'integer', value: expect.any(Number) },
