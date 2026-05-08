@@ -2,7 +2,6 @@ import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
-import { getNodeDeprecationBreadcrumbs } from '../../utils/node-deprecation-breadcrumbs';
 
 const WORKER_EVENT: Event = {
   exception: {
@@ -32,7 +31,6 @@ const CHILD_EVENT: Event = {
     ],
   },
   breadcrumbs: [
-    ...getNodeDeprecationBreadcrumbs(),
     {
       category: 'child_process',
       message: "Child process exited with code '1'",
