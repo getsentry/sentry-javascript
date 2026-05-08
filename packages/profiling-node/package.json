@@ -61,7 +61,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@sentry-internal/node-cpu-profiler": "^2.2.0",
+    "@sentry-internal/node-cpu-profiler": "^2.4.0",
     "@sentry/core": "10.52.0",
     "@sentry/node": "10.52.0"
   },
