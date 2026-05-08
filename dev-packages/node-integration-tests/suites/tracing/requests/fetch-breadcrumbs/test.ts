@@ -1,6 +1,7 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { getNodeDeprecationBreadcrumbs } from '../../../../utils/node-deprecation-breadcrumbs';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -12,6 +13,7 @@ describe('outgoing fetch', () => {
         .expect({
           event: {
             breadcrumbs: [
+              ...getNodeDeprecationBreadcrumbs(),
               {
                 message: 'manual breadcrumb',
                 timestamp: expect.any(Number),

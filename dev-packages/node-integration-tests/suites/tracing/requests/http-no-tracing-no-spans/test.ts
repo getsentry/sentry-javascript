@@ -1,6 +1,7 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { getNodeDeprecationBreadcrumbs } from '../../../../utils/node-deprecation-breadcrumbs';
 
 describe('outgoing http requests with tracing & spans disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -41,6 +42,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
               ],
             },
             breadcrumbs: [
+              ...getNodeDeprecationBreadcrumbs(),
               {
                 message: 'manual breadcrumb',
                 timestamp: expect.any(Number),
