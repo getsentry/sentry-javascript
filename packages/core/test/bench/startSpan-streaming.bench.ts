@@ -4,12 +4,13 @@ import {
   getCurrentScope,
   getIsolationScope,
   setCurrentClient,
+  spanStreamingIntegration,
   startSpan,
 } from '../../src';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { clearGlobalScope } from '../testutils';
 
-function setupClient() {
+function setupStreamingClient() {
   clearGlobalScope();
   getCurrentScope().clear();
   getIsolationScope().clear();
@@ -19,8 +20,10 @@ function setupClient() {
       dsn: 'https://username@domain/123',
       enableSend: true,
       tracesSampleRate: 1,
+      traceLifecycle: 'stream',
       release: '1.0.0',
       environment: 'production',
+      integrations: [spanStreamingIntegration()],
     }),
   );
   setCurrentClient(client);
@@ -39,8 +42,8 @@ function addRealisticScopeData() {
   }
 }
 
-describe('startSpan pipeline - realistic scope', () => {
-  setupClient();
+describe('startSpan streaming pipeline - realistic scope', () => {
+  setupStreamingClient();
   addRealisticScopeData();
 
   bench('single root span', () => {
@@ -83,7 +86,7 @@ describe('startSpan pipeline - realistic scope', () => {
     });
   });
 
-  bench('root span + 1000 child spans (MAX_SPAN_COUNT)', () => {
+  bench('root span + 1000 child spans', () => {
     startSpan({ name: 'GET /api/users', op: 'http.server' }, () => {
       for (let i = 0; i < 1000; i++) {
         startSpan({ name: `operation.${i}`, op: 'db' }, span => {
