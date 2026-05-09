@@ -15,12 +15,5 @@ export default makeNPMConfigVariants(
             : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       },
     },
-    sucrase: {
-      // The feedback widget is using preact so we need different pragmas and jsx runtimes
-      jsxPragma: 'h',
-      jsxFragmentPragma: 'Fragment',
-      jsxRuntime: 'classic',
-      production: true,
-    },
   }),
 );

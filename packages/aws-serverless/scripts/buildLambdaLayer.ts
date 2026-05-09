@@ -55,10 +55,16 @@ async function buildLambdaLayer(): Promise<void> {
   replaceSDKSource();
 
   // Copy the Lambda extension from the shared build output into the layer structure.
-  // build/lambda-extension/ contains both index.mjs and the sentry-extension wrapper.
+  // build/lambda-extension/ contains the bundled index.mjs. The sentry-extension wrapper
+  // script lives in the source tree and must be copied separately since rolldown only
+  // emits bundled JS, not static assets.
   // Lambda requires the wrapper to be in /opt/extensions/ for auto-discovery,
   // so it gets copied there separately.
   fs.cpSync('./build/lambda-extension', './build/aws/dist-serverless/sentry-extension', { recursive: true });
+  fs.copyFileSync(
+    './src/lambda-extension/sentry-extension',
+    './build/aws/dist-serverless/sentry-extension/sentry-extension',
+  );
   fs.chmodSync('./build/aws/dist-serverless/sentry-extension/index.mjs', 0o755);
   fsForceMkdirSync('./build/aws/dist-serverless/extensions');
   fs.copyFileSync(
@@ -227,8 +233,8 @@ function replaceSDKSource(): void {
       // Replace the line marked with __SENTRY_SDK_SOURCE__ comment
       // Change from 'npm' to 'aws-lambda-layer' to identify that this is the AWS Lambda layer
       content = content.replace(
-        "/* __SENTRY_SDK_SOURCE__ */ return 'npm';",
-        "/* __SENTRY_SDK_SOURCE__ */ return 'aws-lambda-layer';",
+        '/*! __SENTRY_SDK_SOURCE__ */ return "npm";',
+        '/*! __SENTRY_SDK_SOURCE__ */ return "aws-lambda-layer";',
       );
 
       fs.writeFileSync(envFile, content);
