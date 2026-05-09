@@ -26,14 +26,14 @@ const settings = {
           : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
     },
     plugins: [
-        replacePlugin(
-          {
-            __SENTRY_SDK_VERSION__: JSON.stringify(packageVersion),
-          },
-          {
-            preventAssignment: true,
-          },
-        ),
+      replacePlugin(
+        {
+          __SENTRY_SDK_VERSION__: JSON.stringify(packageVersion),
+        },
+        {
+          preventAssignment: true,
+        },
+      ),
     ],
   },
 };
