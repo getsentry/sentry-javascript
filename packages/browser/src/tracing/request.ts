@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type {
   Client,
+  HandlerDataFetch,
   HandlerDataXhr,
   RequestHookInfo,
   ResponseHookInfo,
@@ -124,7 +125,7 @@ export interface RequestInstrumentationOptions {
 }
 
 const responseToSpanId = new WeakMap<object, string>();
-const spanIdToDeferredSpan = new Map<string, Span>();
+const spanIdToDeferredData = new Map<string, { span: Span; handlerData: HandlerDataFetch }>();
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
@@ -164,11 +165,15 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         if (handlerData.response) {
           const spanId = responseToSpanId.get(handlerData.response);
           if (spanId) {
-            const deferredSpan = spanIdToDeferredSpan.get(spanId);
-            if (deferredSpan && handlerData.endTimestamp) {
-              setHttpStatus(deferredSpan, handlerData.response.status);
-              deferredSpan.end(handlerData.endTimestamp);
-              spanIdToDeferredSpan.delete(spanId);
+            const deferred = spanIdToDeferredData.get(spanId);
+            if (deferred && handlerData.endTimestamp) {
+              spans[spanId] = deferred.span;
+              deferred.handlerData.endTimestamp = handlerData.endTimestamp;
+              instrumentFetchRequest(deferred.handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
+                propagateTraceparent,
+                onRequestSpanEnd,
+              });
+              spanIdToDeferredData.delete(spanId);
             }
           }
         }
@@ -183,7 +188,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const spanId = handlerData.fetchData?.__span;
         if (spanId && spans[spanId]) {
           responseToSpanId.set(handlerData.response, spanId);
-          spanIdToDeferredSpan.set(spanId, spans[spanId]);
+          spanIdToDeferredData.set(spanId, { span: spans[spanId], handlerData });
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete spans[spanId];
           return;
