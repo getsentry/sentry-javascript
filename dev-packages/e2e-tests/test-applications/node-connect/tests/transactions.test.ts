@@ -72,7 +72,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
         {
           data: {
-            'sentry.origin': 'auto.http.otel.connect',
+            'sentry.origin': 'auto.http.connect',
             'sentry.op': 'request_handler.connect',
             'http.route': '/test-transaction',
             'connect.type': 'request_handler',
@@ -86,7 +86,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           status: 'ok',
           timestamp: expect.any(Number),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'auto.http.otel.connect',
+          origin: 'auto.http.connect',
         },
       ],
       transaction: 'GET /test-transaction',

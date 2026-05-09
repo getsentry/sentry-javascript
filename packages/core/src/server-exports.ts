@@ -43,3 +43,5 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
+export { patchConnectModule, setupConnectErrorHandler } from './integrations/connect/index';
+export type { ConnectIntegrationOptions, ConnectModule } from './integrations/connect/index';
