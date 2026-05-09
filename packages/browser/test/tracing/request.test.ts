@@ -12,12 +12,6 @@ beforeAll(() => {
 });
 
 class MockClient implements Partial<Client> {
-  public addEventProcessor: () => void;
-  public on: () => () => void;
-  constructor() {
-    this.addEventProcessor = vi.fn();
-    this.on = vi.fn(() => () => {});
-  }
   // @ts-expect-error not returning options for the test
   public getOptions() {
     return {};

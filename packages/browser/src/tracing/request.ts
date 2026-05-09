@@ -124,7 +124,7 @@ export interface RequestInstrumentationOptions {
 }
 
 const responseToSpanId = new WeakMap<object, string>();
-const spanIdToEndTimestamp = new Map<string, number>();
+const spanIdToDeferredSpan = new Map<string, Span>();
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
@@ -159,53 +159,41 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const propagateTraceparent = (client as BrowserClient).getOptions().propagateTraceparent;
 
   if (traceFetch) {
-    // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
-    // e.g. streaming using server sent events (SSE)
-    client.addEventProcessor(event => {
-      if (event.type === 'transaction' && event.spans) {
-        event.spans.forEach(span => {
-          if (span.op === 'http.client') {
-            const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
-            if (updatedTimestamp) {
-              span.timestamp = updatedTimestamp / 1000;
-              spanIdToEndTimestamp.delete(span.span_id);
-            }
-          }
-        });
-      }
-      return event;
-    });
-
-    client.on('processSpan', span => {
-      if (span.attributes?.['sentry.op'] === 'http.client') {
-        const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
-        if (updatedTimestamp) {
-          span.end_timestamp = updatedTimestamp / 1000;
-          spanIdToEndTimestamp.delete(span.span_id);
-        }
-      }
-    });
-
     if (trackFetchStreamPerformance) {
       addFetchEndInstrumentationHandler(handlerData => {
         if (handlerData.response) {
-          const span = responseToSpanId.get(handlerData.response);
-          if (span && handlerData.endTimestamp) {
-            spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
+          const spanId = responseToSpanId.get(handlerData.response);
+          if (spanId) {
+            const deferredSpan = spanIdToDeferredSpan.get(spanId);
+            if (deferredSpan && handlerData.endTimestamp) {
+              setHttpStatus(deferredSpan, handlerData.response.status);
+              deferredSpan.end(handlerData.endTimestamp);
+              spanIdToDeferredSpan.delete(spanId);
+            }
           }
         }
       });
     }
 
     addFetchInstrumentationHandler(handlerData => {
+      // When tracking streaming performance, defer span end until the response body resolves.
+      // We intercept the end call, save the span, and let the fetchEndInstrumentationHandler
+      // end it with the correct timestamp.
+      if (trackFetchStreamPerformance && handlerData.endTimestamp && handlerData.response) {
+        const spanId = handlerData.fetchData?.__span;
+        if (spanId && spans[spanId]) {
+          responseToSpanId.set(handlerData.response, spanId);
+          spanIdToDeferredSpan.set(spanId, spans[spanId]);
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete spans[spanId];
+          return;
+        }
+      }
+
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
         onRequestSpanEnd,
       });
-
-      if (handlerData.response && handlerData.fetchData.__span) {
-        responseToSpanId.set(handlerData.response, handlerData.fetchData.__span);
-      }
 
       // We cannot use `window.location` in the generic fetch instrumentation,
       // but we need it for reliable `server.address` attribute.
