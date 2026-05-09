@@ -1,4 +1,4 @@
-import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core';
+import { logger as coreLogger, metrics as coreMetrics } from '@sentry/core/browser';
 import { describe, expect, it } from 'vitest';
 import {
   browserTracingIntegration,

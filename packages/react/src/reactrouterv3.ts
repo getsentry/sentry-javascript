@@ -4,12 +4,12 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Integration, TransactionSource } from '@sentry/core';
+import type { Integration, TransactionSource } from '@sentry/core/browser';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { Location } from './types';
 
 // Many of the types below had to be mocked out to prevent typescript issues

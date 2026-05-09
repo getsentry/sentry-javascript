@@ -1,1 +1,1 @@
-export { createLangChainCallbackHandler } from '@sentry/core';
+export { createLangChainCallbackHandler } from '@sentry/core/browser';

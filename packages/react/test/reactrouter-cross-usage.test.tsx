@@ -63,7 +63,7 @@ vi.mock('@sentry/browser', async requireActual => {
   };
 });
 
-vi.mock('@sentry/core', async requireActual => {
+async function coreMock(requireActual: () => Promise<any>) {
   const actual = (await requireActual()) as any;
   return {
     ...actual,
@@ -81,7 +81,10 @@ vi.mock('@sentry/core', async requireActual => {
       return span;
     },
   };
-});
+}
+
+vi.mock('@sentry/core', coreMock);
+vi.mock('@sentry/core/browser', coreMock);
 
 describe('React Router cross usage of wrappers', () => {
   function createMockBrowserClient(): BrowserClient {

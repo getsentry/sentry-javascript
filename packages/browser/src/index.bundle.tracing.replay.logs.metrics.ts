@@ -1,4 +1,4 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core';
+import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
 import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 
 registerSpanErrorInstrumentation();
@@ -6,7 +6,7 @@ registerSpanErrorInstrumentation();
 export * from './index.bundle.base';
 
 // TODO(v11): Export metrics here once we remove it from the base bundle.
-export { logger, consoleLoggingIntegration } from '@sentry/core';
+export { logger, consoleLoggingIntegration } from '@sentry/core/browser';
 
 export {
   getActiveSpan,
@@ -18,7 +18,7 @@ export {
   startSpan,
   startSpanManual,
   withActiveSpan,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,

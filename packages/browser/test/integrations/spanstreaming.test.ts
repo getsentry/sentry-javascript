@@ -1,5 +1,5 @@
-import * as SentryCore from '@sentry/core';
-import { debug } from '@sentry/core';
+import * as SentryCore from '@sentry/core/browser';
+import { debug } from '@sentry/core/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient, spanStreamingIntegration } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
@@ -15,8 +15,8 @@ const MockSpanBuffer = vi.hoisted(() => {
   return vi.fn(() => mockSpanBufferInstance);
 });
 
-vi.mock('@sentry/core', async () => {
-  const original = await vi.importActual('@sentry/core');
+vi.mock('@sentry/core/browser', async () => {
+  const original = await vi.importActual('@sentry/core/browser');
   return {
     ...original,
     SpanBuffer: MockSpanBuffer,

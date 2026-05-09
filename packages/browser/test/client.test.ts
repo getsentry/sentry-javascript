@@ -2,14 +2,14 @@
  * @vitest-environment jsdom
  */
 
-import * as sentryCore from '@sentry/core';
-import { Scope } from '@sentry/core';
+import * as sentryCore from '@sentry/core/browser';
+import { Scope } from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 
-vi.mock('@sentry/core', async requireActual => {
+vi.mock('@sentry/core/browser', async requireActual => {
   return {
     ...((await requireActual()) as any),
     _INTERNAL_flushLogsBuffer: vi.fn(),
