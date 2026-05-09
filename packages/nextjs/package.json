@@ -87,7 +87,7 @@
     "@sentry/react": "10.52.0",
     "@sentry/vercel-edge": "10.52.0",
     "@sentry/webpack-plugin": "^5.2.0",
-    "rollup": "^4.35.0",
+    "rollup": "^4.60.3",
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
