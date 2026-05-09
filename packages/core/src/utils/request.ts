@@ -61,7 +61,9 @@ export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<
 /**
  * Convert common request headers to a simple dictionary.
  */
-export function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
+export function headersToDict(
+  reqHeaders: Record<string, string | string[] | undefined | number>,
+): Record<string, string> {
   const headers: Record<string, string> = Object.create(null);
 
   try {
