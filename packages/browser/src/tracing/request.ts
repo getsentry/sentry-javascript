@@ -176,6 +176,16 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       return event;
     });
 
+    client.on('processSpan', span => {
+      if (span.attributes?.['sentry.op'] === 'http.client') {
+        const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
+        if (updatedTimestamp) {
+          span.end_timestamp = updatedTimestamp / 1000;
+          spanIdToEndTimestamp.delete(span.span_id);
+        }
+      }
+    });
+
     if (trackFetchStreamPerformance) {
       addFetchEndInstrumentationHandler(handlerData => {
         if (handlerData.response) {
