@@ -786,39 +786,17 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
   }
 }
 
-/**
- * Attaches the profiled thread information to the event's trace context.
- */
-export function attachProfiledThreadToEvent(event: Event): Event {
-  if (!event?.contexts?.profile) {
-    return event;
-  }
+const PROFILED_ROOT_SPANS: WeakSet<Span> = new WeakSet<Span>();
 
-  if (!event.contexts) {
-    return event;
-  }
+export function markSpanAsProfiled(span: Span): void {
+  PROFILED_ROOT_SPANS.add(span);
+}
 
-  // Only mutate the trace context when it already has a trace_id — that
-  // guarantees `applySpanToEvent` has already run, and we are not creating a partial trace context from scratch.
-  if (event.contexts.trace?.trace_id) {
-    event.contexts.trace = {
-      ...event.contexts.trace,
-      data: {
-        ...(event.contexts.trace.data ?? {}),
-        ['thread.id']: PROFILER_THREAD_ID_STRING,
-        ['thread.name']: PROFILER_THREAD_NAME,
-      },
-    };
-  }
+export function isSpanProfiled(span: Span): boolean {
+  return PROFILED_ROOT_SPANS.has(span);
+}
 
-  // Attach thread info to individual spans so that spans can be associated with the profiled thread on the UI even if contexts are missing.
-  event.spans?.forEach(span => {
-    span.data = {
-      ...(span.data || {}),
-      ['thread.id']: PROFILER_THREAD_ID_STRING,
-      ['thread.name']: PROFILER_THREAD_NAME,
-    };
-  });
-
-  return event;
+export function setThreadAttributes(span: Span): void {
+  span.setAttribute('thread.id', PROFILER_THREAD_ID_STRING);
+  span.setAttribute('thread.name', PROFILER_THREAD_NAME);
 }

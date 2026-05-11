@@ -8,12 +8,13 @@ import { UIProfiler } from './UIProfiler';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
-  attachProfiledThreadToEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   getActiveProfilesCount,
   hasLegacyProfiling,
   isAutomatedPageLoadSpan,
+  isSpanProfiled,
+  setThreadAttributes,
   shouldProfileSpanLegacy,
   takeProfileFromGlobalCache,
 } from './utils';
@@ -92,8 +93,13 @@ const _browserProfilingIntegration = (() => {
         }
 
         client.on('spanStart', (span: Span) => {
-          if (span === getRootSpan(span) && shouldProfileSpanLegacy(span)) {
-            startProfileForSpan(span);
+          const rootSpan = getRootSpan(span);
+          if (span === rootSpan) {
+            if (shouldProfileSpanLegacy(span)) {
+              startProfileForSpan(span);
+            }
+          } else if (isSpanProfiled(rootSpan)) {
+            setThreadAttributes(span);
           }
         });
 
@@ -150,9 +156,6 @@ const _browserProfilingIntegration = (() => {
           addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
         });
       }
-    },
-    processEvent(event) {
-      return attachProfiledThreadToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
