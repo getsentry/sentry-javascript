@@ -8,18 +8,17 @@ export {
 
 export {
   addPerformanceEntries,
+  registerInpInteractionListener,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingLongAnimationFrames,
   startTrackingWebVitals,
-  registerInpInteractionListener,
 } from './metrics/browserMetrics';
+export type { WebVitalName } from './metrics/browserMetrics';
 
 export { elementTimingIntegration, startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
-
-export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './metrics/webVitalSpans';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 

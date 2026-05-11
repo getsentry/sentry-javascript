@@ -4,16 +4,10 @@ import { webVitalsIntegration } from '../../src/integrations/webVitals';
 
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
-const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
-const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
-const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry-internal/browser-utils', () => ({
   registerInpInteractionListener: mockRegisterInpInteractionListener,
   startTrackingWebVitals: mockStartTrackingWebVitals,
-  trackClsAsSpan: mockTrackClsAsSpan,
-  trackInpAsSpan: mockTrackInpAsSpan,
-  trackLcpAsSpan: mockTrackLcpAsSpan,
 }));
 
 describe('webVitalsIntegration', () => {
@@ -35,12 +29,8 @@ describe('webVitalsIntegration', () => {
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
 
-    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      disable: undefined,
-    });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith(client, expect.any(Set));
+    expect(mockStartTrackingWebVitals.mock.calls[0]?.[1]).toEqual(new Set());
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
     expect(debug.warn).not.toHaveBeenCalled();
   });
@@ -54,12 +44,8 @@ describe('webVitalsIntegration', () => {
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
 
-    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      disable: ['ttfb', 'fcp'],
-    });
-    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
+    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith(client, expect.any(Set));
+    expect(mockStartTrackingWebVitals.mock.calls[0]?.[1]).toEqual(new Set(['ttfb', 'fcp', 'lcp', 'inp']));
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
+import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -23,6 +23,7 @@ import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan 
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
+import { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './webVitalSpans';
 import { DEBUG_BUILD } from '../debug-build';
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
@@ -69,6 +70,7 @@ let _performanceCursor: number = 0;
 let _measurements: Measurements = {};
 
 type PageloadWebVitalName = 'ttfb' | 'fp' | 'fcp';
+export type WebVitalName = PageloadWebVitalName | 'lcp' | 'cls' | 'inp';
 
 const DEFAULT_PAGELOAD_WEB_VITALS = new Set<PageloadWebVitalName>(['ttfb', 'fp', 'fcp']);
 
@@ -78,17 +80,26 @@ let _collectTtfb: (() => void) | undefined;
 
 /**
  * Start tracking web vitals.
- *
- * LCP, CLS and INP are handled separately as spans by `webVitalsIntegration`;
- * this function tracks pageload web vitals which are attached as attributes.
  */
-export function startTrackingWebVitals(options: { disable?: Array<'ttfb' | 'fp' | 'fcp'> } = {}): void {
+export function startTrackingWebVitals(client: Client, disabled: ReadonlySet<WebVitalName>): void {
+  startTrackingPageloadWebVitals(disabled);
+
+  if (!disabled.has('lcp')) {
+    trackLcpAsSpan(client);
+  }
+  if (!disabled.has('cls')) {
+    trackClsAsSpan(client);
+  }
+  if (!disabled.has('inp')) {
+    trackInpAsSpan();
+  }
+}
+
+function startTrackingPageloadWebVitals(disabled: ReadonlySet<WebVitalName>): void {
   _collectTtfb?.();
   _collectTtfb = undefined;
 
-  _enabledPageloadWebVitals = new Set(
-    Array.from(DEFAULT_PAGELOAD_WEB_VITALS).filter(vital => !options.disable?.includes(vital)),
-  );
+  _enabledPageloadWebVitals = new Set(Array.from(DEFAULT_PAGELOAD_WEB_VITALS).filter(vital => !disabled.has(vital)));
 
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {

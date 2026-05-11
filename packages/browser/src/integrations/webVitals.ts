@@ -1,16 +1,8 @@
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, hasSpansEnabled } from '@sentry/core';
-import {
-  startTrackingWebVitals,
-  registerInpInteractionListener,
-  trackClsAsSpan,
-  trackInpAsSpan,
-  trackLcpAsSpan,
-} from '@sentry-internal/browser-utils';
+import { registerInpInteractionListener, startTrackingWebVitals } from '@sentry-internal/browser-utils';
+import type { WebVitalName } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
-
-type WebVitalName = 'lcp' | 'cls' | 'inp' | 'ttfb' | 'fp' | 'fcp';
-type PageloadWebVitalName = Extract<WebVitalName, 'ttfb' | 'fp' | 'fcp'>;
 
 interface WebVitalsOptions {
   /**
@@ -42,7 +34,6 @@ export const INTEGRATION_NAME = 'WebVitals';
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
   const disabled = new Set(options.disable ?? []);
-  const disabledPageloadWebVitals = options.disable?.filter(isPageloadWebVitalName);
 
   return {
     name: INTEGRATION_NAME,
@@ -54,19 +45,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
           );
       }
 
-      startTrackingWebVitals({
-        disable: disabledPageloadWebVitals,
-      });
-
-      if (!disabled.has('lcp')) {
-        trackLcpAsSpan(client);
-      }
-      if (!disabled.has('cls')) {
-        trackClsAsSpan(client);
-      }
-      if (!disabled.has('inp')) {
-        trackInpAsSpan();
-      }
+      startTrackingWebVitals(client, disabled);
     },
     afterAllSetup() {
       if (!disabled.has('inp')) {
@@ -75,7 +54,3 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     },
   };
 }) satisfies IntegrationFn;
-
-function isPageloadWebVitalName(vital: WebVitalName): vital is PageloadWebVitalName {
-  return vital === 'ttfb' || vital === 'fp' || vital === 'fcp';
-}
