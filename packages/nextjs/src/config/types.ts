@@ -464,6 +464,18 @@ export type SentryBuildOptions = {
   };
 
   /**
+   * A key that is used to identify the application in the Sentry bundler plugins.
+   * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
+   * originating from third-party scripts.
+   *
+   * For webpack builds, this is forwarded to the `@sentry/webpack-plugin`.
+   * For Turbopack builds, this injects module metadata via a custom loader.
+   *
+   * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
+   */
+  applicationKey?: string;
+
+  /**
    * Options to configure various bundle size optimizations related to the Sentry SDK.
    */
   bundleSizeOptimizations?: {
@@ -738,8 +750,10 @@ export type SentryBuildOptions = {
      * webpack builds via its `moduleMetadata` / `applicationKey` option.
      *
      * Requires Next.js 16+
+     *
+     * @deprecated Use the top-level `applicationKey` option instead, which works for both webpack and Turbopack builds.
      */
-    turbopackApplicationKey?: string;
+    turbopackApplicationKey?: string; // TODO(v11): remove this option
     /**
      * Options for React component name annotation in Turbopack builds.
      * When enabled, JSX elements are annotated with `data-sentry-component`,

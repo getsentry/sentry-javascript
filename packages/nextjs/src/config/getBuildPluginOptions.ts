@@ -309,6 +309,7 @@ export function getBuildPluginOptions({
   const skipSourcemapsUpload = shouldSkipSourcemapUpload(buildTool, useRunAfterProductionCompileHook);
 
   return {
+    applicationKey: sentryBuildOptions.applicationKey,
     authToken: sentryBuildOptions.authToken,
     headers: sentryBuildOptions.headers,
     org: sentryBuildOptions.org,
