@@ -45,10 +45,21 @@ const nativeComponentName = "dataSentryComponent";
 const nativeElementName = "dataSentryElement";
 const nativeSourceFileName = "dataSentrySourceFile";
 
+const SENTRY_LABEL_ATTRIBUTE = "sentry-label";
+const MAX_LABEL_LENGTH = 64;
+const DEFAULT_TEXT_COMPONENT_NAMES = ["Text", "text"];
+const MAX_TEXT_SEARCH_DEPTH = 3;
+
+interface AutoInjectSentryLabelOpts {
+  textComponentNames?: string[];
+}
+
 interface AnnotationOpts {
   native?: boolean;
   "annotate-fragments"?: boolean;
   ignoredComponents?: string[];
+  /** @hidden */
+  autoInjectSentryLabel?: boolean | AutoInjectSentryLabelOpts;
 }
 
 interface FragmentContext {
@@ -79,6 +90,10 @@ interface JSXProcessingContext {
   ignoredComponents: string[];
   /** Fragment context for identifying React fragments */
   fragmentContext?: FragmentContext;
+  /** Whether to auto-inject sentry-label from static text children */
+  autoInjectSentryLabel: boolean;
+  /** Component names whose JSXText children are considered text content */
+  textComponentNames: string[];
 }
 
 export { experimentalComponentNameAnnotatePlugin } from "./experimental";
@@ -170,6 +185,11 @@ function createJSXProcessingContext(
     attributeNames: attributeNamesFromState(state),
     ignoredComponents: state.opts.ignoredComponents ?? [],
     fragmentContext: state.sentryFragmentContext,
+    autoInjectSentryLabel: !!state.opts.autoInjectSentryLabel,
+    textComponentNames:
+      (state.opts.autoInjectSentryLabel && typeof state.opts.autoInjectSentryLabel === "object"
+        ? state.opts.autoInjectSentryLabel.textComponentNames
+        : undefined) ?? DEFAULT_TEXT_COMPONENT_NAMES,
   };
 }
 
@@ -261,6 +281,7 @@ function processJSX(
 
   // Use provided componentName or fall back to context componentName
   const currentComponentName = componentName ?? context.componentName;
+  const isRootElement = componentName === undefined;
 
   // NOTE: I don't know of a case where `openingElement` would have more than one item,
   // but it's safer to always iterate
@@ -305,6 +326,10 @@ function processJSX(
       processJSX(context, child, "");
     }
   });
+
+  if (isRootElement && context.autoInjectSentryLabel) {
+    maybeInjectSentryLabel(context, jsxNode);
+  }
 }
 
 /**
@@ -656,6 +681,211 @@ function getJSXMemberExpressionObjectName(
   }
 
   return UNKNOWN_ELEMENT_NAME;
+}
+
+/**
+ * Extracts static text content from JSX children, searching up to a depth limit.
+ * Collects text from JSXText nodes of the root element and from recognized
+ * text components (e.g. <Text>). Non-text custom components are traversed
+ * but their own JSXText is not collected.
+ *
+ * Returns null when dynamic content is found anywhere in the subtree,
+ * signaling that the entire label should be skipped.
+ */
+function extractStaticTextFromChildren(
+  t: typeof Babel.types,
+  node: Babel.types.JSXElement | Babel.types.JSXFragment,
+  textComponentNames: string[],
+  depth: number,
+  isRoot: boolean
+): string[] | null {
+  if (depth <= 0) {
+    return [];
+  }
+
+  const texts: string[] = [];
+
+  for (const child of node.children) {
+    if (t.isJSXText(child)) {
+      if (isRoot) {
+        const trimmed = child.value.replace(/\s+/g, " ").trim();
+        if (trimmed) {
+          texts.push(trimmed);
+        }
+      }
+    } else if (t.isJSXElement(child)) {
+      const childName = getElementName(t, child.openingElement);
+
+      if (textComponentNames.includes(childName)) {
+        const innerTexts = extractTextFromTextComponent(t, child, textComponentNames);
+        if (innerTexts === null) {
+          return null;
+        }
+        texts.push(...innerTexts);
+      } else {
+        const result = extractStaticTextFromChildren(
+          t,
+          child,
+          textComponentNames,
+          depth - 1,
+          false
+        );
+        if (result === null) {
+          return null;
+        }
+        texts.push(...result);
+      }
+    } else if (t.isJSXFragment(child)) {
+      const result = extractStaticTextFromChildren(t, child, textComponentNames, depth, isRoot);
+      if (result === null) {
+        return null;
+      }
+      texts.push(...result);
+    } else if (t.isJSXExpressionContainer(child)) {
+      if (!t.isJSXEmptyExpression(child.expression)) {
+        return null;
+      }
+    } else if (t.isJSXSpreadChild(child)) {
+      return null;
+    }
+  }
+
+  return texts;
+}
+
+/**
+ * Recursively extracts static text from within a recognized text component.
+ * Handles nested text components (e.g. <Text>Hello <Text style={bold}>world</Text></Text>)
+ * which is the standard React Native pattern for inline styling.
+ *
+ * Returns null when any dynamic content is found, signaling bail-out.
+ */
+function extractTextFromTextComponent(
+  t: typeof Babel.types,
+  node: Babel.types.JSXElement | Babel.types.JSXFragment,
+  textComponentNames: string[]
+): string[] | null {
+  const texts: string[] = [];
+
+  for (const child of node.children) {
+    if (t.isJSXText(child)) {
+      const trimmed = child.value.replace(/\s+/g, " ").trim();
+      if (trimmed) {
+        texts.push(trimmed);
+      }
+    } else if (t.isJSXExpressionContainer(child)) {
+      if (!t.isJSXEmptyExpression(child.expression)) {
+        return null;
+      }
+    } else if (t.isJSXElement(child)) {
+      const childName = getElementName(t, child.openingElement);
+      if (textComponentNames.includes(childName)) {
+        const innerTexts = extractTextFromTextComponent(t, child, textComponentNames);
+        if (innerTexts === null) {
+          return null;
+        }
+        texts.push(...innerTexts);
+      } else {
+        const innerTexts = extractTextFromTextComponent(t, child, textComponentNames);
+        if (innerTexts === null) {
+          return null;
+        }
+      }
+    } else if (t.isJSXFragment(child)) {
+      const innerTexts = extractTextFromTextComponent(t, child, textComponentNames);
+      if (innerTexts === null) {
+        return null;
+      }
+      texts.push(...innerTexts);
+    } else if (t.isJSXSpreadChild(child)) {
+      return null;
+    }
+  }
+
+  return texts;
+}
+
+function getElementName(
+  t: typeof Babel.types,
+  openingElement: Babel.types.JSXOpeningElement
+): string {
+  const name = openingElement.name;
+  if (t.isJSXIdentifier(name)) {
+    return name.name;
+  }
+  if (t.isJSXMemberExpression(name)) {
+    return `${getJSXMemberExpressionObjectName(t, name.object)}.${name.property.name}`;
+  }
+  return "";
+}
+
+/**
+ * Injects a sentry-label attribute on the root JSX element of a component if
+ * static text content can be extracted from its children.
+ *
+ * When the root is a JSX fragment, the first JSXElement child is used as the
+ * target for both text extraction and attribute injection (since fragments
+ * cannot carry attributes).
+ */
+function maybeInjectSentryLabel(context: JSXProcessingContext, jsxNode: Babel.NodePath): void {
+  const { t, textComponentNames, ignoredComponents, componentName } = context;
+  const node = jsxNode.node;
+
+  let targetElement: Babel.types.JSXElement;
+
+  if (t.isJSXElement(node)) {
+    targetElement = node;
+  } else if (t.isJSXFragment(node)) {
+    const firstChild = node.children.find((c): c is Babel.types.JSXElement => t.isJSXElement(c));
+    if (!firstChild) {
+      return;
+    }
+    targetElement = firstChild;
+  } else {
+    return;
+  }
+
+  const targetElementName = getElementName(t, targetElement.openingElement);
+
+  if (
+    ignoredComponents.some((ignored) => ignored === componentName || ignored === targetElementName)
+  ) {
+    return;
+  }
+
+  if (
+    targetElement.openingElement.attributes.some(
+      (attr) => t.isJSXAttribute(attr) && attr.name.name === SENTRY_LABEL_ATTRIBUTE
+    )
+  ) {
+    return;
+  }
+
+  const texts = extractStaticTextFromChildren(
+    t,
+    targetElement,
+    textComponentNames,
+    MAX_TEXT_SEARCH_DEPTH,
+    true
+  );
+
+  if (texts === null) {
+    return;
+  }
+
+  let label = texts.join(" ").replace(/\s+/g, " ").trim();
+
+  if (!label) {
+    return;
+  }
+
+  if (label.length > MAX_LABEL_LENGTH) {
+    label = label.substring(0, MAX_LABEL_LENGTH - 3) + "...";
+  }
+
+  targetElement.openingElement.attributes.push(
+    t.jSXAttribute(t.jSXIdentifier(SENTRY_LABEL_ATTRIBUTE), t.stringLiteral(label))
+  );
 }
 
 const UNKNOWN_ELEMENT_NAME = "unknown";
