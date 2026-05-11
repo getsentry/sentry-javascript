@@ -1,6 +1,6 @@
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
-import { addConsoleInstrumentationHandler } from '../instrument/console';
+import { addConsoleInstrumentationFilter, addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import { CONSOLE_LEVELS } from '../utils/debug-logger';
@@ -53,6 +53,10 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 
         addConsoleBreadcrumb(level, args);
       });
+
+      if (options.filter) {
+        addConsoleInstrumentationFilter(options.filter);
+      }
 
       client.registerCleanup(unsubscribe);
     },

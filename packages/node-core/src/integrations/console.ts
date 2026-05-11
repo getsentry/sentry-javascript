@@ -41,11 +41,6 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 
       // Delegate breadcrumb handling to the core console integration.
       const core = coreConsoleIntegration(options);
-
-      if (options.filter) {
-        addConsoleInstrumentationFilter(options.filter);
-      }
-
       core.setup?.(client);
     },
   };
