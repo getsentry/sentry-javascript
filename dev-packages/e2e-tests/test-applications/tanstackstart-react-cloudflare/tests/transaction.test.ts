@@ -17,21 +17,24 @@ test('Sends a server function transaction with span from wrapFetchWithSentry', a
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
-  expect(transactionEvent?.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        description: expect.stringContaining('GET /_serverFn/'),
-        op: 'function.tanstackstart',
-        origin: 'auto.function.tanstackstart.server',
-        data: expect.objectContaining({
-          'sentry.op': 'function.tanstackstart',
-          'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.hash.sha256': expect.any(String),
-        }),
+  expect(transactionEvent.contexts?.trace).toMatchObject({
+    op: 'http.server',
+    origin: 'auto.http.cloudflare',
+  });
+
+  expect(transactionEvent?.spans).toHaveLength(1);
+  expect(transactionEvent?.spans).toEqual([
+    expect.objectContaining({
+      description: expect.stringContaining('GET /_serverFn/'),
+      op: 'function.tanstackstart',
+      origin: 'auto.function.tanstackstart.server',
+      data: expect.objectContaining({
+        'sentry.op': 'function.tanstackstart',
+        'sentry.origin': 'auto.function.tanstackstart.server',
+        'tanstackstart.function.hash.sha256': expect.any(String),
       }),
-    ]),
-  );
+    }),
+  ]);
 });
 
 test('Sends a server function transaction for a nested server function with manual span', async ({ page }) => {
@@ -50,8 +53,12 @@ test('Sends a server function transaction for a nested server function with manu
 
   const transactionEvent = await transactionEventPromise;
 
-  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
+  expect(transactionEvent.contexts?.trace).toMatchObject({
+    op: 'http.server',
+    origin: 'auto.http.cloudflare',
+  });
 
+  expect(transactionEvent?.spans).toHaveLength(2);
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -64,11 +71,6 @@ test('Sends a server function transaction for a nested server function with manu
           'tanstackstart.function.hash.sha256': expect.any(String),
         }),
       }),
-    ]),
-  );
-
-  expect(transactionEvent?.spans).toEqual(
-    expect.arrayContaining([
       expect.objectContaining({
         description: 'testNestedLog',
         origin: 'manual',
