@@ -1,5 +1,5 @@
-import type { Client } from '@sentry/core';
-import * as SentryCore from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import * as SentryCore from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportingObserverIntegration } from '../../src/integrations/reportingobserver';
 

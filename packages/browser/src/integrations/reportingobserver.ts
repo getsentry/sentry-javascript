@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   captureMessage,
   defineIntegration,
@@ -6,7 +6,7 @@ import {
   GLOBAL_OBJ,
   supportsReportingObserver,
   withScope,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

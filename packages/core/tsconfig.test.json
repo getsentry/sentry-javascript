@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     "lib": ["DOM", "es2020"],
-    "module": "ESNext", // support dynamic import()
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
     "types": ["node"]
 

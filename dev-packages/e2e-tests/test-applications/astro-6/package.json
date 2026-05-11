@@ -16,7 +16,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
-    "astro": "^6.0.6"
+    "astro": "~6.2.0"
   },
   "volta": {
     "node": "22.22.0",

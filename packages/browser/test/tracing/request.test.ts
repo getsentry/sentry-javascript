@@ -1,5 +1,5 @@
-import type { Client } from '@sentry/core';
-import * as utils from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import * as utils from '@sentry/core/browser';
 import * as browserUtils from '@sentry-internal/browser-utils';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -63,9 +63,9 @@ async function propagationContextFromInstanceId(instanceId: string): Promise<Pro
 class WrappedWorkflowStep implements WorkflowStep {
   public constructor(
     private _instanceId: string,
-    private _ctx: ExecutionContext,
     private _options: CloudflareOptions,
     private _step: WorkflowStep,
+    private _waitUntil: ExecutionContext['waitUntil'],
   ) {}
 
   public async do<T extends Rpc.Serializable<T>>(
@@ -112,7 +112,7 @@ class WrappedWorkflowStep implements WorkflowStep {
             captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
             throw error;
           } finally {
-            this._ctx.waitUntil(flush(2000));
+            this._waitUntil(flush(2000));
           }
         },
       );
@@ -175,7 +175,8 @@ export function instrumentWorkflowWithSentry<
               setAsyncLocalStorageAsyncContextStrategy();
 
               return withIsolationScope(async isolationScope => {
-                const client = init({ ...options, enableDedupe: false });
+                const waitUntil = context.waitUntil.bind(context);
+                const client = init({ ...options, ctx: context, enableDedupe: false });
                 isolationScope.setClient(client);
 
                 addCloudResourceContext(isolationScope);
@@ -188,10 +189,10 @@ export function instrumentWorkflowWithSentry<
                     return await obj.run.call(
                       obj,
                       event,
-                      new WrappedWorkflowStep(event.instanceId, context, options, step),
+                      new WrappedWorkflowStep(event.instanceId, options, step, waitUntil),
                     );
                   } finally {
-                    context.waitUntil(flushAndDispose(client));
+                    waitUntil(flushAndDispose(client));
                   }
                 });
               });

@@ -1,1 +1,1 @@
-export { instrumentOpenAiClient } from '@sentry/core';
+export { instrumentOpenAiClient } from '@sentry/core/browser';

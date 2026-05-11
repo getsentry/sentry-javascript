@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
+    "moduleResolution": "bundler"
     // package-specific options
   }
 }

@@ -4,6 +4,7 @@ import { saveSession } from '../session/saveSession';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
+import { shouldRefreshSession } from '../session/shouldRefreshSession';
 import { debug } from '../util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
@@ -15,6 +16,21 @@ import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
   return Object.assign(
     (event: Event, hint: EventHint) => {
+      // Check for expired session and clean stale replay_id from DSC.
+      // This must run BEFORE the isEnabled/isPaused guards because when paused,
+      // the guards short-circuit without cleaning DSC. Uses shouldRefreshSession
+      // instead of isSessionExpired to respect the buffer-mode carve-out:
+      // buffer sessions with segmentId === 0 are kept alive even when time-expired.
+      if (
+        replay.session &&
+        shouldRefreshSession(replay.session, {
+          maxReplayDuration: replay.getOptions().maxReplayDuration,
+          sessionIdleExpire: replay.timeouts.sessionIdleExpire,
+        })
+      ) {
+        resetReplayIdOnDynamicSamplingContext();
+      }
+
       // Do nothing if replay has been disabled or paused
       if (!replay.isEnabled() || replay.isPaused()) {
         return event;

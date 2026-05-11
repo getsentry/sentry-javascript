@@ -1,1 +1,1 @@
-export { instrumentAnthropicAiClient } from '@sentry/core';
+export { instrumentAnthropicAiClient } from '@sentry/core/browser';

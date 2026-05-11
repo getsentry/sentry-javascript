@@ -14,7 +14,7 @@ import type {
   IntegrationFn,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   addBreadcrumb,
   addConsoleInstrumentationHandler,
@@ -29,7 +29,7 @@ import {
   parseUrl,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
