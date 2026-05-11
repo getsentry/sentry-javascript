@@ -44,7 +44,7 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
         filter: [
           ...(options.filter || []),
           // Deprecation on Node 26 for module.require(), which is used by IITM
-          '(node:3988) [DEP0205] DeprecationWarning',
+          '[DEP0205] DeprecationWarning',
         ],
       });
       core.setup?.(client);
