@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/cloudflare';
+import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
 import handler from '@tanstack/react-start/server-entry';
 
 export default Sentry.withSentry(
@@ -9,5 +10,5 @@ export default Sentry.withSentry(
     environment: 'qa',
   }),
   // @ts-expect-error - handler is not typed as a Cloudflare handler
-  handler,
+  wrapFetchWithSentry(handler),
 );
