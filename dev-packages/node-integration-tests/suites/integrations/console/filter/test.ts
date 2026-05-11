@@ -36,6 +36,9 @@ describe('Console Integration', () => {
       expect(runner.getLogs()).toContainEqual('baz');
       expect(runner.getLogs()).not.toContainEqual('foo');
       expect(runner.getLogs()).not.toContainEqual('foo2');
+
+      // Ensure deprecation warnigns are not included
+      expect(runner.getLogs()).not.toContainEqual(expect.stringMatching('DeprecationWarning'));
     });
   });
 });
