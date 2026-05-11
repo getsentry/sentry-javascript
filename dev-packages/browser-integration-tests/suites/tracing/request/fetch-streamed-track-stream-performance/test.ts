@@ -8,9 +8,7 @@ sentryTest(
   async ({ getLocalTestUrl, page }) => {
     sentryTest.skip(shouldSkipTracingTest());
 
-    await page.route('http://sentry-test-site.example/*', route =>
-      route.fulfill({ body: 'ok', status: 200 }),
-    );
+    await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok', status: 200 }));
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
