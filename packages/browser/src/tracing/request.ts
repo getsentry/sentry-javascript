@@ -125,7 +125,7 @@ export interface RequestInstrumentationOptions {
 }
 
 const responseToSpanId = new WeakMap<object, string>();
-const spanIdToDeferredData = new Map<string, { span: Span; handlerData: HandlerDataFetch }>();
+const spanIdToDeferredHandlerData = new Map<string, HandlerDataFetch>();
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
@@ -165,14 +165,14 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         if (handlerData.response) {
           const spanId = responseToSpanId.get(handlerData.response);
           if (spanId) {
-            const deferred = spanIdToDeferredData.get(spanId);
-            if (deferred && handlerData.endTimestamp) {
-              deferred.handlerData.endTimestamp = handlerData.endTimestamp;
-              instrumentFetchRequest(deferred.handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
+            const deferredHandlerData = spanIdToDeferredHandlerData.get(spanId);
+            if (deferredHandlerData && handlerData.endTimestamp) {
+              deferredHandlerData.endTimestamp = handlerData.endTimestamp;
+              instrumentFetchRequest(deferredHandlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
                 propagateTraceparent,
                 onRequestSpanEnd,
               });
-              spanIdToDeferredData.delete(spanId);
+              spanIdToDeferredHandlerData.delete(spanId);
             }
           }
         }
@@ -187,7 +187,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const spanId = handlerData.fetchData?.__span;
         if (spanId && spans[spanId]) {
           responseToSpanId.set(handlerData.response, spanId);
-          spanIdToDeferredData.set(spanId, { span: spans[spanId], handlerData });
+          spanIdToDeferredHandlerData.set(spanId, handlerData);
           return;
         }
       }
