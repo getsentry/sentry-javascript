@@ -977,6 +977,39 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
   });
 
+  it('should add metadata loader rule when top-level applicationKey is set and Next.js >= 16', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: { applicationKey: 'my-top-level-key' },
+      nextJsVersion: '16.0.0',
+    });
+
+    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as {
+      loaders: Array<{ loader: string; options: { applicationKey: string } }>;
+    };
+    expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
+  });
+
+  it('should prefer top-level applicationKey over deprecated _experimental.turbopackApplicationKey', () => {
+    const userNextConfig: NextConfigObject = {};
+
+    const result = constructTurbopackConfig({
+      userNextConfig,
+      userSentryOptions: {
+        applicationKey: 'top-level-key',
+        _experimental: { turbopackApplicationKey: 'deprecated-key' },
+      },
+      nextJsVersion: '16.0.0',
+    });
+
+    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as {
+      loaders: Array<{ loader: string; options: { applicationKey: string } }>;
+    };
+    expect(rule.loaders[0]!.options.applicationKey).toBe('top-level-key');
+  });
+
   it('should only exclude Next.js polyfills, not all foreign modules', () => {
     const userNextConfig: NextConfigObject = {};
 

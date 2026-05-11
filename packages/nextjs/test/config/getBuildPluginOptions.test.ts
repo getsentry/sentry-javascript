@@ -61,6 +61,21 @@ describe('getBuildPluginOptions', () => {
       });
     });
 
+    it('forwards applicationKey to plugin options', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        applicationKey: 'my-app-key',
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-webpack',
+      });
+
+      expect(result.applicationKey).toBe('my-app-key');
+    });
+
     it('normalizes Windows paths to posix for glob patterns in after-production-compile builds', () => {
       const windowsPath = 'C:\\Users\\test\\.next';
       const sentryBuildOptions: SentryBuildOptions = {
