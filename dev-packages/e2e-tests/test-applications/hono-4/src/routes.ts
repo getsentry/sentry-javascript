@@ -34,6 +34,7 @@ export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): v
   });
   app.use('/test-middleware/multi/*', middlewareA, middlewareB);
   app.use('/test-middleware/error/*', failingMiddleware);
+  app.use('/test-middleware/param/*', middlewareA);
   app.route('/test-middleware', middlewareRoutes);
 
   // Sub-app middleware: registered on the sub-app, wrapped at mount time by route() patching
