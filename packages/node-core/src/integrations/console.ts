@@ -45,6 +45,10 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
   };
 });
 
+/**
+ * NOTE: This currently ignores the filter option.
+ * We can revisit this later.
+ */
 function instrumentConsoleLambda(): void {
   const consoleObj = GLOBAL_OBJ?.console;
   if (!consoleObj) {
