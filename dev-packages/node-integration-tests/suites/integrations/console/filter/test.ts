@@ -8,7 +8,7 @@ describe('Console Integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('filters console messages', async () => {
-      await createRunner()
+      const runner = createRunner()
         .expect({
           event: {
             exception: {
@@ -28,8 +28,14 @@ describe('Console Integration', () => {
             ],
           },
         })
-        .start()
-        .completed();
+        .start();
+
+      await runner.completed();
+
+      expect(runner.getLogs()).toContainEqual('hello');
+      expect(runner.getLogs()).toContainEqual('baz');
+      expect(runner.getLogs()).not.toContainEqual('foo');
+      expect(runner.getLogs()).not.toContainEqual('foo2');
     });
   });
 });
