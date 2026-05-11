@@ -126,6 +126,10 @@ export interface RequestInstrumentationOptions {
 
 const responseToSpanId = new WeakMap<object, string>();
 const spanIdToDeferredHandlerData = new Map<string, HandlerDataFetch>();
+const spanIdToFallbackTimeout = new Map<string, ReturnType<typeof setTimeout>>();
+
+// Matches the max fetch timeout defined in core/src/instrument/fetch.ts
+const STREAM_RESOLVE_FALLBACK_MS = 90_000;
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
@@ -167,12 +171,20 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           if (spanId) {
             const deferredHandlerData = spanIdToDeferredHandlerData.get(spanId);
             if (deferredHandlerData && handlerData.endTimestamp) {
+              // end span with the correct timestamp
               deferredHandlerData.endTimestamp = handlerData.endTimestamp;
               instrumentFetchRequest(deferredHandlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
                 propagateTraceparent,
                 onRequestSpanEnd,
               });
               spanIdToDeferredHandlerData.delete(spanId);
+
+              // clear fallback timeout since the body was successfully resolved and we ended the span
+              const fallbackTimeout = spanIdToFallbackTimeout.get(spanId);
+              if (fallbackTimeout) {
+                clearTimeout(fallbackTimeout);
+                spanIdToFallbackTimeout.delete(spanId);
+              }
             }
           }
         }
@@ -188,6 +200,21 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         if (spanId && spans[spanId]) {
           responseToSpanId.set(handlerData.response, spanId);
           spanIdToDeferredHandlerData.set(spanId, handlerData);
+
+          // set fallback timeout to also end the span if the response body is not resolved
+          const fallbackTimeout = setTimeout(() => {
+            const deferredHandlerData = spanIdToDeferredHandlerData.get(spanId);
+            if (deferredHandlerData) {
+              instrumentFetchRequest(deferredHandlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
+                propagateTraceparent,
+                onRequestSpanEnd,
+              });
+              spanIdToDeferredHandlerData.delete(spanId);
+              spanIdToFallbackTimeout.delete(spanId);
+            }
+          }, STREAM_RESOLVE_FALLBACK_MS);
+
+          spanIdToFallbackTimeout.set(spanId, fallbackTimeout);
           return;
         }
       }
