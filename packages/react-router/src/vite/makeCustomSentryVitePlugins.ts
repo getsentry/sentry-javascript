@@ -10,6 +10,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     debug,
     unstable_sentryVitePluginOptions,
     bundleSizeOptimizations,
+    applicationKey,
     authToken,
     org,
     project,
@@ -19,6 +20,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
   } = options;
 
   const sentryVitePlugins = sentryVitePlugin({
+    applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations,
     debug: debug ?? false,

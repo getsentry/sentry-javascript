@@ -1,7 +1,7 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit, setContext } from '@sentry/browser';
-import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import { applySdkMetadata } from '@sentry/core/browser';
 import { version } from 'react';
 
 /**

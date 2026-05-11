@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import * as tracingModule from '../../../../src/tracing';
-import { createMockMcpServer, createMockMcpServerWithRegisterApi } from './testUtils';
+import {
+  createMockMcpServer,
+  createMockMcpServerWithPreregisteredHandlers,
+  createMockMcpServerWithRegisterApi,
+} from './testUtils';
 
 describe('wrapMcpServerWithSentry', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
@@ -142,6 +146,41 @@ describe('wrapMcpServerWithSentry', () => {
       expect(() => {
         wrappedMcpServer.tool('test-tool', nonFunctionArg, 'other-arg');
       }).not.toThrow();
+    });
+  });
+
+  describe('Retroactive handler wrapping (handlers registered before wrapMcpServerWithSentry)', () => {
+    it('should replace executor/readCallback/handler on pre-registered entries with wrapped versions', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+      const { toolExecutor, resourceReadCallback, resourceTemplateReadCallback, promptHandler } = server._originals;
+
+      wrapMcpServerWithSentry(server);
+
+      expect(server._registeredTools['my-tool']!.executor).not.toBe(toolExecutor);
+      expect(server._registeredResources['res://my-resource']!.readCallback).not.toBe(resourceReadCallback);
+      expect(server._registeredResourceTemplates['my-template']!.readCallback).not.toBe(resourceTemplateReadCallback);
+      expect(server._registeredPrompts['my-prompt']!.handler).not.toBe(promptHandler);
+    });
+
+    it('should still wrap the registration methods for future handlers', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+      const originalRegisterTool = server.registerTool;
+
+      wrapMcpServerWithSentry(server);
+
+      expect(server.registerTool).not.toBe(originalRegisterTool);
+    });
+
+    it('should not double-wrap if called twice on the same instance with pre-registered handlers', () => {
+      const server = createMockMcpServerWithPreregisteredHandlers();
+
+      wrapMcpServerWithSentry(server);
+      const executorAfterFirstWrap = server._registeredTools['my-tool']!.executor;
+
+      wrapMcpServerWithSentry(server);
+      const executorAfterSecondWrap = server._registeredTools['my-tool']!.executor;
+
+      expect(executorAfterFirstWrap).toBe(executorAfterSecondWrap);
     });
   });
 

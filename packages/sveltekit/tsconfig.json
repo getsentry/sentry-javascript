@@ -4,6 +4,8 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler"
     // package-specific options
   }
 }

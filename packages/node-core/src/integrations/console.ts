@@ -14,6 +14,11 @@ import {
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
 }
 
 /**
@@ -40,6 +45,10 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
   };
 });
 
+/**
+ * NOTE: This currently ignores the filter option.
+ * We can revisit this later.
+ */
 function instrumentConsoleLambda(): void {
   const consoleObj = GLOBAL_OBJ?.console;
   if (!consoleObj) {

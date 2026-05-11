@@ -58,14 +58,17 @@ vi.mock('@sentry/browser', async requireActual => {
   };
 });
 
-vi.mock('@sentry/core', async requireActual => {
+async function coreMock(requireActual: () => Promise<any>) {
   return {
     ...(await requireActual()),
     getRootSpan: () => {
       return mockRootSpan;
     },
   };
-});
+}
+
+vi.mock('@sentry/core', coreMock);
+vi.mock('@sentry/core/browser', coreMock);
 
 describe('React Router Descendant Routes', () => {
   function createMockBrowserClient(): BrowserClient {

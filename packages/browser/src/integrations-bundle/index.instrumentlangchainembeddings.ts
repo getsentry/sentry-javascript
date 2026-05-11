@@ -1,1 +1,1 @@
-export { instrumentLangChainEmbeddings } from '@sentry/core';
+export { instrumentLangChainEmbeddings } from '@sentry/core/browser';

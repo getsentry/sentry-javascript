@@ -1,5 +1,5 @@
-import type { Span } from '@sentry/core';
-import { debug, getCurrentScope, spanToJSON, timestampInSeconds, uuid4 } from '@sentry/core';
+import type { Span } from '@sentry/core/browser';
+import { debug, getCurrentScope, spanToJSON, timestampInSeconds, uuid4 } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';

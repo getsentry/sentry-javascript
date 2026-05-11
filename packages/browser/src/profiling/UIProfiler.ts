@@ -1,4 +1,4 @@
-import type { Client, ContinuousProfiler, ProfileChunk, ProfileChunkEnvelope, Span } from '@sentry/core';
+import type { Client, ContinuousProfiler, ProfileChunk, ProfileChunkEnvelope, Span } from '@sentry/core/browser';
 import {
   createEnvelope,
   debug,
@@ -7,7 +7,7 @@ import {
   getRootSpan,
   getSdkMetadataForEnvelopeHeader,
   uuid4,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from './../debug-build';
 import type { JSSelfProfiler } from './jsSelfProfiling';

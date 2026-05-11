@@ -8,7 +8,7 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_flushMetricsBuffer,
@@ -16,7 +16,7 @@ import {
   applySdkMetadata,
   Client,
   getSDKSource,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';

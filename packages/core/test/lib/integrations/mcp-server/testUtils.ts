@@ -16,6 +16,41 @@ export function createMockMcpServer() {
 }
 
 /**
+ * Create a mock MCP server that simulates already having tools/resources/prompts registered
+ * (i.e. wrapMcpServerWithSentry is called after registration). Mirrors the internal shape
+ * used by McpServer v2: tools have an `executor`, resources/prompts have `readCallback`/`handler`.
+ */
+export function createMockMcpServerWithPreregisteredHandlers() {
+  const toolExecutor = vi.fn().mockResolvedValue({ content: [] });
+  const resourceReadCallback = vi.fn().mockResolvedValue({ contents: [] });
+  const resourceTemplateReadCallback = vi.fn().mockResolvedValue({ contents: [] });
+  const promptHandler = vi.fn().mockResolvedValue({ messages: [] });
+
+  return {
+    registerTool: vi.fn(),
+    registerResource: vi.fn(),
+    registerPrompt: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    server: { setRequestHandler: vi.fn() },
+    // Simulated internal registries (mirrors McpServer v2 private fields)
+    _registeredTools: {
+      'my-tool': { executor: toolExecutor },
+    },
+    _registeredResources: {
+      'res://my-resource': { readCallback: resourceReadCallback },
+    },
+    _registeredResourceTemplates: {
+      'my-template': { readCallback: resourceTemplateReadCallback },
+    },
+    _registeredPrompts: {
+      'my-prompt': { handler: promptHandler },
+    },
+    // Expose the original fns so tests can assert wrapping happened
+    _originals: { toolExecutor, resourceReadCallback, resourceTemplateReadCallback, promptHandler },
+  };
+}
+
+/**
  * Create a mock MCP server instance using the new register* API (SDK >=1.x / 2.x)
  */
 export function createMockMcpServerWithRegisterApi() {

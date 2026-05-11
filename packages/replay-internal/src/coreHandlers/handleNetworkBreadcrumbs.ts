@@ -95,6 +95,6 @@ function _isXhrHint(hint?: BreadcrumbHint): hint is XhrHint {
   return hint?.xhr;
 }
 
-function _isFetchHint(hint?: BreadcrumbHint): hint is FetchHint {
-  return hint?.response;
+function _isFetchHint(hint?: BreadcrumbHint): hint is Partial<FetchHint> {
+  return hint?.input !== undefined;
 }

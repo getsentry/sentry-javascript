@@ -1,4 +1,4 @@
-import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, SPAN_STATUS_ERROR, spanToJSON } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

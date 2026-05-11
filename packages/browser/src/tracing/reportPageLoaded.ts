@@ -1,5 +1,5 @@
-import type { Client } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import { getClient } from '@sentry/core/browser';
 
 /**
  * Manually report the end of the page load, resulting in the SDK ending the pageload span.

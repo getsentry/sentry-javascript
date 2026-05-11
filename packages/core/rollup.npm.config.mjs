@@ -14,26 +14,31 @@ if (!packageJson.version) {
 
 const packageVersion = packageJson.version;
 
+const settings = {
+  packageSpecificConfig: {
+    output: {
+      // set exports to 'named' or 'auto' so that rollup doesn't warn
+      exports: 'named',
+      // set preserveModules to true because we don't want to bundle everything into one file.
+      preserveModules:
+        process.env.SENTRY_BUILD_PRESERVE_MODULES === undefined
+          ? true
+          : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
+    },
+    plugins: [
+      replace({
+        preventAssignment: true,
+        values: {
+          __SENTRY_SDK_VERSION__: JSON.stringify(packageVersion),
+        },
+      }),
+    ],
+  },
+};
+
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    packageSpecificConfig: {
-      output: {
-        // set exports to 'named' or 'auto' so that rollup doesn't warn
-        exports: 'named',
-        // set preserveModules to true because we don't want to bundle everything into one file.
-        preserveModules:
-          process.env.SENTRY_BUILD_PRESERVE_MODULES === undefined
-            ? true
-            : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
-      },
-      plugins: [
-        replace({
-          preventAssignment: true,
-          values: {
-            __SENTRY_SDK_VERSION__: JSON.stringify(packageVersion),
-          },
-        }),
-      ],
-    },
+    ...settings,
+    entrypoints: ['src/index.ts', 'src/server.ts', 'src/browser.ts'],
   }),
 );

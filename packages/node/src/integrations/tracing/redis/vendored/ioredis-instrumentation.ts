@@ -22,6 +22,7 @@
 
 import { context, diag, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/api';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
@@ -166,6 +167,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
         attributes[ATTR_SERVER_ADDRESS] = host;
         attributes[ATTR_SERVER_PORT] = port;
       }
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.db.otel.redis';
       const span = instrumentation.tracer.startSpan(cmd.name, {
         kind: SpanKind.CLIENT,
         attributes,
@@ -242,6 +244,7 @@ export class IORedisInstrumentation extends InstrumentationBase<IORedisInstrumen
         attributes[ATTR_SERVER_ADDRESS] = host;
         attributes[ATTR_SERVER_PORT] = port;
       }
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.db.otel.redis';
       const span = instrumentation.tracer.startSpan('connect', {
         kind: SpanKind.CLIENT,
         attributes,

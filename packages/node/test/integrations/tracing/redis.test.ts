@@ -38,12 +38,12 @@ describe('Redis', () => {
         { desc: 'unsupported command', cmd: 'exists', args: ['key'], response: 'test' },
         { desc: 'no cache prefixes', cmd: 'get', args: ['key'], response: 'test', options: {} },
         { desc: 'non-matching prefix', cmd: 'get', args: ['key'], response: 'test', options: { cachePrefixes: ['c'] } },
-      ])('should always set sentry.origin but return early when $desc', ({ cmd, args, response, options = {} }) => {
+      ])('should return early without modifying span when $desc', ({ cmd, args, response, options = {} }) => {
         Object.assign(_redisOptions, options);
 
         cacheResponseHook(mockSpan, cmd, args, response);
 
-        expect(mockSpan.setAttribute).toHaveBeenCalledWith('sentry.origin', 'auto.db.otel.redis');
+        expect(mockSpan.setAttribute).not.toHaveBeenCalled();
         expect(mockSpan.setAttributes).not.toHaveBeenCalled();
         expect(mockSpan.updateName).not.toHaveBeenCalled();
       });
