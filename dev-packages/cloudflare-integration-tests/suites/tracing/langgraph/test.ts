@@ -1,11 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -22,48 +20,56 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
+      // Transaction item (first item in envelope)
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
-
       expect(transactionEvent.transaction).toBe('GET /');
 
-      // Check create_agent span
-      const createAgentSpan = transactionEvent.spans.find((span: any) => span.op === 'gen_ai.create_agent');
-      expect(createAgentSpan).toMatchObject({
-        data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
-        },
-        description: 'create_agent weather_assistant',
-        op: 'gen_ai.create_agent',
-        origin: 'auto.ai.langgraph',
+      // Span container item (second item in same envelope)
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+
+      expect(container.items).toHaveLength(2);
+      const [firstSpan, secondSpan] = container.items;
+
+      // [0] create_agent weather_assistant
+      expect(firstSpan!.name).toBe('create_agent weather_assistant');
+      expect(firstSpan!.status).toBe('ok');
+      expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'create_agent',
+      });
+      expect(firstSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
+      expect(firstSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
+      expect(firstSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'weather_assistant',
       });
 
-      // Check invoke_agent span
-      const invokeAgentSpan = transactionEvent.spans.find((span: any) => span.op === 'gen_ai.invoke_agent');
-      expect(invokeAgentSpan).toMatchObject({
-        data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
-          [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
-          [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in SF?"}]',
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-        }),
-        description: 'invoke_agent weather_assistant',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.ai.langgraph',
+      // [1] invoke_agent weather_assistant
+      expect(secondSpan!.name).toBe('invoke_agent weather_assistant');
+      expect(secondSpan!.status).toBe('ok');
+      expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'invoke_agent',
       });
-
-      // Verify tools are captured
-      if (invokeAgentSpan.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]) {
-        expect(invokeAgentSpan.data[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toMatch(/get_weather/);
-      }
+      expect(secondSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
+      expect(secondSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
+      expect(secondSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'weather_assistant',
+      });
+      expect(secondSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'weather_assistant',
+      });
+      expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: '[{"role":"user","content":"What is the weather in SF?"}]',
+      });
+      expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'mock-model' });
+      expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+      expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
+      expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 30 });
     })
     .start(signal);
   await runner.makeRequest('get', '/');

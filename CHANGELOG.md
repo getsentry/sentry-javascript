@@ -6,6 +6,25 @@
 
 Work in this release was contributed by @dmmulroy. Thank you for your contribution!
 
+### Important Changes
+
+- **feat(core): Add `streamGenAiSpans` options to stream gen_ai spans ([#20785](https://github.com/getsentry/sentry-javascript/pull/20785))**
+
+  Adds a new experimental option `streamGenAiSpans` option that controls how `gen_ai` spans are
+  sent to Sentry. When set, the SDK extracts all `gen_ai` spans out of a
+  transaction and sends them as v2 envelope items.
+
+  This avoids payload size limits of regular transactions.
+
+  ```ts
+  Sentry.init({
+    dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+    _experiments: {
+      streamGenAiSpans: true,
+    },
+  });
+  ```
+
 ## 10.52.0
 
 ### Important Changes

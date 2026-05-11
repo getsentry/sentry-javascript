@@ -392,8 +392,12 @@ export class SentrySpan implements Span {
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */
     delete this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+    let hasGenAiSpans = false;
     spans.forEach(span => {
       delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+      if (span.op?.startsWith('gen_ai.')) {
+        hasGenAiSpans = true;
+      }
     });
     // eslint-enabled-next-line @typescript-eslint/no-dynamic-delete
 
@@ -415,6 +419,7 @@ export class SentrySpan implements Span {
         capturedSpanScope,
         capturedSpanIsolationScope,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        hasGenAiSpans,
       },
       request: normalizedRequest,
       ...(source && {
