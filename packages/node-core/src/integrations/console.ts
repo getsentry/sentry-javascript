@@ -10,7 +10,6 @@ import {
   maybeInstrument,
   originalConsoleMethods,
   triggerHandlers,
-  addConsoleInstrumentationFilter,
 } from '@sentry/core';
 
 interface ConsoleIntegrationOptions {
