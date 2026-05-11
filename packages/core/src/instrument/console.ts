@@ -9,15 +9,12 @@ import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 import { debug } from '../utils/debug-logger';
 
-interface ConsoleInstrumentationOptions {
-  /**
-   * Filter out console messages that match the given strings or regular expressions.
-   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
-   */
-  filter?: (string | RegExp)[];
-}
-
-let _options: ConsoleInstrumentationOptions = {};
+/**
+ * Filter out console messages that match the given strings or regular expressions.
+ * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+ * This is a set to avoid duplicate integration setups to add the same filter multiple times.
+*/
+const _filter = new Set<string | RegExp>([]);
 
 /**
  * Add an instrumentation handler for when a console.xxx method is called.
@@ -34,15 +31,14 @@ export function addConsoleInstrumentationHandler(handler: (data: HandlerDataCons
 }
 
 export function addConsoleInstrumentationFilter(filter: (string | RegExp)[]): void {
-  _options = {
-    ..._options,
-    filter: [...(_options.filter || []), ...filter],
-  };
+  for (const f of filter) {
+    _filter.add(f);
+  }
 }
 
 /** Only exported for tests. */
 export function _INTERNAL_resetConsoleInstrumentationOptions(): void {
-  _options = {};
+  _filter.clear();
 }
 
 function instrumentConsole(): void {
