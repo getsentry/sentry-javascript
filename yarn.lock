@@ -18864,10 +18864,10 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
-hono@^4.12.16:
-  version "4.12.16"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.16.tgz#90fcc63caa713199703bda08d8518f654e98b516"
-  integrity sha512-jN0ZewiNAWSe5khM3EyCmBb250+b40wWbwNILNfEvq84VREWwOIkuUsFONk/3i3nqkz7Oe1PcpM2mwQEK2L9Kg==
+hono@^4.12.18:
+  version "4.12.18"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.18.tgz#f6d301938868c3a8bdb639495f4e326a19181505"
+  integrity sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==
 
 hookable@^5.5.3:
   version "5.5.3"
@@ -28493,6 +28493,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
