@@ -208,7 +208,7 @@ export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';
 export { SentryError } from './utils/error';
 export { GLOBAL_OBJ } from './utils/worldwide';
 export type { InternalGlobal } from './utils/worldwide';
-export { addConsoleInstrumentationHandler } from './instrument/console';
+export { addConsoleInstrumentationHandler, addConsoleInstrumentationFilter } from './instrument/console';
 export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
 export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
 export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';

@@ -1,10 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
+import { DEBUG_BUILD } from '../debug-build';
 import type { ConsoleLevel, HandlerDataConsole } from '../types-hoist/instrument';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils/debug-logger';
 import { fill } from '../utils/object';
+import { stringMatchesSomePattern } from '../utils/string';
 import { GLOBAL_OBJ } from '../utils/worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
+import { debug } from '../utils/debug-logger';
+
+interface ConsoleInstrumentationOptions {
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
+}
+
+let _options: ConsoleInstrumentationOptions = {};
 
 /**
  * Add an instrumentation handler for when a console.xxx method is called.
@@ -18,6 +31,18 @@ export function addConsoleInstrumentationHandler(handler: (data: HandlerDataCons
   const removeHandler = addHandler(type, handler);
   maybeInstrument(type, instrumentConsole);
   return removeHandler;
+}
+
+export function addConsoleInstrumentationFilter(filter: (string | RegExp)[]): void {
+  _options = {
+    ..._options,
+    filter: [...(_options.filter || []), ...filter],
+  };
+}
+
+/** Only exported for tests. */
+export function _INTERNAL_resetConsoleInstrumentationOptions(): void {
+  _options = {};
 }
 
 function instrumentConsole(): void {
@@ -34,10 +59,22 @@ function instrumentConsole(): void {
       originalConsoleMethods[level] = originalConsoleMethod;
 
       return function (...args: any[]): void {
-        triggerHandlers('console', { args, level } as HandlerDataConsole);
-
+        const firstArg = args[0];
         const log = originalConsoleMethods[level];
-        log?.apply(GLOBAL_OBJ.console, args);
+        const filter = _options?.filter;
+
+        const isFiltered = filter && typeof firstArg === 'string' && stringMatchesSomePattern(firstArg, filter);
+
+        // Only trigger handlers for non-filtered messages
+        if (!isFiltered) {
+          triggerHandlers('console', { args, level } as HandlerDataConsole);
+        }
+
+        // Only log filtered messages in debug mode
+        if (!isFiltered || (DEBUG_BUILD && debug.isEnabled())) {
+          // Call original console method
+          log?.apply(GLOBAL_OBJ.console, args);
+        }
       };
     });
   });

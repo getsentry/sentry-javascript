@@ -10,6 +10,11 @@ import { GLOBAL_OBJ } from '../utils/worldwide';
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
 }
 
 type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {

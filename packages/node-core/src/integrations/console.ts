@@ -10,10 +10,16 @@ import {
   maybeInstrument,
   originalConsoleMethods,
   triggerHandlers,
+  addConsoleInstrumentationFilter,
 } from '@sentry/core';
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
 }
 
 /**
@@ -35,6 +41,11 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 
       // Delegate breadcrumb handling to the core console integration.
       const core = coreConsoleIntegration(options);
+
+      if (options.filter) {
+        addConsoleInstrumentationFilter(options.filter);
+      }
+
       core.setup?.(client);
     },
   };
