@@ -1,0 +1,70 @@
+name: Auto Fix Issue
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number (e.g., 1234)'
+        required: true
+        type: number
+
+# Per-issue concurrency to prevent duplicate analysis
+concurrency:
+  group: auto-fix-issue-${{ github.event.issue.number || github.event.inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  auto-fix-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: write
+      id-token: write
+    # Run automatically for Flaky Test issues
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.issue.labels.*.name, 'Flaky Test')
+
+    steps:
+      - name: Parse issue number
+        id: parse-issue
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          INPUT_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: |
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_NUM="$EVENT_ISSUE_NUMBER"
+          else
+            ISSUE_NUM="$INPUT_ISSUE_NUMBER"
+          fi
+
+          echo "issue_number=$ISSUE_NUM" >> "$GITHUB_OUTPUT"
+          echo "Processing issue #$ISSUE_NUM in CI mode"
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+
+      - name: Try to fix the issue with Claude
+        id: triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: '*'
+          prompt: |
+            Fix the issue in getsentry/sentry-javascript with number #{{ steps.parse-issue.outputs.issue_number }}.
+            Follow the steps below to fix the issue:
+            1. Identify the root cause of the issue
+            2. Propose a fix for the issue
+            3. Verify the fix is small
+            4a. IMPORTANT: If the fix is complicated, or you are not 100% sure about the fix, stop here and instead write a comment on the issue describring what you did so far and why you aborted creating a fix.
+            4b. Else, implement the fix
+            5. Test the fix
+            6. Commit the fix
+            7. Create a pull request for the fix
