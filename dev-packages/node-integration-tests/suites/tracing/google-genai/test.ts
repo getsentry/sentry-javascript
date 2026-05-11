@@ -2,6 +2,7 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
@@ -41,6 +42,7 @@ describe('Google GenAI integration', () => {
             expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
             expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
             expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
@@ -52,6 +54,7 @@ describe('Google GenAI integration', () => {
             expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
             expect(secondSpan!.status).toBe('ok');
             expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(secondSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(secondSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-flash');
             expect(secondSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
@@ -65,6 +68,7 @@ describe('Google GenAI integration', () => {
             expect(thirdSpan!.name).toBe('generate_content error-model');
             expect(thirdSpan!.status).toBe('error');
             expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(thirdSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(thirdSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');
           },
@@ -88,6 +92,7 @@ describe('Google GenAI integration', () => {
             expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
             expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
             expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
@@ -100,6 +105,7 @@ describe('Google GenAI integration', () => {
             expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
             expect(secondSpan!.status).toBe('ok');
             expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
             expect(secondSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
@@ -110,6 +116,7 @@ describe('Google GenAI integration', () => {
             expect(thirdSpan!.name).toBe('generate_content error-model');
             expect(thirdSpan!.status).toBe('error');
             expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
           },
         })
@@ -130,14 +137,17 @@ describe('Google GenAI integration', () => {
 
             // [0] chat.sendMessage with custom options (PII enabled via recordInputs/recordOutputs)
             expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
             expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
 
             // [1] models.generateContent with custom options
             expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
 
             // [2] error handling with custom options
             expect(thirdSpan!.name).toBe('generate_content error-model');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
           },
         })
         .start()
@@ -161,6 +171,7 @@ describe('Google GenAI integration', () => {
             // [0] Non-streaming with tools
             expect(firstSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(firstSpan!.status).toBe('ok');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(
               EXPECTED_AVAILABLE_TOOLS_JSON,
             );
@@ -175,6 +186,7 @@ describe('Google GenAI integration', () => {
             // [1] Streaming with tools
             expect(secondSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(secondSpan!.status).toBe('ok');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(secondSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(
               EXPECTED_AVAILABLE_TOOLS_JSON,
             );
@@ -191,6 +203,7 @@ describe('Google GenAI integration', () => {
             // [2] Without tools for comparison
             expect(thirdSpan!.name).toBe('generate_content gemini-2.0-flash-001');
             expect(thirdSpan!.status).toBe('ok');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(thirdSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toBeUndefined();
             expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(thirdSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
@@ -217,6 +230,7 @@ describe('Google GenAI integration', () => {
             // [0] models.generateContentStream (streaming)
             expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
             expect(firstSpan!.status).toBe('ok');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
             expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
             expect(firstSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
@@ -231,6 +245,7 @@ describe('Google GenAI integration', () => {
             // [1] chat.sendMessageStream (streaming)
             expect(secondSpan!.name).toBe('chat gemini-1.5-pro');
             expect(secondSpan!.status).toBe('ok');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-streaming-id');
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
@@ -239,11 +254,13 @@ describe('Google GenAI integration', () => {
             expect(thirdSpan!.name).toBe('generate_content blocked-model');
             expect(thirdSpan!.status).toBe('error');
             expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
 
             // [3] error handling for streaming
             expect(fourthSpan!.name).toBe('generate_content error-model');
             expect(fourthSpan!.status).toBe('error');
             expect(fourthSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
           },
         })
         .start()
@@ -264,6 +281,7 @@ describe('Google GenAI integration', () => {
             // [0] models.generateContentStream (streaming) with PII
             expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
             expect(firstSpan!.status).toBe('ok');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
             expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
@@ -274,6 +292,7 @@ describe('Google GenAI integration', () => {
             // [1] chat.sendMessageStream (streaming) with PII
             expect(secondSpan!.name).toBe('chat gemini-1.5-pro');
             expect(secondSpan!.status).toBe('ok');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
             expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(secondSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
@@ -281,6 +300,7 @@ describe('Google GenAI integration', () => {
             // [2] blocked content stream with PII
             expect(thirdSpan!.name).toBe('generate_content blocked-model');
             expect(thirdSpan!.status).toBe('error');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(thirdSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
             expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
             expect(thirdSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
@@ -288,6 +308,7 @@ describe('Google GenAI integration', () => {
             // [3] error handling for streaming with PII
             expect(fourthSpan!.name).toBe('generate_content error-model');
             expect(fourthSpan!.status).toBe('error');
+            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
             expect(fourthSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
             expect(fourthSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
           },
@@ -314,6 +335,7 @@ describe('Google GenAI integration', () => {
               // [0] First call: Last message is large and gets truncated (only C's remain, D's are cropped)
               expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(firstSpan!.status).toBe('ok');
+              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
               expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
               expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(
                 /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
@@ -322,6 +344,7 @@ describe('Google GenAI integration', () => {
               // [1] Second call: Last message is small and kept without truncation
               expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(secondSpan!.status).toBe('ok');
+              expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
               expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
               expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
                 JSON.stringify([
@@ -355,6 +378,7 @@ describe('Google GenAI integration', () => {
 
               // [0] generate_content with system instructions extracted
               expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
+              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               );
@@ -380,6 +404,7 @@ describe('Google GenAI integration', () => {
             expect(firstSpan!.name).toBe('embeddings text-embedding-004');
             expect(firstSpan!.status).toBe('ok');
             expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
             expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
             expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('text-embedding-004');
@@ -389,11 +414,13 @@ describe('Google GenAI integration', () => {
             expect(secondSpan!.name).toBe('embeddings error-model');
             expect(secondSpan!.status).toBe('error');
             expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
 
             // [2] embedContent with array contents (no PII)
             expect(thirdSpan!.name).toBe('embeddings text-embedding-004');
             expect(thirdSpan!.status).toBe('ok');
             expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
           },
         })
         .start()
@@ -414,6 +441,7 @@ describe('Google GenAI integration', () => {
             // [0] embedContent with string contents and PII
             expect(firstSpan!.name).toBe('embeddings text-embedding-004');
             expect(firstSpan!.status).toBe('ok');
+            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
             expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
             expect(firstSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe(
               'What is the capital of France?',
@@ -422,11 +450,13 @@ describe('Google GenAI integration', () => {
             // [1] embedContent error model with PII
             expect(secondSpan!.name).toBe('embeddings error-model');
             expect(secondSpan!.status).toBe('error');
+            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
             expect(secondSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe('This will fail');
 
             // [2] embedContent with array contents and PII
             expect(thirdSpan!.name).toBe('embeddings text-embedding-004');
             expect(thirdSpan!.status).toBe('ok');
+            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
             expect(thirdSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe(
               '[{"role":"user","parts":[{"text":"First input text"}]},{"role":"user","parts":[{"text":"Second input text"}]}]',
             );
@@ -454,6 +484,7 @@ describe('Google GenAI integration', () => {
               const [firstSpan] = container.items;
 
               // [0] generate_content with full (non-truncated) input messages
+              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
               expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
                 JSON.stringify([
                   { role: 'user', parts: [{ text: longContent }] },
