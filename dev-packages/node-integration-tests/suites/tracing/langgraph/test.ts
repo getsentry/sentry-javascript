@@ -94,9 +94,7 @@ describe('LangGraph integration', () => {
             expect(thirdSpan!.name).toBe('invoke_agent weather_assistant');
             expect(thirdSpan!.status).toBe('ok');
             expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
-              'Tell me about the weather',
-            );
+            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('Tell me about the weather');
           },
         })
         .start()
