@@ -20,12 +20,15 @@ function isSystemError(error: unknown): error is SystemError {
     return false;
   }
 
-  // Appears this is the recommended way to check for Node.js SystemError
-  // https://github.com/nodejs/node/issues/46869
+  // Workaround for Bun where getSystemErrorMap doesn't exist
+  // Can be removed once Bun supports getSystemErrorMap
+  // https://github.com/oven-sh/bun/issues/22872
   if (typeof util.getSystemErrorMap !== 'function') {
     return false;
   }
 
+  // Appears this is the recommended way to check for Node.js SystemError
+  // https://github.com/nodejs/node/issues/46869
   return util.getSystemErrorMap().has(error.errno);
 }
 
