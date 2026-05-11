@@ -1,6 +1,7 @@
 import type { Client } from '../../client';
 import type { SpanContainerItem } from '../../types-hoist/envelope';
 import type { Event } from '../../types-hoist/event';
+import { isBrowser } from '../../utils/isBrowser';
 import { hasSpanStreamingEnabled } from './hasSpanStreamingEnabled';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 
@@ -42,8 +43,16 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
 
   event.spans = remainingSpans;
 
+  const inferSetting = client.getOptions().sendDefaultPii ? 'auto' : 'never';
+
   return [
     { type: 'span', item_count: genAiSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
-    { version: 2, items: genAiSpans },
+    {
+      version: 2,
+      ...(isBrowser() && {
+        ingest_settings: { infer_ip: inferSetting, infer_user_agent: inferSetting },
+      }),
+      items: genAiSpans,
+    },
   ];
 }
