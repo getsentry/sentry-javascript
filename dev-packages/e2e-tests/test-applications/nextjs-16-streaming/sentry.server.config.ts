@@ -13,7 +13,6 @@ Sentry.init({
     Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 }),
     Sentry.spanStreamingIntegration(),
   ],
-  _experiments: { streamGenAiSpans: true },
   beforeSendLog(log: Log) {
     return log;
   },
