@@ -269,6 +269,21 @@ describe('sentryAstro integration', () => {
     );
   });
 
+  it('passes top-level applicationKey to the vite plugin', async () => {
+    const integration = sentryAstro({
+      applicationKey: 'my-app-key',
+      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project' },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationKey: 'my-app-key',
+      }),
+    );
+  });
+
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },
