@@ -53,12 +53,12 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 
         addConsoleBreadcrumb(level, args);
       });
+      client.registerCleanup(unsubscribe);
 
       if (options.filter) {
-        addConsoleInstrumentationFilter(options.filter);
+        const unsubscribe = addConsoleInstrumentationFilter(options.filter);
+        client.registerCleanup(unsubscribe);
       }
-
-      client.registerCleanup(unsubscribe);
     },
   };
 });

@@ -13,7 +13,7 @@ import { debug } from '../utils/debug-logger';
  * Filter out console messages that match the given strings or regular expressions.
  * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
  * This is a set to avoid duplicate integration setups to add the same filter multiple times.
-*/
+ */
 const _filter = new Set<string | RegExp>([]);
 
 /**
@@ -30,10 +30,20 @@ export function addConsoleInstrumentationHandler(handler: (data: HandlerDataCons
   return removeHandler;
 }
 
-export function addConsoleInstrumentationFilter(filter: (string | RegExp)[]): void {
+/**
+ * Add a filter to the console instrumentation to filter out console messages that match the given strings or regular expressions.
+ * Returns a function to remove the filter.
+ */
+export function addConsoleInstrumentationFilter(filter: (string | RegExp)[]): () => void {
   for (const f of filter) {
     _filter.add(f);
   }
+
+  return () => {
+    for (const f of filter) {
+      _filter.delete(f);
+    }
+  };
 }
 
 /** Only exported for tests. */
