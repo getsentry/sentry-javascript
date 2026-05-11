@@ -39,7 +39,14 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
       }
 
       // Delegate breadcrumb handling to the core console integration.
-      const core = coreConsoleIntegration(options);
+      const core = coreConsoleIntegration({
+        ...options,
+        filter: [
+          ...(options.filter || []),
+          // Deprecation on Node 26 for module.require(), which is used by IITM
+          '(node:4075) [DEP0205] DeprecationWarning',
+        ],
+      });
       core.setup?.(client);
     },
   };
