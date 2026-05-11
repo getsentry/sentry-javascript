@@ -68,8 +68,7 @@ function instrumentConsole(): void {
         const firstArg = args[0];
         const log = originalConsoleMethods[level];
 
-        const isFiltered =
-          _filter.size && typeof firstArg === 'string' && stringMatchesSomePattern(firstArg, Array.from(_filter));
+        const isFiltered = _filter.size && typeof firstArg === 'string' && stringMatchesSomePattern(firstArg, _filter);
 
         // Only trigger handlers for non-filtered messages
         if (!isFiltered) {
