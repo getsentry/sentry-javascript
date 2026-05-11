@@ -41,30 +41,27 @@ sentryTest(
   },
 );
 
-sentryTest(
-  'sends profile_chunk envelope alongside streamed spans',
-  async ({ page, getLocalTestUrl, browserName }) => {
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+sentryTest('sends profile_chunk envelope alongside streamed spans', async ({ page, getLocalTestUrl, browserName }) => {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+    sentryTest.skip();
+  }
 
-    const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
+  const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
 
-    const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
-      page,
-      1,
-      { url, envelopeType: 'profile_chunk', timeout: 15_000 },
-      properFullEnvelopeRequestParser,
-    );
+  const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
+    page,
+    1,
+    { url, envelopeType: 'profile_chunk', timeout: 15_000 },
+    properFullEnvelopeRequestParser,
+  );
 
-    const profileChunkEnvelopeItem = profileChunkEnvelopes[0][1][0];
-    const envelopeItemHeader = profileChunkEnvelopeItem[0];
-    const envelopeItemPayload = profileChunkEnvelopeItem[1];
+  const profileChunkEnvelopeItem = profileChunkEnvelopes[0][1][0];
+  const envelopeItemHeader = profileChunkEnvelopeItem[0];
+  const envelopeItemPayload = profileChunkEnvelopeItem[1];
 
-    expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
-    expect(envelopeItemPayload.profile).toBeDefined();
+  expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
+  expect(envelopeItemPayload.profile).toBeDefined();
 
-    validateProfilePayloadMetadata(envelopeItemPayload);
-    validateProfile(envelopeItemPayload.profile, { isChunkFormat: true });
-  },
-);
+  validateProfilePayloadMetadata(envelopeItemPayload);
+  validateProfile(envelopeItemPayload.profile, { isChunkFormat: true });
+});
