@@ -486,7 +486,8 @@ export function createRunner(...paths: string[]) {
 
             if (process.env.DEBUG) log('stderr line', output);
 
-            if (ensureNoErrorOutput) {
+            // Ignore deprecation warnings for this purpose
+            if (ensureNoErrorOutput && !`${output}`.includes('DeprecationWarning:')) {
               complete(new Error(`Expected no error output but got: '${output}'`));
             }
           });
