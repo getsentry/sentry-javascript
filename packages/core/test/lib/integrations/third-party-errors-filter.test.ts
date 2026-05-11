@@ -677,7 +677,7 @@ describe('ThirdPartyErrorFilter', () => {
         GLOBAL_OBJ._sentryWrappedDepth = 0;
       });
 
-      it('detects Sentry internal frame when processEvent runs inside a sentryWrapped call', async () => {
+      it('detects Sentry internal frame when preprocessEvent snapshots depth inside a sentryWrapped call', async () => {
         const eventWithMinifiedSentryFrame: Event = {
           exception: {
             values: [
@@ -713,13 +713,13 @@ describe('ThirdPartyErrorFilter', () => {
 
         // Simulate being inside a sentryWrapped call
         GLOBAL_OBJ._sentryWrappedDepth = 1;
-        try {
-          const event = clone(eventWithMinifiedSentryFrame);
-          const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-          expect(result).toBe(null);
-        } finally {
-          GLOBAL_OBJ._sentryWrappedDepth = 0;
-        }
+        const event = clone(eventWithMinifiedSentryFrame);
+        // preprocessEvent snapshots the depth onto the event
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        // Even if depth resets before processEvent (async processor scenario), the snapshot survives
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        expect(result).toBe(null);
       });
 
       it('detects Sentry internal frame by function name sentryWrapped even without source patterns', async () => {
@@ -797,6 +797,7 @@ describe('ThirdPartyErrorFilter', () => {
 
         GLOBAL_OBJ._sentryWrappedDepth = 0;
         const event = clone(eventWithMinifiedFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
         const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
         expect(result).toBeDefined();
       });
@@ -836,13 +837,11 @@ describe('ThirdPartyErrorFilter', () => {
         });
 
         GLOBAL_OBJ._sentryWrappedDepth = 1;
-        try {
-          const event = clone(eventWithMinifiedSentryFrame);
-          const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-          expect(result).toBeDefined();
-        } finally {
-          GLOBAL_OBJ._sentryWrappedDepth = 0;
-        }
+        const event = clone(eventWithMinifiedSentryFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        expect(result).toBeDefined();
       });
     });
   });

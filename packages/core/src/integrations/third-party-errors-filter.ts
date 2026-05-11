@@ -75,9 +75,21 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
       });
     },
 
+    preprocessEvent(event) {
+      // Snapshot the depth counter onto the event before any event processors run.
+      // This is necessary because async event processors could cause the finally block
+      // in sentryWrapped to decrement the counter before processEvent reads it.
+      if (options.ignoreSentryInternalFrames && (GLOBAL_OBJ._sentryWrappedDepth ?? 0) > 0) {
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          insideSentryWrapped: true,
+        };
+      }
+    },
+
     processEvent(event) {
       const insideSentryWrapped = options.ignoreSentryInternalFrames
-        ? (GLOBAL_OBJ._sentryWrappedDepth ?? 0) > 0
+        ? event.sdkProcessingMetadata?.insideSentryWrapped === true
         : false;
       const frameKeys = getBundleKeysForAllFramesWithFilenames(
         event,
