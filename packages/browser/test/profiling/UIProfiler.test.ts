@@ -667,12 +667,9 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       expect(transaction.contexts.trace.data['thread.id']).toBeUndefined();
       expect(transaction.contexts.trace.data['thread.name']).toBeUndefined();
 
-      if (transaction.spans?.length) {
-        for (const span of transaction.spans) {
-          expect(span.data['thread.id']).toBeUndefined();
-          expect(span.data['thread.name']).toBeUndefined();
-        }
-      }
+      expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].data['thread.id']).toBeUndefined();
+      expect(transaction.spans[0].data['thread.name']).toBeUndefined();
     });
   });
 
