@@ -639,7 +639,7 @@ class ContinuousProfiler {
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
-  if (![16, 18, 20, 22, 24].includes(NODE_MAJOR)) {
+  if (![16, 18, 20, 22, 24, 26].includes(NODE_MAJOR)) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
