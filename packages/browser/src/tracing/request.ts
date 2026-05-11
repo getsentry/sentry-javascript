@@ -167,7 +167,6 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           if (spanId) {
             const deferred = spanIdToDeferredData.get(spanId);
             if (deferred && handlerData.endTimestamp) {
-              spans[spanId] = deferred.span;
               deferred.handlerData.endTimestamp = handlerData.endTimestamp;
               instrumentFetchRequest(deferred.handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
                 propagateTraceparent,
@@ -189,8 +188,6 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         if (spanId && spans[spanId]) {
           responseToSpanId.set(handlerData.response, spanId);
           spanIdToDeferredData.set(spanId, { span: spans[spanId], handlerData });
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete spans[spanId];
           return;
         }
       }
