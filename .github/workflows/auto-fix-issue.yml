@@ -1,8 +1,9 @@
 name: Auto Fix Issue
 
 on:
-  issues:
-    types: [opened]
+  # TODO: For now we do not auto-run this on issues but just manually, until we verified how that works.
+  # issues:
+  #  types: [opened]
   workflow_dispatch:
     inputs:
       issue_number:
