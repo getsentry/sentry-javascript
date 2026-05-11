@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import { debug, defineIntegration, hasSpansEnabled } from '@sentry/core';
 import {
   startTrackingWebVitals,
   registerInpInteractionListener,
@@ -7,6 +7,7 @@ import {
   trackInpAsSpan,
   trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
+import { DEBUG_BUILD } from '../debug-build';
 
 type WebVitalName = 'lcp' | 'cls' | 'inp' | 'ttfb' | 'fp' | 'fcp';
 type PageloadWebVitalName = Extract<WebVitalName, 'ttfb' | 'fp' | 'fcp'>;
@@ -46,6 +47,13 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      if ((options.emit ?? 'spans') === 'spans' && !hasSpansEnabled(client.getOptions())) {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[WebVitals] webVitalsIntegration is configured to emit spans, but tracing is disabled. Set `tracesSampleRate` or `tracesSampler` to enable web vital spans.',
+          );
+      }
+
       startTrackingWebVitals({
         disable: disabledPageloadWebVitals,
       });
