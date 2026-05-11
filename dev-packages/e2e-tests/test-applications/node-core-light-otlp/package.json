@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.211.0",
-    "@opentelemetry/sdk-trace-base": "^2.5.1",
-    "@opentelemetry/sdk-trace-node": "^2.5.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.217.0",
+    "@opentelemetry/sdk-trace-base": "^2.7.1",
+    "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@sentry/node-core": "file:../../packed/sentry-node-core-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^22.0.0",
