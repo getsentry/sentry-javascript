@@ -9,7 +9,7 @@ Sentry.init({
   sendDefaultPii: true,
   // debug: true,
   integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
-  _experiments: { streamGenAiSpans: true },
+  streamGenAiSpans: true,
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;

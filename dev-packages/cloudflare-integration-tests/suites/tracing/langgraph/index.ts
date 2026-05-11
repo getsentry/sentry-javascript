@@ -10,7 +10,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
     sendDefaultPii: true,
-    _experiments: { streamGenAiSpans: true },
+    streamGenAiSpans: true,
   }),
   {
     async fetch(_request, _env, _ctx) {

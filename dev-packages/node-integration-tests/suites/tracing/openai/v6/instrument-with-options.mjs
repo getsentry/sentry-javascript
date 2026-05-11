@@ -20,5 +20,5 @@ Sentry.init({
     }
     return event;
   },
-  _experiments: { streamGenAiSpans: true },
+  streamGenAiSpans: true,
 });

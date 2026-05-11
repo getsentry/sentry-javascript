@@ -37,7 +37,7 @@ function makeClient(options: Partial<Parameters<typeof getDefaultTestClientOptio
   return new TestClient(
     getDefaultTestClientOptions({
       dsn: 'https://dsn@ingest.f00.f00/1',
-      _experiments: { streamGenAiSpans: true },
+      streamGenAiSpans: true,
       ...options,
     }),
   );
@@ -123,7 +123,7 @@ describe('extractGenAiSpansFromEvent', () => {
 
   it('returns undefined when streamGenAiSpans is not enabled', () => {
     const event = makeTransactionEvent([makeSpanJSON({ op: 'gen_ai.chat' })]);
-    const client = makeClient({ _experiments: { streamGenAiSpans: false } });
+    const client = makeClient({ streamGenAiSpans: false });
 
     expect(extractGenAiSpansFromEvent(event, client)).toBeUndefined();
     expect(event.spans).toHaveLength(1);

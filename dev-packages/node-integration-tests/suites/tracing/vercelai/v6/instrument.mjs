@@ -7,5 +7,5 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   integrations: [Sentry.vercelAIIntegration()],
-  _experiments: { streamGenAiSpans: true },
+  streamGenAiSpans: true,
 });

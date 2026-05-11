@@ -8,5 +8,5 @@ Sentry.init({
   sendDefaultPii: false,
   transport: loggingTransport,
   integrations: [Sentry.openAIIntegration()],
-  _experiments: { streamGenAiSpans: true },
+  streamGenAiSpans: true,
 });
