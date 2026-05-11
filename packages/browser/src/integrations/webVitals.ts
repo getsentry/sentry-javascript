@@ -1,11 +1,15 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import {
+  startTrackingWebVitals,
   registerInpInteractionListener,
   trackClsAsSpan,
   trackInpAsSpan,
   trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
+
+type WebVitalName = 'lcp' | 'cls' | 'inp' | 'ttfb' | 'fp' | 'fcp';
+type PageloadWebVitalName = Extract<WebVitalName, 'ttfb' | 'fp' | 'fcp'>;
 
 interface WebVitalsOptions {
   /**
@@ -23,7 +27,7 @@ interface WebVitalsOptions {
    *
    * @default []
    */
-  disable?: Array<'lcp' | 'cls' | 'inp'>;
+  disable?: WebVitalName[];
 }
 
 export const INTEGRATION_NAME = 'WebVitals';
@@ -37,10 +41,15 @@ export const INTEGRATION_NAME = 'WebVitals';
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
   const disabled = new Set(options.disable ?? []);
+  const disabledPageloadWebVitals = options.disable?.filter(isPageloadWebVitalName);
 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      startTrackingWebVitals({
+        disable: disabledPageloadWebVitals,
+      });
+
       if (!disabled.has('lcp')) {
         trackLcpAsSpan(client);
       }
@@ -58,3 +67,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
     },
   };
 }) satisfies IntegrationFn;
+
+function isPageloadWebVitalName(vital: WebVitalName): vital is PageloadWebVitalName {
+  return vital === 'ttfb' || vital === 'fp' || vital === 'fcp';
+}

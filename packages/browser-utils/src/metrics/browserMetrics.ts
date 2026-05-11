@@ -68,16 +68,28 @@ let _performanceCursor: number = 0;
 
 let _measurements: Measurements = {};
 
+type PageloadWebVitalName = 'ttfb' | 'fp' | 'fcp';
+
+const DEFAULT_PAGELOAD_WEB_VITALS = new Set<PageloadWebVitalName>(['ttfb', 'fp', 'fcp']);
+
+let _enabledPageloadWebVitals = DEFAULT_PAGELOAD_WEB_VITALS;
+
+let _collectTtfb: (() => void) | undefined;
+
 /**
  * Start tracking web vitals.
  *
- * LCP and CLS are now handled by `webVitalsIntegration`; this function only
- * tracks TTFB. The returned callback can be used to stop tracking & ensure all
- * measurements are final & captured.
- *
- * @returns A function that forces web vitals collection
+ * LCP, CLS and INP are handled separately as spans by `webVitalsIntegration`;
+ * this function tracks pageload web vitals which are attached as attributes.
  */
-export function startTrackingWebVitals(): () => void {
+export function startTrackingWebVitals(options: { disable?: Array<'ttfb' | 'fp' | 'fcp'> } = {}): void {
+  _collectTtfb?.();
+  _collectTtfb = undefined;
+
+  _enabledPageloadWebVitals = new Set(
+    Array.from(DEFAULT_PAGELOAD_WEB_VITALS).filter(vital => !options.disable?.includes(vital)),
+  );
+
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
@@ -85,14 +97,15 @@ export function startTrackingWebVitals(): () => void {
       WINDOW.performance.mark('sentry-tracing-init');
     }
 
-    const ttfbCleanupCallback = _trackTtfb();
-
-    return (): void => {
-      ttfbCleanupCallback();
-    };
+    if (_enabledPageloadWebVitals.has('ttfb')) {
+      _collectTtfb = _trackTtfb();
+    }
   }
+}
 
-  return () => undefined;
+function collectWebVitals(): void {
+  _collectTtfb?.();
+  _collectTtfb = undefined;
 }
 
 /**
@@ -256,6 +269,8 @@ interface AddPerformanceEntriesOptions {
 
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
+  collectWebVitals();
+
   const performance = getBrowserPerformanceAPI();
   const origin = browserPerformanceTimeOrigin();
   if (!performance?.getEntries || !origin) {
@@ -300,10 +315,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         // Only report if the page wasn't hidden prior to the web vital.
         const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
-        if (entry.name === 'first-paint' && shouldRecord) {
+        if (entry.name === 'first-paint' && shouldRecord && _enabledPageloadWebVitals.has('fp')) {
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
         }
-        if (entry.name === 'first-contentful-paint' && shouldRecord) {
+        if (entry.name === 'first-contentful-paint' && shouldRecord && _enabledPageloadWebVitals.has('fcp')) {
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         break;
@@ -330,7 +345,9 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
-    _addTtfbRequestTimeToMeasurements(_measurements);
+    if (_enabledPageloadWebVitals.has('ttfb')) {
+      _addTtfbRequestTimeToMeasurements(_measurements);
+    }
 
     const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string): void => {
       const attrKey = customAttrName ?? `browser.web_vital.${shortWebVitalName}.value`;

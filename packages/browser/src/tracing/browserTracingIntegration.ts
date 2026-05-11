@@ -42,7 +42,6 @@ import {
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
-  startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
 import { webVitalsIntegration, INTEGRATION_NAME as WEB_VITALS_INTEGRATION_NAME } from '../integrations/webVitals';
 import { DEBUG_BUILD } from '../debug-build';
@@ -395,7 +394,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const _isBot = isBotUserAgent();
 
-  let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
   let _pageloadSpan: Span | undefined;
@@ -438,9 +436,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        // This will generally always be defined here, because it is set in `setup()` of the integration
-        // but technically, it is optional, so we guard here to be extra safe
-        _collectWebVitals?.();
         addPerformanceEntries(span, {
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
@@ -499,8 +494,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }
 
       registerSpanErrorInstrumentation();
-
-      _collectWebVitals = startTrackingWebVitals();
 
       if (
         enableLongAnimationFrame &&
