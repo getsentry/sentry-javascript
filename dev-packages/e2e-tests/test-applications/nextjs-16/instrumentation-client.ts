@@ -10,26 +10,6 @@ import type { Log } from '@sentry/nextjs';
 const lighthouseMode = process.env.NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE;
 
 if (lighthouseMode !== 'no-sentry') {
-  const integrations: Sentry.Integration[] = [];
-
-  // Existing E2E behavior (unset) keeps third-party-error-filter on. We disable it in
-  // init-only and tracing-replay so those modes measure SDK overhead without app-specific
-  // integrations skewing the result.
-  if (lighthouseMode === undefined || lighthouseMode === '') {
-    integrations.push(
-      Sentry.thirdPartyErrorFilterIntegration({
-        filterKeys: ['nextjs-16-e2e'],
-        behaviour: 'apply-tag-if-contains-third-party-frames',
-      }),
-    );
-  }
-
-  // tracing-replay mode enables both performance + session replay so we can measure their
-  // combined overhead. init-only skips both.
-  if (lighthouseMode === 'tracing-replay') {
-    integrations.push(Sentry.browserTracingIntegration(), Sentry.replayIntegration());
-  }
-
   Sentry.init({
     environment: 'qa', // dynamic sampling bias to keep transactions
     dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
@@ -38,7 +18,20 @@ if (lighthouseMode !== 'no-sentry') {
     replaysSessionSampleRate: lighthouseMode === 'tracing-replay' ? 1.0 : 0,
     replaysOnErrorSampleRate: lighthouseMode === 'tracing-replay' ? 1.0 : 0,
     sendDefaultPii: true,
-    integrations,
+    // Existing E2E behavior (mode unset/'') keeps third-party-error-filter on.
+    // init-only / tracing-replay drop it so we measure SDK overhead without app-specific noise.
+    // tracing-replay additionally enables browserTracing + replay.
+    integrations: [
+      ...(lighthouseMode === undefined || lighthouseMode === ''
+        ? [
+            Sentry.thirdPartyErrorFilterIntegration({
+              filterKeys: ['nextjs-16-e2e'],
+              behaviour: 'apply-tag-if-contains-third-party-frames',
+            }),
+          ]
+        : []),
+      ...(lighthouseMode === 'tracing-replay' ? [Sentry.browserTracingIntegration(), Sentry.replayIntegration()] : []),
+    ],
     // Verify Log type is available
     beforeSendLog(log: Log) {
       return log;

@@ -29,9 +29,11 @@
  */
 
 /** @type {AppDefinition[]} */
-// NOTE: angular, remix, ember, and solidstart were intentionally excluded from
-// this matrix — their build/serve setups need framework-specific tuning we're
-// not investing in for the MVP. They can be added back as a follow-up.
+// NOTE: angular, remix, ember, solidstart, and react-router-7-spa were
+// intentionally excluded from this matrix — their build/serve setups need
+// framework-specific tuning we're not investing in for the MVP. They can be
+// added back as a follow-up. (react-router-7-spa fails with NO_FCP in
+// Lighthouse — the bundle loads but doesn't paint within the timeout.)
 const APPS = [
   // Plain webpack apps — read process.env directly (no bundler prefix).
   { app: 'default-browser', sdk: 'browser', serve: 'static', staticDir: 'build', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
@@ -52,15 +54,10 @@ const APPS = [
     app: 'astro-5',
     sdk: 'astro',
     serve: 'server',
-    startCmd: 'node ./dist/server/entry.mjs',
+    // Astro's @astrojs/node adapter defaults to PORT=4321; force 3000 so Lighthouse can
+    // reach the server at the URL it audits (http://localhost:3000/).
+    startCmd: 'PORT=3000 node ./dist/server/entry.mjs',
     readyPattern: 'localhost',
-    envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE',
-  },
-  {
-    app: 'react-router-7-spa',
-    sdk: 'react-router',
-    serve: 'static',
-    staticDir: 'dist',
     envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE',
   },
 

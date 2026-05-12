@@ -11,8 +11,9 @@ const MODES = ['no-sentry', 'init-only', 'tracing-replay'];
  * Apps and their human-readable SDK labels, matching lighthouse-matrix.mjs.
  * Order here determines row order in each table.
  */
-// Must mirror lighthouse-matrix.mjs APPS. angular, remix, ember, solidstart are
-// intentionally excluded — see note in lighthouse-matrix.mjs.
+// Must mirror lighthouse-matrix.mjs APPS. angular, remix, ember, solidstart,
+// and react-router-7-spa are intentionally excluded — see note in
+// lighthouse-matrix.mjs.
 const APPS = [
   { app: 'default-browser', sdk: 'browser' },
   { app: 'react-19', sdk: 'react' },
@@ -20,7 +21,6 @@ const APPS = [
   { app: 'svelte-5', sdk: 'svelte' },
   { app: 'sveltekit-2', sdk: 'sveltekit' },
   { app: 'astro-5', sdk: 'astro' },
-  { app: 'react-router-7-spa', sdk: 'react-router' },
   { app: 'tanstackstart-react', sdk: 'tanstack-start' },
   { app: 'nextjs-16', sdk: 'nextjs' },
   { app: 'nuxt-5', sdk: 'nuxt' },
