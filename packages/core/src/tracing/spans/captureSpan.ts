@@ -27,6 +27,7 @@ import {
 } from '../../utils/spanUtils';
 import { getCapturedScopesOnSpan } from '../utils';
 import { isStreamedBeforeSendSpanCallback } from './beforeSendSpan';
+import { scopeContextsToSpanAttributes } from './scopeContextAttributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
   _segmentSpan: Span;
@@ -96,9 +97,9 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
   };
 }
 
-function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
-  // TODO: Apply contexts data from auto instrumentation to segment span
-  // This will follow in a separate PR
+function applyScopeToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, scopeData: ScopeData): void {
+  const contextAttributes = scopeContextsToSpanAttributes(scopeData.contexts);
+  safeSetSpanJSONAttributes(segmentSpanJSON, contextAttributes);
 }
 
 /**
