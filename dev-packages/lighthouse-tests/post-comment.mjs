@@ -57,14 +57,15 @@ async function readResult(resultsDir, app, mode) {
   const score = lhr.categories?.performance?.score;
   if (score == null) return null;
 
-  const url = entry.htmlPath ? entry.htmlPath : undefined;
-
-  return { score: Math.round(score * 100), url };
+  // NOTE: LHCI's manifest.json only carries local filesystem paths (htmlPath, jsonPath)
+  // for the runner, not clickable URLs. The temporaryPublicStorage URLs live in the
+  // treosh action's `links` output, which isn't currently piped into the artifact.
+  // For MVP we drop the link and direct readers to workflow artifacts via the footer.
+  return { score: Math.round(score * 100) };
 }
 
 function formatCell(result) {
   if (!result) return '⚠️';
-  if (result.url) return `[${result.score}](${result.url})`;
   return `${result.score}`;
 }
 
@@ -114,10 +115,14 @@ async function run() {
 
   const table = markdownTable([header, ...tableRows]);
 
+  const footer =
+    '\n\n_Median of 5 runs, simulated throttling, localhost. ' +
+    'Full reports are attached as workflow artifacts (`lighthouse-<app>-<mode>`)._';
+
   if (!isPR || !prNumber) {
     // Nightly / non-PR: just log to stdout
     // eslint-disable-next-line no-console
-    console.log(`${HEADING}\n\n${table}`);
+    console.log(`${HEADING}\n\n${table}${footer}`);
     return;
   }
 
@@ -138,7 +143,7 @@ async function run() {
   });
   const existing = comments.find(c => c.body?.startsWith(HEADING));
 
-  const body = `${HEADING}\n\n${table}`;
+  const body = `${HEADING}\n\n${table}${footer}`;
 
   try {
     if (existing) {
