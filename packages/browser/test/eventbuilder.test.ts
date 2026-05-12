@@ -187,6 +187,20 @@ describe('eventFromUnknownInput', () => {
     );
   });
 
+  it('preserves DOMException type when stack is an empty string', () => {
+    const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    exception.stack = '';
+
+    const event = eventFromUnknownInput(defaultStackParser, exception, new Error('synthetic'), true);
+
+    expect(event.exception?.values).toEqual([
+      {
+        type: 'SyntaxError',
+        value: 'The string did not match the expected pattern.',
+      },
+    ]);
+  });
+
   it('add a synthetic stack trace to DOMException without a stack traces property if attachStacktrace is true', async () => {
     const exception = new DOMException('The string did not match the expected pattern.', 'SyntaxError');
     delete exception.stack;
