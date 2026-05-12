@@ -29,26 +29,13 @@
  */
 
 /** @type {AppDefinition[]} */
+// NOTE: angular, remix, ember, and solidstart were intentionally excluded from
+// this matrix — their build/serve setups need framework-specific tuning we're
+// not investing in for the MVP. They can be added back as a follow-up.
 const APPS = [
   // Plain webpack apps — read process.env directly (no bundler prefix).
   { app: 'default-browser', sdk: 'browser', serve: 'static', staticDir: 'build', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
   { app: 'react-19', sdk: 'react', serve: 'static', staticDir: 'build', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
-  { app: 'ember-classic', sdk: 'ember', serve: 'static', staticDir: 'dist', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
-  {
-    app: 'create-remix-app-express',
-    sdk: 'remix',
-    serve: 'server',
-    startCmd: 'cross-env NODE_ENV=production node ./server.mjs',
-    readyPattern: 'localhost',
-    envVarName: 'SENTRY_LIGHTHOUSE_MODE',
-  },
-  {
-    app: 'angular-21',
-    sdk: 'angular',
-    serve: 'static',
-    staticDir: 'dist/angular-21',
-    envVarName: 'SENTRY_LIGHTHOUSE_MODE',
-  },
 
   // Vite-based apps with `envPrefix: 'PUBLIC_'` (matches Sentry's repo convention for PUBLIC_E2E_TEST_DSN).
   { app: 'vue-3', sdk: 'vue', serve: 'static', staticDir: 'dist', envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE' },
@@ -78,13 +65,6 @@ const APPS = [
   },
 
   // Vite-based apps using the default `VITE_` prefix (no custom envPrefix set).
-  {
-    app: 'solidstart-spa',
-    sdk: 'solidstart',
-    serve: 'static',
-    staticDir: '.output/public',
-    envVarName: 'VITE_SENTRY_LIGHTHOUSE_MODE',
-  },
   {
     app: 'tanstackstart-react',
     sdk: 'tanstack-start',
