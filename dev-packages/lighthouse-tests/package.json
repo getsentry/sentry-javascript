@@ -1,0 +1,12 @@
+{
+  "name": "@sentry-internal/lighthouse-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "scripts": {
+    "generate-matrix": "node lighthouse-matrix.mjs"
+  }
+}
