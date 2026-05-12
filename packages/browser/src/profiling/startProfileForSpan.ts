@@ -3,7 +3,14 @@ import { debug, getCurrentScope, spanToJSON, timestampInSeconds, uuid4 } from '@
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
-import { addProfileToGlobalCache, isAutomatedPageLoadSpan, MAX_PROFILE_DURATION_MS, startJSSelfProfile } from './utils';
+import {
+  addProfileToGlobalCache,
+  isAutomatedPageLoadSpan,
+  MAX_PROFILE_DURATION_MS,
+  PROFILED_ROOT_SPANS,
+  setThreadAttributes,
+  startJSSelfProfile,
+} from './utils';
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.
@@ -47,6 +54,9 @@ export function startProfileForSpan(span: Span): void {
     profile_id: profileId,
     start_timestamp: startTimestamp,
   });
+
+  PROFILED_ROOT_SPANS.add(span);
+  setThreadAttributes(span);
 
   /**
    * Idempotent handler for profile stop

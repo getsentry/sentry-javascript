@@ -583,6 +583,100 @@ describe('Browser Profiling v2 trace lifecycle', () => {
     });
   });
 
+  describe('thread attributes', () => {
+    it('sets thread.id and thread.name on root span', async () => {
+      vi.useRealTimers();
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForTraceLifecycle(send),
+      });
+
+      Sentry.startSpan({ name: 'root-thread-attrs', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+      expect(transaction.transaction).toBe('root-thread-attrs');
+      expect(transaction.contexts.trace.data['thread.id']).toBe('0');
+      expect(transaction.contexts.trace.data['thread.name']).toBe('main');
+    });
+
+    it('sets thread.id and thread.name on child spans', async () => {
+      vi.useRealTimers();
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForTraceLifecycle(send),
+      });
+
+      Sentry.startSpan({ name: 'root-with-children', parentSpan: null, forceTransaction: true }, () => {
+        Sentry.startSpan({ name: 'child-span-1' }, () => {
+          /* empty */
+        });
+        Sentry.startSpan({ name: 'child-span-2' }, () => {
+          /* empty */
+        });
+      });
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+      expect(transaction.transaction).toBe('root-with-children');
+      expect(transaction.spans).toHaveLength(2);
+      for (const span of transaction.spans) {
+        expect(span.data['thread.id']).toBe('0');
+        expect(span.data['thread.name']).toBe('main');
+      }
+    });
+
+    it('does not set thread attributes when session is not sampled', async () => {
+      vi.useRealTimers();
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForTraceLifecycle(send),
+        profileSessionSampleRate: 0,
+      });
+
+      Sentry.startSpan({ name: 'unsampled-root', parentSpan: null, forceTransaction: true }, () => {
+        Sentry.startSpan({ name: 'unsampled-child' }, () => {
+          /* empty */
+        });
+      });
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      expect(txnCall).toBeDefined();
+
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+      expect(transaction.transaction).toBe('unsampled-root');
+      expect(transaction.contexts.trace.data['thread.id']).toBeUndefined();
+      expect(transaction.contexts.trace.data['thread.name']).toBeUndefined();
+
+      expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].description).toBe('unsampled-child');
+      expect(transaction.spans[0].data['thread.id']).toBeUndefined();
+      expect(transaction.spans[0].data['thread.name']).toBeUndefined();
+    });
+  });
+
   it('calling start and stop in trace lifecycle prints warnings', async () => {
     const { stop } = mockProfiler();
     const send = vi.fn().mockResolvedValue(undefined);
@@ -846,6 +940,85 @@ describe('Browser Profiling v2 manual lifecycle', () => {
       const thirdProfilerId = transactionEvents[2]?.contexts?.profile?.profiler_id;
       expect(typeof thirdProfilerId).toBe('string');
       expect(firstProfilerId).toBe(thirdProfilerId); // same profiler_id across session
+    });
+  });
+
+  describe('thread attributes', () => {
+    it('sets thread.id and thread.name on spans created while profiling is active', async () => {
+      vi.useRealTimers();
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      Sentry.uiProfiler.startProfiler();
+
+      Sentry.startSpan({ name: 'manual-profiled-root', parentSpan: null, forceTransaction: true }, () => {
+        Sentry.startSpan({ name: 'manual-profiled-child' }, () => {
+          /* empty */
+        });
+      });
+
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+      expect(transaction.transaction).toBe('manual-profiled-root');
+      expect(transaction.contexts.trace.data['thread.id']).toBe('0');
+      expect(transaction.contexts.trace.data['thread.name']).toBe('main');
+
+      expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].description).toBe('manual-profiled-child');
+      expect(transaction.spans[0].data['thread.id']).toBe('0');
+      expect(transaction.spans[0].data['thread.name']).toBe('main');
+    });
+
+    it('does not set thread attributes on spans created outside of profiling window', async () => {
+      vi.useRealTimers();
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      // Create span BEFORE profiling starts
+      Sentry.startSpan({ name: 'before-profiling', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      Sentry.uiProfiler.startProfiler();
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      // Create span AFTER profiling stops
+      Sentry.startSpan({ name: 'after-profiling', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const txnCalls = calls.filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      const transactions = txnCalls.map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(transactions).toHaveLength(2);
+      expect(transactions[0].transaction).toBe('before-profiling');
+      expect(transactions[1].transaction).toBe('after-profiling');
+
+      for (const transaction of transactions) {
+        expect(transaction.contexts.trace.data['thread.id']).toBeUndefined();
+        expect(transaction.contexts.trace.data['thread.name']).toBeUndefined();
+      }
     });
   });
 });

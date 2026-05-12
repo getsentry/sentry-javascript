@@ -11,7 +11,13 @@ import {
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from './../debug-build';
 import type { JSSelfProfiler } from './jsSelfProfiling';
-import { createProfileChunkPayload, shouldProfileSession, startJSSelfProfile, validateProfileChunk } from './utils';
+import {
+  createProfileChunkPayload,
+  setThreadAttributes,
+  shouldProfileSession,
+  startJSSelfProfile,
+  validateProfileChunk,
+} from './utils';
 
 const CHUNK_INTERVAL_MS = 60_000; // 1 minute
 // Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
@@ -78,6 +84,12 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     if (lifecycleMode === 'trace') {
       this._setupTraceLifecycleListeners(client);
     }
+
+    client.on('spanStart', span => {
+      if (this._isRunning) {
+        setThreadAttributes(span);
+      }
+    });
   }
 
   /** Starts UI profiling (only effective in 'manual' mode and when sampled). */
@@ -141,6 +153,10 @@ export class UIProfiler implements ContinuousProfiler<Client> {
         debug.log('[Profiling] Detected already active root span during setup. Active root spans now:', rootSpanCount);
 
       this._beginProfiling();
+    }
+
+    if (this._isRunning) {
+      setThreadAttributes(rootSpan);
     }
   }
 
