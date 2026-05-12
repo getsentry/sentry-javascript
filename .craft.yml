@@ -2,7 +2,8 @@ github:
   owner: getsentry
   repo: sentry-javascript-bundler-plugins
 minVersion: 2.26.3
-changelogPolicy: auto
+changelog:
+  policy: auto
 versioning:
   policy: auto
 preReleaseCommand: bash scripts/craft-pre-release.sh
