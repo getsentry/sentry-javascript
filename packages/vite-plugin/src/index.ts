@@ -1,7 +1,11 @@
-import { SentryRollupPluginOptions } from "@sentry/rollup-plugin";
+import type { SentryRollupPluginOptions } from "@sentry/rollup-plugin";
 import { _rollupPluginInternal } from "@sentry/rollup-plugin";
 import { createRequire } from "node:module";
-import { Plugin } from "vite";
+
+interface SentryVitePlugin {
+  name: string;
+  enforce: "pre";
+}
 
 function getViteMajorVersion(): string | undefined {
   try {
@@ -17,11 +21,11 @@ function getViteMajorVersion(): string | undefined {
   return undefined;
 }
 
-export const sentryVitePlugin = (options?: SentryRollupPluginOptions): Plugin[] => {
+export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVitePlugin[] => {
   return [
     {
       enforce: "pre",
-      ...(_rollupPluginInternal(options, "vite", getViteMajorVersion()) as Plugin),
+      ..._rollupPluginInternal(options, "vite", getViteMajorVersion()),
     },
   ];
 };
