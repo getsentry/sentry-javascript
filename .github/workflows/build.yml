@@ -1224,13 +1224,15 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version-file: 'package.json'
       - name: Generate matrix
         id: matrix
-        run: node dev-packages/lighthouse-tests/lighthouse-matrix.mjs
+        # Script prints `matrix=<JSON>` to stdout; redirect to $GITHUB_OUTPUT so downstream
+        # jobs can pick it up via ${{ needs.job_lighthouse_matrix.outputs.matrix }}.
+        run: node dev-packages/lighthouse-tests/lighthouse-matrix.mjs >> "$GITHUB_OUTPUT"
 
   job_lighthouse:
-    name: Lighthouse ${{ matrix.test-application }} (${{ matrix.mode }})
+    name: Lighthouse ${{ matrix.app }} (${{ matrix.mode }})
     needs: [job_get_metadata, job_build, job_build_tarballs, job_lighthouse_matrix]
     if: always() && needs.job_build_tarballs.result == 'success' && needs.job_lighthouse_matrix.result == 'success'
     runs-on: ubuntu-24.04-large-js
@@ -1240,6 +1242,14 @@ jobs:
       fail-fast: false
       max-parallel: 15
       matrix: ${{ fromJson(needs.job_lighthouse_matrix.outputs.matrix) }}
+    env:
+      # Mirrors job_e2e_tests env block — apps expect framework-specific DSN prefixes.
+      E2E_TEST_DSN: 'https://username@domain/123'
+      NEXT_PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
+      VITE_E2E_TEST_DSN: 'https://username@domain/123'
+      NUXT_PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
@@ -1251,7 +1261,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.app }}/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1267,8 +1277,12 @@ jobs:
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
 
-      - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+      - name: Validate E2E tests setup
+        run: yarn test:validate
+        working-directory: dev-packages/e2e-tests
+
+      - name: Copy app to temp
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.app }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Add pnpm overrides
@@ -1280,48 +1294,60 @@ jobs:
       - name: Build E2E app for Lighthouse
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: ${{ matrix.build-command || 'pnpm test:build' }}
+        run: pnpm test:build
         env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
           # Set under every common bundler env prefix so each app reads whichever its bundler exposes
+          # (matrix.env-var-name is informational; we set all common prefixes here for simplicity).
           SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
           NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
           PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+          VITE_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+          NUXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
           REACT_APP_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          configPath: dev-packages/lighthouse-tests/lighthouserc.js
+          configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.js
           uploadArtifacts: true
           temporaryPublicStorage: true
           runs: 5
-          urls: ${{ matrix.url || 'http://localhost:3000/' }}
-          startServerCommand: ${{ matrix.serve-command || '' }}
-          startServerReadyTimeout: 30000
+        env:
+          # lighthouserc.js branches on these env vars at config-load time.
+          LIGHTHOUSE_SERVE_MODE: ${{ matrix.serve }}
+          LIGHTHOUSE_STATIC_DIR: ${{ runner.temp }}/test-application/${{ matrix.static-dir }}
+          LIGHTHOUSE_START_CMD: cd ${{ runner.temp }}/test-application && ${{ matrix.start-cmd }}
+          LIGHTHOUSE_READY_PATTERN: ${{ matrix.ready-pattern }}
+          LIGHTHOUSE_URL: 'http://localhost:3000/'
 
       - name: Upload Lighthouse results
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: lighthouse-${{ matrix.test-application }}-${{ matrix.mode }}
+          name: lighthouse-${{ matrix.app }}-${{ matrix.mode }}
           path: .lighthouseci/
           retention-days: 7
           if-no-files-found: ignore
 
   job_lighthouse_report:
     name: Lighthouse Report
-    needs: [job_lighthouse]
-    if: always() && needs.job_lighthouse.result != 'cancelled'
+    needs: [job_get_metadata, job_build, job_lighthouse, job_lighthouse_matrix]
+    if: always() && needs.job_lighthouse_matrix.result == 'success'
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out current commit
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Download all Lighthouse artifacts
         uses: actions/download-artifact@v7
         with:
@@ -1331,8 +1357,8 @@ jobs:
         run: node dev-packages/lighthouse-tests/post-comment.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
