@@ -45,6 +45,12 @@ function isCallbackManager(value: unknown): value is {
 }
 
 /**
+ * Exported for testing.
+ * @internal
+ */
+export const _INTERNAL_augmentCallbackHandlers = augmentCallbackHandlers;
+
+/**
  * Augments a callback handler list with Sentry's handler if not already present.
  *
  * `options.callbacks` may be one of three shapes (per LangChain's RunnableConfig):
