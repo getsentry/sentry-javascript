@@ -35,6 +35,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
           // release,
           bundleSizeOptimizations,
+          applicationKey,
           unstable_sentryVitePluginOptions,
           debug,
           org,
@@ -109,6 +110,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               },
               plugins: [
                 sentryVitePlugin({
+                  applicationKey,
                   // Priority: top-level options > deprecated options > env vars
                   // eslint-disable-next-line deprecation/deprecation
                   org: org ?? uploadOptions.org ?? env.SENTRY_ORG,

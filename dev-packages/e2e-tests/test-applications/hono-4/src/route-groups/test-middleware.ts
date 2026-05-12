@@ -7,6 +7,7 @@ middlewareRoutes.get('/named', c => c.json({ middleware: 'named' }));
 middlewareRoutes.get('/anonymous', c => c.json({ middleware: 'anonymous' }));
 middlewareRoutes.get('/multi', c => c.json({ middleware: 'multi' }));
 middlewareRoutes.get('/error', c => c.text('should not reach'));
+middlewareRoutes.get('/param/:id', c => c.json({ paramId: c.req.param('id') }));
 
 // Self-contained sub-app registering its own middleware via .use()
 const subAppWithMiddleware = new Hono();
@@ -18,6 +19,7 @@ subAppWithMiddleware.use('/anonymous/*', async (c, next) => {
 });
 subAppWithMiddleware.use('/multi/*', middlewareA, middlewareB);
 subAppWithMiddleware.use('/error/*', failingMiddleware);
+subAppWithMiddleware.use('/param/*', middlewareA);
 
 // .all() handler (1 parameter) — should NOT be wrapped as middleware by patchRoute.
 subAppWithMiddleware.all('/all-handler', async function allCatchAll(c) {

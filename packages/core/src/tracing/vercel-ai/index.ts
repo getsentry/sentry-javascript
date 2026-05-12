@@ -325,8 +325,13 @@ export function processVercelAiSpanAttributes(attributes: Record<string, unknown
 
   addProviderMetadataToAttributes(attributes);
 
-  // Change attributes namespaced with `ai.X` to `vercel.ai.X`
   for (const key of Object.keys(attributes)) {
+    // JSON-stringify any array-valued attributes so they survive v2 span serialization.
+    // Can be removed once span streaming supports arrays natively.
+    if (Array.isArray(attributes[key])) {
+      attributes[key] = JSON.stringify(attributes[key]);
+    }
+    // Change attributes namespaced with `ai.X` to `vercel.ai.X`
     if (key.startsWith('ai.')) {
       renameAttributeKey(attributes, key, `vercel.${key}`);
     }

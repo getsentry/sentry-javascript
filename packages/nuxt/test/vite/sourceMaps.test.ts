@@ -231,6 +231,18 @@ describe('getPluginOptions', () => {
     });
   });
 
+  it('passes applicationKey to plugin options', () => {
+    const options: SentryNuxtModuleOptions = {
+      applicationKey: 'my-app-key',
+    };
+
+    const result = getPluginOptions(options);
+
+    expect(result).toMatchObject({
+      applicationKey: 'my-app-key',
+    });
+  });
+
   it('supports bundleSizeOptimizations', () => {
     const options: SentryNuxtModuleOptions = {
       bundleSizeOptimizations: {

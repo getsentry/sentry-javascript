@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import type { Client } from '@sentry/core';
-import { SentrySpan, spanToJSON } from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import { SentrySpan, spanToJSON } from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { describe, expect, test } from 'vitest';

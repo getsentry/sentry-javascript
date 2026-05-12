@@ -14,6 +14,11 @@ import {
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
 }
 
 /**
@@ -34,12 +39,23 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
       }
 
       // Delegate breadcrumb handling to the core console integration.
-      const core = coreConsoleIntegration(options);
+      const core = coreConsoleIntegration({
+        ...options,
+        filter: [
+          ...(options.filter || []),
+          // Deprecation on Node 26 for module.require(), which is used by IITM
+          '[DEP0205] DeprecationWarning',
+        ],
+      });
       core.setup?.(client);
     },
   };
 });
 
+/**
+ * NOTE: This currently ignores the filter option.
+ * We can revisit this later.
+ */
 function instrumentConsoleLambda(): void {
   const consoleObj = GLOBAL_OBJ?.console;
   if (!consoleObj) {

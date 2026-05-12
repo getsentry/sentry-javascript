@@ -97,52 +97,8 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 }
 
 function applyScopeToSegmentSpan(_segmentSpanJSON: StreamedSpanJSON, _scopeData: ScopeData): void {
-  // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
+  // TODO: Apply contexts data from auto instrumentation to segment span
   // This will follow in a separate PR
-}
-
-function applyCommonSpanAttributes(
-  spanJSON: StreamedSpanJSON,
-  serializedSegmentSpan: StreamedSpanJSON,
-  client: Client,
-  scopeData: ScopeData,
-): void {
-  const sdk = client.getSdkMetadata();
-  const { release, environment, sendDefaultPii } = client.getOptions();
-
-  // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
-  safeSetSpanJSONAttributes(spanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-    ...(sendDefaultPii
-      ? {
-          [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
-          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
-          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
-          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
-        }
-      : {}),
-    ...scopeData.attributes,
-  });
-}
-
-/**
- * Apply a user-provided beforeSendSpan callback to a span JSON.
- */
-export function applyBeforeSendSpanCallback(
-  span: StreamedSpanJSON,
-  beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
-): StreamedSpanJSON {
-  const modifedSpan = beforeSendSpan(span);
-  if (!modifedSpan) {
-    showSpanDropWarning();
-    return span;
-  }
-  return modifedSpan;
 }
 
 /**
@@ -160,6 +116,46 @@ export function safeSetSpanJSONAttributes(
       originalAttributes[key] = value;
     }
   });
+}
+
+function applyCommonSpanAttributes(
+  spanJSON: StreamedSpanJSON,
+  serializedSegmentSpan: StreamedSpanJSON,
+  client: Client,
+  scopeData: ScopeData,
+): void {
+  const sdk = client.getSdkMetadata();
+  const { release, environment } = client.getOptions();
+
+  // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
+  safeSetSpanJSONAttributes(spanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
+    [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
+    [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
+    [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
+    [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
+    ...scopeData.attributes,
+  });
+}
+
+/**
+ * Apply a user-provided beforeSendSpan callback to a span JSON.
+ */
+export function applyBeforeSendSpanCallback(
+  span: StreamedSpanJSON,
+  beforeSendSpan: (span: StreamedSpanJSON) => StreamedSpanJSON,
+): StreamedSpanJSON {
+  const modifedSpan = beforeSendSpan(span);
+  if (!modifedSpan) {
+    showSpanDropWarning();
+    return span;
+  }
+  return modifedSpan;
 }
 
 // OTel SpanKind values (numeric to avoid importing from @opentelemetry/api)

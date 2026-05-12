@@ -9,9 +9,11 @@ const baseConfig = makeBaseNPMConfig({
   },
 });
 
-const defaultExternal = baseConfig.external || [];
+const defaultExternal = baseConfig.external;
+const isDefaultExternal =
+  typeof defaultExternal === 'function' ? defaultExternal : id => (defaultExternal || []).includes(id);
 baseConfig.external = id => {
-  if (defaultExternal.includes(id)) {
+  if (isDefaultExternal(id)) {
     return true;
   }
 

@@ -53,13 +53,13 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 
-/** The user ID (gated by sendDefaultPii) */
+/** The user ID */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
-/** The user email (gated by sendDefaultPii) */
+/** The user email */
 export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
-/** The user IP address (gated by sendDefaultPii) */
+/** The user IP address */
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
-/** The user username (gated by sendDefaultPii) */
+/** The user username */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
 /**

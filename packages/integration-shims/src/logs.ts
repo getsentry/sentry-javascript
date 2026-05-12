@@ -1,5 +1,5 @@
-import type { Integration, ParameterizedString } from '@sentry/core';
-import { consoleSandbox, defineIntegration } from '@sentry/core';
+import type { Integration, ParameterizedString } from '@sentry/core/browser';
+import { consoleSandbox, defineIntegration } from '@sentry/core/browser';
 import { FAKE_FUNCTION } from './common';
 import { DEBUG_BUILD } from './debug-build';
 

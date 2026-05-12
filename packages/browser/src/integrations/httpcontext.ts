@@ -1,4 +1,4 @@
-import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core/browser';
 import { getHttpRequestData, WINDOW } from '../helpers';
 
 /**

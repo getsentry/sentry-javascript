@@ -1,6 +1,7 @@
 import { getOriginalFunction, markFunctionWrapped } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/core';
-import type { Env, Hono, MiddlewareHandler } from 'hono';
+import type { Hono, MiddlewareHandler } from 'hono';
+import { Hono as HonoClass } from 'hono';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
 interface HonoRoute {
@@ -15,18 +16,20 @@ interface HonoBaseProto {
 }
 
 /**
- * Patches `HonoBase.prototype.route` so that when a sub-app is mounted via `app.route('/prefix', subApp)`, its middleware handlers
- * are retroactively wrapped in Sentry spans before the parent copies them.
+ * Patches `route()` on the Hono base prototype once, globally.
  *
- * `route` lives on the prototype (unlike `use` which is a class field)
+ * Wraps sub-app middleware at mount time so that `app.route('/prefix', subApp)` is traced.
+ * Idempotent: safe to call multiple times.
  */
-export function patchRoute<E extends Env>(app: Hono<E>): void {
-  const honoBaseProto = Object.getPrototypeOf(Object.getPrototypeOf(app)) as HonoBaseProto;
+export function installRouteHookOnPrototype(): void {
+  // `route` is on the base prototype, not the concrete subclass, walk up one level
+  const honoBaseProto = Object.getPrototypeOf(HonoClass.prototype) as HonoBaseProto;
   if (!honoBaseProto || typeof honoBaseProto?.route !== 'function') {
     return;
   }
 
-  if (getOriginalFunction(honoBaseProto.route as WrappedFunction)) {
+  // Already patched: return
+  if (getOriginalFunction(honoBaseProto.route as unknown as WrappedFunction)) {
     return;
   }
 
@@ -45,18 +48,13 @@ export function patchRoute<E extends Env>(app: Hono<E>): void {
 }
 
 /**
- * Figures out which handlers in a sub-app's flat routes array are middleware (and should get a span), then wraps them.
+ * Identifies middleware handlers in a sub-app's flat routes array and wraps them in spans.
  *
- * The challenge: Hono stores every handler as a plain { method, path, handler } entry. There is no "isMiddleware" flag.
- * Two heuristics identify middleware:
- *
- * 1. Position within a group. `app.get('/path', mw, handler)` produces two entries with the same method+path.
- *    All but the last one must be middleware, because only middleware calls `next()` to pass control to the next handler.
- *
- * 2. Function arity (# of params) for method 'ALL'. Both `.use()` and `.all()` store their handlers under method 'ALL',
- *    so we can't use position alone to tell them apart when one is the last (or only) entry in its group.
- *    The deciding factor: Hono's `.use()` only accepts `(context, next)` (handlers with 2+ params). While `.all()` route
- *    handlers typically only accept `(context)`.
+ * Heuristics (since Hono has no "isMiddleware" flag):
+ * 1. Position: `app.get('/path', mw, handler)` produces entries with the same method+path.
+ *    All but the LAST are middleware (they call `next()`).
+ * 2. Arity (# of params) for method 'ALL': `.use()` handlers always have 2+ params (context, next),
+ *    while `.all()` route handlers typically have 1 (`context` only).
  *    See: https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
  */
 export function wrapSubAppMiddleware(routes: HonoRoute[]): void {

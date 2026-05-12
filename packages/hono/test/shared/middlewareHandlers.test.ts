@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { responseHandler } from '../../src/shared/middlewareHandlers';
+import { requestHandler, responseHandler } from '../../src/shared/middlewareHandlers';
 
 vi.mock('hono/route', () => ({
   routePath: () => '/test',
@@ -11,6 +11,7 @@ vi.mock('../../src/utils/hono-context', () => ({
 }));
 
 const mockSetTransactionName = vi.fn();
+const mockSetSDKProcessingMetadata = vi.fn();
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -19,6 +20,7 @@ vi.mock('@sentry/core', async () => {
     getActiveSpan: vi.fn(() => null),
     getIsolationScope: vi.fn(() => ({
       setTransactionName: mockSetTransactionName,
+      setSDKProcessingMetadata: mockSetSDKProcessingMetadata,
     })),
     getClient: vi.fn(() => undefined),
   };
@@ -110,7 +112,7 @@ describe('responseHandler', () => {
   describe('transaction name', () => {
     it('sets transaction name on isolation scope', () => {
       // oxlint-disable-next-line typescript/no-explicit-any
-      responseHandler(createMockContext(200) as any);
+      requestHandler(createMockContext(200) as any);
 
       expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test');
     });

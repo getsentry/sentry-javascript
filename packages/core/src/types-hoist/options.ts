@@ -554,6 +554,15 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   orgId?: `${number}` | number;
 
   /**
+   * If set to `true`, gen_ai spans will be extracted from transactions and sent as v2 span envelope items.
+   *
+   * This enables streaming gen_ai spans, avoiding payload size limits of usual transactions.
+   *
+   * @default false
+   */
+  streamGenAiSpans?: boolean;
+
+  /**
    * If logs support should be enabled.
    *
    * @default false

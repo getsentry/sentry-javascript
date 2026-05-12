@@ -1,6 +1,6 @@
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
-import { addConsoleInstrumentationHandler } from '../instrument/console';
+import { addConsoleInstrumentationFilter, addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import { CONSOLE_LEVELS } from '../utils/debug-logger';
@@ -10,6 +10,11 @@ import { GLOBAL_OBJ } from '../utils/worldwide';
 
 interface ConsoleIntegrationOptions {
   levels: ConsoleLevel[];
+  /**
+   * Filter out console messages that match the given strings or regular expressions.
+   * These will neither be passed to the handler, and they will also not be logged to the user, unless they have debug enabled.
+   */
+  filter?: (string | RegExp)[];
 }
 
 type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
@@ -48,8 +53,12 @@ export const consoleIntegration = defineIntegration((options: Partial<ConsoleInt
 
         addConsoleBreadcrumb(level, args);
       });
-
       client.registerCleanup(unsubscribe);
+
+      if (options.filter) {
+        const unsubscribe = addConsoleInstrumentationFilter(options.filter);
+        client.registerCleanup(unsubscribe);
+      }
     },
   };
 });

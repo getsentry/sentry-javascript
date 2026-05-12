@@ -116,6 +116,9 @@ for (const { name, prefix } of SCENARIOS) {
           type: 'auto.middleware.hono',
         }),
       );
+
+      // The transaction name on the error event determines the culprit shown in Sentry.
+      expect(errorEvent.transaction).toBe(`GET ${prefix}/error`);
     });
 
     test('sets error status on middleware span when middleware throws', async ({ baseURL }) => {
@@ -126,7 +129,7 @@ for (const { name, prefix } of SCENARIOS) {
       await fetch(`${baseURL}${prefix}/error`);
 
       const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${prefix}/error/*`);
+      expect(transaction.transaction).toBe(`GET ${prefix}/error`);
 
       const spans = transaction.spans || [];
 
@@ -136,6 +139,25 @@ for (const { name, prefix } of SCENARIOS) {
 
       expect(failingSpan).toBeDefined();
       expect(failingSpan?.status).toBe('internal_error');
+    });
+
+    test('uses parameterized route in transaction name', async ({ baseURL }) => {
+      const transactionPromise = waitForTransaction(APP_NAME, event => {
+        return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes(`${prefix}/param/`);
+      });
+
+      const response = await fetch(`${baseURL}${prefix}/param/42`);
+      expect(response.status).toBe(200);
+
+      const transaction = await transactionPromise;
+      expect(transaction.transaction).toBe(`GET ${prefix}/param/:id`);
+
+      const spans = transaction.spans || [];
+      const middlewareSpan = spans.find(
+        (span: { description?: string; op?: string }) =>
+          span.op === 'middleware.hono' && span.description === 'middlewareA',
+      );
+      expect(middlewareSpan).toBeDefined();
     });
 
     test('includes request data on error events from middleware', async ({ baseURL }) => {

@@ -1,15 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
-  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
@@ -29,415 +24,109 @@ describe('Vercel AI integration (V5)', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE = {
-    transaction: 'main',
-    spans: expect.arrayContaining([
-      // First span - no telemetry config, should enable telemetry but not record inputs/outputs when sendDefaultPii: false
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Second span - explicitly enabled telemetry but recordInputs/recordOutputs not set, should not record when sendDefaultPii: false
-      expect.objectContaining({
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.model.provider': 'mock-provider',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.settings.maxRetries': 2,
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          'vercel.ai.streaming': false,
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.id': expect.any(String),
-          'vercel.ai.response.timestamp': expect.any(String),
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-        },
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Third span - explicit telemetry enabled, should record inputs/outputs regardless of sendDefaultPii
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
-          'vercel.ai.response.finishReason': 'stop',
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Fourth span - doGenerate for explicit telemetry enabled call
-      expect.objectContaining({
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.model.provider': 'mock-provider',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.settings.maxRetries': 2,
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          'vercel.ai.streaming': false,
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.id': expect.any(String),
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.response.timestamp': expect.any(String),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-        },
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Fifth span - tool call generateText span
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.response.finishReason': 'tool-calls',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Sixth span - tool call doGenerate span
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          'vercel.ai.response.finishReason': 'tool-calls',
-          'vercel.ai.response.id': expect.any(String),
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.timestamp': expect.any(String),
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Seventh span - tool call execution span
-      // Note: gen_ai.tool.description is NOT present when sendDefaultPii: false because ai.prompt.tools is not recorded
-      expect.objectContaining({
-        data: {
-          'vercel.ai.operationId': 'ai.toolCall',
-          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
-          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
-          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'execute_tool getWeather',
-        op: 'gen_ai.execute_tool',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-    ]),
-  };
-
-  const EXPECTED_AVAILABLE_TOOLS_JSON =
-    '[{"type":"function","name":"getWeather","description":"Get the current weather for a location","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false}}]';
-
-  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
-    transaction: 'main',
-    spans: expect.arrayContaining([
-      // First span - no telemetry config, should enable telemetry AND record inputs/outputs when sendDefaultPii: true
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '[{"role":"user","content":"Where is the first span?"}]',
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Second span - doGenerate for first call, should also include input/output fields when sendDefaultPii: true
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.response.id': expect.any(String),
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.timestamp': expect.any(String),
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Third span - explicitly enabled telemetry, should record inputs/outputs regardless of sendDefaultPii
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '[{"role":"user","content":"Where is the second span?"}]',
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Fourth span - doGenerate for explicitly enabled telemetry call
-      expect.objectContaining({
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.model.provider': 'mock-provider',
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.settings.maxRetries': 2,
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          'vercel.ai.streaming': false,
-          'vercel.ai.response.finishReason': 'stop',
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.id': expect.any(String),
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
-          'vercel.ai.response.timestamp': expect.any(String),
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 20,
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 30,
-        },
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Fifth span - tool call generateText span (should include prompts when sendDefaultPii: true)
-      expect.objectContaining({
-        data: {
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText',
-          'vercel.ai.pipeline.name': 'generateText',
-          'vercel.ai.prompt': '[{"role":"user","content":"What is the weather in San Francisco?"}]',
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
-          'vercel.ai.response.finishReason': 'tool-calls',
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        },
-        description: 'invoke_agent',
-        op: 'gen_ai.invoke_agent',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Sixth span - tool call doGenerate span (should include prompts when sendDefaultPii: true)
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-          'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.operationId': 'ai.generateText.doGenerate',
-          'vercel.ai.pipeline.name': 'generateText.doGenerate',
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]:
-            '[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"{\\"location\\":\\"San Francisco\\"}"}],"finish_reason":"tool_call"}]',
-          'vercel.ai.prompt.toolChoice': expect.any(String),
-          [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
-          'vercel.ai.response.finishReason': 'tool-calls',
-          'vercel.ai.response.id': expect.any(String),
-          'vercel.ai.response.model': 'mock-model-id',
-          'vercel.ai.response.timestamp': expect.any(String),
-          'vercel.ai.settings.maxRetries': 2,
-          'vercel.ai.streaming': false,
-          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
-          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-          [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        }),
-        description: 'generate_content mock-model-id',
-        op: 'gen_ai.generate_content',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-      // Seventh span - tool call execution span
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'vercel.ai.operationId': 'ai.toolCall',
-          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
-          [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: 'Get the current weather for a location',
-          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
-          [GEN_AI_TOOL_INPUT_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-        }),
-        description: 'execute_tool getWeather',
-        op: 'gen_ai.execute_tool',
-        origin: 'auto.vercelai.otel',
-        status: 'ok',
-      }),
-    ]),
-  };
-
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
       test('creates ai related spans with sendDefaultPii: false', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE }).start().completed();
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(7);
+              const firstInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes['vercel.ai.operationId'].value === 'ai.generateText' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined &&
+                  span.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value === 10,
+              );
+              expect(firstInvokeAgentSpan).toBeDefined();
+              expect(firstInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(firstInvokeAgentSpan!.status).toBe('ok');
+              expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('mock-model-id');
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(20);
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(30);
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+
+              const firstGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes['vercel.ai.operationId'].value === 'ai.generateText.doGenerate' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] === undefined,
+              );
+              expect(firstGenerateContentSpan).toBeDefined();
+              expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(firstGenerateContentSpan!.status).toBe('ok');
+              expect(firstGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
+                'ai.generateText.doGenerate',
+              );
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('mock-provider');
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeUndefined();
+
+              const secondInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                    '[{"role":"user","content":"Where is the second span?"}]',
+              );
+              expect(secondInvokeAgentSpan).toBeDefined();
+              expect(secondInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(secondInvokeAgentSpan!.status).toBe('ok');
+              expect(secondInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(secondInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"user","content":"Where is the second span?"}]',
+              );
+              expect(secondInvokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
+              );
+
+              const secondGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+              );
+              expect(secondGenerateContentSpan).toBeDefined();
+              expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(secondGenerateContentSpan!.status).toBe('ok');
+              expect(secondGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+
+              const toolInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' && span.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
+              );
+              expect(toolInvokeAgentSpan).toBeDefined();
+              expect(toolInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(toolInvokeAgentSpan!.status).toBe('ok');
+
+              const toolGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]?.value === 15,
+              );
+              expect(toolGenerateContentSpan).toBeDefined();
+              expect(toolGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(toolGenerateContentSpan!.status).toBe('ok');
+
+              const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather');
+              expect(toolExecutionSpan).toBeDefined();
+              expect(toolExecutionSpan!.name).toBe('execute_tool getWeather');
+              expect(toolExecutionSpan!.status).toBe('ok');
+              expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE].value).toBe('function');
+            },
+          })
+          .start()
+          .completed();
       });
     },
     {
@@ -453,7 +142,110 @@ describe('Vercel AI integration (V5)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates ai related spans with sendDefaultPii: true', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE }).start().completed();
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(7);
+              const firstInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                    '[{"role":"user","content":"Where is the first span?"}]',
+              );
+              expect(firstInvokeAgentSpan).toBeDefined();
+              expect(firstInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(firstInvokeAgentSpan!.status).toBe('ok');
+              expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(firstInvokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"user","content":"Where is the first span?"}]',
+              );
+              expect(firstInvokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
+              );
+
+              const firstGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('First span here!'),
+              );
+              expect(firstGenerateContentSpan).toBeDefined();
+              expect(firstGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(firstGenerateContentSpan!.status).toBe('ok');
+              expect(firstGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
+                'ai.generateText.doGenerate',
+              );
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+              expect(firstGenerateContentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE].value).toContain(
+                'First span here!',
+              );
+
+              const secondInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                    '[{"role":"user","content":"Where is the second span?"}]',
+              );
+              expect(secondInvokeAgentSpan).toBeDefined();
+              expect(secondInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(secondInvokeAgentSpan!.status).toBe('ok');
+              expect(secondInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(secondInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"user","content":"Where is the second span?"}]',
+              );
+
+              const secondGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes[GEN_AI_OUTPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Second span here!'),
+              );
+              expect(secondGenerateContentSpan).toBeDefined();
+              expect(secondGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(secondGenerateContentSpan!.status).toBe('ok');
+              expect(secondGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+
+              const toolInvokeAgentSpan = container.items.find(
+                span =>
+                  span.name === 'invoke_agent' &&
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                    '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+              );
+              expect(toolInvokeAgentSpan).toBeDefined();
+              expect(toolInvokeAgentSpan!.name).toBe('invoke_agent');
+              expect(toolInvokeAgentSpan!.status).toBe('ok');
+              expect(toolInvokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
+                '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+              );
+
+              const toolGenerateContentSpan = container.items.find(
+                span =>
+                  span.name === 'generate_content mock-model-id' &&
+                  span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] !== undefined,
+              );
+              expect(toolGenerateContentSpan).toBeDefined();
+              expect(toolGenerateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(toolGenerateContentSpan!.status).toBe('ok');
+              expect(toolGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(toolGenerateContentSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toBeDefined();
+              expect(toolGenerateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(15);
+
+              const toolExecutionSpan = container.items.find(span => span.name === 'execute_tool getWeather');
+              expect(toolExecutionSpan).toBeDefined();
+              expect(toolExecutionSpan!.name).toBe('execute_tool getWeather');
+              expect(toolExecutionSpan!.status).toBe('ok');
+              expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE].value).toBe(
+                'Get the current weather for a location',
+              );
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_INPUT_ATTRIBUTE]).toBeDefined();
+              expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_OUTPUT_ATTRIBUTE]).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
       });
     },
     {
@@ -469,84 +261,6 @@ describe('Vercel AI integration (V5)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('captures error in tool', async () => {
-        const expectedTransaction = {
-          transaction: 'main',
-          spans: expect.arrayContaining([
-            expect.objectContaining({
-              data: {
-                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-                'vercel.ai.model.provider': 'mock-provider',
-                'vercel.ai.operationId': 'ai.generateText',
-                'vercel.ai.pipeline.name': 'generateText',
-                'vercel.ai.settings.maxRetries': 2,
-                'vercel.ai.streaming': false,
-                [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-                [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-                'vercel.ai.response.finishReason': 'tool-calls',
-              },
-              description: 'invoke_agent',
-              op: 'gen_ai.invoke_agent',
-              origin: 'auto.vercelai.otel',
-            }),
-            expect.objectContaining({
-              data: {
-                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
-                'vercel.ai.model.provider': 'mock-provider',
-                'vercel.ai.operationId': 'ai.generateText.doGenerate',
-                'vercel.ai.pipeline.name': 'generateText.doGenerate',
-                'vercel.ai.response.finishReason': 'tool-calls',
-                'vercel.ai.response.id': expect.any(String),
-                'vercel.ai.response.model': 'mock-model-id',
-                'vercel.ai.response.timestamp': expect.any(String),
-                'vercel.ai.settings.maxRetries': 2,
-                'vercel.ai.streaming': false,
-                [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
-                [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
-                [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
-                [GEN_AI_SYSTEM_ATTRIBUTE]: 'mock-provider',
-                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
-                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 25,
-                [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 40,
-                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-              },
-              description: 'generate_content mock-model-id',
-              op: 'gen_ai.generate_content',
-              origin: 'auto.vercelai.otel',
-              status: 'ok',
-            }),
-            expect.objectContaining({
-              data: {
-                'vercel.ai.operationId': 'ai.toolCall',
-                [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
-                [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
-                [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
-                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
-              },
-              description: 'execute_tool getWeather',
-              op: 'gen_ai.execute_tool',
-              origin: 'auto.vercelai.otel',
-              status: 'internal_error',
-            }),
-          ]),
-        };
-
-        const expectedError = {
-          level: 'error',
-          tags: expect.objectContaining({
-            'vercel.ai.tool.name': 'getWeather',
-            'vercel.ai.tool.callId': 'call-1',
-          }),
-        };
-
         let transactionEvent: Event | undefined;
         let errorEvent: Event | undefined;
 
@@ -554,6 +268,28 @@ describe('Vercel AI integration (V5)', () => {
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
+            },
+          })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(3);
+              const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
+              expect(invokeAgentSpan).toBeDefined();
+              expect(invokeAgentSpan!.name).toBe('invoke_agent');
+              expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+
+              const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
+              expect(generateContentSpan).toBeDefined();
+              expect(generateContentSpan!.name).toBe('generate_content mock-model-id');
+              expect(generateContentSpan!.status).toBe('ok');
+              expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+
+              const toolSpan = container.items.find(span => span.name === 'execute_tool getWeather');
+              expect(toolSpan).toBeDefined();
+              expect(toolSpan!.name).toBe('execute_tool getWeather');
+              expect(toolSpan!.status).toBe('error');
+              expect(toolSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE].value).toBe('getWeather');
             },
           })
           .expect({
@@ -565,10 +301,16 @@ describe('Vercel AI integration (V5)', () => {
           .completed();
 
         expect(transactionEvent).toBeDefined();
-        expect(transactionEvent).toMatchObject(expectedTransaction);
+        expect(transactionEvent!.transaction).toBe('main');
 
         expect(errorEvent).toBeDefined();
-        expect(errorEvent).toMatchObject(expectedError);
+        expect(errorEvent!.level).toBe('error');
+        expect(errorEvent!.tags).toEqual(
+          expect.objectContaining({
+            'vercel.ai.tool.name': 'getWeather',
+            'vercel.ai.tool.callId': 'call-1',
+          }),
+        );
 
         // Trace id should be the same for the transaction and error event
         expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
@@ -587,7 +329,29 @@ describe('Vercel AI integration (V5)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates ai related spans with v5', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE }).start().completed();
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(7);
+              const invokeAgentSpans = container.items.filter(
+                span => span.attributes['sentry.op'].value === 'gen_ai.invoke_agent',
+              );
+              expect(invokeAgentSpans).toHaveLength(3);
+
+              const generateContentSpans = container.items.filter(
+                span => span.attributes['sentry.op'].value === 'gen_ai.generate_content',
+              );
+              expect(generateContentSpans).toHaveLength(3);
+
+              const toolSpan = container.items.find(
+                span => span.attributes['sentry.op'].value === 'gen_ai.execute_tool',
+              );
+              expect(toolSpan).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
       });
     },
     {

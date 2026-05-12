@@ -1,4 +1,4 @@
-import { consoleSandbox, defineIntegration } from '@sentry/core';
+import { consoleSandbox, defineIntegration } from '@sentry/core/browser';
 
 /**
  * This is a shim for the ElementTiming integration.

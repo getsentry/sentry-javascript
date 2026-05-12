@@ -6,6 +6,7 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   updateSpanName,
+  type Scope,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Context } from 'hono';
@@ -22,6 +23,8 @@ export function requestHandler(context: Context): void {
 
   const isolationScope = defaultScope === currentIsolationScope ? defaultScope : currentIsolationScope;
 
+  updateSpanRouteName(isolationScope, context);
+
   isolationScope.setSDKProcessingMetadata({
     normalizedRequest: winterCGRequestToRequestData(hasFetchEvent(context) ? context.event.request : context.req.raw),
   });
@@ -31,21 +34,27 @@ export function requestHandler(context: Context): void {
  * Response handler for Hono framework
  */
 export function responseHandler(context: Context): void {
-  const activeSpan = getActiveSpan();
-  if (activeSpan) {
-    activeSpan.updateName(`${context.req.method} ${routePath(context)}`);
-    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-
-    const rootSpan = getRootSpan(activeSpan);
-    updateSpanName(rootSpan, `${context.req.method} ${routePath(context)}`);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-  }
-
-  getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
-
   if (context.error && !isExpectedError(context.error)) {
     getClient()?.captureException(context.error, {
       mechanism: { handled: false, type: 'auto.http.hono.context_error' },
     });
   }
+}
+
+function updateSpanRouteName(isolationScope: Scope, context: Context): void {
+  const activeSpan = getActiveSpan();
+
+  // Final matched route: https://hono.dev/docs/helpers/route#using-with-index-parameter
+  const lastMatchedRoute = routePath(context, -1);
+
+  if (activeSpan) {
+    activeSpan.updateName(`${context.req.method} ${lastMatchedRoute}`);
+    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+    const rootSpan = getRootSpan(activeSpan);
+    updateSpanName(rootSpan, `${context.req.method} ${lastMatchedRoute}`);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  }
+
+  isolationScope.setTransactionName(`${context.req.method} ${lastMatchedRoute}`);
 }
