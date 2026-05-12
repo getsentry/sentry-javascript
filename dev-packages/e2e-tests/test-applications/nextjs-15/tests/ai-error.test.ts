@@ -1,10 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create AI spans with correct attributes and error linking', async ({ page }) => {
   const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === 'GET /ai-error-test';
   });
+
+  // gen_ai spans are extracted into a separate span v2 envelope item
+  const genAiSpansPromise = waitForStreamedSpans('nextjs-15', spans =>
+    spans.some(span => getSpanOp(span) === 'gen_ai.invoke_agent'),
+  );
 
   const errorEventPromise = waitForError('nextjs-15', async errorEvent => {
     return errorEvent.exception?.values?.[0]?.value?.includes('Tool call failed');
@@ -13,21 +18,20 @@ test('should create AI spans with correct attributes and error linking', async (
   await page.goto('/ai-error-test');
 
   const aiTransaction = await aiTransactionPromise;
+  const genAiSpans = await genAiSpansPromise;
   const errorEvent = await errorEventPromise;
 
   expect(aiTransaction).toBeDefined();
   expect(aiTransaction.transaction).toBe('GET /ai-error-test');
-
-  const spans = aiTransaction.spans || [];
 
   // Each generateText call should create 2 spans: one for the pipeline and one for doGenerate
   // Plus a span for the tool call
   // TODO: For now, this is sadly not fully working - the monkey patching of the ai package is not working
   // because of this, only spans that are manually opted-in at call time will be captured
   // this may be fixed by https://github.com/vercel/ai/pull/6716 in the future
-  const aiPipelineSpans = spans.filter(span => span.op === 'gen_ai.invoke_agent');
-  const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_content');
-  const toolCallSpans = spans.filter(span => span.op === 'gen_ai.execute_tool');
+  const aiPipelineSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.invoke_agent');
+  const aiGenerateSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.generate_content');
+  const toolCallSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.execute_tool');
 
   expect(aiPipelineSpans.length).toBeGreaterThanOrEqual(1);
   expect(aiGenerateSpans.length).toBeGreaterThanOrEqual(1);

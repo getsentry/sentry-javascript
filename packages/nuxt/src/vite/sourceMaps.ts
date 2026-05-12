@@ -171,6 +171,7 @@ export function getPluginOptions(
   }
 
   return {
+    applicationKey: moduleOptions.applicationKey,
     // eslint-disable-next-line deprecation/deprecation
     org: moduleOptions.org ?? sourceMapsUploadOptions.org ?? process.env.SENTRY_ORG,
     // eslint-disable-next-line deprecation/deprecation

@@ -249,13 +249,13 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
       if (client.getIntegrationByName('Http')) {
         debug.warn(
-          'It seems that you have manually added `httpServerSpansIntergation` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
+          'It seems that you have manually added `httpServerSpansIntegration` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
         );
       }
 
       if (!client.getIntegrationByName('Http.Server')) {
         debug.error(
-          'It seems that you have manually added `httpServerSpansIntergation` without adding `httpServerIntegration`. This is a requiement for spans to be created - please add the `httpServerIntegration` integration.',
+          'It seems that you have manually added `httpServerSpansIntegration` without adding `httpServerIntegration`. This is a requiement for spans to be created - please add the `httpServerIntegration` integration.',
         );
       }
     },

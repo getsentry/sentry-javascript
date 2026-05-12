@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -22,53 +21,50 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
+      // Transaction item (first item in envelope)
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
-
       expect(transactionEvent.transaction).toBe('GET /');
-      expect(transactionEvent.spans).toEqual(
-        expect.arrayContaining([
-          // Chat model span
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
-              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
-              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
-              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
-            }),
-            description: 'chat claude-3-5-sonnet-20241022',
-            op: 'gen_ai.chat',
-            origin: 'auto.ai.langchain',
-          }),
-          // Chain span
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-              'langchain.chain.name': 'my_test_chain',
-            }),
-            description: 'chain my_test_chain',
-            op: 'gen_ai.invoke_agent',
-            origin: 'auto.ai.langchain',
-          }),
-          // Tool span
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
-              [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'search_tool',
-            }),
-            description: 'execute_tool search_tool',
-            op: 'gen_ai.execute_tool',
-            origin: 'auto.ai.langchain',
-          }),
-        ]),
-      );
+
+      // Span container item (second item in same envelope)
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(3);
+      expect(container.items.map(span => span.name).sort()).toEqual([
+        'chain my_test_chain',
+        'chat claude-3-5-sonnet-20241022',
+        'execute_tool search_tool',
+      ]);
+
+      const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
+      expect(chatSpan).toBeDefined();
+      expect(chatSpan!.status).toBe('ok');
+      expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+      expect(chatSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      expect(chatSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
+      expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'anthropic' });
+      expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'claude-3-5-sonnet-20241022',
+      });
+      expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({ type: 'double', value: 0.7 });
+      expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 100 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
+
+      const chainSpan = container.items.find(span => span.name === 'chain my_test_chain');
+      expect(chainSpan).toBeDefined();
+      expect(chainSpan!.status).toBe('ok');
+      expect(chainSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
+      expect(chainSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
+      expect(chainSpan!.attributes['langchain.chain.name']).toEqual({ type: 'string', value: 'my_test_chain' });
+
+      const toolSpan = container.items.find(span => span.name === 'execute_tool search_tool');
+      expect(toolSpan).toBeDefined();
+      expect(toolSpan!.status).toBe('ok');
+      expect(toolSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
+      expect(toolSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.execute_tool' });
+      expect(toolSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'search_tool' });
     })
     .start(signal);
   await runner.makeRequest('get', '/');

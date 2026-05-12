@@ -21,7 +21,7 @@ import {
   makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
-import { mergePlugins } from './utils.mjs';
+import { mergeExternals, mergePlugins } from './utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,6 +46,13 @@ export function makeBaseNPMConfig(options = {}) {
     excludeShadowDom: undefined,
     excludeIframe: undefined,
   });
+
+  const deps = [
+    ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
+    ...Object.keys(packageDotJSON.dependencies || {}),
+    ...Object.keys(packageDotJSON.peerDependencies || {}),
+    ...Object.keys(packageDotJSON.optionalDependencies || {}),
+  ];
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -100,17 +107,20 @@ export function makeBaseNPMConfig(options = {}) {
     plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
 
     // don't include imported modules from outside the package in the final output
-    external: [
-      ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
-      ...Object.keys(packageDotJSON.dependencies || {}),
-      ...Object.keys(packageDotJSON.peerDependencies || {}),
-      ...Object.keys(packageDotJSON.optionalDependencies || {}),
-    ],
+    // also treat subpath exports (e.g. `@sentry/core/browser`) as external
+    external: id => {
+      // treat subpath exports as external if the package is external
+      return deps.some(dep => id === dep || id.startsWith(`${dep}/`));
+    },
   };
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
-    customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+    customMerge: key => {
+      if (key === 'plugins') return mergePlugins;
+      if (key === 'external') return mergeExternals;
+      return undefined;
+    },
   });
 }
 

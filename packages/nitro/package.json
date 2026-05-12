@@ -35,7 +35,7 @@
     "nitro": ">=3.0.0-0 <4.0.0 || 3.0.260311-beta || 3.0.260415-beta"
   },
   "dependencies": {
-    "@sentry/bundler-plugin-core": "^5.2.0",
+    "@sentry/bundler-plugin-core": "^5.3.0",
     "@sentry/core": "10.52.0",
     "@sentry/node": "10.52.0",
     "@sentry/opentelemetry": "10.52.0"

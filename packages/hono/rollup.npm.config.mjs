@@ -11,7 +11,7 @@ const baseConfig = makeBaseNPMConfig({
 
 const defaultExternal = baseConfig.external;
 baseConfig.external = id => {
-  if (defaultExternal.includes(id)) {
+  if (defaultExternal(id)) {
     return true;
   }
   // Mark all hono subpaths as external

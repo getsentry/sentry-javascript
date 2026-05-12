@@ -1,6 +1,6 @@
 import { getClient } from '../../currentScopes';
 import { fill } from '../../utils/object';
-import { wrapAllMCPHandlers } from './handlers';
+import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
 import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions } from './types';
 import { validateMcpServerInstance } from './validation';
@@ -18,16 +18,23 @@ const wrappedMcpServerInstances = new WeakSet();
  * and versions that expose the newer `registerTool`/`registerResource`/`registerPrompt` API (introduced in 1.x, sole API in 2.x).
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
  *
+ * Both call orderings are supported: wrapping before or after registering tools, resources,
+ * and prompts. Sentry patches the registration methods for future handlers and retroactively
+ * wraps any already-registered ones. Wrapping at construction time is recommended by
+ * convention (consistent with other SDK integrations), but is not required.
+ *
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/core';
  * import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
  * import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
  *
- * // Default: inputs/outputs captured based on sendDefaultPii option
+ * // Wrap first, then register tools — this is the correct order
  * const server = Sentry.wrapMcpServerWithSentry(
  *   new McpServer({ name: "my-server", version: "1.0.0" })
  * );
+ *
+ * server.registerTool('my-tool', schema, handler);
  *
  * // Explicitly control input/output capture
  * const server = Sentry.wrapMcpServerWithSentry(
@@ -79,6 +86,8 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   });
 
   wrapAllMCPHandlers(serverInstance);
+
+  wrapExistingHandlers(serverInstance);
 
   wrappedMcpServerInstances.add(mcpServerInstance);
   return mcpServerInstance;

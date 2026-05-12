@@ -4,8 +4,8 @@ import type {
   EventItem,
   InternalBaseTransportOptions,
   TransportMakeRequestResponse,
-} from '@sentry/core';
-import { createEnvelope, createTransport } from '@sentry/core';
+} from '@sentry/core/browser';
+import { createEnvelope, createTransport } from '@sentry/core/browser';
 import { TextDecoder, TextEncoder } from 'util';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../src/transports/offline';

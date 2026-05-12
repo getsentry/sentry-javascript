@@ -7,4 +7,5 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   transport: loggingTransport,
+  streamGenAiSpans: true,
 });

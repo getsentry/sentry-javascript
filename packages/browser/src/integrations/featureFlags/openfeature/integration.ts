@@ -13,13 +13,13 @@
  * OpenFeature.addHooks(new Sentry.OpenFeatureIntegrationHook());
  * ```
  */
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core/browser';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 export const openFeatureIntegration = defineIntegration(() => {

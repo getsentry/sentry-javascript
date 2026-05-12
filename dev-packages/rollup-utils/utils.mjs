@@ -11,6 +11,25 @@ export const insertAt = (arr, index, ...insertees) => {
 };
 
 /**
+ * Turn a list of module IDs into a test function
+ * Includes submodule exports by checking that it starts with the name
+ * plus a / character. The list would contain something like `'@sentry/core'`
+ * and we might test it against a module id like `'@sentry/core/browser'`
+ */
+const toFilterFunction = list => (Array.isArray(list) ? id => list.some(test => filterTest(test, id)) : list);
+
+const filterTest = (test, id) => (test instanceof RegExp ? test.test(id) : id === test || id.startsWith(`${test}/`));
+
+/**
+ * Merge two external configs (function or array), returning a function that handles both.
+ */
+export function mergeExternals(base, specific) {
+  const baseFn = toFilterFunction(base);
+  const specificFn = toFilterFunction(specific);
+  return id => baseFn(id) || specificFn(id);
+}
+
+/**
  * Merge two arrays of plugins, making sure they're sorted in the correct order.
  */
 export function mergePlugins(pluginsA, pluginsB) {

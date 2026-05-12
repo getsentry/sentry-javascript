@@ -1,5 +1,5 @@
-import type { Profiler } from '@sentry/core';
-import { debug, getClient } from '@sentry/core';
+import type { Profiler } from '@sentry/core/browser';
+import { debug, getClient } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**

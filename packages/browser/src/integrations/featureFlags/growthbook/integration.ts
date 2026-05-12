@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/core';
-import { growthbookIntegration as coreGrowthbookIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core/browser';
+import { growthbookIntegration as coreGrowthbookIntegration } from '@sentry/core/browser';
 import type { GrowthBookClass } from './types';
 
 /**
