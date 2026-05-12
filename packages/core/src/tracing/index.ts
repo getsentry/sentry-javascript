@@ -20,6 +20,9 @@ export {
   getDynamicSamplingContextFromSpan,
   getDynamicSamplingContextFromScope,
   spanToBaggageHeader,
+  DSC_TRACE_STATE_PREFIX,
+  DSC_TRACE_STATE_KEYS,
+  _getDscFromTraceState,
 } from './dynamicSamplingContext';
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';

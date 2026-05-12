@@ -1,7 +1,6 @@
 import { TraceState } from '@opentelemetry/core';
 import type { DynamicSamplingContext } from '@sentry/core';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/core';
-import { SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../constants';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, _setDscOnTraceState } from '../constants';
 
 /**
  * Generate a TraceState for the given data.
@@ -13,12 +12,9 @@ export function makeTraceState({
   dsc?: Partial<DynamicSamplingContext>;
   sampled?: boolean;
 }): TraceState {
-  // We store the DSC as OTEL trace state on the span context
-  const dscString = dsc ? dynamicSamplingContextToSentryBaggageHeader(dsc) : undefined;
-
   const traceStateBase = new TraceState();
 
-  const traceStateWithDsc = dscString ? traceStateBase.set(SENTRY_TRACE_STATE_DSC, dscString) : traceStateBase;
+  const traceStateWithDsc = dsc ? _setDscOnTraceState(traceStateBase, dsc) : traceStateBase;
 
   // We also specifically want to store if this is sampled to be not recording,
   // or unsampled (=could be either sampled or not)

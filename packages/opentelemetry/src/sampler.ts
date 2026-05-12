@@ -13,7 +13,6 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
-  baggageHeaderToDynamicSamplingContext,
   debug,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
@@ -24,13 +23,13 @@ import {
   shouldIgnoreSpan,
 } from '@sentry/core';
 import {
-  SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_CHILD_IGNORED,
   SENTRY_TRACE_STATE_SAMPLE_RAND,
   SENTRY_TRACE_STATE_SAMPLE_RATE,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
   SENTRY_TRACE_STATE_SEGMENT_IGNORED,
   SENTRY_TRACE_STATE_URL,
+  getDscFromTraceState,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext } from './utils/contextData';
@@ -185,8 +184,7 @@ export class SentrySampler implements Sampler {
 
     const { isolationScope } = getScopesFromContext(context) ?? {};
 
-    const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-    const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+    const dsc = getDscFromTraceState(parentContext?.traceState);
 
     const sampleRand = parseSampleRate(dsc?.sample_rand) ?? _INTERNAL_safeMathRandom();
 
@@ -335,7 +333,7 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   // eslint-disable-next-line deprecation/deprecation
   const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
   if (url && typeof url === 'string') {
-    traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
+    traceState = traceState.set(SENTRY_TRACE_STATE_URL, encodeURIComponent(url));
   }
 
   return traceState;

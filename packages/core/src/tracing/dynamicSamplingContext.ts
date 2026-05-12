@@ -9,7 +9,7 @@ import {
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
-import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
@@ -88,7 +88,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // The span sample rate that was locally applied to the root span should also always be applied to the DSC, even if the DSC is frozen.
   // This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
   const rootSpanSampleRate =
-    traceState?.get('sentry.sample_rate') ??
+    traceState?.get('sentry-sample_rate') ??
     rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ??
     rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE];
 
@@ -105,11 +105,8 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
-  // For OpenTelemetry, we freeze the DSC on the trace state
-  const traceStateDsc = traceState?.get('sentry.dsc');
-
-  // If the span has a DSC, we want it to take precedence
-  const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
+  // For OpenTelemetry, we freeze the DSC as individual trace state entries
+  const dscOnTraceState = _getDscFromTraceState(traceState);
 
   if (dscOnTraceState) {
     return applyLocalSampleRateToDsc(dscOnTraceState);
@@ -136,7 +133,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     dsc.sample_rand =
       // In OTEL we store the sample rand on the trace state because we cannot access scopes for NonRecordingSpans
       // The Sentry OTEL SpanSampler takes care of writing the sample rand on the root span
-      traceState?.get('sentry.sample_rand') ??
+      traceState?.get('sentry-sample_rand') ??
       // On all other platforms we can actually get the scopes from a root span (we use this as a fallback)
       getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
   }
@@ -154,4 +151,40 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 export function spanToBaggageHeader(span: Span): string | undefined {
   const dsc = getDynamicSamplingContextFromSpan(span);
   return dynamicSamplingContextToSentryBaggageHeader(dsc);
+}
+
+export const DSC_TRACE_STATE_PREFIX = 'sentry-dsc-';
+export const DSC_TRACE_STATE_KEYS = [
+  'environment',
+  'release',
+  'public_key',
+  'trace_id',
+  'org_id',
+  'transaction',
+  'sampled',
+  'sample_rate',
+  'sample_rand',
+  'replay_id',
+] as const;
+
+export function _getDscFromTraceState(
+  traceState: { get(key: string): string | undefined } | undefined,
+): Partial<DynamicSamplingContext> | undefined {
+  if (!traceState) {
+    return undefined;
+  }
+
+  const dsc: Partial<DynamicSamplingContext> = {};
+  for (const key of DSC_TRACE_STATE_KEYS) {
+    const value = traceState.get(`${DSC_TRACE_STATE_PREFIX}${key}`);
+    if (value) {
+      try {
+        dsc[key] = decodeURIComponent(value);
+      } catch {
+        dsc[key] = value;
+      }
+    }
+  }
+
+  return Object.keys(dsc).length > 0 ? dsc : undefined;
 }

@@ -36,12 +36,12 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   });
 
   expect(response).toBeDefined();
-  expect(response).toMatchObject({
-    test_data: {
-      host: 'somewhere.not.sentry',
-      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,sentry-sample_rand=0.42',
-    },
-  });
+  expect(response?.test_data.host).toBe('somewhere.not.sentry');
+  expect(response?.test_data.baggage?.split(',').sort()).toEqual([
+    'sentry-environment=myEnv',
+    'sentry-release=2.0.0',
+    'sentry-sample_rand=0.42',
+  ]);
 });
 
 test('Should not propagate baggage data from an incoming to an outgoing request if sentry-trace is faulty.', async () => {

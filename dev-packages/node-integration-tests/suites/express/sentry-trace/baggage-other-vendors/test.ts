@@ -17,10 +17,13 @@ test('should merge `baggage` header of a third party vendor with the Sentry DSC 
   });
 
   expect(response).toBeDefined();
-  expect(response).toMatchObject({
-    test_data: {
-      host: 'somewhere.not.sentry',
-      baggage: 'other=vendor,foo=bar,third=party,sentry-release=2.0.0,sentry-environment=myEnv,sentry-sample_rand=0.42',
-    },
-  });
+  expect(response?.test_data.host).toBe('somewhere.not.sentry');
+  expect(response?.test_data.baggage?.split(',').sort()).toEqual([
+    'foo=bar',
+    'other=vendor',
+    'sentry-environment=myEnv',
+    'sentry-release=2.0.0',
+    'sentry-sample_rand=0.42',
+    'third=party',
+  ]);
 });

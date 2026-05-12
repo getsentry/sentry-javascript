@@ -1,7 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags } from '@opentelemetry/api';
-import { baggageHeaderToDynamicSamplingContext } from '@sentry/core';
-import { SENTRY_TRACE_STATE_DSC, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../constants';
+import { getDscFromTraceState, SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from '../constants';
 
 /**
  * OpenTelemetry only knows about SAMPLED or NONE decision,
@@ -28,8 +27,7 @@ export function getSamplingDecision(spanContext: SpanContext): boolean | undefin
   }
 
   // Fall back to DSC as a last resort, that may also contain `sampled`...
-  const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-  const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+  const dsc = getDscFromTraceState(traceState);
 
   if (dsc?.sampled === 'true') {
     return true;

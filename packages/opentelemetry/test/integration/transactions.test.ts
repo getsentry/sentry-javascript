@@ -13,7 +13,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
+import { SENTRY_TRACE_STATE_DSC_PREFIX, _setDscOnTraceState } from '../../src/constants';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
 import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
@@ -746,14 +746,21 @@ describe('Integration | Transactions', () => {
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
 
-    const dscString = `sentry-transaction=other-transaction,sentry-environment=other,sentry-release=8.0.0,sentry-public_key=public,sentry-trace_id=${traceId},sentry-sampled=true`;
+    const dsc = {
+      transaction: 'other-transaction',
+      environment: 'other',
+      release: '8.0.0',
+      public_key: 'public',
+      trace_id: traceId,
+      sampled: 'true',
+    };
 
     const spanContext: SpanContext = {
       traceId,
       spanId: parentSpanId,
       isRemote: true,
       traceFlags: TraceFlags.SAMPLED,
-      traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
+      traceState: _setDscOnTraceState(new TraceState(), dsc),
     };
 
     mockSdkInit({
@@ -776,16 +783,17 @@ describe('Integration | Transactions', () => {
           },
         },
         span => {
-          expect(span.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+          expect(span.spanContext().traceState?.get(`${SENTRY_TRACE_STATE_DSC_PREFIX}environment`)).toBe('other');
+          expect(span.spanContext().traceState?.get(`${SENTRY_TRACE_STATE_DSC_PREFIX}public_key`)).toBe('public');
 
           const subSpan = startInactiveSpan({ name: 'inner span 1' });
 
-          expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+          expect(subSpan.spanContext().traceState?.get(`${SENTRY_TRACE_STATE_DSC_PREFIX}environment`)).toBe('other');
 
           subSpan.end();
 
           startSpan({ name: 'inner span 2' }, subSpan => {
-            expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+            expect(subSpan.spanContext().traceState?.get(`${SENTRY_TRACE_STATE_DSC_PREFIX}environment`)).toBe('other');
           });
         },
       );

@@ -251,15 +251,15 @@ describe('getTraceData', () => {
     });
 
     span.spanContext = () => {
+      const dscEntries: Record<string, string> = {
+        'sentry-dsc-environment': 'test-dev',
+        'sentry-dsc-public_key': '456',
+        'sentry-dsc-trace_id': '12345678901234567890123456789088',
+      };
       const traceState = {
         set: () => traceState,
         unset: () => traceState,
-        get: (key: string) => {
-          if (key === 'sentry.dsc') {
-            return 'sentry-environment=test-dev,sentry-public_key=456,sentry-trace_id=12345678901234567890123456789088';
-          }
-          return undefined;
-        },
+        get: (key: string) => dscEntries[key],
         serialize: () => '',
       };
 

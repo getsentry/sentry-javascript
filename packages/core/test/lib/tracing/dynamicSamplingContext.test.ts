@@ -46,11 +46,10 @@ describe('getDynamicSamplingContextFromSpan', () => {
           traceFlags: 0,
           traceState: {
             get(key: string) {
-              if (key === 'sentry.dsc') {
-                return 'sentry-environment=myEnv2';
-              } else {
-                return undefined;
+              if (key === 'sentry-dsc-environment') {
+                return 'myEnv2';
               }
+              return undefined;
             },
           } as unknown as SpanContextData['traceState'],
         };
@@ -60,6 +59,36 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv2' });
+  });
+
+  test('decodes encoded DSC values from traceState', () => {
+    const rootSpan = {
+      spanContext() {
+        return {
+          traceId: '1234',
+          spanId: '12345',
+          traceFlags: 0,
+          traceState: {
+            get(key: string) {
+              const entries: Record<string, string> = {
+                'sentry-dsc-environment': 'production',
+                'sentry-dsc-transaction': 'GET%20%2Fusers%3Fid%3D1',
+                'sentry-dsc-trace_id': 'abc123',
+              };
+              return entries[key];
+            },
+          } as unknown as SpanContextData['traceState'],
+        };
+      },
+    } as Span;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toStrictEqual({
+      environment: 'production',
+      transaction: 'GET /users?id=1',
+      trace_id: 'abc123',
+    });
   });
 
   test('returns a new DSC, if no DSC was provided during rootSpan creation (via attributes)', () => {

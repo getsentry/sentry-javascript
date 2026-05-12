@@ -37,8 +37,8 @@ describe('SentrySampler', () => {
         attributes: { 'sentry.sample_rate': 0 },
       }),
     );
-    expect(actual.traceState?.get('sentry.sampled_not_recording')).toBe('1');
-    expect(actual.traceState?.get('sentry.sample_rand')).toEqual(expect.any(String));
+    expect(actual.traceState?.get('sentry-sampled_not_recording')).toBe('1');
+    expect(actual.traceState?.get('sentry-sample_rand')).toEqual(expect.any(String));
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'transaction');
 

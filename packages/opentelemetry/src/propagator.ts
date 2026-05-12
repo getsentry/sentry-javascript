@@ -285,7 +285,11 @@ function getCurrentURL(span: Span): string | undefined {
   // Also look at the traceState, which we may set in the sampler even for unsampled spans
   const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
   if (urlTraceState) {
-    return urlTraceState;
+    try {
+      return decodeURIComponent(urlTraceState);
+    } catch {
+      return urlTraceState;
+    }
   }
 
   return undefined;
