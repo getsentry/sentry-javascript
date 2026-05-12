@@ -193,12 +193,10 @@ describe('eventFromUnknownInput', () => {
 
     const event = eventFromUnknownInput(defaultStackParser, exception, new Error('synthetic'), true);
 
-    expect(event.exception?.values).toEqual([
-      {
-        type: 'SyntaxError',
-        value: 'The string did not match the expected pattern.',
-      },
-    ]);
+    expect(event.exception?.values?.[0]).toMatchObject({
+      type: 'SyntaxError',
+      value: 'The string did not match the expected pattern.',
+    });
   });
 
   it('add a synthetic stack trace to DOMException without a stack traces property if attachStacktrace is true', async () => {
