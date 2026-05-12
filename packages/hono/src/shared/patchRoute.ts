@@ -1,50 +1,101 @@
-import { getOriginalFunction, markFunctionWrapped } from '@sentry/core';
+import { debug, getOriginalFunction, markFunctionWrapped } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/core';
 import type { Hono, MiddlewareHandler } from 'hono';
 import { Hono as HonoClass } from 'hono';
+import { DEBUG_BUILD } from '../debug-build';
+import { patchAppRequest } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
-interface HonoRoute {
+export type HonoRoute = {
   method: string;
   path: string;
   handler: MiddlewareHandler;
-}
+};
 
-interface HonoBaseProto {
-  // oxlint-disable-next-line typescript/no-explicit-any
-  route: (path: string, app: Hono<any>) => Hono<any>;
+// oxlint-disable-next-line typescript/no-explicit-any
+type HonoAny = Hono<any>;
+
+export type RouteHookHandle = {
+  activate: () => void;
+  getPendingSubApps: () => Set<HonoAny>;
+};
+
+type HonoBaseProto = {
+  route?: (path: string, app: HonoAny) => HonoAny;
+  __sentryRouteHook__?: RouteHookHandle;
+};
+
+/**
+ * Creates the two-phase state machine for the route hook.
+ *
+ * - Pre-activation: collects sub-app references into a pending set.
+ * - Post-activation: instruments sub-apps immediately at mount time.
+ */
+function createRouteHook(): { handle: RouteHookHandle; onSubAppMounted: (subApp: HonoAny) => void } {
+  const pendingSubApps = new Set<HonoAny>();
+  let activated = false;
+
+  return {
+    handle: {
+      activate: () => {
+        activated = true;
+      },
+      getPendingSubApps: () => pendingSubApps,
+    },
+    onSubAppMounted: (subApp: HonoAny) => {
+      if (activated) {
+        DEBUG_BUILD && debug.log(`[hono] Instrumenting sub-app at mount time (${subApp.routes.length} routes).`);
+        wrapSubAppMiddleware(subApp.routes as HonoRoute[]);
+        patchAppRequest(subApp);
+      } else {
+        DEBUG_BUILD &&
+          debug.log(`[hono] Collecting sub-app for deferred instrumentation (${subApp.routes.length} routes).`);
+        pendingSubApps.add(subApp);
+      }
+    },
+  };
 }
 
 /**
- * Patches `route()` on the Hono base prototype once, globally.
+ * Installs a hook on `HonoBase.prototype.route` to intercept sub-app mounting.
  *
- * Wraps sub-app middleware at mount time so that `app.route('/prefix', subApp)` is traced.
- * Idempotent: safe to call multiple times.
+ * Returns a handle with `activate()` and `getPendingSubApps()`.
+ * Idempotent: subsequent calls return the same handle
  */
-export function installRouteHookOnPrototype(): void {
-  // `route` is on the base prototype, not the concrete subclass, walk up one level
+export function installRouteHookOnPrototype(): RouteHookHandle {
+  const noopHandle: RouteHookHandle = { activate: () => {}, getPendingSubApps: () => new Set() };
+
+  // `route` is defined on HonoBase.prototype, one level above the concrete subclass
   const honoBaseProto = Object.getPrototypeOf(HonoClass.prototype) as HonoBaseProto;
-  if (!honoBaseProto || typeof honoBaseProto?.route !== 'function') {
-    return;
+
+  if (!honoBaseProto || typeof honoBaseProto.route !== 'function') {
+    DEBUG_BUILD && debug.warn('[hono] Could not find HonoBase.prototype.route — sub-app instrumentation disabled.');
+    return noopHandle;
   }
 
-  // Already patched: return
+  // Already patched
   if (getOriginalFunction(honoBaseProto.route as unknown as WrappedFunction)) {
-    return;
+    return honoBaseProto.__sentryRouteHook__ ?? noopHandle;
   }
 
   const originalRoute = honoBaseProto.route;
+  const { handle, onSubAppMounted } = createRouteHook();
 
-  // oxlint-disable-next-line typescript/no-explicit-any
-  const patchedRoute = function (this: Hono<any>, path: string, subApp: Hono<any>): Hono<any> {
+  const patchedRoute = function (this: HonoAny, path: string, subApp: HonoAny): HonoAny {
     if (subApp && Array.isArray(subApp.routes)) {
-      wrapSubAppMiddleware(subApp.routes as HonoRoute[]);
+      onSubAppMounted(subApp);
     }
+
     return originalRoute.call(this, path, subApp);
   };
 
   markFunctionWrapped(patchedRoute as unknown as WrappedFunction, originalRoute as unknown as WrappedFunction);
   honoBaseProto.route = patchedRoute;
+  honoBaseProto.__sentryRouteHook__ = handle;
+
+  DEBUG_BUILD && debug.log('[hono] Installed route hook on HonoBase.prototype.');
+
+  return handle;
 }
 
 /**

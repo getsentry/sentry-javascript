@@ -11,10 +11,13 @@ vi.mock('@sentry/core', async () => {
       setStatus: vi.fn(),
       end: vi.fn(),
     })),
+    startSpan: vi.fn((_opts: unknown, callback: () => unknown) => callback()),
+    getActiveSpan: vi.fn(() => ({ spanId: 'fake-span' })),
   };
 });
 
 const startInactiveSpanMock = SentryCore.startInactiveSpan as ReturnType<typeof vi.fn>;
+const startSpanMock = SentryCore.startSpan as ReturnType<typeof vi.fn>;
 
 const honoBaseProto = Object.getPrototypeOf(Object.getPrototypeOf(new Hono()));
 const originalRoute = honoBaseProto.route;
@@ -389,6 +392,47 @@ describe('applyPatches', () => {
       await app.fetch(new Request('http://localhost/sub/b/test'));
       expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
       expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'mwForB' }));
+    });
+  });
+
+  describe('patchAppRequest integration', () => {
+    it('patches .request() on sub-apps when they are mounted via route()', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.get('/hello', () => new Response('world'));
+
+      app.route('/api', subApp);
+
+      await subApp.request('/hello');
+
+      expect(startSpanMock).toHaveBeenCalledTimes(1);
+      expect(startSpanMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET /hello',
+          op: 'hono.request',
+          attributes: expect.objectContaining({
+            'sentry.op': 'hono.request',
+            'sentry.origin': 'auto.http.hono.internal_request',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('does not double-patch .request() on a sub-app mounted multiple times', () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.get('/hello', () => new Response('world'));
+
+      app.route('/api', subApp);
+      const patchedRequest = subApp.request;
+
+      app.route('/api2', subApp);
+      expect(subApp.request).toBe(patchedRequest);
     });
   });
 });
