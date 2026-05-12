@@ -2,6 +2,12 @@
 // Used by treosh/lighthouse-ci-action@v12 via the `configPath` input.
 // Docs: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
 //
+// IMPORTANT: This file MUST be CommonJS (`.cjs` extension, `module.exports`).
+// LHCI's config loader uses `require()` to load the config file. The parent
+// package has `"type": "module"`, so a `.js` file here would be treated as
+// ESM by Node and `require()` would return `{ default: <config> }` instead of
+// `<config>` — LHCI then fails with "Config missing top level 'ci' property".
+//
 // Per-cell environment variables (set by the GitHub Actions workflow):
 //   LIGHTHOUSE_SERVE_MODE     - 'static' | 'server'
 //   LIGHTHOUSE_STATIC_DIR     - absolute path to static dist dir (when serve mode = 'static')
@@ -11,7 +17,7 @@
 
 const isServer = process.env.LIGHTHOUSE_SERVE_MODE === 'server';
 
-export default {
+module.exports = {
   ci: {
     collect: {
       // Median of 5 runs halves variance vs a single run (per Lighthouse variability docs).

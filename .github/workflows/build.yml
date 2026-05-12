@@ -1313,12 +1313,12 @@ jobs:
         # SHA is the current tip of v12. Bump deliberately when upgrading.
         uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
-          configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.js
+          configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.cjs
           uploadArtifacts: true
           temporaryPublicStorage: true
           runs: 5
         env:
-          # lighthouserc.js branches on these env vars at config-load time.
+          # lighthouserc.cjs branches on these env vars at config-load time.
           LIGHTHOUSE_SERVE_MODE: ${{ matrix.serve }}
           LIGHTHOUSE_STATIC_DIR: ${{ runner.temp }}/test-application/${{ matrix.static-dir }}
           LIGHTHOUSE_START_CMD: cd ${{ runner.temp }}/test-application && ${{ matrix.start-cmd }}
