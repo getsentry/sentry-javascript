@@ -1307,7 +1307,11 @@ jobs:
           REACT_APP_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
+        # Pinned to a commit SHA (rather than the floating @v12 tag) to lock down the
+        # supply chain: this third-party action also npm-installs @lhci/cli, so an
+        # upstream tag-repoint could otherwise change what runs on our runners.
+        # SHA is the current tip of v12. Bump deliberately when upgrading.
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.js
           uploadArtifacts: true
