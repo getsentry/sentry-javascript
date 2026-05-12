@@ -261,8 +261,10 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
 
       expect(internalRequestSpans).toHaveLength(2);
 
-      // Sequential: second span starts at or after first span ends
-      expect(internalRequestSpans[1].start_timestamp).toBeGreaterThanOrEqual(internalRequestSpans[0].timestamp);
+      // Sequential: second span starts at or after first span ends (with tolerance for clock precision)
+      expect(internalRequestSpans[1].start_timestamp).toBeGreaterThanOrEqual(
+        internalRequestSpans[0].timestamp! - 0.001,
+      );
 
       expect(internalRequestSpans[0]?.trace_id).toBe(traceId);
       expect(internalRequestSpans[1]?.trace_id).toBe(traceId);
