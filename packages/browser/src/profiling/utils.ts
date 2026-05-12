@@ -786,15 +786,7 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
   }
 }
 
-const PROFILED_ROOT_SPANS: WeakSet<Span> = new WeakSet<Span>();
-
-export function markSpanAsProfiled(span: Span): void {
-  PROFILED_ROOT_SPANS.add(span);
-}
-
-export function isSpanProfiled(span: Span): boolean {
-  return PROFILED_ROOT_SPANS.has(span);
-}
+export const PROFILED_ROOT_SPANS = new WeakSet<Span>();
 
 export function setThreadAttributes(span: Span): void {
   span.setAttribute('thread.id', PROFILER_THREAD_ID_STRING);

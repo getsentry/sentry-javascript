@@ -13,7 +13,7 @@ import {
   getActiveProfilesCount,
   hasLegacyProfiling,
   isAutomatedPageLoadSpan,
-  isSpanProfiled,
+  PROFILED_ROOT_SPANS,
   setThreadAttributes,
   shouldProfileSpanLegacy,
   takeProfileFromGlobalCache,
@@ -98,7 +98,7 @@ const _browserProfilingIntegration = (() => {
             if (shouldProfileSpanLegacy(span)) {
               startProfileForSpan(span);
             }
-          } else if (isSpanProfiled(rootSpan)) {
+          } else if (PROFILED_ROOT_SPANS.has(rootSpan)) {
             setThreadAttributes(span);
           }
         });

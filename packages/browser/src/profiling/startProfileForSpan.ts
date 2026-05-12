@@ -6,8 +6,8 @@ import type { JSSelfProfile } from './jsSelfProfiling';
 import {
   addProfileToGlobalCache,
   isAutomatedPageLoadSpan,
-  markSpanAsProfiled,
   MAX_PROFILE_DURATION_MS,
+  PROFILED_ROOT_SPANS,
   setThreadAttributes,
   startJSSelfProfile,
 } from './utils';
@@ -55,7 +55,7 @@ export function startProfileForSpan(span: Span): void {
     start_timestamp: startTimestamp,
   });
 
-  markSpanAsProfiled(span);
+  PROFILED_ROOT_SPANS.add(span);
   setThreadAttributes(span);
 
   /**

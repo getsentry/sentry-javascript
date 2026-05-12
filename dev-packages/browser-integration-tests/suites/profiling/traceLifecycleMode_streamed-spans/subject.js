@@ -19,7 +19,7 @@ function fibonacci(n) {
   return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-await Sentry.startSpanManual({ name: 'root-fibonacci', parentSpan: null, forceTransaction: true }, async span => {
+await Sentry.startSpanManual({ name: 'root-fibonacci', parentSpan: null }, async span => {
   fibonacci(40);
 
   Sentry.startSpan({ name: 'child-span-1', parentSpan: span }, () => {
