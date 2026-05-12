@@ -28,7 +28,42 @@ interface PatchedLangChainExports {
 }
 
 /**
- * Augments a callback handler list with Sentry's handler if not already present
+ * Duck-types a LangChain `CallbackManager` instance. We can't `instanceof`
+ * check because `@langchain/core` may be bundled, deduped, or absent from
+ * our module graph; checking the shape avoids that coupling.
+ */
+function isCallbackManager(value: unknown): value is {
+  addHandler: (handler: unknown, inherit?: boolean) => void;
+  copy: () => unknown;
+  handlers?: unknown[];
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as { addHandler?: unknown; copy?: unknown };
+  return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+}
+
+/**
+ * Augments a callback handler list with Sentry's handler if not already present.
+ *
+ * `options.callbacks` may be one of three shapes (per LangChain's RunnableConfig):
+ *   - `undefined`           → no callbacks configured
+ *   - `BaseCallbackHandler[]` → list of handler instances
+ *   - `CallbackManager`     → a manager that already holds (potentially
+ *                             inheritable) child handlers
+ *
+ * The `CallbackManager` case is the load-bearing one: when LangGraph sets up
+ * a run with `streamMode: ['messages']`, it puts a `StreamMessagesHandler`
+ * onto a `CallbackManager` and passes that manager through `options.callbacks`.
+ * If we naively wrap the manager into `[manager, sentryHandler]`, LangChain
+ * downstream treats the whole manager as a single opaque handler — its
+ * inheritable children (`StreamMessagesHandler`, the tracer, etc.) are never
+ * unpacked, and per-token streaming events silently disappear.
+ *
+ * Instead, when we receive a `CallbackManager`, we copy it (so we don't
+ * mutate the caller's manager across invocations) and register Sentry's
+ * handler as an inheritable child via `.addHandler()`.
  */
 function augmentCallbackHandlers(handlers: unknown, sentryHandler: unknown): unknown {
   // Handle null/undefined - return array with just our handler
@@ -46,9 +81,20 @@ function augmentCallbackHandlers(handlers: unknown, sentryHandler: unknown): unk
     return [...handlers, sentryHandler];
   }
 
-  // If it's a single handler object, convert to array
-  if (typeof handlers === 'object') {
-    return [handlers, sentryHandler];
+  // CallbackManager: register our handler as an inheritable child on a copy
+  // so we preserve any handlers already attached (notably LangGraph's
+  // StreamMessagesHandler used by `streamMode: ['messages']`).
+  if (isCallbackManager(handlers)) {
+    const copied = handlers.copy() as {
+      addHandler: (handler: unknown, inherit?: boolean) => void;
+      handlers?: unknown[];
+    };
+    // Avoid double-registering if the caller already added us.
+    const existing = copied.handlers ?? [];
+    if (!existing.includes(sentryHandler)) {
+      copied.addHandler(sentryHandler, true);
+    }
+    return copied;
   }
 
   // Unknown type - return original
