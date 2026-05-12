@@ -485,13 +485,6 @@ jobs:
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
 
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
@@ -585,14 +578,6 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
-
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: ${{ matrix.node }}
 
   job_browser_playwright_tests:
     name:
@@ -693,18 +678,6 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Parse and Upload Coverage
-        if: cancelled() == false
-        continue-on-error: true
-        uses: getsentry/codecov-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/browser-integration-tests
-          enable-coverage: false
-          name:
-            browser-playwright-${{ matrix.bundle }}-${{ matrix.project }}${{ matrix.shard && format('-{0}',
-            matrix.shard) || '' }}
-
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
@@ -763,16 +736,6 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
-
-      - name: Parse and Upload Coverage
-        uses: getsentry/codecov-action@main
-        if: cancelled() == false
-        continue-on-error: true
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          directory: dev-packages/browser-integration-tests
-          enable-coverage: false
-          name: browser-loader-${{ matrix.bundle }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
