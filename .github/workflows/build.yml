@@ -1330,16 +1330,16 @@ jobs:
           LIGHTHOUSE_URL: 'http://localhost:3000/'
 
       - name: Upload Lighthouse results
-        # `resultsPath` points at the .lighthouseci/ directory inside the treosh action's
-        # own working directory (NOT our repo root — lhci's cwd when the action invokes it
-        # is the action's checkout). Use it explicitly so upload-artifact finds the real
-        # files. Without this, `path: .lighthouseci/` silently finds nothing in our repo
-        # root and `if-no-files-found: ignore` makes the step pass with zero uploaded.
+        # `resultsPath` is the absolute path to the .lighthouseci/ output dir written by
+        # `lhci collect`. The dir is dot-prefixed, and actions/upload-artifact@v7 excludes
+        # hidden files / dot-prefixed dirs by default — so we must set
+        # `include-hidden-files: true` or every cell uploads zero files.
         uses: actions/upload-artifact@v7
         if: always() && steps.lighthouse.outputs.resultsPath != ''
         with:
           name: lighthouse-${{ matrix.app }}-${{ matrix.mode }}
           path: ${{ steps.lighthouse.outputs.resultsPath }}
+          include-hidden-files: true
           retention-days: 7
           # Fail loudly if the dir is empty — we already gated on resultsPath being set,
           # so an empty dir means lhci collect produced nothing, which is a real bug.
