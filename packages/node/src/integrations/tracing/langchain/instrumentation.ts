@@ -94,10 +94,16 @@ function augmentCallbackHandlers(handlers: unknown, sentryHandler: unknown): unk
     const copied = handlers.copy() as {
       addHandler: (handler: unknown, inherit?: boolean) => void;
       handlers?: unknown[];
+      inheritableHandlers?: unknown[];
     };
-    // Avoid double-registering if the caller already added us.
-    const existing = copied.handlers ?? [];
-    if (!existing.includes(sentryHandler)) {
+    // Avoid double-registering on nested invocations. CallbackManager's own
+    // `addHandler` keeps `inheritableHandlers ⊆ handlers`, so checking
+    // `handlers` alone is normally enough — but we check both as a defensive
+    // guard against externally-constructed managers that bypass `addHandler`.
+    const alreadyRegistered =
+      (copied.handlers?.includes(sentryHandler) ?? false) ||
+      (copied.inheritableHandlers?.includes(sentryHandler) ?? false);
+    if (!alreadyRegistered) {
       copied.addHandler(sentryHandler, true);
     }
     return copied;

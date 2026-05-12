@@ -8,14 +8,18 @@ const sentryHandler = { name: 'SentryCallbackHandler' };
  * (`addHandler` + `copy`) for the production code to recognize this as a
  * `CallbackManager` rather than fall through to the "unknown" branch.
  */
-function makeFakeCallbackManager(existingHandlers: unknown[] = []) {
+function makeFakeCallbackManager(existingHandlers: unknown[] = [], existingInheritableHandlers?: unknown[]) {
   const manager = {
     handlers: [...existingHandlers],
-    addHandler: vi.fn(function (this: any, handler: unknown, _inherit?: boolean) {
+    inheritableHandlers: [...(existingInheritableHandlers ?? existingHandlers)],
+    addHandler: vi.fn(function (this: any, handler: unknown, inherit?: boolean) {
       this.handlers.push(handler);
+      if (inherit !== false) {
+        this.inheritableHandlers.push(handler);
+      }
     }),
     copy: vi.fn(function (this: any) {
-      return makeFakeCallbackManager(this.handlers);
+      return makeFakeCallbackManager(this.handlers, this.inheritableHandlers);
     }),
   };
   return manager;
@@ -77,6 +81,21 @@ describe('augmentCallbackHandlers', () => {
     };
     expect(result.handlers).toEqual([sentryHandler]);
     expect(result.addHandler).not.toHaveBeenCalled();
+  });
+
+  test('does not double-register when the handler lives only on inheritableHandlers', () => {
+    // Defensive: a CallbackManager subclass or externally-constructed
+    // instance might keep the Sentry handler on `inheritableHandlers`
+    // without mirroring it onto `handlers`. We must still recognize it
+    // as already-registered to avoid duplicate spans on nested calls.
+    const manager = makeFakeCallbackManager([], [sentryHandler]);
+    const result = _INTERNAL_augmentCallbackHandlers(manager, sentryHandler) as {
+      handlers: unknown[];
+      inheritableHandlers: unknown[];
+      addHandler: ReturnType<typeof vi.fn>;
+    };
+    expect(result.addHandler).not.toHaveBeenCalled();
+    expect(result.inheritableHandlers).toEqual([sentryHandler]);
   });
 
   test('returns the value unchanged when it is neither an array nor a CallbackManager', () => {
