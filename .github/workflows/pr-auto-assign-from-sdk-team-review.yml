@@ -1,0 +1,41 @@
+# When a JS SDK team is requested as a reviewer (e.g. via CODEOWNERS), pick two random
+# members from that team and add them as PR assignees using pozil/auto-assign-issue.
+#
+# Required repository secret (classic PAT or equivalent with org team visibility):
+#   AUTO_ASSIGN_ISSUE_READ_ORG_TOKEN — must include read:org (see action docs).
+#   https://github.com/pozil/auto-assign-issue
+name: 'PR: Auto-assign from SDK team review'
+
+on:
+  pull_request:
+    types: [review_requested]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: pr-auto-assign-from-sdk-team-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  auto-assign-members:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.requested_team &&
+      startsWith(github.event.requested_team.slug, 'getsentry/team-javascript-sdks')
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Auto-assign two members from requested team
+        uses: pozil/auto-assign-issue@v2
+        with:
+          repo-token: ${{ steps.app-token.outputs.token }}
+          teams: ${{ github.event.requested_team.slug }}
+          numOfAssignee: 2
+          allowSelfAssign: false
+          abortIfPreviousAssignees: true
