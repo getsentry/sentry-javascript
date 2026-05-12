@@ -17,6 +17,13 @@ webpack(
       minimize: true,
       minimizer: [new TerserPlugin()],
     },
+    // The Lighthouse-CI baseline mode (SENTRY_LIGHTHOUSE_MODE=no-sentry) emits the
+    // @sentry/browser chunk as a separately code-split asset (~265 KiB raw). Webpack's
+    // default performance.hints='warning' fires AssetsOverSizeLimitWarning for that
+    // chunk, and build.mjs's `if (stats.hasWarnings()) process.exit(1)` would then
+    // abort the build. This is a test app, not a size-tracked production bundle, so
+    // hints are disabled — size is tracked separately via .size-limit.js at the repo root.
+    performance: { hints: false },
     plugins: [
       new webpack.EnvironmentPlugin({ E2E_TEST_DSN: '', SENTRY_LIGHTHOUSE_MODE: '' }),
       new HtmlWebpackPlugin({
