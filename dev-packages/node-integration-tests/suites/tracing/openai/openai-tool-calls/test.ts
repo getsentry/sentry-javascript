@@ -84,148 +84,239 @@ describe('OpenAI Tool Calls integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
-
-            // [0] chat completion with tools (non-streaming)
-            expect(firstSpan!.name).toBe('chat gpt-4');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            const chatToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-tools-123',
+            );
+            expect(chatToolsSpan).toBeDefined();
+            expect(chatToolsSpan!.name).toBe('chat gpt-4');
+            expect(chatToolsSpan!.status).toBe('ok');
+            expect(chatToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(chatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(chatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
+            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
               type: 'string',
               value: 'chatcmpl-tools-123',
             });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: '["tool_calls"]',
             });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 40 });
-
-            // [1] chat completion with tools and streaming
-            expect(secondSpan!.name).toBe('chat gpt-4');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(secondSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 15,
             });
-            expect(secondSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(secondSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({ type: 'boolean', value: true });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'chatcmpl-stream-tools-123',
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["tool_calls"]',
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
-              type: 'boolean',
-              value: true,
-            });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
               type: 'integer',
               value: 25,
             });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 40 });
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 40,
+            });
 
-            // [2] responses API with tools (non-streaming)
-            expect(thirdSpan!.name).toBe('chat gpt-4');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(thirdSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            const streamingChatToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-tools-123',
+            );
+            expect(streamingChatToolsSpan).toBeDefined();
+            expect(streamingChatToolsSpan!.name).toBe('chat gpt-4');
+            expect(streamingChatToolsSpan!.status).toBe('ok');
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(streamingChatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(thirdSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(thirdSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
               type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
+              value: 'openai',
             });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
               type: 'string',
-              value: 'resp_tools_789',
+              value: 'gpt-4',
             });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["completed"]',
-            });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
-
-            // [3] responses API with tools and streaming
-            expect(fourthSpan!.name).toBe('chat gpt-4');
-            expect(fourthSpan!.status).toBe('ok');
-            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(fourthSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(fourthSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({ type: 'boolean', value: true });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'resp_stream_tools_789',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["in_progress","completed"]',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
               type: 'boolean',
               value: true,
             });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-stream-tools-123',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["tool_calls"]',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 15,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 25,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 40,
+            });
+
+            const responsesToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_tools_789',
+            );
+            expect(responsesToolsSpan).toBeDefined();
+            expect(responsesToolsSpan!.name).toBe('chat gpt-4');
+            expect(responsesToolsSpan!.status).toBe('ok');
+            expect(responsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(responsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(responsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'resp_tools_789',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["completed"]',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
               type: 'integer',
               value: 12,
             });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 20,
+            });
+
+            const streamingResponsesToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_tools_789',
+            );
+            expect(streamingResponsesToolsSpan).toBeDefined();
+            expect(streamingResponsesToolsSpan!.name).toBe('chat gpt-4');
+            expect(streamingResponsesToolsSpan!.status).toBe('ok');
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'resp_stream_tools_789',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["in_progress","completed"]',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 12,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 20,
+            });
           },
         })
         .start()
@@ -241,197 +332,291 @@ describe('OpenAI Tool Calls integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
-
-            // [0] chat completion with tools (non-streaming) with PII
-            expect(firstSpan!.name).toBe('chat gpt-4');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            const chatToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-tools-123',
+            );
+            expect(chatToolsSpan).toBeDefined();
+            expect(chatToolsSpan!.name).toBe('chat gpt-4');
+            expect(chatToolsSpan!.status).toBe('ok');
+            expect(chatToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(chatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(firstSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(chatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
+            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(chatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
               type: 'integer',
               value: 1,
             });
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
               type: 'string',
               value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
             });
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: WEATHER_TOOL_DEFINITION,
             });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
               type: 'string',
               value: 'chatcmpl-tools-123',
             });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: '["tool_calls"]',
             });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({ type: 'string', value: '[""]' });
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '[""]',
+            });
+            expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: CHAT_TOOL_CALLS,
             });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 40 });
-
-            // [1] chat completion with tools and streaming with PII
-            expect(secondSpan!.name).toBe('chat gpt-4');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(secondSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(secondSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(secondSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({ type: 'boolean', value: true });
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
               type: 'integer',
-              value: 1,
+              value: 15,
             });
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
-            });
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'chatcmpl-stream-tools-123',
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["tool_calls"]',
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
-              type: 'boolean',
-              value: true,
-            });
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: CHAT_STREAM_TOOL_CALLS,
-            });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
               type: 'integer',
               value: 25,
             });
-            expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 40 });
+            expect(chatToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 40,
+            });
 
-            // [2] responses API with tools (non-streaming) with PII
-            expect(thirdSpan!.name).toBe('chat gpt-4');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(thirdSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            const streamingChatToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'chatcmpl-stream-tools-123',
+            );
+            expect(streamingChatToolsSpan).toBeDefined();
+            expect(streamingChatToolsSpan!.name).toBe('chat gpt-4');
+            expect(streamingChatToolsSpan!.status).toBe('ok');
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(streamingChatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(thirdSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
-            expect(thirdSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
-            });
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
               type: 'string',
-              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
+              value: 'openai',
             });
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
               type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
+              value: 'gpt-4',
             });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'resp_tools_789',
-            });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["completed"]',
-            });
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: RESPONSES_TOOL_CALLS,
-            });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
-
-            // [3] responses API with tools and streaming with PII
-            expect(fourthSpan!.name).toBe('chat gpt-4');
-            expect(fourthSpan!.status).toBe('ok');
-            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-            expect(fourthSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(fourthSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'openai' });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({ type: 'boolean', value: true });
-            expect(fourthSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
-              type: 'integer',
-              value: 1,
-            });
-            expect(fourthSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'gpt-4' });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'resp_stream_tools_789',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: '["in_progress","completed"]',
-            });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
               type: 'boolean',
               value: true,
             });
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 1,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-stream-tools-123',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["tool_calls"]',
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: CHAT_STREAM_TOOL_CALLS,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 15,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 25,
+            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 40,
+            });
+
+            const responsesToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_tools_789',
+            );
+            expect(responsesToolsSpan).toBeDefined();
+            expect(responsesToolsSpan!.name).toBe('chat gpt-4');
+            expect(responsesToolsSpan!.status).toBe('ok');
+            expect(responsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(responsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(responsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(responsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 1,
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'resp_tools_789',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["completed"]',
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
               type: 'string',
               value: RESPONSES_TOOL_CALLS,
             });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
               type: 'integer',
               value: 12,
             });
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+            expect(responsesToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 20,
+            });
+
+            const streamingResponsesToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]?.value === 'resp_stream_tools_789',
+            );
+            expect(streamingResponsesToolsSpan).toBeDefined();
+            expect(streamingResponsesToolsSpan!.name).toBe('chat gpt-4');
+            expect(streamingResponsesToolsSpan!.status).toBe('ok');
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 1,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the weather like in Paris today?"}]',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: WEATHER_TOOL_DEFINITION,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'gpt-4',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: 'resp_stream_tools_789',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: '["in_progress","completed"]',
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toEqual({
+              type: 'boolean',
+              value: true,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toEqual({
+              type: 'string',
+              value: RESPONSES_TOOL_CALLS,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 12,
+            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+              type: 'integer',
+              value: 20,
+            });
           },
         })
         .start()

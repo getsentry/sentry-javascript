@@ -29,47 +29,62 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       expect(container).toBeDefined();
 
       expect(container.items).toHaveLength(2);
-      const [firstSpan, secondSpan] = container.items;
+      expect(container.items.map(span => span.name).sort()).toEqual([
+        'create_agent weather_assistant',
+        'invoke_agent weather_assistant',
+      ]);
 
-      // [0] create_agent weather_assistant
-      expect(firstSpan!.name).toBe('create_agent weather_assistant');
-      expect(firstSpan!.status).toBe('ok');
-      expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+      const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
+      expect(createAgentSpan).toBeDefined();
+      expect(createAgentSpan!.status).toBe('ok');
+      expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'create_agent',
       });
-      expect(firstSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
-      expect(firstSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
-      expect(firstSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
+      expect(createAgentSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.create_agent' });
+      expect(createAgentSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
+      expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'weather_assistant',
       });
 
-      // [1] invoke_agent weather_assistant
-      expect(secondSpan!.name).toBe('invoke_agent weather_assistant');
-      expect(secondSpan!.status).toBe('ok');
-      expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+      const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent weather_assistant');
+      expect(invokeAgentSpan).toBeDefined();
+      expect(invokeAgentSpan!.status).toBe('ok');
+      expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'invoke_agent',
       });
-      expect(secondSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
-      expect(secondSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
-      expect(secondSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
+      expect(invokeAgentSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
+      expect(invokeAgentSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langgraph' });
+      expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'weather_assistant',
       });
-      expect(secondSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE]).toEqual({
+      expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'weather_assistant',
       });
-      expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
+      expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toEqual({
         type: 'string',
         value: '[{"role":"user","content":"What is the weather in SF?"}]',
       });
-      expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({ type: 'string', value: 'mock-model' });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 30 });
+      expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'mock-model',
+      });
+      expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 20,
+      });
+      expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 10,
+      });
+      expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 30,
+      });
     })
     .start(signal);
   await runner.makeRequest('get', '/');
