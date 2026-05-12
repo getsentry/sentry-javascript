@@ -802,6 +802,45 @@ describe('ThirdPartyErrorFilter', () => {
         expect(result).toBeDefined();
       });
 
+      it('does not exclude non-minified frame even when inside sentryWrapped (parser already stripped it)', async () => {
+        const eventWithNonMinifiedFrame: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 10,
+                      filename: 'app.js',
+                      function: 'handleClick',
+                      lineno: 42,
+                      context_line: '    throw new Error("oops");',
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'oops',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: true,
+        });
+
+        GLOBAL_OBJ._sentryWrappedDepth = 1;
+        const event = clone(eventWithNonMinifiedFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        // Should NOT be dropped — the frame has context_line, so it's not a minified sentryWrapped frame.
+        // The real sentryWrapped frame was already stripped by the parser.
+        expect(result).toBeDefined();
+      });
+
       it('does not use sentryWrappedDepth when ignoreSentryInternalFrames is false', async () => {
         const eventWithMinifiedSentryFrame: Event = {
           exception: {

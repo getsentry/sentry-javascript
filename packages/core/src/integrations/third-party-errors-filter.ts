@@ -89,7 +89,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
 
     processEvent(event) {
       const insideSentryWrapped = options.ignoreSentryInternalFrames
-        ? event.sdkProcessingMetadata?.insideSentryWrapped === true
+        ? event.sdkProcessingMetadata?.insideSentryWrapped === true && event.exception?.values?.length === 1
         : false;
       const frameKeys = getBundleKeysForAllFramesWithFilenames(
         event,
@@ -133,10 +133,11 @@ function isSentryInternalFrame(frame: StackFrame, frameIndex: number, insideSent
     return false;
   }
 
-  // When processEvent runs inside a sentryWrapped call, the outermost frame is always
-  // the sentryWrapped function. This works regardless of minification/bundling because
-  // it's a runtime check, not a source pattern match.
-  if (insideSentryWrapped) {
+  // When processEvent runs inside a sentryWrapped call and the frame looks minified,
+  // the outermost frame is the sentryWrapped function with a mangled name.
+  // We gate on minified shape to avoid false positives in non-minified builds
+  // where stripSentryFramesAndReverse already removed the sentryWrapped frame.
+  if (insideSentryWrapped && isLikelyMinifiedSentryWrappedFrame(frame)) {
     return true;
   }
 
@@ -204,6 +205,10 @@ function getBundleKeysForAllFramesWithFilenames(
         .filter(key => key.startsWith(BUNDLER_PLUGIN_APP_KEY_PREFIX))
         .map(key => key.slice(BUNDLER_PLUGIN_APP_KEY_PREFIX.length));
     });
+}
+
+function isLikelyMinifiedSentryWrappedFrame(frame: StackFrame): boolean {
+  return !frame.context_line && !frame.pre_context && !!frame.function && frame.function.length <= 2;
 }
 
 const BUNDLER_PLUGIN_APP_KEY_PREFIX = '_sentryBundlerPluginAppKey:';
