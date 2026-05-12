@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @dmmulroy and @SAY-5. Thank you for your contributions!
+## 10.53.0
 
 ### Important Changes
 
@@ -22,6 +22,44 @@ Work in this release was contributed by @dmmulroy and @SAY-5. Thank you for your
     streamGenAiSpans: true,
   });
   ```
+
+### Other Changes
+
+- feat(browser): Migrate browser profiling thread data to span attributes ([#20800](https://github.com/getsentry/sentry-javascript/pull/20800))
+- feat(core): Add `addConsoleInstrumentationFilter` utility ([#20790](https://github.com/getsentry/sentry-javascript/pull/20790))
+- feat(core): Add `applicationKey` to `BuildTimeOptionsBase` ([#20789](https://github.com/getsentry/sentry-javascript/pull/20789))
+- feat(core): split exports by browser/server for bundle size ([#20435](https://github.com/getsentry/sentry-javascript/pull/20435))
+- feat(nextjs): Add top-level `applicationKey` option ([#20794](https://github.com/getsentry/sentry-javascript/pull/20794))
+- feat(node): Support Node 26 ([#20710](https://github.com/getsentry/sentry-javascript/pull/20710))
+- feat(profiling-node): Bump `@sentry-internal/node-cpu-profiler` to 2.4.0 ([#20720](https://github.com/getsentry/sentry-javascript/pull/20720))
+- fix(cloudflare): avoid flush lock self-wait ([#20719](https://github.com/getsentry/sentry-javascript/pull/20719))
+- fix(hono): Capture transaction name on request for correct culprit ([#20801](https://github.com/getsentry/sentry-javascript/pull/20801))
+- fix(mcp): retroactively wrap handlers registered before wrapMcpServerWithSentry ([#20699](https://github.com/getsentry/sentry-javascript/pull/20699))
+- fix(node-core): Guard against undefined util.getSystemErrorMap ([#20660](https://github.com/getsentry/sentry-javascript/pull/20660))
+- fix(replay): Capture aborted/errored fetch requests in replay network tab ([#20722](https://github.com/getsentry/sentry-javascript/pull/20722))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: bump replay dependencies ([#20746](https://github.com/getsentry/sentry-javascript/pull/20746))
+- chore: Typo intergation -> integration ([#20799](https://github.com/getsentry/sentry-javascript/pull/20799))
+- chore(deps): Bump @babel/plugin-transform-modules-systemjs from 7.24.1 to 7.29.4 ([#20773](https://github.com/getsentry/sentry-javascript/pull/20773))
+- chore(deps): Bump next from 15.5.15 to 15.5.18 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#20818](https://github.com/getsentry/sentry-javascript/pull/20818))
+- chore(deps): Bump next from 16.2.4 to 16.2.6 in /dev-packages/e2e-tests/test-applications/nextjs-16-streaming ([#20811](https://github.com/getsentry/sentry-javascript/pull/20811))
+- chore(deps): Bump rollup from 4.59.0 to 4.60.3 ([#20716](https://github.com/getsentry/sentry-javascript/pull/20716))
+- ci: Ensure PR reminder workflow considers new sub teams ([#20814](https://github.com/getsentry/sentry-javascript/pull/20814))
+- ci: Remove codecov reporting ([#20803](https://github.com/getsentry/sentry-javascript/pull/20803))
+- feat(deps): Bump bundler plugins to 5.3.0 ([#20820](https://github.com/getsentry/sentry-javascript/pull/20820))
+- feat(deps): Bump fast-uri from 3.0.6 to 3.1.2 ([#20774](https://github.com/getsentry/sentry-javascript/pull/20774))
+- feat(deps): Bump hono from 4.12.16 to 4.12.18 ([#20777](https://github.com/getsentry/sentry-javascript/pull/20777))
+- test(cloudflare-hono): fix 'occured' -> 'occurred' typo in error log ([#20783](https://github.com/getsentry/sentry-javascript/pull/20783))
+- test(deps): Bump hono from 4.12.14 to 4.12.16 ([#20712](https://github.com/getsentry/sentry-javascript/pull/20712))
+- test(deps): Bump hono from 4.12.14 to 4.12.18 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#20776](https://github.com/getsentry/sentry-javascript/pull/20776))
+- test(e2e): Pin astro version in astro-6 test app ([#20709](https://github.com/getsentry/sentry-javascript/pull/20709))
+
+</details>
+
+Work in this release was contributed by @dmmulroy and @SAY-5. Thank you for your contributions!
 
 ## 10.52.0
 
