@@ -1,5 +1,24 @@
 # Changelog
 
+## 5.3.0
+
+### New Features ✨
+
+- (babel) Auto-inject sentry-label from static text children by @antonis in [#925](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/925)
+
+### Bug Fixes 🐛
+
+- (vite) Avoid version-specific plugin return type by @logaretm in [#928](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/928)
+
+### Internal Changes 🔧
+
+- Fix craft config by @timfish in [#930](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/930)
+- Update craft by @timfish in [#929](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/929)
+- Use Rolldown v1 stable by @timfish in [#924](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/924)
+- Remove old integration tests by @timfish in [#922](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/922)
+- Ensure correct bundlers are resolved by @timfish in [#921](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/921)
+- Fix telemetry tests to capture all envelopes by @timfish in [#920](https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/920)
+
 ## 5.2.1
 
 ### Bug Fixes 🐛
