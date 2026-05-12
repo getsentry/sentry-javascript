@@ -36,41 +36,45 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'chat gemini-1.5-pro',
+              'generate_content error-model',
+              'generate_content gemini-1.5-flash',
+            ]);
 
-            // [0] chat.sendMessage (should get model from context)
-            expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
+            const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+            expect(chatSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
+            expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
+            expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
 
-            // [1] models.generateContent
-            expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(secondSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-flash');
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-flash');
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
 
-            // [2] error handling
-            expect(thirdSpan!.name).toBe('generate_content error-model');
-            expect(thirdSpan!.status).toBe('error');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');
+            const errorSpan = container.items.find(span => span.name === 'generate_content error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(errorSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
+            expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('error-model');
           },
         })
         .start()
@@ -86,38 +90,42 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'chat gemini-1.5-pro',
+              'generate_content error-model',
+              'generate_content gemini-1.5-flash',
+            ]);
 
-            // [0] chat.sendMessage with PII
-            expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
+            const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
+            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
+            expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
 
-            // [1] models.generateContent with PII
-            expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
 
-            // [2] error handling with PII
-            expect(thirdSpan!.name).toBe('generate_content error-model');
-            expect(thirdSpan!.status).toBe('error');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            const errorSpan = container.items.find(span => span.name === 'generate_content error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(errorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
           },
         })
         .start()
@@ -133,21 +141,25 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'chat gemini-1.5-pro',
+              'generate_content error-model',
+              'generate_content gemini-1.5-flash',
+            ]);
 
-            // [0] chat.sendMessage with custom options (PII enabled via recordInputs/recordOutputs)
-            expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
 
-            // [1] models.generateContent with custom options
-            expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
 
-            // [2] error handling with custom options
-            expect(thirdSpan!.name).toBe('generate_content error-model');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            const errorSpan = container.items.find(span => span.name === 'generate_content error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
           },
         })
         .start()
@@ -166,50 +178,52 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
-
-            // [0] Non-streaming with tools
-            expect(firstSpan!.name).toBe('generate_content gemini-2.0-flash-001');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(
-              EXPECTED_AVAILABLE_TOOLS_JSON,
+            const nonStreamingToolsSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE] === undefined,
             );
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]).toBeUndefined();
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(15);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(8);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(23);
+            expect(nonStreamingToolsSpan).toBeDefined();
+            expect(nonStreamingToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
+            expect(nonStreamingToolsSpan!.status).toBe('ok');
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeDefined();
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(15);
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(8);
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(23);
 
-            // [1] Streaming with tools
-            expect(secondSpan!.name).toBe('generate_content gemini-2.0-flash-001');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toBe(
-              EXPECTED_AVAILABLE_TOOLS_JSON,
+            const streamingToolsSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]?.value === EXPECTED_AVAILABLE_TOOLS_JSON &&
+                span.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]?.value === true,
             );
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-tools-id');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-2.0-flash-001');
-            expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(10);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(22);
+            expect(streamingToolsSpan).toBeDefined();
+            expect(streamingToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
+            expect(streamingToolsSpan!.status).toBe('ok');
+            expect(streamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(streamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]).toBeDefined();
+            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-tools-id');
+            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-2.0-flash-001');
+            expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(10);
+            expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(22);
 
-            // [2] Without tools for comparison
-            expect(thirdSpan!.name).toBe('generate_content gemini-2.0-flash-001');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]).toBeUndefined();
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(thirdSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
+            const noToolsSpan = container.items.find(
+              span => span.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] === undefined,
+            );
+            expect(noToolsSpan).toBeDefined();
+            expect(noToolsSpan!.name).toBe('generate_content gemini-2.0-flash-001');
+            expect(noToolsSpan!.status).toBe('ok');
+            expect(noToolsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(noToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(noToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE]).toBeDefined();
+            expect(noToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(8);
+            expect(noToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(noToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(20);
           },
         })
         .start()
@@ -225,42 +239,49 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'chat gemini-1.5-pro',
+              'generate_content blocked-model',
+              'generate_content error-model',
+              'generate_content gemini-1.5-flash',
+            ]);
 
-            // [0] models.generateContentStream (streaming)
-            expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-streaming-id');
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
-            expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
-            expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(22);
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe(
+              'mock-response-streaming-id',
+            );
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(10);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(12);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(22);
 
-            // [1] chat.sendMessageStream (streaming)
-            expect(secondSpan!.name).toBe('chat gemini-1.5-pro');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-streaming-id');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
+            const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE].value).toBe('mock-response-streaming-id');
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gemini-1.5-pro');
 
-            // [2] blocked content streaming
-            expect(thirdSpan!.name).toBe('generate_content blocked-model');
-            expect(thirdSpan!.status).toBe('error');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            const blockedSpan = container.items.find(span => span.name === 'generate_content blocked-model');
+            expect(blockedSpan).toBeDefined();
+            expect(blockedSpan!.status).toBe('error');
+            expect(blockedSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(blockedSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
 
-            // [3] error handling for streaming
-            expect(fourthSpan!.name).toBe('generate_content error-model');
-            expect(fourthSpan!.status).toBe('error');
-            expect(fourthSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            const errorSpan = container.items.find(span => span.name === 'generate_content error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
           },
         })
         .start()
@@ -276,41 +297,46 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'chat gemini-1.5-pro',
+              'generate_content blocked-model',
+              'generate_content error-model',
+              'generate_content gemini-1.5-flash',
+            ]);
 
-            // [0] models.generateContentStream (streaming) with PII
-            expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
-            expect(firstSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+            expect(generateContentSpan).toBeDefined();
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+            expect(generateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE].value).toBe(0.9);
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE].value).toBe(100);
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
 
-            // [1] chat.sendMessageStream (streaming) with PII
-            expect(secondSpan!.name).toBe('chat gemini-1.5-pro');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
+            const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('chat');
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+            expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE].value).toBe('["STOP"]');
 
-            // [2] blocked content stream with PII
-            expect(thirdSpan!.name).toBe('generate_content blocked-model');
-            expect(thirdSpan!.status).toBe('error');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(thirdSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
-            expect(thirdSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            const blockedSpan = container.items.find(span => span.name === 'generate_content blocked-model');
+            expect(blockedSpan).toBeDefined();
+            expect(blockedSpan!.status).toBe('error');
+            expect(blockedSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(blockedSpan!.attributes[GEN_AI_RESPONSE_STREAMING_ATTRIBUTE].value).toBe(true);
+            expect(blockedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            expect(blockedSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
 
-            // [3] error handling for streaming with PII
-            expect(fourthSpan!.name).toBe('generate_content error-model');
-            expect(fourthSpan!.status).toBe('error');
-            expect(fourthSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-            expect(fourthSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
-            expect(fourthSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
+            const errorSpan = container.items.find(span => span.name === 'generate_content error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+            expect(errorSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE].value).toBe(0.7);
+            expect(errorSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]).toBeDefined();
           },
         })
         .start()
@@ -330,30 +356,32 @@ describe('Google GenAI integration', () => {
           .expect({
             span: container => {
               expect(container.items).toHaveLength(2);
-              const [firstSpan, secondSpan] = container.items;
-
-              // [0] First call: Last message is large and gets truncated (only C's remain, D's are cropped)
-              expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(firstSpan!.status).toBe('ok');
-              expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
-              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toMatch(
-                /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
+              const truncatedSpan = container.items.find(span =>
+                span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.match(
+                  /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
+                ),
               );
+              expect(truncatedSpan).toBeDefined();
+              expect(truncatedSpan!.name).toBe('generate_content gemini-1.5-flash');
+              expect(truncatedSpan!.status).toBe('ok');
+              expect(truncatedSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+              expect(truncatedSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
 
-              // [1] Second call: Last message is small and kept without truncation
-              expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
-              expect(secondSpan!.status).toBe('ok');
-              expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
-              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
-              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(
-                JSON.stringify([
-                  {
-                    role: 'user',
-                    parts: [{ text: 'This is a small message that fits within the limit' }],
-                  },
-                ]),
+              const smallMessageSpan = container.items.find(
+                span =>
+                  span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value ===
+                  JSON.stringify([
+                    {
+                      role: 'user',
+                      parts: [{ text: 'This is a small message that fits within the limit' }],
+                    },
+                  ]),
               );
+              expect(smallMessageSpan).toBeDefined();
+              expect(smallMessageSpan!.name).toBe('generate_content gemini-1.5-flash');
+              expect(smallMessageSpan!.status).toBe('ok');
+              expect(smallMessageSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('generate_content');
+              expect(smallMessageSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
@@ -398,29 +426,30 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'embeddings error-model',
+              'embeddings text-embedding-004',
+              'embeddings text-embedding-004',
+            ]);
 
-            // [0] embedContent with string contents (no PII)
-            expect(firstSpan!.name).toBe('embeddings text-embedding-004');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-            expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('text-embedding-004');
-            expect(firstSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBeUndefined();
+            const successfulSpans = container.items.filter(
+              span => span.name === 'embeddings text-embedding-004' && span.status === 'ok',
+            );
+            expect(successfulSpans).toHaveLength(2);
+            for (const span of successfulSpans) {
+              expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+              expect(span.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
+              expect(span.attributes['sentry.origin'].value).toBe('auto.ai.google_genai');
+              expect(span.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
+              expect(span.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE].value).toBe('text-embedding-004');
+              expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]).toBeUndefined();
+            }
 
-            // [1] embedContent error model
-            expect(secondSpan!.name).toBe('embeddings error-model');
-            expect(secondSpan!.status).toBe('error');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-
-            // [2] embedContent with array contents (no PII)
-            expect(thirdSpan!.name).toBe('embeddings text-embedding-004');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
+            const errorSpan = container.items.find(span => span.name === 'embeddings error-model');
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
           },
         })
         .start()
@@ -436,30 +465,38 @@ describe('Google GenAI integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'embeddings error-model',
+              'embeddings text-embedding-004',
+              'embeddings text-embedding-004',
+            ]);
 
-            // [0] embedContent with string contents and PII
-            expect(firstSpan!.name).toBe('embeddings text-embedding-004');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-            expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
-            expect(firstSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe(
-              'What is the capital of France?',
+            const stringInputSpan = container.items.find(
+              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'What is the capital of France?',
             );
+            expect(stringInputSpan).toBeDefined();
+            expect(stringInputSpan!.name).toBe('embeddings text-embedding-004');
+            expect(stringInputSpan!.status).toBe('ok');
+            expect(stringInputSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
+            expect(stringInputSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE].value).toBe('google_genai');
 
-            // [1] embedContent error model with PII
-            expect(secondSpan!.name).toBe('embeddings error-model');
-            expect(secondSpan!.status).toBe('error');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-            expect(secondSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe('This will fail');
-
-            // [2] embedContent with array contents and PII
-            expect(thirdSpan!.name).toBe('embeddings text-embedding-004');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
-            expect(thirdSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE].value).toBe(
-              '[{"role":"user","parts":[{"text":"First input text"}]},{"role":"user","parts":[{"text":"Second input text"}]}]',
+            const errorSpan = container.items.find(
+              span => span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value === 'This will fail',
             );
+            expect(errorSpan).toBeDefined();
+            expect(errorSpan!.name).toBe('embeddings error-model');
+            expect(errorSpan!.status).toBe('error');
+            expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
+
+            const arrayInputSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE]?.value ===
+                '[{"role":"user","parts":[{"text":"First input text"}]},{"role":"user","parts":[{"text":"Second input text"}]}]',
+            );
+            expect(arrayInputSpan).toBeDefined();
+            expect(arrayInputSpan!.name).toBe('embeddings text-embedding-004');
+            expect(arrayInputSpan!.status).toBe('ok');
+            expect(arrayInputSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('embeddings');
           },
         })
         .start()

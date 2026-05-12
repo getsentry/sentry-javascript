@@ -29,52 +29,83 @@ it('traces Google GenAI chat creation and message sending', async ({ signal }) =
       const container = envelope[1]?.[1]?.[1] as any;
       expect(container).toBeDefined();
       expect(container.items).toHaveLength(3);
-      const [firstSpan, secondSpan, thirdSpan] = container.items;
+      expect(container.items.map(span => span.name).sort()).toEqual([
+        'chat gemini-1.5-pro',
+        'embeddings text-embedding-004',
+        'generate_content gemini-1.5-flash',
+      ]);
 
-      // [0] chat gemini-1.5-pro
-      expect(firstSpan!.name).toBe('chat gemini-1.5-pro');
-      expect(firstSpan!.status).toBe('ok');
-      expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-      expect(firstSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
-      expect(firstSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
-      expect(firstSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
-      expect(firstSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+      const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+      expect(chatSpan).toBeDefined();
+      expect(chatSpan!.status).toBe('ok');
+      expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+      expect(chatSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      expect(chatSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
+      expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
+      expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'gemini-1.5-pro',
       });
-      expect(firstSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-      expect(firstSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
-      expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
 
-      // [1] generate_content gemini-1.5-flash
-      expect(secondSpan!.name).toBe('generate_content gemini-1.5-flash');
-      expect(secondSpan!.status).toBe('ok');
-      expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+      const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+      expect(generateContentSpan).toBeDefined();
+      expect(generateContentSpan!.status).toBe('ok');
+      expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'generate_content',
       });
-      expect(secondSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.generate_content' });
-      expect(secondSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
-      expect(secondSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
-      expect(secondSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+      expect(generateContentSpan!.attributes['sentry.op']).toEqual({
+        type: 'string',
+        value: 'gen_ai.generate_content',
+      });
+      expect(generateContentSpan!.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.ai.google_genai',
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'google_genai',
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'gemini-1.5-flash',
       });
-      expect(secondSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({ type: 'double', value: 0.7 });
-      expect(secondSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE]).toEqual({ type: 'double', value: 0.9 });
-      expect(secondSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 100 });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
-      expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+        type: 'double',
+        value: 0.7,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE]).toEqual({ type: 'double', value: 0.9 });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 100,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 8,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 12,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 20,
+      });
 
-      // [2] embeddings text-embedding-004
-      expect(thirdSpan!.name).toBe('embeddings text-embedding-004');
-      expect(thirdSpan!.status).toBe('ok');
-      expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'embeddings' });
-      expect(thirdSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.embeddings' });
-      expect(thirdSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
-      expect(thirdSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
-      expect(thirdSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+      const embeddingsSpan = container.items.find(span => span.name === 'embeddings text-embedding-004');
+      expect(embeddingsSpan).toBeDefined();
+      expect(embeddingsSpan!.status).toBe('ok');
+      expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'embeddings',
+      });
+      expect(embeddingsSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.embeddings' });
+      expect(embeddingsSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
+      expect(embeddingsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
+      expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
         type: 'string',
         value: 'text-embedding-004',
       });

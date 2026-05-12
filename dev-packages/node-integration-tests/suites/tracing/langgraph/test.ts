@@ -32,33 +32,30 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'create_agent weather_assistant',
+              'invoke_agent weather_assistant',
+              'invoke_agent weather_assistant',
+            ]);
 
-            // [0] create_agent
-            expect(firstSpan!.name).toBe('create_agent weather_assistant');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(firstSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('create_agent');
-            expect(firstSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+            const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
+            expect(createAgentSpan).toBeDefined();
+            expect(createAgentSpan!.status).toBe('ok');
+            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(createAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+            expect(createAgentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('create_agent');
+            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
 
-            // [1] first invoke_agent
-            expect(secondSpan!.name).toBe('invoke_agent weather_assistant');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(secondSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(secondSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('invoke_agent');
-            expect(secondSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
-            expect(secondSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('weather_assistant');
-
-            // [2] second invoke_agent
-            expect(thirdSpan!.name).toBe('invoke_agent weather_assistant');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(thirdSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(thirdSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('invoke_agent');
-            expect(thirdSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
-            expect(thirdSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+            const invokeAgentSpans = container.items.filter(span => span.name === 'invoke_agent weather_assistant');
+            expect(invokeAgentSpans).toHaveLength(2);
+            for (const span of invokeAgentSpans) {
+              expect(span.status).toBe('ok');
+              expect(span.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+              expect(span.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE].value).toBe('invoke_agent');
+              expect(span.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+              expect(span.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('weather_assistant');
+            }
           },
         })
         .start()
@@ -74,27 +71,27 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan, thirdSpan] = container.items;
+            const createAgentSpan = container.items.find(span => span.name === 'create_agent weather_assistant');
+            expect(createAgentSpan).toBeDefined();
+            expect(createAgentSpan!.status).toBe('ok');
+            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
 
-            // [0] create_agent
-            expect(firstSpan!.name).toBe('create_agent weather_assistant');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-
-            // [1] first invoke_agent with PII ("What is the weather today?")
-            expect(secondSpan!.name).toBe('invoke_agent weather_assistant');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(secondSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
-              'What is the weather today?',
+            const weatherTodaySpan = container.items.find(span =>
+              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('What is the weather today?'),
             );
+            expect(weatherTodaySpan).toBeDefined();
+            expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
+            expect(weatherTodaySpan!.status).toBe('ok');
+            expect(weatherTodaySpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(weatherTodaySpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
 
-            // [2] second invoke_agent with PII ("Tell me about the weather")
-            expect(thirdSpan!.name).toBe('invoke_agent weather_assistant');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(thirdSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('Tell me about the weather');
+            const weatherDetailsSpan = container.items.find(span =>
+              span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value?.includes('Tell me about the weather'),
+            );
+            expect(weatherDetailsSpan).toBeDefined();
+            expect(weatherDetailsSpan!.name).toBe('invoke_agent weather_assistant');
+            expect(weatherDetailsSpan!.status).toBe('ok');
+            expect(weatherDetailsSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
           },
         })
         .start()
@@ -110,45 +107,56 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
+            expect(container.items.map(span => span.name).sort()).toEqual([
+              'create_agent tool_agent',
+              'create_agent tool_calling_agent',
+              'invoke_agent tool_agent',
+              'invoke_agent tool_calling_agent',
+            ]);
 
-            // [0] create_agent tool_agent
-            expect(firstSpan!.name).toBe('create_agent tool_agent');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(firstSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_agent');
+            const toolAgentSpan = container.items.find(span => span.name === 'create_agent tool_agent');
+            expect(toolAgentSpan).toBeDefined();
+            expect(toolAgentSpan!.status).toBe('ok');
+            expect(toolAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(toolAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_agent');
 
-            // [1] invoke_agent tool_agent (tools available, not called)
-            expect(secondSpan!.name).toBe('invoke_agent tool_agent');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(secondSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toContain('get_weather');
-            expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('What is the weather?');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
-            expect(secondSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toContain(
+            const toolAgentInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_agent');
+            expect(toolAgentInvokeSpan).toBeDefined();
+            expect(toolAgentInvokeSpan!.status).toBe('ok');
+            expect(toolAgentInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE].value).toContain(
+              'get_weather',
+            );
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain(
+              'What is the weather?',
+            );
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toContain(
               'Response without calling tools',
             );
-            expect(secondSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(25);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
-            expect(secondSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(40);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(25);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(15);
+            expect(toolAgentInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(40);
 
-            // [2] create_agent tool_calling_agent
-            expect(thirdSpan!.name).toBe('create_agent tool_calling_agent');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(thirdSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_calling_agent');
+            const toolCallingAgentSpan = container.items.find(span => span.name === 'create_agent tool_calling_agent');
+            expect(toolCallingAgentSpan).toBeDefined();
+            expect(toolCallingAgentSpan!.status).toBe('ok');
+            expect(toolCallingAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(toolCallingAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('tool_calling_agent');
 
-            // [3] invoke_agent tool_calling_agent (with tool calls)
-            expect(fourthSpan!.name).toBe('invoke_agent tool_calling_agent');
-            expect(fourthSpan!.status).toBe('ok');
-            expect(fourthSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(fourthSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('San Francisco');
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toMatch(/"role":"tool"/);
-            expect(fourthSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toContain('get_weather');
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(80);
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(40);
-            expect(fourthSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(120);
+            const toolCallingInvokeSpan = container.items.find(span => span.name === 'invoke_agent tool_calling_agent');
+            expect(toolCallingInvokeSpan).toBeDefined();
+            expect(toolCallingInvokeSpan!.status).toBe('ok');
+            expect(toolCallingInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toContain('San Francisco');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE].value).toBe('gpt-4-0613');
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT_ATTRIBUTE].value).toMatch(/"role":"tool"/);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE].value).toContain(
+              'get_weather',
+            );
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE].value).toBe(80);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE].value).toBe(40);
+            expect(toolCallingInvokeSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE].value).toBe(120);
           },
         })
         .start()
@@ -165,28 +173,33 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(4);
-            const [firstSpan, secondSpan, thirdSpan, fourthSpan] = container.items;
+            const createAgentSpan = container.items.find(span => span.name === 'create_agent thread_test_agent');
+            expect(createAgentSpan).toBeDefined();
+            expect(createAgentSpan!.status).toBe('ok');
+            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
 
-            // [0] create_agent
-            expect(firstSpan!.name).toBe('create_agent thread_test_agent');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            const firstThreadSpan = container.items.find(
+              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'thread_abc123_session_1',
+            );
+            expect(firstThreadSpan).toBeDefined();
+            expect(firstThreadSpan!.name).toBe('invoke_agent thread_test_agent');
+            expect(firstThreadSpan!.status).toBe('ok');
+            expect(firstThreadSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
 
-            // [1] first invoke_agent with thread_abc123_session_1
-            expect(secondSpan!.name).toBe('invoke_agent thread_test_agent');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(secondSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE].value).toBe('thread_abc123_session_1');
+            const secondThreadSpan = container.items.find(
+              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'thread_xyz789_session_2',
+            );
+            expect(secondThreadSpan).toBeDefined();
+            expect(secondThreadSpan!.name).toBe('invoke_agent thread_test_agent');
+            expect(secondThreadSpan!.status).toBe('ok');
 
-            // [2] second invoke_agent with thread_xyz789_session_2
-            expect(thirdSpan!.name).toBe('invoke_agent thread_test_agent');
-            expect(thirdSpan!.status).toBe('ok');
-            expect(thirdSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE].value).toBe('thread_xyz789_session_2');
-
-            // [3] third invoke_agent without thread_id
-            expect(fourthSpan!.name).toBe('invoke_agent thread_test_agent');
-            expect(fourthSpan!.status).toBe('ok');
-            expect(fourthSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+            const noThreadSpan = container.items.find(
+              span =>
+                span.name === 'invoke_agent thread_test_agent' &&
+                span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] === undefined,
+            );
+            expect(noThreadSpan).toBeDefined();
+            expect(noThreadSpan!.status).toBe('ok');
           },
         })
         .start()
@@ -206,11 +219,10 @@ describe('LangGraph integration', () => {
           .expect({
             span: container => {
               expect(container.items).toHaveLength(2);
-              const [, secondSpan] = container.items;
+              const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent test-agent');
 
-              // [1] invoke_agent with system instructions
-              expect(secondSpan!.name).toBe('invoke_agent test-agent');
-              expect(secondSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
+              expect(invokeAgentSpan).toBeDefined();
+              expect(invokeAgentSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               );
             },
@@ -239,22 +251,22 @@ describe('LangGraph integration', () => {
         .expect({
           span: container => {
             expect(container.items).toHaveLength(3);
-            const [firstSpan, secondSpan] = container.items;
+            const createAgentSpan = container.items.find(span => span.name === 'create_agent resume_agent');
+            expect(createAgentSpan).toBeDefined();
+            expect(createAgentSpan!.status).toBe('ok');
+            expect(createAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
+            expect(createAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
 
-            // [0] create_agent resume_agent
-            expect(firstSpan!.name).toBe('create_agent resume_agent');
-            expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.create_agent');
-            expect(firstSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
-
-            // [1] first invoke_agent with thread_id 'resume-thread-1'
-            expect(secondSpan!.name).toBe('invoke_agent resume_agent');
-            expect(secondSpan!.status).toBe('ok');
-            expect(secondSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(secondSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
-            expect(secondSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
-            expect(secondSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('resume_agent');
-            expect(secondSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE].value).toBe('resume-thread-1');
+            const invokeAgentSpan = container.items.find(
+              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'resume-thread-1',
+            );
+            expect(invokeAgentSpan).toBeDefined();
+            expect(invokeAgentSpan!.name).toBe('invoke_agent resume_agent');
+            expect(invokeAgentSpan!.status).toBe('ok');
+            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+            expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME_ATTRIBUTE].value).toBe('resume_agent');
+            expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME_ATTRIBUTE].value).toBe('resume_agent');
           },
         })
         .start()
@@ -282,12 +294,13 @@ describe('LangGraph integration', () => {
               ]);
 
               expect(container.items).toHaveLength(2);
-              const [, secondSpan] = container.items;
+              const invokeAgentSpan = container.items.find(
+                span => span.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE]?.value === expectedMessages,
+              );
 
-              // [1] invoke_agent with untruncated input
-              expect(secondSpan!.name).toBe('invoke_agent weather_assistant');
-              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE].value).toBe(expectedMessages);
-              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
+              expect(invokeAgentSpan).toBeDefined();
+              expect(invokeAgentSpan!.name).toBe('invoke_agent weather_assistant');
+              expect(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE].value).toBe(3);
             },
           })
           .start()
