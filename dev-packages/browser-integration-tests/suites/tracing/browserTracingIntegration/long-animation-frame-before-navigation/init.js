@@ -9,7 +9,6 @@ Sentry.init({
       enableLongTask: false,
       enableLongAnimationFrame: true,
       instrumentPageLoad: false,
-      enableInp: false,
     }),
   ],
   tracesSampleRate: 1,

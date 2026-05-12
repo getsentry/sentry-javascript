@@ -8,7 +8,6 @@ Sentry.init({
     Sentry.browserTracingIntegration({
       linkPreviousTrace: 'in-memory',
       consistentTraceSampling: true,
-      enableInp: false,
     }),
     Sentry.spanStreamingIntegration(),
   ],

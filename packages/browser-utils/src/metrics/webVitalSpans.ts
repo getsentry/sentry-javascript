@@ -242,8 +242,6 @@ export function _sendClsSpan(
 /**
  * Tracks INP as a streamed span.
  *
- * This mirrors the standalone INP tracking logic (`startTrackingINP`) but emits
- * spans through the streaming pipeline instead of as standalone spans.
  * Requires `registerInpInteractionListener()` to be called separately for
  * cached element names and root spans per interaction.
  */

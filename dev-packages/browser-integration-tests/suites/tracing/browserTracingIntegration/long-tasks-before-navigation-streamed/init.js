@@ -9,7 +9,6 @@ Sentry.init({
       enableLongAnimationFrame: false,
       instrumentPageLoad: false,
       instrumentNavigation: true,
-      enableInp: false,
       enableLongTask: true,
     }),
     Sentry.spanStreamingIntegration(),

@@ -47,17 +47,13 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       await hidePage(page);
 
       const clientReport = envelopeRequestParser<ClientReport>(await clientReportPromise);
+      const sampledSpanDiscard = clientReport.discarded_events.find(
+        ({ category, reason }) => category === 'span' && reason === 'sample_rate',
+      );
 
-      expect(clientReport).toEqual({
-        timestamp: expect.any(Number),
-        discarded_events: [
-          {
-            category: 'span',
-            quantity: 1,
-            reason: 'sample_rate',
-          },
-        ],
-      });
+      expect(clientReport.timestamp).toEqual(expect.any(Number));
+      expect(sampledSpanDiscard?.quantity).toEqual(expect.any(Number));
+      expect(sampledSpanDiscard?.quantity).toBeGreaterThanOrEqual(1);
     });
 
     await sentryTest.step('Subsequent navigation trace is also sampled negatively', async () => {

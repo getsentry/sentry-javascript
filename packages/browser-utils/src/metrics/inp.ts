@@ -1,26 +1,7 @@
-import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  browserPerformanceTimeOrigin,
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  htmlTreeAsString,
-  isBrowser,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-} from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getActiveSpan, getRootSpan, htmlTreeAsString, isBrowser } from '@sentry/core';
 import { WINDOW } from '../types';
-import type { InstrumentationHandlerCallback } from './instrument';
-import {
-  addInpInstrumentationHandler,
-  addPerformanceInstrumentationHandler,
-  isPerformanceEventTiming,
-} from './instrument';
-import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
+import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from './instrument';
 
 interface InteractionContext {
   span: Span | undefined;
@@ -38,21 +19,6 @@ const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
  * (source: Me)
  */
 export const MAX_PLAUSIBLE_INP_DURATION = 60;
-/**
- * Start tracking INP webvital events.
- */
-export function startTrackingINP(): () => void {
-  const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin()) {
-    const inpCallback = _trackINP();
-
-    return (): void => {
-      inpCallback();
-    };
-  }
-
-  return () => undefined;
-}
 
 export const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
   click: 'click',
@@ -81,78 +47,6 @@ export const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'>
   keyup: 'press',
   keypress: 'press',
   input: 'press',
-};
-
-/** Starts tracking the Interaction to Next Paint on the current page. #
- * exported only for testing
- */
-export function _trackINP(): () => void {
-  return addInpInstrumentationHandler(_onInp);
-}
-
-/**
- * exported only for testing
- */
-export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
-  if (metric.value == undefined) {
-    return;
-  }
-
-  const duration = msToSec(metric.value);
-
-  // We received occasional reports of hour-long INP values.
-  // Therefore, we add a sanity check to avoid creating spans for
-  // unrealistically long INP durations.
-  if (duration > MAX_PLAUSIBLE_INP_DURATION) {
-    return;
-  }
-
-  const entry = metric.entries.find(entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name]);
-
-  if (!entry) {
-    return;
-  }
-
-  const { interactionId } = entry;
-  const interactionType = INP_ENTRY_MAP[entry.name];
-
-  /** Build the INP span, create an envelope from the span, and then send the envelope */
-  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
-  const activeSpan = getActiveSpan();
-  const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
-  // We first try to lookup the interaction context from our INTERACTIONS_SPAN_MAP,
-  // where we cache the route and element name per interactionId
-  const cachedInteractionContext = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
-
-  const spanToUse = cachedInteractionContext?.span || rootSpan;
-
-  // Else, we try to use the active span.
-  // Finally, we fall back to look at the transactionName on the scope
-  const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
-
-  const name = cachedInteractionContext?.elementName || htmlTreeAsString(entry.target);
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-  };
-
-  const span = startStandaloneWebVitalSpan({
-    name,
-    transaction: routeName,
-    attributes,
-    startTime,
-  });
-
-  if (span) {
-    span.addEvent('inp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-    });
-
-    span.end(startTime + duration);
-  }
 };
 
 /**

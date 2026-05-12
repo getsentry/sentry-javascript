@@ -1,34 +1,20 @@
-import type { Client } from './client';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
-import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import type { LegacyCSPReport } from './types-hoist/csp';
 import type { DsnComponents } from './types-hoist/dsn';
 import type {
-  DynamicSamplingContext,
   EventEnvelope,
   EventItem,
   RawSecurityEnvelope,
   RawSecurityItem,
   SessionEnvelope,
   SessionItem,
-  SpanEnvelope,
-  SpanItem,
 } from './types-hoist/envelope';
 import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import { dsnToString } from './utils/dsn';
-import {
-  createEnvelope,
-  createEventEnvelopeHeaders,
-  createSpanEnvelopeItem,
-  getSdkMetadataForEnvelopeHeader,
-} from './utils/envelope';
+import { createEnvelope, createEventEnvelopeHeaders, getSdkMetadataForEnvelopeHeader } from './utils/envelope';
 import { uuid4 } from './utils/misc';
-import { shouldIgnoreSpan } from './utils/should-ignore-span';
-import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -113,69 +99,6 @@ export function createEventEnvelope(
 
   const eventItem: EventItem = [{ type: eventType }, event];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
-}
-
-/**
- * Create envelope from Span item.
- *
- * Takes an optional client and runs spans through `beforeSendSpan` if available.
- */
-export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?: Client): SpanEnvelope {
-  function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
-    return !!dsc.trace_id && !!dsc.public_key;
-  }
-
-  // For the moment we'll obtain the DSC from the first span in the array
-  // This might need to be changed if we permit sending multiple spans from
-  // different segments in one envelope
-  const dsc = getDynamicSamplingContextFromSpan(spans[0]);
-
-  const dsn = client?.getDsn();
-  const tunnel = client?.getOptions().tunnel;
-
-  const headers: SpanEnvelope[0] = {
-    sent_at: new Date().toISOString(),
-    ...(dscHasRequiredProps(dsc) && { trace: dsc }),
-    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
-  };
-
-  const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
-
-  const filteredSpans = ignoreSpans?.length
-    ? spans.filter(span => {
-        const json = spanToJSON(span);
-        return !shouldIgnoreSpan({ description: json.description, op: json.op, attributes: json.data }, ignoreSpans);
-      })
-    : spans;
-  const droppedSpans = spans.length - filteredSpans.length;
-
-  if (droppedSpans) {
-    client?.recordDroppedEvent('before_send', 'span', droppedSpans);
-  }
-
-  const convertToSpanJSON = beforeSendSpan
-    ? (span: SentrySpan) => {
-        const spanJson = spanToJSON(span);
-        const processedSpan = !isStreamedBeforeSendSpanCallback(beforeSendSpan) ? beforeSendSpan(spanJson) : spanJson;
-
-        if (!processedSpan) {
-          showSpanDropWarning();
-          return spanJson;
-        }
-
-        return processedSpan;
-      }
-    : spanToJSON;
-
-  const items: SpanItem[] = [];
-  for (const span of filteredSpans) {
-    const spanJson = convertToSpanJSON(span);
-    if (spanJson) {
-      items.push(createSpanEnvelopeItem(spanJson));
-    }
-  }
-
-  return createEnvelope<SpanEnvelope>(headers, items);
 }
 
 /**

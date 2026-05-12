@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- **feat(browser)!: Extract Web Vitals into a dedicated `webVitalsIntegration` (v11)**
+
+  Web vital tracking (LCP, CLS, INP) has been extracted out of `browserTracingIntegration` into a new standalone `webVitalsIntegration`. `browserTracingIntegration` auto-registers it by default, so no migration is required for the common case.
+
+  Breaking changes:
+  - `enableInp` option on `browserTracingIntegration` has been removed. To disable INP, register `webVitalsIntegration({ disable: ['inp'] })` alongside `browserTracingIntegration`.
+  - `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` have been removed; the v1 standalone web vital span path no longer exists.
+  - The internal standalone span envelope path (`SpanContext.isStandalone`, `experimental.standalone` on `StartSpanOptions`, `createSpanEnvelope`, `SentrySpan#isStandaloneSpan`) has been removed. Web vitals now flow through the v2 streamed span pipeline exclusively.
 
 ## 10.53.0
 

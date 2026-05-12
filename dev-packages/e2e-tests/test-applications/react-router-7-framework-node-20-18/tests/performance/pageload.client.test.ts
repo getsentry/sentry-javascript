@@ -32,7 +32,6 @@ test.describe('client - pageload performance', () => {
       transaction: '/performance',
       type: 'transaction',
       transaction_info: { source: 'route' },
-      measurements: expect.any(Object),
       platform: 'javascript',
       request: {
         url: expect.stringContaining('/performance'),
@@ -85,7 +84,6 @@ test.describe('client - pageload performance', () => {
       transaction: '/performance/with/:param',
       type: 'transaction',
       transaction_info: { source: 'route' },
-      measurements: expect.any(Object),
       platform: 'javascript',
       request: {
         url: expect.stringContaining('/performance/with/sentry'),

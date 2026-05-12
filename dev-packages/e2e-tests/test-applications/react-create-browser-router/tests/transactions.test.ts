@@ -23,9 +23,9 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.contexts?.trace).toEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        deviceMemory: expect.any(String),
-        effectiveConnectionType: expect.any(String),
-        hardwareConcurrency: expect.any(String),
+        'device.memory.estimated_capacity': expect.any(Number),
+        'network.connection.effective_type': expect.any(String),
+        'device.processor_count': expect.any(Number),
         'sentry.idle_span_finish_reason': 'idleTimeout',
         'sentry.op': 'pageload',
         'sentry.origin': 'auto.pageload.react.reactrouter_v6',

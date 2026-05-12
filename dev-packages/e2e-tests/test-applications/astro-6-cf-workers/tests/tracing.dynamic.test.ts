@@ -42,7 +42,6 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       },
       environment: 'qa',
       event_id: expect.stringMatching(/[a-f0-9]{32}/),
-      measurements: expect.any(Object),
       platform: 'javascript',
       request: expect.any(Object),
       sdk: {

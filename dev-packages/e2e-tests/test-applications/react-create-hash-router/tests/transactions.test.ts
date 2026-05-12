@@ -10,23 +10,21 @@ test('Captures a pageload transaction', async ({ page }) => {
 
   const transactionEvent = await transactionEventPromise;
   expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
-      deviceMemory: expect.any(String),
-      effectiveConnectionType: expect.any(String),
-      hardwareConcurrency: expect.any(String),
-      'lcp.element': expect.any(String),
-      'lcp.id': expect.any(String),
-      'lcp.size': expect.any(Number),
+    data: expect.objectContaining({
+      'device.memory.estimated_capacity': expect.any(Number),
+      'network.connection.effective_type': expect.any(String),
+      'device.processor_count': expect.any(Number),
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'pageload',
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-      'performance.timeOrigin': expect.any(Number),
-      'performance.activationStart': expect.any(Number),
-      'lcp.renderTime': expect.any(Number),
-      'lcp.loadTime': expect.any(Number),
-    },
+      'browser.performance.time_origin': expect.any(Number),
+      'browser.performance.navigation.activation_start': expect.any(Number),
+      // LCP attributes (lcp.element, lcp.id, lcp.size, lcp.renderTime, lcp.loadTime)
+      // are no longer set on the pageload span - LCP is now emitted as its own span
+      // via webVitalsIntegration in streaming mode.
+    }),
     op: 'pageload',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -114,9 +112,9 @@ test('Captures a navigation transaction', async ({ page }) => {
   const transactionEvent = await transactionEventPromise;
   expect(transactionEvent.contexts?.trace).toEqual({
     data: expect.objectContaining({
-      deviceMemory: expect.any(String),
-      effectiveConnectionType: expect.any(String),
-      hardwareConcurrency: expect.any(String),
+      'device.memory.estimated_capacity': expect.any(Number),
+      'network.connection.effective_type': expect.any(String),
+      'device.processor_count': expect.any(Number),
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'navigation',
       'sentry.origin': 'auto.navigation.react.reactrouter_v6',

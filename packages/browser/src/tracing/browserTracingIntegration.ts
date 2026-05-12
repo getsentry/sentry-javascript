@@ -23,7 +23,6 @@ import {
   getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
-  hasSpanStreamingEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -40,16 +39,11 @@ import {
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
-  registerInpInteractionListener,
-  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
-  startTrackingWebVitals,
-  trackClsAsSpan,
-  trackInpAsSpan,
-  trackLcpAsSpan,
 } from '@sentry-internal/browser-utils';
+import { webVitalsIntegration, INTEGRATION_NAME as WEB_VITALS_INTEGRATION_NAME } from '../integrations/webVitals';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -141,13 +135,6 @@ export interface BrowserTracingOptions {
    * Default: false
    */
   enableLongAnimationFrame: boolean;
-
-  /**
-   * If true, Sentry will capture first input delay and add it to the corresponding transaction.
-   *
-   * Default: true
-   */
-  enableInp: boolean;
 
   /**
    * @deprecated This option is no longer used. Element timing is now tracked via the standalone
@@ -300,8 +287,6 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
-    enableStandaloneClsSpans: boolean;
-    enableStandaloneLcpSpans: boolean;
   }>;
 
   /**
@@ -338,7 +323,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   markBackgroundSpan: true,
   enableLongTask: true,
   enableLongAnimationFrame: true,
-  enableInp: true,
   ignoreResourceSpans: [],
   ignorePerformanceApiSpans: [],
   detectRedirects: true,
@@ -380,10 +364,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
   const {
-    enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -411,7 +394,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
   const _isBot = isBotUserAgent();
 
-  let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
   let _pageloadSpan: Span | undefined;
@@ -454,16 +436,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
-        // This will generally always be defined here, because it is set in `setup()` of the integration
-        // but technically, it is optional, so we guard here to be extra safe
-        _collectWebVitals?.();
-        const spanStreamingEnabled = hasSpanStreamingEnabled(client);
         addPerformanceEntries(span, {
-          recordClsOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneClsSpans,
-          recordLcpOnPageloadSpan: !spanStreamingEnabled && !enableStandaloneLcpSpans,
           ignoreResourceSpans,
           ignorePerformanceApiSpans,
-          spanStreamingEnabled,
         });
         setActiveIdleSpan(client, undefined);
 
@@ -519,24 +494,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       }
 
       registerSpanErrorInstrumentation();
-
-      const spanStreamingEnabled = hasSpanStreamingEnabled(client);
-
-      _collectWebVitals = startTrackingWebVitals({
-        recordClsStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneClsSpans || false,
-        recordLcpStandaloneSpans: spanStreamingEnabled ? undefined : enableStandaloneLcpSpans || false,
-        client,
-      });
-
-      if (spanStreamingEnabled) {
-        trackLcpAsSpan(client);
-        trackClsAsSpan(client);
-        if (enableInp) {
-          trackInpAsSpan();
-        }
-      } else if (enableInp) {
-        startTrackingINP();
-      }
 
       if (
         enableLongAnimationFrame &&
@@ -671,6 +628,14 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         return;
       }
 
+      // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
+      // afterAllSetup (rather than setup) so that a user-provided webVitalsIntegration -
+      // which may be ordered after browserTracingIntegration in the integrations array -
+      // has already been installed by the time we check.
+      if (!client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        client.addIntegration?.(webVitalsIntegration());
+      }
+
       let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
@@ -734,10 +699,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       if (enableInteractions) {
         registerInteractionListener(client, idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
-      }
-
-      if (enableInp) {
-        registerInpInteractionListener();
       }
 
       instrumentOutgoingRequests(client, {

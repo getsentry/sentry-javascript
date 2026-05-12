@@ -10,7 +10,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,

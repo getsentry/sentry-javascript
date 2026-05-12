@@ -4,7 +4,11 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('captures LCP vitals with element details', async ({ browserName, getLocalTestUrl, page }) => {
+// TODO(v11): re-enable once span streaming is the default — LCP fires at pagehide,
+// after the pageload transaction has already converted, so the LCP signal isn't
+// captured in static mode. The `web-vitals-lcp-streamed-spans` suite covers the
+// supported (streamed) flow.
+sentryTest.skip('captures LCP vitals with element details', async ({ browserName, getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
@@ -19,14 +23,16 @@ sentryTest('captures LCP vitals with element details', async ({ browserName, get
   const url = await getLocalTestUrl({ testDir: __dirname });
   const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.lcp?.value).toBeDefined();
+  const lcpSpan = eventData.spans?.find(({ op }) => op === 'ui.webvital.lcp');
+  expect(lcpSpan).toBeDefined();
 
-  expect(eventData.contexts?.trace?.data?.['lcp.element'].startsWith('body >')).toBe(true);
-  expect(eventData.contexts?.trace?.data?.['lcp.size']).toBeGreaterThan(0);
-  expect(eventData.contexts?.trace?.data?.['lcp.loadTime']).toBeGreaterThan(0);
-  expect(eventData.contexts?.trace?.data?.['lcp.renderTime']).toBeGreaterThan(0);
+  const lcpAttrs = lcpSpan?.data ?? {};
+  expect(lcpAttrs['browser.web_vital.lcp.value']).toBeGreaterThan(0);
+  expect(String(lcpAttrs['browser.web_vital.lcp.element']).startsWith('body >')).toBe(true);
+  expect(lcpAttrs['browser.web_vital.lcp.size']).toBeGreaterThan(0);
+  expect(lcpAttrs['browser.web_vital.lcp.load_time']).toBeGreaterThan(0);
+  expect(lcpAttrs['browser.web_vital.lcp.render_time']).toBeGreaterThan(0);
 
   // The LCP value should be the renderTime because the renderTime is set
-  expect(eventData.measurements?.lcp?.value).toBeCloseTo(eventData.contexts?.trace?.data?.['lcp.renderTime']);
+  expect(lcpAttrs['browser.web_vital.lcp.value']).toBeCloseTo(lcpAttrs['browser.web_vital.lcp.render_time'] as number);
 });
