@@ -9,6 +9,7 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
  */
 export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
   const {
+    applicationKey,
     authToken,
     bundleSizeOptimizations,
     debug,
@@ -52,6 +53,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
   };
 
   const sentryPlugins = sentryVitePlugin({
+    applicationKey,
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations: bundleSizeOptimizations ?? undefined,
     debug: debug ?? false,

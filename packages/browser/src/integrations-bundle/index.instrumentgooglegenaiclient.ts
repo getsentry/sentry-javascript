@@ -1,1 +1,1 @@
-export { instrumentGoogleGenAIClient } from '@sentry/core';
+export { instrumentGoogleGenAIClient } from '@sentry/core/browser';

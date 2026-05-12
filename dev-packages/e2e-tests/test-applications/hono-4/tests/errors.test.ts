@@ -147,6 +147,7 @@ test.describe('middleware errors', () => {
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Service Unavailable from middleware');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe('auto.middleware.hono');
     expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
+    expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
     const transaction = await transactionPromise;
     const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
@@ -183,7 +184,7 @@ test.describe('middleware errors', () => {
     const transaction = await transactionPromise;
 
     if (RUNTIME === 'cloudflare') {
-      expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx/*');
+      expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx');
 
       const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware.hono');
       expect(middlewareSpan?.status).not.toBe('internal_error');

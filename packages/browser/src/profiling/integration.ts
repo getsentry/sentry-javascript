@@ -1,5 +1,5 @@
-import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
-import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
+import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core/browser';
+import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core/browser';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -8,12 +8,13 @@ import { UIProfiler } from './UIProfiler';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
-  attachProfiledThreadToEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   getActiveProfilesCount,
   hasLegacyProfiling,
   isAutomatedPageLoadSpan,
+  PROFILED_ROOT_SPANS,
+  setThreadAttributes,
   shouldProfileSpanLegacy,
   takeProfileFromGlobalCache,
 } from './utils';
@@ -92,8 +93,13 @@ const _browserProfilingIntegration = (() => {
         }
 
         client.on('spanStart', (span: Span) => {
-          if (span === getRootSpan(span) && shouldProfileSpanLegacy(span)) {
-            startProfileForSpan(span);
+          const rootSpan = getRootSpan(span);
+          if (span === rootSpan) {
+            if (shouldProfileSpanLegacy(span)) {
+              startProfileForSpan(span);
+            }
+          } else if (PROFILED_ROOT_SPANS.has(rootSpan)) {
+            setThreadAttributes(span);
           }
         });
 
@@ -150,9 +156,6 @@ const _browserProfilingIntegration = (() => {
           addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
         });
       }
-    },
-    processEvent(event) {
-      return attachProfiledThreadToEvent(event);
     },
   };
 }) satisfies IntegrationFn;

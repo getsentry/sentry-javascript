@@ -1,4 +1,4 @@
-import type { Mechanism, WrappedFunction } from '@sentry/core';
+import type { Mechanism, WrappedFunction } from '@sentry/core/browser';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -9,7 +9,7 @@ import {
   GLOBAL_OBJ,
   markFunctionWrapped,
   withScope,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -106,6 +106,9 @@ export function wrap<T extends WrappableFunction, NonFunction>(
   // Wrap the function itself
   // It is important that `sentryWrapped` is not an arrow function to preserve the context of `this`
   const sentryWrapped = function (this: unknown, ...args: unknown[]): unknown {
+    // Track depth on GLOBAL_OBJ so the thirdPartyErrorFilterIntegration (in @sentry/core) can detect
+    // that processEvent is running inside a sentryWrapped call, even with minified/bundled code.
+    GLOBAL_OBJ._sentryWrappedDepth = (GLOBAL_OBJ._sentryWrappedDepth || 0) + 1;
     try {
       // Also wrap arguments that are themselves functions
       const wrappedArguments = args.map(arg => wrap(arg, options));
@@ -138,6 +141,8 @@ export function wrap<T extends WrappableFunction, NonFunction>(
       });
 
       throw ex;
+    } finally {
+      GLOBAL_OBJ._sentryWrappedDepth = (GLOBAL_OBJ._sentryWrappedDepth || 0) - 1;
     }
   } as unknown as WrappedFunction<T>;
 

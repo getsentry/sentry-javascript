@@ -7,7 +7,7 @@ import {
 export * from './index.bundle.base';
 
 // TODO(v11): Export metrics here once we remove it from the base bundle.
-export { logger, consoleLoggingIntegration } from '@sentry/core';
+export { logger, consoleLoggingIntegration } from '@sentry/core/browser';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
 

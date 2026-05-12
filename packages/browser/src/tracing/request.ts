@@ -7,7 +7,7 @@ import type {
   SentryWrappedXMLHttpRequest,
   Span,
   SpanTimeInput,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
@@ -29,7 +29,7 @@ import {
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
   addPerformanceInstrumentationHandler,

@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -18,67 +17,100 @@ import { createRunner } from '../../../runner';
 // want to test that the instrumentation does not break in our
 // cloudflare SDK.
 
-it('traces Google GenAI chat creation and message sending', async () => {
+it('traces Google GenAI chat creation and message sending', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
+      // Transaction item (first item in envelope)
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
-
       expect(transactionEvent.transaction).toBe('GET /');
-      expect(transactionEvent.spans).toEqual(
-        expect.arrayContaining([
-          // chat.sendMessage
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
-              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
-              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
-            }),
-            description: 'chat gemini-1.5-pro',
-            op: 'gen_ai.chat',
-            origin: 'auto.ai.google_genai',
-          }),
-          // models.generateContent
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
-              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
-              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
-              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
-              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
-            }),
-            description: 'generate_content gemini-1.5-flash',
-            op: 'gen_ai.generate_content',
-            origin: 'auto.ai.google_genai',
-          }),
-          // models.embedContent
-          expect.objectContaining({
-            data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'embeddings',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.embeddings',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
-              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
-              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'text-embedding-004',
-            }),
-            description: 'embeddings text-embedding-004',
-            op: 'gen_ai.embeddings',
-            origin: 'auto.ai.google_genai',
-          }),
-        ]),
-      );
+
+      // Span container item (second item in same envelope)
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(3);
+      expect(container.items.map(span => span.name).sort()).toEqual([
+        'chat gemini-1.5-pro',
+        'embeddings text-embedding-004',
+        'generate_content gemini-1.5-flash',
+      ]);
+
+      const chatSpan = container.items.find(span => span.name === 'chat gemini-1.5-pro');
+      expect(chatSpan).toBeDefined();
+      expect(chatSpan!.status).toBe('ok');
+      expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
+      expect(chatSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+      expect(chatSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
+      expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
+      expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'gemini-1.5-pro',
+      });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 8 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 12 });
+      expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 20 });
+
+      const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');
+      expect(generateContentSpan).toBeDefined();
+      expect(generateContentSpan!.status).toBe('ok');
+      expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'generate_content',
+      });
+      expect(generateContentSpan!.attributes['sentry.op']).toEqual({
+        type: 'string',
+        value: 'gen_ai.generate_content',
+      });
+      expect(generateContentSpan!.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.ai.google_genai',
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'google_genai',
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'gemini-1.5-flash',
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({
+        type: 'double',
+        value: 0.7,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE]).toEqual({ type: 'double', value: 0.9 });
+      expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 100,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 8,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 12,
+      });
+      expect(generateContentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({
+        type: 'integer',
+        value: 20,
+      });
+
+      const embeddingsSpan = container.items.find(span => span.name === 'embeddings text-embedding-004');
+      expect(embeddingsSpan).toBeDefined();
+      expect(embeddingsSpan!.status).toBe('ok');
+      expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'embeddings',
+      });
+      expect(embeddingsSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.embeddings' });
+      expect(embeddingsSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.google_genai' });
+      expect(embeddingsSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'google_genai' });
+      expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
+        type: 'string',
+        value: 'text-embedding-004',
+      });
     })
-    .start();
+    .start(signal);
   await runner.makeRequest('get', '/');
   await runner.completed();
 });

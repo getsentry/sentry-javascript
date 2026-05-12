@@ -125,6 +125,15 @@ export interface BuildTimeOptionsBase {
    * Options for bundle size optimizations by excluding certain features of the Sentry SDK.
    */
   bundleSizeOptimizations?: BundleSizeOptimizationsOptions;
+
+  /**
+   * A key that is used to identify the application in the Sentry bundler plugins.
+   * This key is used by the `thirdPartyErrorFilterIntegration` to filter out errors
+   * originating from third-party scripts.
+   *
+   * @see https://docs.sentry.io/platforms/javascript/configuration/filtering/#using-thirdpartyerrorfilterintegration
+   */
+  applicationKey?: string;
 }
 
 /**

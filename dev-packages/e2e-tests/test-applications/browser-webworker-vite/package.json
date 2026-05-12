@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
-    "@sentry/vite-plugin": "^5.2.0"
+    "@sentry/vite-plugin": "^5.3.0"
   },
   "volta": {
     "node": "20.19.2",

@@ -154,7 +154,7 @@ type LogEnvelopeHeaders = BaseEnvelopeHeaders;
 type MetricEnvelopeHeaders = BaseEnvelopeHeaders;
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
-  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | ProfileItem
+  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | ProfileItem | SpanContainerItem
 >;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;

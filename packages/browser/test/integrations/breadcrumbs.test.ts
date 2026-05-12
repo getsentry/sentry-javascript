@@ -1,4 +1,4 @@
-import * as SentryCore from '@sentry/core';
+import * as SentryCore from '@sentry/core/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, BrowserClient, flush } from '../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';

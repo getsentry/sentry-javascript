@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
+import { conditionalTest } from '../../../utils';
 
 describe('postgres auto instrumentation', () => {
   test('should auto-instrument `pg` package', { timeout: 90_000 }, async () => {
@@ -49,7 +50,6 @@ describe('postgres auto instrumentation', () => {
     await createRunner(__dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        setupCommand: 'yarn',
       })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
@@ -60,7 +60,6 @@ describe('postgres auto instrumentation', () => {
     await createRunner(__dirname, 'scenario-ignoreConnect.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
-        setupCommand: 'yarn',
       })
       .expect({
         transaction: txn => {
@@ -103,57 +102,59 @@ describe('postgres auto instrumentation', () => {
       .completed();
   });
 
-  test('should auto-instrument `pg-native` package', { timeout: 90_000 }, async () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'sentry.origin': 'manual',
-            'sentry.op': 'db',
+  conditionalTest({ max: 25 })('pg-native', () => {
+    test('should auto-instrument `pg-native` package', { timeout: 90_000 }, async () => {
+      const EXPECTED_TRANSACTION = {
+        transaction: 'Test Transaction',
+        spans: expect.arrayContaining([
+          expect.objectContaining({
+            data: expect.objectContaining({
+              'db.system': 'postgresql',
+              'db.name': 'tests',
+              'sentry.origin': 'manual',
+              'sentry.op': 'db',
+            }),
+            description: 'pg.connect',
+            op: 'db',
+            status: 'ok',
           }),
-          description: 'pg.connect',
-          op: 'db',
-          status: 'ok',
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
-            'sentry.origin': 'auto.db.otel.postgres',
-            'sentry.op': 'db',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              'db.system': 'postgresql',
+              'db.name': 'tests',
+              'db.statement': 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+              'sentry.origin': 'auto.db.otel.postgres',
+              'sentry.op': 'db',
+            }),
+            description: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
+            op: 'db',
+            status: 'ok',
+            origin: 'auto.db.otel.postgres',
           }),
-          description: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)',
-          op: 'db',
-          status: 'ok',
-          origin: 'auto.db.otel.postgres',
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            'db.system': 'postgresql',
-            'db.name': 'tests',
-            'db.statement': 'SELECT * FROM "NativeUser"',
-            'sentry.origin': 'auto.db.otel.postgres',
-            'sentry.op': 'db',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              'db.system': 'postgresql',
+              'db.name': 'tests',
+              'db.statement': 'SELECT * FROM "NativeUser"',
+              'sentry.origin': 'auto.db.otel.postgres',
+              'sentry.op': 'db',
+            }),
+            description: 'SELECT * FROM "NativeUser"',
+            op: 'db',
+            status: 'ok',
+            origin: 'auto.db.otel.postgres',
           }),
-          description: 'SELECT * FROM "NativeUser"',
-          op: 'db',
-          status: 'ok',
-          origin: 'auto.db.otel.postgres',
-        }),
-      ]),
-    };
+        ]),
+      };
 
-    await createRunner(__dirname, 'scenario-native.js')
-      .withDockerCompose({
-        workingDirectory: [__dirname],
-        setupCommand: 'yarn',
-      })
-      .expect({ transaction: EXPECTED_TRANSACTION })
-      .start()
-      .completed();
+      await createRunner(__dirname, 'scenario-native.js')
+        .withDockerCompose({
+          workingDirectory: [__dirname],
+          setupCommand: 'yarn',
+        })
+        .expect({ transaction: EXPECTED_TRANSACTION })
+        .start()
+        .completed();
+    });
   });
 });

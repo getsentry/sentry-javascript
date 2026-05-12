@@ -1,1 +1,1 @@
-export { instrumentLangGraph } from '@sentry/core';
+export { instrumentLangGraph } from '@sentry/core/browser';

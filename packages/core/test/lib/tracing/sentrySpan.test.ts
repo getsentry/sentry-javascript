@@ -234,6 +234,7 @@ describe('SentrySpan', () => {
             trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
             transaction: 'test',
           },
+          hasGenAiSpans: false,
         },
         spans: [],
         start_timestamp: 1,

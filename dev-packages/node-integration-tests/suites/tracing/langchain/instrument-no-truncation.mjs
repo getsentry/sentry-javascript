@@ -21,4 +21,5 @@ Sentry.init({
     }
     return event;
   },
+  streamGenAiSpans: true,
 });

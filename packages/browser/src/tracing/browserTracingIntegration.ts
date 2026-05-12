@@ -7,7 +7,7 @@ import type {
   Span,
   StartSpanOptions,
   TransactionSource,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
@@ -36,7 +36,7 @@ import {
   startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,

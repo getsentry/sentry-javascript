@@ -1,19 +1,23 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create AI spans with correct attributes', async ({ page }) => {
   const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === 'GET /ai-test';
   });
 
+  // gen_ai spans are extracted into a separate span v2 envelope item
+  const genAiSpansPromise = waitForStreamedSpans('nextjs-15', spans =>
+    spans.some(span => getSpanOp(span) === 'gen_ai.invoke_agent'),
+  );
+
   await page.goto('/ai-test');
 
   const aiTransaction = await aiTransactionPromise;
+  const genAiSpans = await genAiSpansPromise;
 
   expect(aiTransaction).toBeDefined();
   expect(aiTransaction.transaction).toBe('GET /ai-test');
-
-  const spans = aiTransaction.spans || [];
 
   // We expect spans for the first 3 AI calls (4th is disabled)
   // Each generateText call should create 2 spans: one for the pipeline and one for doGenerate
@@ -21,9 +25,9 @@ test('should create AI spans with correct attributes', async ({ page }) => {
   // TODO: For now, this is sadly not fully working - the monkey patching of the ai package is not working
   // because of this, only spans that are manually opted-in at call time will be captured
   // this may be fixed by https://github.com/vercel/ai/pull/6716 in the future
-  const aiPipelineSpans = spans.filter(span => span.op === 'gen_ai.invoke_agent');
-  const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_content');
-  const toolCallSpans = spans.filter(span => span.op === 'gen_ai.execute_tool');
+  const aiPipelineSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.invoke_agent');
+  const aiGenerateSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.generate_content');
+  const toolCallSpans = genAiSpans.filter(span => getSpanOp(span) === 'gen_ai.execute_tool');
 
   expect(aiPipelineSpans.length).toBeGreaterThanOrEqual(1);
   expect(aiGenerateSpans.length).toBeGreaterThanOrEqual(1);
@@ -31,35 +35,35 @@ test('should create AI spans with correct attributes', async ({ page }) => {
 
   // First AI call - should have telemetry enabled and record inputs/outputs (sendDefaultPii: true)
   /* const firstPipelineSpan = aiPipelineSpans[0];
-  expect(firstPipelineSpan?.data?.['vercel.ai.model.id']).toBe('mock-model-id');
-  expect(firstPipelineSpan?.data?.['vercel.ai.model.provider']).toBe('mock-provider');
-  expect(firstPipelineSpan?.data?.['vercel.ai.prompt']).toContain('Where is the first span?');
-  expect(firstPipelineSpan?.data?.['gen_ai.output.messages']).toContain('First span here!');
-  expect(firstPipelineSpan?.data?.['gen_ai.usage.input_tokens']).toBe(10);
-  expect(firstPipelineSpan?.data?.['gen_ai.usage.output_tokens']).toBe(20); */
+  expect(firstPipelineSpan?.attributes?.['vercel.ai.model.id']?.value).toBe('mock-model-id');
+  expect(firstPipelineSpan?.attributes?.['vercel.ai.model.provider']?.value).toBe('mock-provider');
+  expect(firstPipelineSpan?.attributes?.['vercel.ai.prompt']?.value).toContain('Where is the first span?');
+  expect(firstPipelineSpan?.attributes?.['gen_ai.output.messages']?.value).toContain('First span here!');
+  expect(firstPipelineSpan?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe(10);
+  expect(firstPipelineSpan?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe(20); */
 
   // Second AI call - explicitly enabled telemetry
   const secondPipelineSpan = aiPipelineSpans[0];
-  expect(secondPipelineSpan?.data?.['vercel.ai.prompt']).toContain('Where is the second span?');
-  expect(secondPipelineSpan?.data?.['gen_ai.output.messages']).toContain('Second span here!');
+  expect(secondPipelineSpan?.attributes?.['vercel.ai.prompt']?.value).toContain('Where is the second span?');
+  expect(secondPipelineSpan?.attributes?.['gen_ai.output.messages']?.value).toContain('Second span here!');
 
   // Third AI call - with tool calls
   /*  const thirdPipelineSpan = aiPipelineSpans[2];
-  expect(thirdPipelineSpan?.data?.['vercel.ai.response.finishReason']).toBe('tool-calls');
-  expect(thirdPipelineSpan?.data?.['gen_ai.usage.input_tokens']).toBe(15);
-  expect(thirdPipelineSpan?.data?.['gen_ai.usage.output_tokens']).toBe(25); */
+  expect(thirdPipelineSpan?.attributes?.['vercel.ai.response.finishReason']?.value).toBe('tool-calls');
+  expect(thirdPipelineSpan?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe(15);
+  expect(thirdPipelineSpan?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe(25); */
 
   // Tool call span
   /*  const toolSpan = toolCallSpans[0];
-  expect(toolSpan?.data?.['vercel.ai.toolCall.name']).toBe('getWeather');
-  expect(toolSpan?.data?.['vercel.ai.toolCall.id']).toBe('call-1');
-  expect(toolSpan?.data?.['vercel.ai.toolCall.args']).toContain('San Francisco');
-  expect(toolSpan?.data?.['vercel.ai.toolCall.result']).toContain('Sunny, 72°F'); */
+  expect(toolSpan?.attributes?.['vercel.ai.toolCall.name']?.value).toBe('getWeather');
+  expect(toolSpan?.attributes?.['vercel.ai.toolCall.id']?.value).toBe('call-1');
+  expect(toolSpan?.attributes?.['vercel.ai.toolCall.args']?.value).toContain('San Francisco');
+  expect(toolSpan?.attributes?.['vercel.ai.toolCall.result']?.value).toContain('Sunny, 72°F'); */
 
   // Verify the fourth call was not captured (telemetry disabled)
-  const promptsInSpans = spans
-    .map(span => span.data?.['vercel.ai.prompt'])
-    .filter((prompt): prompt is string => prompt !== undefined);
+  const promptsInSpans = genAiSpans
+    .map(span => span.attributes?.['vercel.ai.prompt']?.value)
+    .filter((prompt): prompt is string => typeof prompt === 'string');
   const hasDisabledPrompt = promptsInSpans.some(prompt => prompt.includes('Where is the third span?'));
   expect(hasDisabledPrompt).toBe(false);
 

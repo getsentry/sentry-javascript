@@ -6,7 +6,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   _INTERNAL_enhanceErrorWithSentryInfo,
   addExceptionMechanism,
@@ -22,7 +22,7 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 
