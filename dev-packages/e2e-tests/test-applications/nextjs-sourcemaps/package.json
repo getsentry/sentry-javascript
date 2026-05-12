@@ -9,8 +9,8 @@
     "test:assert": "pnpm ts-node --script-mode assert-build.ts"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
-    "next": "16.1.7",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "next": "16.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "typescript": "~5.0.0"

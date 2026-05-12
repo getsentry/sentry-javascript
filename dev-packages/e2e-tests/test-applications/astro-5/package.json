@@ -16,7 +16,7 @@
     "@astrojs/node": "^9.0.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/astro": "latest || *",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "astro": "^5.0.3"
   },
   "pnpm": {

@@ -1,0 +1,106 @@
+name: 'Auto-bump size-limit thresholds'
+
+on:
+  schedule:
+    - cron: '0 9 * * 5' # Friday 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
+concurrency:
+  group: bump-size-limits
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump size-limit thresholds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.GITFLOW_APP_ID }}
+          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
+
+      - name: Checkout develop
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'package.json'
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Run bumper
+        # Capture stdout AND exit code without failing the step on exit-2 (no-op).
+        # The script writes .size-limit.js in place; create-pull-request handles
+        # commit/branch/PR — if there's no diff, it skips opening a PR.
+        run: |
+          set +e
+          node scripts/bump-size-limits.mjs > /tmp/bump-summary.md
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then
+            echo "::error::bump script failed with exit code $code"
+            cat /tmp/bump-summary.md || true
+            exit "$code"
+          fi
+          cat /tmp/bump-summary.md
+
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: 'chore(size-limit): auto-bump weekly drift'
+          title: 'chore(size-limit): weekly auto-bump'
+          body-path: /tmp/bump-summary.md
+          branch: bot/bump-size-limits
+          base: develop
+          labels: 'Dev: CI'
+          add-paths: '.size-limit.js'
+          delete-branch: true
+
+      - name: Open or comment on failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Weekly size-limit auto-bump failure'
+          existing=$(gh issue list --search "in:title \"$title\"" --state open --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Auto-bump workflow failed again: $RUN_URL"
+          else
+            body=$(cat <<EOF
+          The weekly size-limit auto-bump workflow failed.
+
+          Run: $RUN_URL
+
+          This issue will be commented on for repeat failures.
+          EOF
+          )
+            gh issue create \
+              --title "$title" \
+              --body "$body" \
+              --label "Dev: CI"
+          fi

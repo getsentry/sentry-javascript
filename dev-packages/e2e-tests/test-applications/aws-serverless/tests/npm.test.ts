@@ -4,7 +4,7 @@ import { test, expect } from './lambda-fixtures';
 
 test.describe('NPM package', () => {
   test('tracing in CJS works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
       return transactionEvent?.transaction === 'NpmTracingCjs';
     });
 
@@ -45,7 +45,7 @@ test.describe('NPM package', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',
@@ -72,7 +72,7 @@ test.describe('NPM package', () => {
   });
 
   test('tracing in ESM works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
       return transactionEvent?.transaction === 'NpmTracingEsm';
     });
 
@@ -113,7 +113,7 @@ test.describe('NPM package', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.http',
+          'sentry.origin': 'auto.http.client',
           url: 'http://example.com/',
         }),
         description: 'GET http://example.com/',

@@ -1,4 +1,4 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core';
+import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
@@ -18,7 +18,7 @@ export {
   withActiveSpan,
   logger,
   consoleLoggingIntegration,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,
@@ -29,6 +29,8 @@ export {
 export { elementTimingIntegration } from '@sentry-internal/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
+
+export { spanStreamingIntegration } from './integrations/spanstreaming';
 
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 

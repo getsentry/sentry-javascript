@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  captureBodyFromWinterCGRequest,
   extractQueryParamsFromUrl,
   headersToDict,
   httpHeadersToSpanAttributes,
@@ -7,6 +8,7 @@ import {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
 } from '../../../src/utils/request';
+import type { Scope } from '../../../src/scope';
 
 describe('request utils', () => {
   describe('winterCGHeadersToDict', () => {
@@ -650,6 +652,35 @@ describe('request utils', () => {
         });
       });
 
+      it('filters common framework and provider session-style cookie names', () => {
+        const headers = {
+          Cookie:
+            'connect.sid=s3cr3t; express.sid=opaque; PHPSESSID=abcd; theme=light; sb-access-token=x; __stripe_mid=y',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.connect.sid': '[Filtered]',
+          'http.request.header.cookie.express.sid': '[Filtered]',
+          'http.request.header.cookie.phpsessid': '[Filtered]',
+          'http.request.header.cookie.theme': 'light',
+          'http.request.header.cookie.sb_access_token': '[Filtered]',
+          'http.request.header.cookie.__stripe_mid': '[Filtered]',
+        });
+      });
+
+      it('still filters session-style cookie names when sendDefaultPii is true', () => {
+        const headers = { Cookie: 'connect.sid=s3cr3t; analytics=1' };
+
+        const result = httpHeadersToSpanAttributes(headers, true);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.connect.sid': '[Filtered]',
+          'http.request.header.cookie.analytics': '1',
+        });
+      });
+
       it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
         const headers1 = { Cookie: ['key', 'val'] };
         const result1 = httpHeadersToSpanAttributes(headers1);
@@ -820,6 +851,294 @@ describe('request utils', () => {
           'http.response.header.cookie.session': '[Filtered]',
         });
       });
+    });
+  });
+
+  describe('captureBodyFromWinterCGRequest', () => {
+    function createMockRequest(options: {
+      body?: string | null;
+      contentType?: string;
+      contentLength?: string;
+    }): Request {
+      const headers = new Headers();
+      if (options.contentType) {
+        headers.set('content-type', options.contentType);
+      }
+      if (options.contentLength) {
+        headers.set('content-length', options.contentLength);
+      }
+
+      return new Request('https://example.com/test', {
+        method: 'POST',
+        headers,
+        body: options.body ?? undefined,
+      });
+    }
+
+    function createMockScope(): Scope & { capturedData: unknown } {
+      const scope = {
+        capturedData: undefined as unknown,
+        setSDKProcessingMetadata(metadata: { normalizedRequest?: { data?: unknown } }) {
+          scope.capturedData = metadata.normalizedRequest?.data;
+        },
+      };
+      return scope as Scope & { capturedData: unknown };
+    }
+
+    it('captures JSON body', async () => {
+      const jsonBody = JSON.stringify({ userId: 42, email: 'user@example.com', action: 'update_profile' });
+      const request = createMockRequest({
+        body: jsonBody,
+        contentType: 'application/json',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe(jsonBody);
+    });
+
+    it('captures form-urlencoded body', async () => {
+      const request = createMockRequest({
+        body: 'username=test&password=secret',
+        contentType: 'application/x-www-form-urlencoded',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('username=test&password=secret');
+    });
+
+    it('captures text/plain body', async () => {
+      const request = createMockRequest({
+        body: 'Hello, World!',
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('Hello, World!');
+    });
+
+    it('captures text/html body', async () => {
+      const request = createMockRequest({
+        body: '<html><body>Test</body></html>',
+        contentType: 'text/html',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('<html><body>Test</body></html>');
+    });
+
+    it('captures application/xml body', async () => {
+      const request = createMockRequest({
+        body: '<root><item>value</item></root>',
+        contentType: 'application/xml',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('<root><item>value</item></root>');
+    });
+
+    it('captures application/graphql body', async () => {
+      const request = createMockRequest({
+        body: 'query { user { name } }',
+        contentType: 'application/graphql',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('query { user { name } }');
+    });
+
+    it('skips non-textual content types', async () => {
+      const request = createMockRequest({
+        body: 'binary data',
+        contentType: 'application/octet-stream',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('skips image content types', async () => {
+      const request = createMockRequest({
+        body: 'image data',
+        contentType: 'image/png',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('skips when content-type is explicitly non-textual', async () => {
+      const request = {
+        headers: {
+          get: (name: string) => (name === 'content-type' ? null : null),
+        },
+        body: {},
+        clone: () => ({
+          text: () => Promise.resolve('some data'),
+        }),
+      } as unknown as Request;
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('skips when body is null', async () => {
+      const request = createMockRequest({
+        body: null,
+        contentType: 'application/json',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('skips when body is empty', async () => {
+      const request = createMockRequest({
+        body: '',
+        contentType: 'application/json',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('truncates body when it exceeds small size limit (1000 bytes)', async () => {
+      const largeBody = 'x'.repeat(2000);
+      const request = createMockRequest({
+        body: largeBody,
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'small');
+
+      expect(scope.capturedData).toHaveLength(1000);
+      expect((scope.capturedData as string).endsWith('...')).toBe(true);
+    });
+
+    it('truncates body when it exceeds medium size limit (10000 bytes)', async () => {
+      const largeBody = 'x'.repeat(20000);
+      const request = createMockRequest({
+        body: largeBody,
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toHaveLength(10000);
+      expect((scope.capturedData as string).endsWith('...')).toBe(true);
+    });
+
+    it('does not truncate body within small size limit', async () => {
+      const smallBody = 'x'.repeat(500);
+      const request = createMockRequest({
+        body: smallBody,
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'small');
+
+      expect(scope.capturedData).toBe(smallBody);
+    });
+
+    it('skips when content-length exceeds 1MB limit', async () => {
+      const request = createMockRequest({
+        body: 'small body',
+        contentType: 'application/json',
+        contentLength: '2000000',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'always');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('captures body with always size limit', async () => {
+      const largeBody = 'x'.repeat(50000);
+      const request = createMockRequest({
+        body: largeBody,
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'always');
+
+      expect(scope.capturedData).toBe(largeBody);
+    });
+
+    it('handles content-type with charset', async () => {
+      const request = createMockRequest({
+        body: '{"test":"value"}',
+        contentType: 'application/json; charset=utf-8',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('{"test":"value"}');
+    });
+
+    it('does not throw on errors', async () => {
+      const request = {
+        headers: {
+          get: () => {
+            throw new Error('Test error');
+          },
+        },
+        body: 'test',
+        clone: () => request,
+      } as unknown as Request;
+      const scope = createMockScope();
+
+      await expect(captureBodyFromWinterCGRequest(request, scope, 'medium')).resolves.not.toThrow();
+      expect(scope.capturedData).toBeUndefined();
+    });
+
+    it('handles timeout gracefully', async () => {
+      vi.useFakeTimers();
+
+      const neverResolve = new Promise<string>(() => {});
+      const request = {
+        headers: new Headers({ 'content-type': 'application/json' }),
+        body: {},
+        clone: () => ({
+          text: () => neverResolve,
+        }),
+      } as unknown as Request;
+      const scope = createMockScope();
+
+      const promise = captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      await vi.advanceTimersByTimeAsync(2500);
+      await promise;
+
+      expect(scope.capturedData).toBeUndefined();
+
+      vi.useRealTimers();
     });
   });
 });

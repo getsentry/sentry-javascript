@@ -35,6 +35,8 @@ async function run() {
       prompt: 'What is the weather in San Francisco?',
     });
   });
+
+  await Sentry.flush(2000);
 }
 
 run();

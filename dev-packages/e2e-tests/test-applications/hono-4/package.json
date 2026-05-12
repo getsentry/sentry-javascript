@@ -1,0 +1,46 @@
+{
+  "name": "hono-4",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev:cf": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
+    "dev:bun": "bun src/entry.bun.ts",
+    "build": "wrangler deploy --dry-run",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "dependencies": {
+    "@sentry/bun": "latest || *",
+    "@sentry/cloudflare": "latest || *",
+    "@sentry/hono": "latest || *",
+    "@sentry/node": "latest || *",
+    "@hono/node-server": "^1.19.10",
+    "hono": "^4.12.14"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@cloudflare/workers-types": "^4.20240725.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "tsx": "^4.20.3",
+    "typescript": "^5.5.2",
+    "wrangler": "^4.61.0"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "assert-command": "RUNTIME=node pnpm test:assert",
+        "label": "hono-4 (node)"
+      },
+      {
+        "assert-command": "RUNTIME=bun pnpm test:assert",
+        "label": "hono-4 (bun)"
+      }
+    ]
+  }
+}

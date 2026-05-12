@@ -74,6 +74,31 @@ const INSTANCE_ID = 'ae0ee067-61b3-4852-9219-5d62282270f0';
 const SAMPLE_RAND = '0.44116884107728693';
 const TRACE_ID = INSTANCE_ID.replace(/-/g, '');
 
+async function drainWaitUntilLikeCloudflareVitestPool(
+  waitUntilPromises: Promise<unknown>[],
+  timeoutMs = 100,
+): Promise<void> {
+  while (waitUntilPromises.length > 0) {
+    const batch = waitUntilPromises.splice(0);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const result = await Promise.race([
+      Promise.allSettled(batch).then(() => 'settled' as const),
+      new Promise<'timed-out'>(resolve => {
+        timeoutId = setTimeout(() => resolve('timed-out'), timeoutMs);
+      }),
+    ]);
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    if (result === 'timed-out') {
+      throw new Error('Cloudflare Vitest worker pool timed out while draining waitUntil promises');
+    }
+  }
+}
+
 describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -150,6 +175,35 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
         ],
       ],
     ]);
+  });
+
+  test('workflow step and final flush waitUntil promises can be drained by the Cloudflare Vitest worker pool', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    class WaitUntilWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('waitUntil step', async () => {
+          this._ctx.waitUntil(new Promise<void>(resolve => setTimeout(resolve, 0)));
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, WaitUntilWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(context, {}) as WaitUntilWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
   });
 
   test('Wraps env with instrumentEnv', async () => {

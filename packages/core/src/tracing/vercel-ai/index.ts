@@ -4,7 +4,7 @@ import { getClient } from '../../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { shouldEnableTruncation } from '../ai/utils';
 import type { Event } from '../../types-hoist/event';
-import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON } from '../../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
@@ -14,6 +14,7 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE,
   GEN_AI_TOOL_INPUT_ATTRIBUTE,
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
@@ -24,8 +25,9 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap } from './constants';
+import { SPAN_TO_OPERATION_NAME, toolCallSpanContextMap, toolDescriptionMap } from './constants';
 import type { TokenSummary } from './types';
+import { hasSpanStreamingEnabled } from '../spans/hasSpanStreamingEnabled';
 import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
@@ -233,19 +235,12 @@ function buildOutputMessages(attributes: Record<string, unknown>): void {
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
-function processEndedVercelAiSpan(span: SpanJSON): void {
-  const { data: attributes, origin } = span;
-
-  if (origin !== 'auto.vercelai.otel') {
-    return;
-  }
-
-  // The Vercel AI SDK sets span status to raw error message strings.
-  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
-  if (span.status && span.status !== 'ok') {
-    span.status = 'internal_error';
-  }
-
+/**
+ * Rename and normalize Vercel AI SDK attributes to OpenTelemetry semantic conventions.
+ * This is the shared attribute processing logic used by both the legacy event processor
+ * path (SpanJSON) and the streamed span path (StreamedSpanJSON).
+ */
+export function processVercelAiSpanAttributes(attributes: Record<string, unknown>): void {
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
@@ -330,12 +325,60 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   addProviderMetadataToAttributes(attributes);
 
-  // Change attributes namespaced with `ai.X` to `vercel.ai.X`
   for (const key of Object.keys(attributes)) {
+    // JSON-stringify any array-valued attributes so they survive v2 span serialization.
+    // Can be removed once span streaming supports arrays natively.
+    if (Array.isArray(attributes[key])) {
+      attributes[key] = JSON.stringify(attributes[key]);
+    }
+    // Change attributes namespaced with `ai.X` to `vercel.ai.X`
     if (key.startsWith('ai.')) {
       renameAttributeKey(attributes, key, `vercel.${key}`);
     }
   }
+}
+
+function processEndedVercelAiSpan(span: SpanJSON): void {
+  const { data: attributes, origin } = span;
+
+  if (origin !== 'auto.vercelai.otel') {
+    return;
+  }
+
+  // The Vercel AI SDK sets span status to raw error message strings.
+  // Any such value should be normalized to a SpanStatusType value. We pick internal_error as it is the most generic.
+  if (span.status && span.status !== 'ok') {
+    span.status = 'internal_error';
+  }
+
+  processVercelAiSpanAttributes(attributes);
+}
+
+function processVercelAiStreamedSpan(span: StreamedSpanJSON): void {
+  const attributes = span.attributes;
+  if (attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.vercelai.otel') {
+    return;
+  }
+
+  processVercelAiSpanAttributes(attributes);
+
+  // Look up tool description from the toolDescriptionMap for execute_tool spans
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'gen_ai.execute_tool' && span.parent_span_id) {
+    const descriptions = toolDescriptionMap.get(span.parent_span_id);
+
+    if (descriptions) {
+      const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
+      if (typeof toolName === 'string') {
+        const desc = descriptions.get(toolName);
+        if (desc) {
+          attributes[GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE] = desc;
+        }
+      }
+    }
+  }
+
+  // Clean up tool descriptions when the parent span ends
+  toolDescriptionMap.delete(span.span_id);
 }
 
 /**
@@ -418,6 +461,41 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (modelId && operationName) {
     span.updateName(`${operationName} ${modelId}`);
   }
+
+  // Store tool descriptions in the toolDescriptionMap so processSpan can apply them to execute_tool spans.
+  // This is only needed for span streaming (transaction path handles this separately)
+  const client = getClient();
+  if (
+    client &&
+    hasSpanStreamingEnabled(client) &&
+    attributes[AI_PROMPT_TOOLS_ATTRIBUTE] &&
+    Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])
+  ) {
+    const descriptions = new Map<string, string>();
+
+    // parse tool names and descriptions from tool string array
+    for (const toolStr of attributes[AI_PROMPT_TOOLS_ATTRIBUTE] as unknown[]) {
+      try {
+        const parsed = (typeof toolStr === 'string' ? JSON.parse(toolStr) : toolStr) as {
+          name?: string;
+          description?: string;
+        };
+        if (parsed?.name && parsed?.description) {
+          descriptions.set(parsed.name, parsed.description);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+    if (descriptions.size > 0) {
+      // Tool call spans are siblings of doGenerate (both children of invoke_agent),
+      // so we key by the parent span ID (the invoke_agent span).
+      const parentSpanId = spanToJSON(span).parent_span_id;
+      if (parentSpanId) {
+        toolDescriptionMap.set(parentSpanId, descriptions);
+      }
+    }
+  }
 }
 
 /**
@@ -427,9 +505,12 @@ export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+  client.on('processSpan', span => {
+    processVercelAiStreamedSpan(span);
+  });
 }
 
-function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
+function addProviderMetadataToAttributes(attributes: Record<string, unknown>): void {
   const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
   if (providerMetadata) {
     try {
@@ -506,7 +587,11 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
 /**
  * Sets an attribute only if the value is not null or undefined.
  */
-function setAttributeIfDefined(attributes: SpanAttributes, key: string, value: SpanAttributeValue | undefined): void {
+function setAttributeIfDefined(
+  attributes: Record<string, unknown>,
+  key: string,
+  value: SpanAttributeValue | undefined,
+): void {
   if (value != null) {
     attributes[key] = value;
   }

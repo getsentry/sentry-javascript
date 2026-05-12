@@ -63,7 +63,7 @@ vi.mock('@sentry/browser', async requireActual => {
   };
 });
 
-vi.mock('@sentry/core', async requireActual => {
+async function coreMock(requireActual: () => Promise<any>) {
   const actual = (await requireActual()) as any;
   return {
     ...actual,
@@ -81,7 +81,10 @@ vi.mock('@sentry/core', async requireActual => {
       return span;
     },
   };
-});
+}
+
+vi.mock('@sentry/core', coreMock);
+vi.mock('@sentry/core/browser', coreMock);
 
 describe('React Router cross usage of wrappers', () => {
   function createMockBrowserClient(): BrowserClient {
@@ -627,8 +630,13 @@ describe('React Router cross usage of wrappers', () => {
 
       await act(async () => {
         router.navigate('/settings');
-        await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
       });
+
+      await waitFor(() => {
+        expect(router.state.navigation.state).toBe('idle');
+        expect(router.state.location.pathname).toBe('/settings');
+      });
+      await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/settings',
@@ -641,8 +649,13 @@ describe('React Router cross usage of wrappers', () => {
 
       await act(async () => {
         router.navigate('/profile');
-        await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2));
       });
+
+      await waitFor(() => {
+        expect(router.state.navigation.state).toBe('idle');
+        expect(router.state.location.pathname).toBe('/profile');
+      });
+      await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2));
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
 
@@ -734,8 +747,13 @@ describe('React Router cross usage of wrappers', () => {
 
       await act(async () => {
         router.navigate('/user/2');
-        await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
       });
+
+      await waitFor(() => {
+        expect(router.state.navigation.state).toBe('idle');
+        expect(router.state.location.pathname).toBe('/user/2');
+      });
+      await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledWith(expect.any(BrowserClient), {
@@ -749,8 +767,13 @@ describe('React Router cross usage of wrappers', () => {
 
       await act(async () => {
         router.navigate('/user/3');
-        await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2));
       });
+
+      await waitFor(() => {
+        expect(router.state.navigation.state).toBe('idle');
+        expect(router.state.location.pathname).toBe('/user/3');
+      });
+      await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2));
 
       // Should create 2 spans - different concrete paths are different user actions
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);

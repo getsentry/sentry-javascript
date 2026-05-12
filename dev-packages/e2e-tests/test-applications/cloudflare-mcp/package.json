@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.24.0",
-    "@sentry/cloudflare": "latest || *",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "agents": "0.3.10",
     "zod": "^3.25.76"
   },
@@ -31,6 +31,7 @@
     "ws": "^8.18.3"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "pnpm": {

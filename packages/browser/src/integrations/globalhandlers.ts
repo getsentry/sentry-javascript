@@ -1,4 +1,4 @@
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core/browser';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -11,7 +11,7 @@ import {
   isString,
   stripDataUrlContent,
   UNKNOWN_FUNCTION,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';

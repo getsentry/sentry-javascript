@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
 
@@ -6,6 +7,7 @@ vi.mock('../../src/instrumentations/instrumentDurableObjectNamespace', () => ({
     __instrumented: true,
     __original: namespace,
   })),
+  STUB_NON_RPC_METHODS: new Set(['fetch', 'connect', 'dup']),
 }));
 
 import { instrumentDurableObjectNamespace } from '../../src/instrumentations/instrumentDurableObjectNamespace';
@@ -32,7 +34,7 @@ describe('instrumentEnv', () => {
     expect(instrumented.UNKNOWN).toBe(unknownBinding);
   });
 
-  it('returns env as-is when enableRpcTracePropagation is disabled', () => {
+  it('does not instrument DurableObjectNamespace when enableRpcTracePropagation is disabled', () => {
     const doNamespace = {
       idFromName: vi.fn(),
       idFromString: vi.fn(),
@@ -42,8 +44,7 @@ describe('instrumentEnv', () => {
     const env = { COUNTER: doNamespace };
     const instrumented = instrumentEnv(env);
 
-    // When trace propagation is disabled, env is returned as-is
-    expect(instrumented).toBe(env);
+    // DO bindings pass through untouched when RPC propagation is disabled
     expect(instrumented.COUNTER).toBe(doNamespace);
     expect(instrumentDurableObjectNamespace).not.toHaveBeenCalled();
   });
@@ -172,5 +173,157 @@ describe('instrumentEnv', () => {
 
     expect(instrumented.NULL_VAL).toBeNull();
     expect(instrumented.UNDEF_VAL).toBeUndefined();
+  });
+
+  it('wraps Queue bindings in a proxy', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const sendBatch = vi.fn().mockResolvedValue(undefined);
+    const queue = { send, sendBatch };
+    const env = { MY_QUEUE: queue };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_QUEUE as typeof queue;
+    // Wrapped binding is a Proxy, not the original reference
+    expect(wrapped).not.toBe(queue);
+    // Calls are forwarded to the underlying queue
+    await wrapped.send('hello');
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0]).toBe('hello');
+  });
+
+  it('caches the wrapped Queue binding across repeated access', () => {
+    const queue = { send: vi.fn(), sendBatch: vi.fn() };
+    const env = { MY_QUEUE: queue };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_QUEUE).toBe(instrumented.MY_QUEUE);
+  });
+
+  it('wraps Queue bindings independently from DO bindings', () => {
+    const queue = { send: vi.fn(), sendBatch: vi.fn() };
+    const doNamespace = {
+      idFromName: vi.fn(),
+      idFromString: vi.fn(),
+      get: vi.fn(),
+      newUniqueId: vi.fn(),
+    };
+    const env = { MY_QUEUE: queue, COUNTER: doNamespace };
+    const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+    // Access both — DO instrumentation only fires on property access
+    expect(instrumented.MY_QUEUE).not.toBe(queue);
+    instrumented.COUNTER;
+    expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace);
+  });
+
+  describe('JSRPC RPC method instrumentation', () => {
+    it('does not inject Sentry RPC meta by default (enableRpcTracePropagation not set)', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env);
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+
+      // Without enableRpcTracePropagation, no metadata should be injected
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
+    });
+
+    it('injects Sentry RPC meta when enableRpcTracePropagation is true', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1', 42);
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42, {
+        __sentry_rpc_meta__: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+    });
+
+    it('does not inject meta into JSRPC fetch calls', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abc-def-1',
+        baggage: 'sentry-baggage=value',
+      });
+
+      const mockFetch = vi.fn().mockResolvedValue(new Response('ok'));
+      const jsrpcProxy = new Proxy(
+        { fetch: mockFetch },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).fetch('https://example.com');
+
+      // fetch should use HTTP header injection, not trailing arg
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs).not.toContainEqual(expect.objectContaining({ __sentry: expect.anything() }));
+    });
+
+    it('does not inject meta into JSRPC RPC calls when no active trace', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({});
+
+      const rpcMethod = vi.fn().mockReturnValue('result');
+      const jsrpcProxy = new Proxy(
+        { fetch: vi.fn(), myRpcMethod: rpcMethod },
+        {
+          get(target, prop) {
+            if (prop in target) {
+              return Reflect.get(target, prop);
+            }
+            return () => {};
+          },
+        },
+      );
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { enableRpcTracePropagation: true });
+
+      (instrumented.SERVICE as any).myRpcMethod('arg1');
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
   });
 });

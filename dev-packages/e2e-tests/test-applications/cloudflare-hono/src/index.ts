@@ -17,7 +17,7 @@ app.get('/error', () => {
 });
 
 app.onError((err, ctx) => {
-  console.error(`Error occured: ${err.message}`);
+  console.error(`Error occurred: ${err.message}`);
   return ctx.json({ error: err.message }, 500);
 });
 

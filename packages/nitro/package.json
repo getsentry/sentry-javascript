@@ -1,0 +1,84 @@
+{
+  "name": "@sentry/nitro",
+  "version": "10.52.0",
+  "description": "Official Sentry SDK for Nitro",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro",
+  "author": "Sentry",
+  "license": "MIT",
+  "keywords": [
+    "nitro",
+    "sentry",
+    "apm",
+    "tracing",
+    "error-tracking"
+  ],
+  "engines": {
+    "node": ">=18.19.1"
+  },
+  "files": [
+    "/build"
+  ],
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./build/types/index.d.ts",
+      "default": "./build/esm/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "nitro": ">=3.0.0-0 <4.0.0 || 3.0.260311-beta || 3.0.260415-beta"
+  },
+  "dependencies": {
+    "@sentry/bundler-plugin-core": "^5.2.0",
+    "@sentry/core": "10.52.0",
+    "@sentry/node": "10.52.0",
+    "@sentry/opentelemetry": "10.52.0"
+  },
+  "devDependencies": {
+    "nitro": "^3.0.260415-beta",
+    "h3": "^2.0.1-rc.13"
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "run-s build:types:core",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:tarball": "npm pack",
+    "clean": "rimraf build coverage sentry-nitro-*.tgz",
+    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types",
+          "build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build/esm"
+        ]
+      }
+    }
+  }
+}

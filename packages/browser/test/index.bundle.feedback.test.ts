@@ -3,6 +3,7 @@ import {
   consoleLoggingIntegrationShim,
   loggerShim,
   replayIntegrationShim,
+  spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
 import { feedbackAsyncIntegration } from '../src';
@@ -14,6 +15,7 @@ describe('index.bundle.feedback', () => {
     expect(FeedbackBundle.feedbackAsyncIntegration).toBe(feedbackAsyncIntegration);
     expect(FeedbackBundle.feedbackIntegration).toBe(feedbackAsyncIntegration);
     expect(FeedbackBundle.replayIntegration).toBe(replayIntegrationShim);
+    expect(FeedbackBundle.spanStreamingIntegration).toBe(spanStreamingIntegrationShim);
 
     expect(FeedbackBundle.logger).toBe(loggerShim);
     expect(FeedbackBundle.consoleLoggingIntegration).toBe(consoleLoggingIntegrationShim);

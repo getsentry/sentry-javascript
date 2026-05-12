@@ -23,11 +23,11 @@
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
-    "@sentry/nextjs": "latest || *",
-    "@sentry/core": "latest || *",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
-    "next": "16.1.7",
+    "next": "16.2.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^7",
@@ -40,7 +40,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "canary",
+    "eslint-config-next": "^16",
     "typescript": "^5"
   },
   "volta": {

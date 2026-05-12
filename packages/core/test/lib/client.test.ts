@@ -3115,6 +3115,29 @@ describe('Client', () => {
 
       safeUnrefSpy.mockRestore();
     });
+
+    it('flush() drains the log buffer when client has no transport', async () => {
+      // Client without DSN — _transport is undefined
+      const options = getDefaultTestClientOptions({
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const flushLogsHandler = vi.fn();
+      client.on('flushLogs', flushLogsHandler);
+
+      // Capture a log which starts the weight-based flush timer
+      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+
+      expect(flushLogsHandler).not.toHaveBeenCalled();
+
+      // flush() should drain the buffer (and clear the timer) even without a transport
+      await client.flush();
+
+      expect(flushLogsHandler).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('metric weight-based flushing', () => {
@@ -3200,6 +3223,27 @@ describe('Client', () => {
       expect(safeUnrefSpy).toHaveBeenCalledWith(expect.anything());
 
       safeUnrefSpy.mockRestore();
+    });
+
+    it('flush() drains the metric buffer when client has no transport', async () => {
+      // Client without DSN — _transport is undefined
+      const options = getDefaultTestClientOptions({});
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const flushMetricsHandler = vi.fn();
+      client.on('flushMetrics', flushMetricsHandler);
+
+      // Capture a metric which starts the weight-based flush timer
+      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+
+      expect(flushMetricsHandler).not.toHaveBeenCalled();
+
+      // flush() should drain the buffer (and clear the timer) even without a transport
+      await client.flush();
+
+      expect(flushMetricsHandler).toHaveBeenCalledTimes(1);
     });
   });
 

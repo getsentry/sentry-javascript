@@ -1,10 +1,14 @@
+import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
-import type { RequestEventData } from '../types-hoist/request';
+import type { QueryParams, RequestEventData } from '../types-hoist/request';
+import type { StreamedSpanJSON } from '../types-hoist/span';
 import { parseCookie } from '../utils/cookie';
+import { httpHeadersToSpanAttributes } from '../utils/request';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
+import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
 
 interface RequestDataIncludeOptions {
   cookies?: boolean;
@@ -56,6 +60,22 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       return event;
     },
+    processSegmentSpan(span, client) {
+      const { sdkProcessingMetadata = {} } = getIsolationScope().getScopeData();
+      const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
+
+      if (!normalizedRequest) {
+        return;
+      }
+
+      const { sendDefaultPii } = client.getOptions();
+      const includeWithDefaultPiiApplied: RequestDataIncludeOptions = {
+        ...include,
+        ip: include.ip ?? sendDefaultPii,
+      };
+
+      addNormalizedRequestDataToSpan(span, normalizedRequest, ipAddress, includeWithDefaultPiiApplied, sendDefaultPii);
+    },
   };
 }) satisfies IntegrationFn;
 
@@ -92,6 +112,60 @@ function addNormalizedRequestDataToEvent(
   }
 }
 
+function addNormalizedRequestDataToSpan(
+  span: StreamedSpanJSON,
+  normalizedRequest: RequestEventData,
+  ipAddress: string | undefined,
+  include: RequestDataIncludeOptions,
+  sendDefaultPii: boolean | undefined,
+): void {
+  const requestData = extractNormalizedRequestData(normalizedRequest, include);
+  const attributes: Record<string, unknown> = {};
+
+  if (requestData.url) {
+    attributes['url.full'] = requestData.url;
+  }
+
+  if (requestData.method) {
+    attributes['http.request.method'] = requestData.method;
+  }
+
+  if (requestData.query_string) {
+    attributes['url.query'] = normalizeQueryString(requestData.query_string);
+  }
+
+  safeSetSpanJSONAttributes(span, attributes);
+
+  // Process cookies before headers so normalizedRequest.cookies takes precedence
+  // over the raw cookie header (matching the processEvent path).
+  if (requestData.cookies && Object.keys(requestData.cookies).length > 0) {
+    const cookieString = Object.entries(requestData.cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ');
+    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, sendDefaultPii ?? false, 'request');
+    safeSetSpanJSONAttributes(span, cookieAttributes);
+  }
+
+  if (requestData.headers) {
+    const headerAttributes = httpHeadersToSpanAttributes(requestData.headers, sendDefaultPii ?? false, 'request');
+    safeSetSpanJSONAttributes(span, headerAttributes);
+  }
+
+  if (requestData.data != null) {
+    const serialized = typeof requestData.data === 'string' ? requestData.data : JSON.stringify(requestData.data);
+    if (serialized) {
+      safeSetSpanJSONAttributes(span, { 'http.request.body.data': serialized });
+    }
+  }
+
+  if (include.ip) {
+    const ip = (normalizedRequest.headers && getClientIPAddress(normalizedRequest.headers)) || ipAddress || undefined;
+    if (ip) {
+      safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: ip });
+    }
+  }
+}
+
 function extractNormalizedRequestData(
   normalizedRequest: RequestEventData,
   include: RequestDataIncludeOptions,
@@ -102,17 +176,18 @@ function extractNormalizedRequestData(
   if (include.headers) {
     requestData.headers = headers;
 
-    // Remove the Cookie header in case cookie data should not be included in the event
     if (!include.cookies) {
       delete (headers as { cookie?: string }).cookie;
     }
 
-    // Remove IP headers in case IP data should not be included in the event
     if (!include.ip) {
-      ipHeaderNames.forEach(ipHeaderName => {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (headers as Record<string, unknown>)[ipHeaderName];
-      });
+      const ipHeaderNamesLower = new Set(ipHeaderNames.map(name => name.toLowerCase()));
+      for (const key of Object.keys(headers)) {
+        if (ipHeaderNamesLower.has(key.toLowerCase())) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete (headers as Record<string, unknown>)[key];
+        }
+      }
     }
   }
 
@@ -136,4 +211,15 @@ function extractNormalizedRequestData(
   }
 
   return requestData;
+}
+
+function normalizeQueryString(queryString: QueryParams): string | undefined {
+  if (typeof queryString === 'string') {
+    return queryString || undefined;
+  }
+
+  const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
+  const result = pairs.map(([key, value]) => `${key}=${value}`).join('&');
+
+  return result || undefined;
 }

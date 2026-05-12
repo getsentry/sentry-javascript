@@ -1,4 +1,4 @@
-import type { WrappedFunction } from '@sentry/core';
+import type { WrappedFunction } from '@sentry/core/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { wrap } from '../src/helpers';
 

@@ -4,6 +4,7 @@ import {
   elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
@@ -18,4 +19,5 @@ export {
   elementTimingIntegrationShim as elementTimingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
+  spanStreamingIntegrationShim as spanStreamingIntegration,
 };

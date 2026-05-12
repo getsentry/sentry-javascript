@@ -359,6 +359,56 @@ other-header: test`;
       ]);
     });
 
+    it('handles fetch breadcrumb for aborted request (no response)', async () => {
+      const breadcrumb: Breadcrumb = {
+        category: 'fetch',
+        level: 'error',
+        data: {
+          method: 'GET',
+          url: 'https://example.com',
+        },
+      };
+
+      const hint: FetchBreadcrumbHint = {
+        data: new Error('The operation was aborted'),
+        input: ['GET', {}],
+        startTimestamp: BASE_TIMESTAMP + 1000,
+        endTimestamp: BASE_TIMESTAMP + 2000,
+      };
+      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+      expect(breadcrumb).toEqual({
+        category: 'fetch',
+        level: 'error',
+        data: {
+          method: 'GET',
+          url: 'https://example.com',
+        },
+      });
+
+      await waitForReplayEventBuffer();
+
+      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+        {
+          type: 5,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            tag: 'performanceSpan',
+            payload: {
+              data: {
+                method: 'GET',
+                statusCode: 0,
+              },
+              description: 'https://example.com',
+              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+              op: 'resource.fetch',
+              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            },
+          },
+        },
+      ]);
+    });
+
     it('parses fetch response body if necessary', async () => {
       const breadcrumb: Breadcrumb = {
         category: 'fetch',

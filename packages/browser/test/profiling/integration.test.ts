@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { debug } from '@sentry/core';
+import { debug } from '@sentry/core/browser';
 import { describe, expect, it, vi } from 'vitest';
 import type { BrowserClient } from '../../src/index';
 import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
@@ -69,7 +69,6 @@ describe('BrowserProfilingIntegration', () => {
   });
 
   it("warns when profileLifecycle is 'trace' but tracing is disabled", async () => {
-    debug.enable();
     const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
     // @ts-expect-error mock constructor

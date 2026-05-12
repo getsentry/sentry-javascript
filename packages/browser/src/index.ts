@@ -15,7 +15,7 @@ export {
   rewriteFramesIntegration,
   consoleLoggingIntegration,
   createConsolaReporter,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
 export type {
@@ -72,11 +72,12 @@ export {
   instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
   instrumentLangGraph,
+  instrumentCreateReactAgent,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   logger,
-} from '@sentry/core';
-export type { Span, FeatureFlagsIntegration } from '@sentry/core';
+} from '@sentry/core/browser';
+export type { Span, FeatureFlagsIntegration } from '@sentry/core/browser';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';

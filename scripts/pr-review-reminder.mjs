@@ -8,7 +8,7 @@
  * @mentions are narrowed as follows:
  * - Individual users: not [outside collaborators](https://docs.github.com/en/organizations/managing-outside-collaborators)
  *   on this repo (via `repos.listCollaborators` with `affiliation: outside` — repo-scoped, no extra token).
- * - Team reviewers: only the org team `team-javascript-sdks` (by slug).
+ * - Team reviewers: only org teams in `SDK_TEAM_SLUGS` (by slug).
  *
  * Business days exclude weekends and a small set of recurring public holidays
  * (same calendar date each year) for US, CA, and AT.
@@ -21,8 +21,13 @@
  *   await run({ github, context, core });
  */
 
-// Team @mentions only for this slug. Individuals are filtered using outside-collaborator list (see below).
-const SDK_TEAM_SLUG = 'team-javascript-sdks';
+// Team @mentions only for these slugs. Individuals are filtered using outside-collaborator list (see below).
+const SDK_TEAM_SLUGS = new Set([
+  'team-javascript-sdks',
+  'team-javascript-sdks-framework',
+  'team-javascript-sdks-browser',
+  'team-javascript-sdks-server',
+]);
 
 // ---------------------------------------------------------------------------
 // Outside collaborators (repo API — works with default GITHUB_TOKEN).
@@ -174,6 +179,16 @@ export default async function run({ github, context, core }) {
     const pendingTeams = requested.teams; // team reviewers
     if (pendingReviewers.length === 0 && pendingTeams.length === 0) continue;
 
+    // Skip if the PR already has at least one approval — no need to nudge remaining reviewers
+    const reviews = await github.paginate(github.rest.pulls.listReviews, {
+      owner,
+      repo,
+      pull_number: pr.number,
+      per_page: 100,
+    });
+    const hasApproval = reviews.some(r => r.state === 'APPROVED');
+    if (hasApproval) continue;
+
     // Fetch the PR timeline to determine when each review was (last) requested
     const timeline = await github.paginate(github.rest.issues.listEventsForTimeline, {
       owner,
@@ -244,7 +259,7 @@ export default async function run({ github, context, core }) {
 
     // Collect overdue team reviewers
     for (const team of pendingTeams) {
-      if (team.slug !== SDK_TEAM_SLUG) {
+      if (!SDK_TEAM_SLUGS.has(team.slug)) {
         continue;
       }
 

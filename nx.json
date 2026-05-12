@@ -61,9 +61,10 @@
     }
   },
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "cacheDirectory": ".nxcache",
+  "cacheDirectory": ".nx/cache",
   "tui": {
     "autoExit": true
   },
-  "parallel": 5
+  "parallel": 5,
+  "analytics": false
 }

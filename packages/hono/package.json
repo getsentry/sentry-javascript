@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hono",
-  "version": "10.49.0",
+  "version": "10.52.0",
   "description": "Official Sentry SDK for Hono (ALPHA)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hono",
@@ -46,6 +46,16 @@
         "types": "./build/types/index.node.d.ts",
         "default": "./build/cjs/index.node.js"
       }
+    },
+    "./bun": {
+      "import": {
+        "types": "./build/types/index.bun.d.ts",
+        "default": "./build/esm/index.bun.js"
+      },
+      "require": {
+        "types": "./build/types/index.bun.d.ts",
+        "default": "./build/cjs/index.bun.js"
+      }
     }
   },
   "typesVersions": {
@@ -58,6 +68,9 @@
       ],
       "build/types/index.node.d.ts": [
         "build/types-ts3.8/index.node.d.ts"
+      ],
+      "build/types/index.bun.d.ts": [
+        "build/types-ts3.8/index.bun.d.ts"
       ]
     }
   },
@@ -66,16 +79,26 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/cloudflare": "10.49.0",
-    "@sentry/core": "10.49.0",
-    "@sentry/node": "10.49.0"
+    "@sentry/core": "10.52.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x",
+    "@sentry/bun": "10.52.0",
+    "@sentry/cloudflare": "10.52.0",
+    "@sentry/node": "10.52.0",
     "hono": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/cloudflare": {
+      "optional": true
+    },
+    "@sentry/node": {
       "optional": true
     }
   },

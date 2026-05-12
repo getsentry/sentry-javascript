@@ -13,7 +13,7 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@sentry/solid": "latest || *",
+    "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/solid-router": "^1.141.8",
     "@tanstack/solid-router-devtools": "^1.132.25",
@@ -25,7 +25,7 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7",
+    "vite": "^7.3.2",
     "vite-plugin-solid": "^2.11.2"
   },
   "volta": {

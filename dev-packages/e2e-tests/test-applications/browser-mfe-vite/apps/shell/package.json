@@ -8,8 +8,8 @@
     "preview": "vite preview --port 3030"
   },
   "dependencies": {
-    "@sentry/browser": "latest || *",
-    "@sentry/react": "latest || *",
+    "@sentry/browser": "file:../../../../packed/sentry-browser-packed.tgz",
+    "@sentry/react": "file:../../../../packed/sentry-react-packed.tgz",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

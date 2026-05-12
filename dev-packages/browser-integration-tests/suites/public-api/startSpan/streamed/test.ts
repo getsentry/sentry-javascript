@@ -11,13 +11,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest(
   'sends a streamed span envelope if spanStreamingIntegration is enabled',
   async ({ getLocalTestUrl, page }) => {
-    sentryTest.skip(shouldSkipTracingTest() || testingCdnBundle());
+    sentryTest.skip(shouldSkipTracingTest());
 
     const spanEnvelopePromise = waitForStreamedSpanEnvelope(page);
 
@@ -56,6 +56,8 @@ sentryTest(
       [
         { content_type: 'application/vnd.sentry.items.span.v2+json', item_count: 4, type: 'span' },
         {
+          version: 2,
+          ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
           items: expect.any(Array),
         },
       ],
@@ -167,6 +169,26 @@ sentryTest(
       },
       {
         attributes: {
+          'culture.calendar': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'culture.locale': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'culture.timezone': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'http.request.header.user_agent': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'url.full': {
+            type: 'string',
+            value: expect.any(String),
+          },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test',

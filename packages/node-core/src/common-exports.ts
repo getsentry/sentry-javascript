@@ -27,12 +27,12 @@ export { systemErrorIntegration } from './integrations/systemError';
 export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 export { pinoIntegration } from './integrations/pino';
+export { consoleIntegration } from './integrations/console';
 
 // SDK utilities
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { addOriginToSpan } from './utils/addOriginToSpan';
-export { getRequestUrl } from './utils/getRequestUrl';
 export { initializeEsmLoader } from './sdk/esmLoader';
 export { isCjs } from './utils/detection';
 export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
@@ -117,13 +117,13 @@ export {
   profiler,
   consoleLoggingIntegration,
   createConsolaReporter,
-  consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
   withStreamedSpan,
   metrics,
   envToBool,
+  getRequestUrl,
 } from '@sentry/core';
 
 export type {

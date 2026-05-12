@@ -15,8 +15,8 @@
     "@astrojs/node": "^10.0.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/astro": "latest || *",
-    "astro": "^6.0.6"
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "astro": "~6.2.0"
   },
   "volta": {
     "node": "22.22.0",

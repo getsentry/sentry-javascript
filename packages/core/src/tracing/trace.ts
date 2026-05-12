@@ -36,7 +36,7 @@ import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
 import type { Client } from '../client';
 
-const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
+export const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -68,9 +68,10 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
     return wrapper(() => {
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
+      const client = getClient();
 
-      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan
+      const missingRequiredParent = options.onlyIfParent && !parentSpan;
+      const activeSpan = missingRequiredParent
         ? new SentryNonRecordingSpan()
         : createChildOrRootSpan({
             parentSpan,
@@ -78,6 +79,10 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
             forceTransaction,
             scope,
           });
+
+      if (missingRequiredParent) {
+        client?.recordDroppedEvent('no_parent_span', 'span');
+      }
 
       // Ignored root spans still need to be set on scope so that `getActiveSpan()` returns them
       // and descendants are also non-recording. Ignored child spans don't need this because
@@ -132,8 +137,8 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
       const scope = getCurrentScope();
       const parentSpan = getParentSpan(scope, customParentSpan);
 
-      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan
+      const missingRequiredParent = options.onlyIfParent && !parentSpan;
+      const activeSpan = missingRequiredParent
         ? new SentryNonRecordingSpan()
         : createChildOrRootSpan({
             parentSpan,
@@ -141,6 +146,10 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
             forceTransaction,
             scope,
           });
+
+      if (missingRequiredParent) {
+        getClient()?.recordDroppedEvent('no_parent_span', 'span');
+      }
 
       // We don't set ignored child spans onto the scope because there likely is an active,
       // unignored span on the scope already.
@@ -195,10 +204,12 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
   return wrapper(() => {
     const scope = getCurrentScope();
     const parentSpan = getParentSpan(scope, customParentSpan);
+    const client = getClient();
 
-    const shouldSkipSpan = options.onlyIfParent && !parentSpan;
+    const missingRequiredParent = options.onlyIfParent && !parentSpan;
 
-    if (shouldSkipSpan) {
+    if (missingRequiredParent) {
+      client?.recordDroppedEvent('no_parent_span', 'span');
       return new SentryNonRecordingSpan();
     }
 
@@ -599,6 +610,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
     {
       description: spanArguments.name || '',
       op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+      attributes: spanArguments.attributes,
     },
     ignoreSpans,
   );

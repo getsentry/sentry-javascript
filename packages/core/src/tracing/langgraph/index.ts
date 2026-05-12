@@ -10,6 +10,7 @@ import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import {
@@ -19,12 +20,24 @@ import {
   resolveAIRecordingOptions,
   shouldEnableTruncation,
 } from '../ai/utils';
-import type { LangChainMessage } from '../langchain/types';
+import { createLangChainCallbackHandler } from '../langchain';
+import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';
-import { extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
+import {
+  extractAgentNameFromParams,
+  extractLLMFromParams,
+  extractToolsFromCompiledGraph,
+  mergeSentryCallback,
+  setResponseAttributes,
+  wrapToolsWithSpans,
+} from './utils';
+
+let _insideCreateReactAgent = false;
+
+const SENTRY_PATCHED = '__sentry_patched__';
 
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
@@ -38,8 +51,19 @@ export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
   options: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
-  return new Proxy(originalCompile, {
+  if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
+    return originalCompile;
+  }
+
+  const sentryHandler = createLangChainCallbackHandler(options);
+
+  const wrapped = new Proxy(originalCompile, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
+      // Skip when called from within createReactAgent to avoid duplicate instrumentation
+      if (_insideCreateReactAgent) {
+        return Reflect.apply(target, thisArg, args);
+      }
+
       return startSpan(
         {
           op: 'gen_ai.create_agent',
@@ -69,6 +93,8 @@ export function instrumentStateGraphCompile(
                 compiledGraph,
                 compileOptions,
                 options,
+                undefined,
+                sentryHandler,
               ) as typeof originalInvoke;
             }
 
@@ -87,6 +113,9 @@ export function instrumentStateGraphCompile(
       );
     },
   }) as (...args: unknown[]) => CompiledGraph;
+
+  Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
+  return wrapped;
 }
 
 /**
@@ -99,9 +128,12 @@ function instrumentCompiledGraphInvoke(
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
   options: LangGraphOptions,
+  llm?: BaseChatModel | null,
+  sentryCallbackHandler?: unknown,
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
+      const modelName = llm?.modelName ?? llm?.model;
       return startSpan(
         {
           op: 'gen_ai.invoke_agent',
@@ -122,6 +154,10 @@ function instrumentCompiledGraphInvoke(
               span.updateName(`invoke_agent ${graphName}`);
             }
 
+            if (modelName) {
+              span.setAttribute(GEN_AI_REQUEST_MODEL_ATTRIBUTE, modelName);
+            }
+
             // Extract thread_id from the config (second argument)
             // LangGraph uses config.configurable.thread_id for conversation/session linking
             const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
@@ -129,6 +165,21 @@ function instrumentCompiledGraphInvoke(
             const threadId = configurable?.thread_id;
             if (threadId && typeof threadId === 'string') {
               span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, threadId);
+            }
+
+            // Inject callback handler and agent name into invoke config
+            if (sentryCallbackHandler) {
+              const invokeConfig = (args[1] ?? {}) as Record<string, unknown>;
+              args[1] = invokeConfig;
+
+              const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
+              invokeConfig.metadata = {
+                ...existingMetadata,
+                __sentry_langgraph__: true,
+                ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
+              };
+
+              invokeConfig.callbacks = mergeSentryCallback(invokeConfig.callbacks, sentryCallbackHandler);
             }
 
             // Extract available tools from the graph instance
@@ -164,7 +215,6 @@ function instrumentCompiledGraphInvoke(
             // Call original invoke
             const result = await Reflect.apply(target, thisArg, args);
 
-            // Set response attributes
             if (recordOutputs) {
               setResponseAttributes(span, inputMessages ?? null, result);
             }
@@ -184,6 +234,66 @@ function instrumentCompiledGraphInvoke(
       );
     },
   }) as (...args: unknown[]) => Promise<unknown>;
+}
+
+/**
+ * Instruments createReactAgent to create invoke_agent and execute_tool spans.
+ */
+export function instrumentCreateReactAgent(
+  originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
+  options?: LangGraphOptions,
+): (...args: unknown[]) => CompiledGraph {
+  if (Object.prototype.hasOwnProperty.call(originalCreateReactAgent, SENTRY_PATCHED)) {
+    return originalCreateReactAgent;
+  }
+
+  const resolvedOptions = resolveAIRecordingOptions(options);
+  const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
+
+  const wrapped = new Proxy(originalCreateReactAgent, {
+    apply(target, thisArg, args: unknown[]): CompiledGraph {
+      const llm = extractLLMFromParams(args);
+      const agentName = extractAgentNameFromParams(args);
+
+      // Wrap tools with execute_tool spans (direct access gives us name, type, description)
+      const params = args[0] as Record<string, unknown> | undefined;
+      if (params && Array.isArray(params.tools) && params.tools.length > 0) {
+        wrapToolsWithSpans(params.tools, resolvedOptions, agentName ?? undefined);
+      }
+
+      // Suppress StateGraph.compile instrumentation inside createReactAgent
+      _insideCreateReactAgent = true;
+      let compiledGraph: CompiledGraph;
+      try {
+        compiledGraph = Reflect.apply(target, thisArg, args);
+      } finally {
+        _insideCreateReactAgent = false;
+      }
+
+      // Wrap invoke() on the returned compiled graph
+      const originalInvoke = compiledGraph.invoke;
+      if (originalInvoke && typeof originalInvoke === 'function') {
+        const compileOptions: Record<string, unknown> = {};
+        if (agentName) {
+          compileOptions.name = agentName;
+        }
+
+        compiledGraph.invoke = instrumentCompiledGraphInvoke(
+          originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+          compiledGraph,
+          compileOptions,
+          resolvedOptions,
+          llm,
+          sentryHandler,
+        ) as typeof originalInvoke;
+      }
+
+      return compiledGraph;
+    },
+  }) as (...args: unknown[]) => CompiledGraph;
+
+  Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
+  return wrapped;
 }
 
 /**

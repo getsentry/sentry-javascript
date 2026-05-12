@@ -1,6 +1,6 @@
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { Scope } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   getContextFromScope,
   getScopesFromContext,

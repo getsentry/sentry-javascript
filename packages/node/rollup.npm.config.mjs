@@ -6,6 +6,7 @@ export default [
     makeBaseNPMConfig({
       entrypoints: ['src/index.ts', 'src/init.ts', 'src/preload.ts'],
       packageSpecificConfig: {
+        external: [/^@sentry\/opentelemetry/],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',

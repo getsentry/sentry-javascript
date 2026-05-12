@@ -123,16 +123,37 @@ test('sends a streamed span envelope with correct spans for a manually started s
           status: 'ok',
         });
 
+        const expectedAttributes: Record<string, unknown> = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+          [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+          'process.runtime.engine.name': { type: 'string', value: 'v8' },
+          'process.runtime.engine.version': { type: 'string', value: expect.any(String) },
+          'app.start_time': { type: 'string', value: expect.any(String) },
+          'app.memory': { type: 'integer', value: expect.any(Number) },
+          // TODO: device.archs is an array and currently dropped during serialization
+          // 'device.archs': { type: 'array', value: [expect.any(String)] },
+          'device.boot_time': { type: 'string', value: expect.any(String) },
+          'device.memory_size': { type: 'integer', value: expect.any(Number) },
+          'device.free_memory': { type: 'integer', value: expect.any(Number) },
+          'device.processor_count': { type: 'integer', value: expect.any(Number) },
+          'device.cpu_description': { type: 'string', value: expect.any(String) },
+          'device.processor_frequency': { type: 'integer', value: expect.any(Number) },
+          'culture.locale': { type: 'string', value: expect.any(String) },
+          'culture.timezone': { type: 'string', value: expect.any(String) },
+        };
+
+        // process.availableMemory is only available in Node 22+
+        if (typeof (process as any).availableMemory === 'function') {
+          expectedAttributes['app.free_memory'] = { type: 'integer', value: expect.any(Number) };
+        }
+
         expect(segmentSpan).toEqual({
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
-            [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-          },
+          attributes: expectedAttributes,
           name: 'test-span',
           is_segment: true,
           trace_id: traceId,

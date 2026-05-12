@@ -4,6 +4,7 @@ import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint } from './types-hoist/event';
 import type { Integration, IntegrationFn } from './types-hoist/integration';
 import type { CoreOptions } from './types-hoist/options';
+import type { StreamedSpanJSON } from './types-hoist/span';
 import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
@@ -137,6 +138,15 @@ export function setupIntegration(client: Client, integration: Integration, integ
 
     client.addEventProcessor(processor);
   }
+
+  (['processSpan', 'processSegmentSpan'] as const).forEach(hook => {
+    const callback = integration[hook];
+    if (typeof callback === 'function') {
+      // The cast is needed because TS can't resolve overloads when the discriminant is a union type.
+      // Both overloads have the same callback signature so this is safe.
+      client.on(hook as 'processSpan', (span: StreamedSpanJSON) => callback.call(integration, span, client));
+    }
+  });
 
   DEBUG_BUILD && debug.log(`Integration installed: ${integration.name}`);
 }

@@ -74,19 +74,17 @@ export function init(options: BrowserOptions): Client | undefined {
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
+  opts.ignoreSpans = [
+    ...(opts.ignoreSpans || []),
+    // we filter out segment spans for /404 pages
+    /^\/404$/,
+    // segment spans where we didn't get a reasonable transaction name
+    // in this case, constructing a dynamic RegExp is fine because the variable is a constant
+    // we need to ensure to exact-match, so a string match isn't safe (same for /404 above)
+    new RegExp(`^${INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME}$`),
+  ];
+
   const client = reactInit(opts);
-
-  const filterTransactions: EventProcessor = event =>
-    event.type === 'transaction' && event.transaction === '/404' ? null : event;
-  filterTransactions.id = 'NextClient404Filter';
-  addEventProcessor(filterTransactions);
-
-  const filterIncompleteNavigationTransactions: EventProcessor = event =>
-    event.type === 'transaction' && event.transaction === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME
-      ? null
-      : event;
-  filterIncompleteNavigationTransactions.id = 'IncompleteTransactionFilter';
-  addEventProcessor(filterIncompleteNavigationTransactions);
 
   const filterNextRedirectError: EventProcessor = (event, hint) =>
     isRedirectNavigationError(hint?.originalException) || event.exception?.values?.[0]?.value === 'NEXT_REDIRECT'

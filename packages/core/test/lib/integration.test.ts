@@ -73,7 +73,7 @@ describe('getIntegrationsToSetup', () => {
       expect(integrations.map(i => i.name)).toEqual(expected);
     });
 
-    test('it uses passed integration over default intergation', () => {
+    test('it uses passed integration over default integration', () => {
       const integrationDefault = new MockIntegration('ChaseSquirrels');
       const integration1 = new MockIntegration('ChaseSquirrels');
 

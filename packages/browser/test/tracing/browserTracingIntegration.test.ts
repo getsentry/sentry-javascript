@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { Span, StartSpanOptions } from '@sentry/core';
+import type { Span, StartSpanOptions } from '@sentry/core/browser';
 import {
   getActiveSpan,
   getCurrentScope,
@@ -17,7 +17,9 @@ import {
   spanToJSON,
   startInactiveSpan,
   TRACING_DEFAULTS,
-} from '@sentry/core';
+  browserPerformanceTimeOrigin,
+  getSpanDescendants,
+} from '@sentry/core/browser';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -58,6 +60,8 @@ const originalGlobalHistory = WINDOW.history;
 describe('browserTracingIntegration', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Ensure start time aligns with cached origin time, which is used as pageload start time
+    vi.setSystemTime(browserPerformanceTimeOrigin()!);
     getCurrentScope().clear();
     getIsolationScope().clear();
     getCurrentScope().setClient(undefined);
@@ -228,11 +232,11 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    const span = getActiveSpan();
+    const span = getActiveSpan()!;
     expect(span).toBeDefined();
-    expect(spanIsSampled(span!)).toBe(true);
-    expect(span!.isRecording()).toBe(true);
-    expect(spanToJSON(span!)).toEqual({
+    expect(spanIsSampled(span)).toBe(true);
+    expect(span.isRecording()).toBe(true);
+    expect(spanToJSON(span)).toEqual({
       description: '/',
       op: 'pageload',
       origin: 'auto.pageload.browser',
@@ -254,13 +258,13 @@ describe('browserTracingIntegration', () => {
     vi.advanceTimersByTime(1600);
     WINDOW.history.pushState({}, '', '/test');
 
-    expect(span!.isRecording()).toBe(false);
+    expect(span.isRecording()).toBe(false);
 
-    const span2 = getActiveSpan();
+    const span2 = getActiveSpan()!;
     expect(span2).toBeDefined();
-    expect(spanIsSampled(span2!)).toBe(true);
-    expect(span2!.isRecording()).toBe(true);
-    expect(spanToJSON(span2!)).toEqual({
+    expect(spanIsSampled(span2)).toBe(true);
+    expect(span2.isRecording()).toBe(true);
+    expect(spanToJSON(span2)).toEqual({
       description: '/test',
       op: 'navigation',
       origin: 'auto.navigation.browser',
@@ -290,15 +294,16 @@ describe('browserTracingIntegration', () => {
     const dom2 = new JSDOM(undefined, { url: 'https://example.com/test2' });
     Object.defineProperty(global, 'location', { value: dom2.window.document.location, writable: true });
 
+    vi.advanceTimersByTime(1600);
     WINDOW.history.pushState({}, '', '/test2');
 
-    expect(span2!.isRecording()).toBe(false);
+    expect(span2.isRecording()).toBe(false);
 
-    const span3 = getActiveSpan();
+    const span3 = getActiveSpan()!;
     expect(span3).toBeDefined();
-    expect(spanIsSampled(span3!)).toBe(true);
-    expect(span3!.isRecording()).toBe(true);
-    expect(spanToJSON(span3!)).toEqual({
+    expect(spanIsSampled(span3)).toBe(true);
+    expect(span3.isRecording()).toBe(true);
+    expect(spanToJSON(span3)).toEqual({
       description: '/test2',
       op: 'navigation',
       origin: 'auto.navigation.browser',
@@ -323,6 +328,66 @@ describe('browserTracingIntegration', () => {
       start_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
+  });
+
+  it('starts redirect when URL changes after < 1.5s', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration()],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const span = getActiveSpan()!;
+    expect(span).toBeDefined();
+    expect(spanIsSampled(span)).toBe(true);
+    expect(span.isRecording()).toBe(true);
+    expect(spanToJSON(span)).toEqual({
+      description: '/',
+      op: 'pageload',
+      origin: 'auto.pageload.browser',
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
+
+    // this is what is used to get the span name - JSDOM does not update this on it's own!
+    const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
+    Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+
+    vi.advanceTimersByTime(100);
+    WINDOW.history.pushState({}, '', '/test');
+
+    expect(span.isRecording()).toBe(true);
+
+    const span2 = getActiveSpan()!;
+    expect(span2).toBeDefined();
+
+    // span is still active now
+    expect(getActiveSpan()).toBe(span);
+
+    // span has connected redirect span
+    expect(getSpanDescendants(span).map(span => spanToJSON(span))).toContainEqual(
+      expect.objectContaining({
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.redirect',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        },
+        description: '/test',
+        op: 'navigation.redirect',
+        origin: 'auto.navigation.browser',
+        parent_span_id: span.spanContext().spanId,
+      }),
+    );
   });
 
   describe('startBrowserTracingPageLoadSpan', () => {
@@ -1301,7 +1366,6 @@ describe('browserTracingIntegration', () => {
 
   describe('idleTimeout', () => {
     it('is created by default', () => {
-      vi.useFakeTimers();
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -1336,8 +1400,6 @@ describe('browserTracingIntegration', () => {
     });
 
     it('can be a custom value', () => {
-      vi.useFakeTimers();
-
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -1440,36 +1502,4 @@ describe('browserTracingIntegration', () => {
       expect(spanJson2.links).toBeUndefined();
     });
   });
-
-  // TODO(lforst): I cannot manage to get this test to pass.
-  /*
-  it('heartbeatInterval can be a custom value', () => {
-    vi.useFakeTimers();
-
-    const interval = 200;
-
-    const client = new BrowserClient(
-      getDefaultBrowserClientOptions({
-        tracesSampleRate: 1,
-        integrations: [browserTracingIntegration({ heartbeatInterval: interval })],
-      }),
-    );
-
-    setCurrentClient(client);
-    client.init();
-
-    const mockFinish = vi.fn();
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getActiveTransaction() as IdleTransaction;
-    transaction.sendAutoFinishSignal();
-    transaction.end = mockFinish;
-
-    const span = startInactiveSpan({ name: 'child-span' }); // activities = 1
-    span!.end(); // activities = 0
-
-    expect(mockFinish).toHaveBeenCalledTimes(0);
-    vi.advanceTimersByTime(interval * 3);
-    expect(mockFinish).toHaveBeenCalledTimes(1);
-  });
-  */
 });

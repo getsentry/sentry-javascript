@@ -16,13 +16,13 @@
     "@astrojs/cloudflare": "^13.0.2",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/astro": "latest || *",
-    "@sentry/cloudflare": "latest || *",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "astro": "^6.0.0",
     "wrangler": "^4.72.0"
   },
   "volta": {
-    "node": "22.22.0",
+    "node": "24.15.0",
     "extends": "../../package.json"
   }
 }

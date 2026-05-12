@@ -15,7 +15,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@sentry/cloudflare": "latest || *"
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
@@ -28,6 +28,7 @@
     "ws": "^8.18.3"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "pnpm": {

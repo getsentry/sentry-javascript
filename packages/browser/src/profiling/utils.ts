@@ -10,7 +10,7 @@ import type {
   ProfileChunk,
   Span,
   ThreadCpuProfile,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -22,7 +22,7 @@ import {
   spanToJSON,
   timestampInSeconds,
   uuid4,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

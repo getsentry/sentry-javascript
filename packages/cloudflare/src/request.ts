@@ -12,6 +12,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
+import { captureIncomingRequestBody } from './integrations/httpServer';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
@@ -98,6 +99,10 @@ export function wrapRequestHandler(
       }
     }
 
+    if (client) {
+      await captureIncomingRequestBody(client, request);
+    }
+
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
@@ -129,40 +134,36 @@ export function wrapRequestHandler(
           const classification = classifyResponseStreaming(res);
 
           if (classification.isStreaming && res.body) {
-            // Streaming response detected - monitor consumption to keep span alive
             try {
-              const [clientStream, monitorStream] = res.body.tee();
+              let ended = false;
 
-              // Monitor stream consumption and end span when complete
-              const streamMonitor = (async () => {
-                const reader = monitorStream.getReader();
+              const endSpanOnce = (): void => {
+                if (ended) return;
 
-                try {
-                  let done = false;
-                  while (!done) {
-                    const result = await reader.read();
-                    done = result.done;
-                  }
-                } catch {
-                  // Stream error or cancellation - will end span in finally
-                } finally {
-                  reader.releaseLock();
-                  span.end();
-                  waitUntil?.(flushAndDispose(client));
-                }
-              })();
+                ended = true;
+                span.end();
+                waitUntil?.(flushAndDispose(client));
+              };
 
-              // Keep worker alive until stream monitoring completes (otherwise span won't end)
-              waitUntil?.(streamMonitor);
+              const transform = new TransformStream({
+                flush() {
+                  // Source stream completed normally.
+                  endSpanOnce();
+                },
+                cancel() {
+                  // Client disconnected (or downstream cancelled). The `cancel`
+                  // is being called while the response is still considered
+                  // active, so this is a safe place to end the span.
+                  endSpanOnce();
+                },
+              });
 
-              // Return response with client stream
-              return new Response(clientStream, {
+              return new Response(res.body.pipeThrough(transform), {
                 status: res.status,
                 statusText: res.statusText,
                 headers: res.headers,
               });
-            } catch (_e) {
-              // tee() failed (e.g stream already locked) - fall back to non-streaming handling
+            } catch {
               span.end();
               waitUntil?.(flushAndDispose(client));
               return res;

@@ -7,7 +7,7 @@ import type {
   SentryWrappedXMLHttpRequest,
   Span,
   SpanTimeInput,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
@@ -29,7 +29,7 @@ import {
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
@@ -404,10 +404,13 @@ function xhrCallback(
 
   const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
+  const client = getClient();
   const hasParent = !!getActiveSpan();
+  // With span streaming, we always emit http.client spans, even without a parent span
+  const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
   const span =
-    shouldCreateSpanResult && hasParent
+    shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan({
           name: `${method} ${urlForSpanName}`,
           attributes: {
@@ -424,6 +427,10 @@ function xhrCallback(
         })
       : new SentryNonRecordingSpan();
 
+  if (shouldCreateSpanResult && !shouldEmitSpan) {
+    client?.recordDroppedEvent('no_parent_span', 'span');
+  }
+
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
@@ -433,12 +440,11 @@ function xhrCallback(
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasSpansEnabled() && hasParent ? span : undefined,
+      hasSpansEnabled() && shouldEmitSpan ? span : undefined,
       propagateTraceparent,
     );
   }
 
-  const client = getClient();
   if (client) {
     client.emit('beforeOutgoingRequestSpan', span, handlerData as XhrHint);
   }

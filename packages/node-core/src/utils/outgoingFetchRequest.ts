@@ -7,9 +7,9 @@ import {
   getTraceData,
   parseUrl,
   shouldPropagateTraceForUrl,
+  mergeBaggageHeaders,
 } from '@sentry/core';
 import type { UndiciRequest, UndiciResponse } from '../integrations/node-fetch/types';
-import { mergeBaggageHeaders } from './baggage';
 import { debug } from '@sentry/core';
 const SENTRY_TRACE_HEADER = 'sentry-trace';
 const SENTRY_BAGGAGE_HEADER = 'baggage';
@@ -42,7 +42,13 @@ export function addTracePropagationHeadersToFetchRequest(
 
   const { 'sentry-trace': sentryTrace, baggage, traceparent } = addedHeaders;
 
-  const requestHeaders = Array.isArray(request.headers) ? request.headers : stringToArrayHeaders(request.headers);
+  // Undici can expose headers either as a raw string (v5-style) or as a flat array of pairs (v6-style).
+  // In the array form, even indices are header names and odd indices are values; in undici v6 a value
+  // may be `string | string[]` when a header has multiple values. The helpers below (_deduplicateArrayHeader,
+  // push, etc.) expect each value slot to be a single string, so we normalize array headers first.
+  const requestHeaders: string[] = Array.isArray(request.headers)
+    ? normalizeUndiciHeaderPairs(request.headers)
+    : stringToArrayHeaders(request.headers);
 
   // OTel's UndiciInstrumentation calls propagation.inject() which unconditionally
   // appends headers to the request. When the user also sets headers via getTraceData(),
@@ -84,10 +90,35 @@ export function addTracePropagationHeadersToFetchRequest(
     }
   }
 
-  if (!Array.isArray(request.headers)) {
-    // For original string request headers, we need to write them back to the request
+  if (Array.isArray(request.headers)) {
+    // Replace contents in place so we keep the same array reference undici/fetch still holds.
+    // `requestHeaders` is already normalized (string pairs only); splice writes them back.
+    request.headers.splice(0, request.headers.length, ...requestHeaders);
+  } else {
     request.headers = arrayToStringHeaders(requestHeaders);
   }
+}
+
+/**
+ * Convert undici’s header array into `[name, value, name, value, ...]` where every value is a string.
+ *
+ * Undici v6 uses this shape: `[k1, v1, k2, v2, ...]`. Types allow each `v` to be `string | string[]` when
+ * that header has multiple values. Sentry’s dedupe/merge helpers expect one string per value slot, so
+ * multi-value arrays are joined with `', '`. Missing value slots become `''`.
+ */
+function normalizeUndiciHeaderPairs(headers: (string | string[])[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < headers.length; i++) {
+    const entry = headers[i];
+    if (i % 2 === 0) {
+      // Header name (should always be a string; coerce defensively).
+      out.push(typeof entry === 'string' ? entry : String(entry));
+    } else {
+      // Header value: flatten `string[]` to a single string for downstream string-only helpers.
+      out.push(Array.isArray(entry) ? entry.join(', ') : (entry ?? ''));
+    }
+  }
+  return out;
 }
 
 function stringToArrayHeaders(requestHeaders: string): string[] {

@@ -12,6 +12,7 @@ import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
@@ -28,6 +29,7 @@ import type { Metric } from './types-hoist/metric';
 import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
+import type { ReplayEndEvent, ReplayStartEvent } from './types-hoist/replay';
 import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
@@ -424,11 +426,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
+
+    // Emit `flush` unconditionally so weight-based log/metric flushers drain
+    // their buffers and clear their idle timers, even when no transport is
+    // configured (e.g. no DSN).
+    this.emit('flush');
+
     if (!transport) {
       return true;
     }
-
-    this.emit('flush');
 
     const clientFinished = await this._isClientDoneProcessing(timeout);
     const transportFlushed = await transport.flush(timeout);
@@ -522,10 +528,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
 
+    // Extract gen_ai spans from transaction and convert to span v2 format.
+    // This mutates event.spans to remove the extracted spans.
+    const genAiSpanItem = extractGenAiSpansFromEvent(event, this);
+
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+    }
+
+    if (genAiSpanItem) {
+      env = addItemToEnvelope(env, genAiSpanItem);
     }
 
     // sendEnvelope should not throw
@@ -725,6 +739,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a callback when the feedback widget is opened in a user's browser
    */
   public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when a replay session starts recording (either session or buffer mode).
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayStart', callback: (event: ReplayStartEvent) => void): () => void;
+
+  /**
+   * A hook that is called when a replay session stops recording, either manually or due to an
+   * internal condition such as `maxReplayDuration` expiry, send failure, or mutation limit.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'replayEnd', callback: (event: ReplayEndEvent) => void): () => void;
 
   /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
@@ -1002,6 +1029,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'openFeedbackWidget'): void;
 
   /**
+   * Fire a hook event when a replay session starts recording.
+   */
+  public emit(hook: 'replayStart', event: ReplayStartEvent): void;
+
+  /**
+   * Fire a hook event when a replay session stops recording.
+   */
+  public emit(hook: 'replayEnd', event: ReplayEndEvent): void;
+
+  /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
   public emit(
@@ -1146,9 +1183,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Register a cleanup function to be called when the client is disposed.
+   * This is useful for integrations that need to clean up global state.
+   *
+   * NOTE: This is a no-op in the base `Client` class. Subclasses like `ServerRuntimeClient`
+   * override this method to actually register and execute cleanup callbacks.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public registerCleanup(callback: () => void): void {
+    // No-op in base class - subclasses override to implement cleanup registration
+  }
+
+  /**
    * Disposes of the client and releases all resources.
    *
-   * Subclasses should override this method to clean up their own resources.
+   * Subclasses should override this method to clean up their own resources, including invoking
+   * any callbacks registered via {@link Client.registerCleanup}. The base implementation is a
+   * no-op and does NOT execute registered cleanup callbacks.
+   *
    * After calling dispose(), the client should not be used anymore.
    */
   public dispose(): void {
@@ -1576,7 +1628,13 @@ function processBeforeSend(
       const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
 
       // 1.1 If the root span should be ignored, drop the whole transaction
-      if (ignoreSpans?.length && shouldIgnoreSpan(rootSpanJson, ignoreSpans)) {
+      if (
+        ignoreSpans?.length &&
+        shouldIgnoreSpan(
+          { description: rootSpanJson.description, op: rootSpanJson.op, attributes: rootSpanJson.data },
+          ignoreSpans,
+        )
+      ) {
         // dropping the whole transaction!
         return null;
       }
@@ -1600,7 +1658,10 @@ function processBeforeSend(
 
         for (const span of initialSpans) {
           // 2.a If the child span should be ignored, reparent it to the root span
-          if (ignoreSpans?.length && shouldIgnoreSpan(span, ignoreSpans)) {
+          if (
+            ignoreSpans?.length &&
+            shouldIgnoreSpan({ description: span.description, op: span.op, attributes: span.data }, ignoreSpans)
+          ) {
             reparentChildSpans(initialSpans, span);
             continue;
           }

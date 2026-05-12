@@ -42,3 +42,4 @@ export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewares
 export declare const tanstackRouterBrowserTracingIntegration: typeof clientSdk.tanstackRouterBrowserTracingIntegration;
 export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGlobalRequestMiddleware;
 export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;
+export declare const createSentryTunnelRoute: typeof serverSdk.createSentryTunnelRoute;

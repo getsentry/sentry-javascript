@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core/browser';
 import {
   defineIntegration,
   isString,
@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_URL_FULL,
   spanToJSON,
   stringMatchesSomePattern,
-} from '@sentry/core';
+} from '@sentry/core/browser';
 import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 
@@ -67,7 +67,9 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       return;
     }
 
-    const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
+    // Fall back to `url` because fetch instrumentation only sets `http.url` for absolute URLs;
+    // relative URLs end up only in `url` (see `getFetchSpanAttributes` in packages/core/src/fetch.ts).
+    const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'] || spanAttributes['url'];
     const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
 
     if (!isString(httpUrl) || !isString(httpMethod)) {

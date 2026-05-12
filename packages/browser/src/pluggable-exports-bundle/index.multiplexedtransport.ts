@@ -1,1 +1,1 @@
-export { makeMultiplexedTransport } from '@sentry/core';
+export { makeMultiplexedTransport } from '@sentry/core/browser';

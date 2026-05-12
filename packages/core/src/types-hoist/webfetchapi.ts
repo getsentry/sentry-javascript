@@ -13,5 +13,7 @@ export interface WebFetchRequest {
   readonly headers: WebFetchHeaders;
   readonly method: string;
   readonly url: string;
+  readonly body?: unknown;
   clone(): WebFetchRequest;
+  text(): Promise<string>;
 }

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Scope } from '@sentry/core';
-import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
+import type { Scope } from '@sentry/core/browser';
+import {
+  addBreadcrumb,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  setNormalizationDepthOverrideHint,
+} from '@sentry/core/browser';
 
 interface Action<T = any> {
   type: T;
@@ -138,9 +144,8 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
 
             // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
             const newStateContext = { state: { type: 'redux', value: transformedState } };
-            addNonEnumerableProperty(
+            setNormalizationDepthOverrideHint(
               newStateContext,
-              '__sentry_override_normalization_depth__',
               3 + // 3 layers for `state.value.transformedState`
                 normalizationDepth, // rest for the actual state
             );

@@ -56,6 +56,10 @@ Arguments:\n
   process.exit(0);
 }
 
+console.warn(
+  '[Sentry] Warning: This script will be removed in the next major version. See: https://github.com/getsentry/sentry-javascript/issues/20567',
+);
+
 const ARGV_ERRORS = [];
 
 const NODE_TO_ABI = {
@@ -64,6 +68,7 @@ const NODE_TO_ABI = {
   20: '115',
   22: '127',
   24: '137',
+  26: '147',
 };
 
 if (NODE) {
@@ -79,6 +84,8 @@ if (NODE) {
     NODE = NODE_TO_ABI['22'];
   } else if (NODE.startsWith('24')) {
     NODE = NODE_TO_ABI['24'];
+  } else if (NODE.startsWith('26')) {
+    NODE = NODE_TO_ABI['26'];
   } else {
     ARGV_ERRORS.push(
       `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are ${Object.keys(

@@ -15,7 +15,7 @@
     "test:assert": "pnpm run test:e2e"
   },
   "dependencies": {
-    "@sentry/sveltekit": "latest || *"
+    "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
@@ -25,10 +25,11 @@
     "svelte": "^5.20.2",
     "svelte-check": "^4.1.4",
     "typescript": "^5.0.0",
-    "vite": "^6.1.1",
-    "wrangler": "4.61.0"
+    "vite": "^6.4.2",
+    "wrangler": "^4.61.0"
   },
   "volta": {
+    "node": "24.15.0",
     "extends": "../../package.json"
   }
 }

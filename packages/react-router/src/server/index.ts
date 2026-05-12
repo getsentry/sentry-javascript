@@ -12,7 +12,7 @@ export { wrapServerLoader } from './wrapServerLoader';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
 
-// React Router instrumentation API support (works with both unstable_instrumentations and instrumentations)
+// React Router instrumentation API support
 export {
   createSentryServerInstrumentation,
   isInstrumentationApiUsed,

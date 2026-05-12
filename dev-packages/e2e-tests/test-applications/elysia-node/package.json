@@ -11,7 +11,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/elysia": "latest || *",
+    "@sentry/elysia": "file:../../packed/sentry-elysia-packed.tgz",
     "elysia": "latest",
     "@elysiajs/node": "^1.4.5"
   },
