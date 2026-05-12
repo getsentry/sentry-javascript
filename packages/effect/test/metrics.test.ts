@@ -1,25 +1,33 @@
 import { describe, expect, it } from '@effect/vitest';
-import * as sentryCore from '@sentry/core';
 import * as Context from 'effect/Context';
 import { Duration, Effect, Layer, Metric } from 'effect';
 import { TestClock } from 'effect/testing';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { SentryEffectMetricsLayer } from '../src/metrics';
 
-describe('SentryEffectMetricsLayer', () => {
-  const mockCount = vi.fn();
-  const mockGauge = vi.fn();
-  const mockDistribution = vi.fn();
+const { mockCount, mockGauge, mockDistribution } = vi.hoisted(() => ({
+  mockCount: vi.fn(),
+  mockGauge: vi.fn(),
+  mockDistribution: vi.fn(),
+}));
 
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual('@sentry/core');
+  return {
+    ...actual,
+    metrics: { ...actual.metrics, count: mockCount, gauge: mockGauge, distribution: mockDistribution },
+  };
+});
+
+describe('SentryEffectMetricsLayer', () => {
   beforeEach(() => {
-    vi.spyOn(sentryCore.metrics, 'count').mockImplementation(mockCount);
-    vi.spyOn(sentryCore.metrics, 'gauge').mockImplementation(mockGauge);
-    vi.spyOn(sentryCore.metrics, 'distribution').mockImplementation(mockDistribution);
+    mockCount.mockClear();
+    mockGauge.mockClear();
+    mockDistribution.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
   });
 
   it.effect('creates counter metrics', () =>
@@ -146,19 +154,14 @@ describe('SentryEffectMetricsLayer', () => {
 });
 
 describe('SentryEffectMetricsLayer flushing', () => {
-  const mockCount = vi.fn();
-  const mockGauge = vi.fn();
-  const mockDistribution = vi.fn();
-
   beforeEach(() => {
-    vi.spyOn(sentryCore.metrics, 'count').mockImplementation(mockCount);
-    vi.spyOn(sentryCore.metrics, 'gauge').mockImplementation(mockGauge);
-    vi.spyOn(sentryCore.metrics, 'distribution').mockImplementation(mockDistribution);
+    mockCount.mockClear();
+    mockGauge.mockClear();
+    mockDistribution.mockClear();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
   });
 
   const TestLayer = SentryEffectMetricsLayer.pipe(Layer.provideMerge(TestClock.layer()));

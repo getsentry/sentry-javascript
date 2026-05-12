@@ -98,7 +98,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   let defaultIntegrations =
     options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
 
-  /* rollup-include-development-only */
+  /*! rollup-include-development-only */
   if (options.spotlight) {
     if (!defaultIntegrations) {
       defaultIntegrations = [];
@@ -106,7 +106,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     const args = typeof options.spotlight === 'string' ? { sidecarUrl: options.spotlight } : undefined;
     defaultIntegrations.push(spotlightBrowserIntegration(args));
   }
-  /* rollup-include-development-only-end */
+  /*! rollup-include-development-only-end */
 
   const clientOptions: BrowserClientOptions = {
     ...options,
@@ -118,6 +118,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     }),
     transport: options.transport || makeFetchTransport,
   };
+
   return initAndBind(BrowserClient, clientOptions);
 }
 

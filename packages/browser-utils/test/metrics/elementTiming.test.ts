@@ -1,12 +1,17 @@
-import * as sentryCore from '@sentry/core';
+import type * as sentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { elementTimingIntegration, startTrackingElementTiming } from '../../src/metrics/elementTiming';
 import * as browserMetricsInstrumentation from '../../src/metrics/instrument';
 import * as browserMetricsUtils from '../../src/metrics/utils';
 
-describe('elementTimingIntegration', () => {
-  const distributionSpy = vi.spyOn(sentryCore.metrics, 'distribution');
+const { distributionSpy } = vi.hoisted(() => ({ distributionSpy: vi.fn() }));
 
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual('@sentry/core');
+  return { ...actual, metrics: { ...actual.metrics, distribution: distributionSpy } };
+});
+
+describe('elementTimingIntegration', () => {
   let elementHandler: (data: { entries: PerformanceEntry[] }) => void;
 
   beforeEach(() => {

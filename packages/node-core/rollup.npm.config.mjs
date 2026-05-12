@@ -1,4 +1,3 @@
-import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
 import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
 
@@ -11,6 +10,36 @@ const [localVariablesWorkerConfig, getLocalVariablesBase64Code] = createWorkerCo
   'src/integrations/local-variables/worker.ts',
   'build/esm/integrations/local-variables',
 );
+
+/**
+ * Custom replace plugin that lazily evaluates replacement values.
+ * This is needed because the worker scripts are built in earlier configs,
+ * and we need to wait for their renderChunk hooks to complete before
+ * we can get the base64-encoded worker code.
+ */
+function makeLazyReplacePlugin(replacements, options = {}) {
+  const { delimiters = ['###', '###'] } = options;
+  const [delimiterStart, delimiterEnd] = delimiters;
+
+  return {
+    name: 'lazy-replace-plugin',
+    renderChunk(code) {
+      let result = code;
+
+      for (const [key, valueFn] of Object.entries(replacements)) {
+        const value = typeof valueFn === 'function' ? valueFn() : valueFn;
+        const searchPattern = `${delimiterStart}${key}${delimiterEnd}`;
+        // Don't add quotes - the source already has quotes around the placeholder
+        const replacement = value;
+
+        // Replace all occurrences
+        result = result.split(searchPattern).join(replacement);
+      }
+
+      return { code: result };
+    },
+  };
+}
 
 export default [
   ...makeOtelLoaders('./build', 'otel'),
@@ -27,15 +56,15 @@ export default [
           preserveModules: true,
         },
         plugins: [
-          replace({
-            delimiters: ['###', '###'],
-            // removes some rollup warnings
-            preventAssignment: true,
-            values: {
-              AnrWorkerScript: () => getAnrBase64Code(),
-              LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
+          makeLazyReplacePlugin(
+            {
+              AnrWorkerScript: getAnrBase64Code,
+              LocalVariablesWorkerScript: getLocalVariablesBase64Code,
             },
-          }),
+            {
+              delimiters: ['###', '###'],
+            },
+          ),
         ],
       },
     }),

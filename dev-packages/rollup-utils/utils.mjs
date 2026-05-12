@@ -1,3 +1,5 @@
+import { builtinModules } from 'module';
+
 /**
  * Helper function to compensate for the fact that JS can't handle negative array indices very well
  */
@@ -40,16 +42,7 @@ export function mergePlugins(pluginsA, pluginsB) {
     // here.
     // Additionally, the excludeReplay plugin must run before TS/Sucrase so that we can eliminate the replay code
     // before anything is type-checked (TS-only) and transpiled.
-    const order = [
-      'remove-dev-mode-blocks',
-      'excludeReplay',
-      'typescript',
-      'sucrase',
-      '...',
-      'terser',
-      'license',
-      'output-base64-worker-script',
-    ];
+    const order = ['remove-dev-mode-blocks', 'excludeReplay', '...', 'output-base64-worker-script'];
     const sortKeyA = order.includes(a.name) ? a.name : '...';
     const sortKeyB = order.includes(b.name) ? b.name : '...';
 
@@ -57,4 +50,41 @@ export function mergePlugins(pluginsA, pluginsB) {
   });
 
   return plugins;
+}
+
+/**
+ * Creates a treeshake setting preset, rolldown doesn't have "smallest" as a preset, so we need to create our own.
+ * Smallest
+ * https://rolldown.rs/options/treeshake#treeshake
+ * https://rollupjs.org/configuration-options/#treeshake
+ * @param {boolean | readonly string[] | ModuleSideEffectsRule[] | ((id: string, external: boolean) => boolean | undefined) | 'no-external' | 'smallest'} preset - The preset to use
+ */
+export function treeShakePreset(preset) {
+  if (preset === 'smallest') {
+    return {
+      propertyReadSideEffects: false,
+      moduleSideEffects: false,
+      unknownGlobalSideEffects: false,
+    };
+  }
+
+  return preset;
+}
+
+/**
+ * Get a set of all Node.js built-in module names, including both bare names (e.g. "fs") and "node:" prefixed names (e.g. "node:fs").
+ */
+export function getNodeBuiltIns(excludeBuiltins = []) {
+  const excludeBuiltinsSet = new Set(excludeBuiltins);
+  const builtIns = [];
+  for (const builtin of builtinModules) {
+    if (excludeBuiltinsSet.has(builtin)) {
+      continue;
+    }
+
+    builtIns.push(builtin);
+    builtIns.push(`node:${builtin}`);
+  }
+
+  return builtIns;
 }
