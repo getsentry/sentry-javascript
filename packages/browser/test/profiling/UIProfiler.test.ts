@@ -604,6 +604,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
       const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
 
+      expect(transaction.transaction).toBe('root-thread-attrs');
       expect(transaction.contexts.trace.data['thread.id']).toBe('0');
       expect(transaction.contexts.trace.data['thread.name']).toBe('main');
     });
@@ -633,6 +634,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
       const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
 
+      expect(transaction.transaction).toBe('root-with-children');
       expect(transaction.spans).toHaveLength(2);
       for (const span of transaction.spans) {
         expect(span.data['thread.id']).toBe('0');
@@ -664,10 +666,12 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       expect(txnCall).toBeDefined();
 
       const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+      expect(transaction.transaction).toBe('unsampled-root');
       expect(transaction.contexts.trace.data['thread.id']).toBeUndefined();
       expect(transaction.contexts.trace.data['thread.name']).toBeUndefined();
 
       expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].description).toBe('unsampled-child');
       expect(transaction.spans[0].data['thread.id']).toBeUndefined();
       expect(transaction.spans[0].data['thread.name']).toBeUndefined();
     });
@@ -967,10 +971,12 @@ describe('Browser Profiling v2 manual lifecycle', () => {
       const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
       const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
 
+      expect(transaction.transaction).toBe('manual-profiled-root');
       expect(transaction.contexts.trace.data['thread.id']).toBe('0');
       expect(transaction.contexts.trace.data['thread.name']).toBe('main');
 
       expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].description).toBe('manual-profiled-child');
       expect(transaction.spans[0].data['thread.id']).toBe('0');
       expect(transaction.spans[0].data['thread.name']).toBe('main');
     });
@@ -1003,9 +1009,13 @@ describe('Browser Profiling v2 manual lifecycle', () => {
 
       const calls = send.mock.calls;
       const txnCalls = calls.filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      const transactions = txnCalls.map(call => call?.[0]?.[1]?.[0]?.[1]);
 
-      for (const txnCall of txnCalls) {
-        const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+      expect(transactions).toHaveLength(2);
+      expect(transactions[0].transaction).toBe('before-profiling');
+      expect(transactions[1].transaction).toBe('after-profiling');
+
+      for (const transaction of transactions) {
         expect(transaction.contexts.trace.data['thread.id']).toBeUndefined();
         expect(transaction.contexts.trace.data['thread.name']).toBeUndefined();
       }
