@@ -173,6 +173,7 @@ export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from '.
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
 export { instrumentStateGraphCompile, instrumentCreateReactAgent, instrumentLangGraph } from './tracing/langgraph';
+export { mergeSentryCallback } from './tracing/langgraph/utils';
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';

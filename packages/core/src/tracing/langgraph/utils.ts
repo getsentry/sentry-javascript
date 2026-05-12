@@ -335,7 +335,28 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   }
 }
 
-/** Merge `sentryHandler` into a langchain `callbacks` value (`BaseCallbackHandler[]` or `BaseCallbackManager`). */
+/** Duck-types a LangChain `CallbackManager` — `instanceof` is unreliable when `@langchain/core` is bundled or deduped. */
+function isCallbackManager(value: unknown): value is {
+  addHandler: (handler: unknown, inherit?: boolean) => void;
+  copy: () => unknown;
+  handlers?: unknown[];
+  inheritableHandlers?: unknown[];
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as { addHandler?: unknown; copy?: unknown };
+  return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+}
+
+/**
+ * Merge `sentryHandler` into a langchain `callbacks` value (undefined, `BaseCallbackHandler[]`, or `BaseCallbackManager`).
+ *
+ * Wrapping a `CallbackManager` into `[manager, sentryHandler]` would make LangChain treat the whole manager
+ * as one opaque handler and drop its inheritable children — notably LangGraph's `StreamMessagesHandler`,
+ * which silently breaks per-token streaming. We register on a `.copy()` (so caller state stays clean across
+ * runs) and add ourselves as inheritable so `getChild()` propagates us into nested calls.
+ */
 export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): unknown {
   if (!existing) {
     return [sentryHandler];
@@ -348,12 +369,23 @@ export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): 
     return [...existing, sentryHandler];
   }
 
-  const manager = existing as { addHandler?: (h: unknown) => void; handlers?: unknown[] };
-  if (typeof manager.addHandler === 'function') {
-    const alreadyAdded = Array.isArray(manager.handlers) && manager.handlers.includes(sentryHandler);
-    if (!alreadyAdded) {
-      manager.addHandler(sentryHandler);
+  if (isCallbackManager(existing)) {
+    const copied = existing.copy() as {
+      addHandler: (handler: unknown, inherit?: boolean) => void;
+      handlers?: unknown[];
+      inheritableHandlers?: unknown[];
+    };
+    // CallbackManager keeps `inheritableHandlers ⊆ handlers` (both
+    // `addHandler` and `setHandlers` maintain the invariant), so checking
+    // `handlers` alone normally suffices — we check both as a defensive
+    // guard against externally-constructed managers that bypass `addHandler`.
+    const alreadyRegistered =
+      (copied.handlers?.includes(sentryHandler) ?? false) ||
+      (copied.inheritableHandlers?.includes(sentryHandler) ?? false);
+    if (!alreadyRegistered) {
+      copied.addHandler(sentryHandler, true);
     }
+    return copied;
   }
 
   return existing;
