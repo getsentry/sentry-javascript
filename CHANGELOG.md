@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.53.1
+
+- fix(core): Don't gate user data for streamed spans at scope read time ([#20827](https://github.com/getsentry/sentry-javascript/pull/20827))
+- fix(core): Include subpath type shims in published package ([#20835](https://github.com/getsentry/sentry-javascript/pull/20835))
+- ref(hono): Consolidate route patching and add clarification comments ([#20829](https://github.com/getsentry/sentry-javascript/pull/20829))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(deps): Bump next from 15.5.15 to 15.5.18 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#20821](https://github.com/getsentry/sentry-javascript/pull/20821))
+
+</details>
+
 ## 10.53.0
 
 ### Important Changes
