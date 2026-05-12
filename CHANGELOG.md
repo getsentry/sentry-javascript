@@ -14,7 +14,7 @@ Work in this release was contributed by @dmmulroy. Thank you for your contributi
   sent to Sentry. When set, the SDK extracts all `gen_ai` spans out of a
   transaction and sends them as v2 envelope items.
 
-  This avoids payload size limits of regular transactions.
+  Enable this option if gen_ai spans are being dropped because the transaction payload exceeds size limits.
 
   ```ts
   Sentry.init({
