@@ -1314,7 +1314,10 @@ jobs:
         uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.cjs
-          uploadArtifacts: true
+          # Do NOT enable uploadArtifacts here — it would upload `.lighthouseci/` under
+          # the default name `lighthouse-reports` for every cell, causing a 409 conflict
+          # on every matrix cell after the first one. We do our own per-cell upload
+          # below with a unique name (lighthouse-<app>-<mode>).
           temporaryPublicStorage: true
           runs: 5
         env:
