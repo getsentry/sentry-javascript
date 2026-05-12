@@ -125,7 +125,7 @@ function applyCommonSpanAttributes(
   scopeData: ScopeData,
 ): void {
   const sdk = client.getSdkMetadata();
-  const { release, environment, sendDefaultPii } = client.getOptions();
+  const { release, environment } = client.getOptions();
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   safeSetSpanJSONAttributes(spanJSON, {
@@ -135,14 +135,10 @@ function applyCommonSpanAttributes(
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-    ...(sendDefaultPii
-      ? {
-          [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
-          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
-          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
-          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
-        }
-      : {}),
+    [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
+    [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
+    [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
+    [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
     ...scopeData.attributes,
   });
 }
