@@ -2,7 +2,9 @@ import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 
 /**
- * Patches the Hono app so that middleware is automatically traced as Sentry spans.
+ * Patches `app.use` (instance own property) on a Hono instance to instrument middleware at registration time.
+ *
+ * Must be per-instance because `use` is a class field, not a prototype method.
  */
 export function patchAppUse<E extends Env>(app: Hono<E>): void {
   app.use = new Proxy(app.use, {

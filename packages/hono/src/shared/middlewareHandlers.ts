@@ -43,6 +43,8 @@ export function responseHandler(context: Context): void {
 
 function updateSpanRouteName(isolationScope: Scope, context: Context): void {
   const activeSpan = getActiveSpan();
+
+  // Final matched route: https://hono.dev/docs/helpers/route#using-with-index-parameter
   const lastMatchedRoute = routePath(context, -1);
 
   if (activeSpan) {
