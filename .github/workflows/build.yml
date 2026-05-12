@@ -8,6 +8,7 @@ on:
       - v8
       - release/**
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   merge_group:
     types: [checks_requested]
   workflow_dispatch:
@@ -1200,6 +1201,138 @@ jobs:
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
+
+  # -----------------------------------------------------------------------
+  # Lighthouse CI — nightly + label-gated (ci:lighthouse)
+  # NOT in job_required_jobs_passed — never blocks merges.
+  # -----------------------------------------------------------------------
+
+  job_lighthouse_matrix:
+    name: Lighthouse Matrix
+    needs: [job_get_metadata]
+    runs-on: ubuntu-24.04
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:lighthouse'))
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - name: Generate matrix
+        id: matrix
+        run: node dev-packages/lighthouse-tests/lighthouse-matrix.mjs
+
+  job_lighthouse:
+    name: Lighthouse ${{ matrix.test-application }} (${{ matrix.mode }})
+    needs: [job_get_metadata, job_build, job_build_tarballs, job_lighthouse_matrix]
+    if: always() && needs.job_build_tarballs.result == 'success' && needs.job_lighthouse_matrix.result == 'success'
+    runs-on: ubuntu-24.04-large-js
+    timeout-minutes: 20
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix: ${{ fromJson(needs.job_lighthouse_matrix.outputs.matrix) }}
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          version: 9.15.9
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore tarball artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Prepare E2E tests
+        run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+
+      - name: Copy to temp
+        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        working-directory: dev-packages/e2e-tests
+
+      - name: Add pnpm overrides
+        run:
+          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          }}/dev-packages/e2e-tests/packed
+        working-directory: dev-packages/e2e-tests
+
+      - name: Build E2E app for Lighthouse
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 7
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
+        env:
+          # Set under every common bundler env prefix so each app reads whichever its bundler exposes
+          SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+          NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+          PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+          REACT_APP_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: dev-packages/lighthouse-tests/lighthouserc.js
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 5
+          urls: ${{ matrix.url || 'http://localhost:3000/' }}
+          startServerCommand: ${{ matrix.serve-command || '' }}
+          startServerReadyTimeout: 30000
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lighthouse-${{ matrix.test-application }}-${{ matrix.mode }}
+          path: .lighthouseci/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  job_lighthouse_report:
+    name: Lighthouse Report
+    needs: [job_lighthouse]
+    if: always() && needs.job_lighthouse.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - name: Download all Lighthouse artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: lighthouse-*
+          path: lighthouse-results/
+      - name: Generate report
+        run: node dev-packages/lighthouse-tests/post-comment.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
