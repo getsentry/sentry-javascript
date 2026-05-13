@@ -6,6 +6,7 @@ import {
   loggerShim,
   replayIntegrationShim,
   spanStreamingIntegrationShim,
+  fetchStreamPerformanceIntegrationShim,
 } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
@@ -20,4 +21,5 @@ export {
   feedbackIntegrationShim as feedbackIntegration,
   replayIntegrationShim as replayIntegration,
   spanStreamingIntegrationShim as spanStreamingIntegration,
+  fetchStreamPerformanceIntegrationShim as fetchStreamPerformanceIntegration,
 };

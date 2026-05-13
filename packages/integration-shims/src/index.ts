@@ -5,3 +5,4 @@ export { launchDarklyIntegrationShim, buildLaunchDarklyFlagUsedHandlerShim } fro
 export { elementTimingIntegrationShim } from './ElementTiming';
 export { loggerShim, consoleLoggingIntegrationShim } from './logs';
 export { spanStreamingIntegrationShim } from './SpanStreaming';
+export { fetchStreamPerformanceIntegrationShim } from './FetchStreamPerformance';
