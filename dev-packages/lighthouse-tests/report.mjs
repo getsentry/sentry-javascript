@@ -1,16 +1,11 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import * as core from '@actions/core';
-import { context, getOctokit } from '@actions/github';
 import { markdownTable } from 'markdown-table';
 
 const HEADING = '## 🔦 Lighthouse Report';
 const MODES = ['no-sentry', 'init-only', 'tracing-replay'];
 
-/**
- * Apps and their human-readable SDK labels, matching lighthouse-matrix.mjs.
- * Order here determines row order in each table.
- */
 // Must mirror the APPS array in lighthouse-matrix.mjs. Only apps whose Sentry init
 // code actually branches on SENTRY_LIGHTHOUSE_MODE are listed here — listing
 // uninstrumented apps would dilute the 50%-fill safety check below and produce
@@ -108,8 +103,6 @@ function buildSectionTable(rows, metric, unit) {
 
 async function run() {
   const resultsDir = process.env.LIGHTHOUSE_RESULTS_DIR || 'lighthouse-results';
-  const isPR = process.env.IS_PR === 'true';
-  const prNumber = process.env.PR_NUMBER ? Number(process.env.PR_NUMBER) : undefined;
 
   const rows = [];
   let totalCells = 0;
@@ -126,7 +119,7 @@ async function run() {
   }
 
   if (totalCells > 0 && filledCells / totalCells < 0.5) {
-    core.warning(`Only ${filledCells}/${totalCells} Lighthouse cells have results (< 50%). Skipping comment.`);
+    core.warning(`Only ${filledCells}/${totalCells} Lighthouse cells have results (< 50%). Skipping report.`);
     return;
   }
 
@@ -144,62 +137,11 @@ async function run() {
 
   const body = `${HEADING}\n\n${tables}${footer}`;
 
-  // Always render the report as a GitHub Actions Job Summary so it's visible on the
-  // workflow run page for every trigger (PR, nightly, dispatch). For PR runs we also
-  // post/update a sticky comment on the PR below.
+  // Render the report as a GitHub Actions Job Summary so it's visible on the workflow
+  // run page. This is the workflow's only public output — there is intentionally no
+  // PR comment (the workflow doesn't run on PRs; see lighthouse.yml).
   await core.summary.addRaw(body).write();
   core.info('Wrote Lighthouse report to Job Summary.');
-
-  if (!isPR || !prNumber) {
-    // Nightly / non-PR: Job Summary above is the only output. Nothing to post.
-    return;
-  }
-
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    core.warning('GITHUB_TOKEN not set — cannot post PR comment.');
-    return;
-  }
-
-  const octokit = getOctokit(token);
-  const repo = context.repo;
-
-  // Find existing Lighthouse comment to update (mirror size-limit-gh-action pattern)
-  const { data: comments } = await octokit.rest.issues.listComments({
-    ...repo,
-    issue_number: prNumber,
-  });
-  const existing = comments.find(c => c.body?.startsWith(HEADING));
-
-  try {
-    if (existing) {
-      await octokit.rest.issues.updateComment({
-        ...repo,
-        comment_id: existing.id,
-        body,
-      });
-      core.info('Updated existing Lighthouse comment.');
-    } else {
-      await octokit.rest.issues.createComment({
-        ...repo,
-        issue_number: prNumber,
-        body,
-      });
-      core.info('Created Lighthouse PR comment.');
-    }
-  } catch (err) {
-    if (err.status === 403) {
-      // Fork PRs: GITHUB_TOKEN is read-only. Log the table to the workflow log so the
-      // data is still discoverable, and exit 0 so the job doesn't fail.
-      core.warning(
-        'Could not post PR comment (403 Forbidden). This is expected for fork PRs where GITHUB_TOKEN is read-only.',
-      );
-      // eslint-disable-next-line no-console
-      console.log(`\n${body}`);
-      return;
-    }
-    throw err;
-  }
 }
 
 run().catch(err => {
