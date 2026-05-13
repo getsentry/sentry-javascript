@@ -1,18 +1,23 @@
 name: 'Nightly: Lighthouse'
 
-# Standalone workflow that runs Lighthouse audits across instrumented E2E test apps
-# on a nightly schedule (and on demand via workflow_dispatch). Intentionally NOT
-# wired to pull_request triggers — the per-PR comment was too noisy to keep on
-# every push, so the report now surfaces only as a Job Summary on each workflow
-# run page. Never blocks merges (not referenced by build.yml's required-jobs gate).
+# Builds the instrumented Sentry test apps (default-browser, react-19, nextjs-16)
+# in three Sentry feature modes (no-sentry, init-only, tracing-replay), tars each
+# of the 9 cells, and uploads them to the Sentry Lighthouse lab at
+# https://lighthouse.sentry.gg.
+#
+# The lab runs Lighthouse on dedicated hardware (no shared-runner flake), saves
+# results to its own DB + dashboard, and ships metrics to Sentry. See the wire
+# protocol in ~/Projects/sentry-lhci/docs/sentry-javascript-handoff.md.
+#
+# This workflow only builds + uploads — no Lighthouse runs on GitHub Actions.
+# Never blocks merges (not in build.yml's required-jobs gate).
 
 on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
-# Independent concurrency group from build.yml so nothing in this workflow can
-# cancel or queue against the main CI pipeline.
+# Independent of build.yml so nothing here can cancel or queue against main CI.
 concurrency:
   group: lighthouse-${{ github.run_id }}
   cancel-in-progress: false
@@ -29,11 +34,10 @@ env:
 
 jobs:
   job_build:
-    name: Build SDK + Generate Matrix
+    name: Build SDK + Tarballs
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
     steps:
       - name: Check out current commit
@@ -64,42 +68,33 @@ jobs:
           compression-level: 6
           overwrite: true
 
-      - name: Generate matrix
-        id: matrix
-        # Script prints `matrix=<JSON>` to stdout; redirect to $GITHUB_OUTPUT so the
-        # downstream matrix job can pick it up via needs.job_build.outputs.matrix.
-        run: node dev-packages/lighthouse-tests/lighthouse-matrix.mjs >> "$GITHUB_OUTPUT"
-
-  job_lighthouse:
-    name: Lighthouse ${{ matrix.app }} (${{ matrix.mode }})
+  job_bundle_and_upload:
+    name: Bundle test apps and upload to Lighthouse lab
     needs: [job_build]
-    runs-on: ubuntu-24.04-large-js
-    timeout-minutes: 20
-    # One bad cell shouldn't tank the rest of the matrix — the Report job marks
-    # missing/empty cells in the Job Summary.
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      max-parallel: 15
-      matrix: ${{ fromJson(needs.job_build.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
-      # Only the two prefixes the currently-matrixed apps actually consume:
-      #   - SENTRY_LIGHTHOUSE_MODE  → default-browser (plain webpack)
-      #   - NEXT_PUBLIC_*           → nextjs-16 (Next.js client-side env exposure)
-      # If more frameworks are added to the matrix later, add the corresponding
-      # prefix here. (Tracked in TODO-aeab11f0.)
+      LIGHTHOUSE_LAB_URL: ${{ secrets.LIGHTHOUSE_LAB_URL }}
+      LIGHTHOUSE_UPLOAD_TOKEN: ${{ secrets.LIGHTHOUSE_UPLOAD_TOKEN }}
+      # Synthetic DSNs — the apps only need *something* parseable at build time;
+      # nothing actually phones home (the Lighthouse run is what we care about).
       E2E_TEST_DSN: 'https://username@domain/123'
       NEXT_PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
     steps:
       - name: Check out current commit
         uses: actions/checkout@v6
+
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           version: 9.15.9
+
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.app }}/package.json'
+          node-version-file: 'package.json'
+
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -111,7 +106,7 @@ jobs:
           name: lighthouse-build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
-      - name: Prepare E2E tests
+      - name: Prepare E2E tests (copy packed tgzs into dev-packages/e2e-tests/packed)
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
 
@@ -119,84 +114,9 @@ jobs:
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
-      - name: Copy app to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.app }} ${{ runner.temp }}/test-application
-        working-directory: dev-packages/e2e-tests
-
-      - name: Add pnpm overrides
-        run:
-          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
-          }}/dev-packages/e2e-tests/packed
-        working-directory: dev-packages/e2e-tests
-
-      - name: Build E2E app for Lighthouse
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 7
-        run: pnpm test:build
-        env:
-          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
-          SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
-          NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE: ${{ matrix.mode }}
-
-      - name: Run Lighthouse CI
-        id: lighthouse
-        # Pinned to a commit SHA (rather than the floating @v12 tag) to lock down the
-        # supply chain: this third-party action also npm-installs @lhci/cli, so an
-        # upstream tag-repoint could otherwise change what runs on our runners.
-        # SHA is the current tip of v12. Bump deliberately when upgrading.
-        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
-        with:
-          configPath: ${{ github.workspace }}/dev-packages/lighthouse-tests/lighthouserc.cjs
-          # Do NOT enable uploadArtifacts here — it would upload `.lighthouseci/` under
-          # the default name `lighthouse-reports` for every cell, causing a 409 conflict
-          # on every matrix cell after the first one. We do our own per-cell upload
-          # below with a unique name (lighthouse-<app>-<mode>).
-          temporaryPublicStorage: true
-          runs: 5
-        env:
-          # lighthouserc.cjs branches on these env vars at config-load time.
-          LIGHTHOUSE_SERVE_MODE: ${{ matrix.serve }}
-          LIGHTHOUSE_STATIC_DIR: ${{ runner.temp }}/test-application/${{ matrix.static-dir }}
-          LIGHTHOUSE_START_CMD: cd ${{ runner.temp }}/test-application && ${{ matrix.start-cmd }}
-          LIGHTHOUSE_READY_PATTERN: ${{ matrix.ready-pattern }}
-          LIGHTHOUSE_URL: 'http://localhost:3000/'
-
-      - name: Upload Lighthouse results
-        # `resultsPath` is the absolute path to the .lighthouseci/ output dir written by
-        # `lhci collect`. The dir is dot-prefixed, and actions/upload-artifact@v7 excludes
-        # hidden files / dot-prefixed dirs by default — so we must set
-        # `include-hidden-files: true` or every cell uploads zero files.
-        uses: actions/upload-artifact@v7
-        if: always() && steps.lighthouse.outputs.resultsPath != ''
-        with:
-          name: lighthouse-${{ matrix.app }}-${{ matrix.mode }}
-          path: ${{ steps.lighthouse.outputs.resultsPath }}
-          include-hidden-files: true
-          retention-days: 7
-          # Fail loudly if the dir is empty — we already gated on resultsPath being set,
-          # so an empty dir means lhci collect produced nothing, which is a real bug.
-          if-no-files-found: error
-
-  job_lighthouse_report:
-    name: Lighthouse Report
-    needs: [job_build, job_lighthouse]
-    if: always() && needs.job_build.result == 'success'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out current commit
-        uses: actions/checkout@v6
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Download all Lighthouse artifacts
-        uses: actions/download-artifact@v7
-        with:
-          pattern: lighthouse-*
-          path: lighthouse-results/
-      - name: Generate report
-        run: node dev-packages/lighthouse-tests/report.mjs
+      - name: Bundle every cell and upload to the lab
+        # bundle-and-upload.mjs handles the full 3 × 3 matrix in one process:
+        # copies each app to a temp dir, applies pnpm overrides, builds with the
+        # right SENTRY_LIGHTHOUSE_MODE env var, tars, POSTs all 9 bundles to the
+        # lab, polls until terminal, writes a Job Summary.
+        run: node dev-packages/lighthouse-bundle/bundle-and-upload.mjs
