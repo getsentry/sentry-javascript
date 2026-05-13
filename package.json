@@ -163,8 +163,6 @@
     "cliui/wrap-ansi": "7.0.0",
     "sucrase": "getsentry/sucrase#es2020-polyfills",
     "**/express/path-to-regexp": "0.1.12",
-    "**/@verdaccio/local-storage-legacy/lodash": "4.17.23",
-    "**/@verdaccio/core/minimatch": "~7.4.9",
     "**/nitropack/rollup-plugin-visualizer": "^6.0.3"
   },
   "version": "0.0.0",
