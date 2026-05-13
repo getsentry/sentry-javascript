@@ -61,6 +61,7 @@ describe('logs', () => {
                 attributes: {
                   ...commonAttributes,
                   global_scope_attr: { value: true, type: 'boolean' },
+                  array_attr: { value: [1, 2, 3], type: 'array' },
                   log_attr: { value: 'log_attr_2', type: 'string' },
                 },
               },
@@ -73,6 +74,7 @@ describe('logs', () => {
                 attributes: {
                   ...commonAttributes,
                   global_scope_attr: { value: true, type: 'boolean' },
+                  array_attr: { value: [1, 2, 3], type: 'array' },
                   isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
                   log_attr: { value: 'log_attr_3', type: 'string' },
                 },
@@ -86,6 +88,7 @@ describe('logs', () => {
                 attributes: {
                   ...commonAttributes,
                   global_scope_attr: { value: true, type: 'boolean' },
+                  array_attr: { value: [1, 2, 3], type: 'array' },
                   isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
                   scope_attr: { value: 200, unit: 'millisecond', type: 'integer' },
                   log_attr: { value: 'log_attr_4', type: 'string' },
@@ -100,6 +103,7 @@ describe('logs', () => {
                 attributes: {
                   ...commonAttributes,
                   global_scope_attr: { value: true, type: 'boolean' },
+                  array_attr: { value: [1, 2, 3], type: 'array' },
                   isolation_scope_1_attr: { value: 100, unit: 'millisecond', type: 'integer' },
                   scope_2_attr: { value: 300, unit: 'millisecond', type: 'integer' },
                   log_attr: { value: 'log_attr_5', type: 'string' },

@@ -130,9 +130,9 @@ describe('estimateSerializedSpanSizeInBytes', () => {
       status: 'ok',
       is_segment: false,
       attributes: {
-        'item.ids': { type: 'string[]', value: ['id-001', 'id-002', 'id-003', 'id-004', 'id-005'] },
-        scores: { type: 'double[]', value: [1.1, 2.2, 3.3, 4.4] },
-        flags: { type: 'boolean[]', value: [true, false, true] },
+        'item.ids': { type: 'array', value: ['id-001', 'id-002', 'id-003', 'id-004', 'id-005'] },
+        scores: { type: 'array', value: [1.1, 2.2, 3.3, 4.4] },
+        flags: { type: 'array', value: [true, false, true] },
       },
     };
 

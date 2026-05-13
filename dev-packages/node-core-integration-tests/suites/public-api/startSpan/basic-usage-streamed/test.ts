@@ -143,8 +143,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           'device.processor_frequency': { type: 'integer', value: expect.any(Number) },
           'culture.locale': { type: 'string', value: expect.any(String) },
           'culture.timezone': { type: 'string', value: expect.any(String) },
-          // TODO: device.archs is an array and currently dropped during serialization
-          // 'device.archs': { type: 'array', value: [expect.any(String)] },
+          'device.archs': { type: 'array', value: expect.any(Array) },
         };
 
         // process.availableMemory is only available in Node 22+
