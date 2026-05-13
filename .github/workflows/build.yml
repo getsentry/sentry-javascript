@@ -8,7 +8,7 @@ on:
       - v8
       - release/**
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_dispatch:
@@ -1203,7 +1203,7 @@ jobs:
           if-no-files-found: ignore
 
   # -----------------------------------------------------------------------
-  # Lighthouse CI — nightly + label-gated (ci:lighthouse)
+  # Lighthouse CI — runs on every PR and on the nightly schedule.
   # NOT in job_required_jobs_passed — never blocks merges.
   # -----------------------------------------------------------------------
 
@@ -1211,9 +1211,7 @@ jobs:
     name: Lighthouse Matrix
     needs: [job_get_metadata]
     runs-on: ubuntu-24.04
-    if: |
-      github.event_name == 'schedule' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:lighthouse'))
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
