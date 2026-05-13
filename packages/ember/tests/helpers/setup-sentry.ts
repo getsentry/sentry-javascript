@@ -10,8 +10,7 @@ export type SentryTestContext = TestContext & {
 };
 
 export function setupSentryTest(hooks: NestedHooks): void {
-  hooks.beforeEach(async function (this: SentryTestContext) {
-    await window._sentryPerformanceLoad;
+  hooks.beforeEach(function (this: SentryTestContext) {
     window._sentryTestEvents = [];
     const errorMessages: string[] = [];
     this.errorMessages = errorMessages;
