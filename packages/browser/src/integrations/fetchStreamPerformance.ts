@@ -12,6 +12,10 @@ import {
 } from '@sentry/core';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
+const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeout>>();
+
+// Matches the max timeout in `resolveResponse` in packages/core/src/instrument/fetch.ts
+const STREAM_RESOLVE_FALLBACK_MS = 90_000;
 
 export const fetchStreamPerformanceIntegration = defineIntegration(() => {
   return {
@@ -23,6 +27,11 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
           const streamSpan = responseToStreamSpan.get(handlerData.response);
           if (streamSpan && handlerData.endTimestamp) {
             streamSpan.end(handlerData.endTimestamp);
+
+            const fallbackTimeout = responseToFallbackTimeout.get(handlerData.response);
+            if (fallbackTimeout) {
+              clearTimeout(fallbackTimeout);
+            }
           }
         }
       });
@@ -52,6 +61,14 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
           });
 
           responseToStreamSpan.set(handlerData.response, streamSpan);
+
+          const fallbackTimeout = setTimeout(() => {
+            if (streamSpan.isRecording()) {
+              streamSpan.end();
+            }
+          }, STREAM_RESOLVE_FALLBACK_MS);
+
+          responseToFallbackTimeout.set(handlerData.response, fallbackTimeout);
         }
       });
     },
