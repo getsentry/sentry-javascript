@@ -250,6 +250,7 @@ describe('captureSpan', () => {
         },
       }),
     );
+    client.init();
 
     const span = withScope(scope => {
       scope.setClient(client);
@@ -297,6 +298,7 @@ describe('captureSpan', () => {
         integrations: [{ name: 'InboundFilters', setupOnce: () => {} }],
       }),
     );
+    client.init();
 
     const serializedChild = withScope(scope => {
       scope.setClient(client);
