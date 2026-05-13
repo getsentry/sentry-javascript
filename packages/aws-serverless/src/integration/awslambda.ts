@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
-  getIsolationScope,
+  getCurrentScope,
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -60,7 +60,7 @@ const _awsLambdaIntegration = ((options: AwsLambdaOptions = {}) => {
       instrumentAwsLambda(options);
     },
     processSegmentSpan(span) {
-      const { contexts } = getIsolationScope().getScopeData();
+      const { contexts } = getCurrentScope().getScopeData();
 
       const awsLambda = contexts['aws.lambda'];
       if (awsLambda) {

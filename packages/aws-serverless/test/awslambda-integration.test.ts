@@ -8,7 +8,7 @@ vi.mock('@sentry/core', async () => {
   const original = await vi.importActual('@sentry/core');
   return {
     ...original,
-    getIsolationScope: () => ({
+    getCurrentScope: () => ({
       getScopeData: mockGetScopeData,
     }),
   };
