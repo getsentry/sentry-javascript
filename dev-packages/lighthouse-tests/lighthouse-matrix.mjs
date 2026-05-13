@@ -3,7 +3,15 @@
  *
  * Outputs: `matrix=<JSON>` to stdout (consumed by $GITHUB_OUTPUT in CI).
  *
- * Matrix shape: 14 representative E2E apps × 3 Sentry feature modes = 42 cells.
+ * Matrix shape: 2 E2E apps × 3 Sentry feature modes = 6 cells (MVP scope).
+ *
+ * Only apps whose Sentry init code actually branches on SENTRY_LIGHTHOUSE_MODE are
+ * included here. Adding an app without that wiring produces three identical builds
+ * — same SDK, same integrations — so the `Δ (SDK)` and `Δ (Features)` columns in
+ * the PR comment become noise. The follow-up todo `TODO-aeab11f0` tracks instrumenting
+ * react-19, vue-3, svelte-5, sveltekit-2, astro-5, tanstackstart-react, and nuxt-5 so
+ * they can be added back here. react-router-7-spa is also instrumented but currently
+ * fails Lighthouse with NO_FCP — kept out of the matrix until that's diagnosed.
  *
  * Modes:
  *   no-sentry      — app built without any Sentry SDK (baseline)
@@ -29,49 +37,11 @@
  */
 
 /** @type {AppDefinition[]} */
-// NOTE: angular, remix, ember, solidstart, and react-router-7-spa were
-// intentionally excluded from this matrix — their build/serve setups need
-// framework-specific tuning we're not investing in for the MVP. They can be
-// added back as a follow-up. (react-router-7-spa fails with NO_FCP in
-// Lighthouse — the bundle loads but doesn't paint within the timeout.)
 const APPS = [
-  // Plain webpack apps — read process.env directly (no bundler prefix).
+  // Plain webpack app — reads `process.env.SENTRY_LIGHTHOUSE_MODE` directly.
   { app: 'default-browser', sdk: 'browser', serve: 'static', staticDir: 'build', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
-  { app: 'react-19', sdk: 'react', serve: 'static', staticDir: 'build', envVarName: 'SENTRY_LIGHTHOUSE_MODE' },
 
-  // Vite-based apps with `envPrefix: 'PUBLIC_'` (matches Sentry's repo convention for PUBLIC_E2E_TEST_DSN).
-  { app: 'vue-3', sdk: 'vue', serve: 'static', staticDir: 'dist', envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE' },
-  { app: 'svelte-5', sdk: 'svelte', serve: 'static', staticDir: 'dist', envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE' },
-  {
-    app: 'sveltekit-2',
-    sdk: 'sveltekit',
-    serve: 'server',
-    startCmd: 'node build',
-    readyPattern: 'localhost',
-    envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE',
-  },
-  {
-    app: 'astro-5',
-    sdk: 'astro',
-    serve: 'server',
-    // Astro's @astrojs/node adapter defaults to PORT=4321; force 3000 so Lighthouse can
-    // reach the server at the URL it audits (http://localhost:3000/).
-    startCmd: 'PORT=3000 node ./dist/server/entry.mjs',
-    readyPattern: 'localhost',
-    envVarName: 'PUBLIC_SENTRY_LIGHTHOUSE_MODE',
-  },
-
-  // Vite-based apps using the default `VITE_` prefix (no custom envPrefix set).
-  {
-    app: 'tanstackstart-react',
-    sdk: 'tanstack-start',
-    serve: 'server',
-    startCmd: 'node --import ./.output/server/instrument.server.mjs .output/server/index.mjs',
-    readyPattern: 'localhost',
-    envVarName: 'VITE_SENTRY_LIGHTHOUSE_MODE',
-  },
-
-  // Next.js — only `NEXT_PUBLIC_*` env vars are exposed to client code.
+  // Next.js — reads `process.env.NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE` (client-exposed env var prefix).
   {
     app: 'nextjs-16',
     sdk: 'nextjs',
@@ -79,16 +49,6 @@ const APPS = [
     startCmd: 'pnpm start',
     readyPattern: 'Ready in',
     envVarName: 'NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE',
-  },
-
-  // Nuxt — only `NUXT_PUBLIC_*` env vars are exposed to client code (Nuxt convention).
-  {
-    app: 'nuxt-5',
-    sdk: 'nuxt',
-    serve: 'server',
-    startCmd: 'node .output/server/index.mjs',
-    readyPattern: 'Listening on',
-    envVarName: 'NUXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE',
   },
 ];
 
