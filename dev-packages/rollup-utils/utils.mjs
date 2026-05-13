@@ -38,7 +38,7 @@ export function mergeExternals(base, specific) {
  *
  *  - `remove-dev-mode-blocks` (transform) — strips `/* rollup-include-development-only *\/`
  *    marker blocks. Comment-dependent → must precede `esbuild`.
- *  - `replace-sdk-source` (transform) — rewrites the `/* __SENTRY_SDK_SOURCE__ *\/`
+ *  - `replace-sdk-source` (transform) — rewrites the `/*! __SENTRY_SDK_SOURCE__ *\/`
  *    marker in `getSDKSource()` for CDN builds. Comment-dependent → must precede `esbuild`.
  *  - `esbuild` (transform) — TS/JSX → JS. Everything in `...` runs after this.
  *  - `terser` (renderChunk) — minifies and strips comments (we use `comments: false`).
