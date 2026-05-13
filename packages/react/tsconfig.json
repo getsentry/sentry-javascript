@@ -5,6 +5,8 @@
 
   "compilerOptions": {
     "lib": ["DOM", "es2020"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
     // package-specific options
     "esModuleInterop": true,
     "jsx": "react"

@@ -1,5 +1,5 @@
 import { captureException, withScope } from '@sentry/browser';
-import { isError } from '@sentry/core';
+import { isError } from '@sentry/core/browser';
 import type { ErrorInfo } from 'react';
 import { version } from 'react';
 

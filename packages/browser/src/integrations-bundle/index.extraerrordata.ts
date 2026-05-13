@@ -1,1 +1,1 @@
-export { extraErrorDataIntegration } from '@sentry/core';
+export { extraErrorDataIntegration } from '@sentry/core/browser';

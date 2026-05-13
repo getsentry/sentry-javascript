@@ -2,13 +2,13 @@
  * @vitest-environment jsdom
  */
 
-import type { Client } from '@sentry/core';
-import * as sentryCore from '@sentry/core';
+import type { Client } from '@sentry/core/browser';
+import * as sentryCore from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { diagnoseSdkConnectivity } from '../src/diagnose-sdk';
 
 // Mock the @sentry/core module
-vi.mock('@sentry/core', async requireActual => {
+vi.mock('@sentry/core/browser', async requireActual => {
   return {
     ...((await requireActual()) as any),
     getClient: vi.fn(),

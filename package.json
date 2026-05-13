@@ -139,7 +139,7 @@
     "oxlint": "^1.53.0",
     "oxlint-tsgolint": "^0.16.0",
     "rimraf": "^5.0.10",
-    "rollup": "^4.59.0",
+    "rollup": "^4.60.3",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
@@ -163,8 +163,7 @@
     "cliui/wrap-ansi": "7.0.0",
     "sucrase": "getsentry/sucrase#es2020-polyfills",
     "**/express/path-to-regexp": "0.1.12",
-    "**/@verdaccio/local-storage-legacy/lodash": "4.17.23",
-    "**/@verdaccio/core/minimatch": "~7.4.9"
+    "**/nitropack/rollup-plugin-visualizer": "^6.0.3"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

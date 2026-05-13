@@ -136,8 +136,15 @@ export function isMatchingPattern(
  */
 export function stringMatchesSomePattern(
   testString: string,
-  patterns: Array<string | RegExp | ((value: string) => boolean)> = [],
+  patterns:
+    | Array<string | RegExp | ((value: string) => boolean)>
+    | Set<string | RegExp | ((value: string) => boolean)> = [],
   requireExactStringMatch: boolean = false,
 ): boolean {
-  return patterns.some(pattern => isMatchingPattern(testString, pattern, requireExactStringMatch));
+  for (const pattern of patterns) {
+    if (isMatchingPattern(testString, pattern, requireExactStringMatch)) {
+      return true;
+    }
+  }
+  return false;
 }

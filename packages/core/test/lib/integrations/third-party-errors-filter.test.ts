@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
@@ -626,7 +626,7 @@ describe('ThirdPartyErrorFilter', () => {
         expect(result).toBeDefined();
       });
 
-      it('does not match when filename does not contain both helpers and sentry', async () => {
+      it('does not match when filename does not contain both helpers and sentry and function name is not sentryWrapped', async () => {
         const eventWithWrongFilename: Event = {
           exception: {
             values: [
@@ -636,7 +636,7 @@ describe('ThirdPartyErrorFilter', () => {
                     {
                       colno: 2,
                       filename: 'some-helpers.js',
-                      function: 'sentryWrapped',
+                      function: 'someFunction',
                       lineno: 117,
                       context_line: '      return fn.apply(this, wrappedArguments);',
                       pre_context: [
@@ -667,7 +667,219 @@ describe('ThirdPartyErrorFilter', () => {
 
         const event = clone(eventWithWrongFilename);
         const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-        // Should not drop because filename doesn't contain "sentry"
+        // Should not drop because filename doesn't contain "sentry" and function name is not "sentryWrapped"
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe('minified/bundled code detection', () => {
+      afterEach(() => {
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+      });
+
+      it('detects Sentry internal frame when preprocessEvent snapshots depth inside a sentryWrapped call', async () => {
+        const eventWithMinifiedSentryFrame: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 12345,
+                      filename: 'https://example.com/assets/app-abc123.js',
+                      function: 'a',
+                      lineno: 1,
+                    },
+                    {
+                      colno: 1,
+                      filename: 'other-file.js',
+                      function: 'function',
+                      lineno: 1,
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'Third party error',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: true,
+        });
+
+        // Simulate being inside a sentryWrapped call
+        GLOBAL_OBJ._sentryWrappedDepth = 1;
+        const event = clone(eventWithMinifiedSentryFrame);
+        // preprocessEvent snapshots the depth onto the event
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        // Even if depth resets before processEvent (async processor scenario), the snapshot survives
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        expect(result).toBe(null);
+      });
+
+      it('detects Sentry internal frame by function name sentryWrapped even without source patterns', async () => {
+        const eventWithFunctionName: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 12345,
+                      filename: 'https://example.com/assets/app-abc123.js',
+                      function: 'sentryWrapped',
+                      lineno: 1,
+                    },
+                    {
+                      colno: 1,
+                      filename: 'other-file.js',
+                      function: 'function',
+                      lineno: 1,
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'Third party error',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: true,
+        });
+
+        const event = clone(eventWithFunctionName);
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        expect(result).toBe(null);
+      });
+
+      it('does not detect minified frame as Sentry internal when not inside sentryWrapped and function name is mangled', async () => {
+        const eventWithMinifiedFrame: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 12345,
+                      filename: 'https://example.com/assets/app-abc123.js',
+                      function: 'a',
+                      lineno: 1,
+                    },
+                    {
+                      colno: 1,
+                      filename: 'other-file.js',
+                      function: 'function',
+                      lineno: 1,
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'Third party error',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: true,
+        });
+
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const event = clone(eventWithMinifiedFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        expect(result).toBeDefined();
+      });
+
+      it('does not exclude non-minified frame even when inside sentryWrapped (parser already stripped it)', async () => {
+        const eventWithNonMinifiedFrame: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 10,
+                      filename: 'app.js',
+                      function: 'handleClick',
+                      lineno: 42,
+                      context_line: '    throw new Error("oops");',
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'oops',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: true,
+        });
+
+        GLOBAL_OBJ._sentryWrappedDepth = 1;
+        const event = clone(eventWithNonMinifiedFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+        // Should NOT be dropped — the frame has context_line, so it's not a minified sentryWrapped frame.
+        // The real sentryWrapped frame was already stripped by the parser.
+        expect(result).toBeDefined();
+      });
+
+      it('does not use sentryWrappedDepth when ignoreSentryInternalFrames is false', async () => {
+        const eventWithMinifiedSentryFrame: Event = {
+          exception: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [
+                    {
+                      colno: 12345,
+                      filename: 'https://example.com/assets/app-abc123.js',
+                      function: 'a',
+                      lineno: 1,
+                    },
+                    {
+                      colno: 1,
+                      filename: 'other-file.js',
+                      function: 'function',
+                      lineno: 1,
+                    },
+                  ],
+                },
+                type: 'Error',
+                value: 'Third party error',
+              },
+            ],
+          },
+        };
+
+        const integration = thirdPartyErrorFilterIntegration({
+          behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+          filterKeys: ['some-key'],
+          ignoreSentryInternalFrames: false,
+        });
+
+        GLOBAL_OBJ._sentryWrappedDepth = 1;
+        const event = clone(eventWithMinifiedSentryFrame);
+        integration.preprocessEvent?.(event, {}, MOCK_CLIENT);
+        GLOBAL_OBJ._sentryWrappedDepth = 0;
+        const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
         expect(result).toBeDefined();
       });
     });

@@ -1,5 +1,5 @@
-import type { DebugImage, Integration, IntegrationFn } from '@sentry/core';
-import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
+import type { DebugImage, Integration, IntegrationFn } from '@sentry/core/browser';
+import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { WINDOW } from '../helpers';

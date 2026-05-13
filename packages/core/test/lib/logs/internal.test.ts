@@ -196,7 +196,6 @@ describe('_INTERNAL_captureLog', () => {
       scope.setAttribute('scope_2', { value: 38, unit: 'gigabyte' });
       scope.setAttributes({
         scope_3: true,
-        // these are invalid since for now we don't support arrays
         scope_4: [1, 2, 3],
         scope_5: { value: [true, false, true], unit: 'second' },
       });
@@ -233,6 +232,15 @@ describe('_INTERNAL_captureLog', () => {
         scope_3: {
           type: 'boolean',
           value: true,
+        },
+        scope_4: {
+          type: 'array',
+          value: [1, 2, 3],
+        },
+        scope_5: {
+          type: 'array',
+          value: [true, false, true],
+          unit: 'second',
         },
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });

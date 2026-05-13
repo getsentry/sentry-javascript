@@ -1,4 +1,4 @@
-import { consoleSandbox, getLocationHref } from '@sentry/core';
+import { consoleSandbox, getLocationHref } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

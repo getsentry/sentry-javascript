@@ -1,1 +1,1 @@
-export { moduleMetadataIntegration } from '@sentry/core';
+export { moduleMetadataIntegration } from '@sentry/core/browser';

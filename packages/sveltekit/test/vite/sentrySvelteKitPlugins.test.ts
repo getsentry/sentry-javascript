@@ -207,6 +207,20 @@ describe('generateVitePluginOptions', () => {
     expect(result).toBeNull();
   });
 
+  it('passes applicationKey through to vite plugin options', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      applicationKey: 'my-app-key',
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expect.objectContaining({ applicationKey: 'my-app-key' }));
+
+    process.env.NODE_ENV = originalEnv;
+  });
+
   it('uses default `debug` value if only default options are provided', () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode

@@ -49,10 +49,6 @@ differ slightly for other SDKs depending on how they are structured and how they
   - **This is especially important, if you're adding new CDN bundles!**
   - Tarballs (\*.tgz archives) should work OOTB
 
-- [ ] Make sure it is added to the
-      [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/dev-packages/e2e-tests/verdaccio-config/config.yaml)
-      for the E2E tests
-
 - [ ] If the package you're adding is a dependency of fullstack framework (e.g. Remix or NextJS) SDKs, make sure that
       your package is added to the integration test apps' `"resolutions"` field in their `package.json`s.
 

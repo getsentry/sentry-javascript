@@ -15,7 +15,10 @@ const SEGMENT_SPAN = {
       type: 'integer',
       value: expect.any(Number),
     },
-    // TODO: 'device.archs' is set but arrays are not yet serialized in span attributes
+    'device.archs': {
+      type: 'array',
+      value: expect.any(Array),
+    },
     'device.processor_count': {
       type: 'integer',
       value: expect.any(Number),

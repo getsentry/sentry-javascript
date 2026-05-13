@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { debug } from '@sentry/core';
+import { debug } from '@sentry/core/browser';
 import { describe, expect, it, vi } from 'vitest';
 import type { BrowserClient } from '../../src/index';
 import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
@@ -107,5 +107,65 @@ describe('BrowserProfilingIntegration', () => {
     const client = Sentry.getClient<BrowserClient>();
     const lifecycle = client?.getOptions()?.profileLifecycle;
     expect(lifecycle).toBe('manual');
+  });
+
+  describe('legacy profiling thread attributes', () => {
+    it('sets thread.id and thread.name on root span and child spans', async () => {
+      class MockProfiler {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return Promise.resolve({
+            frames: [{ name: 'test_fn', line: 1, column: 1 }],
+            stacks: [{ frameId: 0, parentId: undefined }],
+            samples: [
+              { stackId: 0, timestamp: 0 },
+              { stackId: 0, timestamp: 100 },
+            ],
+            resources: [],
+          } as JSSelfProfile);
+        }
+      }
+
+      // @ts-expect-error this is a mock constructor
+      window.Profiler = MockProfiler;
+
+      const send = vi.fn().mockResolvedValue(undefined);
+      const client = Sentry.init({
+        tracesSampleRate: 1,
+        profilesSampleRate: 1,
+        dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+        transport: _opts => ({
+          flush: vi.fn().mockResolvedValue(true),
+          send,
+        }),
+        integrations: [Sentry.browserProfilingIntegration()],
+      });
+
+      Sentry.startSpan({ name: 'legacy-root', parentSpan: null, forceTransaction: true }, () => {
+        Sentry.startSpan({ name: 'legacy-child' }, () => {
+          /* empty */
+        });
+      });
+
+      await client!.flush(1000);
+
+      const txnCall = send.mock.calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      expect(txnCall).toBeDefined();
+
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+      // Root span thread attributes are in contexts.trace.data
+      expect(transaction.contexts.trace.data['thread.id']).toBe('0');
+      expect(transaction.contexts.trace.data['thread.name']).toBe('main');
+
+      // Child span thread attributes
+      expect(transaction.spans).toHaveLength(1);
+      expect(transaction.spans[0].data['thread.id']).toBe('0');
+      expect(transaction.spans[0].data['thread.name']).toBe('main');
+
+      (window as any).Profiler = undefined;
+    });
   });
 });

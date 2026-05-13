@@ -98,6 +98,18 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
+  it('passes applicationKey to sentryVitePlugin', () => {
+    makeAddSentryVitePlugin({
+      applicationKey: 'my-app-key',
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationKey: 'my-app-key',
+      }),
+    );
+  });
+
   it('returns Sentry Vite plugins and config plugin', () => {
     const plugins = makeAddSentryVitePlugin({
       org: 'my-org',

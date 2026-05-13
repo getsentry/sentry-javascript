@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "10.51.0",
+  "version": "10.53.1",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@sentry/core": "10.51.0",
+    "@sentry/core": "10.53.1",
     "@types/ws": "^8.18.1",
     "eslint-plugin-regexp": "^1.15.0"
   },

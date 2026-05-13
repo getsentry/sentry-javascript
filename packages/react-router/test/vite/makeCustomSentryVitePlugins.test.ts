@@ -48,6 +48,18 @@ describe('makeCustomSentryVitePlugins', () => {
     );
   });
 
+  it('should pass applicationKey to sentryVitePlugin', async () => {
+    await makeCustomSentryVitePlugins({
+      applicationKey: 'my-app-key',
+    });
+
+    expect(sentryVitePlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationKey: 'my-app-key',
+      }),
+    );
+  });
+
   it('should return all plugins from sentryVitePlugin', async () => {
     const plugins = await makeCustomSentryVitePlugins({});
     expect(plugins).toHaveLength(1);

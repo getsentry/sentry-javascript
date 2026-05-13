@@ -4,6 +4,7 @@
   "include": ["src/**/*", "test/loader.js"],
 
   "compilerOptions": {
+    "moduleResolution": "bundler",
     "lib": ["DOM", "es2020", "WebWorker"]
   }
 }
