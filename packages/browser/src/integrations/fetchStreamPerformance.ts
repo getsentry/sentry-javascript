@@ -58,7 +58,10 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
           // 1. No content-length header (streamed responses don't know the size upfront)
           // 2. Content-type is a known streaming type
           const contentType = handlerData.response.headers?.get('content-type') || '';
-          if (handlerData.response.headers?.get('content-length') || !STREAMING_CONTENT_TYPES.some(t => contentType.startsWith(t))) {
+          if (
+            handlerData.response.headers?.get('content-length') ||
+            !STREAMING_CONTENT_TYPES.some(t => contentType.startsWith(t))
+          ) {
             return;
           }
 
