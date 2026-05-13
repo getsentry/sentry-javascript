@@ -68,7 +68,7 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
         } else {
           consoleSandbox(() => {
             console.warn('Skipping router instrumentation because appInstance is not provided.');
-          })
+          });
         }
 
         // We only want to run this once in tests!
