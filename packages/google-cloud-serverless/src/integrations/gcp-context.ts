@@ -25,7 +25,7 @@ const _gcpContextIntegration = (() => {
       const attrs: Record<string, unknown> = {};
       for (const [field, attrName] of Object.entries(GCP_CONTEXT_ATTRIBUTE_MAP)) {
         const value = gcpContext[field];
-        if (typeof value === 'string') {
+        if (typeof value === 'string' || typeof value === 'number') {
           attrs[attrName] = value;
         }
       }

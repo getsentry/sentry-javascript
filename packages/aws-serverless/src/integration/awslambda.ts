@@ -67,7 +67,7 @@ const _awsLambdaIntegration = ((options: AwsLambdaOptions = {}) => {
         const attrs: Record<string, unknown> = {};
         for (const field of AWS_LAMBDA_CONTEXT_FIELDS) {
           const value = awsLambda[field];
-          if (value != null && (typeof value === 'string' || typeof value === 'number')) {
+          if (typeof value === 'string' || typeof value === 'number') {
             attrs[`aws.lambda.${field}`] = value;
           }
         }
@@ -79,7 +79,7 @@ const _awsLambdaIntegration = ((options: AwsLambdaOptions = {}) => {
         const attrs: Record<string, unknown> = {};
         for (const field of AWS_CLOUDWATCH_CONTEXT_FIELDS) {
           const value = awsCloudwatch[field];
-          if (typeof value === 'string') {
+          if (typeof value === 'string' || typeof value === 'number') {
             attrs[`aws.cloudwatch.logs.${field}`] = value;
           }
         }
