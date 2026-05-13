@@ -110,7 +110,7 @@
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils",
     "dev-packages/bundler-tests",
-    "dev-packages/lighthouse-tests"
+    "dev-packages/lighthouse-bundle"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
