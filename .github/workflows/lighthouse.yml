@@ -63,6 +63,27 @@ jobs:
       - name: Build packages
         run: yarn build:ci
 
+      - name: Compute build artifact paths from Nx
+        id: nx_build_paths
+        run: |
+          {
+            echo 'paths<<EOF'
+            yarn --silent ci:print-build-artifact-paths
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifacts
+        # Required by .github/actions/restore-cache in the downstream job — mirrors
+        # the `build-output` artifact that build.yml's job_build produces. Without
+        # it, the bundle job fails on restore-cache with "Artifact not found".
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-output
+          path: ${{ steps.nx_build_paths.outputs.paths }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
       - name: Build tarballs
         run: yarn build:tarball
 
