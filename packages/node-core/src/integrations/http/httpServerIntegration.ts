@@ -1,28 +1,23 @@
-import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
-import type { EventEmitter } from 'node:events';
-import type { IncomingMessage, RequestOptions, Server, ServerResponse } from 'node:http';
-import type { Socket } from 'node:net';
+import type { RequestOptions } from 'node:http';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
-import type { AggregationCounts, Client, HttpIncomingMessage, Integration, IntegrationFn, Scope } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse, Integration, IntegrationFn } from '@sentry/core';
 import {
-  _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
   debug,
-  generateSpanId,
-  generateTraceId,
   getClient,
-  getCurrentScope,
-  getIsolationScope,
-  httpRequestToRequestData,
-  stripUrlQueryAndFragment,
-  withIsolationScope,
+  getHttpServerSubscriptions,
+  HTTP_ON_SERVER_REQUEST,
+  recordRequestSession,
 } from '@sentry/core';
+import type { RequestEventData } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { NodeClient } from '../../sdk/client';
-import { patchRequestToCaptureBody } from '../../utils/captureRequestBody';
 
-type ServerEmit = typeof Server.prototype.emit;
+// Re-export so existing test imports continue to work; the implementation now lives in core.
+export { recordRequestSession };
+
+const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
+const INTEGRATION_NAME = 'Http.Server';
 
 // Inlining this type to not depend on newer TS types
 interface WeakRefImpl<T> {
@@ -33,20 +28,6 @@ type StartSpanCallback = (next: () => boolean) => boolean;
 type RequestWithOptionalStartSpanCallback = HttpIncomingMessage & {
   _startSpanCallback?: WeakRefImpl<StartSpanCallback>;
 };
-
-const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
-const INTEGRATION_NAME = 'Http.Server';
-
-const clientToRequestSessionAggregatesMap = new Map<
-  Client,
-  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
->();
-
-// We keep track of emit functions we wrapped, to avoid double wrapping
-// We do this instead of putting a non-enumerable property on the function, because
-// sometimes the property seems to be migrated to forks of the emit function, which we do not want to happen
-// This was the case in the nestjs-distributed-tracing E2E test
-const wrappedEmitFns = new WeakSet<ServerEmit>();
 
 export interface HttpServerIntegrationOptions {
   /**
@@ -103,19 +84,71 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     sessions: options.sessions ?? true,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? 60_000,
     maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-    ignoreRequestBody: options.ignoreRequestBody,
+    // Server spans are created by `httpServerSpansIntegration` via the
+    // `httpServerRequest` client event + `_startSpanCallback`, not by the
+    // core subscription helper. Explicitly opt out so the helper does not
+    // double-create spans when the client has tracing enabled.
+    spans: false as const,
+    // Cast: core uses HttpIncomingMessage; node consumers pass
+    // RequestOptions-typed callbacks.
+    // The two are structurally compatible for the fields the callback reads
+    // (url, method, headers).
+    ignoreRequestBody: options.ignoreRequestBody as
+      | ((url: string, request: HttpIncomingMessage) => boolean)
+      | undefined,
+
+    /**
+     * Hook called by core's `instrumentServer` to wrap the upstream
+     * `emit('request')` call.
+     *
+     * We use it to extract OTel context from request headers and re-enter
+     * the OTel context before the framework sees the request, so subsequent
+     * spans (eg from `httpServerSpansIntegration`) attach to the right trace.
+     */
+    wrapServerEmitRequest(
+      request: HttpIncomingMessage,
+      response: HttpServerResponse,
+      normalizedRequest: RequestEventData,
+      next: () => void,
+    ): void {
+      const client = getClient();
+      if (!client) return next();
+
+      // Guard against double-wrapping: if our wrapper somehow runs inside an
+      // already-instrumented context, just continue without re-extracting
+      // and re-emitting.
+      if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY)) {
+        return next();
+      }
+
+      const ctx = propagation
+        .extract(context.active(), normalizedRequest.headers)
+        .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
+
+      context.with(ctx, () => {
+        // httpServerSpansIntegration listens for this and may attach
+        // `_startSpanCallback` to the request to wrap span creation around
+        // the emit.
+        client.emit('httpServerRequest', request, response, normalizedRequest);
+
+        const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback?.deref();
+        if (callback) {
+          callback(() => {
+            next();
+            return true;
+          });
+        } else {
+          next();
+        }
+      });
+    },
   };
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const onHttpServerRequestStart = ((_data: unknown) => {
-        const data = _data as { server: Server };
-
-        instrumentServer(data.server, _options);
-      }) satisfies ChannelListener;
-
-      subscribe('http.server.request.start', onHttpServerRequestStart);
+      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequestStart } = getHttpServerSubscriptions(_options);
+      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
     },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
@@ -141,192 +174,3 @@ export const httpServerIntegration = _httpServerIntegration as (
   name: 'HttpServer';
   setupOnce: () => void;
 };
-
-/**
- * Instrument a server to capture incoming requests.
- *
- */
-function instrumentServer(
-  server: Server,
-  {
-    ignoreRequestBody,
-    maxRequestBodySize,
-    sessions,
-    sessionFlushingDelayMS,
-  }: {
-    ignoreRequestBody?: (url: string, request: IncomingMessage) => boolean;
-    maxRequestBodySize: 'small' | 'medium' | 'always' | 'none';
-    sessions: boolean;
-    sessionFlushingDelayMS: number;
-  },
-): void {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalEmit: ServerEmit = server.emit;
-
-  if (wrappedEmitFns.has(originalEmit)) {
-    return;
-  }
-
-  const newEmit = new Proxy(originalEmit, {
-    apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
-      // Only traces request events
-      if (args[0] !== 'request') {
-        return target.apply(thisArg, args);
-      }
-
-      const client = getClient<NodeClient>();
-
-      // Make sure we do not double execute our wrapper code, for edge cases...
-      // Without this check, if we double-wrap emit, for whatever reason, you'd get two http.server spans (one the children of the other)
-      if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY) || !client) {
-        return target.apply(thisArg, args);
-      }
-
-      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
-
-      const isolationScope = getIsolationScope().clone();
-      const request = args[1] as IncomingMessage;
-      const response = args[2] as ServerResponse & { socket: Socket };
-
-      const normalizedRequest = httpRequestToRequestData(request);
-
-      // request.ip is non-standard but some frameworks set this
-      const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
-
-      const url = request.url || '/';
-      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
-      }
-
-      // Update the isolation scope, isolate this request
-      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
-
-      // attempt to update the scope's `transactionName` based on the request URL
-      // Ideally, framework instrumentations coming after the HttpInstrumentation
-      // update the transactionName once we get a parameterized route.
-      const httpMethod = (request.method || 'GET').toUpperCase();
-      const httpTargetWithoutQueryFragment = stripUrlQueryAndFragment(url);
-
-      const bestEffortTransactionName = `${httpMethod} ${httpTargetWithoutQueryFragment}`;
-
-      isolationScope.setTransactionName(bestEffortTransactionName);
-
-      if (sessions && client) {
-        recordRequestSession(client, {
-          requestIsolationScope: isolationScope,
-          response,
-          sessionFlushingDelayMS: sessionFlushingDelayMS ?? 60_000,
-        });
-      }
-
-      return withIsolationScope(isolationScope, () => {
-        const newPropagationContext = {
-          traceId: generateTraceId(),
-          sampleRand: _INTERNAL_safeMathRandom(),
-          propagationSpanId: generateSpanId(),
-        };
-        // - Set a fresh propagation context so each request gets a unique traceId.
-        //   When there are incoming trace headers, propagation.extract() below sets a remote
-        //   span on the OTel context which takes precedence in getTraceContextForScope().
-        // - We can write directly to the current scope here because it is forked implicitly via
-        //   `context.with` in `withIsolationScope` (See `SentryContextManager`).
-        // - explicitly making a deep copy to avoid mutation of original PC on the other scope
-        getCurrentScope().setPropagationContext({ ...newPropagationContext });
-        isolationScope.setPropagationContext({ ...newPropagationContext });
-
-        const ctx = propagation
-          .extract(context.active(), normalizedRequest.headers)
-          .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
-
-        return context.with(ctx, () => {
-          // This is used (optionally) by the httpServerSpansIntegration to attach _startSpanCallback to the request object
-          client.emit('httpServerRequest', request, response, normalizedRequest);
-
-          const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback?.deref();
-          if (callback) {
-            return callback(() => target.apply(thisArg, args));
-          }
-          return target.apply(thisArg, args);
-        });
-      });
-    },
-  });
-
-  wrappedEmitFns.add(newEmit);
-  server.emit = newEmit;
-}
-
-/**
- * Starts a session and tracks it in the context of a given isolation scope.
- * When the passed response is finished, the session is put into a task and is
- * aggregated with other sessions that may happen in a certain time window
- * (sessionFlushingDelayMs).
- *
- * The sessions are always aggregated by the client that is on the current scope
- * at the time of ending the response (if there is one).
- */
-// Exported for unit tests
-export function recordRequestSession(
-  client: Client,
-  {
-    requestIsolationScope,
-    response,
-    sessionFlushingDelayMS,
-  }: {
-    requestIsolationScope: Scope;
-    response: EventEmitter;
-    sessionFlushingDelayMS?: number;
-  },
-): void {
-  requestIsolationScope.setSDKProcessingMetadata({
-    requestSession: { status: 'ok' },
-  });
-  response.once('close', () => {
-    const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
-
-    if (client && requestSession) {
-      DEBUG_BUILD && debug.log(`Recorded request session with status: ${requestSession.status}`);
-
-      const roundedDate = new Date();
-      roundedDate.setSeconds(0, 0);
-      const dateBucketKey = roundedDate.toISOString();
-
-      const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
-      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
-      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
-
-      if (existingClientAggregate) {
-        existingClientAggregate[dateBucketKey] = bucket;
-      } else {
-        DEBUG_BUILD && debug.log('Opened new request session aggregate.');
-        const newClientAggregate = { [dateBucketKey]: bucket };
-        clientToRequestSessionAggregatesMap.set(client, newClientAggregate);
-
-        const flushPendingClientAggregates = (): void => {
-          clearTimeout(timeout);
-          unregisterClientFlushHook();
-          clientToRequestSessionAggregatesMap.delete(client);
-
-          const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
-            ([timestamp, value]) => ({
-              started: timestamp,
-              exited: value.exited,
-              errored: value.errored,
-              crashed: value.crashed,
-            }),
-          );
-          client.sendSession({ aggregates: aggregatePayload });
-        };
-
-        const unregisterClientFlushHook = client.on('flush', () => {
-          DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
-          flushPendingClientAggregates();
-        });
-        const timeout = setTimeout(() => {
-          DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
-          flushPendingClientAggregates();
-        }, sessionFlushingDelayMS).unref();
-      }
-    }
-  });
-}

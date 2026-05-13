@@ -65,8 +65,8 @@ export interface HttpServerResponse {
   statusCode: number;
   statusMessage?: string;
   headers: Record<string, string | undefined | string[] | number>;
-  once(ev: string, ...data: unknown[]): this;
-  once(ev: 'close'): this;
+  once(ev: string | symbol, handler: (...data: unknown[]) => void): this;
+  once(ev: 'close', handler: () => void): this;
   on(ev: string | symbol, handler: (...data: unknown[]) => void): this;
 }
 
@@ -115,8 +115,10 @@ export type HttpModuleExport = HttpExport | (HttpExport & { default: HttpExport 
 
 export interface HttpInstrumentationOptions {
   /**
-   * Whether to create spans for outgoing HTTP requests.
-   * @default true
+   * Whether to create spans for HTTP requests. Applies to both outgoing
+   * (`getHttpClientSubscriptions`) and incoming (`getHttpServerSubscriptions`)
+   * request instrumentation. Defaults to the client's tracing configuration
+   * (`hasSpansEnabled`) when unset.
    */
   spans?: boolean;
 
@@ -210,6 +212,10 @@ export interface HttpInstrumentationOptions {
    * Optional callback that can be used by integrations to emit the 'request'
    * event within a given Sentry or OTEL context, possibly after creating a
    * span, as in the HttpServerSpansIntegration.
+   *
+   * **Important**: next() **must** be called synchronously, or else the
+   * http.Server.emit return value will be lost, and the proxy will return
+   * `false` even if there are listeners.
    */
   wrapServerEmitRequest?: (
     request: HttpIncomingMessage,
