@@ -3,8 +3,10 @@
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
-import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
+import esbuild from 'rollup-plugin-esbuild';
+
+const esbuildPlugin = esbuild({ tsconfig: './tsconfig.json', target: 'es2020', sourceMap: false });
 
 const config = defineConfig([
   {
@@ -16,7 +18,7 @@ const config = defineConfig([
     },
     external: ['./worker'],
     plugins: [
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
+      esbuildPlugin,
       terser({
         mangle: {
           module: true,
@@ -33,7 +35,7 @@ const config = defineConfig([
     treeshake: 'smallest',
     plugins: [
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
+      esbuildPlugin,
       resolve(),
       terser({
         mangle: {
@@ -57,7 +59,7 @@ const config = defineConfig([
     treeshake: 'smallest',
     plugins: [
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
+      esbuildPlugin,
       resolve(),
       terser({
         mangle: {

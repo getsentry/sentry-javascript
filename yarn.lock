@@ -7411,13 +7411,6 @@
     magic-string "^0.30.3"
     picomatch "^4.0.2"
 
-"@rollup/plugin-esm-shim@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@rollup/plugin-esm-shim/-/plugin-esm-shim-0.1.5.tgz#74464e9a8a7e664557aae65592c8a3e317802220"
-  integrity sha512-xnIjDm/0EbqAw0/rR1UE7eAo9db0ftGPqT8RUCFtkFxtCuspbbmj+wutoyxm32jBytyO3SgkxSG17OR893fV7A==
-  dependencies:
-    magic-string "^0.30.3"
-
 "@rollup/plugin-inject@^5.0.5":
   version "5.0.5"
   resolved "https://registry.yarnpkg.com/@rollup/plugin-inject/-/plugin-inject-5.0.5.tgz#616f3a73fe075765f91c5bec90176608bed277a3"
@@ -7500,14 +7493,6 @@
     serialize-javascript "^6.0.1"
     smob "^1.0.0"
     terser "^5.17.4"
-
-"@rollup/plugin-typescript@^11.1.6":
-  version "11.1.6"
-  resolved "https://registry.yarnpkg.com/@rollup/plugin-typescript/-/plugin-typescript-11.1.6.tgz#724237d5ec12609ec01429f619d2a3e7d4d1b22b"
-  integrity sha512-R92yOmIACgYdJ7dJ97p4K69I8gg6IEHt8M7dUBxN3W6nrO8uUxX5ixl0yU/N3aZTi8WhPuICvOHXQvF6FaykAA==
-  dependencies:
-    "@rollup/pluginutils" "^5.1.0"
-    resolve "^1.22.1"
 
 "@rollup/pluginutils@^3.0.8", "@rollup/pluginutils@^3.0.9", "@rollup/pluginutils@^3.1.0":
   version "3.1.0"
