@@ -925,9 +925,8 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: |
-          cd packages/remix
-          yarn test:integration:ci
+        working-directory: packages/remix
+        run: yarn test:integration
 
   job_build_tarballs:
     name: Build tarballs

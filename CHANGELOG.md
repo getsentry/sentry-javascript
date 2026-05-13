@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(core): Support array attributes for spans, logs, and metrics ([#20427](https://github.com/getsentry/sentry-javascript/pull/20427))**
+
+  Arrays of primitive values (`string`, `number`, `boolean`) are now accepted as attribute values. Arrays containing non-primitive elements will be dropped and won't show up in Sentry. Note that array attributes on logs and metrics were previously stringified in certain cases and will now be sent as arrays instead.
+
 ## 10.53.1
 
 - fix(core): Don't gate user data for streamed spans at scope read time ([#20827](https://github.com/getsentry/sentry-javascript/pull/20827))

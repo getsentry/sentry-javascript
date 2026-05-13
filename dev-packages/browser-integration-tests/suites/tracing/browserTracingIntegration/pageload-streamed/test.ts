@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
@@ -137,6 +138,10 @@ sentryTest(
         [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: {
           type: 'string',
           value: SDK_VERSION,
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          type: 'array',
+          value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
         },
         [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: {
           type: 'string',
