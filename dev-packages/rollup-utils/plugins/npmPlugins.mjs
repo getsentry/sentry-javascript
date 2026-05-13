@@ -121,12 +121,14 @@ export function makeDebugBuildStatementReplacePlugin() {
 }
 
 export function makeProductionReplacePlugin() {
-  const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* rollup-include-development-only-end \*\/\s*/g;
-
-  // Must run as a `transform` (per-module) hook rather than `renderChunk`: esbuild
-  // strips arbitrary block comments during transpile, so by the time `renderChunk`
-  // would fire, the `rollup-include-development-only` marker comments are gone.
+  // Markers use the `/*! ... */` legal-comment syntax so esbuild preserves them through
+  // transpile. We still run as a `transform` (per-module) hook rather than `renderChunk`:
+  // the block typically uses imports declared at the module top, and stripping it before
+  // rollup analyses module-graph imports lets those now-unused imports be tree-shaken away.
   // The plugin sort order in utils.mjs pins this before `esbuild`.
+  const pattern =
+    /\/\*! rollup-include-development-only \*\/[\s\S]*?\/\*! rollup-include-development-only-end \*\/\s*/g;
+
   return {
     name: 'remove-dev-mode-blocks',
     transform(code) {
