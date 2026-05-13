@@ -2,37 +2,68 @@
  * Rollup plugin hooks docs: https://rollupjs.org/guide/en/#build-hooks and
  * https://rollupjs.org/guide/en/#output-generation-hooks
  *
- * Cleanup plugin docs: https://github.com/aMarCruz/rollup-plugin-cleanup
+ * esbuild plugin docs: https://github.com/egoist/rollup-plugin-esbuild
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
- * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
-import cleanup from 'rollup-plugin-cleanup';
-import sucrase from './vendor/sucrase-plugin.mjs';
+import esbuild from 'rollup-plugin-esbuild';
 
 /**
- * Create a plugin to transpile TS syntax using `sucrase`.
+ * Create a plugin to transpile TS/JSX syntax using `esbuild`.
  *
- * @returns An instance of the `@rollup/plugin-sucrase` plugin
+ * `target: 'es2020'` keeps ES2020-native syntax (`?.`, `??`, optional catch binding) and
+ * downlevels everything newer (logical assignment, numeric separators, class private
+ * fields, static class blocks, ...) — replacing the policy the legacy `getsentry/sucrase`
+ * fork used to enforce.
+ *
+ * The second argument keeps the legacy `sucrase: { jsxRuntime, jsxPragma, ... }` option
+ * shape so per-package `rollup.*.config.mjs` files keep working unchanged; we just
+ * translate the JSX-related keys to their esbuild equivalents.
  */
-export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
-  return sucrase(
-    {
-      // Required for bundling OTEL code properly
-      exclude: ['**/*.json'],
-      ...options,
+export function makeEsbuildPlugin(options = {}, transpileOptions = {}) {
+  const { jsxRuntime, jsxPragma, jsxFragmentPragma, production, transforms: _transforms, ...rest } = transpileOptions;
+
+  const jsxOptions = {};
+  if (jsxRuntime === 'automatic') {
+    jsxOptions.jsx = 'automatic';
+    if (typeof production === 'boolean') jsxOptions.jsxDev = !production;
+  } else if (jsxRuntime === 'preserve') {
+    jsxOptions.jsx = 'preserve';
+  } else {
+    // legacy default and 'classic' both map to esbuild's 'transform'
+    jsxOptions.jsx = 'transform';
+  }
+  if (jsxPragma) jsxOptions.jsxFactory = jsxPragma;
+  if (jsxFragmentPragma) jsxOptions.jsxFragment = jsxFragmentPragma;
+
+  const plugin = esbuild({
+    // `.json` is handled by the JSON plugin further down the pipeline.
+    exclude: ['**/*.json'],
+    ...options,
+    // ES2020 is our floor — keeps `?.`/`??` native, downlevels everything newer.
+    target: 'es2020',
+    // Don't read per-package tsconfig (they vary and can pull in unrelated settings).
+    // Pin only the compilerOptions that affect codegen.
+    tsconfig: false,
+    tsconfigRaw: {
+      compilerOptions: {
+        // Match the project tsconfig's effective behavior at target=es2020: class
+        // field initializers compile to `this.x = v` (set semantics), not via the
+        // `Object.defineProperty`-based `__publicField` helper esbuild emits by
+        // default. This is what sucrase/tsc output too.
+        useDefineForClassFields: false,
+      },
     },
-    {
-      transforms: ['typescript', 'jsx'],
-      // We use a custom forked version of sucrase,
-      // where there is a new option `disableES2019Transforms`
-      disableESTransforms: false,
-      disableES2019Transforms: true,
-      ...sucraseOptions,
-    },
-  );
+    sourceMap: true,
+    ...jsxOptions,
+    ...rest,
+  });
+
+  // Force a stable plugin name so the plugin sort order in utils.mjs can target it.
+  plugin.name = 'esbuild';
+  return plugin;
 }
 
 export function makeJsonPlugin() {
@@ -87,23 +118,6 @@ export function makeDebuggerPlugin(hookName) {
       return null;
     },
   };
-}
-
-/**
- * Create a plugin to clean up output files by:
- * - Converting line endings unix line endings
- * - Removing consecutive empty lines
- *
- * @returns A `rollup-plugin-cleanup` instance.
- */
-export function makeCleanupPlugin() {
-  return cleanup({
-    // line endings are unix-ized by default
-    comments: 'all', // comments to keep
-    compactComments: 'false', // don't remove blank lines in multi-line comments
-    maxEmptyLines: 1,
-    extensions: ['js', 'jsx', 'ts', 'tsx'],
-  });
 }
 
 /**

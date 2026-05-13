@@ -13,12 +13,11 @@ import deepMerge from 'deepmerge';
 
 import { defineConfig } from 'rollup';
 import {
-  makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
+  makeEsbuildPlugin,
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
-  makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergeExternals, mergePlugins } from './utils.mjs';
@@ -39,9 +38,8 @@ export function makeBaseNPMConfig(options = {}) {
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
+  const transpilePlugin = makeEsbuildPlugin({}, sucrase);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const cleanupPlugin = makeCleanupPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -104,7 +102,7 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [nodeResolvePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
+    plugins: [nodeResolvePlugin, transpilePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
     // also treat subpath exports (e.g. `@sentry/core/browser`) as external
