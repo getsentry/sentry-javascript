@@ -15,7 +15,7 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { defineIntegration, getGlobalScope, safeSetSpanJSONAttributes } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -123,14 +123,6 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
     processSegmentSpan(span) {
       safeSetSpanJSONAttributes(span, cachedSpanAttributes);
       safeSetSpanJSONAttributes(span, getDynamicSpanAttributes(appContext, deviceContext));
-
-      const missingInstrumentation = getGlobalScope().getScopeData().contexts.missing_instrumentation;
-      if (missingInstrumentation) {
-        safeSetSpanJSONAttributes(span, {
-          'missing_instrumentation.package': missingInstrumentation.package,
-          'missing_instrumentation.javascript.is_cjs': missingInstrumentation['javascript.is_cjs'],
-        });
-      }
     },
   };
 }) satisfies IntegrationFn;

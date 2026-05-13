@@ -13,7 +13,6 @@ export interface Contexts extends Record<string, Context | undefined> {
   response?: ResponseContext;
   trace?: TraceContext;
   cloud_resource?: CloudResourceContext;
-  missing_instrumentation?: MissingInstrumentationContext;
   state?: StateContext;
   profile?: ProfileContext;
   flags?: FeatureFlagContext;
