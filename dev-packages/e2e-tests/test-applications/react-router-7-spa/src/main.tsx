@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -13,53 +14,43 @@ import Index from './pages/Index';
 import SSE from './pages/SSE';
 import User from './pages/User';
 
-const lighthouseMode = import.meta.env.PUBLIC_SENTRY_LIGHTHOUSE_MODE;
+const replay = Sentry.replayIntegration();
 
-let SentryRoutes = Routes;
+Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
+  dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
+  integrations: [
+    Sentry.reactRouterV7BrowserTracingIntegration({
+      useEffect: React.useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
+      trackFetchStreamPerformance: true,
+    }),
+    replay,
+  ],
+  // We recommend adjusting this value in production, or using tracesSampler
+  // for finer control
+  tracesSampleRate: 1.0,
+  release: 'e2e-test',
 
-(async () => {
-  if (lighthouseMode !== 'no-sentry') {
-    const Sentry = await import('@sentry/react');
+  // Always capture replays, so we can test this properly
+  replaysSessionSampleRate: 1.0,
+  replaysOnErrorSampleRate: 0.0,
+  tunnel: 'http://localhost:3031',
+  sendDefaultPii: true,
+});
 
-    const integrations: Sentry.Integration[] = [];
+const SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
 
-    if (lighthouseMode !== 'init-only') {
-      integrations.push(
-        Sentry.reactRouterV7BrowserTracingIntegration({
-          useEffect: React.useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-          trackFetchStreamPerformance: true,
-        }),
-        Sentry.replayIntegration(),
-      );
-    }
-
-    Sentry.init({
-      environment: 'qa', // dynamic sampling bias to keep transactions
-      dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
-      integrations,
-      tracesSampleRate: 1.0,
-      release: 'e2e-test',
-      replaysSessionSampleRate: lighthouseMode !== 'init-only' ? 1.0 : 0.0,
-      replaysOnErrorSampleRate: 0.0,
-      tunnel: 'http://localhost:3031',
-      sendDefaultPii: true,
-    });
-
-    SentryRoutes = Sentry.withSentryReactRouterV7Routing(Routes);
-  }
-
-  const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-  root.render(
-    <BrowserRouter>
-      <SentryRoutes>
-        <Route path="/" element={<Index />} />
-        <Route path="/user/:id" element={<User />} />
-        <Route path="/sse" element={<SSE />} />
-      </SentryRoutes>
-    </BrowserRouter>,
-  );
-})();
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+root.render(
+  <BrowserRouter>
+    <SentryRoutes>
+      <Route path="/" element={<Index />} />
+      <Route path="/user/:id" element={<User />} />
+      <Route path="/sse" element={<SSE />} />
+    </SentryRoutes>
+  </BrowserRouter>,
+);
