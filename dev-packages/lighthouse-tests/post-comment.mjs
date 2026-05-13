@@ -11,19 +11,13 @@ const MODES = ['no-sentry', 'init-only', 'tracing-replay'];
  * Apps and their human-readable SDK labels, matching lighthouse-matrix.mjs.
  * Order here determines row order in each table.
  */
-// Must mirror lighthouse-matrix.mjs APPS. angular, remix, ember, solidstart,
-// and react-router-7-spa are intentionally excluded — see note in
-// lighthouse-matrix.mjs.
+// Must mirror the APPS array in lighthouse-matrix.mjs. Only apps whose Sentry init
+// code actually branches on SENTRY_LIGHTHOUSE_MODE are listed here — listing
+// uninstrumented apps would dilute the 50%-fill safety check below and produce
+// meaningless Δ columns. See lighthouse-matrix.mjs for the full rationale.
 const APPS = [
   { app: 'default-browser', sdk: 'browser' },
-  { app: 'react-19', sdk: 'react' },
-  { app: 'vue-3', sdk: 'vue' },
-  { app: 'svelte-5', sdk: 'svelte' },
-  { app: 'sveltekit-2', sdk: 'sveltekit' },
-  { app: 'astro-5', sdk: 'astro' },
-  { app: 'tanstackstart-react', sdk: 'tanstack-start' },
   { app: 'nextjs-16', sdk: 'nextjs' },
-  { app: 'nuxt-5', sdk: 'nuxt' },
 ];
 
 /**
@@ -150,10 +144,14 @@ async function run() {
 
   const body = `${HEADING}\n\n${tables}${footer}`;
 
+  // Always render the report as a GitHub Actions Job Summary so it's visible on the
+  // workflow run page for every trigger (PR, nightly, dispatch). For PR runs we also
+  // post/update a sticky comment on the PR below.
+  await core.summary.addRaw(body).write();
+  core.info('Wrote Lighthouse report to Job Summary.');
+
   if (!isPR || !prNumber) {
-    // Nightly / non-PR: log to stdout (captured in workflow logs)
-    // eslint-disable-next-line no-console
-    console.log(body);
+    // Nightly / non-PR: Job Summary above is the only output. Nothing to post.
     return;
   }
 
