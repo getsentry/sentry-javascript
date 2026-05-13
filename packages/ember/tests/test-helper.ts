@@ -9,7 +9,6 @@ import setupSinon from 'ember-sinon-qunit';
 declare global {
   interface Window {
     _sentryTestEvents: Sentry.Event[];
-    _sentryPerformanceLoad?: Promise<void>;
   }
 }
 

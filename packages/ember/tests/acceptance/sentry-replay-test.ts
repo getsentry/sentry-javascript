@@ -1,5 +1,5 @@
 import { visit } from '@ember/test-helpers';
-import type { BrowserClient, replayIntegration } from '@sentry/ember';
+import type { replayIntegration } from '@sentry/ember';
 import * as Sentry from '@sentry/ember';
 import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
@@ -12,8 +12,7 @@ module('Acceptance | Sentry Session Replay', function (hooks) {
   test('Test replay', async function (assert) {
     await visit('/replay');
 
-    const integration =
-      Sentry.getClient<BrowserClient>()?.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
+    const integration = Sentry.getClient()?.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
     assert.ok(integration);
 
     const replay = integration!['_replay'];
