@@ -2,7 +2,6 @@
 
 ## Unreleased
 
-- fix(node): Preserve `CallbackManager` children when augmenting LangChain callbacks
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 10.53.1

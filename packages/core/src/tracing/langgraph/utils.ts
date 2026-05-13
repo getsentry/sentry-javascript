@@ -335,18 +335,31 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   }
 }
 
-/** Duck-types a LangChain `CallbackManager` — `instanceof` is unreliable when `@langchain/core` is bundled or deduped. */
+/**
+ * Detects a LangChain `CallbackManager` (or subclass) without depending on `instanceof`.
+ * `@langchain/core` is frequently bundled or deduped, so the imported constructor doesn't
+ * necessarily match the one at the user's call site. We walk the prototype chain looking
+ * for the class name, then confirm the shape — the constructor-name check rules out
+ * unrelated objects that happen to expose `addHandler`/`copy`.
+ */
 function isCallbackManager(value: unknown): value is {
   addHandler: (handler: unknown, inherit?: boolean) => void;
   copy: () => unknown;
   handlers?: unknown[];
-  inheritableHandlers?: unknown[];
 } {
   if (!value || typeof value !== 'object') {
     return false;
   }
-  const candidate = value as { addHandler?: unknown; copy?: unknown };
-  return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+
+  let proto: object | null = Object.getPrototypeOf(value);
+  while (proto) {
+    if ((proto as { constructor?: { name?: string } }).constructor?.name === 'CallbackManager') {
+      const candidate = value as { addHandler?: unknown; copy?: unknown };
+      return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return false;
 }
 
 /**
@@ -373,16 +386,8 @@ export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): 
     const copied = existing.copy() as {
       addHandler: (handler: unknown, inherit?: boolean) => void;
       handlers?: unknown[];
-      inheritableHandlers?: unknown[];
     };
-    // CallbackManager keeps `inheritableHandlers ⊆ handlers` (both
-    // `addHandler` and `setHandlers` maintain the invariant), so checking
-    // `handlers` alone normally suffices — we check both as a defensive
-    // guard against externally-constructed managers that bypass `addHandler`.
-    const alreadyRegistered =
-      (copied.handlers?.includes(sentryHandler) ?? false) ||
-      (copied.inheritableHandlers?.includes(sentryHandler) ?? false);
-    if (!alreadyRegistered) {
+    if (!copied.handlers?.includes(sentryHandler)) {
       copied.addHandler(sentryHandler, true);
     }
     return copied;
