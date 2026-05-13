@@ -67,6 +67,7 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
           );
         } else {
           consoleSandbox(() => {
+            // eslint-disable-next-line no-console
             console.warn('Skipping router instrumentation because appInstance is not provided.');
           });
         }
