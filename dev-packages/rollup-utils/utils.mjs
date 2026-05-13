@@ -32,34 +32,36 @@ export function mergeExternals(base, specific) {
 /**
  * Merge two arrays of plugins, making sure they're sorted in the correct order.
  *
- * Each entry below is pinned for a real reason; `...` is where every other plugin lands.
- * Plugins that depend on **comments** in the source MUST run before `esbuild`, because
- * esbuild strips non-legal block comments during transpile.
- *
- *  - `remove-dev-mode-blocks` (transform) — strips `/* rollup-include-development-only *\/`
- *    marker blocks. Comment-dependent → must precede `esbuild`.
- *  - `replace-sdk-source` (transform) — rewrites the `/*! __SENTRY_SDK_SOURCE__ *\/`
- *    marker in `getSDKSource()` for CDN builds. Comment-dependent → must precede `esbuild`.
- *  - `esbuild` (transform) — TS/JSX → JS. Everything in `...` runs after this.
- *  - `terser` (renderChunk) — minifies and strips comments (we use `comments: false`).
- *    Anything that contributes code to a chunk must run before this.
- *  - `license` (renderChunk) — prepends the license banner, which is a comment. Must run
- *    AFTER `terser`, otherwise terser would strip it.
- *  - `output-base64-worker-script` (renderChunk) — captures the final chunk text as
- *    base64, so it must run last.
+ * Each entry in `order` is pinned for a real reason; `...` is where every other plugin lands.
  */
 export function mergePlugins(pluginsA, pluginsB) {
   const order = [
+    // (transform) Strips `/*! rollup-include-development-only */` marker blocks. Must precede `esbuild` so the
+    // now-unused imports inside the block can be tree-shaken by rollup.
     'remove-dev-mode-blocks',
+    // (transform) Rewrites the `/*! __SENTRY_SDK_SOURCE__ */` comment marker in `getSDKSource()` for CDN builds.
+    // Comment-based → must precede `esbuild` (the marker uses `/*!` legal-comment syntax, but pinning is defensive).
     'replace-sdk-source',
+    // (transform) TS/JSX → JS, strips non-legal block comments, strips `declare const` lines.
+    'esbuild',
+    // The identifier-based `replace-*` plugins below MUST run AFTER `esbuild`. Each of these identifiers is also
+    // declared in TS via `declare const __FOO__: ...;` lines. If the replace runs before esbuild, it rewrites the
+    // declaration's identifier into an expression and produces invalid TS. esbuild strips `declare const` lines,
+    // so by the time these plugins run the only remaining occurrences are real references.
     'replace-debug-build-statement',
     'replace-browser-bundle-flag',
     'replace-debug-flags',
     'replace-rrweb-build-flags',
-    'esbuild',
+    // Every other plugin lands here — including additional identifier-based `replace-*` plugins (e.g.
+    // `replace-sdk-version`), which intentionally run AFTER `esbuild` for the same reason as the ones pinned above.
     '...',
+    // (renderChunk) Minifies and strips comments (we use `comments: false`). Anything that contributes code to a
+    // chunk must run before this.
     'terser',
+    // (renderChunk) Prepends the license banner, which is a comment. Must run AFTER `terser`, otherwise terser
+    // would strip it.
     'license',
+    // (renderChunk) Captures the final chunk text as base64, so it must run last.
     'output-base64-worker-script',
   ];
   const plugins = [...pluginsA, ...pluginsB];
