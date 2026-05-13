@@ -3,9 +3,12 @@ import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   defineIntegration,
+  getSanitizedUrlStringFromUrlObject,
+  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
+  stripDataUrlContent,
 } from '@sentry/core';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
@@ -26,15 +29,21 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
 
       addFetchInstrumentationHandler(handlerData => {
         if (handlerData.endTimestamp && handlerData.response) {
-          const url = handlerData.fetchData?.url;
-          const method = handlerData.fetchData?.method;
+          const url = handlerData.fetchData?.url || '';
+          const method = handlerData.fetchData?.method || 'GET';
+
+          const parsedUrl = parseStringToURLObject(url);
+          const sanitizedUrl = url.startsWith('data:')
+            ? stripDataUrlContent(url)
+            : parsedUrl
+              ? getSanitizedUrlStringFromUrlObject(parsedUrl)
+              : url;
 
           const streamSpan = startInactiveSpan({
-            name: `${method} ${url}`,
-            op: 'http.client.stream',
+            name: `${method} ${sanitizedUrl}`,
             startTime: handlerData.endTimestamp,
             attributes: {
-              url,
+              url: stripDataUrlContent(url),
               'http.method': method,
               type: 'fetch',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',

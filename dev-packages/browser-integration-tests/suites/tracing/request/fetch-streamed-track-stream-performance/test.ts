@@ -14,7 +14,8 @@ sentryTest(
 
     const spansPromise = waitForStreamedSpans(
       page,
-      spans => spans.some(s => getSpanOp(s) === 'http.client') && spans.some(s => getSpanOp(s) === 'http.client.stream'),
+      spans =>
+        spans.some(s => getSpanOp(s) === 'http.client') && spans.some(s => getSpanOp(s) === 'http.client.stream'),
     );
 
     await page.goto(url);

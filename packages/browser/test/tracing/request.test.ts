@@ -51,7 +51,6 @@ describe('instrumentOutgoingRequests', () => {
 
     expect(addXhrSpy).not.toHaveBeenCalled();
   });
-
 });
 
 describe('shouldAttachHeaders', () => {
