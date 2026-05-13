@@ -17,6 +17,8 @@ const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeo
 // Matches the max timeout in `resolveResponse` in packages/core/src/instrument/fetch.ts
 const STREAM_RESOLVE_FALLBACK_MS = 90_000;
 
+const STREAMING_CONTENT_TYPES = ['text/event-stream', 'application/x-ndjson', 'application/stream+json'];
+
 /**
  * Tracks streamed fetch response bodies by creating an `http.client.stream` sibling span.
  *
@@ -52,8 +54,11 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
       addFetchInstrumentationHandler(handlerData => {
         // Only create the stream span once headers have arrived
         if (handlerData.endTimestamp && handlerData.response) {
-          // Skip non-streamed responses (they don't have a content-length header)
-          if (handlerData.response.headers?.get('content-length')) {
+          // Only create stream spans for responses that are likely streamed:
+          // 1. No content-length header (streamed responses don't know the size upfront)
+          // 2. Content-type is a known streaming type
+          const contentType = handlerData.response.headers?.get('content-type') || '';
+          if (handlerData.response.headers?.get('content-length') || !STREAMING_CONTENT_TYPES.some(t => contentType.startsWith(t))) {
             return;
           }
 
