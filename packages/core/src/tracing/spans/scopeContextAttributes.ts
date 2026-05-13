@@ -58,7 +58,7 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
   const angular = contexts['angular'];
   if (angular) {
     const version = angular['version'];
-    if (version != null && (typeof version === 'string' || typeof version === 'number')) {
+    if (typeof version === 'string' || typeof version === 'number') {
       attrs['angular.version'] = version;
     }
   }
@@ -66,7 +66,7 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
   const react = contexts['react'];
   if (react) {
     const version = react['version'];
-    if (typeof version === 'string') {
+    if (typeof version === 'string' || typeof version === 'number') {
       attrs['react.version'] = version;
     }
   }
