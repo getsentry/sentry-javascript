@@ -17,11 +17,24 @@ const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeo
 // Matches the max timeout in `resolveResponse` in packages/core/src/instrument/fetch.ts
 const STREAM_RESOLVE_FALLBACK_MS = 90_000;
 
+/**
+ * Tracks streamed fetch response bodies by creating an `http.client.stream` sibling span.
+ *
+ * The regular `http.client` span ends when response headers arrive. This integration adds
+ * a span that starts at header arrival and ends when the body fully resolves:
+ *
+ * ```
+ * --------- pageload --------------------------------
+ *     -- http.client --
+ *                       -- http.client.stream -------
+ * ```
+ */
 export const fetchStreamPerformanceIntegration = defineIntegration(() => {
   return {
     name: 'FetchStreamPerformance',
 
     setup() {
+      // End the stream span when the response body finishes resolving
       addFetchEndInstrumentationHandler(handlerData => {
         if (handlerData.response) {
           const streamSpan = responseToStreamSpan.get(handlerData.response);
@@ -37,7 +50,13 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
       });
 
       addFetchInstrumentationHandler(handlerData => {
+        // Only create the stream span once headers have arrived
         if (handlerData.endTimestamp && handlerData.response) {
+          // Skip non-streamed responses (they don't have a content-length header)
+          if (handlerData.response.headers?.get('content-length')) {
+            return;
+          }
+
           const url = handlerData.fetchData?.url || '';
           const method = handlerData.fetchData?.method || 'GET';
 
@@ -62,6 +81,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
 
           responseToStreamSpan.set(handlerData.response, streamSpan);
 
+          // prevent the span from leaking indefinitely if the body never resolves
           const fallbackTimeout = setTimeout(() => {
             if (streamSpan.isRecording()) {
               streamSpan.end();
