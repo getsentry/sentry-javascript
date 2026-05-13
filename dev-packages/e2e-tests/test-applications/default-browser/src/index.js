@@ -1,7 +1,23 @@
 const lighthouseMode = process.env.SENTRY_LIGHTHOUSE_MODE;
 
-(async () => {
-  if (lighthouseMode !== 'no-sentry') {
+// Event listeners are attached synchronously at module top-level so E2E tests that do
+// `page.goto('/')` followed immediately by `button.click()` cannot race the dynamic
+// `import('@sentry/browser')` below. The handlers don't depend on Sentry being
+// initialized — Sentry's global error/transaction handlers attach via window-level
+// listeners installed by `Sentry.init()` and pick up the thrown error regardless.
+document.getElementById('exception-button').addEventListener('click', () => {
+  throw new Error('I am an error!');
+});
+
+document.getElementById('navigation-link').addEventListener('click', () => {
+  document.getElementById('navigation-target').scrollIntoView({ behavior: 'smooth' });
+});
+
+// Sentry is loaded via dynamic `import()` so the `no-sentry` Lighthouse build can
+// tree-shake the SDK out completely. Wrapped in an async IIFE because top-level await
+// isn't supported by the webpack target used for this app's bundle.
+if (lighthouseMode !== 'no-sentry') {
+  void (async () => {
     const Sentry = await import('@sentry/browser');
 
     const integrations = [];
@@ -29,13 +45,5 @@ const lighthouseMode = process.env.SENTRY_LIGHTHOUSE_MODE;
       environment: 'qa',
       tunnel: 'http://localhost:3031',
     });
-  }
-
-  document.getElementById('exception-button').addEventListener('click', () => {
-    throw new Error('I am an error!');
-  });
-
-  document.getElementById('navigation-link').addEventListener('click', () => {
-    document.getElementById('navigation-target').scrollIntoView({ behavior: 'smooth' });
-  });
-})();
+  })();
+}
