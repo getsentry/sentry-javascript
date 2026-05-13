@@ -1,22 +1,24 @@
 /**
- * Bundle the instrumented Sentry test apps for every (app, mode) cell, POST the
- * tarballs to the Sentry Lighthouse lab (https://lighthouse.sentry.gg), poll
- * until the lab finishes running Lighthouse, then write a Job Summary.
+ * Bundle the instrumented Sentry test apps for every (app, mode) cell and POST
+ * the tarballs to the Sentry Lighthouse lab (https://lighthouse.sentry.gg). The
+ * lab runs Lighthouse asynchronously and ships results to Sentry on its own
+ * schedule — this script exits as soon as the upload succeeds, it does NOT wait
+ * for the lab to finish.
  *
- * This script runs inside .github/workflows/lighthouse.yml. It is the only
- * script that talks to the lab — see ~/Projects/sentry-lhci/docs/sentry-javascript-handoff.md
- * for the wire protocol.
+ * Wire protocol: ~/Projects/sentry-lhci/docs/sentry-javascript-handoff.md
  *
- * Zero runtime dependencies — uses Node 22 builtins (fetch, FormData, Blob)
- * and the system `tar` available on every ubuntu runner.
+ * Zero runtime dependencies — uses Node 22 builtins (fetch, FormData, Blob) and
+ * the system `tar`. Every external command is invoked via `execFileSync` with
+ * an argv array so no shell interpolation happens — needed both for safety
+ * (CodeQL flags any env-derived string concatenated into a shell command, even
+ * when the inputs are controlled) and to keep paths with spaces working.
  */
 
 /* eslint-disable no-console */
 
-import { execSync } from 'node:child_process';
-import { copyFile, readdir, readFile, mkdir, rm, writeFile, appendFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { setTimeout as sleep } from 'node:timers/promises';
 
 const LAB_URL = process.env.LIGHTHOUSE_LAB_URL;
 const TOKEN = process.env.LIGHTHOUSE_UPLOAD_TOKEN;
@@ -31,44 +33,37 @@ const E2E_DIR = path.join(WORKSPACE, 'dev-packages/e2e-tests');
 
 /**
  * The matrix. Adding an app here requires:
- *   1. The test app reads `<envVarName>` and branches its Sentry init.
- *   2. The lab's runner understands `serve` / `staticDir` / `startCmd` (it does).
+ *   1. The test app reads SENTRY_LIGHTHOUSE_MODE (or its bundler-specific
+ *      prefix variant) and branches its Sentry init.
+ *   2. For SSR apps, the lab's runner must accept a startCmd + readyPattern.
  */
 const APPS = [
-  {
-    app: 'default-browser',
-    serve: 'static',
-    staticDir: 'build',
-    envVarName: 'SENTRY_LIGHTHOUSE_MODE',
-  },
-  {
-    app: 'react-19',
-    serve: 'static',
-    staticDir: 'build',
-    envVarName: 'REACT_APP_SENTRY_LIGHTHOUSE_MODE',
-  },
+  { app: 'default-browser', serve: 'static', staticDir: 'build' },
+  { app: 'react-19', serve: 'static', staticDir: 'build' },
   {
     app: 'nextjs-16',
     serve: 'server',
     startCmd: 'pnpm start',
     readyPattern: 'Ready in',
     // Lab side: pnpm 9.15.9 is on the image via corepack. We strip the lockfile
-    // from the bundle (CI generates it with workspace-absolute override paths
-    // that don't survive the move to the lab), so --no-frozen-lockfile lets pnpm
-    // re-resolve from the rewritten package.json. --prefer-offline uses the
-    // lab's persistent pnpm store (/data/.pnpm-store).
+    // and devDependencies from the SSR bundle (CI generates the lockfile with
+    // workspace-absolute paths that don't survive the move; devDeps include
+    // workspace links like @sentry-internal/test-utils that would also fail).
+    // --no-frozen-lockfile lets pnpm regenerate from the rewritten package.json,
+    // --prefer-offline uses the lab's persistent pnpm store (/data/.pnpm-store).
     installCmd: 'pnpm install --no-frozen-lockfile --prefer-offline',
-    envVarName: 'NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE',
   },
 ];
 
 const MODES = ['no-sentry', 'init-only', 'tracing-replay'];
 
 async function run() {
-  // Fail fast if the lab is down before we waste minutes building bundles.
+  // Fail fast if the lab is down so we don't waste minutes building bundles.
   console.log(`Liveness check: ${LAB_URL}/healthz`);
   const health = await fetch(`${LAB_URL}/healthz`);
-  if (!health.ok) throw new Error(`Lab healthcheck failed: ${health.status} ${await health.text()}`);
+  if (!health.ok) {
+    throw new Error(`Lab healthcheck failed: ${health.status} ${await health.text()}`);
+  }
   console.log('Lab is reachable.');
 
   await mkdir(path.join(RUNNER_TEMP, 'bundles'), { recursive: true });
@@ -86,50 +81,44 @@ async function run() {
   console.log(`\n=== Uploading ${bundles.length} bundles to ${LAB_URL}/api/builds ===`);
   const buildResp = await uploadBundles(bundles);
   console.log(`Build queued: ${buildResp.buildId}`);
-  console.log(`Build URL: ${LAB_URL}${buildResp.buildUrl}`);
-  console.log(`Dashboard:  ${LAB_URL}${buildResp.dashboardUrl}`);
-
-  const final = await pollUntilDone(buildResp.buildId);
-  await writeJobSummary(final);
-
-  // Surface failure to CI when the lab marks the build failed or any cell failed.
-  const failedCells = (final.cells ?? []).filter(c => c.status === 'failed');
-  if (final.status === 'failed' || failedCells.length > 0) {
-    console.error(`Build status=${final.status}, ${failedCells.length} cell(s) failed.`);
-    process.exit(1);
-  }
+  console.log(`Dashboard:    ${LAB_URL}${buildResp.dashboardUrl}`);
+  console.log(`API:          ${LAB_URL}${buildResp.buildUrl}`);
+  console.log('\nUpload succeeded. The lab runs Lighthouse asynchronously — track results in the Sentry dashboard.');
 }
 
 /**
  * Build a single (app, mode) cell:
- *   1. Copy the app to a unique temp dir (so concurrent cells don't collide).
+ *   1. Copy the app to a unique temp dir (concurrent cells can't collide).
  *   2. Apply pnpm overrides (existing helper).
- *   3. Run `pnpm test:build` with the right SENTRY_LIGHTHOUSE_MODE env vars.
- *   4. For static cells, tar just the build dir.
- *      For SSR cells, copy packed tgzs into the bundle, rewrite package.json
- *      to use relative `file:./packed/...` paths, then tar (no node_modules).
+ *   3. Run `pnpm test:build` with SENTRY_LIGHTHOUSE_MODE + the framework
+ *      prefix variants (NEXT_PUBLIC_*, REACT_APP_*) — each app's bundler picks
+ *      up whichever it knows about.
+ *   4. Static cells: tar just the build dir.
+ *      SSR cells: copy packed tgzs into the bundle, rewrite package.json to
+ *      relative `file:./packed/...` paths, drop devDependencies, tar without
+ *      node_modules and the lockfile.
  *   5. Return cell metadata for the upload.
  */
 async function prepareCell(def, mode, fieldName) {
   const tempApp = path.join(RUNNER_TEMP, `app-${def.app}-${mode}`);
   await rm(tempApp, { recursive: true, force: true });
 
-  // 1. Copy app to temp (fixes file: deps to workspace-absolute paths)
-  execSync(`yarn ci:copy-to-temp ./test-applications/${def.app} ${tempApp}`, {
+  // Copy app to temp (fixes file:/link: deps to workspace-absolute paths)
+  execFileSync('yarn', ['ci:copy-to-temp', `./test-applications/${def.app}`, tempApp], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
 
-  // 2. Add pnpm overrides (workspace-absolute paths pointing at packed dir)
-  execSync(`yarn ci:pnpm-overrides ${tempApp} ${PACKED_DIR}`, {
+  // Add pnpm overrides (workspace-absolute paths pointing at packed dir)
+  execFileSync('yarn', ['ci:pnpm-overrides', tempApp, PACKED_DIR], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
 
-  // 3. Build with the right mode env var. We set all common bundler prefixes so each
-  // app's bundler picks up whichever variant it knows about — apps that don't read a
-  // prefix simply ignore extra vars.
-  execSync('pnpm test:build', {
+  // Build with the right mode env var. We set all common bundler prefixes so each
+  // app's bundler picks up whichever variant it knows about — apps that don't read
+  // a prefix simply ignore extra vars.
+  execFileSync('pnpm', ['test:build'], {
     cwd: tempApp,
     stdio: 'inherit',
     env: {
@@ -144,10 +133,9 @@ async function prepareCell(def, mode, fieldName) {
   const tarPath = path.join(RUNNER_TEMP, 'bundles', `${def.app}-${mode}.tar.gz`);
 
   if (def.serve === 'static') {
-    // Static cell — tar the build dir only. Lab serves it with a static HTTP server.
-    execSync(`tar -czf ${tarPath} -C ${tempApp} ${def.staticDir}`, { stdio: 'inherit' });
-    const bytes = Number(execSync(`wc -c < ${tarPath}`, { encoding: 'utf8' }).trim());
-    console.log(`Static bundle: ${tarPath} (${formatBytes(bytes)})`);
+    // Static cell — tar just the build dir. Lab serves it with a static HTTP server.
+    execFileSync('tar', ['-czf', tarPath, '-C', tempApp, def.staticDir], { stdio: 'inherit' });
+    console.log(`Static bundle: ${tarPath} (${await formatSize(tarPath)})`);
     return {
       fieldName,
       tarPath,
@@ -163,13 +151,21 @@ async function prepareCell(def, mode, fieldName) {
 
   // SSR cell — prep for `pnpm install && pnpm start` on the lab.
   await prepareSsrBundle(tempApp);
-  execSync(
-    `tar -czf ${tarPath} --exclude=node_modules --exclude=.git --exclude=pnpm-lock.yaml ` +
-      `-C ${path.dirname(tempApp)} ${path.basename(tempApp)}`,
+  execFileSync(
+    'tar',
+    [
+      '-czf',
+      tarPath,
+      '--exclude=node_modules',
+      '--exclude=.git',
+      '--exclude=pnpm-lock.yaml',
+      '-C',
+      path.dirname(tempApp),
+      path.basename(tempApp),
+    ],
     { stdio: 'inherit' },
   );
-  const bytes = Number(execSync(`wc -c < ${tarPath}`, { encoding: 'utf8' }).trim());
-  console.log(`SSR bundle: ${tarPath} (${formatBytes(bytes)})`);
+  console.log(`SSR bundle: ${tarPath} (${await formatSize(tarPath)})`);
   return {
     fieldName,
     tarPath,
@@ -186,26 +182,24 @@ async function prepareCell(def, mode, fieldName) {
 }
 
 /**
- * For SSR cells: copy the packed Sentry tarballs into the bundle and rewrite
+ * For SSR cells: copy the packed Sentry tarballs into the bundle, rewrite
  * package.json deps + pnpm.overrides to relative `file:./packed/...` paths so
- * the lab's `pnpm install` can resolve them from inside the extracted bundle.
- *
- * `node_modules` and `pnpm-lock.yaml` are stripped by the tar exclude list —
- * the lab regenerates both.
+ * the lab's `pnpm install` can resolve them from inside the extracted bundle,
+ * and drop devDependencies entirely (not needed at runtime; some are workspace
+ * links like @sentry-internal/test-utils that don't survive the move).
  */
 async function prepareSsrBundle(tempApp) {
   // Copy packed tgz files into <bundle>/packed/
   const inBundlePacked = path.join(tempApp, 'packed');
   await mkdir(inBundlePacked, { recursive: true });
-  const entries = await readdir(PACKED_DIR);
-  for (const name of entries) {
-    if (!name.endsWith('.tgz')) continue;
-    await copyFile(path.join(PACKED_DIR, name), path.join(inBundlePacked, name));
+  for (const name of await readdir(PACKED_DIR)) {
+    if (name.endsWith('.tgz')) {
+      await copyFile(path.join(PACKED_DIR, name), path.join(inBundlePacked, name));
+    }
   }
 
   // Rewrite all workspace-absolute `file:.../sentry-*-packed.tgz` references in
-  // package.json (in dependencies, devDependencies, pnpm.overrides) to point at
-  // `./packed/<file>`.
+  // package.json to `./packed/<file>`, and drop devDependencies wholesale.
   const pkgPath = path.join(tempApp, 'package.json');
   const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
   const rewrite = obj => {
@@ -218,8 +212,8 @@ async function prepareSsrBundle(tempApp) {
     }
   };
   rewrite(pkg.dependencies);
-  rewrite(pkg.devDependencies);
   rewrite(pkg.pnpm?.overrides);
+  delete pkg.devDependencies;
   await writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 }
 
@@ -256,70 +250,11 @@ async function uploadBundles(bundles) {
   return res.json();
 }
 
-/**
- * Poll GET /api/builds/:id every 15 seconds until status is terminal, or the
- * 25-minute ceiling is reached.
- */
-async function pollUntilDone(buildId) {
-  const deadline = Date.now() + 25 * 60 * 1000;
-  while (Date.now() < deadline) {
-    const r = await fetch(`${LAB_URL}/api/builds/${buildId}`);
-    if (!r.ok) {
-      console.warn(`Poll failed: ${r.status} ${await r.text()} — retrying`);
-      await sleep(15000);
-      continue;
-    }
-    const build = await r.json();
-    const cells = build.cells ?? [];
-    const done = cells.filter(c => c.status === 'completed').length;
-    const failed = cells.filter(c => c.status === 'failed').length;
-    console.log(`status=${build.status} cells=${done + failed}/${cells.length} (${failed} failed)`);
-    if (build.status === 'completed' || build.status === 'failed') return build;
-    await sleep(15000);
-  }
-  throw new Error(`Build ${buildId} did not finish within 25 minutes`);
-}
-
-/**
- * Append a markdown table of the results to $GITHUB_STEP_SUMMARY so it renders
- * on the workflow run page. Skipped when running locally.
- */
-async function writeJobSummary(build) {
-  const out = process.env.GITHUB_STEP_SUMMARY;
-  if (!out) return;
-  const cells = build.cells ?? [];
-  const lines = [
-    `## 🔦 Lighthouse — ${build.status}`,
-    '',
-    `- Build ID: \`${build.buildId}\``,
-    `- Commit: \`${build.commit ?? 'unknown'}\``,
-    `- Branch: \`${build.branch ?? 'unknown'}\``,
-    `- Dashboard: ${LAB_URL}${build.buildUrl ?? `/api/builds/${build.buildId}`}`,
-    '',
-    '| App | Mode | Status | Median score | Runs | Report |',
-    '| --- | --- | --- | --- | --- | --- |',
-  ];
-  for (const c of cells) {
-    const runs = c.runs ?? [];
-    const scores = runs.map(r => r.performanceScore).filter(s => s != null);
-    const median = scores.length === 0 ? '—' : computeMedian(scores).toFixed(2);
-    const reportUrl = runs[0]?.reportUrl ? `[view](${LAB_URL}${runs[0].reportUrl})` : '—';
-    lines.push(`| ${c.app} | ${c.mode} | ${c.status} | ${median} | ${runs.length} | ${reportUrl} |`);
-  }
-  lines.push('');
-  await appendFile(out, `${lines.join('\n')}\n`);
-}
-
-function computeMedian(xs) {
-  const sorted = [...xs].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-}
-
-function formatBytes(n) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+async function formatSize(filePath) {
+  const { size } = await stat(filePath);
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 run().catch(err => {
