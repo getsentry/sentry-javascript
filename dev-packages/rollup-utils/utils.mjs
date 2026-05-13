@@ -32,20 +32,32 @@ export function mergeExternals(base, specific) {
 /**
  * Merge two arrays of plugins, making sure they're sorted in the correct order.
  *
- * Each entry below has a real reason to be pinned; `...` is where every other plugin lands:
- *  - `remove-dev-mode-blocks` (transform) — must run before `esbuild` because esbuild
- *    strips the `/* rollup-include-development-only *\/` marker comments during transpile.
- *  - `esbuild` (transform) — produces JS that the rest of the transform plugins
- *    (replace, etc.) operate on.
- *  - `terser` (renderChunk) — minifies and strips comments. Anything that contributes
- *    code to a chunk must run before this.
+ * Each entry below is pinned for a real reason; `...` is where every other plugin lands.
+ * Plugins that depend on **comments** in the source MUST run before `esbuild`, because
+ * esbuild strips non-legal block comments during transpile.
+ *
+ *  - `remove-dev-mode-blocks` (transform) — strips `/* rollup-include-development-only *\/`
+ *    marker blocks. Comment-dependent → must precede `esbuild`.
+ *  - `replace-sdk-source` (transform) — rewrites the `/* __SENTRY_SDK_SOURCE__ *\/`
+ *    marker in `getSDKSource()` for CDN builds. Comment-dependent → must precede `esbuild`.
+ *  - `esbuild` (transform) — TS/JSX → JS. Everything in `...` runs after this.
+ *  - `terser` (renderChunk) — minifies and strips comments (we use `comments: false`).
+ *    Anything that contributes code to a chunk must run before this.
  *  - `license` (renderChunk) — prepends the license banner, which is a comment. Must run
- *    after `terser` or terser would strip it (we minify with `comments: false`).
+ *    AFTER `terser`, otherwise terser would strip it.
  *  - `output-base64-worker-script` (renderChunk) — captures the final chunk text as
  *    base64, so it must run last.
  */
 export function mergePlugins(pluginsA, pluginsB) {
-  const order = ['remove-dev-mode-blocks', 'esbuild', '...', 'terser', 'license', 'output-base64-worker-script'];
+  const order = [
+    'remove-dev-mode-blocks',
+    'replace-sdk-source',
+    'esbuild',
+    '...',
+    'terser',
+    'license',
+    'output-base64-worker-script',
+  ];
   const plugins = [...pluginsA, ...pluginsB];
   plugins.sort((a, b) => {
     const sortKeyA = order.includes(a.name) ? a.name : '...';

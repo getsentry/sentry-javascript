@@ -46,7 +46,7 @@ export function makeLicensePlugin(title) {
  * 'false`
  */
 export function makeIsDebugBuildPlugin(includeDebugging) {
-  return replace({
+  const plugin = replace({
     // TODO `preventAssignment` will default to true in version 5.x of the replace plugin, at which point we can get rid
     // of this. (It actually makes no difference in this case whether it's true or false, since we never assign to
     // `__SENTRY_DEBUG__`, but if we don't give it a value, it will spam with warnings.)
@@ -58,16 +58,27 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
       __SENTRY_DEBUG__: includeDebugging,
     },
   });
+  plugin.name = 'replace-debug-flags';
+  return plugin;
 }
 
+/**
+ * Replaces the comment marker `/* __SENTRY_SDK_SOURCE__ *\/` in core's `getSDKSource()` with a
+ * `return '<source>';` statement so the bundle reports the correct distribution channel.
+ *
+ * Because the marker is a block comment, esbuild would strip it during transpile — so the plugin
+ * sort order in utils.mjs pins this name before `esbuild`.
+ */
 export function makeSetSDKSourcePlugin(sdkSource) {
-  return replace({
+  const plugin = replace({
     preventAssignment: false,
     delimiters: ['', ''],
     values: {
       '/* __SENTRY_SDK_SOURCE__ */': `return ${JSON.stringify(sdkSource)};`,
     },
   });
+  plugin.name = 'replace-sdk-source';
+  return plugin;
 }
 
 /**
@@ -77,13 +88,15 @@ export function makeSetSDKSourcePlugin(sdkSource) {
  * @returns An instance of the `replace` plugin to do the replacement of the magic string with `true` or 'false`
  */
 export function makeBrowserBuildPlugin(isBrowserBuild) {
-  return replace({
+  const plugin = replace({
     // TODO This will be the default in the next version of the `replace` plugin
     preventAssignment: true,
     values: {
       __SENTRY_BROWSER_BUNDLE__: isBrowserBuild,
     },
   });
+  plugin.name = 'replace-browser-bundle-flag';
+  return plugin;
 }
 
 // `terser` options reference: https://github.com/terser/terser#api-reference

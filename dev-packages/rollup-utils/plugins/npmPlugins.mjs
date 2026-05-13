@@ -110,12 +110,14 @@ export function makeDebuggerPlugin(hookName) {
  * @returns A `@rollup/plugin-replace` instance.
  */
 export function makeDebugBuildStatementReplacePlugin() {
-  return replace({
+  const plugin = replace({
     preventAssignment: false,
     values: {
       __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
     },
   });
+  plugin.name = 'replace-debug-build-statement';
+  return plugin;
 }
 
 export function makeProductionReplacePlugin() {
@@ -153,8 +155,10 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
     values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
   }
 
-  return replace({
+  const plugin = replace({
     preventAssignment: true,
     values,
   });
+  plugin.name = 'replace-rrweb-build-flags';
+  return plugin;
 }
