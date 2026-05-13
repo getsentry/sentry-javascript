@@ -501,6 +501,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   }
 
   /**
+   * Returns the names of all installed integrations.
+   */
+  public getIntegrationNames(): string[] {
+    return Object.keys(this._integrations);
+  }
+
+  /**
    * Add an integration to the client.
    * This can be used to e.g. lazy load integrations.
    * In most cases, this should not be necessary,
@@ -1302,8 +1309,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     isolationScope: Scope,
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
-    const integrations = Object.keys(this._integrations);
-    if (!hint.integrations && integrations?.length) {
+    const integrations = this.getIntegrationNames();
+    if (!hint.integrations && integrations.length) {
       hint.integrations = integrations;
     }
 
