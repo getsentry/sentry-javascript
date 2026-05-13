@@ -52,6 +52,10 @@ export function mergePlugins(pluginsA, pluginsB) {
   const order = [
     'remove-dev-mode-blocks',
     'replace-sdk-source',
+    'replace-debug-build-statement',
+    'replace-browser-bundle-flag',
+    'replace-debug-flags',
+    'replace-rrweb-build-flags',
     'esbuild',
     '...',
     'terser',
