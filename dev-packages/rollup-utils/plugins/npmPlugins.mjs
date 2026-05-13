@@ -15,32 +15,16 @@ import esbuild from 'rollup-plugin-esbuild';
  *
  * `target: 'es2020'` keeps ES2020-native syntax (`?.`, `??`, optional catch binding) and
  * downlevels everything newer (logical assignment, numeric separators, class private
- * fields, static class blocks, ...)
+ * fields, static class blocks, ...).
  *
- * The second argument keeps the legacy `sucrase: { jsxRuntime, jsxPragma, ... }` option
- * shape so per-package `rollup.*.config.mjs` files keep working unchanged; we just
- * translate the JSX-related keys to their esbuild equivalents.
+ * `esbuildOptions` are forwarded to `rollup-plugin-esbuild` verbatim and can override
+ * any of the pinned defaults (e.g. JSX-related keys like `jsxFactory` / `jsxFragment`
+ * for packages that use a non-React pragma).
  */
-export function makeEsbuildPlugin(options = {}, transpileOptions = {}) {
-  const { jsxRuntime, jsxPragma, jsxFragmentPragma, production, transforms: _transforms, ...rest } = transpileOptions;
-
-  const jsxOptions = {};
-  if (jsxRuntime === 'automatic') {
-    jsxOptions.jsx = 'automatic';
-    if (typeof production === 'boolean') jsxOptions.jsxDev = !production;
-  } else if (jsxRuntime === 'preserve') {
-    jsxOptions.jsx = 'preserve';
-  } else {
-    // legacy default and 'classic' both map to esbuild's 'transform'
-    jsxOptions.jsx = 'transform';
-  }
-  if (jsxPragma) jsxOptions.jsxFactory = jsxPragma;
-  if (jsxFragmentPragma) jsxOptions.jsxFragment = jsxFragmentPragma;
-
+export function makeEsbuildPlugin(esbuildOptions = {}) {
   const plugin = esbuild({
     // `.json` is handled by the JSON plugin further down the pipeline.
     exclude: ['**/*.json'],
-    ...options,
     // ES2020 is our floor — keeps `?.`/`??` native, downlevels everything newer.
     target: 'es2020',
     // Don't read per-package tsconfig (they vary and can pull in unrelated settings).
@@ -51,13 +35,12 @@ export function makeEsbuildPlugin(options = {}, transpileOptions = {}) {
         // Match the project tsconfig's effective behavior at target=es2020: class
         // field initializers compile to `this.x = v` (set semantics), not via the
         // `Object.defineProperty`-based `__publicField` helper esbuild emits by
-        // default. This is what sucrase/tsc output too.
+        // default. This is what tsc itself outputs at this target.
         useDefineForClassFields: false,
       },
     },
     sourceMap: true,
-    ...jsxOptions,
-    ...rest,
+    ...esbuildOptions,
   });
 
   // Force a stable plugin name so the plugin sort order in utils.mjs can target it.

@@ -23,10 +23,10 @@ import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, esbuild } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const transpilePlugin = makeEsbuildPlugin({}, sucrase);
+  const transpilePlugin = makeEsbuildPlugin(esbuild);
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
