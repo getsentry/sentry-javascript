@@ -33,11 +33,13 @@ runs:
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
+    # ubuntu-24.04 runners already have the system libraries chromium needs (the runner
+    # ships its own Chromium), so we only run the slow apt-get install-deps for webkit/firefox.
     - name: Install Playwright system dependencies only (cached)
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
       run: npx playwright install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      if: steps.playwright-cache.outputs.cache-hit == 'true' && inputs.browsers != 'chromium'
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
