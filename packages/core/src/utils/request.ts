@@ -70,6 +70,8 @@ export function headersToDict(
     Object.entries(reqHeaders).forEach(([key, value]) => {
       if (typeof value === 'string') {
         headers[key] = value;
+      } else if (typeof value === 'number') {
+        headers[key] = String(value);
       }
     });
   } catch {
