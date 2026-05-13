@@ -120,15 +120,8 @@ export function safeSetSpanJSONAttributes(
   });
 }
 
-const integrationNamesCache = new WeakMap<Client, string[]>();
-
 function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client: Client): void {
-  let integrationNames = integrationNamesCache.get(client);
-  if (!integrationNames) {
-    integrationNames = client.getOptions().integrations.map(i => i.name);
-    integrationNamesCache.set(client, integrationNames);
-  }
-
+  const integrationNames = client.getIntegrationNames();
   if (!integrationNames.length) return;
 
   safeSetSpanJSONAttributes(segmentSpanJSON, {
