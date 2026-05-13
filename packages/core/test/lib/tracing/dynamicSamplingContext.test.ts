@@ -72,7 +72,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
             get(key: string) {
               const entries: Record<string, string> = {
                 'sentry-dsc-environment': 'production',
-                'sentry-dsc-transaction': 'GET%20%2Fusers%3Fid%3D1',
+                'sentry-dsc-transaction': 'GET /users?id%3D1',
                 'sentry-dsc-trace_id': 'abc123',
               };
               return entries[key];

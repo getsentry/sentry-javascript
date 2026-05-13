@@ -1,7 +1,7 @@
 import type { TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { createContextKey } from '@opentelemetry/api';
 import type { DynamicSamplingContext } from '@sentry/core';
-import { DSC_TRACE_STATE_KEYS, DSC_TRACE_STATE_PREFIX, _getDscFromTraceState } from '@sentry/core';
+import { DSC_TRACE_STATE_KEYS, DSC_TRACE_STATE_PREFIX, _encodeTraceState, _getDscFromTraceState } from '@sentry/core';
 
 export { DSC_TRACE_STATE_PREFIX as SENTRY_TRACE_STATE_DSC_PREFIX };
 export { _getDscFromTraceState as getDscFromTraceState };
@@ -36,7 +36,7 @@ export function _setDscOnTraceState<T extends TraceStateInterface>(
   for (const key of DSC_TRACE_STATE_KEYS) {
     const value = dsc[key];
     if (value) {
-      ts = ts.set(`${DSC_TRACE_STATE_PREFIX}${key}`, encodeURIComponent(value));
+      ts = ts.set(`${DSC_TRACE_STATE_PREFIX}${key}`, _encodeTraceState(value));
     }
   }
   return ts as T;

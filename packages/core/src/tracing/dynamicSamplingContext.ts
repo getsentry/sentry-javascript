@@ -154,6 +154,16 @@ export function spanToBaggageHeader(span: Span): string | undefined {
 }
 
 export const DSC_TRACE_STATE_PREFIX = 'sentry-dsc-';
+
+// W3C tracestate values only forbid ',' and '='. We escape those plus '%' for round-trip safety.
+export function _encodeTraceState(value: string): string {
+  return value.replace(/%/g, '%25').replace(/,/g, '%2C').replace(/=/g, '%3D');
+}
+
+export function _decodeTraceState(value: string): string {
+  return value.replace(/%3D/g, '=').replace(/%2C/g, ',').replace(/%25/g, '%');
+}
+
 export const DSC_TRACE_STATE_KEYS = [
   'environment',
   'release',
@@ -178,11 +188,7 @@ export function _getDscFromTraceState(
   for (const key of DSC_TRACE_STATE_KEYS) {
     const value = traceState.get(`${DSC_TRACE_STATE_PREFIX}${key}`);
     if (value) {
-      try {
-        dsc[key] = decodeURIComponent(value);
-      } catch {
-        dsc[key] = value;
-      }
+      dsc[key] = _decodeTraceState(value);
     }
   }
 

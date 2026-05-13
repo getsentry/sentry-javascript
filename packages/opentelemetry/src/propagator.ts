@@ -4,6 +4,7 @@ import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { Client, continueTrace, DynamicSamplingContext, Scope } from '@sentry/core';
 import {
+  _decodeTraceState,
   baggageHeaderToDynamicSamplingContext,
   debug,
   generateSentryTraceHeader,
@@ -285,11 +286,7 @@ function getCurrentURL(span: Span): string | undefined {
   // Also look at the traceState, which we may set in the sampler even for unsampled spans
   const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
   if (urlTraceState) {
-    try {
-      return decodeURIComponent(urlTraceState);
-    } catch {
-      return urlTraceState;
-    }
+    return _decodeTraceState(urlTraceState);
   }
 
   return undefined;

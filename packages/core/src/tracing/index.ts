@@ -23,6 +23,8 @@ export {
   DSC_TRACE_STATE_PREFIX,
   DSC_TRACE_STATE_KEYS,
   _getDscFromTraceState,
+  _encodeTraceState,
+  _decodeTraceState,
 } from './dynamicSamplingContext';
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';

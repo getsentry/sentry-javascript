@@ -13,6 +13,7 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
+  _encodeTraceState,
   debug,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
@@ -333,7 +334,7 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   // eslint-disable-next-line deprecation/deprecation
   const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
   if (url && typeof url === 'string') {
-    traceState = traceState.set(SENTRY_TRACE_STATE_URL, encodeURIComponent(url));
+    traceState = traceState.set(SENTRY_TRACE_STATE_URL, _encodeTraceState(url));
   }
 
   return traceState;
