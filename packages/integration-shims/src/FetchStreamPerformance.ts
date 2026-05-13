@@ -8,9 +8,7 @@ import { consoleSandbox, defineIntegration } from '@sentry/core';
 export const fetchStreamPerformanceIntegrationShim = defineIntegration(() => {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
-    console.warn(
-      'You are using fetchStreamPerformanceIntegration() even though this bundle does not include tracing.',
-    );
+    console.warn('You are using fetchStreamPerformanceIntegration() even though this bundle does not include tracing.');
   });
 
   return {
