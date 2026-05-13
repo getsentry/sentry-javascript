@@ -13,6 +13,14 @@ name: 'Nightly: Lighthouse'
 # Never blocks merges (not in build.yml's required-jobs gate).
 
 on:
+  # TEMP: fires on every push to feat/lighthouse-ci so we can verify the workflow
+  # end-to-end before it lands on develop. GitHub's workflow_dispatch button only
+  # registers once a workflow file is on the default branch, and we don't want to
+  # merge this until it's proven green. REMOVE before merging — the schedule +
+  # workflow_dispatch triggers below are the long-term contract.
+  push:
+    branches:
+      - feat/lighthouse-ci
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
