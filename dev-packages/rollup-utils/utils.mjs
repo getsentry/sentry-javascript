@@ -35,16 +35,13 @@ export function mergeExternals(base, specific) {
 export function mergePlugins(pluginsA, pluginsB) {
   const plugins = [...pluginsA, ...pluginsB];
   plugins.sort((a, b) => {
-    // Hacky way to make sure the ones we care about end up where they belong in the order. Really the TS and sucrase
-    // plugins are tied - both should come first - but they're mutually exclusive, so they can come in arbitrary order
-    // here.
-    // Additionally, the excludeReplay plugin must run before TS/Sucrase so that we can eliminate the replay code
+    // Hacky way to make sure the ones we care about end up where they belong in the order.
+    // Additionally, the excludeReplay plugin must run before TS/esbuild so that we can eliminate the replay code
     // before anything is type-checked (TS-only) and transpiled.
     const order = [
       'remove-dev-mode-blocks',
       'excludeReplay',
-      'typescript',
-      'sucrase',
+      'esbuild',
       '...',
       'terser',
       'license',
