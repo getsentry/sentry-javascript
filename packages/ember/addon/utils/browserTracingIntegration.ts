@@ -1,4 +1,3 @@
-import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -51,7 +50,7 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
 
   return {
     ...integration,
-    afterAllSetup(client: BrowserClient) {
+    afterAllSetup(client) {
       integration.afterAllSetup(client);
 
       // Run this in the next tick to ensure the ember router etc. is properly initialized

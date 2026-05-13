@@ -1,8 +1,6 @@
-/* eslint-disable max-lines */
 import type ApplicationInstance from '@ember/application/instance';
 import { _backburner, run } from '@ember/runloop';
 import { getOwnConfig, importSync, isTesting, macroCondition } from '@embroider/macros';
-import type { BrowserClient } from '@sentry/browser';
 import { getClient } from '@sentry/browser';
 import { addIntegration, GLOBAL_OBJ } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
@@ -71,7 +69,7 @@ export function instrumentForPerformance(appInstance: ApplicationInstance): void
     ...emberSpecificConfig,
   });
 
-  const client = getClient<BrowserClient>();
+  const client = getClient();
   const isAlreadyInitialized = macroCondition(isTesting()) ? client?.getIntegrationByName('BrowserTracing') : false;
   addIntegration(browserTracing);
 

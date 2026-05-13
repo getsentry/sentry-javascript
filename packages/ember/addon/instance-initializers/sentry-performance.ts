@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type ApplicationInstance from '@ember/application/instance';
 import { instrumentForPerformance, getSentryConfig } from '../utils/performance';
 

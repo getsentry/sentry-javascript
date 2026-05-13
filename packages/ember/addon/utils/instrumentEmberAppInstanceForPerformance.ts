@@ -2,17 +2,16 @@ import type ApplicationInstance from '@ember/application/instance';
 import type Transition from '@ember/routing/-private/transition';
 import type RouterService from '@ember/routing/router-service';
 import type {
-  BrowserClient,
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startInactiveSpan } from '@sentry/browser';
-import type { Span } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
 
 export function instrumentEmberAppInstanceForPerformance(
-  client: BrowserClient,
+  client: Client,
   appInstance: ApplicationInstance,
   config: { disableRunloopPerformance?: boolean; instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
   startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
@@ -76,7 +75,7 @@ export function _getLocationURL(location: EmberRouterMain['location']): string {
 }
 
 function _instrumentEmberRouter(
-  client: BrowserClient,
+  client: Client,
   routerService: RouterService,
   routerMain: EmberRouterMain,
   config: { disableRunloopPerformance?: boolean; instrumentPageLoad?: boolean; instrumentNavigation?: boolean },
