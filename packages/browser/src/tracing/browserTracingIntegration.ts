@@ -175,6 +175,9 @@ export interface BrowserTracingOptions {
    * Do not enable this in case you have live streams or very long running streams.
    *
    * Default: false
+   *
+   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
+   * to track the duration of streamed fetch response bodies.
    */
   trackFetchStreamPerformance: boolean;
 

@@ -93,6 +93,9 @@ export interface RequestInstrumentationOptions {
    * (https://github.com/getsentry/sentry-javascript/issues/13950)
    *
    * Default: false
+   *
+   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
+   * to track the duration of streamed fetch response bodies.
    */
   trackFetchStreamPerformance: boolean;
 
