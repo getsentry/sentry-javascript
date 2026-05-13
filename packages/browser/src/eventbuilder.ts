@@ -288,8 +288,17 @@ export function eventFromUnknownInput(
   if (isDOMError(exception) || isDOMException(exception as DOMException)) {
     const domException = exception as DOMException;
 
-    if ((exception as Error).stack) {
+    if ('stack' in (exception as Error)) {
       event = eventFromError(stackParser, exception as Error);
+
+      const firstException = event.exception?.values?.[0];
+      if (attachStacktrace && syntheticException && firstException && !firstException.stacktrace) {
+        const frames = parseStackFrames(stackParser, syntheticException);
+        if (frames.length) {
+          firstException.stacktrace = { frames };
+          addExceptionMechanism(event, { synthetic: true });
+        }
+      }
     } else {
       const name = domException.name || (isDOMError(domException) ? 'DOMError' : 'DOMException');
       const message = domException.message ? `${name}: ${domException.message}` : name;

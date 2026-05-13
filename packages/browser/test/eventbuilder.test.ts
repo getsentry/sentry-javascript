@@ -181,8 +181,8 @@ describe('eventFromUnknownInput', () => {
         stacktrace: {
           frames: expect.arrayContaining([expect.any(Object), expect.any(Object)]),
         },
-        type: 'Error',
-        value: 'SyntaxError: The string did not match the expected pattern.',
+        type: 'SyntaxError',
+        value: 'The string did not match the expected pattern.',
       }),
     );
   });
@@ -224,8 +224,8 @@ describe('eventFromUnknownInput', () => {
     const syntheticException = new Error('Test message');
     const event = await eventFromUnknownInput(defaultStackParser, exception, syntheticException, false);
     expect(event.exception?.values?.[0]).toEqual({
-      type: 'Error',
-      value: 'SyntaxError: The string did not match the expected pattern.',
+      type: 'SyntaxError',
+      value: 'The string did not match the expected pattern.',
     });
   });
 
