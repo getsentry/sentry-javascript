@@ -152,8 +152,9 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm()],
         },
+        plugins: [makeProductionReplacePlugin()],
       });
     } else {
       variantSpecificConfigs.push({
@@ -166,7 +167,13 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
     }
   }
 
-  return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
+  return variantSpecificConfigs.map(variant =>
+    // Plugin arrays must be merged in the right order or the build silently misbehaves
+    // (e.g. esbuild strips dev-mode marker comments before the replace plugin can act).
+    deepMerge(baseConfig, variant, {
+      customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
+    }),
+  );
 }
 
 /**
