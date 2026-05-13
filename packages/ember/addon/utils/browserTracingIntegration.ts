@@ -3,14 +3,15 @@ import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '@sentry/browser';
-import type { Integration } from '@sentry/core';
+import { consoleSandbox, type Integration } from '@sentry/core';
 import type ApplicationInstance from '@ember/application/instance';
 import { instrumentEmberAppInstanceForPerformance } from './instrumentEmberAppInstanceForPerformance';
 import { instrumentGlobalsForPerformance } from './instrumentEmberGlobals';
 import { isTesting, macroCondition } from '@embroider/macros';
 
 type EmberBrowserTracingIntegrationOptions = Parameters<typeof originalBrowserTracingIntegration>[0] & {
-  appInstance: ApplicationInstance;
+  // TODO(v11): make this required
+  appInstance?: ApplicationInstance;
   disableRunloopPerformance?: boolean;
   minimumRunloopQueueDuration?: number;
   disableInstrumentComponents?: boolean;
@@ -54,14 +55,21 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
       integration.afterAllSetup(client);
 
       // Run this in the next tick to ensure the ember router etc. is properly initialized
+
       setTimeout(() => {
-        instrumentEmberAppInstanceForPerformance(
-          client,
-          appInstance,
-          appInstancePerformanceConfig,
-          startBrowserTracingPageLoadSpan,
-          startBrowserTracingNavigationSpan,
-        );
+        if (appInstance) {
+          instrumentEmberAppInstanceForPerformance(
+            client,
+            appInstance,
+            appInstancePerformanceConfig,
+            startBrowserTracingPageLoadSpan,
+            startBrowserTracingNavigationSpan,
+          );
+        } else {
+          consoleSandbox(() => {
+            console.warn('Skipping router instrumentation because appInstance is not provided.');
+          })
+        }
 
         // We only want to run this once in tests!
         if (macroCondition(isTesting())) {
