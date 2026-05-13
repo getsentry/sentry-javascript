@@ -52,6 +52,7 @@ import {
 } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getHttpRequestData, WINDOW } from '../helpers';
+import { fetchStreamPerformanceIntegration } from '../integrations/fetchStreamPerformance';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
@@ -743,13 +744,16 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
-        trackFetchStreamPerformance,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
         onRequestSpanStart,
         onRequestSpanEnd,
       });
+
+      if (trackFetchStreamPerformance) {
+        client.addIntegration(fetchStreamPerformanceIntegration());
+      }
     },
   };
 }) satisfies IntegrationFn;

@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import type {
   Client,
-  HandlerDataFetch,
   HandlerDataXhr,
   RequestHookInfo,
   ResponseHookInfo,
@@ -10,7 +9,6 @@ import type {
   SpanTimeInput,
 } from '@sentry/core';
 import {
-  addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
@@ -124,13 +122,6 @@ export interface RequestInstrumentationOptions {
   onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
-const responseToSpanId = new WeakMap<object, string>();
-const spanIdToDeferredHandlerData = new Map<string, HandlerDataFetch>();
-const spanIdToFallbackTimeout = new Map<string, ReturnType<typeof setTimeout>>();
-
-// Matches the max fetch timeout defined in core/src/instrument/fetch.ts
-const STREAM_RESOLVE_FALLBACK_MS = 90_000;
-
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
@@ -143,7 +134,6 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const {
     traceFetch,
     traceXHR,
-    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     tracePropagationTargets,
@@ -164,61 +154,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const propagateTraceparent = (client as BrowserClient).getOptions().propagateTraceparent;
 
   if (traceFetch) {
-    if (trackFetchStreamPerformance) {
-      addFetchEndInstrumentationHandler(handlerData => {
-        if (handlerData.response) {
-          const spanId = responseToSpanId.get(handlerData.response);
-          if (spanId) {
-            const deferredHandlerData = spanIdToDeferredHandlerData.get(spanId);
-            if (deferredHandlerData && handlerData.endTimestamp) {
-              // end span with the correct timestamp
-              deferredHandlerData.endTimestamp = handlerData.endTimestamp;
-              instrumentFetchRequest(deferredHandlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
-                propagateTraceparent,
-                onRequestSpanEnd,
-              });
-              spanIdToDeferredHandlerData.delete(spanId);
-
-              // clear fallback timeout since the body was successfully resolved and we ended the span
-              const fallbackTimeout = spanIdToFallbackTimeout.get(spanId);
-              if (fallbackTimeout) {
-                clearTimeout(fallbackTimeout);
-                spanIdToFallbackTimeout.delete(spanId);
-              }
-            }
-          }
-        }
-      });
-    }
-
     addFetchInstrumentationHandler(handlerData => {
-      // When tracking streaming performance, defer span end until the response body resolves.
-      // We intercept the end call, save the span, and let the fetchEndInstrumentationHandler
-      // end it with the correct timestamp.
-      if (trackFetchStreamPerformance && handlerData.endTimestamp && handlerData.response) {
-        const spanId = handlerData.fetchData?.__span;
-        if (spanId && spans[spanId]) {
-          responseToSpanId.set(handlerData.response, spanId);
-          spanIdToDeferredHandlerData.set(spanId, handlerData);
-
-          // set fallback timeout to also end the span if the response body is not resolved
-          const fallbackTimeout = setTimeout(() => {
-            const deferredHandlerData = spanIdToDeferredHandlerData.get(spanId);
-            if (deferredHandlerData) {
-              instrumentFetchRequest(deferredHandlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
-                propagateTraceparent,
-                onRequestSpanEnd,
-              });
-              spanIdToDeferredHandlerData.delete(spanId);
-              spanIdToFallbackTimeout.delete(spanId);
-            }
-          }, STREAM_RESOLVE_FALLBACK_MS);
-
-          spanIdToFallbackTimeout.set(spanId, fallbackTimeout);
-          return;
-        }
-      }
-
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
         onRequestSpanEnd,
