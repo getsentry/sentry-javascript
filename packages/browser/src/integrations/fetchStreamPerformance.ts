@@ -56,7 +56,8 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
         if (handlerData.endTimestamp && handlerData.response) {
           // Only create stream spans for responses that are likely streamed:
           // 1. No content-length header (streamed responses don't know the size upfront)
-          // 2. Content-type is a known streaming type
+          // 2. Content-type is a known streaming type (avoids false positives on HTTP/2
+          //    where content-length is often omitted even for regular responses)
           const contentType = handlerData.response.headers?.get('content-type') || '';
           if (
             handlerData.response.headers?.get('content-length') ||
