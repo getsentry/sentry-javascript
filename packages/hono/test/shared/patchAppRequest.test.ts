@@ -119,6 +119,29 @@ describe('patchAppRequest', () => {
     expect(sentryOriginal).toBe(originalRequest);
   });
 
+  it('extracts pathname from a full URL string instead of using the raw string', async () => {
+    const app = new Hono();
+    app.get('/api/hello', c => c.text('world'));
+    patchAppRequest(app);
+
+    await app.request('http://localhost/api/hello');
+
+    expect(startSpanMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'GET /api/hello' }),
+      expect.any(Function),
+    );
+  });
+
+  it('extracts pathname from an https URL string', async () => {
+    const app = new Hono();
+    app.get('/secure', c => c.text('ok'));
+    patchAppRequest(app);
+
+    await app.request('https://example.com/secure');
+
+    expect(startSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'GET /secure' }), expect.any(Function));
+  });
+
   it('extracts pathname from a Request object input', async () => {
     const app = new Hono();
     app.get('/items/abc', c => c.text('found'));

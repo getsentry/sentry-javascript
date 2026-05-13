@@ -17,6 +17,14 @@ const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 // Widened type to allow forwarding opaque args (env bindings, execution context)
 type LooseRequestFn = (input: string | Request | URL, requestInit?: RequestInit, ...rest: unknown[]) => unknown;
 
+function extractPathname(input: string | Request | URL): string {
+  if (typeof input === 'string') {
+    return /^https?:\/\//.test(input) ? new URL(input).pathname : input;
+  }
+
+  return input instanceof Request ? new URL(input.url).pathname : input.pathname;
+}
+
 /**
  * Patches `app.request()` on a Hono instance so that each internal dispatch
  * is traced as a `hono.request` span — child of whatever span is active at
@@ -41,8 +49,7 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
     let method = requestInit?.method ?? (input instanceof Request ? input.method : 'GET');
     method = method.toUpperCase();
 
-    const path =
-      typeof input === 'string' ? input : input instanceof Request ? new URL(input.url).pathname : input.pathname;
+    const path = extractPathname(input);
 
     return startSpan(
       {
