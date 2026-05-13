@@ -63,18 +63,19 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
 }
 
 /**
- * Replaces the comment marker `/* __SENTRY_SDK_SOURCE__ *\/` in core's `getSDKSource()` with a
+ * Replaces the comment marker `/*! __SENTRY_SDK_SOURCE__ *\/` in core's `getSDKSource()` with a
  * `return '<source>';` statement so the bundle reports the correct distribution channel.
  *
- * Because the marker is a block comment, esbuild would strip it during transpile — so the plugin
- * sort order in utils.mjs pins this name before `esbuild`.
+ * The marker uses the `/*! ... *\/` legal-comment syntax so it survives esbuild's transpile
+ * (esbuild strips ordinary block comments). The plugin sort order in utils.mjs also pins
+ * this name before `esbuild`, in case it ever runs on un-transpiled source directly.
  */
 export function makeSetSDKSourcePlugin(sdkSource) {
   const plugin = replace({
     preventAssignment: false,
     delimiters: ['', ''],
     values: {
-      '/* __SENTRY_SDK_SOURCE__ */': `return ${JSON.stringify(sdkSource)};`,
+      '/*! __SENTRY_SDK_SOURCE__ */': `return ${JSON.stringify(sdkSource)};`,
     },
   });
   plugin.name = 'replace-sdk-source';
