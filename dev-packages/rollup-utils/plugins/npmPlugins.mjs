@@ -15,8 +15,7 @@ import esbuild from 'rollup-plugin-esbuild';
  *
  * `target: 'es2020'` keeps ES2020-native syntax (`?.`, `??`, optional catch binding) and
  * downlevels everything newer (logical assignment, numeric separators, class private
- * fields, static class blocks, ...) — replacing the policy the legacy `getsentry/sucrase`
- * fork used to enforce.
+ * fields, static class blocks, ...)
  *
  * The second argument keeps the legacy `sucrase: { jsxRuntime, jsxPragma, ... }` option
  * shape so per-package `rollup.*.config.mjs` files keep working unchanged; we just

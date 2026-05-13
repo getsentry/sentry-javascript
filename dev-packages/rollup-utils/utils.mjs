@@ -31,27 +31,26 @@ export function mergeExternals(base, specific) {
 
 /**
  * Merge two arrays of plugins, making sure they're sorted in the correct order.
+ *
+ * Each entry below has a real reason to be pinned; `...` is where every other plugin lands:
+ *  - `remove-dev-mode-blocks` (transform) — must run before `esbuild` because esbuild
+ *    strips the `/* rollup-include-development-only *\/` marker comments during transpile.
+ *  - `esbuild` (transform) — produces JS that the rest of the transform plugins
+ *    (replace, etc.) operate on.
+ *  - `terser` (renderChunk) — minifies and strips comments. Anything that contributes
+ *    code to a chunk must run before this.
+ *  - `license` (renderChunk) — prepends the license banner, which is a comment. Must run
+ *    after `terser` or terser would strip it (we minify with `comments: false`).
+ *  - `output-base64-worker-script` (renderChunk) — captures the final chunk text as
+ *    base64, so it must run last.
  */
 export function mergePlugins(pluginsA, pluginsB) {
+  const order = ['remove-dev-mode-blocks', 'esbuild', '...', 'terser', 'license', 'output-base64-worker-script'];
   const plugins = [...pluginsA, ...pluginsB];
   plugins.sort((a, b) => {
-    // Hacky way to make sure the ones we care about end up where they belong in the order.
-    // Additionally, the excludeReplay plugin must run before TS/esbuild so that we can eliminate the replay code
-    // before anything is type-checked (TS-only) and transpiled.
-    const order = [
-      'remove-dev-mode-blocks',
-      'excludeReplay',
-      'esbuild',
-      '...',
-      'terser',
-      'license',
-      'output-base64-worker-script',
-    ];
     const sortKeyA = order.includes(a.name) ? a.name : '...';
     const sortKeyB = order.includes(b.name) ? b.name : '...';
-
     return order.indexOf(sortKeyA) - order.indexOf(sortKeyB);
   });
-
   return plugins;
 }
