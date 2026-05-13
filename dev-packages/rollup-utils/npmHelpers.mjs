@@ -33,12 +33,12 @@ export function makeBaseNPMConfig(options = {}) {
     entrypoints = ['src/index.ts'],
     hasBundles = false,
     packageSpecificConfig = {},
-    sucrase = {},
+    esbuild = {},
     bundledBuiltins = [],
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const transpilePlugin = makeEsbuildPlugin({}, sucrase);
+  const transpilePlugin = makeEsbuildPlugin(esbuild);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
