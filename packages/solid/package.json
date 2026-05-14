@@ -59,7 +59,7 @@
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
-    "@tanstack/solid-router": "^1.132.27",
+    "@tanstack/solid-router": "^1.169.2",
     "solid-js": "^1.8.4"
   },
   "peerDependenciesMeta": {
@@ -73,7 +73,7 @@
   "devDependencies": {
     "@solidjs/router": "^0.15.0",
     "@solidjs/testing-library": "0.8.5",
-    "@tanstack/solid-router": "^1.132.27",
+    "@tanstack/solid-router": "^1.169.2",
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
