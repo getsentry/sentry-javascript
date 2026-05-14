@@ -1,16 +1,18 @@
-import type { IncomingMessage } from 'node:http';
-import type { Scope } from '@sentry/core';
-import { debug, getMaxBodyByteLength, type MaxRequestBodySize } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import type { Scope } from '../../scope';
+import { debug } from '../../utils/debug-logger';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { HttpIncomingMessage } from './types';
+import { getMaxBodyByteLength, type MaxRequestBodySize } from '../../utils/request';
 
 /**
  * This method patches the request object to capture the body.
- * Instead of actually consuming the streamed body ourselves, which has potential side effects,
- * we monkey patch `req.on('data')` to intercept the body chunks.
- * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
+ * Instead of actually consuming the streamed body ourselves, which has
+ * potential side effects, we monkey patch `req.on('data')` to intercept
+ * the body chunks. This way, we only read the body if the user also consumes
+ * the body, ensuring we do not change any behavior in unexpected ways.
  */
 export function patchRequestToCaptureBody(
-  req: IncomingMessage,
+  req: HttpIncomingMessage,
   isolationScope: Scope,
   maxIncomingRequestBodySize: Exclude<MaxRequestBodySize, 'none'>,
   integrationName: string,
@@ -20,18 +22,16 @@ export function patchRequestToCaptureBody(
 
   DEBUG_BUILD && debug.log(integrationName, 'Patching request.on');
 
-  /**
-   * We need to keep track of the original callbacks, in order to be able to remove listeners again.
-   * Since `off` depends on having the exact same function reference passed in, we need to be able to map
-   * original listeners to our wrapped ones.
-   */
+  // keep track of the original callbacks to remove listeners later
+  // `off` depends on having the exact same function reference passed in,
+  // so we need to be able to map original listeners to our wrapped ones.
   const callbackMap = new WeakMap();
 
   const maxBodySize = getMaxBodyByteLength(maxIncomingRequestBodySize);
 
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.on = new Proxy(req.on, {
+    req.on = req.addListener = new Proxy(req.on, {
       apply: (target, thisArg, args: Parameters<typeof req.on>) => {
         const [event, listener, ...restArgs] = args;
 
@@ -73,7 +73,7 @@ export function patchRequestToCaptureBody(
 
     // Ensure we also remove callbacks correctly
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    req.off = new Proxy(req.off, {
+    req.off = req.removeListener = new Proxy(req.off, {
       apply: (target, thisArg, args: Parameters<typeof req.off>) => {
         const [, listener] = args;
 
