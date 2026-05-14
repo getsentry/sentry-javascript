@@ -35,6 +35,7 @@
     "variants": [
       {
         "assert-command": "RUNTIME=node pnpm test:assert",
+        "build-command": "pnpm install",
         "label": "hono-4 (node)"
       },
       {
