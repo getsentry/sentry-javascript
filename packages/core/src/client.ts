@@ -137,18 +137,21 @@ function setupWeightBasedFlushing<
     if (weight >= 800_000) {
       flushFn(client);
     } else if (!isTimerActive) {
-      // Only start timer if one isn't already running.
-      // This prevents flushing being delayed by items that arrive close to the timeout limit
-      // and thus resetting the flushing timeout and delaying items being flushed.
-      isTimerActive = true;
-      // Use safeUnref so the timer doesn't prevent the process from exiting
-      flushTimeout = safeUnref(
-        setTimeout(() => {
-          flushFn(client);
-          // Note: isTimerActive is reset by the flushHook handler above, not here,
-          // to avoid race conditions when new items arrive during the flush.
-        }, DEFAULT_FLUSH_INTERVAL),
-      );
+      const flushInterval = client.getOptions()._flushInterval ?? DEFAULT_FLUSH_INTERVAL;
+      if (flushInterval > 0) {
+        // Only start timer if one isn't already running.
+        // This prevents flushing being delayed by items that arrive close to the timeout limit
+        // and thus resetting the flushing timeout and delaying items being flushed.
+        isTimerActive = true;
+        // Use safeUnref so the timer doesn't prevent the process from exiting
+        flushTimeout = safeUnref(
+          setTimeout(() => {
+            flushFn(client);
+            // Note: isTimerActive is reset by the flushHook handler above, not here,
+            // to avoid race conditions when new items arrive during the flush.
+          }, flushInterval),
+        );
+      }
     }
   });
 

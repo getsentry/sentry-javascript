@@ -30,6 +30,7 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
       // Use provided runtime or default to 'vercel-edge'
       runtime: options.runtime || { name: 'vercel-edge' },
       serverName: options.serverName || process.env.SENTRY_NAME,
+      _flushInterval: 0,
     };
 
     super(clientOptions);
