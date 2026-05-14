@@ -23,7 +23,7 @@
     "@playwright/test": "~1.56.0",
     "@cloudflare/workers-types": "^4.20240725.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "tsx": "^4.20.3",
+    "tsx": "4.21.0",
     "typescript": "^5.5.2",
     "wrangler": "4.86.0"
   },

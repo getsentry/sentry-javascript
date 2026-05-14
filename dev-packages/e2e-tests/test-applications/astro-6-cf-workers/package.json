@@ -19,7 +19,7 @@
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "astro": "^6.0.0",
-    "wrangler": "4.86.0"
+    "wrangler": "4.91.0"
   },
   "volta": {
     "node": "24.15.0",
