@@ -32,45 +32,46 @@ describe('mysql auto instrumentation', () => {
     ]),
   };
 
-  describe('with connection.connect()', () => {
+  describe.each([
+    ['opentelemetry-based', 'instrument.mjs'],
+    ['orchestrion-based', 'instrument-orchestrion.mjs'],
+  ])('%s', (instrumentation, instrumentFile) => {
+    // esm is not supported for the otel instrumentation
+    const failsOnEsm = instrumentation === 'opentelemetry-based';
     createEsmAndCjsTests(
       __dirname,
       'scenario-withConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
-  });
 
-  describe('query without callback', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-withoutCallback.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
-  });
 
-  describe('without connection.connect()', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-withoutConnect.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
+      instrumentFile,
+      (createRunner, test) => {
         test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
         });
       },
-      { failsOnEsm: true },
+      { failsOnEsm },
     );
   });
 });
