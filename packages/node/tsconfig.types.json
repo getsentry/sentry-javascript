@@ -5,6 +5,10 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "build/types"
+    "outDir": "build/types",
+    // Required so Node16 module resolution can disambiguate package self-references
+    // (`@sentry/node/orchestrion/config` from inside this package) against the
+    // package's `.` export. Without this tsc reports TS2209.
+    "rootDir": "src"
   }
 }

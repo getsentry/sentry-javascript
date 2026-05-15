@@ -65,6 +65,23 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * Defaults to `true`.
    */
   registerEsmLoaderHooks?: boolean;
+
+  /**
+   * EXPERIMENTAL — opt into the orchestrion.js-based auto-instrumentation path.
+   *
+   * When `true`, `Sentry.init()` skips registering the default OTel
+   * auto-instrumentations for libraries that have a channel-based alternative
+   * (currently: `mysql`). It does NOT install any channel subscribers on its
+   * own — call `_experimentalSetupOrchestrion(client)` after `init()` for that.
+   *
+   * Splitting the opt-in across two calls keeps the orchestrion code path
+   * tree-shakable: bundlers can drop `orchestrion/*` from apps that don't
+   * import `_experimentalSetupOrchestrion`.
+   *
+   * Defaults to `false`. The flag name is intentionally underscore-prefixed and
+   * will be renamed or removed once the experiment graduates.
+   */
+  _experimentalUseOrchestrion?: boolean;
 }
 
 /**

@@ -4,4 +4,12 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {}
+  // The orchestrion runtime hooks are hand-written `.mjs` / `.cjs` files that
+  // self-reference `@sentry/node/orchestrion/config`. If tsc picks them up, it
+  // follows that subpath export back to `build/types/orchestrion/config.d.ts`,
+  // treats the .d.ts as an input, and then collides with the .d.ts it wants to
+  // emit from `src/orchestrion/config.ts`. Excluding them keeps tsc focused on
+  // the .ts sources — rollup copies these files through to `build/orchestrion/`
+  // unchanged.
+  "exclude": ["src/orchestrion/runtime/**/*.mjs", "src/orchestrion/runtime/**/*.cjs"]
 }
