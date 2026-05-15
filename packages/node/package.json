@@ -52,6 +52,30 @@
       "require": {
         "default": "./build/cjs/preload.js"
       }
+    },
+    "./orchestrion": {
+      "import": {
+        "default": "./build/orchestrion/import-hook.mjs"
+      },
+      "require": {
+        "default": "./build/orchestrion/require-hook.cjs"
+      }
+    },
+    "./orchestrion/config": {
+      "import": {
+        "types": "./build/types/orchestrion/config.d.ts",
+        "default": "./build/esm/orchestrion/config.js"
+      },
+      "require": {
+        "types": "./build/types/orchestrion/config.d.ts",
+        "default": "./build/cjs/orchestrion/config.js"
+      }
+    },
+    "./orchestrion/vite": {
+      "import": {
+        "types": "./build/types/orchestrion/bundler/vite.d.ts",
+        "default": "./build/esm/orchestrion/bundler/vite.js"
+      }
     }
   },
   "typesVersions": {
@@ -65,6 +89,9 @@
     "access": "public"
   },
   "dependencies": {
+    "@apm-js-collab/code-transformer": "^0.13.0",
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.1.0",
+    "@apm-js-collab/tracing-hooks": "^0.7.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.6.1",
     "@opentelemetry/instrumentation": "^0.214.0",
@@ -96,7 +123,16 @@
     "import-in-the-middle": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1"
+    "@types/node": "^18.19.1",
+    "vite": "^5.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

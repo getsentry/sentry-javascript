@@ -24,9 +24,22 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     .concat(httpIntegration(), nativeNodeFetchIntegration());
 }
 
+/**
+ * Names of OTel-based default integrations that the orchestrion experiment
+ * replaces with channel-based equivalents. When
+ * `_experimentalUseOrchestrion: true` is set on `Sentry.init()`, these are
+ * filtered out of the default integration list so the two systems don't both
+ * instrument the same library and produce duplicate spans.
+ *
+ * Kept as a plain string set (instead of importing the orchestrion integrations
+ * themselves) so the orchestrion code path stays tree-shakable: `init()` never
+ * pulls in anything from `../orchestrion/*`.
+ */
+const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>([]);
+
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  return [
+  const integrations: Integration[] = [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
@@ -34,6 +47,11 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // But `transactionName` will not be set automatically
     ...(hasSpansEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
+
+  if ((options as NodeOptions)._experimentalUseOrchestrion) {
+    return integrations.filter(i => !ORCHESTRION_REPLACED_INTEGRATIONS.has(i.name));
+  }
+  return integrations;
 }
 
 /**
