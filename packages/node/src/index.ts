@@ -46,6 +46,7 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
 } from './sdk';
+export { _experimentalSetupOrchestrion, mysqlChannelIntegration } from './orchestrion';
 export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 
