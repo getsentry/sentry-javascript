@@ -195,7 +195,7 @@ No `instrumentations: [...]` array to copy-paste, no channel names to remember.
 
 ```js
 import { register } from 'node:module';
-import { SENTRY_INSTRUMENTATIONS } from '../config.js';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/node/orchestrion/config';
 
 // 1) Double-wrap guard. Set this BEFORE register() so even if a second --import
 //    is added, we won't double-register.
@@ -214,7 +214,7 @@ if (g.runtime) {
 
 ```js
 const ModulePatch = require('@apm-js-collab/tracing-hooks');
-const { SENTRY_INSTRUMENTATIONS } = require('../config.js');
+const { SENTRY_INSTRUMENTATIONS } = require('@sentry/node/orchestrion/config');
 
 const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 if (g.runtime) {
@@ -234,7 +234,7 @@ Both files set `globalThis.__SENTRY_ORCHESTRION__.runtime = true`. That marker i
 ```ts
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import type { Plugin } from 'vite';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/node/orchestrion/config';
 
 export function sentryOrchestrionPlugin(): Plugin[] {
   return [
