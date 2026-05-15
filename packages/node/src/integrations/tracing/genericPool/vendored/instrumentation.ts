@@ -53,18 +53,14 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
           if (isWrapped(Pool.prototype.acquire)) {
             this._unwrap(Pool.prototype, 'acquire');
           }
-          this._wrap(
-            Pool.prototype,
-            'acquire',
-            this._acquirePatcher.bind(this)
-          );
+          this._wrap(Pool.prototype, 'acquire', this._acquirePatcher.bind(this));
           return moduleExports;
         },
         moduleExports => {
           const Pool: any = moduleExports.Pool;
           this._unwrap(Pool.prototype, 'acquire');
           return moduleExports;
-        }
+        },
       ),
       new InstrumentationNodeModuleDefinition(
         MODULE_NAME,
@@ -74,18 +70,14 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
           if (isWrapped(Pool.prototype.acquire)) {
             this._unwrap(Pool.prototype, 'acquire');
           }
-          this._wrap(
-            Pool.prototype,
-            'acquire',
-            this._acquireWithCallbacksPatcher.bind(this)
-          );
+          this._wrap(Pool.prototype, 'acquire', this._acquireWithCallbacksPatcher.bind(this));
           return moduleExports;
         },
         moduleExports => {
           const Pool: any = moduleExports.Pool;
           this._unwrap(Pool.prototype, 'acquire');
           return moduleExports;
-        }
+        },
       ),
       new InstrumentationNodeModuleDefinition(
         MODULE_NAME,
@@ -103,23 +95,16 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
           // a boolean switch here to disable the instrumentation
           this._isDisabled = true;
           return moduleExports;
-        }
+        },
       ),
     ];
   }
 
   private _acquirePatcher(original: genericPool.Pool<unknown>['acquire']) {
     const instrumentation = this;
-    return function wrapped_acquire(
-      this: genericPool.Pool<unknown>,
-      ...args: any[]
-    ) {
+    return function wrapped_acquire(this: genericPool.Pool<unknown>, ...args: any[]) {
       const parent = api.context.active();
-      const span = instrumentation.tracer.startSpan(
-        'generic-pool.acquire',
-        {},
-        parent
-      );
+      const span = instrumentation.tracer.startSpan('generic-pool.acquire', {}, parent);
 
       return api.context.with(api.trace.setSpan(parent, span), () => {
         return original.call(this, ...args).then(
@@ -131,7 +116,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
             span.recordException(err as Error);
             span.end();
             throw err;
-          }
+          },
         );
       });
     };
@@ -141,32 +126,20 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
     const instrumentation = this;
     return function wrapped_pool(this: any) {
       const pool = original.apply(this, arguments);
-      instrumentation._wrap(
-        pool,
-        'acquire',
-        instrumentation._acquireWithCallbacksPatcher.bind(instrumentation)
-      );
+      instrumentation._wrap(pool, 'acquire', instrumentation._acquireWithCallbacksPatcher.bind(instrumentation));
       return pool;
     };
   }
 
   private _acquireWithCallbacksPatcher(original: any) {
     const instrumentation = this;
-    return function wrapped_acquire(
-      this: genericPool.Pool<unknown>,
-      cb: Function,
-      priority: number
-    ) {
+    return function wrapped_acquire(this: genericPool.Pool<unknown>, cb: Function, priority: number) {
       // only used for v2 - v2.3
       if (instrumentation._isDisabled) {
         return original.call(this, cb, priority);
       }
       const parent = api.context.active();
-      const span = instrumentation.tracer.startSpan(
-        'generic-pool.acquire',
-        {},
-        parent
-      );
+      const span = instrumentation.tracer.startSpan('generic-pool.acquire', {}, parent);
 
       return api.context.with(api.trace.setSpan(parent, span), () => {
         original.call(
@@ -179,7 +152,7 @@ export class GenericPoolInstrumentation extends InstrumentationBase {
               return cb(err, client);
             }
           },
-          priority
+          priority,
         );
       });
     };
