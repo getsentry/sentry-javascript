@@ -14,7 +14,7 @@
 'use strict';
 
 const ModulePatch = require('@apm-js-collab/tracing-hooks');
-const { SENTRY_INSTRUMENTATIONS } = require('../config');
+const { SENTRY_INSTRUMENTATIONS } = require('@sentry/node/orchestrion/config');
 
 const DEBUG = !!(process.env.DEBUG || process.env.debug || process.env.SENTRY_DEBUG);
 // eslint-disable-next-line no-console

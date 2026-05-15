@@ -13,7 +13,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type UnknownPlugin = any;
 
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/node/orchestrion/config';
 
 // `vite` types live in the package's ESM-only subpath; under Node16 module
 // resolution with TS treating @sentry/node as CJS, importing them produces a
