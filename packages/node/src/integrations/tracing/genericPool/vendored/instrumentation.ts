@@ -18,7 +18,6 @@
  * - Upstream version: @opentelemetry/instrumentation-generic-pool@0.61.0
  * - Minor TypeScript strictness adjustments for this repository's compiler settings
  */
-/* eslint-disable */
 
 import * as api from '@opentelemetry/api';
 import {
