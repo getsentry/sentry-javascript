@@ -11,6 +11,8 @@
  * suffix in `channelName`. Keeping both pieces in one file is what guarantees
  * they don't drift apart and silently stop firing.
  */
-export const CHANNELS = {} as const;
+export const CHANNELS = {
+  MYSQL_QUERY: 'orchestrion:mysql:query',
+} as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];

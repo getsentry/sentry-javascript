@@ -35,7 +35,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
  * themselves) so the orchestrion code path stays tree-shakable: `init()` never
  * pulls in anything from `../orchestrion/*`.
  */
-const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>([]);
+const ORCHESTRION_REPLACED_INTEGRATIONS = new Set<string>(['Mysql']);
 
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
