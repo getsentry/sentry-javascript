@@ -14,23 +14,24 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   const rootSpan = await transactionPromise;
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
   const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0]!;
+  const httpStream = rootSpan.spans?.filter(span => span.op === 'http.client.stream')[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();
-
-  expect(sseFetchCall?.timestamp).toBeDefined();
-  expect(sseFetchCall?.start_timestamp).toBeDefined();
-  expect(httpGet?.timestamp).toBeDefined();
-  expect(httpGet?.start_timestamp).toBeDefined();
+  expect(httpStream).toBeDefined();
 
   // http headers get sent instantly from the server
   const resolveDuration = Math.round((sseFetchCall.timestamp as number) - sseFetchCall.start_timestamp);
 
-  // body streams after 2s
-  const resolveBodyDuration = Math.round((httpGet.timestamp as number) - httpGet.start_timestamp);
+  // http.client span ends at header arrival (~0s)
+  const httpGetDuration = Math.round((httpGet.timestamp as number) - httpGet.start_timestamp);
+
+  // body streaming duration is captured in the sibling http.client.stream span (~2s)
+  const streamDuration = Math.round((httpStream.timestamp as number) - httpStream.start_timestamp);
 
   expect(resolveDuration).toBe(0);
-  expect(resolveBodyDuration).toBe(2);
+  expect(httpGetDuration).toBe(0);
+  expect(streamDuration).toBe(2);
 });
 
 test('Waits for sse streaming when sse has been explicitly aborted', async ({ page }) => {

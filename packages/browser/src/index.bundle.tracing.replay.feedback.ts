@@ -37,6 +37,7 @@ export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 
 export { spanStreamingIntegration } from './integrations/spanstreaming';
+export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
