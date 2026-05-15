@@ -3245,6 +3245,64 @@ describe('Client', () => {
 
       expect(flushMetricsHandler).toHaveBeenCalledTimes(1);
     });
+
+    it('does not create a flush timer when _flushInterval is 0', () => {
+      const safeUnrefSpy = vi.spyOn(timerModule, 'safeUnref');
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _flushInterval: 0,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+
+      expect(safeUnrefSpy).not.toHaveBeenCalled();
+
+      safeUnrefSpy.mockRestore();
+    });
+
+    it('still flushes metrics via flush event when _flushInterval is 0', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _flushInterval: 0,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('still flushes metrics on size threshold when _flushInterval is 0', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _flushInterval: 0,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      const largeValue = 'x'.repeat(400_000);
+      _INTERNAL_captureMetric(
+        { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
+        { scope },
+      );
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('promise buffer usage', () => {

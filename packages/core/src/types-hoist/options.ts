@@ -591,6 +591,18 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enableMetrics?: boolean;
 
   /**
+   * Interval in ms for the idle flush timer used by logs and metrics.
+   * Set to 0 to disable timer-based flushing entirely — useful for
+   * serverless runtimes that forbid background timers (e.g. Cloudflare Workers).
+   *
+   * Size-based flushing and explicit `flush()` calls still work regardless.
+   *
+   * @default 5000
+   * @internal
+   */
+  _flushInterval?: number;
+
+  /**
    * An event-processing callback for metrics, guaranteed to be invoked after all other metric
    * processors. This allows a metric to be modified or dropped before it's sent.
    *
