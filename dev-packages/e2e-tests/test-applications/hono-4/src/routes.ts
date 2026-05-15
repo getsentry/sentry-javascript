@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 import { failingMiddleware, middlewareA, middlewareB } from './middleware';
 import { errorRoutes } from './route-groups/test-errors';
 import { middlewareRoutes, subAppWithInlineMiddleware, subAppWithMiddleware } from './route-groups/test-middleware';
+import { multiFetchRoutes } from './route-groups/test-multi-fetch';
 import { routePatterns } from './route-groups/test-route-patterns';
 
 export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): void {
@@ -48,4 +49,7 @@ export function addRoutes(app: Hono<{ Bindings?: { E2E_TEST_DSN: string } }>): v
 
   // Error-specific routes: onError handler, nested sub-apps, middleware HTTPException
   app.route('/test-errors', errorRoutes);
+
+  // Multi-fetch routes: storefront sub-app calls inventoryApp via .request()
+  app.route('/test-multi-fetch', multiFetchRoutes);
 }

@@ -135,6 +135,25 @@ describe('patchAppUse (middleware spans)', () => {
     expect(firstCall![0].name).not.toBe(secondCall![0].name);
   });
 
+  it('does not stack proxies when called twice on the same instance', () => {
+    const app = new Hono();
+    patchAppUse(app);
+    const firstUse = app.use;
+
+    patchAppUse(app);
+    expect(app.use).toBe(firstUse);
+  });
+
+  it('patches distinct instances independently', () => {
+    const app1 = new Hono();
+    const app2 = new Hono();
+
+    patchAppUse(app1);
+    patchAppUse(app2);
+
+    expect(app1.use).not.toBe(app2.use);
+  });
+
   it('preserves this context when calling the original use (Proxy forwards thisArg)', () => {
     type FakeApp = {
       _capturedThis: unknown;
