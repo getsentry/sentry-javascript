@@ -27,9 +27,6 @@ export function scopeContextsToSpanAttributes(contexts: Contexts): Record<string
     if (profile.profiler_id) {
       attrs['sentry.profiler_id'] = profile.profiler_id;
     }
-    if (profile.start_timestamp != null) {
-      attrs['profile.start_timestamp'] = profile.start_timestamp;
-    }
   }
 
   // CloudResourceContext keys are already in dot-notation (OTel resource conventions)

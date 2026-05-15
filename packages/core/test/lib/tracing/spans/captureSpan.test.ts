@@ -682,14 +682,6 @@ describe('scopeContextsToSpanAttributes', () => {
       });
     });
 
-    it('maps start_timestamp', () => {
-      const contexts: Contexts = { profile: { profile_id: 'abc', start_timestamp: 1234567890 } };
-      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
-        'sentry.profile_id': 'abc',
-        'profile.start_timestamp': 1234567890,
-      });
-    });
-
     it('produces no attributes for empty profile context', () => {
       const contexts: Contexts = { profile: { profile_id: '' } };
       expect(scopeContextsToSpanAttributes(contexts)).toEqual({});
