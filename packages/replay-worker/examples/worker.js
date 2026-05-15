@@ -1,4 +1,4 @@
-/*! Sentry Replay Worker 10.53.1 (1b85ea392a) | https://github.com/getsentry/sentry-javascript */
+/*! Sentry Replay Worker 10.53.1 (d8e086f796) | https://github.com/getsentry/sentry-javascript */
 // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
 // https://tools.ietf.org/html/rfc1951
 // You may also wish to take a look at the guide I made about this program:
@@ -803,9 +803,6 @@ function strToU8(str, latin1) {
   return slc(ar, 0, ai);
 }
 
-/**
- * A stateful compressor that can be used to batch compress events.
- */
 class Compressor {
   constructor() {
     this._init();
@@ -823,8 +820,6 @@ class Compressor {
     if (!data) {
       throw new Error('Adding invalid event');
     }
-    // If the event is not the first event, we need to prefix it with a `,` so
-    // that we end up with a list of events
     const prefix = this._hasEvents ? ',' : '';
     this.stream.push(prefix + data);
     this._hasEvents = true;
@@ -833,10 +828,7 @@ class Compressor {
    * Finish compression of the current buffer.
    */
   finish() {
-    // We should always have a list, it can be empty
     this.stream.push(']', true);
-    // Copy result before we create a new deflator and return the compressed
-    // result
     const result = mergeUInt8Arrays(this._deflatedData);
     this._init();
     return result;
@@ -854,26 +846,19 @@ class Compressor {
     this.stream = new EncodeUTF8((data, final) => {
       this.deflate.push(data, final);
     });
-    // Fake an array by adding a `[`
     this.stream.push('[');
   }
 }
-/**
- * Compress a string.
- */
 function compress(data) {
   return gzipSync(strToU8(data));
 }
 function mergeUInt8Arrays(chunks) {
-  // calculate data length
   let len = 0;
   for (const chunk of chunks) {
     len += chunk.length;
   }
-  // join chunks
   const result = new Uint8Array(len);
   for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const chunk = chunks[i];
     result.set(chunk, pos);
     pos += chunk.length;
@@ -881,7 +866,6 @@ function mergeUInt8Arrays(chunks) {
   return result;
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 const compressor = new Compressor();
 const handlers = {
   clear: () => {
@@ -897,17 +881,12 @@ const handlers = {
     return compress(data);
   },
 };
-/**
- * Handler for worker messages.
- */
 function handleMessage(e) {
   const method = e.data.method;
   const id = e.data.id;
   const data = e.data.arg;
-  // @ts-expect-error this syntax is actually fine
   if (method in handlers && typeof handlers[method] === 'function') {
     try {
-      // @ts-expect-error this syntax is actually fine
       const response = handlers[method](data);
       postMessage({
         id,
@@ -922,17 +901,15 @@ function handleMessage(e) {
         success: false,
         response: err.message,
       });
-      // eslint-disable-next-line no-console
       console.error(err);
     }
   }
 }
 
 addEventListener('message', handleMessage);
-// Immediately send a message when worker loads, so we know the worker is ready
 postMessage({
-  id: undefined,
+  id: void 0,
   method: 'init',
   success: true,
-  response: undefined,
+  response: void 0,
 });

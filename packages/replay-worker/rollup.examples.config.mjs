@@ -1,11 +1,13 @@
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
-import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
+import esbuild from 'rollup-plugin-esbuild';
 import { makeLicensePlugin } from '../../dev-packages/rollup-utils/plugins/index.mjs';
 
 const licensePlugin = makeLicensePlugin('Sentry Replay Worker');
+
+const esbuildPlugin = esbuild({ tsconfig: './tsconfig.json', target: 'es2020', sourceMap: false });
 
 const config = defineConfig([
   {
@@ -15,12 +17,7 @@ const config = defineConfig([
       format: 'esm',
     },
     treeshake: 'smallest',
-    plugins: [
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
-      licensePlugin,
-    ],
+    plugins: [commonjs(), esbuildPlugin, resolve(), licensePlugin],
   },
   {
     input: ['./src/_worker.ts'],
@@ -31,7 +28,7 @@ const config = defineConfig([
     treeshake: 'smallest',
     plugins: [
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
+      esbuildPlugin,
       resolve(),
       terser({
         mangle: {

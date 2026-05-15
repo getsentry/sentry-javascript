@@ -8,14 +8,13 @@ import deepMerge from 'deepmerge';
 
 import {
   makeBrowserBuildPlugin,
-  makeCleanupPlugin,
   makeCommonJSPlugin,
+  makeEsbuildPlugin,
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  makeSucrasePlugin,
   makeTerserPlugin,
 } from './plugins/index.mjs';
 import { mergePlugins } from './utils.mjs';
@@ -24,11 +23,10 @@ import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, esbuild } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
-  const cleanupPlugin = makeCleanupPlugin();
+  const transpilePlugin = makeEsbuildPlugin(esbuild);
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
@@ -118,7 +116,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [productionReplacePlugin, sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
+    plugins: [productionReplacePlugin, transpilePlugin, nodeResolvePlugin],
     treeshake: 'smallest',
   };
 

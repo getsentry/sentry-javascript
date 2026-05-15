@@ -100,7 +100,9 @@ describe('wrappingLoader', () => {
 
     await loaderPromise;
 
-    expect(callback).toHaveBeenCalledWith(null, expect.stringContaining("'/my/route'"), expect.anything());
+    // Accept either single- or double-quoted string literals — the wrapper-template source
+    // uses single quotes, but esbuild rewrites them to double quotes during transpile.
+    expect(callback).toHaveBeenCalledWith(null, expect.stringMatching(/['"]\/my\/route['"]/), expect.anything());
   });
 
   describe('middleware wrapping', () => {
@@ -148,8 +150,8 @@ describe('wrappingLoader', () => {
       expect(wrappedCode).toContain('userProvidedProxy = true');
 
       // Proxy should be wrapped, middleware should be undefined
-      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
-      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : (?:undefined|void 0)/);
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : (?:undefined|void 0)/);
     });
 
     it('should export middleware when user exports named "middleware" export', async () => {
@@ -196,8 +198,8 @@ describe('wrappingLoader', () => {
       expect(wrappedCode).toContain('userProvidedProxy = false');
 
       // Middleware should be wrapped, proxy should be undefined
-      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
-      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : (?:undefined|void 0)/);
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : (?:undefined|void 0)/);
     });
 
     it('should export undefined middleware/proxy when user only exports default', async () => {
@@ -245,8 +247,8 @@ describe('wrappingLoader', () => {
       expect(wrappedCode).toContain('userProvidedProxy = false');
 
       // Both middleware and proxy should be undefined (conditionals evaluate to false)
-      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
-      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : (?:undefined|void 0)/);
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : (?:undefined|void 0)/);
     });
   });
 
