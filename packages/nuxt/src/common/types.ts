@@ -223,6 +223,24 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
   autoInjectServerSentry?: 'top-level-import' | 'experimental_dynamic-import';
 
   /**
+   * Provide the resolved path to a custom Sentry client config file.
+   *
+   * If not provided, the default location (`<projectRoot>/sentry.(client|server).config.(js|ts)`) will be used to look up the config file.
+   * If there is no file at the default location either, the SDK won't be initialized.
+   *
+   * Resolves the full path to a file or directory, respecting Nuxt alias and extensions options.
+   * @example
+   *
+   * ```ts
+   * sentry: {
+   *   configDir: '~/sentry-config',
+   *   // Sentry will search for `<rootDir>/<srcDir>/sentry-config/sentry.(client|server).config.(js|ts)` files.
+   * }
+   * ```
+   */
+  configDir?: string;
+
+  /**
    * When `autoInjectServerSentry` is set to `"experimental_dynamic-import"`, the SDK will wrap your Nitro server entrypoint
    * with a dynamic `import()` to ensure all dependencies can be properly instrumented. Any previous exports from the entrypoint are still exported.
    * Most exports of the server entrypoint are serverless functions and those are wrapped by Sentry. Other exports stay as-is.

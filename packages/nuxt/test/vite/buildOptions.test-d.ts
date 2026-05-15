@@ -55,6 +55,7 @@ describe('Sentry Nuxt build-time options type', () => {
       // --- SentryNuxtModuleOptions specific options ---
       enabled: true,
       autoInjectServerSentry: 'experimental_dynamic-import',
+      configDir: '~/custom-config',
       experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],
       unstable_sentryBundlerPluginOptions: {
         // Rollup plugin options
