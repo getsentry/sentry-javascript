@@ -44,14 +44,17 @@ const _mysqlChannelIntegration = (() => {
       // asyncEnd for some reason.
       const spans = new WeakMap<object, Span>();
 
-      // `subscribe()` requires all five lifecycle hooks. For callback-style mysql:
-      //   - `start`           — synchronous entry to `Connection.query`. Start span here.
-      //   - `end`             — synchronous return from `Connection.query` (BEFORE the
-      //                         network round-trip completes). Not the right span end.
-      //   - `error`           — the query callback fired with an error.
-      //   - `asyncStart`      — about to invoke the user callback (query result is ready).
-      //   - `asyncEnd`        — user callback returned. This is the moment we want to
-      //                         end the span — it captures the full query latency.
+      // `subscribe()` requires all five lifecycle hooks. The orchestrion
+      // `wrapCallback` transform fires them in one of three orders:
+      //   - sync throw from `query()`     : start → error → end          (NO asyncEnd)
+      //   - async error from callback     : start → end → error → asyncStart → asyncEnd
+      //   - async success                 : start → end → asyncStart → asyncEnd
+      // We end the span on `asyncEnd` for the two async paths (so the span
+      // covers the full network round-trip + callback duration), and fall back
+      // to `end` for the sync-throw path so the span isn't left unfinished.
+      // The discriminator between "end fired before any error" and "end fired
+      // after a sync throw" is whether `ctx.error` is set when `end` runs —
+      // orchestrion populates it before publishing `error`.
       queryCh.subscribe({
         start(rawCtx) {
           const ctx = rawCtx as MysqlQueryChannelContext;
@@ -71,8 +74,14 @@ const _mysqlChannelIntegration = (() => {
           spans.set(rawCtx, span);
         },
 
-        end() {
-          // No-op: span ends in `asyncEnd` once the network round-trip completes.
+        end(rawCtx) {
+          // Only acts for sync throws: `end` fires AFTER `error` (both inside
+          // the wrapper's `try/catch/finally`), so `ctx.error` is already set.
+          // For async paths `end` fires before `error`, so `ctx.error` is still
+          // undefined here and we leave the span open for `asyncEnd` to close.
+          const ctx = rawCtx as MysqlQueryChannelContext;
+          if (ctx.error === undefined) return;
+          finishSpan(rawCtx);
         },
 
         error(rawCtx) {
@@ -90,12 +99,16 @@ const _mysqlChannelIntegration = (() => {
         },
 
         asyncEnd(rawCtx) {
-          const span = spans.get(rawCtx);
-          if (!span) return;
-          span.end();
-          spans.delete(rawCtx);
+          finishSpan(rawCtx);
         },
       });
+
+      function finishSpan(rawCtx: object): void {
+        const span = spans.get(rawCtx);
+        if (!span) return;
+        span.end();
+        spans.delete(rawCtx);
+      }
     },
   };
 }) satisfies IntegrationFn;
