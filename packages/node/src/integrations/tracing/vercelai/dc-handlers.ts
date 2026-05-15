@@ -1,3 +1,4 @@
+import { subscribe } from 'node:diagnostics_channel';
 import {
   captureException,
   getClient,
@@ -7,9 +8,17 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import type { VercelAiIntegration } from './types';
 import { INTEGRATION_NAME } from './constants';
+import { safeStringify } from './dc-utils';
 import { determineRecordingSettings } from './instrumentation';
+import type {
+  AiSdkContentPart,
+  AiSdkFinishReason,
+  AiSdkOperationId,
+  AiSdkToolCall,
+  AiSdkUsage,
+  VercelAiIntegration,
+} from './types';
 
 const ORIGIN = 'auto.vercelai.dc';
 
@@ -23,66 +32,40 @@ interface CallState {
 
 const callStates = new Map<string, CallState>();
 
+const OPERATION_NAME_MAP: Record<AiSdkOperationId, string> = {
+  'ai.generateText': 'invoke_agent',
+  'ai.streamText': 'invoke_agent',
+  'ai.generateObject': 'invoke_agent',
+  'ai.streamObject': 'invoke_agent',
+  'ai.embed': 'embeddings',
+  'ai.embedMany': 'embeddings',
+  'ai.rerank': 'rerank',
+};
+
 function mapOperationName(operationId: string): string {
-  switch (operationId) {
-    case 'ai.generateText':
-    case 'ai.streamText':
-    case 'ai.generateObject':
-    case 'ai.streamObject':
-      return 'invoke_agent';
-    case 'ai.embed':
-    case 'ai.embedMany':
-      return 'embeddings';
-    case 'ai.rerank':
-      return 'rerank';
-    default:
-      return operationId;
-  }
+  return OPERATION_NAME_MAP[operationId as AiSdkOperationId] ?? operationId;
 }
 
 function getRecordingSettings(event: Record<string, unknown>): { recordInputs: boolean; recordOutputs: boolean } {
   const client = getClient();
   const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
-  const integrationOptions = integration?.options;
-  const defaultRecordingEnabled = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
-
+  const defaultPii = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
   return determineRecordingSettings(
-    integrationOptions,
+    integration?.options,
     {
       recordInputs: event.recordInputs as boolean | undefined,
       recordOutputs: event.recordOutputs as boolean | undefined,
     },
     undefined,
-    defaultRecordingEnabled,
+    defaultPii,
   );
 }
 
-interface Usage {
-  inputTokens?: number;
-  outputTokens?: number;
-  inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number };
-  outputTokenDetails?: { reasoningTokens?: number };
-}
-
-interface ContentPart {
-  type: string;
-  text?: string;
-  toolCallId?: string;
-  toolName?: string;
-  input?: unknown;
-}
-interface ToolCall {
-  toolCallId: string;
-  toolName: string;
-  input?: unknown;
-}
-
-function setUsageAttributes(span: Span, u: Usage): void {
+function setUsageAttributes(span: Span, u: AiSdkUsage): void {
   if (u.inputTokens != null) span.setAttribute('gen_ai.usage.input_tokens', u.inputTokens);
   if (u.outputTokens != null) span.setAttribute('gen_ai.usage.output_tokens', u.outputTokens);
-  if (u.inputTokens != null || u.outputTokens != null) {
+  if (u.inputTokens != null || u.outputTokens != null)
     span.setAttribute('gen_ai.usage.total_tokens', (u.inputTokens ?? 0) + (u.outputTokens ?? 0));
-  }
   if (u.inputTokenDetails?.cacheReadTokens != null)
     span.setAttribute('gen_ai.usage.input_tokens.cached', u.inputTokenDetails.cacheReadTokens);
   if (u.inputTokenDetails?.cacheWriteTokens != null)
@@ -91,12 +74,11 @@ function setUsageAttributes(span: Span, u: Usage): void {
     span.setAttribute('gen_ai.usage.output_tokens.reasoning', u.outputTokenDetails.reasoningTokens);
 }
 
-function normalizeFinishReason(reason: unknown): string {
-  if (typeof reason !== 'string') return 'stop';
+function normalizeFinishReason(reason: AiSdkFinishReason): string {
   return reason === 'tool-calls' ? 'tool_call' : reason;
 }
 
-function buildOutputMessages(content: ContentPart[], finishReason: unknown): string | undefined {
+function buildOutputMessages(content: AiSdkContentPart[], finishReason: AiSdkFinishReason): string | undefined {
   const parts: Record<string, unknown>[] = [];
   const text = content
     .filter(p => p.type === 'text' && p.text)
@@ -104,19 +86,15 @@ function buildOutputMessages(content: ContentPart[], finishReason: unknown): str
     .join('');
   if (text) parts.push({ type: 'text', content: text });
   for (const tc of content.filter(p => p.type === 'tool-call')) {
-    parts.push({
-      type: 'tool_call',
-      id: tc.toolCallId,
-      name: tc.toolName,
-      arguments: typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input ?? {}),
-    });
+    const args = typeof tc.input === 'string' ? tc.input : safeStringify(tc.input ?? {});
+    parts.push({ type: 'tool_call', id: tc.toolCallId, name: tc.toolName, arguments: args });
   }
   if (parts.length === 0) return undefined;
-  return JSON.stringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
+  return safeStringify([{ role: 'assistant', parts, finish_reason: normalizeFinishReason(finishReason) }]);
 }
 
-function formatInputMessages(messages: unknown[]): string {
-  return JSON.stringify(
+function formatInputMessages(messages: unknown[]): string | undefined {
+  return safeStringify(
     messages.map((m: unknown) =>
       m && typeof m === 'object' && 'role' in m ? m : { role: 'user', content: String(m) },
     ),
@@ -143,10 +121,14 @@ export function handleOnStart(event: Record<string, unknown>): void {
   if (recordInputs) {
     const instructions = event.instructions as string | undefined;
     if (instructions) {
-      attributes['gen_ai.system_instructions'] = JSON.stringify([{ type: 'text', content: instructions }]);
+      const val = safeStringify([{ type: 'text', content: instructions }]);
+      if (val) attributes['gen_ai.system_instructions'] = val;
     }
     const messages = event.messages as unknown[] | undefined;
-    if (Array.isArray(messages)) attributes['gen_ai.input.messages'] = formatInputMessages(messages);
+    if (Array.isArray(messages)) {
+      const val = formatInputMessages(messages);
+      if (val) attributes['gen_ai.input.messages'] = val;
+    }
   }
 
   const rootSpan = startInactiveSpan({ name: spanName, attributes });
@@ -167,9 +149,15 @@ export function handleOnLanguageModelCallStart(event: Record<string, unknown>): 
   };
   if (state.recordInputs) {
     const messages = event.messages as unknown[] | undefined;
-    if (Array.isArray(messages)) attributes['gen_ai.input.messages'] = formatInputMessages(messages);
+    if (Array.isArray(messages)) {
+      const val = formatInputMessages(messages);
+      if (val) attributes['gen_ai.input.messages'] = val;
+    }
     const tools = event.tools as unknown[] | undefined;
-    if (Array.isArray(tools)) attributes['gen_ai.request.available_tools'] = JSON.stringify(tools);
+    if (Array.isArray(tools)) {
+      const val = safeStringify(tools);
+      if (val) attributes['gen_ai.request.available_tools'] = val;
+    }
   }
   state.inferenceSpan = startInactiveSpan({ name: `generate_content ${modelId}`, attributes });
 }
@@ -178,21 +166,19 @@ export function handleOnLanguageModelCallEnd(event: Record<string, unknown>): vo
   const state = callStates.get(event.callId as string);
   if (!state?.inferenceSpan) return;
 
-  const usage = event.usage as Usage | undefined;
+  const usage = event.usage as AiSdkUsage | undefined;
   if (usage) setUsageAttributes(state.inferenceSpan, usage);
-  const finishReason = event.finishReason as string | undefined;
+  const finishReason = event.finishReason as AiSdkFinishReason | undefined;
   if (finishReason) {
-    state.inferenceSpan.setAttribute(
-      'gen_ai.response.finish_reasons',
-      JSON.stringify([normalizeFinishReason(finishReason)]),
-    );
+    const val = safeStringify([normalizeFinishReason(finishReason)]);
+    if (val) state.inferenceSpan.setAttribute('gen_ai.response.finish_reasons', val);
   }
   if (event.responseId) state.inferenceSpan.setAttribute('gen_ai.response.id', event.responseId as string);
 
   if (state.recordOutputs) {
-    const content = event.content as ContentPart[] | undefined;
+    const content = event.content as AiSdkContentPart[] | undefined;
     if (Array.isArray(content)) {
-      const out = buildOutputMessages(content, finishReason);
+      const out = buildOutputMessages(content, finishReason ?? 'stop');
       if (out) state.inferenceSpan.setAttribute('gen_ai.output.messages', out);
     }
   }
@@ -203,7 +189,7 @@ export function handleOnLanguageModelCallEnd(event: Record<string, unknown>): vo
 export function handleOnToolExecutionStart(event: Record<string, unknown>): void {
   const state = callStates.get(event.callId as string);
   if (!state) return;
-  const toolCall = event.toolCall as ToolCall;
+  const toolCall = event.toolCall as AiSdkToolCall;
   if (!toolCall) return;
 
   const attributes: Record<string, string | number | boolean> = {
@@ -215,8 +201,8 @@ export function handleOnToolExecutionStart(event: Record<string, unknown>): void
     'gen_ai.tool.type': 'function',
   };
   if (state.recordInputs && toolCall.input != null) {
-    attributes['gen_ai.tool.input'] =
-      typeof toolCall.input === 'string' ? toolCall.input : JSON.stringify(toolCall.input);
+    const val = typeof toolCall.input === 'string' ? toolCall.input : safeStringify(toolCall.input);
+    if (val) attributes['gen_ai.tool.input'] = val;
   }
   state.toolSpans.set(
     toolCall.toolCallId,
@@ -227,18 +213,15 @@ export function handleOnToolExecutionStart(event: Record<string, unknown>): void
 export function handleOnToolExecutionEnd(event: Record<string, unknown>): void {
   const state = callStates.get(event.callId as string);
   if (!state) return;
-  const toolCall = event.toolCall as ToolCall;
+  const toolCall = event.toolCall as AiSdkToolCall;
   if (!toolCall) return;
   const toolSpan = state.toolSpans.get(toolCall.toolCallId);
   if (!toolSpan) return;
 
   const toolOutput = event.toolOutput as { type: string; output?: unknown; error?: Error } | undefined;
   if (toolOutput?.type === 'tool-result' && state.recordOutputs && toolOutput.output != null) {
-    try {
-      toolSpan.setAttribute('gen_ai.tool.output', JSON.stringify(toolOutput.output));
-    } catch {
-      // ignore
-    }
+    const val = safeStringify(toolOutput.output);
+    if (val) toolSpan.setAttribute('gen_ai.tool.output', val);
   } else if (toolOutput?.type === 'tool-error' && toolOutput.error) {
     toolSpan.setStatus({ code: 2, message: toolOutput.error.message });
     withScope(scope => {
@@ -256,29 +239,26 @@ export function handleOnEnd(event: Record<string, unknown>): void {
   const state = callStates.get(event.callId as string);
   if (!state) return;
 
-  const usage = (event.totalUsage ?? event.usage) as Usage | undefined;
+  const usage = (event.totalUsage ?? event.usage) as AiSdkUsage | undefined;
   if (usage) setUsageAttributes(state.rootSpan, usage);
-  const finishReason = event.finishReason as string | undefined;
+  const finishReason = event.finishReason as AiSdkFinishReason | undefined;
   if (finishReason) {
-    state.rootSpan.setAttribute(
-      'gen_ai.response.finish_reasons',
-      JSON.stringify([normalizeFinishReason(finishReason)]),
-    );
+    const val = safeStringify([normalizeFinishReason(finishReason)]);
+    if (val) state.rootSpan.setAttribute('gen_ai.response.finish_reasons', val);
   }
-
   if (state.recordOutputs) {
-    const content: ContentPart[] = [];
+    const content: AiSdkContentPart[] = [];
     const text = event.text as string | undefined;
     if (text) content.push({ type: 'text', text });
-    const toolCalls = event.toolCalls as ToolCall[] | undefined;
-    if (toolCalls) {
-      for (const tc of toolCalls) {
-        content.push({ type: 'tool-call', toolCallId: tc.toolCallId, toolName: tc.toolName, input: tc.input });
-      }
+    for (const tc of (event.toolCalls as AiSdkToolCall[] | undefined) ?? []) {
+      content.push({ type: 'tool-call', toolCallId: tc.toolCallId, toolName: tc.toolName, input: tc.input });
     }
-    const out = buildOutputMessages(content, finishReason);
+    const out = buildOutputMessages(content, finishReason ?? 'stop');
     if (out) state.rootSpan.setAttribute('gen_ai.output.messages', out);
   }
+  for (const [, s] of state.toolSpans) s.end();
+  state.toolSpans.clear();
+  if (state.inferenceSpan) state.inferenceSpan.end();
   state.rootSpan.end();
   callStates.delete(event.callId as string);
 }
@@ -286,9 +266,9 @@ export function handleOnEnd(event: Record<string, unknown>): void {
 export function handleOnError(event: Record<string, unknown>): void {
   const state = callStates.get(event.callId as string);
   if (!state) return;
-  const error = (event.error ?? event) as Error;
+  const error = event.error instanceof Error ? event.error : undefined;
   const endWithError = (span: Span): void => {
-    span.setStatus({ code: 2, message: error?.message });
+    span.setStatus({ code: 2, message: error?.message ?? 'unknown error' });
     span.end();
   };
   for (const [, s] of state.toolSpans) endWithError(s);
@@ -296,4 +276,37 @@ export function handleOnError(event: Record<string, unknown>): void {
   if (state.inferenceSpan) endWithError(state.inferenceSpan);
   endWithError(state.rootSpan);
   callStates.delete(event.callId as string);
+}
+
+const DC_CHANNEL = 'aisdk:telemetry';
+
+const DC_HANDLERS: Record<string, (event: Record<string, unknown>) => void> = {
+  onStart: handleOnStart,
+  onLanguageModelCallStart: handleOnLanguageModelCallStart,
+  onLanguageModelCallEnd: handleOnLanguageModelCallEnd,
+  onToolExecutionStart: handleOnToolExecutionStart,
+  onToolExecutionEnd: handleOnToolExecutionEnd,
+  onEnd: handleOnEnd,
+  onError: handleOnError,
+};
+
+let subscribed = false;
+
+/** Subscribe to AI SDK v7+ diagnostic channel. Inert on v3-v6. */
+export function subscribeAiSdkDiagnosticChannel(): void {
+  if (subscribed) return;
+  subscribed = true;
+
+  try {
+    subscribe(DC_CHANNEL, (message: unknown) => {
+      const msg = message as { type: string; event: Record<string, unknown> };
+      try {
+        DC_HANDLERS[msg?.type]?.(msg.event);
+      } catch {
+        // Never let telemetry processing break the application
+      }
+    });
+  } catch {
+    // subscribe may not be available on all runtimes
+  }
 }

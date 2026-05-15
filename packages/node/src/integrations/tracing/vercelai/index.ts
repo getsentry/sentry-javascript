@@ -2,7 +2,7 @@ import type { Client, IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
 import { INTEGRATION_NAME } from './constants';
-import { subscribeAiSdkDiagnosticChannel } from './dc-subscriber';
+import { subscribeAiSdkDiagnosticChannel } from './dc-handlers';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';
 

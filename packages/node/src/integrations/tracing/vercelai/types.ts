@@ -73,3 +73,39 @@ export interface VercelAiOptions {
 export interface VercelAiIntegration extends Integration {
   options: VercelAiOptions;
 }
+
+// -- Diagnostic channel event types --
+// Shapes derived from the AI SDK telemetry events.
+// See: https://github.com/vercel/ai/blob/main/packages/ai/core/telemetry
+
+export type AiSdkOperationId =
+  | 'ai.generateText'
+  | 'ai.streamText'
+  | 'ai.generateObject'
+  | 'ai.streamObject'
+  | 'ai.embed'
+  | 'ai.embedMany'
+  | 'ai.rerank';
+
+export type AiSdkFinishReason = 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';
+
+export interface AiSdkUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number };
+  outputTokenDetails?: { reasoningTokens?: number };
+}
+
+export interface AiSdkContentPart {
+  type: string;
+  text?: string;
+  toolCallId?: string;
+  toolName?: string;
+  input?: unknown;
+}
+
+export interface AiSdkToolCall {
+  toolCallId: string;
+  toolName: string;
+  input?: unknown;
+}
