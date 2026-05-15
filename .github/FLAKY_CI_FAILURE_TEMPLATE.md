@@ -1,6 +1,6 @@
 ---
 title: '[Flaky CI]: {{ env.JOB_NAME }} - {{ env.TEST_NAME }}'
-labels: Tests, Bug
+labels: Tests, Bug, "Flaky Test"
 ---
 
 ### Flakiness Type
