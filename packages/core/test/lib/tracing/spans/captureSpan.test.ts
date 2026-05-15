@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { StreamedSpanJSON } from '../../../../src';
+import type { Contexts, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
@@ -23,6 +23,7 @@ import {
   withStreamedSpan,
 } from '../../../../src';
 import { inferSpanDataFromOtelAttributes, safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
+import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('captureSpan', () => {
@@ -658,5 +659,203 @@ describe('inferSpanDataFromOtelAttributes', () => {
     inferSpanDataFromOtelAttributes(spanJSON);
     expect(spanJSON.attributes?.['sentry.op']).toBeUndefined();
     expect(spanJSON.name).toBe('test');
+  });
+});
+
+describe('scopeContextsToSpanAttributes', () => {
+  it('returns empty object for empty contexts', () => {
+    expect(scopeContextsToSpanAttributes({})).toEqual({});
+  });
+
+  it('ignores unknown context names', () => {
+    const contexts: Contexts = { my_custom_context: { foo: 'bar' } };
+    expect(scopeContextsToSpanAttributes(contexts)).toEqual({});
+  });
+
+  describe('response context', () => {
+    it('maps status_code and body_size', () => {
+      const contexts: Contexts = { response: { status_code: 200, body_size: 1024 } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'http.response.status_code': 200,
+        'http.response.body.size': 1024,
+      });
+    });
+
+    it('omits missing fields', () => {
+      const contexts: Contexts = { response: { status_code: 404 } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'http.response.status_code': 404,
+      });
+    });
+  });
+
+  describe('profile context', () => {
+    it('maps profile_id to sentry.profile_id', () => {
+      const contexts: Contexts = { profile: { profile_id: 'abc123' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'sentry.profile_id': 'abc123',
+      });
+    });
+
+    it('maps profiler_id to sentry.profiler_id', () => {
+      const contexts: Contexts = { profile: { profile_id: '', profiler_id: 'prof-1' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'sentry.profiler_id': 'prof-1',
+      });
+    });
+
+    it('produces no attributes for empty profile context', () => {
+      const contexts: Contexts = { profile: { profile_id: '' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({});
+    });
+  });
+
+  describe('cloud_resource context', () => {
+    it('passes through dot-notation keys', () => {
+      const contexts: Contexts = {
+        cloud_resource: { 'cloud.provider': 'cloudflare', 'cloud.region': 'us-east-1' },
+      };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'cloud.provider': 'cloudflare',
+        'cloud.region': 'us-east-1',
+      });
+    });
+
+    it('filters out null values', () => {
+      const contexts: Contexts = {
+        cloud_resource: { 'cloud.provider': 'aws', 'cloud.region': undefined },
+      };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'cloud.provider': 'aws',
+      });
+    });
+  });
+
+  describe('culture context', () => {
+    it('maps locale and timezone', () => {
+      const contexts: Contexts = { culture: { locale: 'en-US', timezone: 'America/New_York' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'culture.locale': 'en-US',
+        'culture.timezone': 'America/New_York',
+      });
+    });
+
+    it('omits missing fields', () => {
+      const contexts: Contexts = { culture: { timezone: 'UTC' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'culture.timezone': 'UTC',
+      });
+    });
+  });
+
+  describe('state context', () => {
+    it('maps state.type only', () => {
+      const contexts: Contexts = {
+        state: { state: { type: 'redux', value: { counter: 42, user: { name: 'test' } } } },
+      };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'state.type': 'redux',
+      });
+    });
+
+    it('does not map state.value', () => {
+      const contexts: Contexts = {
+        state: { state: { type: 'pinia', value: { items: [1, 2, 3] } } },
+      };
+      const attrs = scopeContextsToSpanAttributes(contexts);
+      expect(attrs).not.toHaveProperty('state.value');
+      expect(attrs).not.toHaveProperty('state.state.value');
+    });
+
+    it('handles missing state.state gracefully', () => {
+      const contexts: Contexts = { state: {} as any };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({});
+    });
+  });
+
+  describe('framework version contexts', () => {
+    it('maps angular.version', () => {
+      const contexts: Contexts = { angular: { version: 17 } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'angular.version': 17,
+      });
+    });
+
+    it('maps react.version', () => {
+      const contexts: Contexts = { react: { version: '18.2.0' } };
+      expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+        'react.version': '18.2.0',
+      });
+    });
+  });
+
+  it('maps multiple contexts at once', () => {
+    const contexts: Contexts = {
+      response: { status_code: 200 },
+      culture: { timezone: 'UTC' },
+      react: { version: '18.2.0' },
+    };
+    expect(scopeContextsToSpanAttributes(contexts)).toEqual({
+      'http.response.status_code': 200,
+      'culture.timezone': 'UTC',
+      'react.version': '18.2.0',
+    });
+  });
+});
+
+describe('applyScopeToSegmentSpan integration', () => {
+  it('applies scope contexts to segment span attributes', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'production',
+      }),
+    );
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+      scope.setContext('response', { status_code: 201 });
+      scope.setContext('culture', { timezone: 'Europe/Berlin' });
+
+      const span = startInactiveSpan({ name: 'test-span' });
+      span.end();
+      return span;
+    });
+
+    const serialized = captureSpan(span, client);
+
+    expect(serialized.attributes).toEqual(
+      expect.objectContaining({
+        'http.response.status_code': { type: 'integer', value: 201 },
+        'culture.timezone': { type: 'string', value: 'Europe/Berlin' },
+      }),
+    );
+  });
+
+  it('does not apply scope contexts to child spans', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'production',
+      }),
+    );
+
+    const serializedChild = withScope(scope => {
+      scope.setClient(client);
+      scope.setContext('response', { status_code: 200 });
+
+      return startSpan({ name: 'segment' }, () => {
+        const childSpan = startInactiveSpan({ name: 'child' });
+        childSpan.end();
+        return captureSpan(childSpan, client);
+      });
+    });
+
+    expect(serializedChild?.is_segment).toBe(false);
+    expect(serializedChild?.attributes).not.toHaveProperty('http.response.status_code');
   });
 });

@@ -248,6 +248,14 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             type: 'integer',
             value: 200,
           },
+          'cloud.provider': {
+            type: 'string',
+            value: 'cloudflare',
+          },
+          'culture.timezone': {
+            type: 'string',
+            value: expect.any(String),
+          },
           'network.protocol.name': {
             type: 'string',
             value: 'HTTP/1.1',
