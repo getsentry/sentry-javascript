@@ -1,4 +1,4 @@
-/*! Sentry Replay Worker 8.33.1 (c992b3fad) | https://github.com/getsentry/sentry-javascript */
+/*! Sentry Replay Worker 10.53.1 (1b85ea392a) | https://github.com/getsentry/sentry-javascript */
 // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
 // https://tools.ietf.org/html/rfc1951
 // You may also wish to take a look at the guide I made about this program:
@@ -125,7 +125,6 @@ var shft = function (p) {
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
 var slc = function (v, s, e) {
-  if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
   return new u8(v.subarray(s, e));
@@ -588,7 +587,7 @@ var dopt = function (dat, opt, pre, post, st) {
   return dflt(
     dat,
     opt.level == null ? 6 : opt.level,
-    opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 12 + opt.mem,
+    opt.mem == null ? (st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20) : 12 + opt.mem,
     pre,
     post,
     st,
@@ -661,11 +660,9 @@ var Deflate = /*#__PURE__*/ (function () {
         this.b = newBuf;
       }
       var split = this.b.length - this.s.z;
-      if (split) {
-        this.b.set(chunk.subarray(0, split), this.s.z);
-        this.s.z = this.b.length;
-        this.p(this.b, false);
-      }
+      this.b.set(chunk.subarray(0, split), this.s.z);
+      this.s.z = this.b.length;
+      this.p(this.b, false);
       this.b.set(this.b.subarray(-32768));
       this.b.set(chunk.subarray(split), 32768);
       this.s.z = chunk.length - split + 32768;
@@ -679,6 +676,16 @@ var Deflate = /*#__PURE__*/ (function () {
       this.p(this.b, final || false);
       ((this.s.w = this.s.i), (this.s.i -= 2));
     }
+  };
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * deflated output for small inputs.
+   */
+  Deflate.prototype.flush = function () {
+    if (!this.ondata) err(5);
+    if (this.s.l) err(4);
+    this.p(this.b, false);
+    ((this.s.w = this.s.i), (this.s.i -= 2));
   };
   return Deflate;
 })();
@@ -721,6 +728,13 @@ var Zlib = /*#__PURE__*/ (function () {
     if (f) wbytes(raw, raw.length - 4, this.c.d());
     this.ondata(raw, f);
   };
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * zlibbed output for small inputs.
+   */
+  Zlib.prototype.flush = function () {
+    Deflate.prototype.flush.call(this);
+  };
   return Zlib;
 })();
 // text encoder
@@ -729,7 +743,7 @@ var te = typeof TextEncoder != 'undefined' && /*#__PURE__*/ new TextEncoder();
 var td = typeof TextDecoder != 'undefined' && /*#__PURE__*/ new TextDecoder();
 try {
   td.decode(et, { stream: true });
-} catch {}
+} catch (e) {}
 /**
  * Streaming UTF-8 encoding
  */
@@ -761,11 +775,7 @@ var EncodeUTF8 = /*#__PURE__*/ (function () {
  * @returns The string encoded in UTF-8/Latin-1 binary
  */
 function strToU8(str, latin1) {
-  if (latin1) {
-    var ar_1 = new u8(str.length);
-    for (var i = 0; i < str.length; ++i) ar_1[i] = str.charCodeAt(i);
-    return ar_1;
-  }
+  var i;
   if (te) return te.encode(str);
   var l = str.length;
   var ar = new u8(str.length + (str.length >> 1));
