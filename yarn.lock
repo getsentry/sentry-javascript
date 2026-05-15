@@ -18502,13 +18502,13 @@ h3@^1.10.0, h3@^1.12.0, h3@^1.15.3, h3@^1.15.5:
     ufo "^1.6.3"
     uncrypto "^0.1.3"
 
-h3@^2.0.1-rc.13, h3@^2.0.1-rc.16, h3@^2.0.1-rc.20:
-  version "2.0.1-rc.20"
-  resolved "https://registry.yarnpkg.com/h3/-/h3-2.0.1-rc.20.tgz#51050db30afb0b6e69718d88cccc23666fbe8039"
-  integrity sha512-28ljodXuUp0fZovdiSRq4G9OgrxCztrJe5VdYzXAB7ueRvI7pIUqLU14Xi3XqdYJ/khXjfpUOOD2EQa6CmBgsg==
+h3@^2.0.1-rc.16, h3@^2.0.1-rc.20, h3@^2.0.1-rc.22:
+  version "2.0.1-rc.22"
+  resolved "https://registry.yarnpkg.com/h3/-/h3-2.0.1-rc.22.tgz#12c94d2f99e9afa42b490ebfda6163035e98be2a"
+  integrity sha512-Esv0DMIuPkCTSWCA0vO73vcTqwzH1wjSrAO1TXNu/K3up1sZHa9EKMapbmxCDYBeymC3fVTk4qxp7ogQWQ+KgA==
   dependencies:
     rou3 "^0.8.1"
-    srvx "^0.11.13"
+    srvx "^0.11.15"
 
 handle-thing@^2.0.0:
   version "2.0.1"
@@ -28481,6 +28481,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
