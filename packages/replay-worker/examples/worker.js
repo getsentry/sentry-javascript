@@ -1,4 +1,4 @@
-/*! Sentry Replay Worker 10.53.1 (1b85ea392a) | https://github.com/getsentry/sentry-javascript */
+/*! Sentry Replay Worker 10.53.1 (d8e086f796) | https://github.com/getsentry/sentry-javascript */
 // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
 // https://tools.ietf.org/html/rfc1951
 // You may also wish to take a look at the guide I made about this program:
