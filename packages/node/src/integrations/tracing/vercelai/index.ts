@@ -2,6 +2,7 @@ import type { Client, IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
 import { INTEGRATION_NAME } from './constants';
+import { subscribeAiSdkDiagnosticChannel } from './dc-handlers';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';
 
@@ -35,6 +36,10 @@ const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
       } else {
         instrumentation?.callWhenPatched(() => addVercelAiProcessors(client));
       }
+
+      // AI SDK v7+ publishes telemetry events to node:diagnostics_channel.
+      // On v3-v6 the channel is never published to, so this is inert.
+      subscribeAiSdkDiagnosticChannel();
     },
   };
 }) satisfies IntegrationFn;
