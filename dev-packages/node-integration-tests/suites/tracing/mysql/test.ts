@@ -102,10 +102,7 @@ describe('mysql auto instrumentation', () => {
         ]),
       };
 
-      await createRunner()
-        .expect({ transaction: EXPECTED_TRANSACTION })
-        .start()
-        .completed();
+      await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
 });
