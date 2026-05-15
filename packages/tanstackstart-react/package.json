@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@opentelemetry/semantic-conventions": "^1.41.1",
     "@sentry-internal/browser-utils": "10.53.1",
     "@sentry/core": "10.53.1",
     "@sentry/node": "10.53.1",
