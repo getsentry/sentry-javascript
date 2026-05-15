@@ -13,19 +13,19 @@
 
 Orchestrion-JS is published as three coordinated packages:
 
-| Package | What it does | We use it for |
-|---|---|---|
-| `@apm-js-collab/code-transformer` | Rust/WASM AST walker. Given an `InstrumentationConfig[]`, returns a `Transformer` that rewrites function bodies to publish to a `TracingChannel`. | Indirectly — via the two below. |
-| `@apm-js-collab/tracing-hooks` | Node ESM loader (`register('@apm-js-collab/tracing-hooks/hook.mjs', ..., { data: { instrumentations } })`) + a CJS `ModulePatch` for `--require`. | **Runtime** channel injection. |
-| `@apm-js-collab/code-transformer-bundler-plugins` | One plugin per bundler (`/vite`, `/webpack`, `/rollup`, `/esbuild`), all taking the same `{ instrumentations }` object. | **Build-time** channel injection. |
+| Package                                           | What it does                                                                                                                                      | We use it for                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `@apm-js-collab/code-transformer`                 | Rust/WASM AST walker. Given an `InstrumentationConfig[]`, returns a `Transformer` that rewrites function bodies to publish to a `TracingChannel`. | Indirectly — via the two below.   |
+| `@apm-js-collab/tracing-hooks`                    | Node ESM loader (`register('@apm-js-collab/tracing-hooks/hook.mjs', ..., { data: { instrumentations } })`) + a CJS `ModulePatch` for `--require`. | **Runtime** channel injection.    |
+| `@apm-js-collab/code-transformer-bundler-plugins` | One plugin per bundler (`/vite`, `/webpack`, `/rollup`, `/esbuild`), all taking the same `{ instrumentations }` object.                           | **Build-time** channel injection. |
 
 All three accept the same `InstrumentationConfig` shape:
 
 ```ts
 type InstrumentationConfig = {
-  channelName: string;                  // diagnostics_channel TracingChannel name
+  channelName: string; // diagnostics_channel TracingChannel name
   module: { name: string; versionRange: string; filePath: string };
-  functionQuery: FunctionQuery;         // className+methodName / functionName / expressionName / ...
+  functionQuery: FunctionQuery; // className+methodName / functionName / expressionName / ...
 };
 ```
 
@@ -37,12 +37,12 @@ This means **one config array** can drive both the runtime hook and every bundle
 2. **Single source of truth for orchestrion config.** Channel names + module matchers + function queries live in **one** TypeScript module. Both the runtime hook and the bundler plugin import from it. Adding a new instrumentation = one edit.
 3. **Two equally good user paths, one of which must be active.**
    - **Bundler path** (preferred when bundling): the user adds `sentryOrchestrionPlugin()` to their `vite.config.ts`. Nothing else.
-   - **Runtime path** (preferred for unbundled Node servers): the user runs `node --import @sentry/node/orchestrion app.js` (ESM) or `node --require @sentry/node/orchestrion/require app.js` (CJS). Nothing else.
+   - **Runtime path** (preferred for unbundled Node servers): the user runs `node --import @sentry/node/orchestrion app.js` (ESM) or `node --require @sentry/node/orchestrion app.js` (CJS). The same import path resolves to the ESM `import-hook.mjs` or the CJS `require-hook.cjs` based on the active loader condition, so the user doesn't have to know which one to pick.
 4. **Loud about misconfiguration.** When orchestrion setup runs, the SDK must detect (a) "no orchestrion hook was set up at all" and (b) "both paths ran — code is double-wrapped" and warn clearly.
 5. **No mixing with the existing OTel-based init, and tree-shakable.** The opt-in is split into two pieces so users who don't opt in never pull in any orchestrion code:
-   - A new `_experimentalUseOrchestrion: true` flag on `Sentry.init()` that does the *base* adjustments — i.e. skip registering the OTel auto-instrumentations that have a channel-based replacement (mysql, …). This is all `init()` itself does; it pulls in zero orchestrion-specific code.
+   - A new `_experimentalUseOrchestrion: true` flag on `Sentry.init()` that does the _base_ adjustments — i.e. skip registering the OTel auto-instrumentations that have a channel-based replacement (mysql, …). This is all `init()` itself does; it pulls in zero orchestrion-specific code.
    - A new top-level export `_experimentalSetupOrchestrion()` that the user calls **after** `Sentry.init()`. This is where all orchestrion-specific code lives: the channel subscribers, the integration registrations, and the runtime/bundler detection warnings. If the user never calls it, the bundler can drop everything under `orchestrion/` from their bundle.
-   When the flag is unset (the default), `init()` behaves exactly as today and `_experimentalSetupOrchestrion` — if imported — is a no-op that only warns. Existing users keep using `@opentelemetry/instrumentation-*` integrations untouched.
+     When the flag is unset (the default), `init()` behaves exactly as today and `_experimentalSetupOrchestrion` — if imported — is a no-op that only warns. Existing users keep using `@opentelemetry/instrumentation-*` integrations untouched.
 
 ## Repository layout
 
@@ -64,11 +64,11 @@ packages/node/
         └── bundler/
             ├── vite.ts                           sentryOrchestrionVitePlugin() — wraps code-transformer/vite + marker
             └── marker-banner.ts                  shared "inject `globalThis.__SENTRY_ORCHESTRION__.bundler = true`" plugin
-packages/node/src/integrations/mysql/
-    └── tracing-channel.ts                                  ★ subscribes to channels; creates Sentry spans
+packages/node/src/integrations/tracing-channel/
+    └── mysql.ts                                            ★ subscribes to channels; creates Sentry spans
 ```
 
-The split between `orchestrion/` (plumbing) and `integrations/` (consumers) makes the boundary the user wants explicit: a contributor adding a new channel-driven integration edits `orchestrion/config.ts` (one entry) + `integrations/<lib>.ts` (one subscriber) + adds it to the default list in `orchestrion/setup.ts`. Nothing else.
+All channel-consumer integrations live together under `integrations/tracing-channel/` — one file per library (`mysql.ts`, future `pg.ts`, `redis.ts`, …). This mirrors the existing `integrations/tracing/` layout for the OTel path, keeps related code visually grouped, and makes the boundary the user wants explicit: a contributor adding a new channel-driven integration edits `orchestrion/config.ts` (one entry) + `integrations/tracing-channel/<lib>.ts` (one subscriber) + adds it to the default list in `orchestrion/setup.ts`. Nothing else.
 
 `orchestrion/setup.ts` is the **only** file under `orchestrion/` that user code imports from at runtime (via the top-level `@sentry/node` re-export of `_experimentalSetupOrchestrion`). Everything else under `orchestrion/` is reachable only transitively through that one entry point — which is what makes the experiment tree-shakable for opted-out users.
 
@@ -105,7 +105,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
 
 ## The integration — channel consumer
 
-`packages/node/src/integrations/mysql/tracing-channel.ts` (sketch):
+`packages/node/src/integrations/tracing-channel/mysql.ts` (sketch):
 
 ```ts
 import { channel, tracingChannel } from 'node:diagnostics_channel';
@@ -160,11 +160,9 @@ Add to `packages/node/package.json`:
 "exports": {
   // … existing entries …
   "./orchestrion": {
-    // ESM --import target. Single mjs file with register() call.
-    "import": { "default": "./build/orchestrion/import-hook.mjs" }
-  },
-  "./orchestrion/require": {
-    // CJS --require target. Calls ModulePatch.patch().
+    // Single subpath, two condition arms — Node picks the right file based on
+    // whether the user passed `--import` (ESM hook) or `--require` (CJS hook).
+    "import": { "default": "./build/orchestrion/import-hook.mjs" },
     "require": { "default": "./build/orchestrion/require-hook.cjs" }
   },
   "./orchestrion/vite": {
@@ -220,7 +218,7 @@ const { SENTRY_INSTRUMENTATIONS } = require('../config.js');
 
 const g = (globalThis.__SENTRY_ORCHESTRION__ ??= {});
 if (g.runtime) {
-  console.warn('[Sentry] @sentry/node/orchestrion/require was loaded twice via --require. Ignoring.');
+  console.warn('[Sentry] @sentry/node/orchestrion was loaded twice via --require. Ignoring.');
 } else {
   g.runtime = true;
   new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
@@ -286,8 +284,8 @@ export function detectOrchestrionSetup(): void {
   if (runtime && bundler) {
     logger.warn(
       '[Sentry] Detected BOTH the @sentry/node/orchestrion runtime hook AND the bundler plugin. ' +
-      'Functions will be instrumented twice and produce duplicate spans. ' +
-      'Remove `--import @sentry/node/orchestrion` if you are using the bundler plugin, or vice versa.',
+        'Functions will be instrumented twice and produce duplicate spans. ' +
+        'Remove `--import @sentry/node/orchestrion` if you are using the bundler plugin, or vice versa.',
     );
     return;
   }
@@ -295,7 +293,7 @@ export function detectOrchestrionSetup(): void {
   if (!runtime && !bundler) {
     logger.warn(
       '[Sentry] No auto-instrumentation hook detected. Channel-based integrations (mysql, …) will not record spans. ' +
-      'Either run with `node --import @sentry/node/orchestrion app.js`, or add `sentryOrchestrionPlugin()` to your bundler config.',
+        'Either run with `node --import @sentry/node/orchestrion app.js`, or add `sentryOrchestrionPlugin()` to your bundler config.',
     );
   }
 }
@@ -351,7 +349,7 @@ The list of replaced integration names is a plain string set defined alongside `
 import { logger } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { detectOrchestrionSetup } from './detect';
-import { mysqlChannelIntegration } from '../integrations/mysql/tracing-channel';
+import { mysqlChannelIntegration } from '../integrations/tracing-channel/mysql';
 
 export interface ExperimentalSetupOrchestrionOptions {
   /**
@@ -368,15 +366,15 @@ export function _experimentalSetupOrchestrion(
   if (!client) {
     logger.warn(
       '[Sentry] _experimentalSetupOrchestrion() was called without a client. ' +
-      'Pass the value returned by `Sentry.init()`.',
+        'Pass the value returned by `Sentry.init()`.',
     );
     return;
   }
   if (!client.getOptions()._experimentalUseOrchestrion) {
     logger.warn(
       '[Sentry] _experimentalSetupOrchestrion() called but Sentry.init() was not given ' +
-      '`_experimentalUseOrchestrion: true`. The default OTel integrations are still active — ' +
-      'you will get duplicate spans. Add the flag to Sentry.init().',
+        '`_experimentalUseOrchestrion: true`. The default OTel integrations are still active — ' +
+        'you will get duplicate spans. Add the flag to Sentry.init().',
     );
   }
 
@@ -421,6 +419,7 @@ This keeps the experiment self-contained — no parallel `init` function, no sep
 ## End-user surface
 
 **Bundled app (Vite):**
+
 ```ts
 // vite.config.ts
 import { sentryOrchestrionPlugin } from '@sentry/node/orchestrion/vite';
@@ -438,34 +437,37 @@ _experimentalSetupOrchestrion(client);
 ```
 
 **Unbundled Node ESM app:**
+
 ```bash
 node --import @sentry/node/orchestrion app.js
 ```
+
 ```ts
 // app.ts — same two-step init + setup as above, no plugin needed.
 ```
 
 **Unbundled Node CJS app:**
+
 ```bash
-node --require @sentry/node/orchestrion/require app.js
+node --require @sentry/node/orchestrion app.js
 ```
 
 If the user does **neither** runtime nor bundler hook, `_experimentalSetupOrchestrion()` warns at startup. If they do **both**, it also warns. If they set `_experimentalUseOrchestrion: true` but never call `_experimentalSetupOrchestrion()`, they get no channel-based spans and no OTel-based spans for the replaced libraries — also a warning case (emitted lazily the first time the client tries to flush, since we can't observe the missing call directly at `init()` time). TBD whether this third warning is worth the complexity.
 
 ## Double-wrap analysis — what orchestrion does and doesn't protect against
 
-| Failure mode | Who catches it | How |
-|---|---|---|
-| Bundler plugin added twice in the same Vite config | orchestrion's bundler plugin itself? **Unverified** — needs a test during the spike. If not, our marker plugin warns. | `__SENTRY_ORCHESTRION__.bundler` already true at second plugin invocation. |
-| `--import @sentry/node/orchestrion` passed twice on CLI | Our hook | Marker set before `register()`, second load short-circuits with a warn. |
-| Bundler plugin + runtime hook both run | Our `detect.ts` at `Sentry.init` | Warn — this is the most likely real-world footgun, since a Vite-built app may still launch with a stray `--import` from prod tooling. |
-| Neither runs | Our `detect.ts` | Warn — user thinks Sentry instruments their DB but it silently doesn't. |
-| Orchestrion patches a function the user already patched manually | **Out of scope** for this experiment. Document it. | n/a |
+| Failure mode                                                     | Who catches it                                                                                                        | How                                                                                                                                   |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Bundler plugin added twice in the same Vite config               | orchestrion's bundler plugin itself? **Unverified** — needs a test during the spike. If not, our marker plugin warns. | `__SENTRY_ORCHESTRION__.bundler` already true at second plugin invocation.                                                            |
+| `--import @sentry/node/orchestrion` passed twice on CLI          | Our hook                                                                                                              | Marker set before `register()`, second load short-circuits with a warn.                                                               |
+| Bundler plugin + runtime hook both run                           | Our `detect.ts` at `Sentry.init`                                                                                      | Warn — this is the most likely real-world footgun, since a Vite-built app may still launch with a stray `--import` from prod tooling. |
+| Neither runs                                                     | Our `detect.ts`                                                                                                       | Warn — user thinks Sentry instruments their DB but it silently doesn't.                                                               |
+| Orchestrion patches a function the user already patched manually | **Out of scope** for this experiment. Document it.                                                                    | n/a                                                                                                                                   |
 
 ## Implementation phases
 
 1. **Plumbing first** — branch (done), add the three orchestrion packages to `packages/node/package.json` as `dependencies`, create `orchestrion/` directory with empty `config.ts`, `channels.ts`, `detect.ts`. No real channels yet. Build passes.
-2. **Runtime path end-to-end** — wire `import-hook.mjs` + the rollup config in `packages/node/rollup.npm.config.mjs` to emit it. Verify with a throwaway script that has *one* instrumentation in `config.ts` (a function in a tiny local fixture module) that publishing fires.
+2. **Runtime path end-to-end** — wire `import-hook.mjs` + the rollup config in `packages/node/rollup.npm.config.mjs` to emit it. Verify with a throwaway script that has _one_ instrumentation in `config.ts` (a function in a tiny local fixture module) that publishing fires.
 3. **Mysql channel integration** — write `integrations/tracing-channel/mysql.ts`. Plug into a `dev-packages/node-integration-tests/` scenario that runs against a real mysql container, asserts spans.
 4. **Bundler path** — add `sentryOrchestrionPlugin()` for Vite, including marker injection. Test in a small fixture under `dev-packages/e2e-tests/` (Vite-built Node entry hitting mysql).
 5. **Detection + setup entry point** — add `detect.ts` + `setup.ts` (exporting `_experimentalSetupOrchestrion`), wire the `_experimentalUseOrchestrion` flag into `init()` so it filters the default integrations, and re-export `_experimentalSetupOrchestrion` from the package root. Test all four hook states (runtime only / bundler only / both / neither) via the e2e fixtures, plus a bundler-size assertion that not importing `_experimentalSetupOrchestrion` drops `orchestrion/*` from the output.
