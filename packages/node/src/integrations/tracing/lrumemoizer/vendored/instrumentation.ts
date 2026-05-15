@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  * NOTICE from the Sentry authors:
- * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/ed97091c9890dd18e52759f2ea98e9d7593b3ae4/packages/instrumentation-lru-memoizer
- * - Upstream version: @opentelemetry/instrumentation-lru-memoizer@0.58.0
+ * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-lru-memoizer
+ * - Upstream version: @opentelemetry/instrumentation-lru-memoizer@0.62.0
  */
 /* eslint-disable */
 
