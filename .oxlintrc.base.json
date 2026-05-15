@@ -141,13 +141,6 @@
       }
     },
     {
-      "files": ["**/integrations/tracing/lrumemoizer/vendored/**/*.ts"],
-      "rules": {
-        "typescript/no-explicit-any": "off",
-        "max-lines": "off"
-      }
-    },
-    {
       "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"
