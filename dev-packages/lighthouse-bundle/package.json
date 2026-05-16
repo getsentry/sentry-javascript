@@ -1,0 +1,12 @@
+{
+  "name": "@sentry-internal/lighthouse-bundle",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "scripts": {
+    "bundle-and-upload": "node bundle-and-upload.mjs"
+  }
+}

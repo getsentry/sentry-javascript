@@ -8,6 +8,7 @@ on:
       - v8
       - release/**
   pull_request:
+    types: [opened, synchronize, reopened]
   merge_group:
     types: [checks_requested]
   workflow_dispatch:
