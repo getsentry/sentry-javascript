@@ -12,6 +12,7 @@ import {
   createLangChainCallbackHandler,
   GOOGLE_GENAI_INTEGRATION_NAME,
   instrumentLangChainEmbeddings,
+  mergeSentryCallback,
   OPENAI_INTEGRATION_NAME,
   SDK_VERSION,
 } from '@sentry/core';
@@ -25,34 +26,6 @@ type LangChainInstrumentationOptions = InstrumentationConfig & LangChainOptions;
  */
 interface PatchedLangChainExports {
   [key: string]: unknown;
-}
-
-/**
- * Augments a callback handler list with Sentry's handler if not already present
- */
-function augmentCallbackHandlers(handlers: unknown, sentryHandler: unknown): unknown {
-  // Handle null/undefined - return array with just our handler
-  if (!handlers) {
-    return [sentryHandler];
-  }
-
-  // If handlers is already an array
-  if (Array.isArray(handlers)) {
-    // Check if our handler is already in the list
-    if (handlers.includes(sentryHandler)) {
-      return handlers;
-    }
-    // Add our handler to the list
-    return [...handlers, sentryHandler];
-  }
-
-  // If it's a single handler object, convert to array
-  if (typeof handlers === 'object') {
-    return [handlers, sentryHandler];
-  }
-
-  // Unknown type - return original
-  return handlers;
 }
 
 /**
@@ -82,9 +55,7 @@ function wrapRunnableMethod(
       }
 
       // Inject our callback handler into options.callbacks (request time callbacks)
-      const existingCallbacks = options.callbacks;
-      const augmentedCallbacks = augmentCallbackHandlers(existingCallbacks, sentryHandler);
-      options.callbacks = augmentedCallbacks;
+      options.callbacks = mergeSentryCallback(options.callbacks, sentryHandler);
 
       // Call original method with augmented options
       return Reflect.apply(target, thisArg, args);

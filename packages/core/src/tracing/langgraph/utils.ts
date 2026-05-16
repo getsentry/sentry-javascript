@@ -335,7 +335,41 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   }
 }
 
-/** Merge `sentryHandler` into a langchain `callbacks` value (`BaseCallbackHandler[]` or `BaseCallbackManager`). */
+/**
+ * Detects a LangChain `CallbackManager` (or subclass) without depending on `instanceof`.
+ * `@langchain/core` is frequently bundled or deduped, so the imported constructor doesn't
+ * necessarily match the one at the user's call site. We walk the prototype chain looking
+ * for the class name, then confirm the shape — the constructor-name check rules out
+ * unrelated objects that happen to expose `addHandler`/`copy`.
+ */
+function isCallbackManager(value: unknown): value is {
+  addHandler: (handler: unknown, inherit?: boolean) => void;
+  copy: () => unknown;
+  handlers?: unknown[];
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  let proto: object | null = Object.getPrototypeOf(value);
+  while (proto) {
+    if ((proto as { constructor?: { name?: string } }).constructor?.name === 'CallbackManager') {
+      const candidate = value as { addHandler?: unknown; copy?: unknown };
+      return typeof candidate.addHandler === 'function' && typeof candidate.copy === 'function';
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return false;
+}
+
+/**
+ * Merge `sentryHandler` into a langchain `callbacks` value (undefined, `BaseCallbackHandler[]`, or `BaseCallbackManager`).
+ *
+ * Wrapping a `CallbackManager` into `[manager, sentryHandler]` would make LangChain treat the whole manager
+ * as one opaque handler and drop its inheritable children — notably LangGraph's `StreamMessagesHandler`,
+ * which silently breaks per-token streaming. We register on a `.copy()` (so caller state stays clean across
+ * runs) and add ourselves as inheritable so `getChild()` propagates us into nested calls.
+ */
 export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): unknown {
   if (!existing) {
     return [sentryHandler];
@@ -348,12 +382,15 @@ export function mergeSentryCallback(existing: unknown, sentryHandler: unknown): 
     return [...existing, sentryHandler];
   }
 
-  const manager = existing as { addHandler?: (h: unknown) => void; handlers?: unknown[] };
-  if (typeof manager.addHandler === 'function') {
-    const alreadyAdded = Array.isArray(manager.handlers) && manager.handlers.includes(sentryHandler);
-    if (!alreadyAdded) {
-      manager.addHandler(sentryHandler);
+  if (isCallbackManager(existing)) {
+    const copied = existing.copy() as {
+      addHandler: (handler: unknown, inherit?: boolean) => void;
+      handlers?: unknown[];
+    };
+    if (!copied.handlers?.includes(sentryHandler)) {
+      copied.addHandler(sentryHandler, true);
     }
+    return copied;
   }
 
   return existing;

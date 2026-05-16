@@ -48,6 +48,34 @@ describe('extractAgentNameFromParams', () => {
 describe('mergeSentryCallback', () => {
   const sentryHandler = { _sentry: true };
 
+  /**
+   * Minimal `CallbackManager` stand-in. Mirrors `@langchain/core`'s real
+   * semantics: `addHandler(_, inherit)` pushes to both `handlers` and
+   * `inheritableHandlers` when `inherit !== false`, and `copy()` returns
+   * a fresh manager carrying the same handlers — so we don't accidentally
+   * test against a degenerate shape that bypasses `addHandler`.
+   */
+  function makeFakeCallbackManager(existingHandlers: unknown[] = [], existingInheritableHandlers?: unknown[]) {
+    // Use a class so `Object.getPrototypeOf(instance).constructor.name === 'CallbackManager'`,
+    // which is how the production detector identifies a real LangChain CallbackManager.
+    class CallbackManager {
+      public handlers: unknown[];
+      public inheritableHandlers: unknown[];
+      public addHandler = vi.fn((handler: unknown, inherit?: boolean) => {
+        this.handlers.push(handler);
+        if (inherit !== false) {
+          this.inheritableHandlers.push(handler);
+        }
+      });
+      public copy = vi.fn(() => makeFakeCallbackManager(this.handlers, this.inheritableHandlers));
+      constructor(initialHandlers: unknown[], initialInheritableHandlers: unknown[]) {
+        this.handlers = [...initialHandlers];
+        this.inheritableHandlers = [...initialInheritableHandlers];
+      }
+    }
+    return new CallbackManager(existingHandlers, existingInheritableHandlers ?? existingHandlers);
+  }
+
   it('returns a fresh array when no existing callbacks are present', () => {
     expect(mergeSentryCallback(undefined, sentryHandler)).toStrictEqual([sentryHandler]);
     expect(mergeSentryCallback(null, sentryHandler)).toStrictEqual([sentryHandler]);
@@ -65,19 +93,81 @@ describe('mergeSentryCallback', () => {
     expect(mergeSentryCallback(existing, sentryHandler)).toBe(existing);
   });
 
-  it('calls addHandler on a CallbackManager-like object', () => {
-    const addHandler = vi.fn();
-    const manager = { addHandler, handlers: [] as unknown[] };
-    const result = mergeSentryCallback(manager, sentryHandler);
-    expect(result).toBe(manager);
-    expect(addHandler).toHaveBeenCalledWith(sentryHandler);
-    expect(addHandler).toHaveBeenCalledTimes(1);
+  it('preserves inheritable handlers when callbacks is a CallbackManager', () => {
+    // Reproduces the LangGraph `streamMode: ['messages']` setup: a
+    // CallbackManager carrying a StreamMessagesHandler is passed via
+    // options.callbacks. Wrapping it as `[manager, sentryHandler]` would
+    // drop the manager's inheritable children — instead we register
+    // Sentry on a copy and keep the existing handler chain intact.
+    const streamMessagesHandler = {
+      name: 'StreamMessagesHandler',
+      lc_prefer_streaming: true,
+    };
+    const manager = makeFakeCallbackManager([streamMessagesHandler]);
+    const result = mergeSentryCallback(manager, sentryHandler) as {
+      handlers: unknown[];
+    };
+    expect(Array.isArray(result)).toBe(false);
+    expect(result.handlers).toEqual([streamMessagesHandler, sentryHandler]);
   });
 
-  it('does not re-add when the manager already has the sentry handler', () => {
-    const addHandler = vi.fn();
-    const manager = { addHandler, handlers: [sentryHandler] };
-    mergeSentryCallback(manager, sentryHandler);
-    expect(addHandler).not.toHaveBeenCalled();
+  it('copies the manager and registers Sentry as an inheritable handler', () => {
+    // Two adjacent contracts: we operate on a copy (so repeat invocations
+    // don't accumulate handlers on the caller), and we pass `inherit=true`
+    // so LangChain's `getChild()` propagates Sentry into nested calls.
+    const manager = makeFakeCallbackManager([]);
+    const result = mergeSentryCallback(manager, sentryHandler) as {
+      addHandler: ReturnType<typeof vi.fn>;
+      inheritableHandlers: unknown[];
+    };
+    expect(manager.copy).toHaveBeenCalledTimes(1);
+    expect(manager.handlers).toEqual([]);
+    expect(result.addHandler).toHaveBeenCalledWith(sentryHandler, true);
+    expect(result.inheritableHandlers).toEqual([sentryHandler]);
+  });
+
+  it('does not double-register when the copied manager already contains the handler', () => {
+    const manager = makeFakeCallbackManager([sentryHandler]);
+    const result = mergeSentryCallback(manager, sentryHandler) as {
+      handlers: unknown[];
+      addHandler: ReturnType<typeof vi.fn>;
+    };
+    expect(result.handlers).toEqual([sentryHandler]);
+    expect(result.addHandler).not.toHaveBeenCalled();
+  });
+
+  it('returns the value unchanged when it is neither an array nor a CallbackManager', () => {
+    const opaque = { name: 'NotAManager' };
+    expect(mergeSentryCallback(opaque, sentryHandler)).toBe(opaque);
+  });
+
+  it('does not treat a coincidentally duck-typed object as a CallbackManager', () => {
+    // A plain object that happens to expose `addHandler`/`copy` shouldn't be
+    // mistaken for a real LangChain CallbackManager — the constructor-name
+    // check guards against false positives.
+    const lookalike = { addHandler: vi.fn(), copy: vi.fn(), handlers: [] };
+    expect(mergeSentryCallback(lookalike, sentryHandler)).toBe(lookalike);
+    expect(lookalike.addHandler).not.toHaveBeenCalled();
+    expect(lookalike.copy).not.toHaveBeenCalled();
+  });
+
+  it('recognizes subclasses of CallbackManager via the prototype walk', () => {
+    class CallbackManager {
+      public handlers: unknown[] = [];
+      public inheritableHandlers: unknown[] = [];
+      public addHandler = vi.fn((handler: unknown, inherit?: boolean) => {
+        this.handlers.push(handler);
+        if (inherit !== false) {
+          this.inheritableHandlers.push(handler);
+        }
+      });
+      public copy = vi.fn(() => new CallbackManager());
+    }
+    class CustomCallbackManager extends CallbackManager {}
+    const subclass = new CustomCallbackManager();
+    const result = mergeSentryCallback(subclass, sentryHandler) as {
+      addHandler: ReturnType<typeof vi.fn>;
+    };
+    expect(result.addHandler).toHaveBeenCalledWith(sentryHandler, true);
   });
 });
