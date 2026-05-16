@@ -1,9 +1,12 @@
 /**
- * Bundle the instrumented Sentry test apps for every (app, mode) cell and POST
- * the tarballs to the Sentry Lighthouse lab (https://lighthouse.sentry.gg). The
- * lab runs Lighthouse asynchronously and ships results to Sentry on its own
- * schedule — this script exits as soon as the upload succeeds, it does NOT wait
- * for the lab to finish.
+ * Bundle the `lighthouse-react` test app for each mode (no-sentry, init-only,
+ * tracing-replay) and POST the three tarballs to the Sentry Lighthouse lab
+ * (https://lighthouse.sentry.gg). The lab runs Lighthouse asynchronously and
+ * ships results to Sentry on its own schedule — this script exits as soon as
+ * the upload succeeds.
+ *
+ * Single-app static matrix: 1 app × 3 modes = 3 cells.
+ * See plan scratchpad #182 for design details.
  *
  * Wire protocol: ~/Projects/sentry-lhci/docs/sentry-javascript-handoff.md
  *
@@ -17,7 +20,7 @@
 /* eslint-disable no-console */
 
 import { execFileSync } from 'node:child_process';
-import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const LAB_URL = process.env.LIGHTHOUSE_LAB_URL;
@@ -31,31 +34,10 @@ const RUNNER_TEMP = process.env.RUNNER_TEMP ?? path.join(WORKSPACE, '.tmp');
 const PACKED_DIR = path.join(WORKSPACE, 'dev-packages/e2e-tests/packed');
 const E2E_DIR = path.join(WORKSPACE, 'dev-packages/e2e-tests');
 
-/**
- * The matrix. Adding an app here requires:
- *   1. The test app reads SENTRY_LIGHTHOUSE_MODE (or its bundler-specific
- *      prefix variant) and branches its Sentry init.
- *   2. For SSR apps, the lab's runner must accept a startCmd + readyPattern.
- */
-const APPS = [
-  { app: 'default-browser', serve: 'static', staticDir: 'build' },
-  { app: 'react-19', serve: 'static', staticDir: 'build' },
-  {
-    app: 'nextjs-16',
-    serve: 'server',
-    startCmd: 'pnpm start',
-    readyPattern: 'Ready in',
-    // Lab side: pnpm 9.15.9 is on the image via corepack. We strip the lockfile
-    // and devDependencies from the SSR bundle (CI generates the lockfile with
-    // workspace-absolute paths that don't survive the move; devDeps include
-    // workspace links like @sentry-internal/test-utils that would also fail).
-    // --no-frozen-lockfile lets pnpm regenerate from the rewritten package.json,
-    // --prefer-offline uses the lab's persistent pnpm store (/data/.pnpm-store).
-    installCmd: 'pnpm install --no-frozen-lockfile --prefer-offline',
-  },
-];
-
+const APP = 'lighthouse-react';
+const APP_DIR = 'lighthouse-react';
 const MODES = ['no-sentry', 'init-only', 'tracing-replay'];
+const STATIC_DIR = 'dist';
 
 async function run() {
   // Fail fast if the lab is down so we don't waste minutes building bundles.
@@ -69,13 +51,10 @@ async function run() {
   await mkdir(path.join(RUNNER_TEMP, 'bundles'), { recursive: true });
   const bundles = [];
 
-  for (const def of APPS) {
-    for (const mode of MODES) {
-      const fieldName = `bundle-${bundles.length}`;
-      console.log(`\n=== Preparing ${def.app} (${mode}) → ${fieldName} ===`);
-      const bundle = await prepareCell(def, mode, fieldName);
-      bundles.push(bundle);
-    }
+  for (const mode of MODES) {
+    const fieldName = `bundle-${bundles.length}`;
+    console.log(`\n=== Preparing ${APP} (${mode}) → ${fieldName} ===`);
+    bundles.push(await prepareCell(mode, fieldName));
   }
 
   console.log(`\n=== Uploading ${bundles.length} bundles to ${LAB_URL}/api/builds ===`);
@@ -87,24 +66,19 @@ async function run() {
 }
 
 /**
- * Build a single (app, mode) cell:
- *   1. Copy the app to a unique temp dir (concurrent cells can't collide).
+ * Build a single (mode) cell:
+ *   1. Copy the app to a unique temp dir.
  *   2. Apply pnpm overrides (existing helper).
- *   3. Run `pnpm test:build` with SENTRY_LIGHTHOUSE_MODE + the framework
- *      prefix variants (NEXT_PUBLIC_*, REACT_APP_*) — each app's bundler picks
- *      up whichever it knows about.
- *   4. Static cells: tar just the build dir.
- *      SSR cells: copy packed tgzs into the bundle, rewrite package.json to
- *      relative `file:./packed/...` paths, drop devDependencies, tar without
- *      node_modules and the lockfile.
+ *   3. Run `pnpm install` then `pnpm build:<mode>`.
+ *   4. Tar the `dist/` output dir.
  *   5. Return cell metadata for the upload.
  */
-async function prepareCell(def, mode, fieldName) {
-  const tempApp = path.join(RUNNER_TEMP, `app-${def.app}-${mode}`);
+async function prepareCell(mode, fieldName) {
+  const tempApp = path.join(RUNNER_TEMP, `app-${APP}-${mode}`);
   await rm(tempApp, { recursive: true, force: true });
 
   // Copy app to temp (fixes file:/link: deps to workspace-absolute paths)
-  execFileSync('yarn', ['ci:copy-to-temp', `./test-applications/${def.app}`, tempApp], {
+  execFileSync('yarn', ['ci:copy-to-temp', `./test-applications/${APP_DIR}`, tempApp], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
@@ -115,106 +89,30 @@ async function prepareCell(def, mode, fieldName) {
     stdio: 'inherit',
   });
 
-  // Build with the right mode env var. We set all common bundler prefixes so each
-  // app's bundler picks up whichever variant it knows about — apps that don't read
-  // a prefix simply ignore extra vars.
-  execFileSync('pnpm', ['test:build'], {
+  // Install deps
+  execFileSync('pnpm', ['install'], { cwd: tempApp, stdio: 'inherit' });
+
+  // Build with the Vite mode — mode selection lives inside the per-mode npm
+  // script, no extra env vars needed for routing. VITE_E2E_TEST_DSN is passed
+  // so the tracing-replay build's Sentry.init has a DSN at build time.
+  execFileSync('pnpm', [`build:${mode}`], {
     cwd: tempApp,
     stdio: 'inherit',
     env: {
       ...process.env,
-      SENTRY_E2E_WORKSPACE_ROOT: WORKSPACE,
-      SENTRY_LIGHTHOUSE_MODE: mode,
-      NEXT_PUBLIC_SENTRY_LIGHTHOUSE_MODE: mode,
-      REACT_APP_SENTRY_LIGHTHOUSE_MODE: mode,
+      VITE_E2E_TEST_DSN: process.env.VITE_E2E_TEST_DSN ?? 'https://username@domain/123',
     },
   });
 
-  const tarPath = path.join(RUNNER_TEMP, 'bundles', `${def.app}-${mode}.tar.gz`);
+  const tarPath = path.join(RUNNER_TEMP, 'bundles', `${APP}-${mode}.tar.gz`);
+  execFileSync('tar', ['-czf', tarPath, '-C', tempApp, STATIC_DIR], { stdio: 'inherit' });
+  console.log(`Static bundle: ${tarPath} (${await formatSize(tarPath)})`);
 
-  if (def.serve === 'static') {
-    // Static cell — tar just the build dir. Lab serves it with a static HTTP server.
-    execFileSync('tar', ['-czf', tarPath, '-C', tempApp, def.staticDir], { stdio: 'inherit' });
-    console.log(`Static bundle: ${tarPath} (${await formatSize(tarPath)})`);
-    return {
-      fieldName,
-      tarPath,
-      cell: {
-        app: def.app,
-        mode,
-        bundleField: fieldName,
-        serve: 'static',
-        staticDir: def.staticDir,
-      },
-    };
-  }
-
-  // SSR cell — prep for `pnpm install && pnpm start` on the lab.
-  await prepareSsrBundle(tempApp);
-  execFileSync(
-    'tar',
-    [
-      '-czf',
-      tarPath,
-      '--exclude=node_modules',
-      '--exclude=.git',
-      '--exclude=pnpm-lock.yaml',
-      '-C',
-      path.dirname(tempApp),
-      path.basename(tempApp),
-    ],
-    { stdio: 'inherit' },
-  );
-  console.log(`SSR bundle: ${tarPath} (${await formatSize(tarPath)})`);
   return {
     fieldName,
     tarPath,
-    cell: {
-      app: def.app,
-      mode,
-      bundleField: fieldName,
-      serve: 'server',
-      startCmd: def.startCmd,
-      readyPattern: def.readyPattern,
-      installCmd: def.installCmd,
-    },
+    cell: { app: APP, mode, bundleField: fieldName, serve: 'static', staticDir: STATIC_DIR },
   };
-}
-
-/**
- * For SSR cells: copy the packed Sentry tarballs into the bundle, rewrite
- * package.json deps + pnpm.overrides to relative `file:./packed/...` paths so
- * the lab's `pnpm install` can resolve them from inside the extracted bundle,
- * and drop devDependencies entirely (not needed at runtime; some are workspace
- * links like @sentry-internal/test-utils that don't survive the move).
- */
-async function prepareSsrBundle(tempApp) {
-  // Copy packed tgz files into <bundle>/packed/
-  const inBundlePacked = path.join(tempApp, 'packed');
-  await mkdir(inBundlePacked, { recursive: true });
-  for (const name of await readdir(PACKED_DIR)) {
-    if (name.endsWith('.tgz')) {
-      await copyFile(path.join(PACKED_DIR, name), path.join(inBundlePacked, name));
-    }
-  }
-
-  // Rewrite all workspace-absolute `file:.../sentry-*-packed.tgz` references in
-  // package.json to `./packed/<file>`, and drop devDependencies wholesale.
-  const pkgPath = path.join(tempApp, 'package.json');
-  const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
-  const rewrite = obj => {
-    if (!obj) return;
-    for (const [name, val] of Object.entries(obj)) {
-      const m = typeof val === 'string' ? val.match(/sentry-[a-z0-9-]+-packed\.tgz$/) : null;
-      if (m && (val.startsWith('file:') || val.startsWith('link:'))) {
-        obj[name] = `file:./packed/${m[0]}`;
-      }
-    }
-  };
-  rewrite(pkg.dependencies);
-  rewrite(pkg.pnpm?.overrides);
-  delete pkg.devDependencies;
-  await writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 }
 
 /**
