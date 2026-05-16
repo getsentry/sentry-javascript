@@ -1,3 +1,4 @@
+import type { Attributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
@@ -161,14 +162,14 @@ export function _INTERNAL_captureLog(
   const serializedLog: SerializedLog = {
     timestamp,
     level,
-    body: message,
+    body: _INTERNAL_removeLoneSurrogates(String(message)),
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
-    attributes: {
+    attributes: sanitizeLogAttributes({
       ...serializeAttributes(scopeAttributes),
       ...serializeAttributes(logAttributes, true),
       [sequenceAttr.key]: sequenceAttr.value,
-    },
+    }),
   };
 
   captureSerializedLog(client, serializedLog);
@@ -225,4 +226,44 @@ export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | u
 function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
   // The reference to the Client <> LogBuffer map is stored on the carrier to ensure it's always the same
   return getGlobalSingleton('clientToLogBufferMap', () => new WeakMap<Client, Array<SerializedLog>>());
+}
+
+/**
+ * Sanitizes serialized log attributes by replacing lone surrogates in both
+ * keys and string values with U+FFFD.
+ */
+function sanitizeLogAttributes(attributes: Attributes): Attributes {
+  const sanitized: Attributes = {};
+  for (const [key, attr] of Object.entries(attributes)) {
+    const sanitizedKey = _INTERNAL_removeLoneSurrogates(key);
+    if (attr.type === 'string') {
+      sanitized[sanitizedKey] = { ...attr, value: _INTERNAL_removeLoneSurrogates(attr.value) };
+    } else {
+      sanitized[sanitizedKey] = attr;
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * Replaces unpaired UTF-16 surrogates with U+FFFD (replacement character).
+ *
+ * Lone surrogates (U+D800–U+DFFF not part of a valid pair) cause `serde_json`
+ * on the server to reject the entire log/span batch when they appear in
+ * JSON-escaped form (e.g. `\uD800`). Replacing them at the SDK level ensures
+ * only the offending characters are lost instead of the whole payload.
+ *
+ * Uses the native `String.prototype.toWellFormed()` when available
+ * (Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes).
+ * On older runtimes without native support, returns the string as-is.
+ */
+export function _INTERNAL_removeLoneSurrogates(str: string): string {
+  // isWellFormed/toWellFormed are ES2024 (not in our TS lib target), so we feature-detect via Object().
+  const strObj: Record<string, Function> = Object(str);
+  const isWellFormed = strObj['isWellFormed'];
+  const toWellFormed = strObj['toWellFormed'];
+  if (typeof isWellFormed === 'function' && typeof toWellFormed === 'function') {
+    return isWellFormed.call(str) ? str : toWellFormed.call(str);
+  }
+  return str;
 }
