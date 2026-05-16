@@ -125,17 +125,13 @@ export function makeDebugBuildStatementReplacePlugin() {
 export function makeProductionReplacePlugin() {
   const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* rollup-include-development-only-end \*\/\s*/g;
 
-  function stripDevBlocks(code) {
-    if (!code) return null;
-    if (!code.includes('rollup-include-development-only')) return null;
-    const replaced = code.replace(pattern, '');
-    return { code: replaced, map: null };
-  }
-
+  // This must run before transpilation, as that will strip the marker comments.
+  // The plugin sort order in utils.mjs pins this to run first
   return {
     name: 'remove-dev-mode-blocks',
-    renderChunk(code) {
-      return stripDevBlocks(code);
+    transform(code) {
+      if (!code.includes('rollup-include-development-only')) return null;
+      return { code: code.replace(pattern, ''), map: null };
     },
   };
 }
