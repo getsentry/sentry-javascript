@@ -14,11 +14,11 @@ describe('connect auto-instrumentation', () => {
           'connect.name': '/',
           'connect.type': 'request_handler',
           'http.route': '/',
-          'sentry.origin': 'auto.http.otel.connect',
+          'sentry.origin': 'auto.http.connect',
           'sentry.op': 'request_handler.connect',
         }),
         description: '/',
-        origin: 'auto.http.otel.connect',
+        origin: 'auto.http.connect',
         op: 'request_handler.connect',
         status: 'ok',
       }),
@@ -36,32 +36,26 @@ describe('connect auto-instrumentation', () => {
     },
   };
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createTestRunner, test) => {
-      test('should auto-instrument `connect` package.', async () => {
-        const runner = createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
-        runner.makeRequest('get', '/');
-        await runner.completed();
-      });
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('should auto-instrument `connect` package.', async () => {
+      const runner = createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+      runner.makeRequest('get', '/');
+      await runner.completed();
+    });
 
-      test('should capture errors in `connect` middleware.', async () => {
-        const runner = createTestRunner().ignore('transaction').expect({ event: EXPECTED_EVENT }).start();
-        runner.makeRequest('get', '/error');
-        await runner.completed();
-      });
+    test('should capture errors in `connect` middleware.', async () => {
+      const runner = createTestRunner().ignore('transaction').expect({ event: EXPECTED_EVENT }).start();
+      runner.makeRequest('get', '/error');
+      await runner.completed();
+    });
 
-      test('should report errored transactions.', async () => {
-        const runner = createTestRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'GET /error' } })
-          .start();
-        runner.makeRequest('get', '/error');
-        await runner.completed();
-      });
-    },
-    { failsOnEsm: true },
-  );
+    test('should report errored transactions.', async () => {
+      const runner = createTestRunner()
+        .ignore('event')
+        .expect({ transaction: { transaction: 'GET /error' } })
+        .start();
+      runner.makeRequest('get', '/error');
+      await runner.completed();
+    });
+  });
 });
