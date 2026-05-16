@@ -1,4 +1,4 @@
-import { DataloaderInstrumentation } from '@opentelemetry/instrumentation-dataloader';
+import { DataloaderInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
