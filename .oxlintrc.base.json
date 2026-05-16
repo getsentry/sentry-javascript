@@ -141,6 +141,12 @@
       }
     },
     {
+      "files": ["**/integrations/tracing/dataloader/vendored/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"
