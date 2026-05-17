@@ -18,7 +18,7 @@
  * - Upstream version: @opentelemetry/instrumentation-dataloader@0.35.0
  */
 
-import { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
 export interface DataloaderInstrumentationConfig extends InstrumentationConfig {
   /**

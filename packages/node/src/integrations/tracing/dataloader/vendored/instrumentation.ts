@@ -20,18 +20,8 @@
  */
 /* eslint-disable */
 
-import {
-  InstrumentationBase,
-  InstrumentationNodeModuleDefinition,
-  isWrapped,
-} from '@opentelemetry/instrumentation';
-import {
-  trace,
-  context,
-  Link,
-  SpanStatusCode,
-  SpanKind,
-} from '@opentelemetry/api';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
+import { trace, context, Link, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 import { DataloaderInstrumentationConfig } from './types';
 import { SDK_VERSION } from '@sentry/core';
 import type * as Dataloader from 'dataloader';
@@ -84,7 +74,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
               this._unwrap(dataloader.prototype, method);
             }
           });
-        }
+        },
       ),
     ];
   }
@@ -97,7 +87,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
 
   private getSpanName(
     dataloader: DataloaderInternal,
-    operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll'
+    operation: 'load' | 'loadMany' | 'batch' | 'prime' | 'clear' | 'clearAll',
   ): string {
     const dataloaderName = dataloader.name;
     if (dataloaderName === undefined || dataloaderName === null) {
@@ -108,7 +98,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   }
 
   private _wrapBatchLoadFn(
-    batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>
+    batchLoadFn: Dataloader.BatchLoadFn<unknown, unknown>,
   ): Dataloader.BatchLoadFn<unknown, unknown> {
     const instrumentation = this;
 
@@ -116,10 +106,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       this: DataloaderInternal,
       ...args: Parameters<Dataloader.BatchLoadFn<unknown, unknown>>
     ) {
-      if (
-        !instrumentation.isEnabled() ||
-        !instrumentation.shouldCreateSpans()
-      ) {
+      if (!instrumentation.isEnabled() || !instrumentation.shouldCreateSpans()) {
         return batchLoadFn.call(this, ...args);
       }
 
@@ -127,7 +114,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'batch'),
         { links: this._batch?.spanLinks as Link[] | undefined },
-        parent
+        parent,
       );
 
       return context.with(trace.setSpan(parent, span), () => {
@@ -149,9 +136,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
     };
   }
 
-  private _getPatchedConstructor(
-    constructor: typeof Dataloader
-  ): typeof Dataloader {
+  private _getPatchedConstructor(constructor: typeof Dataloader): typeof Dataloader {
     const instrumentation = this;
     const prototype = constructor.prototype;
 
@@ -159,10 +144,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       return constructor;
     }
 
-    function PatchedDataloader(
-      this: DataloaderInternal,
-      ...args: any[]
-    ) {
+    function PatchedDataloader(this: DataloaderInternal, ...args: any[]) {
       // BatchLoadFn is the first constructor argument
       // https://github.com/graphql/dataloader/blob/77c2cd7ca97e8795242018ebc212ce2487e729d2/src/index.js#L47
       if (typeof args[0] === 'function') {
@@ -170,9 +152,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
           instrumentation._unwrap(args, 0);
         }
 
-        args[0] = instrumentation._wrapBatchLoadFn(
-          args[0]
-        ) as Dataloader.BatchLoadFn<unknown, unknown>;
+        args[0] = instrumentation._wrapBatchLoadFn(args[0]) as Dataloader.BatchLoadFn<unknown, unknown>;
       }
 
       return (constructor as any).apply(this, args);
@@ -193,10 +173,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   private _getPatchedLoad(original: LoadFn): LoadFn {
     const instrumentation = this;
 
-    return function patchedLoad(
-      this: DataloaderInternal,
-      ...args: Parameters<typeof original>
-    ) {
+    return function patchedLoad(this: DataloaderInternal, ...args: Parameters<typeof original>) {
       if (!instrumentation.shouldCreateSpans()) {
         return original.call(this, ...args);
       }
@@ -205,7 +182,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'load'),
         { kind: SpanKind.CLIENT },
-        parent
+        parent,
       );
 
       return context.with(trace.setSpan(parent, span), () => {
@@ -251,10 +228,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   private _getPatchedLoadMany(original: LoadManyFn): LoadManyFn {
     const instrumentation = this;
 
-    return function patchedLoadMany(
-      this: DataloaderInternal,
-      ...args: Parameters<typeof original>
-    ) {
+    return function patchedLoadMany(this: DataloaderInternal, ...args: Parameters<typeof original>) {
       if (!instrumentation.shouldCreateSpans()) {
         return original.call(this, ...args);
       }
@@ -263,7 +237,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'loadMany'),
         { kind: SpanKind.CLIENT },
-        parent
+        parent,
       );
 
       return context.with(trace.setSpan(parent, span), () => {
@@ -288,10 +262,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   private _getPatchedPrime(original: PrimeFn): PrimeFn {
     const instrumentation = this;
 
-    return function patchedPrime(
-      this: DataloaderInternal,
-      ...args: Parameters<typeof original>
-    ) {
+    return function patchedPrime(this: DataloaderInternal, ...args: Parameters<typeof original>) {
       if (!instrumentation.shouldCreateSpans()) {
         return original.call(this, ...args);
       }
@@ -300,7 +271,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'prime'),
         { kind: SpanKind.CLIENT },
-        parent
+        parent,
       );
 
       const ret = context.with(trace.setSpan(parent, span), () => {
@@ -324,10 +295,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   private _getPatchedClear(original: ClearFn): ClearFn {
     const instrumentation = this;
 
-    return function patchedClear(
-      this: DataloaderInternal,
-      ...args: Parameters<typeof original>
-    ) {
+    return function patchedClear(this: DataloaderInternal, ...args: Parameters<typeof original>) {
       if (!instrumentation.shouldCreateSpans()) {
         return original.call(this, ...args);
       }
@@ -336,7 +304,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'clear'),
         { kind: SpanKind.CLIENT },
-        parent
+        parent,
       );
 
       const ret = context.with(trace.setSpan(parent, span), () => {
@@ -360,10 +328,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
   private _getPatchedClearAll(original: ClearAllFn): ClearAllFn {
     const instrumentation = this;
 
-    return function patchedClearAll(
-      this: DataloaderInternal,
-      ...args: Parameters<typeof original>
-    ) {
+    return function patchedClearAll(this: DataloaderInternal, ...args: Parameters<typeof original>) {
       if (!instrumentation.shouldCreateSpans()) {
         return original.call(this, ...args);
       }
@@ -372,7 +337,7 @@ export class DataloaderInstrumentation extends InstrumentationBase<DataloaderIns
       const span = instrumentation.tracer.startSpan(
         instrumentation.getSpanName(this, 'clearAll'),
         { kind: SpanKind.CLIENT },
-        parent
+        parent,
       );
 
       const ret = context.with(trace.setSpan(parent, span), () => {
