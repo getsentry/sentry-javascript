@@ -135,6 +135,21 @@ describe('patchAppUse (middleware spans)', () => {
     expect(firstCall![0].name).not.toBe(secondCall![0].name);
   });
 
+  it('preserves own-symbol metadata on the registered handler (e.g. hono-openapi Symbol("openapi"))', () => {
+    const app = new Hono();
+    patchAppUse(app);
+
+    const META = Symbol('test-meta');
+    const handler = async (_c: unknown, next: () => Promise<void>) => next();
+    (handler as unknown as Record<symbol, unknown>)[META] = { example: 'should survive wrapping' };
+
+    app.use('/test', handler);
+
+    const registered = app.routes.find(r => r.path === '/test')?.handler;
+    expect(registered).toBeDefined();
+    expect((registered as unknown as Record<symbol, unknown>)[META]).toEqual({ example: 'should survive wrapping' });
+  });
+
   it('preserves this context when calling the original use (Proxy forwards thisArg)', () => {
     type FakeApp = {
       _capturedThis: unknown;

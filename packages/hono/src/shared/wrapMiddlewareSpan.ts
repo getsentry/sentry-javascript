@@ -57,5 +57,13 @@ export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHa
   };
 
   markFunctionWrapped(wrapped as unknown as WrappedFunction, handler as unknown as WrappedFunction);
+
+  for (const sym of Object.getOwnPropertySymbols(handler)) {
+    const descriptor = Object.getOwnPropertyDescriptor(handler, sym);
+    if (descriptor) {
+      Object.defineProperty(wrapped, sym, descriptor);
+    }
+  }
+
   return wrapped;
 }
