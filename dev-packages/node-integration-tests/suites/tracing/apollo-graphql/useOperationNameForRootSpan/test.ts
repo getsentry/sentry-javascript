@@ -89,20 +89,15 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-invalid-root-span.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('useOperationNameForRootSpan ignores an invalid root span', async () => {
-          await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-    );
+    createEsmAndCjsTests(__dirname, 'scenario-invalid-root-span.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('useOperationNameForRootSpan ignores an invalid root span', async () => {
+        await createTestRunner()
+          .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+          .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+    });
   });
 
   describe('query without name', () => {
@@ -122,20 +117,15 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-no-operation-name.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('useOperationNameForRootSpan works with single query operation without name', async () => {
-          await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-    );
+    createEsmAndCjsTests(__dirname, 'scenario-no-operation-name.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('useOperationNameForRootSpan works with single query operation without name', async () => {
+        await createTestRunner()
+          .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+          .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+    });
   });
 
   describe('multiple operations', () => {
@@ -167,20 +157,15 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       ]),
     };
 
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-multiple-operations.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('useOperationNameForRootSpan works with multiple query operations', async () => {
-          await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .start()
-            .completed();
-        });
-      },
-    );
+    createEsmAndCjsTests(__dirname, 'scenario-multiple-operations.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('useOperationNameForRootSpan works with multiple query operations', async () => {
+        await createTestRunner()
+          .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+          .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+    });
   });
 
   describe('many operations', () => {

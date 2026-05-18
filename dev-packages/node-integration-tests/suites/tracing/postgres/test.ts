@@ -61,58 +61,53 @@ describe('postgres auto instrumentation', () => {
   });
 
   describe('ignoreConnectSpans', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument-ignoreConnect.mjs',
-      (createTestRunner, test) => {
-        test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
-          await createTestRunner()
-            .withDockerCompose({
-              workingDirectory: [__dirname],
-            })
-            .expect({
-              transaction: txn => {
-                const spanNames = txn.spans?.map(span => span.description);
-                expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
-                expect(txn).toMatchObject({
-                  transaction: 'Test Transaction',
-                  spans: expect.arrayContaining([
-                    expect.objectContaining({
-                      data: expect.objectContaining({
-                        'db.system': 'postgresql',
-                        'db.name': 'tests',
-                        'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                        'sentry.origin': 'auto.db.otel.postgres',
-                        'sentry.op': 'db',
-                      }),
-                      description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
-                      op: 'db',
-                      status: 'ok',
-                      origin: 'auto.db.otel.postgres',
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-ignoreConnect.mjs', (createTestRunner, test) => {
+      test("doesn't emit connect spans if ignoreConnectSpans is true", { timeout: 90_000 }, async () => {
+        await createTestRunner()
+          .withDockerCompose({
+            workingDirectory: [__dirname],
+          })
+          .expect({
+            transaction: txn => {
+              const spanNames = txn.spans?.map(span => span.description);
+              expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
+              expect(txn).toMatchObject({
+                transaction: 'Test Transaction',
+                spans: expect.arrayContaining([
+                  expect.objectContaining({
+                    data: expect.objectContaining({
+                      'db.system': 'postgresql',
+                      'db.name': 'tests',
+                      'db.statement': 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.op': 'db',
                     }),
-                    expect.objectContaining({
-                      data: expect.objectContaining({
-                        'db.system': 'postgresql',
-                        'db.name': 'tests',
-                        'db.statement': 'SELECT * FROM "User"',
-                        'sentry.origin': 'auto.db.otel.postgres',
-                        'sentry.op': 'db',
-                      }),
-                      description: 'SELECT * FROM "User"',
-                      op: 'db',
-                      status: 'ok',
-                      origin: 'auto.db.otel.postgres',
+                    description: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
+                    op: 'db',
+                    status: 'ok',
+                    origin: 'auto.db.otel.postgres',
+                  }),
+                  expect.objectContaining({
+                    data: expect.objectContaining({
+                      'db.system': 'postgresql',
+                      'db.name': 'tests',
+                      'db.statement': 'SELECT * FROM "User"',
+                      'sentry.origin': 'auto.db.otel.postgres',
+                      'sentry.op': 'db',
                     }),
-                  ]),
-                });
-              },
-            })
-            .start()
-            .completed();
-        });
-      },
-    );
+                    description: 'SELECT * FROM "User"',
+                    op: 'db',
+                    status: 'ok',
+                    origin: 'auto.db.otel.postgres',
+                  }),
+                ]),
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    });
   });
 
   conditionalTest({ max: 25 })('pg-native', () => {
