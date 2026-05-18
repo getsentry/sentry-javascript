@@ -2,7 +2,7 @@ import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { addConsoleInstrumentationFilter, addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
-import type { ConsoleLevel } from '../types-hoist/instrument';
+import type { ConsoleLevel } from '../types/instrument';
 import { CONSOLE_LEVELS } from '../utils/debug-logger';
 import { severityLevelFromString } from '../utils/severity';
 import { safeJoin } from '../utils/string';

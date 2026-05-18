@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
-import type { ClientOptions, IgnoreSpanAttributeValue } from '../types-hoist/options';
-import type { SpanJSON } from '../types-hoist/span';
+import type { ClientOptions, IgnoreSpanAttributeValue } from '../types/options';
+import type { SpanJSON } from '../types/span';
 import { debug } from './debug-logger';
 import { isMatchingPattern } from './string';
 

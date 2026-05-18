@@ -1,4 +1,4 @@
-import type { ConsoleLevel } from '../types-hoist/instrument';
+import type { ConsoleLevel } from '../types/instrument';
 
 /**
  * An error emitted by Sentry SDKs and related utilities.

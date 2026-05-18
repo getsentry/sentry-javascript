@@ -27,8 +27,8 @@
  * limitations under the License.
  */
 
-import type { RequestEventData } from '../../types-hoist/request';
-import type { SpanAttributes } from '../../types-hoist/span';
+import type { RequestEventData } from '../../types/request';
+import type { SpanAttributes } from '../../types/span';
 
 export const ATTR_EXPRESS_NAME = 'express.name';
 export const ATTR_HTTP_ROUTE = 'http.route';

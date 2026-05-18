@@ -3,7 +3,7 @@ import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../.
 import * as globalErrorModule from '../../../src/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/instrument/globalUnhandledRejection';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
-import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types-hoist/instrument';
+import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types/instrument';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};

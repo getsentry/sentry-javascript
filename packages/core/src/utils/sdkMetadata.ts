@@ -1,4 +1,4 @@
-import type { CoreOptions } from '../types-hoist/options';
+import type { CoreOptions } from '../types/options';
 import { SDK_VERSION } from '../utils/version';
 
 /**

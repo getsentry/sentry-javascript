@@ -1,7 +1,7 @@
-import type { Event } from '../types-hoist/event';
-import type { StackFrame } from '../types-hoist/stackframe';
-import type { StackLineParser, StackParser } from '../types-hoist/stacktrace';
-import type { VNode, VueViewModel } from '../types-hoist/vue';
+import type { Event } from '../types/event';
+import type { StackFrame } from '../types/stackframe';
+import type { StackLineParser, StackParser } from '../types/stacktrace';
+import type { VNode, VueViewModel } from '../types/vue';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';

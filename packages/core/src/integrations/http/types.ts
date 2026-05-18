@@ -26,8 +26,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { RequestEventData } from '../../types-hoist/request';
-import type { Span } from '../../types-hoist/span';
+import type { RequestEventData } from '../../types/request';
+import type { Span } from '../../types/span';
 
 /** Minimal interface for a Node.js http.ClientRequest */
 export interface HttpClientRequest {

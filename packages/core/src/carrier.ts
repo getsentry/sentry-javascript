@@ -2,8 +2,8 @@ import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 import type { Client } from './client';
 import type { Scope } from './scope';
-import type { SerializedLog } from './types-hoist/log';
-import type { SerializedMetric } from './types-hoist/metric';
+import type { SerializedLog } from './types/log';
+import type { SerializedMetric } from './types/metric';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
 

@@ -1,5 +1,5 @@
 import type { Scope } from '../scope';
-import type { Metric, MetricType } from '../types-hoist/metric';
+import type { Metric, MetricType } from '../types/metric';
 import { _INTERNAL_captureMetric } from './internal';
 
 /**

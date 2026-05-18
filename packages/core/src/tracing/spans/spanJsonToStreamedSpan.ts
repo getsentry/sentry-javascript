@@ -1,5 +1,5 @@
 import type { RawAttributes } from '../../attributes';
-import type { SerializedStreamedSpan, SpanJSON, StreamedSpanJSON } from '../../types-hoist/span';
+import type { SerializedStreamedSpan, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { streamedSpanJsonToSerializedSpan } from '../../utils/spanUtils';
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from 'vitest';
-import type { Event } from '../../../src/types-hoist/event';
-import type { Mechanism } from '../../../src/types-hoist/mechanism';
-import type { StackFrame } from '../../../src/types-hoist/stackframe';
+import type { Event } from '../../../src/types/event';
+import type { Mechanism } from '../../../src/types/mechanism';
+import type { StackFrame } from '../../../src/types/stackframe';
 import {
   addContextToFrame,
   addExceptionMechanism,

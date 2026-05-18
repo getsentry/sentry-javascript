@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ClientReport } from '../../../src/types-hoist/clientreport';
+import type { ClientReport } from '../../../src/types/clientreport';
 import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { parseEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 

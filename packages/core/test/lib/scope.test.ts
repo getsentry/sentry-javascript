@@ -8,8 +8,8 @@ import {
   withScope,
 } from '../../src/currentScopes';
 import { Scope } from '../../src/scope';
-import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
-import type { Event } from '../../src/types-hoist/event';
+import type { Breadcrumb } from '../../src/types/breadcrumb';
+import type { Event } from '../../src/types/event';
 import { uuid4 } from '../../src/utils/misc';
 import { applyScopeDataToEvent } from '../../src/utils/scopeData';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';

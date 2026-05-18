@@ -1,5 +1,5 @@
-import type { TraceContext } from '../../types-hoist/context';
-import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
+import type { TraceContext } from '../../types/context';
+import type { Span, SpanAttributes, SpanJSON } from '../../types/span';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,

@@ -1,4 +1,4 @@
-import type { IntegrationFn } from '../types-hoist/integration';
+import type { IntegrationFn } from '../types/integration';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
 import { isStreamedBeforeSendSpanCallback } from '../tracing/spans/beforeSendSpan';

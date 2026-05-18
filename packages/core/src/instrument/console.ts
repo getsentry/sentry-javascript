@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import { DEBUG_BUILD } from '../debug-build';
-import type { ConsoleLevel, HandlerDataConsole } from '../types-hoist/instrument';
+import type { ConsoleLevel, HandlerDataConsole } from '../types/instrument';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../utils/debug-logger';
 import { fill } from '../utils/object';
 import { stringMatchesSomePattern } from '../utils/string';

@@ -1,5 +1,5 @@
 import type { Client } from '../client';
-import type { DsnComponents } from '../types-hoist/dsn';
+import type { DsnComponents } from '../types/dsn';
 import { isURLObjectRelative, parseStringToURLObject } from './url';
 
 /**

@@ -1,9 +1,9 @@
 /* eslint-disable max-lines-per-function */
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import type { PolymorphicRequest } from '../types-hoist/polymorphics';
-import type { RequestEventData } from '../types-hoist/request';
-import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
+import type { PolymorphicRequest } from '../types/polymorphics';
+import type { RequestEventData } from '../types/request';
+import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
 import { safeUnref } from './timer';
 
