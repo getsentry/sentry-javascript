@@ -6,11 +6,11 @@ This guide covers migrating from the v1 Ember addon format to the v2 addon forma
 
 The v2 addon is a modern [Ember v2 addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/) that works with Embroider and Vite. Key differences:
 
-| Feature | v1 Addon | v2 Addon |
-|---------|----------|----------|
-| Configuration | `config/environment.js` | Direct `Sentry.init()` call |
+| Feature                     | v1 Addon                    | v2 Addon                                                     |
+| --------------------------- | --------------------------- | ------------------------------------------------------------ |
+| Configuration               | `config/environment.js`     | Direct `Sentry.init()` call                                  |
 | Performance instrumentation | Auto-registered initializer | Manual instance-initializer with `browserTracingIntegration` |
-| Build compatibility | Classic builds only | Embroider & Vite compatible |
+| Build compatibility         | Classic builds only         | Embroider & Vite compatible                                  |
 
 ## Step 1: Update Configuration
 
@@ -91,31 +91,33 @@ import type ApplicationInstance from '@ember/application/instance';
 import { addIntegration, browserTracingIntegration } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({
-    appInstance,
+  addIntegration(
+    browserTracingIntegration({
+      appInstance,
 
-    // Disable runloop queue tracking
-    disableRunloopPerformance: false,
+      // Disable runloop queue tracking
+      disableRunloopPerformance: false,
 
-    // Disable component render tracking
-    disableInstrumentComponents: false,
+      // Disable component render tracking
+      disableInstrumentComponents: false,
 
-    // Track component class definitions (advanced)
-    enableComponentDefinitions: false,
+      // Track component class definitions (advanced)
+      enableComponentDefinitions: false,
 
-    // Minimum duration (ms) for runloop spans
-    minimumRunloopQueueDuration: 5,
+      // Minimum duration (ms) for runloop spans
+      minimumRunloopQueueDuration: 5,
 
-    // Minimum duration (ms) for component render spans
-    minimumComponentRenderDuration: 2,
+      // Minimum duration (ms) for component render spans
+      minimumComponentRenderDuration: 2,
 
-    // Page load and navigation instrumentation
-    instrumentPageLoad: true,
-    instrumentNavigation: true,
+      // Page load and navigation instrumentation
+      instrumentPageLoad: true,
+      instrumentNavigation: true,
 
-    // Idle timeout (ms)
-    idleTimeout: 5000,
-  }));
+      // Idle timeout (ms)
+      idleTimeout: 5000,
+    }),
+  );
 }
 
 export default {
@@ -197,12 +199,14 @@ config/
 ```
 
 **app/app.js:**
+
 ```javascript
 import Application from '@ember/application';
 // Sentry was auto-initialized from config
 ```
 
 **config/environment.js:**
+
 ```javascript
 module.exports = function (environment) {
   return {
@@ -230,6 +234,7 @@ config/
 ```
 
 **app/app.ts:**
+
 ```typescript
 import Application from '@ember/application';
 import Resolver from 'ember-resolver';
@@ -252,6 +257,7 @@ loadInitializers(App, config.modulePrefix);
 ```
 
 **app/instance-initializers/sentry-performance.ts:**
+
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
 import { addIntegration, browserTracingIntegration } from '@sentry/ember';
@@ -268,6 +274,7 @@ export default { initialize };
 ### "Cannot find module '@sentry/ember/performance'"
 
 Make sure you're importing from the correct path:
+
 ```typescript
 import { browserTracingIntegration } from '@sentry/ember';
 ```

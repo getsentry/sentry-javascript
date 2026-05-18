@@ -1,0 +1,46 @@
+{
+  "name": "ember-6",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Standalone Ember SDK demo app for e2e tests",
+  "license": "MIT",
+  "scripts": {
+    "build": "vite build",
+    "start": "vite preview --port 3030",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm run build",
+    "test:assert": "pnpm run test"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@babel/core": "^7.29.0",
+    "@babel/plugin-transform-typescript": "^7.28.6",
+    "@babel/runtime": "^7.29.2",
+    "@ember/app-tsconfig": "^2.0.0",
+    "@embroider/compat": "^4.1.17",
+    "@embroider/core": "^4.4.7",
+    "@embroider/macros": "^1.20.2",
+    "@embroider/vite": "^1.7.2",
+    "@glint/ember-tsc": "^1.5.0",
+    "@glint/template": "^1.7.7",
+    "@rollup/plugin-babel": "^7.0.0",
+    "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "babel-plugin-ember-template-compilation": "^4.0.0",
+    "decorator-transforms": "^2.3.1",
+    "ember-page-title": "^9.0.3",
+    "ember-source": "^6.12.0",
+    "ember-strict-application-resolver": "^0.1.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "ember": {
+    "edition": "octane"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

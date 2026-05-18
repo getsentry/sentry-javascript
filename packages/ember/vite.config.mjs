@@ -27,16 +27,10 @@ export default defineConfig({
       '@sentry/ember': resolve(__dirname, 'dist/index.js'),
       '@sentry/browser': resolve(__dirname, '.npm-deps/browser'),
       '@sentry/core': resolve(__dirname, '.npm-deps/core'),
-      '@sentry-internal/browser-utils': resolve(
-        __dirname,
-        '.npm-deps/browser-utils',
-      ),
+      '@sentry-internal/browser-utils': resolve(__dirname, '.npm-deps/browser-utils'),
       '@sentry-internal/feedback': resolve(__dirname, '.npm-deps/feedback'),
       '@sentry-internal/replay': resolve(__dirname, '.npm-deps/replay'),
-      '@sentry-internal/replay-canvas': resolve(
-        __dirname,
-        '.npm-deps/replay-canvas',
-      ),
+      '@sentry-internal/replay-canvas': resolve(__dirname, '.npm-deps/replay-canvas'),
     },
   },
   build: {

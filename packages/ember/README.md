@@ -75,17 +75,17 @@ export default {
 
 ### Performance Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `appInstance` | `ApplicationInstance` | *required* | The Ember application instance |
-| `disableRunloopPerformance` | `boolean` | `false` | Disable runloop queue tracking |
-| `disableInstrumentComponents` | `boolean` | `false` | Disable component render tracking |
-| `enableComponentDefinitions` | `boolean` | `false` | Enable component definition tracking |
-| `minimumRunloopQueueDuration` | `number` | `5` | Minimum duration (ms) for runloop spans |
-| `minimumComponentRenderDuration` | `number` | `2` | Minimum duration (ms) for component spans |
-| `instrumentPageLoad` | `boolean` | `true` | Instrument page load spans |
-| `instrumentNavigation` | `boolean` | `true` | Instrument navigation spans |
-| `idleTimeout` | `number` | `5000` | Idle timeout (ms) for tracing |
+| Option                           | Type                  | Default    | Description                               |
+| -------------------------------- | --------------------- | ---------- | ----------------------------------------- |
+| `appInstance`                    | `ApplicationInstance` | _required_ | The Ember application instance            |
+| `disableRunloopPerformance`      | `boolean`             | `false`    | Disable runloop queue tracking            |
+| `disableInstrumentComponents`    | `boolean`             | `false`    | Disable component render tracking         |
+| `enableComponentDefinitions`     | `boolean`             | `false`    | Enable component definition tracking      |
+| `minimumRunloopQueueDuration`    | `number`              | `5`        | Minimum duration (ms) for runloop spans   |
+| `minimumComponentRenderDuration` | `number`              | `2`        | Minimum duration (ms) for component spans |
+| `instrumentPageLoad`             | `boolean`             | `true`     | Instrument page load spans                |
+| `instrumentNavigation`           | `boolean`             | `true`     | Instrument navigation spans               |
+| `idleTimeout`                    | `number`              | `5000`     | Idle timeout (ms) for tracing             |
 
 You can also use the convenience function `setupPerformance`:
 

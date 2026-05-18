@@ -1,12 +1,10 @@
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import * as Sentry from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(
-    browserTracingIntegration({
+  Sentry.addIntegration(
+    Sentry.browserTracingIntegration({
       appInstance,
-      minimumRunloopQueueDuration: 0,
-      minimumComponentRenderDuration: 0,
     }),
   );
 }
