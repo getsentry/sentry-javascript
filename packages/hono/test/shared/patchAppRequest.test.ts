@@ -154,4 +154,72 @@ describe('patchAppRequest', () => {
       expect.any(Function),
     );
   });
+
+  describe('non-invasive patching (preserves existing properties)', () => {
+    it('preserves symbol-keyed properties on app.request', () => {
+      const app = new Hono();
+      const CUSTOM_SYMBOL = Symbol('custom-meta');
+      (app.request as any)[CUSTOM_SYMBOL] = { version: 2 };
+
+      patchAppRequest(app);
+
+      const symbols = Object.getOwnPropertySymbols(app.request);
+      expect(symbols).toContain(CUSTOM_SYMBOL);
+      expect((app.request as any)[CUSTOM_SYMBOL]).toEqual({ version: 2 });
+    });
+
+    it('preserves string-keyed custom properties on app.request', () => {
+      const app = new Hono();
+      (app.request as any).customFlag = true;
+      (app.request as any).metadata = { wrapped: false };
+
+      patchAppRequest(app);
+
+      expect((app.request as any).customFlag).toBe(true);
+      expect((app.request as any).metadata).toEqual({ wrapped: false });
+    });
+
+    it('preserves function.name of the original request method', () => {
+      const app = new Hono();
+      const originalName = app.request.name;
+      patchAppRequest(app);
+
+      expect(app.request.name).toBe(originalName);
+    });
+
+    it('preserves function.length of the original request method', () => {
+      const app = new Hono();
+      const originalLength = app.request.length;
+      patchAppRequest(app);
+
+      expect(app.request.length).toBe(originalLength);
+    });
+
+    it('does not interfere with instanceof or typeof checks', () => {
+      const app = new Hono();
+      patchAppRequest(app);
+
+      expect(typeof app.request).toBe('function');
+    });
+
+    it('preserves prototype chain of the original function', () => {
+      const app = new Hono();
+      const originalProto = Object.getPrototypeOf(app.request);
+      patchAppRequest(app);
+
+      expect(Object.getPrototypeOf(app.request)).toBe(originalProto);
+    });
+
+    it('preserves properties added by third-party libraries (e.g. OpenAPI metadata)', () => {
+      const app = new Hono();
+      const OPENAPI = Symbol('openapi');
+      (app.request as any)[OPENAPI] = { paths: { '/hello': { get: {} } } };
+      (app.request as any).__middleware_chain__ = ['auth', 'cors'];
+
+      patchAppRequest(app);
+
+      expect((app.request as any)[OPENAPI]).toEqual({ paths: { '/hello': { get: {} } } });
+      expect((app.request as any).__middleware_chain__).toEqual(['auth', 'cors']);
+    });
+  });
 });

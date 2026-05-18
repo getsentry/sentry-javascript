@@ -395,6 +395,105 @@ describe('applyPatches', () => {
     });
   });
 
+  describe('wrapSubAppMiddleware non-invasive patching', () => {
+    it('preserves symbol-keyed properties on sub-app middleware handlers', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const OPENAPI = Symbol('openapi');
+      const META = Symbol('meta');
+      const middleware = async function authMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      };
+      (middleware as any)[OPENAPI] = { security: [{ bearer: [] }] };
+      (middleware as any)[META] = { rateLimit: 100 };
+      (middleware as any).customProp = 'preserved';
+
+      const subApp = new Hono();
+      subApp.use(middleware);
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function }>).find(
+        r => (r.handler as any).__sentry_original__ === middleware || r.handler === middleware,
+      );
+      expect(route).toBeDefined();
+
+      const wrappedHandler = route!.handler;
+      const symbols = Object.getOwnPropertySymbols(wrappedHandler);
+      expect(symbols).toContain(OPENAPI);
+      expect(symbols).toContain(META);
+      expect((wrappedHandler as any)[OPENAPI]).toEqual({ security: [{ bearer: [] }] });
+      expect((wrappedHandler as any)[META]).toEqual({ rateLimit: 100 });
+      expect((wrappedHandler as any).customProp).toBe('preserved');
+    });
+
+    it('preserves function.name on sub-app middleware after wrapping', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      subApp.use(async function corsMiddleware(_c: unknown, next: () => Promise<void>) {
+        await next();
+      });
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; method: string }>).find(
+        r => r.method === 'ALL' && r.handler.name === 'corsMiddleware',
+      );
+      expect(route).toBeDefined();
+      expect(route!.handler.name).toBe('corsMiddleware');
+    });
+
+    it('preserves function.length on sub-app middleware after wrapping', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const subApp = new Hono();
+      const mw = async function twoArgMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      };
+      const originalLength = mw.length;
+      subApp.use(mw);
+      subApp.get('/', () => new Response('ok'));
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; method: string }>).find(
+        r => r.method === 'ALL' && r.handler.length === originalLength,
+      );
+      expect(route).toBeDefined();
+      expect(route!.handler.length).toBe(originalLength);
+    });
+
+    it('does not alter the behavior of sub-app route handlers (non-middleware)', async () => {
+      const app = new Hono();
+      applyPatches(app);
+
+      const HANDLER_META = Symbol('handler-meta');
+      const handler = async function getItems() {
+        return new Response('items');
+      };
+      (handler as any)[HANDLER_META] = { cached: true };
+
+      const subApp = new Hono();
+      subApp.get('/items', handler);
+
+      app.route('/api', subApp);
+
+      const route = (subApp.routes as Array<{ handler: Function; path: string }>).find(r => r.path === '/items');
+      expect(route).toBeDefined();
+      expect((route!.handler as any)[HANDLER_META]).toEqual({ cached: true });
+
+      const res = await app.fetch(new Request('http://localhost/api/items'));
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('items');
+    });
+  });
+
   describe('patchAppRequest integration', () => {
     it('patches .request() on sub-apps when they are mounted via route()', async () => {
       const app = new Hono();

@@ -140,3 +140,73 @@ describe('installRouteHookOnPrototype idempotency', () => {
     expect(startSpanMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('installRouteHookOnPrototype non-invasive patching', () => {
+  afterAll(() => {
+    honoBaseProto.route = originalRoute;
+  });
+
+  it('preserves function.name of the original route method', () => {
+    honoBaseProto.route = originalRoute;
+    const originalName = originalRoute.name;
+
+    installRouteHookOnPrototype();
+
+    expect(honoBaseProto.route!.name).toBe(originalName);
+  });
+
+  it('preserves function.length of the original route method', () => {
+    honoBaseProto.route = originalRoute;
+    const originalLength = originalRoute.length;
+
+    installRouteHookOnPrototype();
+
+    expect(honoBaseProto.route!.length).toBe(originalLength);
+  });
+
+  it('preserves symbol-keyed properties on the route method', () => {
+    honoBaseProto.route = originalRoute;
+    const ROUTER_META = Symbol('router-meta');
+    (originalRoute as any)[ROUTER_META] = { version: 3 };
+
+    installRouteHookOnPrototype();
+
+    const symbols = Object.getOwnPropertySymbols(honoBaseProto.route!);
+    expect(symbols).toContain(ROUTER_META);
+    expect((honoBaseProto.route as any)[ROUTER_META]).toEqual({ version: 3 });
+  });
+
+  it('preserves string-keyed custom properties on the route method', () => {
+    honoBaseProto.route = originalRoute;
+    (originalRoute as any).pluginId = 'openapi-router';
+    (originalRoute as any).__patched_by_other_lib__ = true;
+
+    installRouteHookOnPrototype();
+
+    expect((honoBaseProto.route as any).pluginId).toBe('openapi-router');
+    expect((honoBaseProto.route as any).__patched_by_other_lib__).toBe(true);
+  });
+
+  it('preserves prototype chain of the original function', () => {
+    honoBaseProto.route = originalRoute;
+    const originalProto = Object.getPrototypeOf(originalRoute);
+
+    installRouteHookOnPrototype();
+
+    expect(Object.getPrototypeOf(honoBaseProto.route!)).toBe(originalProto);
+  });
+
+  it('correctly calls the original route and preserves return value', () => {
+    honoBaseProto.route = originalRoute;
+    installRouteHookOnPrototype();
+
+    const app = new Hono();
+    applyPatches(app);
+
+    const subApp = new Hono();
+    subApp.get('/test', c => c.text('ok'));
+
+    const result = app.route('/api', subApp);
+    expect(result).toBe(app);
+  });
+});

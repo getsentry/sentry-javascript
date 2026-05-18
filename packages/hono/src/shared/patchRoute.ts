@@ -1,4 +1,4 @@
-import { debug, getOriginalFunction, markFunctionWrapped } from '@sentry/core';
+import { debug, getOriginalFunction } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/core';
 import type { Hono, MiddlewareHandler } from 'hono';
 import { Hono as HonoClass } from 'hono';
@@ -81,16 +81,22 @@ export function installRouteHookOnPrototype(): RouteHookHandle {
   const originalRoute = honoBaseProto.route;
   const { handle, onSubAppMounted } = createRouteHook();
 
-  const patchedRoute = function (this: HonoAny, path: string, subApp: HonoAny): HonoAny {
-    if (subApp && Array.isArray(subApp.routes)) {
-      onSubAppMounted(subApp);
-    }
+  honoBaseProto.route = new Proxy(originalRoute, {
+    apply(_target, thisArg, args: [string, HonoAny]) {
+      const [, subApp] = args;
+      if (subApp && Array.isArray(subApp.routes)) {
+        onSubAppMounted(subApp);
+      }
 
-    return originalRoute.call(this, path, subApp);
-  };
-
-  markFunctionWrapped(patchedRoute as unknown as WrappedFunction, originalRoute as unknown as WrappedFunction);
-  honoBaseProto.route = patchedRoute;
+      return Reflect.apply(_target, thisArg, args);
+    },
+    get(target, prop, receiver) {
+      if (prop === '__sentry_original__') {
+        return originalRoute;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
   honoBaseProto.__sentryRouteHook__ = handle;
 
   DEBUG_BUILD && debug.log('[hono] Installed route hook on HonoBase.prototype.');

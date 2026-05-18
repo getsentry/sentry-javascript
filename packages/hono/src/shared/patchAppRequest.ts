@@ -2,7 +2,6 @@ import {
   debug,
   getActiveSpan,
   getOriginalFunction,
-  markFunctionWrapped,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -13,9 +12,6 @@ import { DEBUG_BUILD } from '../debug-build';
 
 const INTERNAL_REQUEST_OP = 'hono.request';
 const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
-
-// Widened type to allow forwarding opaque args (env bindings, execution context)
-type LooseRequestFn = (input: string | Request | URL, requestInit?: RequestInit, ...rest: unknown[]) => unknown;
 
 function extractPathname(input: string | Request | URL): string {
   if (typeof input === 'string') {
@@ -39,34 +35,41 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
     return;
   }
 
-  const originalRequest = app.request as LooseRequestFn;
+  const originalRequest = app.request;
 
-  const patchedRequest = (input: string | Request | URL, requestInit?: RequestInit, ...rest: unknown[]) => {
-    if (!getActiveSpan()) {
-      return originalRequest(input, requestInit, ...rest);
-    }
+  app.request = new Proxy(originalRequest, {
+    apply(_target, thisArg, args: [string | Request | URL, RequestInit?, ...unknown[]]) {
+      const [input, requestInit, ...rest] = args;
 
-    let method = requestInit?.method ?? (input instanceof Request ? input.method : 'GET');
-    method = method.toUpperCase();
+      if (!getActiveSpan()) {
+        return Reflect.apply(_target, thisArg, args);
+      }
 
-    const path = extractPathname(input);
+      let method = requestInit?.method ?? (input instanceof Request ? input.method : 'GET');
+      method = method.toUpperCase();
 
-    return startSpan(
-      {
-        name: `${method} ${path}`,
-        op: INTERNAL_REQUEST_OP,
-        onlyIfParent: true,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: INTERNAL_REQUEST_OP,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
+      const path = extractPathname(input);
+
+      return startSpan(
+        {
+          name: `${method} ${path}`,
+          op: INTERNAL_REQUEST_OP,
+          onlyIfParent: true,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: INTERNAL_REQUEST_OP,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
+          },
         },
-      },
-      () => originalRequest(input, requestInit, ...rest),
-    );
-  };
-
-  markFunctionWrapped(patchedRequest as unknown as WrappedFunction, originalRequest as unknown as WrappedFunction);
-  app.request = patchedRequest as typeof app.request;
+        () => Reflect.apply(_target, thisArg, [input, requestInit, ...rest]),
+      );
+    },
+    get(target, prop, receiver) {
+      if (prop === '__sentry_original__') {
+        return originalRequest;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
 
   DEBUG_BUILD && debug.log('[hono] Patched app.request for internal dispatch tracing.');
 }
