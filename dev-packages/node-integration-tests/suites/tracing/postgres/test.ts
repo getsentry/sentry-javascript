@@ -1,8 +1,12 @@
-import { describe, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
-import { createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('postgres auto instrumentation', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
   describe('default', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
