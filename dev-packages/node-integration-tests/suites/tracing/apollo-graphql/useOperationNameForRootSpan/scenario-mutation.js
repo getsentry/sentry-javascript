@@ -11,9 +11,6 @@ const client = Sentry.init({
 
 const tracer = client.tracer;
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 async function run() {
   const gql = require('graphql-tag');
   const server = require('../apollo-server')();

@@ -2,9 +2,6 @@ const Sentry = require('@sentry/node');
 const postgres = require('postgres');
 const { waitForPostgres } = require('./wait-for-postgres.js');
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });
 
 async function run() {

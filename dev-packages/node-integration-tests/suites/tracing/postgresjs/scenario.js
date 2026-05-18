@@ -9,9 +9,6 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const postgres = require('postgres');
 
 const sql = postgres({ port: 5444, user: 'test', password: 'test', database: 'test_db' });

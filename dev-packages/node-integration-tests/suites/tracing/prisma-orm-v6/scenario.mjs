@@ -2,9 +2,6 @@ import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
 import { randomBytes } from 'crypto';
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 async function run() {
   await Sentry.startSpan(
     {

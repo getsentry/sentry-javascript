@@ -9,9 +9,6 @@ Sentry.init({
   integrations: [Sentry.redisIntegration({ cachePrefixes: ['redis-cache:'] })],
 });
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const { createClient } = require('redis-4');
 
 async function run() {

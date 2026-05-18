@@ -8,9 +8,6 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 const Redis = require('ioredis');
 
 const redis = new Redis({ port: 6379 });
