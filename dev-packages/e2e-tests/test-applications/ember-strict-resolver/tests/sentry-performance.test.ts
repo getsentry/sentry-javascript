@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -25,11 +25,11 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 });
 
 test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -53,11 +53,11 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -98,11 +98,11 @@ test('sends a navigation transaction even if the pageload span is still active',
 });
 
 test('captures correct spans for navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -282,7 +282,7 @@ test('captures correct spans for navigation', async ({ page }) => {
 });
 
 test('handles slow loading route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-6', transactionEvent => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
     return transactionEvent.transaction === 'route:slow-loading-route.index';
   });
   await page.goto('/tracing');
@@ -357,7 +357,7 @@ test('handles slow loading route', async ({ page }) => {
 });
 
 test('handles page with loading state', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-6', transactionEvent => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
     return transactionEvent.transaction === 'route:with-loading.index';
   });
   await page.goto('/with-loading');
@@ -377,7 +377,7 @@ test('handles page with loading state', async ({ page }) => {
 
 test('handles page with error state', async ({ page }) => {
   // The route's model hook intentionally throws, so we need to handle errors
-  const transactionPromise = waitForTransaction('ember-6', transactionEvent => {
+  const transactionPromise = waitForTransaction('ember-strict-resolver', transactionEvent => {
     return transactionEvent.transaction === 'route:with-error.index';
   });
   await page.goto('/with-error');

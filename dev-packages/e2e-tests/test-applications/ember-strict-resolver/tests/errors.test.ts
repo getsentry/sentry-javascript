@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
-  const errorPromise = waitForError('ember-6', async errorEvent => {
+  const errorPromise = waitForError('ember-strict-resolver', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -30,11 +30,11 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-6', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorPromise = waitForError('ember-6', async errorEvent => {
+  const errorPromise = waitForError('ember-strict-resolver', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -66,7 +66,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
 });
 
 test('captures Ember error', async ({ page }) => {
-  const errorPromise = waitForError('ember-6', event => {
+  const errorPromise = waitForError('ember-strict-resolver', event => {
     return event.exception?.values?.[0]?.value?.includes('EmberError') ?? false;
   });
 
