@@ -9,6 +9,10 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
+const LAMBDA_AUTO_INIT_IMPORT =
+  process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? './sentry-trace-provider-auto.mjs'
+    : '@sentry/aws-serverless/awslambda-auto';
 export const SAM_PORT = 3001;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
@@ -113,7 +117,7 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
+              NODE_OPTIONS: `--import=${LAMBDA_AUTO_INIT_IMPORT}`,
             },
           },
         },

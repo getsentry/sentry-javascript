@@ -12,7 +12,8 @@ async function getUser() {
 }
 
 const authMiddleware: Route.MiddlewareFunction = async ({ request, context }, next) => {
-  Sentry.startSpan({ name: 'authMiddleware', op: 'middleware.auth' }, async () => {
+  // React Router middleware must keep the async `next()` chain alive until it completes.
+  await Sentry.startSpan({ name: 'authMiddleware', op: 'middleware.auth' }, async () => {
     const user: User = await getUser();
     context.set(userContext, user);
     await next();

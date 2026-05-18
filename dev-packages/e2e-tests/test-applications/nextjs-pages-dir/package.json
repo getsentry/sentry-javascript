@@ -42,6 +42,11 @@
       {
         "build-command": "pnpm test:build-15",
         "label": "nextjs-pages-dir (next@15)"
+      },
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "nextjs-pages-dir (sentry-trace-provider)"
       }
     ],
     "optionalVariants": []

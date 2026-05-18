@@ -12,27 +12,28 @@ test.describe('server - middleware', () => {
       return transactionEvent.transaction === '/performance/with-middleware';
     });
 
-    const customMiddlewareTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'authMiddleware';
-    });
-
     await page.goto(`/performance/with-middleware`);
 
     const serverTx = await serverTxPromise;
     const pageloadTx = await pageloadTxPromise;
-    const customMiddlewareTx = await customMiddlewareTxPromise;
 
     const traceIds = {
       server: serverTx?.contexts?.trace?.trace_id,
       pageload: pageloadTx?.contexts?.trace?.trace_id,
-      customMiddleware: customMiddlewareTx?.contexts?.trace?.trace_id,
     };
 
     expect(pageloadTx).toBeDefined();
-    expect(customMiddlewareTx).toBeDefined();
+
+    // The app awaits Sentry.startSpan around the middleware `next()` call, so the manual
+    // middleware span belongs to the request transaction instead of becoming a root transaction.
+    const customMiddlewareSpans =
+      serverTx.spans?.filter(span => {
+        return span.description === 'authMiddleware' && span.op === 'middleware.auth';
+      }) ?? [];
+
+    expect(customMiddlewareSpans).toHaveLength(1);
 
     // Assert that all transactions belong to the same trace
     expect(traceIds.server).toBe(traceIds.pageload);
-    expect(traceIds.server).toBe(traceIds.customMiddleware);
   });
 });

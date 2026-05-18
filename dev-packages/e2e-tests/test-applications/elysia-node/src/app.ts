@@ -8,6 +8,13 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
 });
 
 const app = Sentry.withElysia(new Elysia({ adapter: node() }));

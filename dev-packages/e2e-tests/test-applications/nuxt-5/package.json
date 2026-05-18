@@ -14,8 +14,10 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
+    "test:build:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert"
   },
   "//": [
     "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",

@@ -41,6 +41,11 @@
       {
         "build-command": "pnpm test:build-15",
         "label": "nextjs-app-dir (next@15)"
+      },
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "nextjs-app-dir (sentry-trace-provider)"
       }
     ]
   }

@@ -26,5 +26,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "astro-4 (sentry-trace-provider)"
+      }
+    ]
   }
 }

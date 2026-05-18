@@ -9,6 +9,13 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   tracesSampleRate: 1,
   dataCollection: { userInfo: true },
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
   tunnel: 'http://localhost:3031/', // proxy server
   transportOptions: {
     // We expect the app to send a lot of events in a short time
