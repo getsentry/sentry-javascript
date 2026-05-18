@@ -59,25 +59,16 @@ export type KoaRequestInfo<KoaContextType = any, KoaMiddlewareType = any> = {
  * @param span - The Express middleware layer span.
  * @param context - The current KoaContext.
  */
-export interface KoaRequestCustomAttributeFunction<
-  KoaContextType = any,
-  KoaMiddlewareType = any,
-> {
+export interface KoaRequestCustomAttributeFunction<KoaContextType = any, KoaMiddlewareType = any> {
   (span: Span, info: KoaRequestInfo<KoaContextType, KoaMiddlewareType>): void;
 }
 
 /**
  * Options available for the Koa Instrumentation (see [documentation](https://github.com/open-telemetry/opentelemetry-js/tree/main/packages/opentelemetry-Instrumentation-koa#koa-Instrumentation-options))
  */
-export interface KoaInstrumentationConfig<
-  KoaContextType = any,
-  KoaMiddlewareType = any,
-> extends InstrumentationConfig {
+export interface KoaInstrumentationConfig<KoaContextType = any, KoaMiddlewareType = any> extends InstrumentationConfig {
   /** Ignore specific layers based on their type */
   ignoreLayersType?: KoaLayerType[];
   /** Function for adding custom attributes to each middleware layer span */
-  requestHook?: KoaRequestCustomAttributeFunction<
-    KoaContextType,
-    KoaMiddlewareType
-  >;
+  requestHook?: KoaRequestCustomAttributeFunction<KoaContextType, KoaMiddlewareType>;
 }

@@ -29,7 +29,7 @@ export const getMiddlewareMetadata = (
   context: KoaContext,
   layer: KoaMiddleware,
   isRouter: boolean,
-  layerPath?: string | RegExp
+  layerPath?: string | RegExp,
 ): {
   attributes: Attributes;
   name: string;
@@ -60,12 +60,6 @@ export const getMiddlewareMetadata = (
  * @param [onException] callback for doing something when an exception has
  *     occurred
  */
-export const isLayerIgnored = (
-  type: KoaLayerType,
-  config?: KoaInstrumentationConfig
-): boolean => {
-  return !!(
-    Array.isArray(config?.ignoreLayersType) &&
-    config?.ignoreLayersType?.includes(type)
-  );
+export const isLayerIgnored = (type: KoaLayerType, config?: KoaInstrumentationConfig): boolean => {
+  return !!(Array.isArray(config?.ignoreLayersType) && config?.ignoreLayersType?.includes(type));
 };

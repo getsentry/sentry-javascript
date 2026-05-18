@@ -34,10 +34,7 @@ import type * as Router from '@koa/router';
  * TODO: Remove type casts when @types/koa__router@13+ with @types/koa@3.x support is available
  */
 
-export type KoaContext = ParameterizedContext<
-  DefaultState,
-  Router.RouterParamContext
->;
+export type KoaContext = ParameterizedContext<DefaultState, Router.RouterParamContext>;
 export type KoaMiddleware = Middleware<DefaultState, KoaContext> & {
   router?: Router;
 };

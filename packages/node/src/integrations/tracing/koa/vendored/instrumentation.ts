@@ -33,12 +33,7 @@ import { KoaLayerType, KoaInstrumentationConfig } from './types';
 import { SDK_VERSION } from '@sentry/core';
 import { getMiddlewareMetadata, isLayerIgnored } from './utils';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
-import {
-  kLayerPatched,
-  KoaContext,
-  KoaMiddleware,
-  KoaPatchedMiddleware,
-} from './internal-types';
+import { kLayerPatched, KoaContext, KoaMiddleware, KoaPatchedMiddleware } from './internal-types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-koa';
 
@@ -63,11 +58,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
         if (isWrapped(moduleExports.prototype.use)) {
           this._unwrap(moduleExports.prototype, 'use');
         }
-        this._wrap(
-          moduleExports.prototype,
-          'use',
-          this._getKoaUsePatch.bind(this)
-        );
+        this._wrap(moduleExports.prototype, 'use', this._getKoaUsePatch.bind(this));
         return module;
       },
       (module: any) => {
@@ -78,7 +69,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
         if (isWrapped(moduleExports.prototype.use)) {
           this._unwrap(moduleExports.prototype, 'use');
         }
-      }
+      },
     );
   }
 
@@ -139,15 +130,11 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
   private _patchLayer(
     middlewareLayer: KoaPatchedMiddleware,
     isRouter: boolean,
-    layerPath?: string | RegExp
+    layerPath?: string | RegExp,
   ): KoaMiddleware {
     const layerType = isRouter ? KoaLayerType.ROUTER : KoaLayerType.MIDDLEWARE;
     // Skip patching layer if its ignored in the config
-    if (
-      middlewareLayer[kLayerPatched] === true ||
-      isLayerIgnored(layerType, this.getConfig())
-    )
-      return middlewareLayer;
+    if (middlewareLayer[kLayerPatched] === true || isLayerIgnored(layerType, this.getConfig())) return middlewareLayer;
 
     if (
       middlewareLayer.constructor.name === 'GeneratorFunction' ||
@@ -165,12 +152,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
       if (parent === undefined) {
         return middlewareLayer(context, next);
       }
-      const metadata = getMiddlewareMetadata(
-        context,
-        middlewareLayer,
-        isRouter,
-        layerPath
-      );
+      const metadata = getMiddlewareMetadata(context, middlewareLayer, isRouter, layerPath);
       const span = this.tracer.startSpan(metadata.name, {
         attributes: metadata.attributes,
       });
@@ -195,7 +177,7 @@ export class KoaInstrumentation extends InstrumentationBase<KoaInstrumentationCo
               api.diag.error('koa instrumentation: request hook failed', e);
             }
           },
-          true
+          true,
         );
       }
 
