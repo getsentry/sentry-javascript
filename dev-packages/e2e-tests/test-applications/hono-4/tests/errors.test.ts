@@ -32,6 +32,7 @@ test.describe('route handler errors', () => {
     expect(errorEvent.transaction).toBe('GET /error/:cause');
     expect(errorEvent.request?.method).toBe('GET');
     expect(errorEvent.request?.url).toContain('/error/test-cause');
+    expect(errorEvent.request?.headers).toBeDefined();
 
     expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
@@ -217,7 +218,9 @@ test.describe('nested sub-app errors', () => {
       handled: false,
       type: 'auto.http.hono.context_error',
     });
+    expect(errorEvent.request?.method).toBe('GET');
     expect(errorEvent.request?.url).toContain('/test-errors/nested/child/error');
+    expect(errorEvent.request?.headers).toBeDefined();
   });
 });
 

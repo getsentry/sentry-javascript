@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { patchAppUse } from '../../src/shared/patchAppUse';
+import { patchAppUse, patchHttpMethodHandlers } from '../../src/shared/patchAppUse';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -200,5 +200,191 @@ describe('patchAppUse (middleware spans)', () => {
     fakeApp.use(noop);
 
     expect(fakeApp._capturedThis).toBe(fakeApp);
+  });
+});
+
+describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each(['get', 'post', 'put', 'delete', 'options', 'patch', 'all'] as const)(
+    'wraps inline middleware in app.%s(path, mw, handler)',
+    async method => {
+      const app = new Hono();
+      patchHttpMethodHandlers(app);
+
+      app[method](
+        '/test',
+        async function inlineMw(_c: unknown, next: () => Promise<void>) {
+          await next();
+        },
+        () => new Response('ok'),
+      );
+
+      const fetchMethod = method === 'all' ? 'GET' : method.toUpperCase();
+      await app.fetch(new Request('http://localhost/test', { method: fetchMethod }));
+
+      expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanMock).toHaveBeenCalledWith({
+        name: 'inlineMw',
+        op: 'middleware.hono',
+        onlyIfParent: true,
+        parentSpan: undefined,
+        attributes: {
+          'sentry.op': 'middleware.hono',
+          'sentry.origin': 'auto.middleware.hono',
+        },
+      });
+    },
+  );
+
+  it('does not wrap the sole handler when only one handler is passed', async () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+
+    app.get('/test', async function onlyHandler() {
+      return new Response('ok');
+    });
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    expect(startInactiveSpanMock).not.toHaveBeenCalled();
+  });
+
+  it('wraps all handlers except the last when multiple handlers are passed', async () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+
+    app.get(
+      '/test',
+      async function mw1(_c: unknown, next: () => Promise<void>) {
+        await next();
+      },
+      async function mw2(_c: unknown, next: () => Promise<void>) {
+        await next();
+      },
+      async function routeHandler() {
+        return new Response('ok');
+      },
+    );
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+    expect(spanNames).toHaveLength(2);
+    expect(spanNames).toContain('mw1');
+    expect(spanNames).toContain('mw2');
+    expect(spanNames).not.toContain('routeHandler');
+  });
+
+  it('wraps inline middleware in app.on(method, path, mw, handler)', async () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+
+    app.on(
+      'GET',
+      '/test',
+      async function onMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      },
+      async function onHandler() {
+        return new Response('ok');
+      },
+    );
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+    expect(spanNames).toHaveLength(1);
+    expect(spanNames).toContain('onMw');
+    expect(spanNames).not.toContain('onHandler');
+  });
+
+  it('does not wrap sole handler in app.on(method, path, handler)', async () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+
+    app.on('GET', '/test', async function soleHandler() {
+      return new Response('ok');
+    });
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    expect(startInactiveSpanMock).not.toHaveBeenCalled();
+  });
+
+  it('does not double-wrap handlers already wrapped by patchAppUse', async () => {
+    const app = new Hono();
+    patchAppUse(app);
+    patchHttpMethodHandlers(app);
+
+    app.use(async function useMw(_c: unknown, next: () => Promise<void>) {
+      await next();
+    });
+    app.get('/test', () => new Response('ok'));
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
+    expect((startInactiveSpanMock.mock.calls[0]![0] as { name: string }).name).toBe('useMw');
+  });
+
+  it('creates spans for both app.use middleware and inline middleware in app.get', async () => {
+    const app = new Hono();
+    patchAppUse(app);
+    patchHttpMethodHandlers(app);
+
+    app.use('/test', async function globalMw(_c: unknown, next: () => Promise<void>) {
+      await next();
+    });
+    app.get(
+      '/test',
+      async function inlineMw(_c: unknown, next: () => Promise<void>) {
+        await next();
+      },
+      () => new Response('ok'),
+    );
+
+    await app.fetch(new Request('http://localhost/test'));
+
+    const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
+    expect(spanNames).toContain('globalMw');
+    expect(spanNames).toContain('inlineMw');
+    expect(spanNames).toHaveLength(2);
+  });
+
+  it('preserves return value and chaining', () => {
+    const app = new Hono();
+    patchHttpMethodHandlers(app);
+
+    const result = app.get('/test', () => new Response('ok'));
+
+    expect(result).toBe(app);
+  });
+
+  it('forwards thisArg to the original method', () => {
+    let capturedThis: unknown = null;
+    const fakeMethod = function (this: unknown) {
+      capturedThis = this;
+      return this;
+    };
+    const fakeApp = {
+      get: fakeMethod,
+      post: fakeMethod,
+      put: fakeMethod,
+      delete: fakeMethod,
+      options: fakeMethod,
+      patch: fakeMethod,
+      all: fakeMethod,
+      on: fakeMethod,
+    };
+
+    patchHttpMethodHandlers(fakeApp as unknown as Parameters<typeof patchHttpMethodHandlers>[0]);
+
+    // @ts-expect-error - we're only testing that thisArg is forwarded, so the args don't need to be correct
+    fakeApp.get('/test', () => new Response('ok'));
+
+    expect(capturedThis).toBe(fakeApp);
   });
 });
