@@ -80,7 +80,7 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
  */
 export function instrumentAppInstancePerformance(
   appInstance: ApplicationInstance,
-  options: Partial<Parameters<typeof browserTracingIntegration>[0]>,
+  options?: Partial<Parameters<typeof browserTracingIntegration>[0]>,
 ): void {
   addIntegration(
     browserTracingIntegration({
