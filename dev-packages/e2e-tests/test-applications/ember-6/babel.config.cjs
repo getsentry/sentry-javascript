@@ -3,12 +3,7 @@
  */
 const { buildMacros } = require('@embroider/macros/babel');
 
-const { babelCompatSupport, templateCompatSupport } = require('@embroider/compat/babel');
-
 const macros = buildMacros();
-
-// For scenario testing
-const isCompat = Boolean(process.env.ENABLE_COMPAT_BUILD);
 
 module.exports = {
   plugins: [
@@ -23,7 +18,7 @@ module.exports = {
     [
       'babel-plugin-ember-template-compilation',
       {
-        transforms: [...(isCompat ? templateCompatSupport() : macros.templateMacros)],
+        transforms: [...macros.templateMacros],
       },
     ],
     [
@@ -34,7 +29,7 @@ module.exports = {
         },
       },
     ],
-    ...(isCompat ? babelCompatSupport() : macros.babelMacros),
+    ...macros.babelMacros,
   ],
   generatorOpts: {
     compact: false,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/ember",
-  "version": "10.52.0",
+  "version": "10.53.1",
   "description": "Official Sentry SDK for Ember.js",
   "keywords": [
     "ember-addon"
@@ -28,7 +28,7 @@
   "scripts": {
     "build": "rollup --config",
     "build:dev": "yarn build",
-    "build:tarball": "yarn build && npm pack",
+    "build:tarball": "npm pack",
     "build:watch": "rollup --config --watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf dist declarations *.tgz .turbo",
@@ -42,8 +42,8 @@
   },
   "dependencies": {
     "@embroider/addon-shim": "^1.10.2",
-    "@sentry/browser": "10.52.0",
-    "@sentry/core": "10.52.0",
+    "@sentry/browser": "10.53.1",
+    "@sentry/core": "10.53.1",
     "decorator-transforms": "^2.3.2"
   },
   "devDependencies": {
