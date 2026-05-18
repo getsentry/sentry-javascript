@@ -2,7 +2,7 @@ import { getAsyncContextStrategy } from './asyncContext';
 import { getGlobalSingleton, getMainCarrier } from './carrier';
 import type { Client } from './client';
 import { Scope } from './scope';
-import type { TraceContext } from './types-hoist/context';
+import type { TraceContext } from './types/context';
 import { generateSpanId } from './utils/propagationContext';
 
 let _externalPropagationContextProvider: (() => { traceId: string; spanId: string } | undefined) | undefined;

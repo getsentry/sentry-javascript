@@ -12,11 +12,6 @@ beforeAll(() => {
 });
 
 class MockClient implements Partial<Client> {
-  public addEventProcessor: () => void;
-  constructor() {
-    // Mock addEventProcessor function
-    this.addEventProcessor = vi.fn();
-  }
   // @ts-expect-error not returning options for the test
   public getOptions() {
     return {};
@@ -55,14 +50,6 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests(client, { traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
-  });
-
-  it('does instrument streaming requests if trackFetchStreamPerformance is true', () => {
-    const addFetchEndSpy = vi.spyOn(utils, 'addFetchEndInstrumentationHandler');
-
-    instrumentOutgoingRequests(client, { trackFetchStreamPerformance: true });
-
-    expect(addFetchEndSpy).toHaveBeenCalledWith(expect.any(Function));
   });
 });
 

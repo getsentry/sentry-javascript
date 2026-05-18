@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
-import type { DsnComponents } from '../../src/types-hoist/dsn';
-import type { SdkInfo } from '../../src/types-hoist/sdkinfo';
+import type { DsnComponents } from '../../src/types/dsn';
+import type { SdkInfo } from '../../src/types/sdkinfo';
 import { makeDsn } from '../../src/utils/dsn';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';

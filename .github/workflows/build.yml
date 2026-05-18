@@ -502,6 +502,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -884,6 +886,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1011,6 +1015,8 @@ jobs:
           contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4"]'),
           matrix.test-application)
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
         uses: aws-actions/setup-sam@v2

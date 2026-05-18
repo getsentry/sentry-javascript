@@ -9,7 +9,7 @@ import {
 } from '../../../src/utils/featureFlags';
 
 import * as currentScopeModule from '../../../src/currentScopes';
-import type { Event } from '../../../src/types-hoist/event';
+import type { Event } from '../../../src/types/event';
 
 describe('flags', () => {
   describe('insertFlagToScope()', () => {

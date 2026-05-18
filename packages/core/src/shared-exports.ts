@@ -65,6 +65,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
+export { defaultPiiToCollectionOptions } from './utils/data-collection/defaultPiiToCollectionOptions';
 export { envToBool } from './utils/envToBool';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
@@ -347,9 +348,9 @@ export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
-export type { Attachment } from './types-hoist/attachment';
-export type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, FetchBreadcrumbHint } from './types-hoist/breadcrumb';
-export type { ClientReport, Outcome, EventDropReason } from './types-hoist/clientreport';
+export type { Attachment } from './types/attachment';
+export type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, FetchBreadcrumbHint } from './types/breadcrumb';
+export type { ClientReport, Outcome, EventDropReason } from './types/clientreport';
 export type {
   Context,
   Contexts,
@@ -360,10 +361,10 @@ export type {
   TraceContext,
   CloudResourceContext,
   MissingInstrumentationContext,
-} from './types-hoist/context';
-export type { DataCategory } from './types-hoist/datacategory';
-export type { DsnComponents, DsnLike, DsnProtocol } from './types-hoist/dsn';
-export type { DebugImage, DebugMeta } from './types-hoist/debugMeta';
+} from './types/context';
+export type { DataCategory } from './types/datacategory';
+export type { DsnComponents, DsnLike, DsnProtocol } from './types/dsn';
+export type { DebugImage, DebugMeta } from './types/debugMeta';
 export type {
   AttachmentItem,
   BaseEnvelopeHeaders,
@@ -394,18 +395,19 @@ export type {
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
-} from './types-hoist/envelope';
-export type { ExtendedError } from './types-hoist/error';
-export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types-hoist/event';
-export type { EventProcessor } from './types-hoist/eventprocessor';
-export type { Exception } from './types-hoist/exception';
-export type { Extra, Extras } from './types-hoist/extra';
-export type { Integration, IntegrationFn } from './types-hoist/integration';
-export type { Mechanism } from './types-hoist/mechanism';
-export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
-export type { Package } from './types-hoist/package';
-export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
+} from './types/envelope';
+export type { ExtendedError } from './types/error';
+export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types/event';
+export type { EventProcessor } from './types/eventprocessor';
+export type { Exception } from './types/exception';
+export type { Extra, Extras } from './types/extra';
+export type { Integration, IntegrationFn } from './types/integration';
+export type { Mechanism } from './types/mechanism';
+export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types/misc';
+export type { CollectBehavior, DataCollection, HttpBodyCollectionTarget } from './types/datacollection';
+export type { ClientOptions, CoreOptions as Options } from './types/options';
+export type { Package } from './types/package';
+export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
 export type {
   ThreadId,
   FrameId,
@@ -417,7 +419,7 @@ export type {
   ContinuousThreadCpuProfile,
   Profile,
   ProfileChunk,
-} from './types-hoist/profiling';
+} from './types/profiling';
 export type {
   ReplayEndEvent,
   ReplayEvent,
@@ -425,7 +427,7 @@ export type {
   ReplayRecordingMode,
   ReplayStartEvent,
   ReplayStopReason,
-} from './types-hoist/replay';
+} from './types/replay';
 export type {
   FeedbackErrorCode,
   FeedbackErrorMessages,
@@ -437,17 +439,17 @@ export type {
   SendFeedback,
   SendFeedbackParams,
   UserFeedback,
-} from './types-hoist/feedback';
+} from './types/feedback';
 export type {
   QueryParams,
   RequestEventData,
   RequestHookInfo,
   ResponseHookInfo,
   SanitizedRequestData,
-} from './types-hoist/request';
-export type { Runtime } from './types-hoist/runtime';
-export type { SdkInfo } from './types-hoist/sdkinfo';
-export type { SdkMetadata } from './types-hoist/sdkmetadata';
+} from './types/request';
+export type { Runtime } from './types/runtime';
+export type { SdkInfo } from './types/sdkinfo';
+export type { SdkMetadata } from './types/sdkmetadata';
 export type {
   SessionAggregates,
   AggregationCounts,
@@ -455,8 +457,8 @@ export type {
   SessionContext,
   SessionStatus,
   SerializedSession,
-} from './types-hoist/session';
-export type { SeverityLevel } from './types-hoist/severity';
+} from './types/session';
+export type { SeverityLevel } from './types/severity';
 export type {
   Span,
   SentrySpanArguments,
@@ -470,10 +472,10 @@ export type {
   SerializedStreamedSpan,
   SerializedStreamedSpanContainer,
   StreamedSpanJSON,
-} from './types-hoist/span';
-export type { SpanStatus } from './types-hoist/spanStatus';
-export type { Log, LogSeverityLevel } from './types-hoist/log';
-export type { SpanLink } from './types-hoist/link';
+} from './types/span';
+export type { SpanStatus } from './types/spanStatus';
+export type { Log, LogSeverityLevel } from './types/log';
+export type { SpanLink } from './types/link';
 export type {
   Metric,
   MetricType,
@@ -481,18 +483,14 @@ export type {
   SerializedMetricContainer,
   // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
-} from './types-hoist/metric';
-export type { TimedEvent } from './types-hoist/timedEvent';
-export type { StackFrame } from './types-hoist/stackframe';
-export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types-hoist/stacktrace';
-export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types-hoist/tracing';
-export type { StartSpanOptions } from './types-hoist/startSpanOptions';
-export type { TraceparentData, TransactionSource } from './types-hoist/transaction';
-export type {
-  TracesSamplerSamplingContext,
-  CustomSamplingContext,
-  SamplingContext,
-} from './types-hoist/samplingcontext';
+} from './types/metric';
+export type { TimedEvent } from './types/timedEvent';
+export type { StackFrame } from './types/stackframe';
+export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types/stacktrace';
+export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types/tracing';
+export type { StartSpanOptions } from './types/startSpanOptions';
+export type { TraceparentData, TransactionSource } from './types/transaction';
+export type { TracesSamplerSamplingContext, CustomSamplingContext, SamplingContext } from './types/samplingcontext';
 export type {
   DurationUnit,
   InformationUnit,
@@ -500,8 +498,8 @@ export type {
   MeasurementUnit,
   NoneUnit,
   Measurements,
-} from './types-hoist/measurement';
-export type { Thread } from './types-hoist/thread';
+} from './types/measurement';
+export type { Thread } from './types/thread';
 export type {
   Transport,
   TransportRequest,
@@ -509,29 +507,23 @@ export type {
   InternalBaseTransportOptions,
   BaseTransportOptions,
   TransportRequestExecutor,
-} from './types-hoist/transport';
-export type { User } from './types-hoist/user';
-export type { WebFetchHeaders, WebFetchRequest } from './types-hoist/webfetchapi';
-export type { WrappedFunction } from './types-hoist/wrappedfunction';
+} from './types/transport';
+export type { User } from './types/user';
+export type { WebFetchHeaders, WebFetchRequest } from './types/webfetchapi';
+export type { WrappedFunction } from './types/wrappedfunction';
 export type {
   HandlerDataFetch,
   HandlerDataConsole,
   HandlerDataError,
   HandlerDataUnhandledRejection,
   ConsoleLevel,
-} from './types-hoist/instrument';
-export type {
-  CheckIn,
-  MonitorConfig,
-  FinishedCheckIn,
-  InProgressCheckIn,
-  SerializedCheckIn,
-} from './types-hoist/checkin';
-export type { ParameterizedString } from './types-hoist/parameterize';
-export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types-hoist/profiling';
-export type { ViewHierarchyData, ViewHierarchyWindow } from './types-hoist/view-hierarchy';
-export type { LegacyCSPReport } from './types-hoist/csp';
-export type { SerializedLog, SerializedLogContainer } from './types-hoist/log';
+} from './types/instrument';
+export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './types/checkin';
+export type { ParameterizedString } from './types/parameterize';
+export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types/profiling';
+export type { ViewHierarchyData, ViewHierarchyWindow } from './types/view-hierarchy';
+export type { LegacyCSPReport } from './types/csp';
+export type { SerializedLog, SerializedLogContainer } from './types/log';
 export type {
   BuildTimeOptionsBase,
   UnstableVitePluginOptions,

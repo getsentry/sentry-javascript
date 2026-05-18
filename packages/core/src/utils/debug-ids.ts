@@ -1,5 +1,5 @@
-import type { DebugImage } from '../types-hoist/debugMeta';
-import type { StackParser } from '../types-hoist/stacktrace';
+import type { DebugImage } from '../types/debugMeta';
+import type { StackParser } from '../types/stacktrace';
 import { normalizeStackTracePath } from './stacktrace';
 import { GLOBAL_OBJ } from './worldwide';
 

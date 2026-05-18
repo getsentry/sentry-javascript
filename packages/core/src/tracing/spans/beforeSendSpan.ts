@@ -1,6 +1,6 @@
-import type { CoreOptions } from '../../types-hoist/options';
-import type { BeforeSendStreamedSpanCallback } from '../../types-hoist/options';
-import type { StreamedSpanJSON } from '../../types-hoist/span';
+import type { CoreOptions } from '../../types/options';
+import type { BeforeSendStreamedSpanCallback } from '../../types/options';
+import type { StreamedSpanJSON } from '../../types/span';
 import { addNonEnumerableProperty } from '../../utils/object';
 
 type StaticBeforeSendSpanCallback = CoreOptions['beforeSendSpan'];

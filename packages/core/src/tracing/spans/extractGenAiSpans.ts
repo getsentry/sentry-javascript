@@ -1,6 +1,6 @@
 import type { Client } from '../../client';
-import type { SpanContainerItem } from '../../types-hoist/envelope';
-import type { Event } from '../../types-hoist/event';
+import type { SpanContainerItem } from '../../types/envelope';
+import type { Event } from '../../types/event';
 import { isBrowser } from '../../utils/isBrowser';
 import { hasSpanStreamingEnabled } from './hasSpanStreamingEnabled';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';

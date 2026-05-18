@@ -9,7 +9,6 @@ import type {
   SpanTimeInput,
 } from '@sentry/core/browser';
 import {
-  addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
@@ -94,6 +93,9 @@ export interface RequestInstrumentationOptions {
    * (https://github.com/getsentry/sentry-javascript/issues/13950)
    *
    * Default: false
+   *
+   * @deprecated Use `fetchStreamPerformanceIntegration()` instead. Add it to your `integrations` array
+   * to track the duration of streamed fetch response bodies.
    */
   trackFetchStreamPerformance: boolean;
 
@@ -123,9 +125,6 @@ export interface RequestInstrumentationOptions {
   onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
-const responseToSpanId = new WeakMap<object, string>();
-const spanIdToEndTimestamp = new Map<string, number>();
-
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
@@ -138,7 +137,6 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const {
     traceFetch,
     traceXHR,
-    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     tracePropagationTargets,
@@ -159,43 +157,11 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const propagateTraceparent = (client as BrowserClient).getOptions().propagateTraceparent;
 
   if (traceFetch) {
-    // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
-    // e.g. streaming using server sent events (SSE)
-    client.addEventProcessor(event => {
-      if (event.type === 'transaction' && event.spans) {
-        event.spans.forEach(span => {
-          if (span.op === 'http.client') {
-            const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
-            if (updatedTimestamp) {
-              span.timestamp = updatedTimestamp / 1000;
-              spanIdToEndTimestamp.delete(span.span_id);
-            }
-          }
-        });
-      }
-      return event;
-    });
-
-    if (trackFetchStreamPerformance) {
-      addFetchEndInstrumentationHandler(handlerData => {
-        if (handlerData.response) {
-          const span = responseToSpanId.get(handlerData.response);
-          if (span && handlerData.endTimestamp) {
-            spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
-          }
-        }
-      });
-    }
-
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
         onRequestSpanEnd,
       });
-
-      if (handlerData.response && handlerData.fetchData.__span) {
-        responseToSpanId.set(handlerData.response, handlerData.fetchData.__span);
-      }
 
       // We cannot use `window.location` in the generic fetch instrumentation,
       // but we need it for reliable `server.address` attribute.

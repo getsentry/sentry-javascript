@@ -584,7 +584,27 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-          child = spawn('node', [...flags, testPath], { env });
+          // Inject auto-flush hooks so scenarios don't need
+          // `setInterval(() => {}, 1000)` boilerplate. Each script registers a
+          // `beforeExit` listener that calls `Sentry.flush()` — the awaited
+          // flush keeps the event loop alive until queued envelopes reach the
+          // transport, then the process exits naturally.
+          //
+          // We inject the matching loader for the scenario's module system
+          // (detected by whether `flags` already contains `--import` for the
+          // instrument file). For ESM scenarios we use `--import auto-flush.mjs`
+          // so the `import * as Sentry` resolves to the same SDK instance the
+          // scenario uses; for CJS we use `--require auto-flush.cjs`.
+          //
+          // Skipped when no envelopes are expected — these tests (e.g. ANR
+          // `should-exit`, `ensureNoErrorOutput`) verify the child exits
+          // naturally and auto-flush would delay that with retrying HTTP
+          // requests to the fake DSN.
+          const wantsAutoFlush =
+            !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
+          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags), ...flags] : flags;
+
+          child = spawn('node', [...childFlags, testPath], { env });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console
@@ -741,6 +761,27 @@ export function createRunner(...paths: string[]) {
 function log(...args: unknown[]): void {
   // eslint-disable-next-line no-console
   console.log(...args.map(arg => normalize(arg)));
+}
+
+/**
+ * Returns Node flags that inject the auto-flush loader matching the scenario's
+ * module system. ESM scenarios already have `--import` for the instrument
+ * file — we mirror that with `--import auto-flush.mjs` so both resolve to the
+ * same `@sentry/node` instance. Otherwise we fall back to `--require
+ * auto-flush.cjs`.
+ *
+ * Node accepts both `--import foo` (two array elements) and `--import=foo`
+ * (one element); we have to recognise both, otherwise tests using the
+ * `=value` form (e.g. `withFlags('--import=@sentry/node/init')` in
+ * `suites/no-code/test.ts`) silently get `auto-flush.cjs` and the flush
+ * targets the wrong SDK instance.
+ */
+function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
+  const isEsm = existingFlags.some(flag => flag.startsWith('--import='));
+  if (isEsm) {
+    return ['--import', join(__dirname, 'auto-flush.mjs')];
+  }
+  return ['--require', join(__dirname, 'auto-flush.cjs')];
 }
 
 function expectErrorEvent(item: Event, expected: ExpectedEvent): void {

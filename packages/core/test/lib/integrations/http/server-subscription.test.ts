@@ -6,7 +6,7 @@ import { getIsolationScope } from '../../../../src/currentScopes';
 import { setCurrentClient } from '../../../../src/sdk';
 import { HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpServerSubscriptions } from '../../../../src/integrations/http/server-subscription';
-import type { Event } from '../../../../src/types-hoist/event';
+import type { Event } from '../../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 describe('getHttpServerSubscriptions', () => {

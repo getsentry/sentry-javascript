@@ -1,4 +1,4 @@
-/*! Sentry Replay Worker 8.33.1 (c992b3fad) | https://github.com/getsentry/sentry-javascript */
+/*! Sentry Replay Worker 10.53.1 (d8e086f796) | https://github.com/getsentry/sentry-javascript */
 // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
 // https://tools.ietf.org/html/rfc1951
 // You may also wish to take a look at the guide I made about this program:
@@ -125,7 +125,6 @@ var shft = function (p) {
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
 var slc = function (v, s, e) {
-  if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
   return new u8(v.subarray(s, e));
@@ -588,7 +587,7 @@ var dopt = function (dat, opt, pre, post, st) {
   return dflt(
     dat,
     opt.level == null ? 6 : opt.level,
-    opt.mem == null ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 12 + opt.mem,
+    opt.mem == null ? (st.l ? Math.ceil(Math.max(8, Math.min(13, Math.log(dat.length))) * 1.5) : 20) : 12 + opt.mem,
     pre,
     post,
     st,
@@ -661,11 +660,9 @@ var Deflate = /*#__PURE__*/ (function () {
         this.b = newBuf;
       }
       var split = this.b.length - this.s.z;
-      if (split) {
-        this.b.set(chunk.subarray(0, split), this.s.z);
-        this.s.z = this.b.length;
-        this.p(this.b, false);
-      }
+      this.b.set(chunk.subarray(0, split), this.s.z);
+      this.s.z = this.b.length;
+      this.p(this.b, false);
       this.b.set(this.b.subarray(-32768));
       this.b.set(chunk.subarray(split), 32768);
       this.s.z = chunk.length - split + 32768;
@@ -679,6 +676,16 @@ var Deflate = /*#__PURE__*/ (function () {
       this.p(this.b, final || false);
       ((this.s.w = this.s.i), (this.s.i -= 2));
     }
+  };
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * deflated output for small inputs.
+   */
+  Deflate.prototype.flush = function () {
+    if (!this.ondata) err(5);
+    if (this.s.l) err(4);
+    this.p(this.b, false);
+    ((this.s.w = this.s.i), (this.s.i -= 2));
   };
   return Deflate;
 })();
@@ -721,6 +728,13 @@ var Zlib = /*#__PURE__*/ (function () {
     if (f) wbytes(raw, raw.length - 4, this.c.d());
     this.ondata(raw, f);
   };
+  /**
+   * Flushes buffered uncompressed data. Useful to immediately retrieve the
+   * zlibbed output for small inputs.
+   */
+  Zlib.prototype.flush = function () {
+    Deflate.prototype.flush.call(this);
+  };
   return Zlib;
 })();
 // text encoder
@@ -729,7 +743,7 @@ var te = typeof TextEncoder != 'undefined' && /*#__PURE__*/ new TextEncoder();
 var td = typeof TextDecoder != 'undefined' && /*#__PURE__*/ new TextDecoder();
 try {
   td.decode(et, { stream: true });
-} catch {}
+} catch (e) {}
 /**
  * Streaming UTF-8 encoding
  */
@@ -761,11 +775,7 @@ var EncodeUTF8 = /*#__PURE__*/ (function () {
  * @returns The string encoded in UTF-8/Latin-1 binary
  */
 function strToU8(str, latin1) {
-  if (latin1) {
-    var ar_1 = new u8(str.length);
-    for (var i = 0; i < str.length; ++i) ar_1[i] = str.charCodeAt(i);
-    return ar_1;
-  }
+  var i;
   if (te) return te.encode(str);
   var l = str.length;
   var ar = new u8(str.length + (str.length >> 1));
@@ -793,9 +803,6 @@ function strToU8(str, latin1) {
   return slc(ar, 0, ai);
 }
 
-/**
- * A stateful compressor that can be used to batch compress events.
- */
 class Compressor {
   constructor() {
     this._init();
@@ -813,8 +820,6 @@ class Compressor {
     if (!data) {
       throw new Error('Adding invalid event');
     }
-    // If the event is not the first event, we need to prefix it with a `,` so
-    // that we end up with a list of events
     const prefix = this._hasEvents ? ',' : '';
     this.stream.push(prefix + data);
     this._hasEvents = true;
@@ -823,10 +828,7 @@ class Compressor {
    * Finish compression of the current buffer.
    */
   finish() {
-    // We should always have a list, it can be empty
     this.stream.push(']', true);
-    // Copy result before we create a new deflator and return the compressed
-    // result
     const result = mergeUInt8Arrays(this._deflatedData);
     this._init();
     return result;
@@ -844,26 +846,19 @@ class Compressor {
     this.stream = new EncodeUTF8((data, final) => {
       this.deflate.push(data, final);
     });
-    // Fake an array by adding a `[`
     this.stream.push('[');
   }
 }
-/**
- * Compress a string.
- */
 function compress(data) {
   return gzipSync(strToU8(data));
 }
 function mergeUInt8Arrays(chunks) {
-  // calculate data length
   let len = 0;
   for (const chunk of chunks) {
     len += chunk.length;
   }
-  // join chunks
   const result = new Uint8Array(len);
   for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const chunk = chunks[i];
     result.set(chunk, pos);
     pos += chunk.length;
@@ -871,7 +866,6 @@ function mergeUInt8Arrays(chunks) {
   return result;
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 const compressor = new Compressor();
 const handlers = {
   clear: () => {
@@ -887,17 +881,12 @@ const handlers = {
     return compress(data);
   },
 };
-/**
- * Handler for worker messages.
- */
 function handleMessage(e) {
   const method = e.data.method;
   const id = e.data.id;
   const data = e.data.arg;
-  // @ts-expect-error this syntax is actually fine
   if (method in handlers && typeof handlers[method] === 'function') {
     try {
-      // @ts-expect-error this syntax is actually fine
       const response = handlers[method](data);
       postMessage({
         id,
@@ -912,17 +901,15 @@ function handleMessage(e) {
         success: false,
         response: err.message,
       });
-      // eslint-disable-next-line no-console
       console.error(err);
     }
   }
 }
 
 addEventListener('message', handleMessage);
-// Immediately send a message when worker loads, so we know the worker is ready
 postMessage({
-  id: undefined,
+  id: void 0,
   method: 'init',
   success: true,
-  response: undefined,
+  response: void 0,
 });

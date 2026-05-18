@@ -16,8 +16,8 @@ import {
   startSpanManual,
 } from '../../../src';
 import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
-import type { Event } from '../../../src/types-hoist/event';
-import type { Span } from '../../../src/types-hoist/span';
+import type { Event } from '../../../src/types/event';
+import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const dsn = 'https://123@sentry.io/42';

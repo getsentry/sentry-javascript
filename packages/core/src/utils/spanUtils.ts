@@ -12,8 +12,8 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type { TraceContext } from '../types-hoist/context';
-import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
+import type { TraceContext } from '../types/context';
+import type { SpanLink, SpanLinkJSON } from '../types/link';
 import type {
   SerializedStreamedSpan,
   Span,
@@ -22,8 +22,8 @@ import type {
   SpanOrigin,
   SpanTimeInput,
   StreamedSpanJSON,
-} from '../types-hoist/span';
-import type { SpanStatus } from '../types-hoist/spanStatus';
+} from '../types/span';
+import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
