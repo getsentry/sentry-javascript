@@ -16,7 +16,6 @@ export const SENSITIVE_KEY_SNIPPETS = [
   'csrf',
   'xsrf',
   'credentials',
-  'session',
   'sid',
   'identity',
   // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
