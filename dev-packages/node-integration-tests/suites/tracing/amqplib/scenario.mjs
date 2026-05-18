@@ -32,7 +32,6 @@ const QUEUE_OPTIONS = {
 
   await channel.close();
   await connection.close();
-
 })();
 
 async function connectToRabbitMQ() {

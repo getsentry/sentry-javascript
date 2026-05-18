@@ -584,14 +584,25 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-          // Inject a `--require keepalive.cjs` to keep the child's event loop
-          // alive while the SDK flushes envelopes — replaces the
-          // `setInterval(() => {}, 1000)` boilerplate that used to live in
-          // every scenario. Skipped for `ensureNoErrorOutput` tests, which
-          // assert that the child exits naturally.
-          const childFlags = ensureNoErrorOutput
-            ? flags
-            : ['--require', join(__dirname, 'keepalive.cjs'), ...flags];
+          // Inject auto-flush hooks so scenarios don't need
+          // `setInterval(() => {}, 1000)` boilerplate. Each script registers a
+          // `beforeExit` listener that calls `Sentry.flush()` — the awaited
+          // flush keeps the event loop alive until queued envelopes reach the
+          // transport, then the process exits naturally.
+          //
+          // We inject the matching loader for the scenario's module system
+          // (detected by whether `flags` already contains `--import` for the
+          // instrument file). For ESM scenarios we use `--import auto-flush.mjs`
+          // so the `import * as Sentry` resolves to the same SDK instance the
+          // scenario uses; for CJS we use `--require auto-flush.cjs`.
+          //
+          // Skipped when no envelopes are expected — these tests (e.g. ANR
+          // `should-exit`, `ensureNoErrorOutput`) verify the child exits
+          // naturally and auto-flush would delay that with retrying HTTP
+          // requests to the fake DSN.
+          const wantsAutoFlush =
+            !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
+          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags), ...flags] : flags;
 
           child = spawn('node', [...childFlags, testPath], { env });
 
@@ -680,18 +691,6 @@ export function createRunner(...paths: string[]) {
           if (completeError) {
             throw completeError;
           }
-
-          // Wait for the child to fully exit before resolving. The keepalive
-          // script injected via `--require` registers a SIGTERM handler that
-          // suppresses Node's default-action terminate, so `child.kill()`
-          // returns before the process is actually gone. Without this wait,
-          // back-to-back tests that bind the same fixed port (e.g. dataloader's
-          // Express server on 8008) race on EADDRINUSE.
-          await waitFor(() => hasExited, 5_000, 'Timed out waiting for child process to exit').catch(() => {
-            // If the child still hasn't exited (e.g. unclosed handles + our
-            // force-exit timer hasn't fired yet), escalate with SIGKILL.
-            child?.kill('SIGKILL');
-          });
         },
         childHasExited: function (): boolean {
           return hasExited;
@@ -762,6 +761,21 @@ export function createRunner(...paths: string[]) {
 function log(...args: unknown[]): void {
   // eslint-disable-next-line no-console
   console.log(...args.map(arg => normalize(arg)));
+}
+
+/**
+ * Returns Node flags that inject the auto-flush loader matching the scenario's
+ * module system. ESM scenarios already have `--import` for the instrument
+ * file — we mirror that with `--import auto-flush.mjs` so both resolve to the
+ * same `@sentry/node` instance. Otherwise we fall back to `--require
+ * auto-flush.cjs`.
+ */
+function buildAutoFlushFlags(existingFlags: readonly string[]): string[] {
+  const isEsm = existingFlags.includes('--import');
+  if (isEsm) {
+    return ['--import', join(__dirname, 'auto-flush.mjs')];
+  }
+  return ['--require', join(__dirname, 'auto-flush.cjs')];
 }
 
 function expectErrorEvent(item: Event, expected: ExpectedEvent): void {
