@@ -147,6 +147,12 @@
       }
     },
     {
+      "files": ["**/integrations/tracing/dataloader/vendored/**/*.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["**/integrations/tracing/genericPool/vendored/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off"
