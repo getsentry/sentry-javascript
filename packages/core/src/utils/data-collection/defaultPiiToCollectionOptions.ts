@@ -1,7 +1,10 @@
 import { PII_HEADER_SNIPPETS } from './filtering-snippets';
+import type { DataCollection } from '../../types-hoist/datacollection';
 
-// oxlint-disable-next-line typescript/no-explicit-any -> will be replaced with the new dataCollection type
-export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): any {
+/**
+ * Helper function that maps the `sendDefaultPii` boolean flag to the corresponding `DataCollection` configuration.
+ */
+export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): DataCollection {
   return sendDefaultPii === true
     ? {
         userInfo: true,
@@ -16,7 +19,7 @@ export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): any {
     : {
         userInfo: false,
         cookies: { deny: PII_HEADER_SNIPPETS },
-        httpHeaders: { deny: PII_HEADER_SNIPPETS },
+        httpHeaders: { request: { deny: PII_HEADER_SNIPPETS }, response: { deny: PII_HEADER_SNIPPETS } },
         httpBodies: [],
         queryParams: { deny: PII_HEADER_SNIPPETS },
         genAI: { inputs: false, outputs: false },
