@@ -1,10 +1,10 @@
 import { PII_HEADER_SNIPPETS } from './filtering-snippets';
-import type { DataCollection } from '../../types/datacollection';
+import type { ResolvedDataCollection } from '../../types/datacollection';
 
 /**
  * Helper function that maps the `sendDefaultPii` boolean flag to the corresponding `DataCollection` configuration.
  */
-export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): DataCollection {
+export function defaultPiiToCollectionOptions(sendDefaultPii?: boolean): ResolvedDataCollection {
   return sendDefaultPii === true
     ? {
         userInfo: true,
