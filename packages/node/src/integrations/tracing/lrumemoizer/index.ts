@@ -1,4 +1,4 @@
-import { LruMemoizerInstrumentation } from '@opentelemetry/instrumentation-lru-memoizer';
+import { LruMemoizerInstrumentation } from './vendored/instrumentation';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
