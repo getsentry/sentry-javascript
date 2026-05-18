@@ -62,12 +62,11 @@ describe('startIdleSpan', () => {
     const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
-    // DSC is still correctly set on the span
+    // DSC is still set on the span, but tracing-without-performance should
+    // preserve deferred sampling instead of freezing an explicit negative decision.
     expect(getDynamicSamplingContextFromSpan(idleSpan)).toEqual({
       environment: 'production',
       public_key: '123',
-      sample_rate: '0',
-      sampled: 'false',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 

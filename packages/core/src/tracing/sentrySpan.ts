@@ -143,8 +143,19 @@ export class SentrySpan implements Span {
    * @hidden
    * @internal
    */
-  public recordException(_exception: unknown, _time?: number | undefined): void {
-    // noop
+  public recordException(exception: unknown, time?: SpanTimeInput | undefined): void {
+    const attributes: SpanAttributes = {};
+
+    if (typeof exception === 'string') {
+      attributes['exception.message'] = exception;
+    } else if (exception && typeof exception === 'object') {
+      const error = exception as { name?: string; message?: string; stack?: string };
+      attributes['exception.type'] = error.name;
+      attributes['exception.message'] = error.message;
+      attributes['exception.stacktrace'] = error.stack;
+    }
+
+    this.addEvent('exception', attributes, time);
   }
 
   /** @inheritdoc */

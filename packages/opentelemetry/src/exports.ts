@@ -45,6 +45,8 @@ export { wrapContextManagerClass } from './contextManager';
 export { SentryPropagator, shouldPropagateTraceForUrl } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export { SentrySampler, wrapSamplingDecision } from './sampler';
+export { _INTERNAL_getSpanForRecordedException, applyOtelSpanData, SentryTraceProvider } from './sentryTraceProvider';
+export type { OpenTelemetryTraceProvider } from './types';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 

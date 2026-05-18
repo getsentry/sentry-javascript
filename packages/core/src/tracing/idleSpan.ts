@@ -6,6 +6,7 @@ import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { dropUndefinedKeys } from '../utils/object';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -124,11 +125,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   if (!client || !hasSpansEnabled()) {
     const span = new SentryNonRecordingSpan();
 
-    const dsc = {
-      sample_rate: '0',
-      sampled: 'false',
-      ...getDynamicSamplingContextFromSpan(span),
-    } satisfies Partial<DynamicSamplingContext>;
+    const dsc = dropUndefinedKeys(getDynamicSamplingContextFromSpan(span)) satisfies Partial<DynamicSamplingContext>;
     freezeDscOnSpan(span, dsc);
 
     return span;

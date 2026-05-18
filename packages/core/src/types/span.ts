@@ -173,6 +173,12 @@ export interface SpanContextData {
 
   /** In OpenTelemetry, this can be used to store trace state, which are basically key-value pairs. */
   traceState?: TraceState | undefined;
+
+  /**
+   * Sentry-specific sampling decision for this span context.
+   * `undefined` means no local sampling decision was made yet.
+   */
+  sampled?: boolean | undefined;
 }
 
 /**
@@ -319,5 +325,5 @@ export interface Span {
   /**
    * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
    */
-  recordException(exception: unknown, time?: number): void;
+  recordException(exception: unknown, time?: SpanTimeInput): void;
 }
