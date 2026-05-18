@@ -8,7 +8,9 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
-    "test:assert": "pnpm test"
+    "test:build:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+    "test:assert": "pnpm test",
+    "test:assert:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert"
   },
   "dependencies": {
     "@sentry/elysia": "file:../../packed/sentry-elysia-packed.tgz",
@@ -22,5 +24,14 @@
   "volta": {
     "extends": "../../package.json",
     "node": "24.11.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:sentry-trace-provider",
+        "assert-command": "pnpm test:assert:sentry-trace-provider",
+        "label": "elysia-node (sentry-trace-provider)"
+      }
+    ]
   }
 }

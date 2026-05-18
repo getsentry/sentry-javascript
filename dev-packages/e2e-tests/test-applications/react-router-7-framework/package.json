@@ -61,6 +61,11 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "react-router-7-framework (latest)"
+      },
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "react-router-7-framework (sentry-trace-provider)"
       }
     ]
   }

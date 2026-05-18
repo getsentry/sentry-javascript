@@ -44,6 +44,13 @@
         "assert-command": "pnpm test:prod-turbo && pnpm test:dev-turbo",
         "label": "nextjs-15 (turbo)"
       }
+    ],
+    "variants": [
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "nextjs-15 (sentry-trace-provider)"
+      }
     ]
   }
 }

@@ -9,7 +9,9 @@
     "astro": "astro",
     "start": "node ./dist/server/entry.mjs",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "TEST_ENV=production playwright test"
+    "test:build:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+    "test:assert": "TEST_ENV=production playwright test",
+    "test:assert:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.0",
@@ -21,5 +23,14 @@
   "volta": {
     "node": "22.22.0",
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:sentry-trace-provider",
+        "assert-command": "pnpm test:assert:sentry-trace-provider",
+        "label": "astro-6 (sentry-trace-provider)"
+      }
+    ]
   }
 }

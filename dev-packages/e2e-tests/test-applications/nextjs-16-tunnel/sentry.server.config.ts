@@ -7,5 +7,12 @@ Sentry.init({
   // No tunnel option - using tunnelRoute from withSentryConfig
   tracesSampleRate: 1.0,
   dataCollection: { userInfo: true },
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
   // debug: true,
 });

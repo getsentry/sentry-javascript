@@ -9,7 +9,11 @@
     "dev:bun": "bun src/entry.bun.ts",
     "build": "wrangler deploy --dry-run",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "TEST_ENV=production playwright test"
+    "test:build:sentry-trace-provider": "E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+    "test:assert": "TEST_ENV=production playwright test",
+    "test:assert:node": "RUNTIME=node pnpm test:assert",
+    "test:assert:bun": "RUNTIME=bun pnpm test:assert",
+    "test:assert:sentry-trace-provider": "RUNTIME=node E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert"
   },
   "dependencies": {
     "@sentry/bun": "latest || *",
@@ -34,12 +38,17 @@
   "sentryTest": {
     "variants": [
       {
-        "assert-command": "RUNTIME=node pnpm test:assert",
+        "assert-command": "pnpm test:assert:node",
         "label": "hono-4 (node)"
       },
       {
-        "assert-command": "RUNTIME=bun pnpm test:assert",
+        "assert-command": "pnpm test:assert:bun",
         "label": "hono-4 (bun)"
+      },
+      {
+        "build-command": "pnpm test:build:sentry-trace-provider",
+        "assert-command": "pnpm test:assert:sentry-trace-provider",
+        "label": "hono-4 (node, sentry-trace-provider)"
       }
     ]
   }

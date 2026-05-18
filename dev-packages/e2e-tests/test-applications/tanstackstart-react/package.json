@@ -66,6 +66,11 @@
         "label": "tanstackstart-react (tunnel-object)",
         "build-command": "pnpm test:build:tunnel-object",
         "assert-command": "pnpm test:assert:tunnel-object"
+      },
+      {
+        "build-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:build",
+        "assert-command": "env E2E_USE_SENTRY_TRACE_PROVIDER=1 pnpm test:assert",
+        "label": "tanstackstart-react (sentry-trace-provider)"
       }
     ]
   }

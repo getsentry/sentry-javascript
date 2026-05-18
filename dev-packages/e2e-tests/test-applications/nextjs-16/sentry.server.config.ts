@@ -7,6 +7,13 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   dataCollection: { userInfo: true },
+  ...(process.env.E2E_USE_SENTRY_TRACE_PROVIDER === '1'
+    ? {
+        _experiments: {
+          useSentryTraceProvider: true,
+        },
+      }
+    : {}),
   // debug: true,
   integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
   streamGenAiSpans: true,
