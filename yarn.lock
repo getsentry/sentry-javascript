@@ -407,10 +407,10 @@
   dependencies:
     wasm-pack "^0.13.1"
 
-"@apm-js-collab/tracing-hooks@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.7.0.tgz#4ecc4023f8874d86d1f004afcdee8e07297e739d"
-  integrity sha512-ETZbwnF3+nw6ORKW5gQnLyDgvQKg7gmshevAV34a87rQIIJoazZBRnLd8wkBaU4HUru3leAkFCwxGbeksvVKaQ==
+"@apm-js-collab/tracing-hooks@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.8.0.tgz#ab9df110b55f0ad9017521fd2f41f9a31fbe40dd"
+  integrity sha512-MIvMdVn71MyxevdshkSP8eu3lDtivhbJ5QrcKWg0EHT72GW30nVM+1wU6/CYL8bloHE+YZTU1AhIeSTz4Xfy3A==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.13.0"
     debug "^4.4.1"
