@@ -1,10 +1,5 @@
 /**
  * Controls how key-value data (headers, cookies, query params) is collected and filtered.
- *
- * - `true`          → `{ mode: 'denyList' }`
- * - `false`         → `{ mode: 'off' }`
- * - `{ deny: [] }`  → `{ mode: 'denyList', terms: [] }`
- * - `{ allow: [] }` → `{ mode: 'allowList', terms: [] }`
  */
 export type CollectBehavior = boolean | { allow: string[] } | { deny: string[] };
 
