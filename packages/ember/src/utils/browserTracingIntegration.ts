@@ -1,4 +1,5 @@
 import {
+  addIntegration,
   browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
@@ -72,4 +73,19 @@ export function browserTracingIntegration(options: EmberBrowserTracingIntegratio
       _initialized = true;
     },
   };
+}
+
+/**
+ * Utility to simplify adding the browser tracing integration to an app instance.
+ */
+export function instrumentAppInstancePerformance(
+  appInstance: ApplicationInstance,
+  options: Partial<Parameters<typeof browserTracingIntegration>[0]>,
+): void {
+  addIntegration(
+    browserTracingIntegration({
+      ...options,
+      appInstance,
+    }),
+  );
 }

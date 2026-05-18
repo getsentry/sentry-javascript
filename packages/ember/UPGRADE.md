@@ -73,10 +73,10 @@ In v1, performance instrumentation was automatic. In v2, create an instance-init
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({ appInstance }));
+  instrumentAppInstancePerformance(appInstance);
 }
 
 export default {
@@ -88,36 +88,32 @@ export default {
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(
-    browserTracingIntegration({
-      appInstance,
+  instrumentAppInstancePerformance(appInstance, {
+    // Disable runloop queue tracking
+    disableRunloopPerformance: false,
 
-      // Disable runloop queue tracking
-      disableRunloopPerformance: false,
+    // Disable component render tracking
+    disableInstrumentComponents: false,
 
-      // Disable component render tracking
-      disableInstrumentComponents: false,
+    // Track component class definitions (advanced)
+    enableComponentDefinitions: false,
 
-      // Track component class definitions (advanced)
-      enableComponentDefinitions: false,
+    // Minimum duration (ms) for runloop spans
+    minimumRunloopQueueDuration: 5,
 
-      // Minimum duration (ms) for runloop spans
-      minimumRunloopQueueDuration: 5,
+    // Minimum duration (ms) for component render spans
+    minimumComponentRenderDuration: 2,
 
-      // Minimum duration (ms) for component render spans
-      minimumComponentRenderDuration: 2,
+    // Page load and navigation instrumentation
+    instrumentPageLoad: true,
+    instrumentNavigation: true,
 
-      // Page load and navigation instrumentation
-      instrumentPageLoad: true,
-      instrumentNavigation: true,
-
-      // Idle timeout (ms)
-      idleTimeout: 5000,
-    }),
-  );
+    // Idle timeout (ms)
+    idleTimeout: 5000,
+  });
 }
 
 export default {
@@ -151,7 +147,7 @@ Most imports remain the same, but check for these changes:
 
 ```typescript
 // v2 - new import for browserTracingIntegration
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { addIntegration, browserTracingIntegration, instrumentAppInstancePerformance } from '@sentry/ember';
 
 // v2 - same for instrumentRoutePerformance
 import { instrumentRoutePerformance } from '@sentry/ember';
@@ -260,10 +256,10 @@ loadInitializers(App, config.modulePrefix);
 
 ```typescript
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(browserTracingIntegration({ appInstance }));
+  instrumentAppInstancePerformance(appInstance);
 }
 
 export default { initialize };

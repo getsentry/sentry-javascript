@@ -1,14 +1,11 @@
 import type ApplicationInstance from '@ember/application/instance';
-import { addIntegration, browserTracingIntegration } from '@sentry/ember';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
 
 export function initialize(appInstance: ApplicationInstance): void {
-  addIntegration(
-    browserTracingIntegration({
-      appInstance,
-      minimumRunloopQueueDuration: 0,
-      minimumComponentRenderDuration: 0,
-    }),
-  );
+  instrumentAppInstancePerformance(appInstance, {
+    minimumRunloopQueueDuration: 0,
+    minimumComponentRenderDuration: 0,
+  });
 }
 
 export default {

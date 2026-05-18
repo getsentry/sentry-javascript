@@ -10,4 +10,4 @@ export * from '@sentry/browser';
 // Sentry-specific utilities
 export { init } from './init.ts';
 export { instrumentRoutePerformance } from './utils/instrumentRoutePerformance.ts';
-export { browserTracingIntegration } from './utils/browserTracingIntegration.ts';
+export { browserTracingIntegration, instrumentAppInstancePerformance } from './utils/browserTracingIntegration.ts';
