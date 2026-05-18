@@ -10,10 +10,14 @@
     "doc": "doc",
     "test": "tests"
   },
+  "exports": {
+    "./tests/*": "./tests/*",
+    "./*": "./app/*"
+  },
   "scripts": {
-    "proxy": "ts-node-script start-event-proxy.ts",
+    "proxy": "node start-event-proxy.mjs",
     "build": "vite build",
-    "start": "ember serve --path dist/ --port 4020",
+    "start": "vite preview --port 3030",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test",
@@ -54,9 +58,8 @@
     "ember-resolver": "^13.2.0",
     "ember-source": "~6.12.0",
     "testem": "^3.20.0",
-    "ts-node": "10.9.1",
     "typescript": "~5.4.5",
-    "vite": "^8.0.9"
+    "vite": "^7.0.0"
   },
   "engines": {
     "node": ">=18"
