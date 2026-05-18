@@ -9,9 +9,6 @@ Sentry.init({
   integrations: [Sentry.redisIntegration({ cachePrefixes: ['dc-cache:'] })],
 });
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 async function run() {
   // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
   // is registered before node-redis eagerly creates its native TracingChannels on require().

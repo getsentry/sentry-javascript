@@ -1,6 +1,3 @@
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 import { Kafka } from 'kafkajs';
 
 async function run() {

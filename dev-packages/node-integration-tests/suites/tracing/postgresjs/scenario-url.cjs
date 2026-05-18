@@ -12,9 +12,6 @@ Sentry.init({
 const postgres = require('postgres');
 const { waitForPostgres } = require('./wait-for-postgres.js');
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 // Test URL-based initialization - this is the common pattern that was causing the regression
 const sql = postgres('postgres://test:test@localhost:5444/test_db');
 
