@@ -2,6 +2,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SentrySampler } from '../../src/sampler';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
+import { SentryTraceProvider } from '../../src/sentryTraceProvider';
 import { openTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -40,5 +41,12 @@ describe('openTelemetrySetupCheck', () => {
 
     const setup = openTelemetrySetupCheck();
     expect(setup).toEqual(['SentrySampler', 'SentrySpanProcessor']);
+  });
+
+  it('returns SentryTraceProvider setup', () => {
+    new SentryTraceProvider();
+
+    const setup = openTelemetrySetupCheck();
+    expect(setup).toEqual(['SentryTraceProvider']);
   });
 });

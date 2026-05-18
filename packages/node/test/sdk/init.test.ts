@@ -194,6 +194,35 @@ describe('init()', () => {
 
       expect(client?.traceProvider).not.toBeDefined();
     });
+
+    it('uses the minimal Sentry trace provider when the experiment is enabled', () => {
+      init({ dsn: PUBLIC_DSN, _experiments: { useSentryTraceProvider: true } });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.traceProvider).toBeInstanceOf(SentryOpentelemetry.SentryTraceProvider);
+    });
+
+    it('warns and ignores additional span processors when the minimal Sentry trace provider is enabled', () => {
+      const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+
+      init({
+        dsn: PUBLIC_DSN,
+        _experiments: { useSentryTraceProvider: true },
+        openTelemetrySpanProcessors: [
+          {
+            forceFlush: () => Promise.resolve(),
+            onStart: () => undefined,
+            onEnd: () => undefined,
+            shutdown: () => Promise.resolve(),
+          },
+        ],
+      });
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Ignoring `openTelemetrySpanProcessors` because `_experiments.useSentryTraceProvider` is enabled.',
+      );
+    });
   });
 
   it('returns initialized client', () => {

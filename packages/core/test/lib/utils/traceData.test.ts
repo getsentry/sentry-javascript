@@ -11,6 +11,7 @@ import {
   SentrySpan,
   setAsyncContextStrategy,
   setCurrentClient,
+  startSpan,
   withActiveSpan,
 } from '../../../src/';
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
@@ -139,6 +140,37 @@ describe('getTraceData', () => {
         baggage:
           'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
       });
+    });
+  });
+
+  it('does not add a sampled flag for an active TwP placeholder span', () => {
+    setupClient({ tracesSampleRate: undefined });
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampleRand: 0.42,
+    });
+
+    startSpan({ name: 'twp-root' }, () => {
+      const data = getTraceData();
+
+      expect(data).toEqual({
+        'sentry-trace': expect.stringMatching(/^12345678901234567890123456789012-[a-f0-9]{16}$/),
+        baggage:
+          'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-transaction=twp-root',
+      });
+      expect(data['sentry-trace']?.split('-')).toHaveLength(2);
+    });
+  });
+
+  it('keeps an explicit negative sampling decision for an active unsampled span', () => {
+    setupClient({ tracesSampleRate: 0 });
+
+    startSpan({ name: 'unsampled-root' }, () => {
+      const data = getTraceData();
+
+      expect(data['sentry-trace']).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-0$/);
+      expect(data.baggage).toContain('sentry-sampled=false');
     });
   });
 

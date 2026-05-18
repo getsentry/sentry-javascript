@@ -12,6 +12,7 @@ describe('SentryNonRecordingSpan', () => {
       spanId: expect.any(String),
       traceId: expect.any(String),
       traceFlags: TRACE_FLAG_NONE,
+      sampled: undefined,
     });
 
     expect(spanIsSampled(span)).toBe(false);
@@ -37,6 +38,17 @@ describe('SentryNonRecordingSpan', () => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       data: {},
       start_timestamp: 0,
+    });
+  });
+
+  it('can carry an explicit negative sampling decision', () => {
+    const span: Span = new SentryNonRecordingSpan({ sampled: false });
+
+    expect(span.spanContext()).toEqual({
+      spanId: expect.any(String),
+      traceId: expect.any(String),
+      traceFlags: TRACE_FLAG_NONE,
+      sampled: false,
     });
   });
 });
