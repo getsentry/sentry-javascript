@@ -1,10 +1,8 @@
-'use strict';
-
 /**
  * Retries until Postgres accepts connections. `docker compose up --wait` can report healthy
  * before the port forward on the host is ready (flaky on busy CI).
  */
-async function waitForPostgres(sql, maxWaitMs = 60_000) {
+export async function waitForPostgres(sql, maxWaitMs = 60_000) {
   const deadline = Date.now() + maxWaitMs;
   for (;;) {
     try {
@@ -18,5 +16,3 @@ async function waitForPostgres(sql, maxWaitMs = 60_000) {
     }
   }
 }
-
-module.exports = { waitForPostgres };

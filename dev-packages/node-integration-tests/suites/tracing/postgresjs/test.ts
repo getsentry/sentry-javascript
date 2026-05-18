@@ -232,7 +232,7 @@ describe('postgresjs auto instrumentation', () => {
             .completed();
         });
       },
-      { copyPaths: ['wait-for-postgres.js'] },
+      { copyPaths: ['wait-for-postgres.mjs'] },
     );
   });
 
@@ -334,7 +334,7 @@ describe('postgresjs auto instrumentation', () => {
             .completed();
         });
       },
-      { copyPaths: ['wait-for-postgres.js'] },
+      { copyPaths: ['wait-for-postgres.mjs'] },
     );
   });
 
@@ -424,7 +424,7 @@ describe('postgresjs auto instrumentation', () => {
             .completed();
         });
       },
-      { copyPaths: ['wait-for-postgres.js'] },
+      { copyPaths: ['wait-for-postgres.mjs'] },
     );
   });
 
@@ -513,7 +513,7 @@ describe('postgresjs auto instrumentation', () => {
             .completed();
         });
       },
-      { copyPaths: ['wait-for-postgres.js'] },
+      { copyPaths: ['wait-for-postgres.mjs'] },
     );
   });
 });
