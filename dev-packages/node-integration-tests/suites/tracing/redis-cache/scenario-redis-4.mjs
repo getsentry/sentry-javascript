@@ -1,15 +1,5 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-  integrations: [Sentry.redisIntegration({ cachePrefixes: ['redis-cache:'] })],
-});
-
-const { createClient } = require('redis-4');
+import * as Sentry from '@sentry/node';
+import { createClient } from 'redis-4';
 
 async function run() {
   const redisClient = await createClient().connect();

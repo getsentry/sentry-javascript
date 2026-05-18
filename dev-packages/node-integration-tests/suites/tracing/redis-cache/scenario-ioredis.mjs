@@ -1,15 +1,5 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-  integrations: [Sentry.redisIntegration({ cachePrefixes: ['ioredis-cache:'] })],
-});
-
-const Redis = require('ioredis');
+import * as Sentry from '@sentry/node';
+import Redis from 'ioredis';
 
 const redis = new Redis({ port: 6379 });
 
