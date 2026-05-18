@@ -59,7 +59,7 @@
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
-    "@tanstack/solid-router": "^1.169.2",
+    "@tanstack/solid-router": "^1.132.27",
     "solid-js": "^1.8.4"
   },
   "peerDependenciesMeta": {
