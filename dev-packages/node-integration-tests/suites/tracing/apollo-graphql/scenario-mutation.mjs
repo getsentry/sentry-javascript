@@ -1,16 +1,9 @@
-const Sentry = require('@sentry/node');
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-});
+import * as Sentry from '@sentry/node';
+import gql from 'graphql-tag';
 
 async function run() {
-  const gql = require('graphql-tag');
-  const server = require('./apollo-server')();
+  const { createApolloServer } = await import('./apollo-server.mjs');
+  const server = createApolloServer();
 
   await Sentry.startSpan(
     {
@@ -25,8 +18,7 @@ async function run() {
             login(email: $email)
           }
         `,
-        // We want to trigger an error by passing an invalid variable type
-        variables: { email: 123 },
+        variables: { email: 'test@email.com' },
       });
 
       setTimeout(() => {

@@ -1,8 +1,8 @@
-const { ApolloServer } = require('@apollo/server');
-const gql = require('graphql-tag');
-const Sentry = require('@sentry/node');
+import { ApolloServer } from '@apollo/server';
+import * as Sentry from '@sentry/node';
+import gql from 'graphql-tag';
 
-module.exports = () => {
+export function createApolloServer() {
   return Sentry.startSpan({ name: 'Test Server Start' }, () => {
     return new ApolloServer({
       typeDefs: gql`
@@ -32,4 +32,4 @@ module.exports = () => {
       introspection: false,
     });
   });
-};
+}

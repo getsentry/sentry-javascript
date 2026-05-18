@@ -1,19 +1,11 @@
-const Sentry = require('@sentry/node');
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
+import * as Sentry from '@sentry/node';
+import gql from 'graphql-tag';
 
-const client = Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  integrations: [Sentry.graphqlIntegration({ useOperationNameForRootSpan: true })],
-  transport: loggingTransport,
-});
-
-const tracer = client.tracer;
+const tracer = Sentry.getClient().tracer;
 
 async function run() {
-  const gql = require('graphql-tag');
-  const server = require('../apollo-server')();
+  const { createApolloServer } = await import('../../apollo-server.mjs');
+  const server = createApolloServer();
 
   await tracer.startActiveSpan(
     'test span name',
