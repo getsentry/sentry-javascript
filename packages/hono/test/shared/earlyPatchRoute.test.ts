@@ -62,6 +62,32 @@ describe('earlyPatchHono (two-phase prototype hook)', () => {
     );
   });
 
+  it('emits a debug log and applies patchAppRequest when sub-app was mounted before applyPatches', async () => {
+    const debugLogSpy = vi.spyOn(SentryCore.debug, 'log');
+
+    honoBaseProto.route = originalRoute;
+    installRouteHookOnPrototype();
+
+    const subApp = new Hono();
+    subApp.get('/hello', c => c.text('world'));
+
+    const parent = new Hono();
+    parent.route('/api', subApp);
+
+    applyPatches(parent); // retroactive instrumentation
+
+    // The log warns the developer about the out-of-order setup.
+    expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('sub-app(s) were mounted before sentry()'));
+
+    // patchAppRequest is applied retroactively
+    await subApp.request('/hello');
+
+    expect(startSpanMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'GET /hello', op: 'hono.request' }),
+      expect.any(Function),
+    );
+  });
+
   it('preserves correct route behavior', async () => {
     const subApp = new Hono();
     subApp.get('/hello', c => c.text('world'));

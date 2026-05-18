@@ -39,7 +39,9 @@ export function applyPatches<E extends Env>(app: Hono<E>): void {
 
   if (pendingSubApps.size > 0) {
     DEBUG_BUILD &&
-      debug.log(`[hono] Retroactively instrumenting ${pendingSubApps.size} sub-app(s) mounted before sentry().`);
+      debug.log(
+        `[hono] ${pendingSubApps.size} sub-app(s) were mounted before sentry(). Tracing is applied retroactively. Consider registering sentry() before calling app.route().`,
+      );
   }
 
   for (const subApp of pendingSubApps) {
